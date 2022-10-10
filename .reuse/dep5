@@ -1,0 +1,15 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: *
+Copyright: The Wallet contributors
+License: EUPL-1.2
+
+Files: documentation/*
+Copyright: The Wallet contributors
+License: CC0-1.0
+Comment: Bij het citeren van de inhoud mag niet de indruk gewekt worden dat de Rijksoverheid zonder meer de strekking van het afgeleide werk onderschrijft.
+
+File: */non-free/*
+Copyright: Its copyright holder
+License: LicenseRef-NOASSERTION
+Comment: For any file with a full path containing "non-free", no assertion is being made as to its license or copyright holder
