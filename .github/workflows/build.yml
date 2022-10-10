@@ -2,28 +2,8 @@ name: Build the app
 
 on:
   - push
-  - pull_request
     
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/nl-wallet-showcase-builder-android-flutter:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # pin@v3
-
-      - name: Run Flutter doctor
-        run: flutter doctor
-
-      - name: Run tests
-        run: flutter test
-
-
   build-and-distribute-release:
     if: ${{ startsWith(github.ref_name, 'release/') || startsWith(github.ref_name, 'beta/') || startsWith(github.ref_name, 'alpha/') }}
 
