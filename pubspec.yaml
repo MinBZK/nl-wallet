@@ -10,8 +10,11 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
+  equatable: ^2.0.5
+  fimber: ^0.6.6
   flutter:
     sdk: flutter
+  flutter_bloc: ^8.1.1
   flutter_localizations:
     sdk: flutter
 
@@ -20,6 +23,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^2.0.0
+  # Consider migrating to rename package for multi platform support
   change_app_package_name: ^1.1.0
 
 flutter:
