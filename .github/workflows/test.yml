@@ -1,9 +1,14 @@
 name: Build the app
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
 
+jobs:
   test:
     runs-on: ubuntu-latest
     container:

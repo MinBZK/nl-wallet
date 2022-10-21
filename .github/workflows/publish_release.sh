@@ -17,5 +17,5 @@ cp "$GITHUB_WORKSPACE/$APK_PATH" ./unsigned/
 git add ./unsigned
 git commit -m"chore: Added ${APK_NAME} through CI"
 
-# Force push to the unsigned branch
+# Push directly to main
 git push origin main
