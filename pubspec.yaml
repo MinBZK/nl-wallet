@@ -35,3 +35,11 @@ flutter:
   assets:
     # Add assets from the images directory to the application.
     - assets/images/
+
+  fonts:
+    - family: RijksoverheidSansWebText
+      fonts:
+        - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-regular.ttf
+          weight: 400
+        - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-bold.ttf
+          weight: 700
