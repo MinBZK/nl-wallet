@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../feature/wallet/mock_wallet_repository.dart';
-import '../feature/wallet/wallet_repository.dart';
+import '../data/repository/wallet/mock_wallet_repository.dart';
+import '../data/repository/wallet/wallet_repository.dart';
 
 /// This widget is responsible for initializing and providing all usecases.
 /// Most likely to be used once at the top (app) level, but notable below the

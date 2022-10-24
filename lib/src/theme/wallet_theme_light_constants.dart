@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class WalletThemeConstants {
+  WalletThemeConstants._();
+
   // Color scheme
   static const colorScheme = ColorScheme.light(
     primary: _primaryColor,

@@ -1,4 +1,9 @@
 {
   "@@locale": "nl",
-  "appTitle": "Wallet"
+  "appTitle": "Wallet",
+  "pinScreenTitle": "Inloggen",
+  "pinScreenHeader": "Vul je toegangscode in",
+  "pinScreenErrorHeader": "Ongeldige toeganscode",
+  "pinScreenAttemptsCount": "{count, plural, =0{Je hebt nog {count} pogingen} =1{Je hebt nog {count} poging} other{Je hebt nog {count} pogingen}}",
+  "pinScreenForgotPinCta": "Code vergeten?"
 }

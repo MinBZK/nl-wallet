@@ -24,10 +24,10 @@ class WalletApp extends StatelessWidget {
         Locale('en', ''), // English, no country code
         Locale('nl', ''), // Dutch, no country code
       ],
-      onGenerateTitle: (BuildContext context) => AppLocalizations.of(context)!.appTitle,
+      onGenerateTitle: (BuildContext context) => AppLocalizations.of(context).appTitle,
       theme: WalletTheme.light,
-      initialRoute: WalletRoutes.splashRoute,
-      routes: WalletRoutes.routes,
+      onGenerateInitialRoutes: WalletRoutes.initialRoutes,
+      onGenerateRoute: WalletRoutes.routeFactory,
     );
   }
 }

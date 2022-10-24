@@ -1,7 +1,7 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../usecase/check_is_app_initialized_usecase.dart';
+import '../../../domain/usecase/app/check_is_app_initialized_usecase.dart';
 
 part 'splash_event.dart';
 part 'splash_state.dart';

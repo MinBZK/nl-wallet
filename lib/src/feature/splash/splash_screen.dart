@@ -15,9 +15,10 @@ class SplashScreen extends StatelessWidget {
       listener: (context, state) {
         if (state is SplashLoaded) {
           if (state.isInitialized) {
-            Navigator.pushReplacementNamed(context, WalletRoutes.pinRoute);
+            Navigator.restorablePushReplacementNamed(context, WalletRoutes.pinRoute);
           } else {
-            Fimber.d("Not initialized, prefer something like Fimber for logging?");
+            Fimber.d(
+                'Not initialized, prefer something like Fimber for logging?');
           }
         }
       },
@@ -29,7 +30,7 @@ class SplashScreen extends StatelessWidget {
             children: const [
               FlutterLogo(size: 80),
               SizedBox(height: 16),
-              Text("EDI Wallet"),
+              Text('EDI Wallet'),
               SizedBox(height: 16),
               CircularProgressIndicator(),
             ],

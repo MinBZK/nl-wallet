@@ -1,4 +1,4 @@
-import '../../wallet/wallet_repository.dart';
+import '../../../data/repository/wallet/wallet_repository.dart';
 
 class CheckIsAppInitializedUseCase {
   final WalletRepository walletRepository;

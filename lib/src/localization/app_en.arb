@@ -1,4 +1,18 @@
 {
   "@@locale": "en",
-  "appTitle": "Wallet"
+  "appTitle": "Wallet",
+  "pinScreenTitle": "Login",
+  "pinScreenHeader": "Enter your pin",
+  "pinScreenErrorHeader": "Invalid pin",
+  "pinScreenAttemptsCount": "{count, plural, =0{You have {count} attempts left} =1{You have {count} attempt left} other{You have {count} attempts left}}",
+  "@pinScreenAttemptsCount": {
+    "description": "Attempts left counter on the pin entry screen",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinScreenForgotPinCta": "Forgot code?"
 }

@@ -1,7 +1,9 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wallet/src/feature/theme/theme_screen.dart';
 
+import 'feature/dashboard/dashboard_screen.dart';
+import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
@@ -11,15 +13,26 @@ import 'feature/splash/splash_screen.dart';
 class WalletRoutes {
   const WalletRoutes._();
 
-  static const splashRoute = "/";
-  static const pinRoute = "/pin";
-  static const themeRoute = "/theme";
+  static const splashRoute = '/';
+  static const pinRoute = '/pin';
+  static const dashboardRoute = '/dashboard';
+  static const themeRoute = '/theme';
 
-  static const Map<String, WidgetBuilder> routes = {
-    splashRoute: _createSplashRoute,
-    pinRoute: _createPinRoute,
-    themeRoute: _createThemeRoute,
-  };
+  static Route<dynamic> routeFactory(RouteSettings settings) {
+    switch (settings.name) {
+      case WalletRoutes.splashRoute:
+        return MaterialPageRoute(builder: _createSplashRoute);
+      case WalletRoutes.pinRoute:
+        return MaterialPageRoute(builder: _createPinRoute);
+      case WalletRoutes.dashboardRoute:
+        return MaterialPageRoute(builder: _createDashboardRoute);
+      case WalletRoutes.themeRoute:
+        return MaterialPageRoute(builder: _createThemeRoute);
+    }
+    throw UnsupportedError('Unknown route: ${settings.name}');
+  }
+
+  static List<Route<dynamic>> initialRoutes(String route) => [MaterialPageRoute(builder: _createSplashRoute)];
 }
 
 Widget _createSplashRoute(BuildContext context) => BlocProvider<SplashBloc>(
@@ -27,6 +40,11 @@ Widget _createSplashRoute(BuildContext context) => BlocProvider<SplashBloc>(
       child: const SplashScreen(),
     );
 
-Widget _createPinRoute(BuildContext context) => const PinScreen();
+Widget _createPinRoute(BuildContext context) => BlocProvider<PinBloc>(
+      create: (BuildContext context) => PinBloc(context.read(), context.read()),
+      child: const PinScreen(),
+    );
+
+Widget _createDashboardRoute(BuildContext context) => const DashboardScreen();
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();

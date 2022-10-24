@@ -1,4 +1,4 @@
-import '../../wallet_constants.dart';
+import '../../../wallet_constants.dart';
 import 'wallet_repository.dart';
 
 class MockWalletRepository implements WalletRepository {
