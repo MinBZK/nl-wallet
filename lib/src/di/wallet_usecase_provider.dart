@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
-import '../domain/usecase/pin/verify_wallet_pin_usecase.dart';
+import '../domain/usecase/pin/unlock_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all Repositories.
 /// Most likely to be used once at the top (app) level.
@@ -19,8 +19,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CheckIsAppInitializedUseCase>(
           create: (context) => CheckIsAppInitializedUseCase(context.read()),
         ),
-        RepositoryProvider<VerifyWalletPinUseCase>(
-          create: (context) => VerifyWalletPinUseCase(),
+        RepositoryProvider<UnlockWalletUseCase>(
+          create: (context) => UnlockWalletUseCase(context.read()),
         ),
         RepositoryProvider<GetAvailablePinAttemptsUseCase>(
           create: (context) => GetAvailablePinAttemptsUseCase(),

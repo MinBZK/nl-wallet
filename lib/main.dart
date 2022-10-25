@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'src/di/wallet_repository_provider.dart';
 import 'src/di/wallet_usecase_provider.dart';
+import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/wallet_app.dart';
 
 void main() async {
@@ -12,7 +13,9 @@ void main() async {
   runApp(
     const WalletRepositoryProvider(
       child: WalletUseCaseProvider(
-        child: WalletApp(),
+        child: AutoLockObserver(
+          child: WalletApp(),
+        ),
       ),
     ),
   );

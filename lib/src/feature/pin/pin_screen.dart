@@ -10,13 +10,15 @@ import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
 
 class PinScreen extends StatelessWidget {
-  const PinScreen({Key? key}) : super(key: key);
+  final VoidCallback? onUnlock;
+
+  const PinScreen({this.onUnlock, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) {
-        if (state is PinValidateSuccess) Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute);
+        if (state is PinValidateSuccess) onUnlock?.call();
         if (state is PinValidateBlocked) Navigator.restorablePushReplacementNamed(context, WalletRoutes.splashRoute);
       },
       child: Scaffold(

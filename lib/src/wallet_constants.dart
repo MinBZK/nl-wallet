@@ -5,6 +5,7 @@ const kDefaultAnimationDuration = Duration(milliseconds: 300);
 const kPinDigits = 6;
 const kPinAttempts = 4;
 const kMockPin = '123456';
+const kBackgroundLockTimeout = Duration(minutes: 1);
 
 /// Mocking
-const kDefaultMockDelay = Duration(seconds: 2);
+const kDefaultMockDelay = Duration(seconds: 1);
