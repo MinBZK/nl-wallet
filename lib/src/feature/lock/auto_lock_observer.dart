@@ -1,9 +1,11 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../data/repository/wallet/wallet_repository.dart';
 import '../../wallet_constants.dart';
+import 'widget/interaction_detector.dart';
 
 class AutoLockObserver extends StatefulWidget {
   final Widget child;
@@ -15,16 +17,27 @@ class AutoLockObserver extends StatefulWidget {
 }
 
 class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBindingObserver {
+  final PublishSubject<void> _userInteractionStream = PublishSubject();
   final Stopwatch _backgroundStopwatch = Stopwatch();
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    return InteractionDetector(
+      onInteraction: () => _resetIdleTimeout(),
+      child: widget.child,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) _lockWallet();
+    _userInteractionStream.debounceTime(kIdleLockTimeout).listen((event) => _lockWallet());
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      _lockWallet();
+    } else {
+      _resetIdleTimeout();
+    }
   }
 
   @override
@@ -36,6 +49,8 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     if (state == AppLifecycleState.detached) _startStopwatch();
   }
 
+  void _resetIdleTimeout() => _userInteractionStream.add(null);
+
   /// Starts the background lock stopwatch. If it's already running the call is ignored.
   void _startStopwatch() => _backgroundStopwatch.start();
 
@@ -46,7 +61,10 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
     _backgroundStopwatch.reset();
   }
 
-  void _lockWallet() => context.read<WalletRepository>().lockWallet();
+  void _lockWallet() {
+    Fimber.d('Locking wallet!');
+    context.read<WalletRepository>().lockWallet();
+  }
 
   @override
   void dispose() {
