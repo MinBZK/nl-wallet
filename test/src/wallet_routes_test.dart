@@ -4,8 +4,8 @@ import 'package:wallet/src/wallet_routes.dart';
 
 void main() {
   group('Route Security', () {
-    test('dashboard route should be secured', () {
-      const routeSettings = RouteSettings(name: WalletRoutes.dashboardRoute);
+    test('home route should be secured', () {
+      const routeSettings = RouteSettings(name: WalletRoutes.homeRoute);
       final Route dashboardRoute = WalletRoutes.routeFactory(routeSettings);
       expect(dashboardRoute, isA<SecuredPageRoute>());
     });

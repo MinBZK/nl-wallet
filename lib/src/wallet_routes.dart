@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'feature/dashboard/dashboard_screen.dart';
+import 'feature/home/bloc/home_bloc.dart';
+import 'feature/home/home_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_screen.dart';
@@ -20,7 +21,7 @@ class WalletRoutes {
 
   static const splashRoute = '/';
   static const pinRoute = '/pin';
-  static const dashboardRoute = '/dashboard';
+  static const homeRoute = '/home';
   static const themeRoute = '/theme';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -38,8 +39,8 @@ class WalletRoutes {
         return _createSplashRoute;
       case WalletRoutes.pinRoute:
         return _createPinRoute;
-      case WalletRoutes.dashboardRoute:
-        return _createDashboardRoute;
+      case WalletRoutes.homeRoute:
+        return _createHomeRoute;
       case WalletRoutes.themeRoute:
         return _createThemeRoute;
       default:
@@ -57,10 +58,13 @@ Widget _createSplashRoute(BuildContext context) => BlocProvider<SplashBloc>(
 
 Widget _createPinRoute(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read(), context.read()),
-      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
+      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
     );
 
-Widget _createDashboardRoute(BuildContext context) => const DashboardScreen();
+Widget _createHomeRoute(BuildContext context) => BlocProvider<HomeBloc>(
+      create: (BuildContext context) => HomeBloc(),
+      child: const HomeScreen(),
+    );
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
 

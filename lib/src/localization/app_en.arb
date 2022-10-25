@@ -14,5 +14,11 @@
       }
     }
   },
-  "pinScreenForgotPinCta": "Forgot code?"
+  "pinScreenForgotPinCta": "Forgot code?",
+  "homeBottomNavBarCardsButton": "Cards",
+  "homeBottomNavBarQrButton": "QR",
+  "homeBottomNavBarSettingsButton": "Settings",
+  "dashboardScreenTitle": "My cards",
+  "qrScreenTitle": "QR-code",
+  "settingsScreenTitle": "Settings"
 }
