@@ -68,7 +68,7 @@ class WalletThemeConstants {
   );
 
   // Color scheme
-  static const _primaryColor = Color(0xFF006BC8);
+  static const _primaryColor = Color(0xFF2065E0);
   static const _errorColor = Color(0xFFCA005D);
   static const _defaultBackgroundColor = Color(0xFFFCFCFC);
 
@@ -87,7 +87,7 @@ class WalletThemeConstants {
   static const _elevatedButtonMinHeight = 48.0;
 
   // Text colors
-  static const _primaryTextColor = Color(0xDE000000);
+  static const _primaryTextColor = Color(0xDE152A62);
 
   // Text styles
   static const _headline1TextStyle = TextStyle(fontSize: _headline1FontSize, fontWeight: FontWeight.bold);

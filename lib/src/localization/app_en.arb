@@ -20,5 +20,7 @@
   "homeBottomNavBarSettingsButton": "Settings",
   "dashboardScreenTitle": "My cards",
   "qrScreenTitle": "QR-code",
+  "qrScreenMyCodeTabTitle": "My code",
+  "qrScreenScanTabTitle": "Scan",
   "settingsScreenTitle": "Settings"
 }
