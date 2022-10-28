@@ -9,6 +9,7 @@ import 'feature/pin/pin_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
+import 'feature/verification/verification_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -23,6 +24,7 @@ class WalletRoutes {
   static const pinRoute = '/pin';
   static const homeRoute = '/home';
   static const themeRoute = '/theme';
+  static const verificationRoute = '/verification';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -43,6 +45,8 @@ class WalletRoutes {
         return _createHomeRoute;
       case WalletRoutes.themeRoute:
         return _createThemeRoute;
+      case WalletRoutes.verificationRoute:
+        return _createVerificationRoute;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -67,6 +71,8 @@ Widget _createHomeRoute(BuildContext context) => BlocProvider<HomeBloc>(
     );
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
+
+Widget _createVerificationRoute(BuildContext context) => const VerificationScreen();
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
   SecuredPageRoute({required WidgetBuilder builder}) : super(builder: (context) => PinOverlay(child: builder(context)));

@@ -8,6 +8,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(LayoutParams.FLAG_SECURE);
+        // Only on Prod. builds to enable screen recording etc. while developing.
+        if (!BuildConfig.DEBUG) window.addFlags(LayoutParams.FLAG_SECURE);
     }
 }

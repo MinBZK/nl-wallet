@@ -22,5 +22,12 @@
   "qrScreenTitle": "QR-code",
   "qrScreenMyCodeTabTitle": "My code",
   "qrScreenScanTabTitle": "Scan",
+  "qrScreenHowToScanButton": "How does scanning work?",
+  "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
+  "qrScreenHowToScanSheetDescription": "English description goes here",
+  "qrScreenHowToScanSheetCloseButton": "Close",
+  "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
+  "qrScreenScanTabErrorButton": "Retry",
+  "qrScreenScanTabContinueButton": "Scan another QR-code",
   "settingsScreenTitle": "Settings"
 }

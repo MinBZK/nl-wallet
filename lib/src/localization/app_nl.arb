@@ -8,5 +8,12 @@
   "pinScreenForgotPinCta": "Code vergeten?",
   "qrScreenTitle": "QR-code",
   "qrScreenMyCodeTabTitle": "Mijn code",
-  "qrScreenScanTabTitle": "Scannen"
+  "qrScreenScanTabTitle": "Scannen",
+  "qrScreenHowToScanButton": "Hoe werkt scannen?",
+  "qrScreenHowToScanSheetTitle": "Hoe werkt mijn QR-code?",
+  "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt zal aangeven wat nodig is.\n\nNadat je QR-code is gescant krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
+  "qrScreenHowToScanSheetCloseButton": "Sluiten",
+  "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
+  "qrScreenScanTabContinueButton": "Nog een QR scannen",
+  "qrScreenScanTabErrorButton": "Probeer opnieuw"
 }

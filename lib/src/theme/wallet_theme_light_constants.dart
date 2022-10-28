@@ -7,6 +7,7 @@ class WalletThemeConstants {
   static const colorScheme = ColorScheme.light(
     primary: _primaryColor,
     error: _errorColor,
+    secondaryContainer: _secondaryContainer,
   );
 
   // Indicator color
@@ -14,6 +15,9 @@ class WalletThemeConstants {
 
   // Default font family
   static const fontFamily = _defaultFontFamily;
+
+  // Divider color
+  static const dividerColor = _dividerColor;
 
   // Scaffold colors
   static const scaffoldBackgroundColor = _scaffoldBackgroundColor;
@@ -70,6 +74,7 @@ class WalletThemeConstants {
   // Color scheme
   static const _primaryColor = Color(0xFF2065E0);
   static const _errorColor = Color(0xFFCA005D);
+  static const _secondaryContainer = Color(0xFFF3F4F7);
   static const _defaultBackgroundColor = Color(0xFFFCFCFC);
 
   // App, bottom navigation bar & scaffold theme
@@ -80,6 +85,7 @@ class WalletThemeConstants {
   static const _bottomNavigationBarBackgroundColor = Colors.white;
   static const _bottomNavigationBarElevation = 4.0;
   static const _scaffoldBackgroundColor = _defaultBackgroundColor;
+  static const _dividerColor = Color(0x66445581);
 
   // Button theme
   static const _elevatedButtonBorderRadius = 8.0;
