@@ -1,19 +1,35 @@
 {
-  "@@locale": "nl",
-  "appTitle": "Wallet",
-  "pinScreenTitle": "Inloggen",
-  "pinScreenHeader": "Vul je toegangscode in",
-  "pinScreenErrorHeader": "Ongeldige toeganscode",
-  "pinScreenAttemptsCount": "{count, plural, =0{Je hebt nog {count} pogingen} =1{Je hebt nog {count} poging} other{Je hebt nog {count} pogingen}}",
-  "pinScreenForgotPinCta": "Code vergeten?",
-  "qrScreenTitle": "QR-code",
-  "qrScreenMyCodeTabTitle": "Mijn code",
-  "qrScreenScanTabTitle": "Scannen",
-  "qrScreenHowToScanButton": "Hoe werkt scannen?",
-  "qrScreenHowToScanSheetTitle": "Hoe werkt mijn QR-code?",
-  "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt zal aangeven wat nodig is.\n\nNadat je QR-code is gescant krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
-  "qrScreenHowToScanSheetCloseButton": "Sluiten",
-  "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
-  "qrScreenScanTabContinueButton": "Nog een QR scannen",
-  "qrScreenScanTabErrorButton": "Probeer opnieuw"
+    "@@locale": "nl",
+    "@@last_modified": "2022-10-31T15:40:42+01:00",
+    "appTitle": "Wallet",
+    "pinScreenTitle": "Inloggen",
+    "pinScreenHeader": "Vul je toegangscode in",
+    "pinScreenErrorHeader": "Ongeldige toegangscode",
+    "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
+    "@pinScreenAttemptsCount": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    },
+    "pinScreenForgotPinCta": "Code vergeten?",
+    "homeBottomNavBarCardsButton": "Kaarten",
+    "homeBottomNavBarQrButton": "QR",
+    "homeBottomNavBarSettingsButton": "Instellingen",
+    "qrScreenTitle": "QR-code",
+    "settingsScreenTitle": "Instellingen",
+    "cardOverviewScreenTitle": "Mijn kaarten",
+    "cardOverviewAddCardButton": "Gegevens toevoegen",
+    "qrScreenMyCodeTabTitle": "Mijn code",
+    "qrScreenScanTabTitle": "Scannen",
+    "qrScreenHowToScanButton": "Hoe werkt scannen?",
+    "qrScreenHowToScanSheetTitle": "Hoe werkt scannen?",
+    "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
+    "qrScreenHowToScanSheetCloseButton": "Sluiten",
+    "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
+    "qrScreenScanTabErrorButton": "Probeer opnieuw",
+    "qrScreenScanTabContinueButton": "Nog een QR scannen"
 }

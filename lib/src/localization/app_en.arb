@@ -1,34 +1,35 @@
 {
-  "@@locale": "en",
-  "appTitle": "Wallet",
-  "pinScreenTitle": "Login",
-  "pinScreenHeader": "Enter your pin",
-  "pinScreenErrorHeader": "Invalid pin",
-  "pinScreenAttemptsCount": "{count, plural, =0{You have {count} attempts left} =1{You have {count} attempt left} other{You have {count} attempts left}}",
-  "@pinScreenAttemptsCount": {
-    "description": "Attempts left counter on the pin entry screen",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
-  "pinScreenForgotPinCta": "Forgot code?",
-  "homeBottomNavBarCardsButton": "Cards",
-  "homeBottomNavBarQrButton": "QR",
-  "homeBottomNavBarSettingsButton": "Settings",
-  "cardOverviewScreenTitle": "My cards",
-  "cardOverviewAddCardButton": "Add data",
-  "qrScreenTitle": "QR-code",
-  "qrScreenMyCodeTabTitle": "My code",
-  "qrScreenScanTabTitle": "Scan",
-  "qrScreenHowToScanButton": "How does scanning work?",
-  "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
-  "qrScreenHowToScanSheetDescription": "English description goes here",
-  "qrScreenHowToScanSheetCloseButton": "Close",
-  "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
-  "qrScreenScanTabErrorButton": "Retry",
-  "qrScreenScanTabContinueButton": "Scan another QR-code",
-  "settingsScreenTitle": "Settings"
+    "@@locale": "en",
+    "@@last_modified": "2022-10-31T15:40:42+01:00",
+    "appTitle": "Wallet",
+    "pinScreenTitle": "Login",
+    "pinScreenHeader": "Enter your pin",
+    "pinScreenErrorHeader": "Invalid pin",
+    "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
+    "@pinScreenAttemptsCount": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    },
+    "pinScreenForgotPinCta": "Forgot code?",
+    "homeBottomNavBarCardsButton": "Cards",
+    "homeBottomNavBarQrButton": "QR",
+    "homeBottomNavBarSettingsButton": "Settings",
+    "qrScreenTitle": "QR-code",
+    "settingsScreenTitle": "Settings",
+    "cardOverviewScreenTitle": "My cards",
+    "cardOverviewAddCardButton": "Add data",
+    "qrScreenMyCodeTabTitle": "My code",
+    "qrScreenScanTabTitle": "Scan",
+    "qrScreenHowToScanButton": "How does scanning work?",
+    "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
+    "qrScreenHowToScanSheetDescription": "English description goes here",
+    "qrScreenHowToScanSheetCloseButton": "Close",
+    "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
+    "qrScreenScanTabErrorButton": "Retry",
+    "qrScreenScanTabContinueButton": "Scan another QR-code"
 }
