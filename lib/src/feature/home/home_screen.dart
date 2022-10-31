@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../dashboard/dashboard_screen.dart';
+import '../card/overview/bloc/card_overview_bloc.dart';
+import '../card/overview/card_overview_screen.dart';
 import '../qr/qr_screen.dart';
 import '../setting/setting_screen.dart';
 import 'bloc/home_bloc.dart';
@@ -23,13 +24,13 @@ class HomeScreen extends StatelessWidget {
       builder: (context, state) {
         switch (state.screenIndex) {
           case 0:
-            return const DashboardScreen();
+            return _cardOverviewBlocProvider(context);
           case 1:
             return const QrScreen();
           case 2:
             return const SettingScreen();
           default:
-            return const DashboardScreen();
+            throw UnsupportedError('Unhandled screenIndex: ${state.screenIndex}');
         }
       },
     );
@@ -53,6 +54,11 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
+
+  Widget _cardOverviewBlocProvider(BuildContext context) => BlocProvider<CardOverviewBloc>(
+        create: (BuildContext context) => CardOverviewBloc(context.read(), context.read()),
+        child: const CardOverviewScreen(),
+      );
 
   int _resolveBottomNavigationBarCurrentIndex(HomeState state) {
     if (state is HomeScreenSelect) return state.screenIndex;

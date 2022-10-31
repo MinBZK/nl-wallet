@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'feature/card/add/card_add_screen.dart';
+import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
@@ -23,6 +25,8 @@ class WalletRoutes {
   static const splashRoute = '/';
   static const pinRoute = '/pin';
   static const homeRoute = '/home';
+  static const cardAddRoute = '/card/add';
+  static const cardSummaryRoute = '/card/summary';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
 
@@ -43,6 +47,10 @@ class WalletRoutes {
         return _createPinRoute;
       case WalletRoutes.homeRoute:
         return _createHomeRoute;
+      case WalletRoutes.cardAddRoute:
+        return _createCardAdd;
+      case WalletRoutes.cardSummaryRoute:
+        return _createCardSummary;
       case WalletRoutes.themeRoute:
         return _createThemeRoute;
       case WalletRoutes.verificationRoute:
@@ -69,6 +77,10 @@ Widget _createHomeRoute(BuildContext context) => BlocProvider<HomeBloc>(
       create: (BuildContext context) => HomeBloc(),
       child: const HomeScreen(),
     );
+
+Widget _createCardAdd(BuildContext context) => const CardAddScreen();
+
+Widget _createCardSummary(BuildContext context) => const CardSummaryScreen();
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
 

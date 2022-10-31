@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../wallet_routes.dart';
+import '../common/widget/loading_indicator.dart';
 import 'bloc/splash_bloc.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -17,8 +18,7 @@ class SplashScreen extends StatelessWidget {
           if (state.isInitialized) {
             Navigator.restorablePushReplacementNamed(context, WalletRoutes.pinRoute);
           } else {
-            Fimber.d(
-                'Not initialized, prefer something like Fimber for logging?');
+            Fimber.d('Not initialized, prefer something like Fimber for logging?');
           }
         }
       },
@@ -32,7 +32,7 @@ class SplashScreen extends StatelessWidget {
               SizedBox(height: 16),
               Text('EDI Wallet'),
               SizedBox(height: 16),
-              CircularProgressIndicator(),
+              LoadingIndicator(),
             ],
           ),
         ),

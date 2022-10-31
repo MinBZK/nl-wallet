@@ -6,9 +6,7 @@ import 'theme/wallet_theme.dart';
 import 'wallet_routes.dart';
 
 class WalletApp extends StatelessWidget {
-  const WalletApp({
-    super.key,
-  });
+  const WalletApp({super.key});
 
   @override
   Widget build(BuildContext context) {

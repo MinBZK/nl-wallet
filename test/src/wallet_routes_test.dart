@@ -6,8 +6,8 @@ void main() {
   group('Route Security', () {
     test('home route should be secured', () {
       const routeSettings = RouteSettings(name: WalletRoutes.homeRoute);
-      final Route dashboardRoute = WalletRoutes.routeFactory(routeSettings);
-      expect(dashboardRoute, isA<SecuredPageRoute>());
+      final Route homeRoute = WalletRoutes.routeFactory(routeSettings);
+      expect(homeRoute, isA<SecuredPageRoute>());
     });
 
     test('public routes should not be secured', () {

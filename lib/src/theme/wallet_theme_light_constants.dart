@@ -28,6 +28,7 @@ class WalletThemeConstants {
     centerTitle: _appBarCenterTitle,
     elevation: _appBarElevation,
     foregroundColor: _appBarForegroundColor,
+    iconTheme: _appBarIconThemeData,
     titleTextStyle: _subtitle1TextStyle.copyWith(color: _primaryTextColor),
   );
 
@@ -82,6 +83,7 @@ class WalletThemeConstants {
   static const _appBarForegroundColor = Color(0xDE000000);
   static const _appBarCenterTitle = true;
   static const _appBarElevation = 1.0;
+  static const _appBarIconThemeData = IconThemeData(color: _primaryTextColor);
   static const _bottomNavigationBarBackgroundColor = Colors.white;
   static const _bottomNavigationBarElevation = 4.0;
   static const _scaffoldBackgroundColor = _defaultBackgroundColor;
@@ -96,17 +98,49 @@ class WalletThemeConstants {
   static const _primaryTextColor = Color(0xDE152A62);
 
   // Text styles
-  static const _headline1TextStyle = TextStyle(fontSize: _headline1FontSize, fontWeight: FontWeight.bold);
-  static const _headline2TextStyle = TextStyle(fontSize: _headline2FontSize, fontWeight: FontWeight.bold);
-  static const _headline3TextStyle = TextStyle(fontSize: _headline3FontSize, fontWeight: FontWeight.bold);
-  static const _headline4TextStyle = TextStyle(fontSize: _headline4FontSize, fontWeight: FontWeight.bold);
-  static const _subtitle1TextStyle = TextStyle(fontSize: _subtitle1FontSize, fontWeight: FontWeight.bold);
-  static const _subtitle2TextStyle = TextStyle(fontSize: _subtitle2FontSize, fontWeight: FontWeight.bold);
-  static const _body1TextStyle = TextStyle(fontSize: _body1FontSize);
-  static const _body2TextStyle = TextStyle(fontSize: _body2FontSize);
-  static const _buttonTextStyle = TextStyle(fontSize: _buttonFontSize, fontWeight: FontWeight.bold);
-  static const _captionTextStyle = TextStyle(fontSize: _captionFontSize);
-  static const _overlineTextStyle = TextStyle(fontSize: _overlineFontSize, fontWeight: FontWeight.bold);
+  static const _headline1TextStyle = TextStyle(
+    fontSize: _headline1FontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _headline2TextStyle = TextStyle(
+    fontSize: _headline2FontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _headline3TextStyle = TextStyle(
+    fontSize: _headline3FontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _headline4TextStyle = TextStyle(
+    fontSize: _headline4FontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _subtitle1TextStyle = TextStyle(
+    fontSize: _subtitle1FontSize,
+    fontWeight: FontWeight.bold,
+    height: _subtitle1LineHeight,
+  );
+  static const _subtitle2TextStyle = TextStyle(
+    fontSize: _subtitle2FontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _body1TextStyle = TextStyle(
+    fontSize: _body1FontSize,
+  );
+  static const _body2TextStyle = TextStyle(
+    fontSize: _body2FontSize,
+    height: _body2LineHeight,
+  );
+  static const _buttonTextStyle = TextStyle(
+    fontSize: _buttonFontSize,
+    fontWeight: FontWeight.bold,
+  );
+  static const _captionTextStyle = TextStyle(
+    fontSize: _captionFontSize,
+  );
+  static const _overlineTextStyle = TextStyle(
+    fontSize: _overlineFontSize,
+    fontWeight: FontWeight.bold,
+  );
 
   // Font families
   static const _defaultFontFamily = 'RijksoverheidSansWebText';
@@ -123,4 +157,8 @@ class WalletThemeConstants {
   static const _buttonFontSize = 14.0;
   static const _captionFontSize = 12.0;
   static const _overlineFontSize = 10.0;
+
+  // Line height
+  static const _subtitle1LineHeight = 1.4;
+  static const _body2LineHeight = 1.4;
 }

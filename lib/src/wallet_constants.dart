@@ -8,5 +8,8 @@ const kMockPin = '123456';
 const kBackgroundLockTimeout = Duration(minutes: 1);
 const kIdleLockTimeout = Duration(minutes: 5);
 
-/// Mocking
+// Feedback
+const kDefaultSnackBarDuration = Duration(seconds: 1);
+
+// Mocking
 const kDefaultMockDelay = Duration(seconds: 1);

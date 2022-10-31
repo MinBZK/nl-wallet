@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../wallet_routes.dart';
 import '../../../common/widget/bottom_sheet_drag_handle.dart';
+import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/check_permission_on_resume.dart';
 import '../../../common/widget/text_arrow_button.dart';
 import '../../widget/qr_scanner.dart';
@@ -47,9 +48,7 @@ class ScanQrTab extends StatelessWidget {
       child: Container(
         alignment: Alignment.center,
         color: Theme.of(context).colorScheme.secondaryContainer,
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const CenteredLoadingIndicator(),
       ),
     );
   }
