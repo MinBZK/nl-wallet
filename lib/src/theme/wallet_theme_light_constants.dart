@@ -47,6 +47,24 @@ class WalletThemeConstants {
     ),
   );
 
+  static final outlinedButtonTheme = OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      elevation: 0,
+      minimumSize: const Size.fromHeight(_outlinedButtonMinHeight),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_outlinedButtonBorderRadius)),
+      textStyle: _buttonTextStyle,
+      side: const BorderSide(color: _primaryColor, width: 0.5),
+    ),
+  );
+
+  static final textButtonTheme = TextButtonThemeData(
+    style: TextButton.styleFrom(
+      minimumSize: const Size(0.0, _textButtonMinHeight),
+      textStyle: _buttonTextStyle,
+      foregroundColor: _primaryColor,
+    ),
+  );
+
   static const tabBarTheme = TabBarTheme(
     labelColor: _primaryColor,
     labelStyle: _subtitle2TextStyle,
@@ -91,8 +109,11 @@ class WalletThemeConstants {
 
   // Button theme
   static const _elevatedButtonBorderRadius = 8.0;
+  static const _outlinedButtonBorderRadius = _elevatedButtonBorderRadius;
   static const _elevatedButtonElevation = 0.0;
   static const _elevatedButtonMinHeight = 48.0;
+  static const _outlinedButtonMinHeight = _elevatedButtonMinHeight;
+  static const _textButtonMinHeight = _elevatedButtonMinHeight;
 
   // Text colors
   static const _primaryTextColor = Color(0xDE152A62);

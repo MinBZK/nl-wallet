@@ -24,6 +24,8 @@ class WalletCardFront extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onPressed(walletCard.id),
+      radius: _kCardBorderRadius,
+      borderRadius: BorderRadius.circular(_kCardBorderRadius),
       child: AspectRatio(
         aspectRatio: _kCardAspectRatio,
         child: Card(

@@ -31,5 +31,63 @@
     "qrScreenHowToScanSheetCloseButton": "Close",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
     "qrScreenScanTabErrorButton": "Retry",
-    "qrScreenScanTabContinueButton": "Scan another QR-code"
+    "qrScreenScanTabContinueButton": "Scan another QR-code",
+    "verificationScreenTitle": "Share data",
+    "verificationScreenGenericError": "Verification failed",
+    "verificationScreenIncorrectCta": "Is something not right?",
+    "verificationScreenAllTermsCta": "All terms",
+    "verificationScreenApproveOrganizationCta": "Yes, next",
+    "verificationScreenDenyOrganizationCta": "No, decline",
+    "verificationScreenApproveAttributesCta": "Yes, next",
+    "verificationScreenDenyAttributesCta": "No, decline",
+    "verificationScreenShareDataTitle": "Do you want to share this information?",
+    "verificationScreenPurposeTitle": "Purpose",
+    "verificationScreenUsageTitle": "Usage",
+    "verificationScreenDataWillNotBeShared": "Information will not be shared",
+    "verificationScreenDataWillBeShared": "Information will be shared",
+    "verificationScreenDataCanBeDeleted": "You can request data deletion",
+    "verificationScreenDataCanNotBeDeleted": "You can not request data deletion",
+    "verificationScreenShareWithTitle": "Share data with {organization}?",
+    "@verificationScreenShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown at the top of the screen"
+    },
+    "verificationScreenAboutHeader": "About {organization}",
+    "@verificationScreenAboutHeader": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown on the expandable section"
+    },
+    "verificationScreenDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@verificationScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        },
+        "description": "Duration that data will be stored by the verifier"
+    },
+    "verificationScreenSuccessTitle": "Success! Your information is shared with {organization}",
+    "@verificationScreenSuccessTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown when data has been successfully shared"
+    },
+    "verificationScreenHistoryDescription": "You can find the details in your history",
+    "verificationScreenShowHistoryCta": "History",
+    "verificationScreenCloseCta": "Close"
 }

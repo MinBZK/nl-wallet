@@ -6,6 +6,8 @@ import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../domain/usecase/pin/unlock_wallet_usecase.dart';
+import '../domain/usecase/qr/decode_qr_usecase.dart';
+import '../domain/usecase/verification/get_verification_request_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -29,11 +31,17 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetAvailablePinAttemptsUseCase>(
           create: (context) => GetAvailablePinAttemptsUseCase(),
         ),
+        RepositoryProvider<GetVerificationRequestUseCase>(
+          create: (context) => GetVerificationRequestUseCase(context.read()),
+        ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCase(context.read()),
         ),
         RepositoryProvider<GetWalletCardsUseCase>(
           create: (context) => GetWalletCardsUseCase(context.read()),
+        ),
+        RepositoryProvider<DecodeQrUseCase>(
+          create: (context) => DecodeQrUseCase(context.read()),
         ),
       ],
       child: child,

@@ -11,6 +11,7 @@ import 'feature/pin/pin_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
+import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
@@ -33,9 +34,9 @@ class WalletRoutes {
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
     if (publicRoutes.contains(settings.name)) {
-      return MaterialPageRoute(builder: builder);
+      return MaterialPageRoute(builder: builder, settings: settings);
     } else {
-      return SecuredPageRoute(builder: builder);
+      return SecuredPageRoute(builder: builder, settings: settings);
     }
   }
 
@@ -54,7 +55,7 @@ class WalletRoutes {
       case WalletRoutes.themeRoute:
         return _createThemeRoute;
       case WalletRoutes.verificationRoute:
-        return _createVerificationRoute;
+        return _createVerificationRoute(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -84,8 +85,20 @@ Widget _createCardSummary(BuildContext context) => const CardSummaryScreen();
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
 
-Widget _createVerificationRoute(BuildContext context) => const VerificationScreen();
+WidgetBuilder _createVerificationRoute(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<VerificationBloc>(
+      create: (BuildContext context) {
+        final bloc = VerificationBloc(context.read());
+        bloc.add(VerificationLoadRequested(VerificationScreen.getArguments(settings)));
+        return bloc;
+      },
+      child: const VerificationScreen(),
+    );
+  };
+}
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
-  SecuredPageRoute({required WidgetBuilder builder}) : super(builder: (context) => PinOverlay(child: builder(context)));
+  SecuredPageRoute({required WidgetBuilder builder, super.settings})
+      : super(builder: (context) => PinOverlay(child: builder(context)));
 }

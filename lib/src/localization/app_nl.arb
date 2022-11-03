@@ -31,5 +31,63 @@
     "qrScreenHowToScanSheetCloseButton": "Sluiten",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
     "qrScreenScanTabErrorButton": "Probeer opnieuw",
-    "qrScreenScanTabContinueButton": "Nog een QR scannen"
+    "qrScreenScanTabContinueButton": "Nog een QR scannen",
+    "verificationScreenTitle": "Gegevens delen",
+    "verificationScreenGenericError": "Verificatie mislukt",
+    "verificationScreenIncorrectCta": "Klopt er iets niet?",
+    "verificationScreenAllTermsCta": "Alle voorwaarden",
+    "verificationScreenApproveOrganizationCta": "Ja, verder",
+    "verificationScreenDenyOrganizationCta": "Nee",
+    "verificationScreenApproveAttributesCta": "Ja, verder",
+    "verificationScreenDenyAttributesCta": "Nee",
+    "verificationScreenShareDataTitle": "Wil je deze gegevens delen?",
+    "verificationScreenPurposeTitle": "Doel",
+    "verificationScreenUsageTitle": "Gebruik",
+    "verificationScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
+    "verificationScreenDataWillBeShared": "Gegevens worden gedeeld",
+    "verificationScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "verificationScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+    "verificationScreenShareWithTitle": "Wil je gegevens delen met {organization}?",
+    "@verificationScreenShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown at the top of the screen"
+    },
+    "verificationScreenAboutHeader": "Over {organization}",
+    "@verificationScreenAboutHeader": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown on the expandable section"
+    },
+    "verificationScreenDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+    "@verificationScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        },
+        "description": "Duration that data will be stored by the verifier"
+    },
+    "verificationScreenSuccessTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
+    "@verificationScreenSuccessTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown when data has been successfully shared"
+    },
+    "verificationScreenHistoryDescription": "Je kan de details vinden in je geschiedenis.",
+    "verificationScreenShowHistoryCta": "Geschiedenis",
+    "verificationScreenCloseCta": "Sluiten"
 }

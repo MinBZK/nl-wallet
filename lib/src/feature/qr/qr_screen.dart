@@ -5,8 +5,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../wallet_constants.dart';
 import 'bloc/flashlight_cubit.dart';
 import 'tab/my_qr/my_qr_tab.dart';
-import 'tab/scan_qr/bloc/scan_qr_bloc.dart';
-import 'tab/scan_qr/scan_qr_tab.dart';
+import 'tab/qr_scan/bloc/qr_scan_bloc.dart';
+import 'tab/qr_scan/qr_scan_tab.dart';
 import 'widget/qr_screen_flash_toggle.dart';
 
 class QrScreen extends StatelessWidget {
@@ -32,8 +32,8 @@ class QrScreen extends StatelessWidget {
           body: TabBarView(
             children: [
               BlocProvider(
-                create: (context) => ScanQrBloc(),
-                child: const ScanQrTab(),
+                create: (context) => QrScanBloc(context.read()),
+                child: const QrScanTab(),
               ),
               const MyQrTab(),
             ],

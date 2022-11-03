@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/repository/card/mock_wallet_card_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
+import '../data/repository/qr/mock_qr_repository.dart';
+import '../data/repository/qr/qr_repository.dart';
+import '../data/repository/verification/mock_verification_request_repository.dart';
+import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
 
@@ -22,6 +26,12 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<WalletCardRepository>(
           create: (context) => MockWalletCardRepository(),
+        ),
+        RepositoryProvider<VerificationRequestRepository>(
+          create: (context) => MockVerificationRepository(),
+        ),
+        RepositoryProvider<QrRepository>(
+          create: (context) => MockQrRepository(),
         )
       ],
       child: child,

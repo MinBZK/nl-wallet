@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../domain/model/qr/qr_request.dart';
 import '../../../../wallet_routes.dart';
 import '../../../common/widget/bottom_sheet_drag_handle.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
@@ -10,27 +11,29 @@ import '../../../common/widget/check_permission_on_resume.dart';
 import '../../../common/widget/text_arrow_button.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
-import 'bloc/scan_qr_bloc.dart';
+import 'bloc/qr_scan_bloc.dart';
 
-class ScanQrTab extends StatelessWidget {
-  const ScanQrTab({Key? key}) : super(key: key);
+class QrScanTab extends StatelessWidget {
+  const QrScanTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<ScanQrBloc, ScanQrState>(
-      listenWhen: (prev, current) => current is ScanQrSuccess,
-      listener: (context, state) => Navigator.restorablePushNamed(context, WalletRoutes.verificationRoute),
+    return BlocListener<QrScanBloc, QrScanState>(
+      listenWhen: (prev, current) => current is QrScanSuccess,
+      listener: (context, state) {
+        if (state is QrScanSuccess) _handleScanSuccess(context, state);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 8),
-          BlocBuilder<ScanQrBloc, ScanQrState>(
+          BlocBuilder<QrScanBloc, QrScanState>(
             builder: (context, state) {
-              if (state is ScanQrInitial) return _buildInitialState(context);
-              if (state is ScanQrError) return _buildErrorState(context);
-              if (state is ScanQrNoPermission) return _buildNoPermission(context, state.permanentlyDenied);
-              if (state is ScanQrScanning) return QrScanner();
-              if (state is ScanQrSuccess) return _buildSuccessState(context);
+              if (state is QrScanInitial) return _buildInitialState(context);
+              if (state is QrScanFailure) return _buildErrorState(context);
+              if (state is QrScanNoPermission) return _buildNoPermission(context, state.permanentlyDenied);
+              if (state is QrScanScanning) return QrScanner();
+              if (state is QrScanSuccess) return _buildSuccessState(context);
               throw UnsupportedError('Unknown state: $state');
             },
           ),
@@ -64,7 +67,7 @@ class ScanQrTab extends StatelessWidget {
             Icon(Icons.error_outline, color: Theme.of(context).errorColor),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () => context.read<ScanQrBloc>().add(const ScanQrReset()),
+              onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
               child: Text(AppLocalizations.of(context).qrScreenScanTabErrorButton),
             )
           ],
@@ -85,13 +88,13 @@ class ScanQrTab extends StatelessWidget {
             const SizedBox(height: 8),
             CheckPermissionOnResume(
               permission: Permission.camera,
-              onPermissionGranted: () => context.read<ScanQrBloc>().add(const ScanQrCheckPermission()),
+              onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
               child: TextArrowButton(
                 onPressed: () {
                   if (isPermanentlyDenied) {
                     openAppSettings();
                   } else {
-                    context.read<ScanQrBloc>().add(const ScanQrCheckPermission());
+                    context.read<QrScanBloc>().add(const QrScanCheckPermission());
                   }
                 },
                 child: Text(AppLocalizations.of(context).qrScreenScanTabGrantPermissionButton),
@@ -114,7 +117,7 @@ class ScanQrTab extends StatelessWidget {
             const Icon(Icons.qr_code),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () => context.read<ScanQrBloc>().add(const ScanQrReset()),
+              onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
               child: Text(AppLocalizations.of(context).qrScreenScanTabContinueButton),
             )
           ],
@@ -160,5 +163,20 @@ class ScanQrTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _handleScanSuccess(BuildContext context, QrScanSuccess state) {
+    switch (state.request.type) {
+      case QrRequestType.verification:
+        Navigator.restorablePushNamed(
+          context,
+          WalletRoutes.verificationRoute,
+          arguments: state.request.sessionId,
+        );
+        break;
+      case QrRequestType.issuance:
+        // TODO: Handle this case.
+        break;
+    }
   }
 }

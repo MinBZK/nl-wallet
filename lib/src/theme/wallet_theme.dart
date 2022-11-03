@@ -14,6 +14,8 @@ class WalletTheme {
     appBarTheme: WalletThemeConstants.appBarTheme,
     bottomNavigationBarTheme: WalletThemeConstants.bottomNavigationBarThemeData,
     elevatedButtonTheme: WalletThemeConstants.elevatedButtonTheme,
+    outlinedButtonTheme: WalletThemeConstants.outlinedButtonTheme,
+    textButtonTheme: WalletThemeConstants.textButtonTheme,
     tabBarTheme: WalletThemeConstants.tabBarTheme,
     textTheme: WalletThemeConstants.textTheme,
   );
