@@ -1,4 +1,4 @@
-name: Run the unit tests
+name: Run the code analysis tool
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - '*'
 
 jobs:
-  test:
+  analyze:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/nl-wallet-showcase-builder-flutter:latest
@@ -26,5 +26,5 @@ jobs:
           flutter config --no-analytics
           flutter doctor -v
 
-      - name: Run tests
-        run: flutter test
+      - name: Run code analysis tool
+        run: flutter analyze
