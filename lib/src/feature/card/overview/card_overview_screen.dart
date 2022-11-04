@@ -89,6 +89,6 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   void _onCardPressed(BuildContext context, String cardId) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardSummaryRoute);
+    Navigator.restorablePushNamed(context, WalletRoutes.cardSummaryRoute, arguments: cardId);
   }
 }

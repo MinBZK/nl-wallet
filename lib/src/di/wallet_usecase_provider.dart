@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
+import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
@@ -42,6 +43,13 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCase(context.read()),
+        ),
+        RepositoryProvider<GetWalletCardSummaryUseCase>(
+          create: (context) => GetWalletCardSummaryUseCase(
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: child,

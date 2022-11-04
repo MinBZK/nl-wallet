@@ -47,6 +47,12 @@ class WalletThemeConstants {
     ),
   );
 
+  static const floatingActionButtonTheme = FloatingActionButtonThemeData(
+    backgroundColor: _primaryColor,
+    foregroundColor: Colors.white,
+    extendedTextStyle: _buttonTextStyle,
+  );
+
   static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       elevation: 0,
@@ -109,9 +115,9 @@ class WalletThemeConstants {
 
   // Button theme
   static const _elevatedButtonBorderRadius = 8.0;
-  static const _outlinedButtonBorderRadius = _elevatedButtonBorderRadius;
   static const _elevatedButtonElevation = 0.0;
   static const _elevatedButtonMinHeight = 48.0;
+  static const _outlinedButtonBorderRadius = _elevatedButtonBorderRadius;
   static const _outlinedButtonMinHeight = _elevatedButtonMinHeight;
   static const _textButtonMinHeight = _elevatedButtonMinHeight;
 

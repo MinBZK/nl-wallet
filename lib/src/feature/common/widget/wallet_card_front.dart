@@ -12,7 +12,7 @@ const _kInfoMaxLines = 2;
 
 class WalletCardFront extends StatelessWidget {
   final WalletCard walletCard;
-  final Function(String cardId) onPressed;
+  final Function(String cardId)? onPressed;
 
   const WalletCardFront({
     required this.walletCard,
@@ -23,7 +23,7 @@ class WalletCardFront extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => onPressed(walletCard.id),
+      onTap: () => onPressed != null ? onPressed!(walletCard.id) : null,
       radius: _kCardBorderRadius,
       borderRadius: BorderRadius.circular(_kCardBorderRadius),
       child: AspectRatio(

@@ -89,5 +89,12 @@
     },
     "verificationScreenHistoryDescription": "Je kan de details vinden in je geschiedenis.",
     "verificationScreenShowHistoryCta": "Geschiedenis",
-    "verificationScreenCloseCta": "Sluiten"
+    "verificationScreenCloseCta": "Sluiten",
+    "cardSummaryScreenTitle": "Kaart overzicht",
+    "cardSummaryDataAttributesTitle": "Gegevens",
+    "cardSummaryDataAttributesAllButton": "Alle gegevens",
+    "cardSummaryDataShareHistoryTitle": "Geschiedenis",
+    "cardSummaryDataShareHistoryAllButton": "Geschiedenis",
+    "cardSummaryOptionsButton": "Kaart opties",
+    "cardSummaryDataShareButton": "Delen"
 }

@@ -89,5 +89,12 @@
     },
     "verificationScreenHistoryDescription": "You can find the details in your history",
     "verificationScreenShowHistoryCta": "History",
-    "verificationScreenCloseCta": "Close"
+    "verificationScreenCloseCta": "Close",
+    "cardSummaryScreenTitle": "Card summary",
+    "cardSummaryDataAttributesTitle": "Data",
+    "cardSummaryDataAttributesAllButton": "All data",
+    "cardSummaryDataShareHistoryTitle": "History",
+    "cardSummaryDataShareHistoryAllButton": "History",
+    "cardSummaryOptionsButton": "Card options",
+    "cardSummaryDataShareButton": "Share"
 }

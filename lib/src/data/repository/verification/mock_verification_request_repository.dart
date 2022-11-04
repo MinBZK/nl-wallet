@@ -4,6 +4,21 @@ import '../../../feature/verification/model/verifier.dart';
 import '../../../feature/verification/model/verifier_policy.dart';
 import 'verification_request_repository.dart';
 
+class MockVerificationRepository implements VerificationRequestRepository {
+  MockVerificationRepository();
+
+  @override
+  Future<VerificationRequest> getRequest(String sessionId) async {
+    switch (sessionId) {
+      case '1':
+        return _kDuoSampleRequest;
+      case '2':
+        return _kLotterySampleRequest;
+    }
+    throw UnimplementedError('No mock usecase for id: $sessionId');
+  }
+}
+
 const _kDuoSampleRequest = VerificationRequest(
   id: 1,
   verifier: Verifier(
@@ -26,6 +41,7 @@ const _kDuoSampleRequest = VerificationRequest(
     dataIsShared: false,
   ),
 );
+
 const _kLotterySampleRequest = VerificationRequest(
   id: 2,
   verifier: Verifier(
@@ -49,18 +65,3 @@ const _kLotterySampleRequest = VerificationRequest(
     dataIsShared: true,
   ),
 );
-
-class MockVerificationRepository implements VerificationRequestRepository {
-  MockVerificationRepository();
-
-  @override
-  Future<VerificationRequest> getRequest(String sessionId) async {
-    switch (sessionId) {
-      case '1':
-        return _kDuoSampleRequest;
-      case '2':
-        return _kLotterySampleRequest;
-    }
-    throw UnimplementedError('No mock usecase for id: $sessionId');
-  }
-}

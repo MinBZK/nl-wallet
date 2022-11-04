@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'feature/card/add/card_add_screen.dart';
+import 'feature/card/data/card_data_screen.dart';
+import 'feature/card/history/card_history_screen.dart';
+import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
@@ -28,6 +31,8 @@ class WalletRoutes {
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
+  static const cardDataRoute = '/card/data';
+  static const cardHistoryRoute = '/card/history';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
 
@@ -49,9 +54,13 @@ class WalletRoutes {
       case WalletRoutes.homeRoute:
         return _createHomeRoute;
       case WalletRoutes.cardAddRoute:
-        return _createCardAdd;
+        return _createCardAddRoute;
       case WalletRoutes.cardSummaryRoute:
-        return _createCardSummary;
+        return _createCardSummaryRoute(settings);
+      case WalletRoutes.cardDataRoute:
+        return _createCardDataRoute;
+      case WalletRoutes.cardHistoryRoute:
+        return _createCardHistoryRoute;
       case WalletRoutes.themeRoute:
         return _createThemeRoute;
       case WalletRoutes.verificationRoute:
@@ -79,9 +88,21 @@ Widget _createHomeRoute(BuildContext context) => BlocProvider<HomeBloc>(
       child: const HomeScreen(),
     );
 
-Widget _createCardAdd(BuildContext context) => const CardAddScreen();
+Widget _createCardAddRoute(BuildContext context) => const CardAddScreen();
 
-Widget _createCardSummary(BuildContext context) => const CardSummaryScreen();
+WidgetBuilder _createCardSummaryRoute(RouteSettings settings) {
+  return (context) {
+    final String cardId = CardSummaryScreen.getArguments(settings);
+    return BlocProvider<CardSummaryBloc>(
+      create: (context) => CardSummaryBloc(context.read())..add(CardSummaryLoadTriggered(cardId)),
+      child: const CardSummaryScreen(),
+    );
+  };
+}
+
+Widget _createCardDataRoute(BuildContext context) => const CardDataScreen();
+
+Widget _createCardHistoryRoute(BuildContext context) => const CardHistoryScreen();
 
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
 
