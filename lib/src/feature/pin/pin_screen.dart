@@ -20,7 +20,13 @@ class PinScreen extends StatelessWidget {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) {
         if (state is PinValidateSuccess) onUnlock?.call();
-        if (state is PinValidateBlocked) Navigator.restorablePushReplacementNamed(context, WalletRoutes.splashRoute);
+        if (state is PinValidateBlocked) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            WalletRoutes.splashRoute,
+            ModalRoute.withName(WalletRoutes.splashRoute),
+          );
+        }
       },
       child: Scaffold(
         appBar: AppBar(

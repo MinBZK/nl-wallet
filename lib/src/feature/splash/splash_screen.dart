@@ -1,4 +1,3 @@
-import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,7 +17,7 @@ class SplashScreen extends StatelessWidget {
           if (state.isInitialized) {
             Navigator.restorablePushReplacementNamed(context, WalletRoutes.pinRoute);
           } else {
-            Fimber.d('Not initialized, prefer something like Fimber for logging?');
+            Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletCreateRoute);
           }
         }
       },

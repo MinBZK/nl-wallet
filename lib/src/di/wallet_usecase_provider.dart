@@ -30,7 +30,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => UnlockWalletUseCase(context.read()),
         ),
         RepositoryProvider<GetAvailablePinAttemptsUseCase>(
-          create: (context) => GetAvailablePinAttemptsUseCase(),
+          create: (context) => GetAvailablePinAttemptsUseCase(context.read()),
         ),
         RepositoryProvider<GetVerificationRequestUseCase>(
           create: (context) => GetVerificationRequestUseCase(context.read()),

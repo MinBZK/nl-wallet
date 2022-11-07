@@ -46,9 +46,8 @@ class PinBloc extends Bloc<PinEvent, PinState> {
       emit(const PinValidateSuccess());
     } else {
       _currentPin = '';
-      int leftoverAttempts = await getAvailablePinAttemptsUseCase.getLeftoverAttempts();
+      int leftoverAttempts = getAvailablePinAttemptsUseCase.invoke();
       if (leftoverAttempts <= 0) {
-        getAvailablePinAttemptsUseCase.reset();
         emit(const PinValidateBlocked());
       } else {
         emit(PinValidateFailure(leftoverAttempts));

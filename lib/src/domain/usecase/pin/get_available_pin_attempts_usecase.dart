@@ -1,17 +1,9 @@
-import '../../../wallet_constants.dart';
+import '../../../data/repository/wallet/wallet_repository.dart';
 
 class GetAvailablePinAttemptsUseCase {
-  var _attemptsLeft = kPinAttempts;
+  final WalletRepository walletRepository;
 
-  GetAvailablePinAttemptsUseCase();
+  GetAvailablePinAttemptsUseCase(this.walletRepository);
 
-  Future<int> getLeftoverAttempts() async {
-    _attemptsLeft--;
-    return _attemptsLeft;
-  }
-
-  /// Convenience method to reset the counter while mocking. Eventually
-  /// this value should be persisted securely somewhere and only been reset
-  /// after destroying the wallet.
-  void reset() => _attemptsLeft = kPinAttempts;
+  int invoke() => walletRepository.leftoverUnlockAttempts;
 }

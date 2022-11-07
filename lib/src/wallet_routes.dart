@@ -16,6 +16,7 @@ import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
 import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
+import 'feature/wallet/create/wallet_create_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -24,10 +25,11 @@ class WalletRoutes {
 
   /// Routes in this list will be shown WITHOUT pin (wallet unlock) requirement
   @visibleForTesting
-  static const publicRoutes = [splashRoute, pinRoute, themeRoute];
+  static const publicRoutes = [splashRoute, pinRoute, themeRoute, walletCreateRoute];
 
   static const splashRoute = '/';
   static const pinRoute = '/pin';
+  static const walletCreateRoute = '/wallet/create';
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
@@ -65,6 +67,8 @@ class WalletRoutes {
         return _createThemeRoute;
       case WalletRoutes.verificationRoute:
         return _createVerificationRoute(settings);
+      case WalletRoutes.walletCreateRoute:
+        return _createWalletCreateRoute;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -118,6 +122,8 @@ WidgetBuilder _createVerificationRoute(RouteSettings settings) {
     );
   };
 }
+
+Widget _createWalletCreateRoute(BuildContext context) => const WalletCreateScreen();
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
   SecuredPageRoute({required WidgetBuilder builder, super.settings})

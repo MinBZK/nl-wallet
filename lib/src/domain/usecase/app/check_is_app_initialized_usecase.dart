@@ -6,6 +6,6 @@ class CheckIsAppInitializedUseCase {
   CheckIsAppInitializedUseCase(this.walletRepository);
 
   Future<bool> isInitialized() async {
-    return walletRepository.isWalletInitialized();
+    return walletRepository.isInitializedStream.first;
   }
 }
