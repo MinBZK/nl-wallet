@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../domain/model/data_highlight.dart';
+import '../../../domain/model/usage_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../../domain/model/wallet_card_data_attribute.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/data_attribute_image.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_summary_bloc.dart';
-
-const _kHighlightImageBorderRadius = 4.0;
 
 class CardSummaryScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -81,11 +81,11 @@ class CardSummaryScreen extends StatelessWidget {
         const SizedBox(height: 24.0),
         const Divider(),
         const SizedBox(height: 24.0),
-        _buildDataHighlight(context, summary.data),
+        _buildDataHighlight(context, summary.card.id, summary.dataHighlight),
         const SizedBox(height: 8.0),
         const Divider(),
         const SizedBox(height: 24.0),
-        _buildUsageHighlight(context, summary.usage),
+        _buildUsageHighlight(context, summary.card.id, summary.usageAttribute),
         const SizedBox(height: 8.0),
         const Divider(),
         const SizedBox(height: 8.0),
@@ -113,89 +113,70 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDataHighlight(BuildContext context, WalletCardDataAttribute dataAttribute) {
+  Widget _buildDataHighlight(BuildContext context, String cardId, DataHighlight highlight) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         mainAxisSize: MainAxisSize.max,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).cardSummaryDataAttributesTitle,
-                        style: Theme.of(context).textTheme.subtitle1,
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(dataAttribute.content, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context).cardSummaryDataAttributesTitle,
+                      style: Theme.of(context).textTheme.subtitle1,
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text('${highlight.title}\n${highlight.subtitle}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
                 ),
-                LinkButton(
-                  onPressed: () => _onCardDataPressed(context),
-                  child: Text(AppLocalizations.of(context).cardSummaryDataAttributesAllButton),
-                ),
-              ],
-            ),
+              ),
+              LinkButton(
+                onPressed: () => _onCardDataPressed(context, cardId),
+                child: Text(AppLocalizations.of(context).cardSummaryDataAttributesAllButton),
+              ),
+            ],
           ),
-          if (dataAttribute.image != null) ...[
+          if (highlight.image != null) ...[
             const SizedBox(width: 16.0),
-            ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(_kHighlightImageBorderRadius)),
-              child: Image.asset(dataAttribute.image ?? ''),
-            ),
+            DataAttributeImage(image: highlight.image!),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildUsageHighlight(BuildContext context, WalletCardDataAttribute dataAttribute) {
+  Widget _buildUsageHighlight(BuildContext context, String cardId, UsageAttribute attribute) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context).cardSummaryDataShareHistoryTitle,
-                        style: Theme.of(context).textTheme.subtitle1,
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(dataAttribute.content, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
+                Text(
+                  AppLocalizations.of(context).cardSummaryDataShareHistoryTitle,
+                  style: Theme.of(context).textTheme.subtitle1,
                 ),
-                LinkButton(
-                  onPressed: () => _onCardHistoryPressed(context),
-                  child: Text(AppLocalizations.of(context).cardSummaryDataShareHistoryAllButton),
-                ),
+                const SizedBox(height: 8.0),
+                Text(attribute.value, maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          if (dataAttribute.image != null) ...[
-            const SizedBox(width: 16.0),
-            ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(_kHighlightImageBorderRadius)),
-              child: Image.asset(dataAttribute.image ?? ''),
-            ),
-          ],
+          LinkButton(
+            onPressed: () => _onCardHistoryPressed(context, cardId),
+            child: Text(AppLocalizations.of(context).cardSummaryDataShareHistoryAllButton),
+          ),
         ],
       ),
     );
@@ -205,12 +186,12 @@ class CardSummaryScreen extends StatelessWidget {
     Fimber.d('_onCardOptionsPressed');
   }
 
-  void _onCardDataPressed(BuildContext context) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardDataRoute);
+  void _onCardDataPressed(BuildContext context, String cardId) {
+    Navigator.restorablePushNamed(context, WalletRoutes.cardDataRoute, arguments: cardId);
   }
 
-  void _onCardHistoryPressed(BuildContext context) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute);
+  void _onCardHistoryPressed(BuildContext context, String cardId) {
+    Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: cardId);
   }
 
   void _onCardDataSharePressed(BuildContext context) {

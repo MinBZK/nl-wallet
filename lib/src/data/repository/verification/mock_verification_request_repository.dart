@@ -1,4 +1,4 @@
-import '../../../feature/verification/model/data_attribute.dart';
+import '../../../domain/model/data_attribute.dart';
 import '../../../feature/verification/model/verification_request.dart';
 import '../../../feature/verification/model/verifier.dart';
 import '../../../feature/verification/model/verifier_policy.dart';

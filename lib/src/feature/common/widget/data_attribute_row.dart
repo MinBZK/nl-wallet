@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../model/data_attribute.dart';
+import '../../../domain/model/data_attribute.dart';
 
 class DataAttributeRow extends StatelessWidget {
   final DataAttribute attribute;

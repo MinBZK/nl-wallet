@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../data/repository/card/mock_wallet_card_data_repository.dart';
+import '../data/repository/card/mock_wallet_card_data_attribute_repository.dart';
+import '../data/repository/card/mock_wallet_card_data_highlight_repository.dart';
 import '../data/repository/card/mock_wallet_card_repository.dart';
-import '../data/repository/card/mock_wallet_card_usage_repository.dart';
-import '../data/repository/card/wallet_card_data_repository.dart';
+import '../data/repository/card/mock_wallet_card_usage_attribute_repository.dart';
+import '../data/repository/card/wallet_card_data_attribute_repository.dart';
+import '../data/repository/card/wallet_card_data_highlight_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
-import '../data/repository/card/wallet_card_usage_repository.dart';
+import '../data/repository/card/wallet_card_usage_attribute_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/verification/mock_verification_request_repository.dart';
@@ -31,11 +33,14 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<WalletCardRepository>(
           create: (context) => MockWalletCardRepository(),
         ),
-        RepositoryProvider<WalletCardDataRepository>(
-          create: (context) => MockWalletCardDataRepository(),
+        RepositoryProvider<WalletCardDataAttributeRepository>(
+          create: (context) => MockWalletCardDataAttributeRepository(),
         ),
-        RepositoryProvider<WalletCardUsageRepository>(
-          create: (context) => MockWalletCardUsageRepository(),
+        RepositoryProvider<WalletCardDataHighlightRepository>(
+          create: (context) => MockWalletCardDataHighlightRepository(),
+        ),
+        RepositoryProvider<WalletCardUsageAttributeRepository>(
+          create: (context) => MockWalletCardUsageAttributeRepository(),
         ),
         RepositoryProvider<VerificationRequestRepository>(
           create: (context) => MockVerificationRepository(),

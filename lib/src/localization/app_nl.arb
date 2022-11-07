@@ -96,5 +96,7 @@
     "cardSummaryDataShareHistoryTitle": "Geschiedenis",
     "cardSummaryDataShareHistoryAllButton": "Geschiedenis",
     "cardSummaryOptionsButton": "Kaart opties",
-    "cardSummaryDataShareButton": "Delen"
+    "cardSummaryDataShareButton": "Delen",
+    "cardDataAttributesScreenTitle": "Alle gegevens",
+    "cardDataAttributesCloseButton": "Sluiten"
 }

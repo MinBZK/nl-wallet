@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'feature/card/add/card_add_screen.dart';
+import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/card_history_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
@@ -60,7 +61,7 @@ class WalletRoutes {
       case WalletRoutes.cardSummaryRoute:
         return _createCardSummaryRoute(settings);
       case WalletRoutes.cardDataRoute:
-        return _createCardDataRoute;
+        return _createCardDataRoute(settings);
       case WalletRoutes.cardHistoryRoute:
         return _createCardHistoryRoute;
       case WalletRoutes.themeRoute:
@@ -104,7 +105,15 @@ WidgetBuilder _createCardSummaryRoute(RouteSettings settings) {
   };
 }
 
-Widget _createCardDataRoute(BuildContext context) => const CardDataScreen();
+WidgetBuilder _createCardDataRoute(RouteSettings settings) {
+  return (context) {
+    final String cardId = CardDataScreen.getArguments(settings);
+    return BlocProvider<CardDataBloc>(
+      create: (context) => CardDataBloc(context.read())..add(CardDataLoadTriggered(cardId)),
+      child: const CardDataScreen(),
+    );
+  };
+}
 
 Widget _createCardHistoryRoute(BuildContext context) => const CardHistoryScreen();
 

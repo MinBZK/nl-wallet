@@ -96,5 +96,7 @@
     "cardSummaryDataShareHistoryTitle": "History",
     "cardSummaryDataShareHistoryAllButton": "History",
     "cardSummaryOptionsButton": "Card options",
-    "cardSummaryDataShareButton": "Share"
+    "cardSummaryDataShareButton": "Share",
+    "cardDataAttributesScreenTitle": "All data",
+    "cardDataAttributesCloseButton": "Close"
 }

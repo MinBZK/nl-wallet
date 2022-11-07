@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../model/verification_request.dart';
 import '../widget/confirm_buttons.dart';
-import '../widget/data_attribute_row.dart';
 import '../widget/policy_row.dart';
 
 class ConfirmDataAttributesPage extends StatelessWidget {

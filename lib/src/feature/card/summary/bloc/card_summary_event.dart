@@ -5,10 +5,10 @@ abstract class CardSummaryEvent extends Equatable {
 }
 
 class CardSummaryLoadTriggered extends CardSummaryEvent {
-  final String id;
+  final String cardId;
 
-  const CardSummaryLoadTriggered(this.id);
+  const CardSummaryLoadTriggered(this.cardId);
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [cardId];
 }
