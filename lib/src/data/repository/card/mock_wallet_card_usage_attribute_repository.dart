@@ -22,12 +22,14 @@ class MockWalletCardUsageAttributeRepository implements WalletCardUsageAttribute
   }
 }
 
-const _kMockAirportUsageAttribute = UsageAttribute(
-  value: '4 uur geleden gedeeld met Amsterdam Airport Schiphol',
-  status: 'Gedeeld',
+final _kMockAirportUsageAttribute = UsageAttribute(
+  value: 'Amsterdam Airport Schiphol',
+  status: UsageStatus.success,
+  dateTime: DateTime.now().subtract(const Duration(hours: 4)),
 );
 
-const _kMockLotteryUsageAttribute = UsageAttribute(
-  value: '2 dagen geleden gedeeld Staatsloterij',
-  status: 'Afgewezen',
+final _kMockLotteryUsageAttribute = UsageAttribute(
+  value: 'Staatsloterij',
+  status: UsageStatus.rejected,
+  dateTime: DateTime.now().subtract(const Duration(days: 5)),
 );

@@ -97,6 +97,61 @@
     "cardSummaryDataShareHistoryAllButton": "Geschiedenis",
     "cardSummaryOptionsButton": "Kaart opties",
     "cardSummaryDataShareButton": "Delen",
+    "cardSummaryDataShareStatusSuccess": "gedeeld",
+    "cardSummaryDataShareStatusRejected": "geweigerd te delen",
+    "cardSummaryDataShareStatusFailed": "niet gelukt te delen",
+    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organisation}",
+    "@cardSummaryDataShareHistory": {
+        "placeholders": {
+            "timeAgo": {
+                "example": "4 hours ago",
+                "type": "String"
+            },
+            "shareStatus": {
+                "example": "failed to share",
+                "type": "String"
+            },
+            "organisation": {
+                "example": "Organization",
+                "type": "String"
+            }
+        },
+        "description": "Most recent data share history."
+    },
     "cardDataAttributesScreenTitle": "Alle gegevens",
-    "cardDataAttributesCloseButton": "Sluiten"
+    "cardDataAttributesCloseButton": "Sluiten",
+    "generalTimeAgo": "geleden",
+    "generalOnDate": "Op",
+    "generalTimeAgoLessThenOneMinute": "minder dan een minute",
+    "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
+    "@generalDays": {
+        "placeholders": {
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        },
+        "description": "Days"
+    },
+    "generalHours": "{hours, plural, =1 {{hours} uur} other {{hours} uur}}",
+    "@generalHours": {
+        "placeholders": {
+            "hours": {
+                "example": "16",
+                "type": "int"
+            }
+        },
+        "description": "Hours"
+    },
+
+    "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
+    "@generalMinutes": {
+        "placeholders": {
+            "minutes": {
+                "example": "59",
+                "type": "int"
+            }
+        },
+        "description": "Minutes"
+    }
 }

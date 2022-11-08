@@ -18,6 +18,7 @@ dependencies:
   flutter_bloc: ^8.1.1
   flutter_localizations:
     sdk: flutter
+  intl: ^0.17.0
   mobile_scanner: ^2.0.0
   permission_handler: ^10.2.0
   rxdart: ^0.27.5

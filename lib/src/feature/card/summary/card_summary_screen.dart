@@ -7,6 +7,8 @@ import '../../../domain/model/data_highlight.dart';
 import '../../../domain/model/usage_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
+import '../../../util/formatter/time_ago_formatter.dart';
+import '../../../util/formatter/usage_status_formatter.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/data_attribute_image.dart';
@@ -169,7 +171,7 @@ class CardSummaryScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.subtitle1,
                 ),
                 const SizedBox(height: 8.0),
-                Text(attribute.value, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(_createUsageHistoryText(context, attribute), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -180,6 +182,13 @@ class CardSummaryScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _createUsageHistoryText(BuildContext context, UsageAttribute attribute) {
+    final locale = AppLocalizations.of(context);
+    final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
+    final String status = UsageStatusFormatter.format(locale, attribute.status);
+    return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.value);
   }
 
   void _onCardOptionsPressed(BuildContext context) {
