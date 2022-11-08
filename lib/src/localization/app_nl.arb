@@ -97,6 +97,22 @@
     "cardSummaryDataShareHistoryAllButton": "Geschiedenis",
     "cardSummaryOptionsButton": "Kaart opties",
     "cardSummaryDataShareButton": "Delen",
+    "verifierRequestConditionsScreenBackCta": "Terug",
+    "verifierRequestConditionsScreenPolicySectionTitle": "Meer weten?",
+    "verifierRequestConditionsScreenPolicySectionPolicyCta": "privacybeleid",
+    "verifierRequestConditionsScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
+    "verifierRequestConditionsScreenRetryCta": "Probeer opnieuw",
+    "verifierRequestConditionsScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
+    "@verifierRequestConditionsScreenPolicySectionText": {
+        "placeholders": {
+            "policy": {
+                "example": "privacy policy",
+                "type": "String"
+            }
+        },
+        "description": "Text showing the user where to find the privacy policy"
+    },
+    "verifierRequestConditionsScreenTitle": "Voorwaarden",
     "cardSummaryDataShareStatusSuccess": "gedeeld",
     "cardSummaryDataShareStatusRejected": "geweigerd te delen",
     "cardSummaryDataShareStatusFailed": "niet gelukt te delen",

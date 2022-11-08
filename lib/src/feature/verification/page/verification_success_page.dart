@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../common/widget/text_arrow_button.dart';
+import '../../common/widget/text_icon_button.dart';
 import '../widget/success_icon.dart';
 
 class VerificationSuccessPage extends StatelessWidget {
@@ -43,7 +43,7 @@ class VerificationSuccessPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          TextArrowButton(
+          TextIconButton(
             onPressed: onHistoryPressed,
             child: Text(AppLocalizations.of(context).verificationScreenShowHistoryCta),
           ),

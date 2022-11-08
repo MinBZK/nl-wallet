@@ -17,6 +17,8 @@ import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
 import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
+import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
+import 'feature/verifier_policy/verifier_policy_screen.dart';
 import 'feature/wallet/create/wallet_create_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
@@ -38,6 +40,7 @@ class WalletRoutes {
   static const cardHistoryRoute = '/card/history';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
+  static const verifierPolicyRoute = '/verifier/policy';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -68,6 +71,8 @@ class WalletRoutes {
         return _createThemeRoute;
       case WalletRoutes.verificationRoute:
         return _createVerificationRoute(settings);
+      case WalletRoutes.verifierPolicyRoute:
+        return _createVerifierPolicyRoute(settings);
       case WalletRoutes.walletCreateRoute:
         return _createWalletCreateRoute;
       default:
@@ -120,14 +125,21 @@ Widget _createCardHistoryRoute(BuildContext context) => const CardHistoryScreen(
 Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
 
 WidgetBuilder _createVerificationRoute(RouteSettings settings) {
+  String sessionId = VerificationScreen.getArguments(settings);
   return (context) {
     return BlocProvider<VerificationBloc>(
-      create: (BuildContext context) {
-        final bloc = VerificationBloc(context.read());
-        bloc.add(VerificationLoadRequested(VerificationScreen.getArguments(settings)));
-        return bloc;
-      },
+      create: (BuildContext context) => VerificationBloc(context.read())..add(VerificationLoadRequested(sessionId)),
       child: const VerificationScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createVerifierPolicyRoute(RouteSettings settings) {
+  return (context) {
+    String sessionId = VerifierPolicyScreen.getArguments(settings);
+    return BlocProvider<VerifierPolicyBloc>(
+      create: (BuildContext context) => VerifierPolicyBloc(context.read())..add(VerifierPolicyLoadTriggered(sessionId)),
+      child: const VerifierPolicyScreen(),
     );
   };
 }

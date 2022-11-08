@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../wallet_routes.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../model/verification_request.dart';
@@ -112,7 +113,11 @@ class ConfirmDataAttributesPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
-        onPressed: () {},
+        onPressed: () => Navigator.restorablePushNamed(
+          context,
+          WalletRoutes.verifierPolicyRoute,
+          arguments: request.id.toString(),
+        ),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(AppLocalizations.of(context).verificationScreenAllTermsCta),

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
-class TextArrowButton extends StatelessWidget {
+class TextIconButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onPressed;
   final ArrowPosition arrowPosition;
+  final IconData icon;
 
-  const TextArrowButton({
+  const TextIconButton({
     required this.child,
     required this.onPressed,
+    this.icon = Icons.arrow_forward,
     this.arrowPosition = ArrowPosition.end,
     Key? key,
   }) : super(key: key);
@@ -18,7 +20,7 @@ class TextArrowButton extends StatelessWidget {
       const SizedBox(width: 20),
       child,
       const SizedBox(width: 8),
-      const Icon(Icons.arrow_forward, size: 12),
+      Icon(icon, size: 12),
     ];
     return TextButton(
       onPressed: onPressed,

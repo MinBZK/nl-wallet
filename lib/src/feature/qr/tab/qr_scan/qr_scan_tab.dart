@@ -8,7 +8,7 @@ import '../../../../wallet_routes.dart';
 import '../../../common/widget/bottom_sheet_drag_handle.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/check_permission_on_resume.dart';
-import '../../../common/widget/text_arrow_button.dart';
+import '../../../common/widget/text_icon_button.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
 import 'bloc/qr_scan_bloc.dart';
@@ -37,7 +37,7 @@ class QrScanTab extends StatelessWidget {
               throw UnsupportedError('Unknown state: $state');
             },
           ),
-          TextArrowButton(
+          TextIconButton(
             onPressed: () => _showHowToScanSheet(context),
             child: Text(AppLocalizations.of(context).qrScreenHowToScanButton),
           ),
@@ -89,7 +89,7 @@ class QrScanTab extends StatelessWidget {
             CheckPermissionOnResume(
               permission: Permission.camera,
               onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
-              child: TextArrowButton(
+              child: TextIconButton(
                 onPressed: () {
                   if (isPermanentlyDenied) {
                     openAppSettings();

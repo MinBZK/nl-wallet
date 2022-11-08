@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import '../../wallet_routes.dart';
 
 class SettingScreen extends StatelessWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -10,9 +13,29 @@ class SettingScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).settingsScreenTitle),
       ),
-      body: const Center(
-        child: Text('Placeholder; settings'),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Placeholder; settings'),
+            _buildThemeButton(context),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildThemeButton(BuildContext context) {
+    if (kDebugMode) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ElevatedButton(
+          child: const Text('Design System'),
+          onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
+        ),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 }

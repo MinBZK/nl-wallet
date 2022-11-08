@@ -5,7 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
-import '../common/widget/text_arrow_button.dart';
+import '../common/widget/text_icon_button.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
@@ -106,7 +106,7 @@ class PinScreen extends StatelessWidget {
     return BlocBuilder<PinBloc, PinState>(
       builder: (context, state) {
         final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
-        return TextArrowButton(
+        return TextIconButton(
           onPressed: buttonEnabled ? () => Fimber.d('TODO: Navigate to forgot pin route') : null,
           child: Text(AppLocalizations.of(context).pinScreenForgotPinCta),
         );

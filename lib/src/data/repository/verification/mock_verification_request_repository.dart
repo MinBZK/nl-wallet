@@ -36,7 +36,7 @@ const _kDuoSampleRequest = VerificationRequest(
   policy: VerifierPolicy(
     storageDuration: Duration(days: 3 * 30),
     dataPurpose: 'Gegevens controle',
-    privacyPolicyUrl: 'www.example.org',
+    privacyPolicyUrl: 'https://www.example.org',
     deletionCanBeRequested: true,
     dataIsShared: false,
   ),
@@ -60,7 +60,7 @@ const _kLotterySampleRequest = VerificationRequest(
   policy: VerifierPolicy(
     storageDuration: Duration(days: 30),
     dataPurpose: 'Gegevens controle',
-    privacyPolicyUrl: 'www.example.org',
+    privacyPolicyUrl: 'https://www.example.org',
     deletionCanBeRequested: false,
     dataIsShared: true,
   ),

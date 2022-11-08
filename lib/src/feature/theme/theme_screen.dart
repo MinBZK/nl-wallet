@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../common/widget/link_button.dart';
+import '../common/widget/text_icon_button.dart';
+
 class ThemeScreen extends StatelessWidget {
   const ThemeScreen({Key? key}) : super(key: key);
 
@@ -22,10 +25,9 @@ class ThemeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16.0),
                 children: [
                   Text('Headline 1', style: Theme.of(context).textTheme.headline1),
                   Text('Headline 2', style: Theme.of(context).textTheme.headline2),
@@ -38,12 +40,35 @@ class ThemeScreen extends StatelessWidget {
                   Text('Button', style: Theme.of(context).textTheme.button),
                   Text('Caption', style: Theme.of(context).textTheme.caption),
                   Text('Overline', style: Theme.of(context).textTheme.overline),
-                  const SizedBox(height: 16.0),
+                  const Divider(height: 32),
                   ElevatedButton(
                     onPressed: () => {},
-                    style: Theme.of(context).elevatedButtonTheme.style,
-                    child: const Text('Button'),
+                    child: const Text('ElevatedButton'),
                   ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => {},
+                    child: const Text('TextButton'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextIconButton(
+                    onPressed: () => {},
+                    child: const Text('TextIconButton'),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () => {},
+                    child: const Text('OutlinedButton'),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: LinkButton(
+                      onPressed: () => {},
+                      child: const Text('LinkButton'),
+                    ),
+                  ),
+                  const Divider(height: 32),
                 ],
               ),
             ),
@@ -54,15 +79,15 @@ class ThemeScreen extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.credit_card),
-            label: 'Kaarten',
+            label: 'Menu 1',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.qr_code),
-            label: 'QR',
+            label: 'Menu 2',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
-            label: 'Instellingen',
+            label: 'Menu 3',
           ),
         ],
       ),

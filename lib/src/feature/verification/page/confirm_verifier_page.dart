@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../common/widget/text_arrow_button.dart';
+import '../../common/widget/text_icon_button.dart';
 import '../model/verifier.dart';
 import '../widget/confirm_buttons.dart';
 
@@ -97,7 +97,7 @@ class ConfirmVerifierPage extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     return Center(
-      child: TextArrowButton(
+      child: TextIconButton(
         child: Text(AppLocalizations.of(context).verificationScreenIncorrectCta),
         onPressed: () {},
       ),
