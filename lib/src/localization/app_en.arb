@@ -117,6 +117,7 @@
     "cardSummaryDataShareStatusRejected": "rejected to share",
     "cardSummaryDataShareStatusFailed": "failed to share",
     "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organisation}",
+    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
     "@cardSummaryDataShareHistory": {
         "placeholders": {
             "timeAgo": {

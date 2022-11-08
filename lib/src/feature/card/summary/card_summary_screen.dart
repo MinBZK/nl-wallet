@@ -155,7 +155,7 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUsageHighlight(BuildContext context, String cardId, UsageAttribute attribute) {
+  Widget _buildUsageHighlight(BuildContext context, String cardId, UsageAttribute? attribute) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -184,11 +184,15 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  String _createUsageHistoryText(BuildContext context, UsageAttribute attribute) {
+  String _createUsageHistoryText(BuildContext context, UsageAttribute? attribute) {
     final locale = AppLocalizations.of(context);
-    final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
-    final String status = UsageStatusFormatter.format(locale, attribute.status);
-    return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.value);
+    if (attribute != null) {
+      final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
+      final String status = UsageStatusFormatter.format(locale, attribute.status);
+      return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.value);
+    } else {
+      return locale.cardSummaryDataShareSuccessNoHistory;
+    }
   }
 
   void _onCardOptionsPressed(BuildContext context) {

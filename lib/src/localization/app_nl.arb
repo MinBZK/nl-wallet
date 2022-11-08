@@ -117,6 +117,7 @@
     "cardSummaryDataShareStatusRejected": "geweigerd te delen",
     "cardSummaryDataShareStatusFailed": "niet gelukt te delen",
     "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organisation}",
+    "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
     "@cardSummaryDataShareHistory": {
         "placeholders": {
             "timeAgo": {

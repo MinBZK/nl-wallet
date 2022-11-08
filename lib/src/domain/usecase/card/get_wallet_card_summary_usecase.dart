@@ -20,7 +20,7 @@ class GetWalletCardSummaryUseCase {
   Future<WalletCardSummary> getWalletCardSummary(String cardId) async {
     WalletCard card = await walletCardRepository.getWalletCard(cardId);
     DataHighlight dataHighlight = await walletCardDataHighlightRepository.getLatest(cardId);
-    UsageAttribute usageAttribute = await walletCardUsageAttributeRepository.getLatest(cardId);
+    UsageAttribute? usageAttribute = await walletCardUsageAttributeRepository.getFiltered(cardId, UsageStatus.success);
 
     WalletCardSummary summary = WalletCardSummary(
       card: card,

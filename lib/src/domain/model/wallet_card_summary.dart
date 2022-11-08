@@ -5,7 +5,7 @@ import 'wallet_card.dart';
 class WalletCardSummary {
   final WalletCard card;
   final DataHighlight dataHighlight;
-  final UsageAttribute usageAttribute;
+  final UsageAttribute? usageAttribute;
 
   const WalletCardSummary({
     required this.card,
