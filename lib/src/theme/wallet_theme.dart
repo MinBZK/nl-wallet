@@ -9,6 +9,7 @@ class WalletTheme {
     colorScheme: WalletThemeConstants.colorScheme,
     fontFamily: WalletThemeConstants.fontFamily,
     indicatorColor: WalletThemeConstants.indicatorColor,
+    primaryColorDark: WalletThemeConstants.primaryColorDark,
     dividerColor: WalletThemeConstants.dividerColor,
     scaffoldBackgroundColor: WalletThemeConstants.scaffoldBackgroundColor,
     appBarTheme: WalletThemeConstants.appBarTheme,

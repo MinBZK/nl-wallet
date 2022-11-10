@@ -34,6 +34,7 @@
     "qrScreenScanTabContinueButton": "Scan another QR-code",
     "verificationScreenTitle": "Share data",
     "verificationScreenGenericError": "Verification failed",
+    "verificationScreenGenericErrorCta": "Exit",
     "verificationScreenIncorrectCta": "Is something not right?",
     "verificationScreenAllTermsCta": "All terms",
     "verificationScreenApproveOrganizationCta": "Yes, next",
@@ -90,6 +91,22 @@
     "verificationScreenHistoryDescription": "You can find the details in your history",
     "verificationScreenShowHistoryCta": "History",
     "verificationScreenCloseCta": "Close",
+    "verificationScreenCancelSheetTitle": "Are you sure you want to stop sharing",
+    "verificationScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
+    "@verificationScreenCancelSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+    },
+    "verificationScreenCancelSheetNegativeCta": "No",
+    "verificationScreenCancelSheetPositiveCta": "Yes, stop",
+    "verificationScreenDeclinedTitle": "Stopped sharing data",
+    "verificationScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
+    "verificationScreenGiveFeedbackCta": "Give Feedback",
     "cardSummaryScreenTitle": "Card summary",
     "cardSummaryDataAttributesTitle": "Data",
     "cardSummaryDataAttributesAllButton": "All data",
@@ -160,7 +177,6 @@
         },
         "description": "Hours"
     },
-
     "generalMinutes": "{minutes, plural, =1 {{minutes} minute} other {{minutes} minutes}}",
     "@generalMinutes": {
         "placeholders": {

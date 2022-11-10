@@ -13,6 +13,9 @@ class WalletThemeConstants {
   // Indicator color
   static const indicatorColor = _primaryColor;
 
+  // Dark variant of the primary color
+  static const primaryColorDark = _primaryColorDark;
+
   // Default font family
   static const fontFamily = _defaultFontFamily;
 
@@ -98,6 +101,7 @@ class WalletThemeConstants {
 
   // Color scheme
   static const _primaryColor = Color(0xFF2065E0);
+  static const _primaryColorDark = Color(0xFF152A62);
   static const _errorColor = Color(0xFFCA005D);
   static const _secondaryContainer = Color(0xFFF3F4F7);
   static const _defaultBackgroundColor = Color(0xFFFCFCFC);

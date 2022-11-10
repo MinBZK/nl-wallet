@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/text_icon_button.dart';
-import '../widget/success_icon.dart';
+import '../widget/status_icon.dart';
 
 class VerificationSuccessPage extends StatelessWidget {
   final String verifierShortName;
@@ -25,7 +25,7 @@ class VerificationSuccessPage extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: SuccessIcon(),
+            child: StatusIcon(icon: Icons.check),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),

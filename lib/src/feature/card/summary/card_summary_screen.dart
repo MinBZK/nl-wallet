@@ -148,7 +148,7 @@ class CardSummaryScreen extends StatelessWidget {
           ),
           if (highlight.image != null) ...[
             const SizedBox(width: 16.0),
-            DataAttributeImage(image: highlight.image!),
+            DataAttributeImage(image: AssetImage(highlight.image!)),
           ],
         ],
       ),

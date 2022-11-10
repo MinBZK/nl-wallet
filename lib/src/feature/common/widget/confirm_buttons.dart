@@ -5,12 +5,16 @@ class ConfirmButtons extends StatelessWidget {
   final VoidCallback onAccept;
   final String acceptText;
   final String declineText;
+  final IconData? acceptIcon;
+  final IconData? declineIcon;
 
   const ConfirmButtons({
     required this.onDecline,
     required this.onAccept,
     required this.acceptText,
     required this.declineText,
+    this.acceptIcon = Icons.check,
+    this.declineIcon = Icons.not_interested,
     Key? key,
   }) : super(key: key);
 
@@ -29,17 +33,16 @@ class ConfirmButtons extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton(
                   onPressed: onDecline,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.not_interested,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(declineText),
-                    ],
-                  ),
+                  child: declineIcon == null
+                      ? Text(declineText)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(declineIcon, size: 16),
+                            const SizedBox(width: 8),
+                            Text(declineText),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -49,17 +52,16 @@ class ConfirmButtons extends StatelessWidget {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: onAccept,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.check,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(acceptText),
-                    ],
-                  ),
+                  child: acceptIcon == null
+                      ? Text(acceptText)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(acceptIcon, size: 16),
+                            const SizedBox(width: 8),
+                            Text(acceptText),
+                          ],
+                        ),
                 ),
               ),
             ),

@@ -21,11 +21,22 @@ class VerificationLoadFailure extends VerificationState {
 
 class VerificationLoadSuccess extends VerificationState {
   final VerificationRequest request;
+  final VerificationResult status;
 
   const VerificationLoadSuccess({
     required this.request,
+    this.status = VerificationResult.pendingUser,
   });
 
   @override
-  List<Object> get props => [request];
+  List<Object> get props => [request, status];
+
+  VerificationLoadSuccess copyWith({VerificationResult? status}) {
+    return VerificationLoadSuccess(
+      request: request,
+      status: status ?? this.status,
+    );
+  }
 }
+
+enum VerificationResult { pendingUser, loading, approved, denied }

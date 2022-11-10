@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/text_icon_button.dart';
 import '../model/verifier.dart';
-import '../widget/confirm_buttons.dart';
 
 class ConfirmVerifierPage extends StatelessWidget {
   final VoidCallback onDecline;

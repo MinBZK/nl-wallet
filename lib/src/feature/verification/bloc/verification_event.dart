@@ -12,3 +12,17 @@ class VerificationLoadRequested extends VerificationEvent {
   @override
   List<Object?> get props => [sessionId];
 }
+
+class VerificationDenied extends VerificationEvent {
+  const VerificationDenied();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class VerificationApproved extends VerificationEvent {
+  const VerificationApproved();
+
+  @override
+  List<Object?> get props => [];
+}

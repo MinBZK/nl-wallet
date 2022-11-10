@@ -3,6 +3,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
+import '../../../wallet_constants.dart';
 import '../model/verification_request.dart';
 
 part 'verification_event.dart';
@@ -13,6 +14,8 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
 
   VerificationBloc(this.getVerificationRequestUseCase) : super(VerificationInitial()) {
     on<VerificationLoadRequested>(_onVerificationLoadRequested);
+    on<VerificationApproved>(_onVerificationApproved);
+    on<VerificationDenied>(_onVerificationDenied);
   }
 
   void _onVerificationLoadRequested(VerificationLoadRequested event, emit) async {
@@ -25,6 +28,22 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
         Fimber.e('Failed to load VerificationRequest for id ${event.sessionId}', ex: ex, stacktrace: stack);
         emit(VerificationLoadFailure());
       }
+    }
+  }
+
+  void _onVerificationApproved(VerificationApproved event, emit) async {
+    if (state is VerificationLoadSuccess) {
+      emit((state as VerificationLoadSuccess).copyWith(status: VerificationResult.loading));
+      await Future.delayed(kDefaultMockDelay);
+      emit((state as VerificationLoadSuccess).copyWith(status: VerificationResult.approved));
+    }
+  }
+
+  void _onVerificationDenied(VerificationDenied event, emit) async {
+    if (state is VerificationLoadSuccess) {
+      emit((state as VerificationLoadSuccess).copyWith(status: VerificationResult.loading));
+      await Future.delayed(kDefaultMockDelay);
+      emit((state as VerificationLoadSuccess).copyWith(status: VerificationResult.denied));
     }
   }
 }

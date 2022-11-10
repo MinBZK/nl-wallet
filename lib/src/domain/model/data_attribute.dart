@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class DataAttribute extends Equatable {
   final String type;
-  final String value;
+  final String? value;
 
   const DataAttribute({
     required this.type,

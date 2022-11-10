@@ -5,7 +5,7 @@ const _kImageWidth = 58.0;
 const _kImageHeight = 64.0;
 
 class DataAttributeImage extends StatelessWidget {
-  final String image;
+  final ImageProvider image;
 
   const DataAttributeImage({required this.image, Key? key}) : super(key: key);
 
@@ -16,7 +16,7 @@ class DataAttributeImage extends StatelessWidget {
       height: _kImageHeight,
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(_kImageBorderRadius)),
-        child: Image.asset(image),
+        child: Image(image: image),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/link_button.dart';
 import '../common/widget/text_icon_button.dart';
 
@@ -69,6 +70,18 @@ class ThemeScreen extends StatelessWidget {
                     ),
                   ),
                   const Divider(height: 32),
+                  TextButton(
+                    onPressed: () => {
+                      ConfirmActionSheet.show(
+                        context,
+                        title: 'Title goes here',
+                        description: 'Description goes here',
+                        cancelButtonText: 'cancel',
+                        confirmButtonText: 'confirm',
+                      )
+                    },
+                    child: const Text('Confirm Action Sheet'),
+                  ),
                 ],
               ),
             ),

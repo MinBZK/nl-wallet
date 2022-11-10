@@ -17,6 +17,8 @@ class VerificationRequest extends Equatable {
     required this.policy,
   });
 
+  bool get hasMissingAttributes => attributes.any((element) => element.value == null);
+
   @override
   List<Object?> get props => [id, verifier, attributes, policy];
 }

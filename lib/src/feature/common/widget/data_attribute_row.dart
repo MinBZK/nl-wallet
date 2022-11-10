@@ -18,7 +18,7 @@ class DataAttributeRow extends StatelessWidget {
           style: Theme.of(context).textTheme.caption,
         ),
         Text(
-          attribute.value,
+          attribute.value ?? '-',
           style: Theme.of(context).textTheme.subtitle1,
         ),
       ],

@@ -34,6 +34,7 @@
     "qrScreenScanTabContinueButton": "Nog een QR scannen",
     "verificationScreenTitle": "Gegevens delen",
     "verificationScreenGenericError": "Verificatie mislukt",
+    "verificationScreenGenericErrorCta": "Sluiten",
     "verificationScreenIncorrectCta": "Klopt er iets niet?",
     "verificationScreenAllTermsCta": "Alle voorwaarden",
     "verificationScreenApproveOrganizationCta": "Ja, verder",
@@ -90,6 +91,22 @@
     "verificationScreenHistoryDescription": "Je kan de details vinden in je geschiedenis.",
     "verificationScreenShowHistoryCta": "Geschiedenis",
     "verificationScreenCloseCta": "Sluiten",
+    "verificationScreenCancelSheetTitle": "Weet je zeker dat je wilt stoppen met delen?",
+    "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}}. ",
+    "@verificationScreenCancelSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+    },
+    "verificationScreenCancelSheetNegativeCta": "Nee",
+    "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
+    "verificationScreenDeclinedTitle": "Delen gestopt",
+    "verificationScreenDeclinedDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "verificationScreenGiveFeedbackCta": "Geef feedback",
     "cardSummaryScreenTitle": "Kaart overzicht",
     "cardSummaryDataAttributesTitle": "Gegevens",
     "cardSummaryDataAttributesAllButton": "Alle gegevens",
