@@ -28,7 +28,7 @@ class VerifierPolicyScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'verifier_policy_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).verifierRequestConditionsScreenTitle),
+        title: Text(AppLocalizations.of(context).verifierPolicyScreenTitle),
       ),
       body: BlocBuilder<VerifierPolicyBloc, VerifierPolicyState>(
         builder: (context, state) {
@@ -49,10 +49,10 @@ class VerifierPolicyScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(locale.verifierRequestConditionsScreenErrorDescription),
+          Text(locale.verifierPolicyScreenErrorDescription),
           ElevatedButton(
             onPressed: () => context.read<VerifierPolicyBloc>().add(VerifierPolicyLoadTriggered(state.sessionId)),
-            child: Text(locale.verifierRequestConditionsScreenRetryCta),
+            child: Text(locale.verifierPolicyScreenRetryCta),
           ),
         ],
       ),
@@ -110,7 +110,7 @@ class VerifierPolicyScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           arrowPosition: ArrowPosition.start,
           icon: Icons.arrow_back,
-          child: Text(AppLocalizations.of(context).verifierRequestConditionsScreenBackCta),
+          child: Text(AppLocalizations.of(context).verifierPolicyScreenBackCta),
         ),
       ),
     );

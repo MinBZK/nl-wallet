@@ -54,53 +54,53 @@ class WalletRoutes {
   static WidgetBuilder _widgetBuilderFactory(RouteSettings settings) {
     switch (settings.name) {
       case WalletRoutes.splashRoute:
-        return _createSplashRoute;
+        return _createSplashScreenBuilder;
       case WalletRoutes.pinRoute:
-        return _createPinRoute;
+        return _createPinScreenBuilder;
       case WalletRoutes.homeRoute:
-        return _createHomeRoute;
+        return _createHomeScreenBuilder;
       case WalletRoutes.cardAddRoute:
-        return _createCardAddRoute;
+        return _createCardAddScreenBuilder;
       case WalletRoutes.cardSummaryRoute:
-        return _createCardSummaryRoute(settings);
+        return _createCardSummaryScreenBuilder(settings);
       case WalletRoutes.cardDataRoute:
-        return _createCardDataRoute(settings);
+        return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
-        return _createCardHistoryRoute;
+        return _createCardHistoryScreenBuilder;
       case WalletRoutes.themeRoute:
-        return _createThemeRoute;
+        return _createThemeScreenBuilder;
       case WalletRoutes.verificationRoute:
-        return _createVerificationRoute(settings);
+        return _createVerificationScreenBuilder(settings);
       case WalletRoutes.verifierPolicyRoute:
-        return _createVerifierPolicyRoute(settings);
+        return _createVerifierPolicyScreenBuilder(settings);
       case WalletRoutes.walletCreateRoute:
-        return _createWalletCreateRoute;
+        return _createWalletCreateScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
   }
 
-  static List<Route<dynamic>> initialRoutes(String route) => [MaterialPageRoute(builder: _createSplashRoute)];
+  static List<Route<dynamic>> initialRoutes(String route) => [MaterialPageRoute(builder: _createSplashScreenBuilder)];
 }
 
-Widget _createSplashRoute(BuildContext context) => BlocProvider<SplashBloc>(
+Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
       create: (BuildContext context) => SplashBloc(context.read()),
       child: const SplashScreen(),
     );
 
-Widget _createPinRoute(BuildContext context) => BlocProvider<PinBloc>(
+Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read(), context.read()),
       child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
     );
 
-Widget _createHomeRoute(BuildContext context) => BlocProvider<HomeBloc>(
+Widget _createHomeScreenBuilder(BuildContext context) => BlocProvider<HomeBloc>(
       create: (BuildContext context) => HomeBloc(),
       child: const HomeScreen(),
     );
 
-Widget _createCardAddRoute(BuildContext context) => const CardAddScreen();
+Widget _createCardAddScreenBuilder(BuildContext context) => const CardAddScreen();
 
-WidgetBuilder _createCardSummaryRoute(RouteSettings settings) {
+WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
   return (context) {
     final String cardId = CardSummaryScreen.getArguments(settings);
     return BlocProvider<CardSummaryBloc>(
@@ -110,7 +110,7 @@ WidgetBuilder _createCardSummaryRoute(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createCardDataRoute(RouteSettings settings) {
+WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
   return (context) {
     final String cardId = CardDataScreen.getArguments(settings);
     return BlocProvider<CardDataBloc>(
@@ -120,11 +120,11 @@ WidgetBuilder _createCardDataRoute(RouteSettings settings) {
   };
 }
 
-Widget _createCardHistoryRoute(BuildContext context) => const CardHistoryScreen();
+Widget _createCardHistoryScreenBuilder(BuildContext context) => const CardHistoryScreen();
 
-Widget _createThemeRoute(BuildContext context) => const ThemeScreen();
+Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
-WidgetBuilder _createVerificationRoute(RouteSettings settings) {
+WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
   String sessionId = VerificationScreen.getArguments(settings);
   return (context) {
     return BlocProvider<VerificationBloc>(
@@ -134,7 +134,7 @@ WidgetBuilder _createVerificationRoute(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createVerifierPolicyRoute(RouteSettings settings) {
+WidgetBuilder _createVerifierPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
     String sessionId = VerifierPolicyScreen.getArguments(settings);
     return BlocProvider<VerifierPolicyBloc>(
@@ -144,7 +144,7 @@ WidgetBuilder _createVerifierPolicyRoute(RouteSettings settings) {
   };
 }
 
-Widget _createWalletCreateRoute(BuildContext context) => const WalletCreateScreen();
+Widget _createWalletCreateScreenBuilder(BuildContext context) => const WalletCreateScreen();
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
   SecuredPageRoute({required WidgetBuilder builder, super.settings})

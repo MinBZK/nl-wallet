@@ -71,14 +71,14 @@ class PolicyEntriesBuilder {
   }
 
   PolicyEntry _buildPrivacyPolicy(VerifierPolicy policy) {
-    final policyCta = locale.verifierRequestConditionsScreenPolicySectionPolicyCta;
-    final fullPolicyDescription = locale.verifierRequestConditionsScreenPolicySectionText(policyCta);
+    final policyCta = locale.verifierPolicyScreenPolicySectionPolicyCta;
+    final fullPolicyDescription = locale.verifierPolicyScreenPolicySectionText(policyCta);
     final ctaIndex = fullPolicyDescription.indexOf(policyCta);
     final prefix = fullPolicyDescription.substring(0, ctaIndex);
     final suffix = fullPolicyDescription.substring(ctaIndex + policyCta.length, fullPolicyDescription.length);
 
     final policyEntry = PolicyEntry(
-      title: TextSpan(text: locale.verifierRequestConditionsScreenPolicySectionTitle),
+      title: TextSpan(text: locale.verifierPolicyScreenPolicySectionTitle),
       description: TextSpan(children: [
         TextSpan(text: prefix),
         TextSpan(

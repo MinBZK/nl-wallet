@@ -32,6 +32,7 @@ class PinScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(AppLocalizations.of(context).pinScreenTitle),
           centerTitle: true,
+          leading: const SizedBox.shrink(),
         ),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

@@ -114,12 +114,12 @@
     "cardSummaryDataShareHistoryAllButton": "History",
     "cardSummaryOptionsButton": "Card options",
     "cardSummaryDataShareButton": "Share",
-    "verifierRequestConditionsScreenBackCta": "Back",
-    "verifierRequestConditionsScreenErrorDescription": "The policy could not be loaded",
-    "verifierRequestConditionsScreenRetryCta": "Try again",
-    "verifierRequestConditionsScreenPolicySectionPolicyCta": "privacy policy",
-    "verifierRequestConditionsScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
-    "@verifierRequestConditionsScreenPolicySectionText": {
+    "verifierPolicyScreenBackCta": "Back",
+    "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
+    "verifierPolicyScreenRetryCta": "Try again",
+    "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
+    "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
+    "@verifierPolicyScreenPolicySectionText": {
         "placeholders": {
             "policy": {
                 "example": "privacy policy",
@@ -128,8 +128,8 @@
         },
         "description": "Text showing the user where to find the privacy policy"
     },
-    "verifierRequestConditionsScreenPolicySectionTitle": "Want to know more?",
-    "verifierRequestConditionsScreenTitle": "Terms",
+    "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
+    "verifierPolicyScreenTitle": "Terms",
     "cardSummaryDataShareStatusSuccess": "shared",
     "cardSummaryDataShareStatusRejected": "rejected to share",
     "cardSummaryDataShareStatusFailed": "failed to share",
