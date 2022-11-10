@@ -107,6 +107,19 @@
     "verificationScreenDeclinedTitle": "Stopped sharing data",
     "verificationScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
     "verificationScreenGiveFeedbackCta": "Give Feedback",
+    "verificationScreenMissingAttributesTitle": "You're missing information",
+    "verificationScreenMissingAttributesDescription": "{organization} is requesting information which is not yet in your Wallet.",
+    "@verificationScreenMissingAttributesDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Name of the organization"
+    },
+    "verificationScreenMissingAttributesHowToProceedCta": "What can I do?",
+    "verificationScreenMissingAttributesCloseCta": "Close request",
     "cardSummaryScreenTitle": "Card summary",
     "cardSummaryDataAttributesTitle": "Data",
     "cardSummaryDataAttributesAllButton": "All data",

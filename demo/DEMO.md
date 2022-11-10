@@ -16,9 +16,9 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 4. Allow camera permissions (if needed)
 5. Scan one of the QR codes below:
 
-| #1                                                 | #2                                                         |
-|----------------------------------------------------|------------------------------------------------------------|
-| ![DUO](assets/images/verification_request_duo.png) | ![Lottery](assets/images/verification_request_lottery.png) |
+| #1                                                 | #2                                                         | #3                                                                           |
+|----------------------------------------------------|------------------------------------------------------------|------------------------------------------------------------------------------|
+| ![DUO](assets/images/verification_request_duo.png) | ![Lottery](assets/images/verification_request_lottery.png) | ![Duo Missing Data](assets/images/verification_request_duo_missing_data.png) |
 
 # Presentation requests
 

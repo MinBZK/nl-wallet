@@ -1,10 +1,10 @@
-import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
+import '../common/widget/placeholder_screen.dart';
 import '../common/widget/text_icon_button.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
@@ -108,7 +108,7 @@ class PinScreen extends StatelessWidget {
       builder: (context, state) {
         final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
         return TextIconButton(
-          onPressed: buttonEnabled ? () => Fimber.d('TODO: Navigate to forgot pin route') : null,
+          onPressed: buttonEnabled ? () => PlaceholderScreen.show(context, 'Code vergeten?', secured: false) : null,
           child: Text(AppLocalizations.of(context).pinScreenForgotPinCta),
         );
       },

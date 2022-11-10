@@ -9,12 +9,14 @@ import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
+import '../common/widget/placeholder_screen.dart';
 import 'bloc/back_button_visibility_cubit.dart';
 import 'bloc/stepper_progress_cubit.dart';
 import 'bloc/verification_bloc.dart';
 import 'model/verification_request.dart';
 import 'page/confirm_data_attributes_page.dart';
 import 'page/confirm_verifier_page.dart';
+import 'page/missing_attributes_page.dart';
 import 'page/verification_declined_page.dart';
 import 'page/verification_success_page.dart';
 import 'widget/visibility_cubit_back_button.dart';
@@ -138,11 +140,7 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
             onDecline: () => _denyVerificationRequest(context, state.request),
             onAccept: () => _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeInOut),
           ),
-          ConfirmDataAttributesPage(
-            request: state.request,
-            onDecline: () => _denyVerificationRequest(context, state.request),
-            onAccept: () => _approveVerificationRequest(context, state.request),
-          ),
+          _buildAttributesPage(context, state),
           _buildResultPage(context, state),
         ],
       ),
@@ -154,6 +152,21 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
     );
   }
 
+  Widget _buildAttributesPage(BuildContext context, VerificationLoadSuccess state) {
+    if (state.request.hasMissingAttributes) {
+      return MissingAttributesPage(
+        request: state.request,
+        onDecline: () => _denyVerificationRequest(context, state.request),
+      );
+    } else {
+      return ConfirmDataAttributesPage(
+        request: state.request,
+        onAccept: () => _approveVerificationRequest(context, state.request),
+        onDecline: () => _denyVerificationRequest(context, state.request),
+      );
+    }
+  }
+
   Widget _buildResultPage(BuildContext context, VerificationLoadSuccess state) {
     switch (state.status) {
       case VerificationResult.pendingUser:
@@ -163,10 +176,13 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
         return VerificationSuccessPage(
           verifierShortName: state.request.verifier.shortName,
           onClosePressed: () => _exitVerificationFlow(context),
+          onHistoryPressed: () => PlaceholderScreen.show(context, 'Geschiedenis'),
         );
       case VerificationResult.denied:
         return VerificationDeclinedPage(
           onClosePressed: () => _exitVerificationFlow(context),
+          onGiveFeedbackPressed: () => PlaceholderScreen.show(context, 'Geef Feedback'),
+          onHistoryPressed: () => PlaceholderScreen.show(context, 'Geschiedenis'),
         );
     }
   }

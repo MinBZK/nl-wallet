@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/confirm_buttons.dart';
+import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/text_icon_button.dart';
 import '../model/verifier.dart';
 
@@ -99,7 +100,7 @@ class ConfirmVerifierPage extends StatelessWidget {
     return Center(
       child: TextIconButton(
         child: Text(AppLocalizations.of(context).verificationScreenIncorrectCta),
-        onPressed: () {},
+        onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
       ),
     );
   }

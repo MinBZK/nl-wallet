@@ -14,6 +14,8 @@ class MockVerificationRepository implements VerificationRequestRepository {
         return _kDuoSampleRequest;
       case '2':
         return _kLotterySampleRequest;
+      case '3':
+        return _kDuoMissingAttributesSampleRequest;
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
@@ -63,5 +65,26 @@ const _kLotterySampleRequest = VerificationRequest(
     privacyPolicyUrl: 'https://www.example.org',
     deletionCanBeRequested: false,
     dataIsShared: true,
+  ),
+);
+
+const _kDuoMissingAttributesSampleRequest = VerificationRequest(
+  id: 3,
+  verifier: Verifier(
+      name: 'Dienst Uitvoering Onderwijs (DUO)',
+      shortName: 'DUO',
+      logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+      description:
+          'Organisatie voor onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'),
+  attributes: [
+    DataAttribute(type: 'Onderwijsinstelling', value: null),
+    DataAttribute(type: 'Verklaring Omtrent het Gedrag', value: null),
+  ],
+  policy: VerifierPolicy(
+    storageDuration: Duration(days: 3 * 30),
+    dataPurpose: 'Gegevens controle',
+    privacyPolicyUrl: 'https://www.example.org',
+    deletionCanBeRequested: true,
+    dataIsShared: false,
   ),
 );

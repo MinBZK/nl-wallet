@@ -107,6 +107,19 @@
     "verificationScreenDeclinedTitle": "Delen gestopt",
     "verificationScreenDeclinedDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
     "verificationScreenGiveFeedbackCta": "Geef feedback",
+    "verificationScreenMissingAttributesTitle": "Je mist gegevens",
+    "verificationScreenMissingAttributesDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
+    "@verificationScreenMissingAttributesDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Name of the organization"
+    },
+    "verificationScreenMissingAttributesHowToProceedCta": "Wat kan ik doen?",
+    "verificationScreenMissingAttributesCloseCta": "Aanvraag sluiten",
     "cardSummaryScreenTitle": "Kaart overzicht",
     "cardSummaryDataAttributesTitle": "Gegevens",
     "cardSummaryDataAttributesAllButton": "Alle gegevens",
@@ -177,7 +190,6 @@
         },
         "description": "Hours"
     },
-
     "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
     "@generalMinutes": {
         "placeholders": {

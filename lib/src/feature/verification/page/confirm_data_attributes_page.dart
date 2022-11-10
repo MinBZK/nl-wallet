@@ -5,6 +5,7 @@ import '../../../wallet_routes.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
+import '../../common/widget/placeholder_screen.dart';
 import '../model/verification_request.dart';
 import '../widget/policy_row.dart';
 
@@ -73,7 +74,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
-        onPressed: () {},
+        onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(AppLocalizations.of(context).verificationScreenIncorrectCta),
