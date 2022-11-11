@@ -9,6 +9,8 @@ import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
+import 'feature/issuance/bloc/issuance_bloc.dart';
+import 'feature/issuance/issuance_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_screen.dart';
@@ -40,6 +42,7 @@ class WalletRoutes {
   static const cardHistoryRoute = '/card/history';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
+  static const issuanceRoute = '/issuance';
   static const verifierPolicyRoute = '/verifier/policy';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -73,6 +76,8 @@ class WalletRoutes {
         return _createVerificationScreenBuilder(settings);
       case WalletRoutes.verifierPolicyRoute:
         return _createVerifierPolicyScreenBuilder(settings);
+      case WalletRoutes.issuanceRoute:
+        return _createIssuanceScreenBuilder(settings);
       case WalletRoutes.walletCreateRoute:
         return _createWalletCreateScreenBuilder;
       default:
@@ -140,6 +145,16 @@ WidgetBuilder _createVerifierPolicyScreenBuilder(RouteSettings settings) {
     return BlocProvider<VerifierPolicyBloc>(
       create: (BuildContext context) => VerifierPolicyBloc(context.read())..add(VerifierPolicyLoadTriggered(sessionId)),
       child: const VerifierPolicyScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
+  return (context) {
+    String sessionId = IssuanceScreen.getArguments(settings);
+    return BlocProvider<IssuanceBloc>(
+      create: (BuildContext context) => IssuanceBloc()..add(IssuanceLoadTriggered(sessionId)),
+      child: const IssuanceScreen(),
     );
   };
 }

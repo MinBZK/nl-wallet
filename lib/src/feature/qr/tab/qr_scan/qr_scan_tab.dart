@@ -175,7 +175,11 @@ class QrScanTab extends StatelessWidget {
         );
         break;
       case QrRequestType.issuance:
-        // TODO: Handle this case.
+        Navigator.restorablePushNamed(
+          context,
+          WalletRoutes.issuanceRoute,
+          arguments: state.request.sessionId,
+        );
         break;
     }
   }

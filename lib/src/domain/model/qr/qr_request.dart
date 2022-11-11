@@ -4,21 +4,21 @@ abstract class QrRequest {
   QrRequestType get type;
 }
 
-class IssuanceRequest implements QrRequest {
+class QrIssuanceRequest implements QrRequest {
   @override
   final String sessionId;
 
-  IssuanceRequest(this.sessionId);
+  QrIssuanceRequest(this.sessionId);
 
   @override
   QrRequestType get type => QrRequestType.issuance;
 }
 
-class VerificationRequest implements QrRequest {
+class QrVerificationRequest implements QrRequest {
   @override
   final String sessionId;
 
-  VerificationRequest(this.sessionId);
+  QrVerificationRequest(this.sessionId);
 
   @override
   QrRequestType get type => QrRequestType.verification;

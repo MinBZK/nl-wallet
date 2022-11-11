@@ -24,6 +24,8 @@ dependencies:
   rxdart: ^0.27.5
   url_launcher: ^6.1.6
   vibration: ^1.7.6
+  json_serializable: ^6.5.4
+  json_annotation: ^4.7.0
 
 dev_dependencies:
   flutter_test:
@@ -32,6 +34,7 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   # Consider migrating to rename package for multi platform support
   change_app_package_name: ^1.1.0
+  build_runner: ^2.3.2
 
 flutter:
   uses-material-design: true
