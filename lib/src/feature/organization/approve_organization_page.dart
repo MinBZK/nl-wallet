@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../common/widget/confirm_buttons.dart';
-import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/text_icon_button.dart';
-import '../model/organization.dart';
+import '../common/widget/confirm_buttons.dart';
+import '../common/widget/placeholder_screen.dart';
+import '../common/widget/text_icon_button.dart';
+import '../verification/model/organization.dart';
 
-class ConfirmVerifierPage extends StatelessWidget {
+class ApproveOrganizationPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final Organization organization;
+  final ApprovalPurpose purpose;
 
-  const ConfirmVerifierPage({
+  const ApproveOrganizationPage({
     required this.onDecline,
     required this.onAccept,
     required this.organization,
+    required this.purpose,
     Key? key,
   }) : super(key: key);
 
@@ -45,6 +47,15 @@ class ConfirmVerifierPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
+    final String title;
+    switch (purpose) {
+      case ApprovalPurpose.issuance:
+        title = AppLocalizations.of(context).verificationScreenReceiveFromTitle(organization.shortName);
+        break;
+      case ApprovalPurpose.verification:
+        title = AppLocalizations.of(context).verificationScreenShareWithTitle(organization.shortName);
+        break;
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -65,7 +76,7 @@ class ConfirmVerifierPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            AppLocalizations.of(context).verificationScreenShareWithTitle(organization.shortName),
+            title,
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.center,
           ),
@@ -105,3 +116,5 @@ class ConfirmVerifierPage extends StatelessWidget {
     );
   }
 }
+
+enum ApprovalPurpose { issuance, verification }

@@ -162,7 +162,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
   return (context) {
     String sessionId = IssuanceScreen.getArguments(settings);
     return BlocProvider<IssuanceBloc>(
-      create: (BuildContext context) => IssuanceBloc()..add(IssuanceLoadTriggered(sessionId)),
+      create: (BuildContext context) => IssuanceBloc(context.read())..add(IssuanceLoadTriggered(sessionId)),
       child: const IssuanceScreen(),
     );
   };

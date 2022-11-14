@@ -56,7 +56,17 @@
                 "type": "String"
             }
         },
-        "description": "Title shown at the top of the screen"
+        "description": "Title shown at the top of the screen when verifying"
+    },
+    "verificationScreenReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
+    "@verificationScreenReceiveFromTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown at the top of the screen when fetching cards"
     },
     "verificationScreenAboutHeader": "Over {organization}",
     "@verificationScreenAboutHeader": {
@@ -232,5 +242,6 @@
             }
         },
         "description": "Minutes"
-    }
+    },
+    "issuanceScreenTitle": "Gegevens ophalen"
 }

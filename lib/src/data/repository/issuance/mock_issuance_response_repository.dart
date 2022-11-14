@@ -1,33 +1,33 @@
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/data_attribute.dart';
-import '../../../domain/model/issue_response.dart';
+import '../../../domain/model/issuance_response.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../source/organization_datasource.dart';
 import '../../source/wallet_datasource.dart';
-import 'issue_response_repository.dart';
+import 'issuance_response_repository.dart';
 
-class MockIssueResponseRepository extends IssueResponseRepository {
+class MockIssuanceResponseRepository extends IssuanceResponseRepository {
   final WalletDataSource walletDataSource;
   final OrganizationDataSource organizationDataSource;
 
-  MockIssueResponseRepository(this.walletDataSource, this.organizationDataSource);
+  MockIssuanceResponseRepository(this.walletDataSource, this.organizationDataSource);
 
   @override
-  Future<IssueResponse> read(String issueRequestId) async {
+  Future<IssuanceResponse> read(String issuanceRequestId) async {
     final organization = (await organizationDataSource.read('rvig'))!;
-    switch (issueRequestId) {
+    switch (issuanceRequestId) {
       case '1':
         if ((await walletDataSource.read(_kMockPassportWalletCard.id)) != null) {
-          return IssueResponse(organization: organization, cards: []);
+          return IssuanceResponse(organization: organization, cards: []);
         }
-        return IssueResponse(organization: organization, cards: [_kMockPassportWalletCard]);
+        return IssuanceResponse(organization: organization, cards: [_kMockPassportWalletCard]);
       case '2':
         if ((await walletDataSource.read(_kMockLicenseWalletCard.id)) != null) {
-          return IssueResponse(organization: organization, cards: []);
+          return IssuanceResponse(organization: organization, cards: []);
         }
-        return IssueResponse(organization: organization, cards: [_kMockLicenseWalletCard]);
+        return IssuanceResponse(organization: organization, cards: [_kMockLicenseWalletCard]);
     }
-    throw UnsupportedError('Unknown issuer: $issueRequestId');
+    throw UnsupportedError('Unknown issuer: $issuanceRequestId');
   }
 }
 

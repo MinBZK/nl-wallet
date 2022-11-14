@@ -10,12 +10,12 @@ import '../../wallet_routes.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/placeholder_screen.dart';
+import '../organization/approve_organization_page.dart';
 import 'bloc/back_button_visibility_cubit.dart';
 import 'bloc/stepper_progress_cubit.dart';
 import 'bloc/verification_bloc.dart';
 import 'model/verification_request.dart';
 import 'page/confirm_data_attributes_page.dart';
-import 'page/confirm_verifier_page.dart';
 import 'page/missing_attributes_page.dart';
 import 'page/verification_declined_page.dart';
 import 'page/verification_success_page.dart';
@@ -135,10 +135,11 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          ConfirmVerifierPage(
+          ApproveOrganizationPage(
             organization: state.request.organization,
             onDecline: () => _denyVerificationRequest(context, state.request),
             onAccept: () => _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeInOut),
+            purpose: ApprovalPurpose.verification,
           ),
           _buildAttributesPage(context, state),
           _buildResultPage(context, state),

@@ -9,6 +9,7 @@ import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/init_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
+import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../domain/usecase/pin/unlock_wallet_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
@@ -67,6 +68,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCase(context.read()),
+        ),
+        RepositoryProvider<GetIssuanceResponseUseCase>(
+          create: (context) => GetIssuanceResponseUseCase(context.read()),
         ),
         RepositoryProvider<InitCardsUseCase>(
           create: (context) => InitCardsUseCase(context.read(), context.read()),

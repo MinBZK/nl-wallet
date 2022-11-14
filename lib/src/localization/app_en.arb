@@ -56,7 +56,17 @@
                 "type": "String"
             }
         },
-        "description": "Title shown at the top of the screen"
+        "description": "Title shown at the top of the screen when verifying"
+    },
+    "verificationScreenReceiveFromTitle": "Receive information from {organization}?",
+    "@verificationScreenReceiveFromTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        },
+        "description": "Title shown at the top of the screen when requesting cards"
     },
     "verificationScreenAboutHeader": "About {organization}",
     "@verificationScreenAboutHeader": {
@@ -232,5 +242,6 @@
             }
         },
         "description": "Minutes"
-    }
+    },
+    "issuanceScreenTitle": "Download cards"
 }

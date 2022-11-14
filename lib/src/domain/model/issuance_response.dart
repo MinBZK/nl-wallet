@@ -1,11 +1,11 @@
 import '../../feature/verification/model/organization.dart';
 import 'wallet_card.dart';
 
-class IssueResponse {
+class IssuanceResponse {
   final Organization organization;
   final List<WalletCard> cards;
 
-  const IssueResponse({
+  const IssuanceResponse({
     required this.organization,
     required this.cards,
   });
