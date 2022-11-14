@@ -7,7 +7,7 @@ class GetWalletCardsUseCase {
   GetWalletCardsUseCase(this.walletCardRepository);
 
   Future<List<WalletCard>> getWalletCardsOrderedByIdAsc() async {
-    List<WalletCard> results = await walletCardRepository.getWalletCards();
+    List<WalletCard> results = await walletCardRepository.readAll();
     results.sort((WalletCard a, WalletCard b) => a.id.compareTo(b.id));
     return results;
   }

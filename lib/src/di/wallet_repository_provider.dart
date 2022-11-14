@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../data/repository/card/mock_wallet_card_data_attribute_repository.dart';
 import '../data/repository/card/mock_wallet_card_data_highlight_repository.dart';
-import '../data/repository/card/mock_wallet_card_repository.dart';
 import '../data/repository/card/mock_wallet_card_usage_attribute_repository.dart';
 import '../data/repository/card/wallet_card_data_attribute_repository.dart';
+import '../data/repository/card/wallet_card_data_attribute_repository_impl.dart';
 import '../data/repository/card/wallet_card_data_highlight_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
+import '../data/repository/card/wallet_card_repository_impl.dart';
 import '../data/repository/card/wallet_card_usage_attribute_repository.dart';
+import '../data/repository/issuer/issue_response_repository.dart';
+import '../data/repository/issuer/mock_issue_response_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/verification/mock_verification_request_repository.dart';
@@ -31,10 +33,10 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => MockWalletRepository(),
         ),
         RepositoryProvider<WalletCardRepository>(
-          create: (context) => MockWalletCardRepository(),
+          create: (context) => WalletCardRepositoryImpl(context.read()),
         ),
         RepositoryProvider<WalletCardDataAttributeRepository>(
-          create: (context) => MockWalletCardDataAttributeRepository(),
+          create: (context) => WalletCardDataAttributeRepositoryImpl(context.read()),
         ),
         RepositoryProvider<WalletCardDataHighlightRepository>(
           create: (context) => MockWalletCardDataHighlightRepository(),
@@ -43,11 +45,14 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => MockWalletCardUsageAttributeRepository(),
         ),
         RepositoryProvider<VerificationRequestRepository>(
-          create: (context) => MockVerificationRepository(),
+          create: (context) => MockVerificationRequestRepository(context.read()),
         ),
         RepositoryProvider<QrRepository>(
           create: (context) => MockQrRepository(),
-        )
+        ),
+        RepositoryProvider<IssueResponseRepository>(
+          create: (context) => MockIssueResponseRepository(context.read(), context.read()),
+        ),
       ],
       child: child,
     );

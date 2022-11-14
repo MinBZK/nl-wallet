@@ -4,17 +4,17 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/text_icon_button.dart';
-import '../model/verifier.dart';
+import '../model/organization.dart';
 
 class ConfirmVerifierPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
-  final Verifier verifier;
+  final Organization organization;
 
   const ConfirmVerifierPage({
     required this.onDecline,
     required this.onAccept,
-    required this.verifier,
+    required this.organization,
     Key? key,
   }) : super(key: key);
 
@@ -55,17 +55,17 @@ class ConfirmVerifierPage extends StatelessWidget {
             height: 64,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(6.4),
-              child: verifier.logoUrl == null
+              child: organization.logoUrl == null
                   ? Container(
                       color: Theme.of(context).colorScheme.secondaryContainer,
                       child: const Icon(Icons.question_mark),
                     )
-                  : Image.asset(verifier.logoUrl!),
+                  : Image.asset(organization.logoUrl!),
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            AppLocalizations.of(context).verificationScreenShareWithTitle(verifier.shortName),
+            AppLocalizations.of(context).verificationScreenShareWithTitle(organization.shortName),
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.center,
           ),
@@ -81,13 +81,13 @@ class ConfirmVerifierPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            verifier.name,
+            organization.name,
             style: Theme.of(context).textTheme.subtitle1,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            verifier.description,
+            organization.description,
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.center,
           ),

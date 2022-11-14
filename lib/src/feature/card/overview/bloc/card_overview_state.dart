@@ -11,6 +11,13 @@ class CardOverviewInitial extends CardOverviewState {
   List<Object> get props => [];
 }
 
+class CardOverviewLoadInProgress extends CardOverviewState {
+  const CardOverviewLoadInProgress();
+
+  @override
+  List<Object> get props => [];
+}
+
 class CardOverviewLoadSuccess extends CardOverviewState {
   final List<WalletCard> cards;
 

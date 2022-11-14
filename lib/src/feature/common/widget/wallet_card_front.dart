@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card_front.dart';
 
 const _kCardAspectRatio = 328.0 / 192.0;
 const _kCardBorderRadius = 12.0;
@@ -11,11 +11,11 @@ const _kSubtitleMaxLines = 2;
 const _kInfoMaxLines = 2;
 
 class WalletCardFront extends StatelessWidget {
-  final WalletCard walletCard;
-  final Function(String cardId)? onPressed;
+  final CardFront cardFront;
+  final VoidCallback? onPressed;
 
   const WalletCardFront({
-    required this.walletCard,
+    required this.cardFront,
     required this.onPressed,
     Key? key,
   }) : super(key: key);
@@ -23,7 +23,7 @@ class WalletCardFront extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => onPressed != null ? onPressed!(walletCard.id) : null,
+      onTap: onPressed,
       radius: _kCardBorderRadius,
       borderRadius: BorderRadius.circular(_kCardBorderRadius),
       child: AspectRatio(
@@ -38,7 +38,7 @@ class WalletCardFront extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image(
-                image: AssetImage(walletCard.backgroundImage ?? ''),
+                image: AssetImage(cardFront.backgroundImage ?? ''),
                 fit: BoxFit.fill,
               ),
               Padding(
@@ -57,13 +57,13 @@ class WalletCardFront extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                walletCard.title,
+                                cardFront.title,
                                 maxLines: _kTitleMaxLines,
                                 style: Theme.of(context).textTheme.subtitle1!,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                walletCard.subtitle ?? '',
+                                cardFront.subtitle ?? '',
                                 maxLines: _kSubtitleMaxLines,
                                 style: Theme.of(context).textTheme.bodyText2!,
                                 overflow: TextOverflow.ellipsis,
@@ -75,14 +75,14 @@ class WalletCardFront extends StatelessWidget {
                         ClipRRect(
                           borderRadius: const BorderRadius.all(Radius.circular(_kLogoBorderRadius)),
                           child: Image(
-                            image: AssetImage(walletCard.logoImage ?? ''),
+                            image: AssetImage(cardFront.logoImage ?? ''),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16.0),
                     Text(
-                      walletCard.info ?? '',
+                      cardFront.info ?? '',
                       maxLines: _kInfoMaxLines,
                       style: Theme.of(context).textTheme.bodyText2!,
                       overflow: TextOverflow.ellipsis,

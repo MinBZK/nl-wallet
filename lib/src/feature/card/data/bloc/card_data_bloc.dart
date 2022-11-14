@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/data_attribute.dart';
@@ -19,7 +20,8 @@ class CardDataBloc extends Bloc<CardDataEvent, CardDataState> {
     try {
       List<DataAttribute> results = await getWalletCardDataAttributesUseCase.invoke(event.cardId);
       emit(CardDataLoadSuccess(results));
-    } catch (error) {
+    } catch (error, stack) {
+      Fimber.e('Failed to load card data', ex: error, stacktrace: stack);
       emit(const CardDataLoadFailure());
     }
   }

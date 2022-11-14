@@ -50,7 +50,7 @@ class MissingAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).verificationScreenMissingAttributesDescription(request.verifier.name),
+            AppLocalizations.of(context).verificationScreenMissingAttributesDescription(request.organization.name),
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.start,
           ),

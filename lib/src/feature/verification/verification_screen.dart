@@ -136,7 +136,7 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
         physics: const NeverScrollableScrollPhysics(),
         children: [
           ConfirmVerifierPage(
-            verifier: state.request.verifier,
+            organization: state.request.organization,
             onDecline: () => _denyVerificationRequest(context, state.request),
             onAccept: () => _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeInOut),
           ),
@@ -174,7 +174,7 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
         return const CenteredLoadingIndicator();
       case VerificationResult.approved:
         return VerificationSuccessPage(
-          verifierShortName: state.request.verifier.shortName,
+          verifierShortName: state.request.organization.shortName,
           onClosePressed: () => _exitVerificationFlow(context),
           onHistoryPressed: () => PlaceholderScreen.show(context, 'Geschiedenis'),
         );
@@ -192,7 +192,7 @@ class _VerificationScreenState extends State<VerificationScreen> with Restoratio
       context.read<VerificationBloc>().add(const VerificationDenied());
       _goToResultPage(context, animate: false);
     } else {
-      if (await _showDeclineDialog(context, request.verifier.shortName) == true) {
+      if (await _showDeclineDialog(context, request.organization.shortName) == true) {
         context.read<VerificationBloc>().add(const VerificationDenied());
         _goToResultPage(context, animate: false);
       }

@@ -1,17 +1,14 @@
+import 'card_front.dart';
+import 'data_attribute.dart';
+
 class WalletCard {
   final String id;
-  final String title;
-  final String? subtitle;
-  final String? info;
-  final String? logoImage;
-  final String? backgroundImage;
+  final CardFront front;
+  final List<DataAttribute> attributes;
 
   const WalletCard({
     required this.id,
-    required this.title,
-    this.subtitle,
-    this.info,
-    this.logoImage,
-    this.backgroundImage,
+    required this.front,
+    required this.attributes,
   });
 }

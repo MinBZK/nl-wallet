@@ -9,6 +9,8 @@ class GetWalletCardDataAttributesUseCase {
 
   Future<List<DataAttribute>> invoke(String cardId) async {
     await Future.delayed(kDefaultMockDelay);
-    return dataAttributeRepository.getAll(cardId);
+    final attributes = await dataAttributeRepository.getAll(cardId);
+    if (attributes == null) throw Exception('No attributes found for card with id: $cardId');
+    return attributes;
   }
 }

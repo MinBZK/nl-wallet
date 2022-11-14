@@ -111,7 +111,7 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildCardFront(WalletCard walletCard) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: WalletCardFront(walletCard: walletCard, onPressed: null),
+      child: WalletCardFront(cardFront: walletCard.front, onPressed: null),
     );
   }
 
