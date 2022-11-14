@@ -77,7 +77,7 @@ class CardDataScreen extends StatelessWidget {
   Widget _buildFooterButton(BuildContext context) {
     return TextButton(
       onPressed: () => _onCloseButtonPressed(context),
-      child: Text(AppLocalizations.of(context).cardDataAttributesCloseButton),
+      child: Text(AppLocalizations.of(context).cardDataAttributesCloseCta),
     );
   }
 

@@ -39,9 +39,9 @@ class HomeScreen extends StatelessWidget {
   Widget _buildBottomNavigationBar(BuildContext context) {
     final locale = AppLocalizations.of(context);
     final items = [
-      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: locale.homeBottomNavBarCardsButton),
-      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: locale.homeBottomNavBarQrButton),
-      BottomNavigationBarItem(icon: const Icon(Icons.settings_outlined), label: locale.homeBottomNavBarSettingsButton),
+      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: locale.homeBottomNavBarCardsCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: locale.homeBottomNavBarQrCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.settings_outlined), label: locale.homeBottomNavBarSettingsCta),
     ];
 
     return BlocBuilder<HomeBloc, HomeState>(

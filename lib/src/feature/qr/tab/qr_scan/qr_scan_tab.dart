@@ -39,7 +39,7 @@ class QrScanTab extends StatelessWidget {
           ),
           TextIconButton(
             onPressed: () => _showHowToScanSheet(context),
-            child: Text(AppLocalizations.of(context).qrScreenHowToScanButton),
+            child: Text(AppLocalizations.of(context).qrScreenHowToScanCta),
           ),
         ],
       ),
@@ -68,7 +68,7 @@ class QrScanTab extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScreenScanTabErrorButton),
+              child: Text(AppLocalizations.of(context).qrScreenScanTabErrorRetryCta),
             )
           ],
         ),
@@ -97,7 +97,7 @@ class QrScanTab extends StatelessWidget {
                     context.read<QrScanBloc>().add(const QrScanCheckPermission());
                   }
                 },
-                child: Text(AppLocalizations.of(context).qrScreenScanTabGrantPermissionButton),
+                child: Text(AppLocalizations.of(context).qrScreenScanTabGrantPermissionCta),
               ),
             )
           ],
@@ -118,7 +118,7 @@ class QrScanTab extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScreenScanTabContinueButton),
+              child: Text(AppLocalizations.of(context).qrScreenScanTabContinueCta),
             )
           ],
         ),
@@ -154,7 +154,7 @@ class QrScanTab extends StatelessWidget {
               const SizedBox(height: 16),
               Center(
                 child: TextButton(
-                  child: Text(locale.qrScreenHowToScanSheetCloseButton),
+                  child: Text(locale.qrScreenHowToScanSheetCloseCta),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),

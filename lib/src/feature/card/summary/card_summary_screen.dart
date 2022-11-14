@@ -49,7 +49,7 @@ class CardSummaryScreen extends StatelessWidget {
         if (state is CardSummaryLoadSuccess) {
           return FloatingActionButton.extended(
             onPressed: () => _onCardDataSharePressed(context),
-            label: Text(AppLocalizations.of(context).cardSummaryDataShareButton),
+            label: Text(AppLocalizations.of(context).cardSummaryDataShareCta),
             icon: const Icon(Icons.qr_code),
           );
         } else {
@@ -96,7 +96,7 @@ class CardSummaryScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: LinkButton(
-              child: Text(AppLocalizations.of(context).cardSummaryOptionsButton),
+              child: Text(AppLocalizations.of(context).cardSummaryOptionsCta),
               onPressed: () => _onCardOptionsPressed(context),
             ),
           ),
@@ -142,7 +142,7 @@ class CardSummaryScreen extends StatelessWidget {
               ),
               LinkButton(
                 onPressed: () => _onCardDataPressed(context, cardId),
-                child: Text(AppLocalizations.of(context).cardSummaryDataAttributesAllButton),
+                child: Text(AppLocalizations.of(context).cardSummaryDataAttributesAllCta),
               ),
             ],
           ),
@@ -177,7 +177,7 @@ class CardSummaryScreen extends StatelessWidget {
           ),
           LinkButton(
             onPressed: () => _onCardHistoryPressed(context, cardId),
-            child: Text(AppLocalizations.of(context).cardSummaryDataShareHistoryAllButton),
+            child: Text(AppLocalizations.of(context).cardSummaryDataShareHistoryAllCta),
           ),
         ],
       ),

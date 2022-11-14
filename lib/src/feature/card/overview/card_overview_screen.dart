@@ -69,7 +69,7 @@ class CardOverviewScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.add),
-          Text(AppLocalizations.of(context).cardOverviewAddCardButton),
+          Text(AppLocalizations.of(context).cardOverviewAddCardCta),
         ],
       ),
     );
