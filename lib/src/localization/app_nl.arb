@@ -143,11 +143,7 @@
         "description": "Text showing the user where to find the privacy policy"
     },
     "verifierPolicyScreenTitle": "Voorwaarden",
-    "cardSummaryDataShareStatusSuccess": "gedeeld",
-    "cardSummaryDataShareStatusRejected": "geweigerd te delen",
-    "cardSummaryDataShareStatusFailed": "niet gelukt te delen",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organisation}",
-    "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
+    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organization}",
     "@cardSummaryDataShareHistory": {
         "placeholders": {
             "timeAgo": {
@@ -158,8 +154,43 @@
                 "example": "failed to share",
                 "type": "String"
             },
-            "organisation": {
+            "organization": {
                 "example": "Organization",
+                "type": "String"
+            }
+        },
+        "description": "Most recent data share history."
+    },
+    "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
+    "cardTimelineInteractionSuccess": "Gedeeld",
+    "cardTimelineInteractionRejected": "Geweigerd te delen",
+    "cardTimelineInteractionFailed": "Niet gelukt te delen",
+    "cardTimelineOperationIssued": "Kaart is toegevoegd",
+    "cardTimelineOperationExtended": "Kaart is vernieuwd",
+    "cardTimelineOperationExpired": "Kaart is verlopen",
+    "cardTimelineInteraction": "{interactionType} met {organization}",
+    "@cardTimelineInteraction": {
+        "placeholders": {
+            "interactionType": {
+                "example": "shared",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            }
+        },
+        "description": "Most recent data share history."
+    },
+    "cardTimelineOperation": "{interactionType}. {description}",
+    "@cardTimelineOperation": {
+        "placeholders": {
+            "interactionType": {
+                "example": "shared",
+                "type": "String"
+            },
+            "description": {
+                "example": "Valid until X",
                 "type": "String"
             }
         },
@@ -167,6 +198,8 @@
     },
     "cardDataAttributesScreenTitle": "Alle gegevens",
     "cardDataAttributesCloseButton": "Sluiten",
+    "cardHistoryScreenTitle": "Geschiedenis",
+    "cardHistoryScreenBackCta": "Terug",
     "generalTimeAgo": "geleden",
     "generalOnDate": "Op",
     "generalTimeAgoLessThenOneMinute": "minder dan een minute",

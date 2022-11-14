@@ -7,6 +7,7 @@ class WalletThemeConstants {
   static const colorScheme = ColorScheme.light(
     primary: _primaryColor,
     error: _errorColor,
+    background: _defaultBackgroundColor,
     secondaryContainer: _secondaryContainer,
   );
 
@@ -15,6 +16,9 @@ class WalletThemeConstants {
 
   // Dark variant of the primary color
   static const primaryColorDark = _primaryColorDark;
+
+  // Secondary text color
+  static const secondaryTextColor = _secondaryTextColor;
 
   // Default font family
   static const fontFamily = _defaultFontFamily;
@@ -126,7 +130,8 @@ class WalletThemeConstants {
   static const _textButtonMinHeight = _elevatedButtonMinHeight;
 
   // Text colors
-  static const _primaryTextColor = Color(0xDE152A62);
+  static const _primaryTextColor = Color(0xFF152A62);
+  static const _secondaryTextColor = Color(0xFF445581);
 
   // Text styles
   static const _headline1TextStyle = TextStyle(
@@ -187,7 +192,7 @@ class WalletThemeConstants {
   static const _body2FontSize = 14.0;
   static const _buttonFontSize = 14.0;
   static const _captionFontSize = 12.0;
-  static const _overlineFontSize = 10.0;
+  static const _overlineFontSize = 14.0;
 
   // Line height
   static const _subtitle1LineHeight = 1.4;

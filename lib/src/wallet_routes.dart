@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'feature/card/add/card_add_screen.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
+import 'feature/card/history/bloc/card_history_bloc.dart';
 import 'feature/card/history/card_history_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
@@ -69,7 +70,7 @@ class WalletRoutes {
       case WalletRoutes.cardDataRoute:
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
-        return _createCardHistoryScreenBuilder;
+        return _createCardHistoryScreenBuilder(settings);
       case WalletRoutes.themeRoute:
         return _createThemeScreenBuilder;
       case WalletRoutes.verificationRoute:
@@ -125,7 +126,15 @@ WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
   };
 }
 
-Widget _createCardHistoryScreenBuilder(BuildContext context) => const CardHistoryScreen();
+WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final String cardId = CardHistoryScreen.getArguments(settings);
+    return BlocProvider<CardHistoryBloc>(
+      create: (context) => CardHistoryBloc(context.read())..add(CardHistoryLoadTriggered(cardId)),
+      child: const CardHistoryScreen(),
+    );
+  };
+}
 
 Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 

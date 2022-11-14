@@ -143,11 +143,7 @@
     },
     "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
     "verifierPolicyScreenTitle": "Terms",
-    "cardSummaryDataShareStatusSuccess": "shared",
-    "cardSummaryDataShareStatusRejected": "rejected to share",
-    "cardSummaryDataShareStatusFailed": "failed to share",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organisation}",
-    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
+    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organization}",
     "@cardSummaryDataShareHistory": {
         "placeholders": {
             "timeAgo": {
@@ -158,8 +154,43 @@
                 "example": "failed to share",
                 "type": "String"
             },
-            "organisation": {
+            "organization": {
                 "example": "Organization",
+                "type": "String"
+            }
+        },
+        "description": "Most recent data share history."
+    },
+    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
+    "cardTimelineInteractionSuccess": "Shared",
+    "cardTimelineInteractionRejected": "Rejected to share",
+    "cardTimelineInteractionFailed": "Failed to share",
+    "cardTimelineOperationIssued": "Card is added",
+    "cardTimelineOperationExtended": "Card is extended",
+    "cardTimelineOperationExpired": "Card is expired",
+    "cardTimelineInteraction": "{interactionType} with {organization}",
+    "@cardTimelineInteraction": {
+        "placeholders": {
+            "interactionType": {
+                "example": "gedeeld",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            }
+        },
+        "description": "Most recent data share history."
+    },
+    "cardTimelineOperation": "{interactionType}. {description}",
+    "@cardTimelineOperation": {
+        "placeholders": {
+            "interactionType": {
+                "example": "shared",
+                "type": "String"
+            },
+            "description": {
+                "example": "Valid until X",
                 "type": "String"
             }
         },
@@ -167,6 +198,8 @@
     },
     "cardDataAttributesScreenTitle": "All data",
     "cardDataAttributesCloseButton": "Close",
+    "cardHistoryScreenTitle": "History",
+    "cardHistoryScreenBackCta": "Back",
     "generalTimeAgo": "ago",
     "generalOnDate": "On",
     "generalTimeAgoLessThenOneMinute": "less then a minute",

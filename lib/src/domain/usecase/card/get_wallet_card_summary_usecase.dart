@@ -1,31 +1,34 @@
+import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../data/repository/card/wallet_card_data_highlight_repository.dart';
 import '../../../data/repository/card/wallet_card_repository.dart';
-import '../../../data/repository/card/wallet_card_usage_attribute_repository.dart';
 import '../../model/data_highlight.dart';
-import '../../model/usage_attribute.dart';
+import '../../model/timeline_attribute.dart';
 import '../../model/wallet_card.dart';
 import '../../model/wallet_card_summary.dart';
 
 class GetWalletCardSummaryUseCase {
   final WalletCardRepository walletCardRepository;
   final WalletCardDataHighlightRepository walletCardDataHighlightRepository;
-  final WalletCardUsageAttributeRepository walletCardUsageAttributeRepository;
+  final TimelineAttributeRepository timelineAttributeRepository;
 
   GetWalletCardSummaryUseCase(
     this.walletCardRepository,
     this.walletCardDataHighlightRepository,
-    this.walletCardUsageAttributeRepository,
+    this.timelineAttributeRepository,
   );
 
-  Future<WalletCardSummary> getWalletCardSummary(String cardId) async {
+  Future<WalletCardSummary> getSummary(String cardId) async {
     WalletCard card = await walletCardRepository.read(cardId);
     DataHighlight dataHighlight = await walletCardDataHighlightRepository.getLatest(cardId);
-    UsageAttribute? usageAttribute = await walletCardUsageAttributeRepository.getFiltered(cardId, UsageStatus.success);
+    InteractionAttribute? interactionAttribute = await timelineAttributeRepository.getLastInteraction(
+      cardId,
+      InteractionType.success,
+    );
 
     WalletCardSummary summary = WalletCardSummary(
       card: card,
       dataHighlight: dataHighlight,
-      usageAttribute: usageAttribute,
+      interactionAttribute: interactionAttribute,
     );
 
     return summary;

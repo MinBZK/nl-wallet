@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/repository/card/mock_timeline_attribute_repository.dart';
 import '../data/repository/card/mock_wallet_card_data_highlight_repository.dart';
-import '../data/repository/card/mock_wallet_card_usage_attribute_repository.dart';
+import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_data_attribute_repository.dart';
 import '../data/repository/card/wallet_card_data_attribute_repository_impl.dart';
 import '../data/repository/card/wallet_card_data_highlight_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/card/wallet_card_repository_impl.dart';
-import '../data/repository/card/wallet_card_usage_attribute_repository.dart';
 import '../data/repository/issuer/issue_response_repository.dart';
 import '../data/repository/issuer/mock_issue_response_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
@@ -41,8 +41,8 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<WalletCardDataHighlightRepository>(
           create: (context) => MockWalletCardDataHighlightRepository(),
         ),
-        RepositoryProvider<WalletCardUsageAttributeRepository>(
-          create: (context) => MockWalletCardUsageAttributeRepository(),
+        RepositoryProvider<TimelineAttributeRepository>(
+          create: (context) => MockTimelineAttributeRepository(),
         ),
         RepositoryProvider<VerificationRequestRepository>(
           create: (context) => MockVerificationRequestRepository(context.read()),

@@ -4,11 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_highlight.dart';
-import '../../../domain/model/usage_attribute.dart';
+import '../../../domain/model/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/formatter/usage_status_formatter.dart';
+import '../../../util/mapper/timeline_attribute_type_text_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/data_attribute_image.dart';
@@ -87,7 +87,7 @@ class CardSummaryScreen extends StatelessWidget {
         const SizedBox(height: 8.0),
         const Divider(),
         const SizedBox(height: 24.0),
-        _buildUsageHighlight(context, summary.card.id, summary.usageAttribute),
+        _buildInteractionHighlight(context, summary.card.id, summary.interactionAttribute),
         const SizedBox(height: 8.0),
         const Divider(),
         const SizedBox(height: 8.0),
@@ -155,7 +155,7 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUsageHighlight(BuildContext context, String cardId, UsageAttribute? attribute) {
+  Widget _buildInteractionHighlight(BuildContext context, String cardId, InteractionAttribute? attribute) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -171,7 +171,7 @@ class CardSummaryScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.subtitle1,
                 ),
                 const SizedBox(height: 8.0),
-                Text(_createUsageHistoryText(context, attribute), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(_createInteractionText(context, attribute), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -184,12 +184,12 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  String _createUsageHistoryText(BuildContext context, UsageAttribute? attribute) {
+  String _createInteractionText(BuildContext context, InteractionAttribute? attribute) {
     final locale = AppLocalizations.of(context);
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
-      final String status = UsageStatusFormatter.format(locale, attribute.status);
-      return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.value);
+      final String status = TimelineAttributeTypeTextMapper.map(locale, attribute).toLowerCase();
+      return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.organization);
     } else {
       return locale.cardSummaryDataShareSuccessNoHistory;
     }
