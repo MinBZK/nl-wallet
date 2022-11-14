@@ -1,5 +1,5 @@
 import '../../feature/verification/model/organization.dart';
 
 abstract class OrganizationDataSource {
-  Future<Organization?> read(String id);
+  Future<Organization?> read(String organizationId);
 }

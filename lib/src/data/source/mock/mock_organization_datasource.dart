@@ -5,8 +5,8 @@ import '../organization_datasource.dart';
 
 class MockOrganizationDataSource implements OrganizationDataSource {
   @override
-  Future<Organization?> read(String id) async {
-    return _kOrganizations.firstWhereOrNull((element) => element.id == id);
+  Future<Organization?> read(String organizationId) async {
+    return _kOrganizations.firstWhereOrNull((element) => element.id == organizationId);
   }
 }
 
