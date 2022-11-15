@@ -35,21 +35,22 @@
     "verificationScreenTitle": "Share data",
     "verificationScreenGenericError": "Verification failed",
     "verificationScreenGenericErrorCta": "Exit",
-    "verificationScreenIncorrectCta": "Is something not right?",
-    "verificationScreenAllTermsCta": "All terms",
-    "verificationScreenApproveOrganizationCta": "Yes, next",
-    "verificationScreenDenyOrganizationCta": "No, decline",
-    "verificationScreenApproveAttributesCta": "Yes, next",
-    "verificationScreenDenyAttributesCta": "No, decline",
-    "verificationScreenShareDataTitle": "Do you want to share this information?",
+    "approveOrganizationPageIncorrectCta": "Is something not right?",
+    "confirmDataAttributesPageIncorrectCta": "Is something not right?",
+    "confirmDataAttributesPageAllTermsCta": "All terms",
+    "approveOrganizationPageApproveCta": "Yes, next",
+    "approveOrganizationPageDenyCta": "No, decline",
+    "confirmDataAttributesPageApproveCta": "Yes, next",
+    "confirmDataAttributesPageDenyCta": "No, decline",
+    "confirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
     "verificationScreenPurposeTitle": "Purpose",
     "verificationScreenUsageTitle": "Usage",
-    "verificationScreenDataWillNotBeShared": "Information will not be shared",
-    "verificationScreenDataWillBeShared": "Information will be shared",
-    "verificationScreenDataCanBeDeleted": "You can request data deletion",
-    "verificationScreenDataCanNotBeDeleted": "You can not request data deletion",
-    "verificationScreenShareWithTitle": "Share data with {organization}?",
-    "@verificationScreenShareWithTitle": {
+    "confirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
+    "confirmDataAttributesPageDataWillBeShared": "Information will be shared",
+    "confirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
+    "confirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
+    "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
+    "@approveOrganizationPageShareWithTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -58,8 +59,8 @@
         },
         "description": "Title shown at the top of the screen when verifying"
     },
-    "verificationScreenReceiveFromTitle": "Receive information from {organization}?",
-    "@verificationScreenReceiveFromTitle": {
+    "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
+    "@approveOrganizationPageReceiveFromTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -78,8 +79,8 @@
         },
         "description": "Title shown on the expandable section"
     },
-    "verificationScreenDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
-    "@verificationScreenDataRetentionDuration": {
+    "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@confirmDataAttributesPageDataRetentionDuration": {
         "placeholders": {
             "days": {
                 "example": "30",
@@ -88,8 +89,8 @@
         },
         "description": "Duration that data will be stored by the verifier"
     },
-    "verificationScreenSuccessTitle": "Success! Your information is shared with {organization}",
-    "@verificationScreenSuccessTitle": {
+    "verificationSuccessPageTitle": "Success! Your information is shared with {organization}",
+    "@verificationSuccessPageTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -98,9 +99,11 @@
         },
         "description": "Title shown when data has been successfully shared"
     },
-    "verificationScreenHistoryDescription": "You can find the details in your history",
-    "verificationScreenShowHistoryCta": "History",
-    "verificationScreenCloseCta": "Close",
+    "verificationSuccessPageHistoryDescription": "You can find the details in your history",
+    "verificationDeclinedPageShowHistoryCta": "History",
+    "verificationDeclinedPageCloseCta": "Close",
+    "verificationSuccessPageShowHistoryCta": "History",
+    "verificationSuccessPageCloseCta": "Close",
     "verificationScreenCancelSheetTitle": "Are you sure you want to stop sharing",
     "verificationScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
     "@verificationScreenCancelSheetDescription": {
@@ -114,12 +117,12 @@
     },
     "verificationScreenCancelSheetNegativeCta": "No",
     "verificationScreenCancelSheetPositiveCta": "Yes, stop",
-    "verificationScreenDeclinedTitle": "Stopped sharing data",
-    "verificationScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
-    "verificationScreenGiveFeedbackCta": "Give Feedback",
-    "verificationScreenMissingAttributesTitle": "You're missing information",
-    "verificationScreenMissingAttributesDescription": "{organization} is requesting information which is not yet in your Wallet.",
-    "@verificationScreenMissingAttributesDescription": {
+    "verificationDeclinedPageTitle": "Stopped sharing data",
+    "verificationDeclinedPageDescription": "Your data was not shared. You can always try and share your data later.",
+    "verificationDeclinedPageFeedbackCta": "Give Feedback",
+    "missingAttributesPageTitle": "You're missing information",
+    "missingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
+    "@missingAttributesPageDescription": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -128,8 +131,8 @@
         },
         "description": "Name of the organization"
     },
-    "verificationScreenMissingAttributesHowToProceedCta": "What can I do?",
-    "verificationScreenMissingAttributesCloseCta": "Close request",
+    "missingAttributesPageHowToProceedCta": "What can I do?",
+    "missingAttributesPageCloseCta": "Close request",
     "cardSummaryScreenTitle": "Card summary",
     "cardSummaryDataAttributesTitle": "Data",
     "cardSummaryDataAttributesAllCta": "All data",
@@ -243,5 +246,19 @@
         },
         "description": "Minutes"
     },
-    "issuanceScreenTitle": "Download cards"
+    "issuanceScreenTitle": "Download cards",
+    "proofIdentityPageTitle": "Proof who you are",
+    "proofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
+    "@proofIdentityPageSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        },
+        "description": "The organization's name"
+    },
+    "proofIdentityPageNegativeCta": "Stop",
+    "proofIdentityPagePositiveCta": "Share",
+    "proofIdentityPageIncorrectCta": "Something not right?"
 }

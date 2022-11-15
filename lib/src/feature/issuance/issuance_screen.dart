@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/issuance_bloc.dart';
+import 'page/proof_identity_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -23,28 +24,47 @@ class IssuanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      restorationId: 'issuance_scaffold',
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).issuanceScreenTitle),
         leading: _buildBackButton(context),
         actions: const [CloseButton()],
       ),
-      body: BlocBuilder<IssuanceBloc, IssuanceState>(
-        builder: (context, state) {
-          if (state is IssuanceInitial) return const CenteredLoadingIndicator();
-          if (state is IssuanceLoadInProgress) return const CenteredLoadingIndicator();
-          if (state is IssuanceCheckOrganization) return _buildCheckOrganizationPage(context, state);
-          if (state is IssuanceProofIdentity) return Text(state.runtimeType.toString());
-          if (state is IssuanceProvidePin) return Text(state.runtimeType.toString());
-          if (state is IssuanceProvidePinSuccess) return Text(state.runtimeType.toString());
-          if (state is IssuanceProvidePinFailure) return Text(state.runtimeType.toString());
-          if (state is IssuanceCheckCardAttributes) return Text(state.runtimeType.toString());
-          if (state is IssuanceCardAdded) return Text(state.runtimeType.toString());
-          if (state is IssuanceStopped) return Text(state.runtimeType.toString());
-          if (state is IssuanceGenericError) return Text(state.runtimeType.toString());
-          if (state is IssuanceIdentityValidationFailure) return Text(state.runtimeType.toString());
-          throw UnsupportedError('Unknown state: $state');
-        },
+      body: Column(
+        children: [
+          _buildStepper(),
+          Expanded(child: _buildPage()),
+        ],
       ),
+    );
+  }
+
+  Widget _buildStepper() {
+    return BlocBuilder<IssuanceBloc, IssuanceState>(
+      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+      builder: (context, state) {
+        return LinearProgressIndicator(value: state.stepperProgress);
+      },
+    );
+  }
+
+  Widget _buildPage() {
+    return BlocBuilder<IssuanceBloc, IssuanceState>(
+      builder: (context, state) {
+        if (state is IssuanceInitial) return const CenteredLoadingIndicator();
+        if (state is IssuanceLoadInProgress) return const CenteredLoadingIndicator();
+        if (state is IssuanceCheckOrganization) return _buildCheckOrganizationPage(context, state);
+        if (state is IssuanceProofIdentity) return _buildProofIdentityPage(context, state);
+        if (state is IssuanceProvidePin) return Text(state.runtimeType.toString());
+        if (state is IssuanceProvidePinSuccess) return Text(state.runtimeType.toString());
+        if (state is IssuanceProvidePinFailure) return Text(state.runtimeType.toString());
+        if (state is IssuanceCheckCardAttributes) return Text(state.runtimeType.toString());
+        if (state is IssuanceCardAdded) return Text(state.runtimeType.toString());
+        if (state is IssuanceStopped) return Text(state.runtimeType.toString());
+        if (state is IssuanceGenericError) return Text(state.runtimeType.toString());
+        if (state is IssuanceIdentityValidationFailure) return Text(state.runtimeType.toString());
+        throw UnsupportedError('Unknown state: $state');
+      },
     );
   }
 
@@ -52,11 +72,7 @@ class IssuanceScreen extends StatelessWidget {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
         if (state.canGoBack) {
-          return BackButton(
-            onPressed: () {
-              context.read<IssuanceBloc>().add(const IssuanceBackPressed());
-            },
-          );
+          return BackButton(onPressed: () => context.read<IssuanceBloc>().add(const IssuanceBackPressed()));
         } else {
           return const SizedBox.shrink();
         }
@@ -66,10 +82,19 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
     return ApproveOrganizationPage(
-      onDecline: () => context.read<IssuanceBloc>().add(const IssuanceVerifierDeclined()),
-      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceVerifierApproved()),
+      onDecline: () => context.read<IssuanceBloc>().add(const IssuanceOrganizationDeclined()),
+      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
+    );
+  }
+
+  Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
+    return ProofIdentityPage(
+      onDecline: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesDeclined()),
+      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
+      organization: state.organization,
+      attributes: state.requestedAttributes,
     );
   }
 }

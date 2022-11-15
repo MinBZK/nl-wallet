@@ -18,14 +18,30 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
     switch (issuanceRequestId) {
       case '1':
         if ((await walletDataSource.read(_kMockPassportWalletCard.id)) != null) {
-          return IssuanceResponse(organization: organization, cards: []);
+          return IssuanceResponse(
+            organization: organization,
+            cards: [],
+            requestedAttributes: _kMockRequestedAttributes,
+          );
         }
-        return IssuanceResponse(organization: organization, cards: [_kMockPassportWalletCard]);
+        return IssuanceResponse(
+          organization: organization,
+          cards: [_kMockPassportWalletCard],
+          requestedAttributes: _kMockRequestedAttributes,
+        );
       case '2':
         if ((await walletDataSource.read(_kMockLicenseWalletCard.id)) != null) {
-          return IssuanceResponse(organization: organization, cards: []);
+          return IssuanceResponse(
+            organization: organization,
+            cards: [],
+            requestedAttributes: _kMockRequestedAttributes,
+          );
         }
-        return IssuanceResponse(organization: organization, cards: [_kMockLicenseWalletCard]);
+        return IssuanceResponse(
+          organization: organization,
+          cards: [_kMockLicenseWalletCard],
+          requestedAttributes: _kMockRequestedAttributes,
+        );
     }
     throw UnsupportedError('Unknown issuer: $issuanceRequestId');
   }
@@ -72,4 +88,9 @@ const _kMockAllDataAttributes = [
   DataAttribute(type: 'Geldig tot', value: '20 OKT 2024'),
   DataAttribute(type: 'Type', value: 'P'),
   DataAttribute(type: 'Code', value: 'NL'),
+];
+
+const _kMockRequestedAttributes = [
+  DataAttribute(type: 'Naam', value: 'De Bruijn'),
+  DataAttribute(type: 'Geboortedatum', value: '10 maart 1965'),
 ];

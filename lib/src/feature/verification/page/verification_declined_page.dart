@@ -34,7 +34,7 @@ class VerificationDeclinedPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              locale.verificationScreenDeclinedTitle,
+              locale.verificationDeclinedPageTitle,
               style: Theme.of(context).textTheme.headline2,
               textAlign: TextAlign.center,
             ),
@@ -42,27 +42,27 @@ class VerificationDeclinedPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              locale.verificationScreenDeclinedDescription,
+              locale.verificationDeclinedPageDescription,
               style: Theme.of(context).textTheme.bodyText1,
               textAlign: TextAlign.center,
             ),
           ),
           TextIconButton(
             onPressed: onHistoryPressed,
-            child: Text(AppLocalizations.of(context).verificationScreenShowHistoryCta),
+            child: Text(AppLocalizations.of(context).verificationDeclinedPageShowHistoryCta),
           ),
           const Divider(height: 48),
           const Spacer(),
           TextIconButton(
             onPressed: onGiveFeedbackPressed,
-            child: Text(locale.verificationScreenGiveFeedbackCta),
+            child: Text(locale.verificationDeclinedPageFeedbackCta),
           ),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ElevatedButton(
               onPressed: onClosePressed,
-              child: Text(AppLocalizations.of(context).verificationScreenCloseCta),
+              child: Text(AppLocalizations.of(context).verificationDeclinedPageCloseCta),
             ),
           ),
         ],

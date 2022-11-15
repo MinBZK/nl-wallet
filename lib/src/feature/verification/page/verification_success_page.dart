@@ -30,7 +30,7 @@ class VerificationSuccessPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
-              AppLocalizations.of(context).verificationScreenSuccessTitle(verifierShortName),
+              AppLocalizations.of(context).verificationSuccessPageTitle(verifierShortName),
               style: Theme.of(context).textTheme.headline2,
               textAlign: TextAlign.center,
             ),
@@ -38,19 +38,19 @@ class VerificationSuccessPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
-              AppLocalizations.of(context).verificationScreenHistoryDescription,
+              AppLocalizations.of(context).verificationSuccessPageHistoryDescription,
               style: Theme.of(context).textTheme.bodyText1,
               textAlign: TextAlign.center,
             ),
           ),
           TextIconButton(
             onPressed: onHistoryPressed,
-            child: Text(AppLocalizations.of(context).verificationScreenShowHistoryCta),
+            child: Text(AppLocalizations.of(context).verificationSuccessPageShowHistoryCta),
           ),
           const Spacer(),
           ElevatedButton(
             onPressed: onClosePressed,
-            child: Text(AppLocalizations.of(context).verificationScreenCloseCta),
+            child: Text(AppLocalizations.of(context).verificationSuccessPageCloseCta),
           ),
         ],
       ),

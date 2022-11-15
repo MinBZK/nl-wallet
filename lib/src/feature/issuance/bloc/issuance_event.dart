@@ -13,8 +13,8 @@ class IssuanceLoadTriggered extends IssuanceEvent {
   List<Object?> get props => [sessionId];
 }
 
-class IssuanceVerifierApproved extends IssuanceEvent {
-  const IssuanceVerifierApproved();
+class IssuanceOrganizationApproved extends IssuanceEvent {
+  const IssuanceOrganizationApproved();
 
   @override
   List<Object?> get props => [];
@@ -27,8 +27,22 @@ class IssuanceBackPressed extends IssuanceEvent {
   List<Object?> get props => [];
 }
 
-class IssuanceVerifierDeclined extends IssuanceEvent {
-  const IssuanceVerifierDeclined();
+class IssuanceOrganizationDeclined extends IssuanceEvent {
+  const IssuanceOrganizationDeclined();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class IssuanceShareRequestedAttributesApproved extends IssuanceEvent {
+  const IssuanceShareRequestedAttributesApproved();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class IssuanceShareRequestedAttributesDeclined extends IssuanceEvent {
+  const IssuanceShareRequestedAttributesDeclined();
 
   @override
   List<Object?> get props => [];

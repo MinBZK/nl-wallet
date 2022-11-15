@@ -40,9 +40,9 @@ class ConfirmDataAttributesPage extends StatelessWidget {
           fillOverscroll: true,
           child: ConfirmButtons(
             onAccept: onAccept,
-            acceptText: locale.verificationScreenApproveAttributesCta,
+            acceptText: locale.confirmDataAttributesPageApproveCta,
             onDecline: onDecline,
-            declineText: locale.verificationScreenDenyAttributesCta,
+            declineText: locale.confirmDataAttributesPageDenyCta,
           ),
         ),
       ],
@@ -53,7 +53,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Text(
-        AppLocalizations.of(context).verificationScreenShareDataTitle,
+        AppLocalizations.of(context).confirmDataAttributesPageShareDataTitle,
         style: Theme.of(context).textTheme.headline2,
         textAlign: TextAlign.start,
       ),
@@ -77,7 +77,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(AppLocalizations.of(context).verificationScreenIncorrectCta),
+          child: Text(AppLocalizations.of(context).confirmDataAttributesPageIncorrectCta),
         ),
       ),
     );
@@ -91,19 +91,19 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         children: [
           PolicyRow(
             icon: Icons.access_time_rounded,
-            text: locale.verificationScreenDataRetentionDuration(request.policy.storageDuration.inDays),
+            text: locale.confirmDataAttributesPageDataRetentionDuration(request.policy.storageDuration.inDays),
           ),
           PolicyRow(
             icon: Icons.share,
             text: request.policy.dataIsShared
-                ? locale.verificationScreenDataWillBeShared
-                : locale.verificationScreenDataWillNotBeShared,
+                ? locale.confirmDataAttributesPageDataWillBeShared
+                : locale.confirmDataAttributesPageDataWillNotBeShared,
           ),
           PolicyRow(
             icon: Icons.delete_outline,
             text: request.policy.deletionCanBeRequested
-                ? locale.verificationScreenDataCanBeDeleted
-                : locale.verificationScreenDataCanNotBeDeleted,
+                ? locale.confirmDataAttributesPageDataCanBeDeleted
+                : locale.confirmDataAttributesPageDataCanNotBeDeleted,
           ),
         ],
       ),
@@ -121,7 +121,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(AppLocalizations.of(context).verificationScreenAllTermsCta),
+          child: Text(AppLocalizations.of(context).confirmDataAttributesPageAllTermsCta),
         ),
       ),
     );

@@ -37,9 +37,9 @@ class ApproveOrganizationPage extends StatelessWidget {
           fillOverscroll: true,
           child: ConfirmButtons(
             onAccept: onAccept,
-            acceptText: locale.verificationScreenApproveOrganizationCta,
+            acceptText: locale.approveOrganizationPageApproveCta,
             onDecline: onDecline,
-            declineText: locale.verificationScreenDenyOrganizationCta,
+            declineText: locale.approveOrganizationPageDenyCta,
           ),
         ),
       ],
@@ -50,10 +50,10 @@ class ApproveOrganizationPage extends StatelessWidget {
     final String title;
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        title = AppLocalizations.of(context).verificationScreenReceiveFromTitle(organization.shortName);
+        title = AppLocalizations.of(context).approveOrganizationPageReceiveFromTitle(organization.shortName);
         break;
       case ApprovalPurpose.verification:
-        title = AppLocalizations.of(context).verificationScreenShareWithTitle(organization.shortName);
+        title = AppLocalizations.of(context).approveOrganizationPageShareWithTitle(organization.shortName);
         break;
     }
     return Padding(
@@ -110,7 +110,7 @@ class ApproveOrganizationPage extends StatelessWidget {
   Widget _buildDataIncorrectButton(BuildContext context) {
     return Center(
       child: TextIconButton(
-        child: Text(AppLocalizations.of(context).verificationScreenIncorrectCta),
+        child: Text(AppLocalizations.of(context).approveOrganizationPageIncorrectCta),
         onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
       ),
     );

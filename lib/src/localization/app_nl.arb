@@ -35,21 +35,22 @@
     "verificationScreenTitle": "Gegevens delen",
     "verificationScreenGenericError": "Verificatie mislukt",
     "verificationScreenGenericErrorCta": "Sluiten",
-    "verificationScreenIncorrectCta": "Klopt er iets niet?",
-    "verificationScreenAllTermsCta": "Alle voorwaarden",
-    "verificationScreenApproveOrganizationCta": "Ja, verder",
-    "verificationScreenDenyOrganizationCta": "Nee",
-    "verificationScreenApproveAttributesCta": "Ja, verder",
-    "verificationScreenDenyAttributesCta": "Nee",
-    "verificationScreenShareDataTitle": "Wil je deze gegevens delen?",
+    "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
+    "confirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
+    "confirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
+    "approveOrganizationPageApproveCta": "Ja, verder",
+    "approveOrganizationPageDenyCta": "Nee",
+    "confirmDataAttributesPageApproveCta": "Ja, verder",
+    "confirmDataAttributesPageDenyCta": "Nee",
+    "confirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
     "verificationScreenPurposeTitle": "Doel",
     "verificationScreenUsageTitle": "Gebruik",
-    "verificationScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
-    "verificationScreenDataWillBeShared": "Gegevens worden gedeeld",
-    "verificationScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "verificationScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-    "verificationScreenShareWithTitle": "Wil je gegevens delen met {organization}?",
-    "@verificationScreenShareWithTitle": {
+    "confirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
+    "confirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
+    "confirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "confirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+    "approveOrganizationPageShareWithTitle": "Wil je gegevens delen met {organization}?",
+    "@approveOrganizationPageShareWithTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -58,8 +59,8 @@
         },
         "description": "Title shown at the top of the screen when verifying"
     },
-    "verificationScreenReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
-    "@verificationScreenReceiveFromTitle": {
+    "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
+    "@approveOrganizationPageReceiveFromTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -78,8 +79,8 @@
         },
         "description": "Title shown on the expandable section"
     },
-    "verificationScreenDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-    "@verificationScreenDataRetentionDuration": {
+    "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+    "@confirmDataAttributesPageDataRetentionDuration": {
         "placeholders": {
             "days": {
                 "example": "30",
@@ -88,8 +89,8 @@
         },
         "description": "Duration that data will be stored by the verifier"
     },
-    "verificationScreenSuccessTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
-    "@verificationScreenSuccessTitle": {
+    "verificationSuccessPageTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
+    "@verificationSuccessPageTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -98,9 +99,11 @@
         },
         "description": "Title shown when data has been successfully shared"
     },
-    "verificationScreenHistoryDescription": "Je kan de details vinden in je geschiedenis.",
-    "verificationScreenShowHistoryCta": "Geschiedenis",
-    "verificationScreenCloseCta": "Sluiten",
+    "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
+    "verificationDeclinedPageShowHistoryCta": "Geschiedenis",
+    "verificationDeclinedPageCloseCta": "Sluiten",
+    "verificationSuccessPageShowHistoryCta": "Geschiedenis",
+    "verificationSuccessPageCloseCta": "Sluiten",
     "verificationScreenCancelSheetTitle": "Weet je zeker dat je wilt stoppen met delen?",
     "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}}. ",
     "@verificationScreenCancelSheetDescription": {
@@ -114,12 +117,12 @@
     },
     "verificationScreenCancelSheetNegativeCta": "Nee",
     "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
-    "verificationScreenDeclinedTitle": "Delen gestopt",
-    "verificationScreenDeclinedDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
-    "verificationScreenGiveFeedbackCta": "Geef feedback",
-    "verificationScreenMissingAttributesTitle": "Je mist gegevens",
-    "verificationScreenMissingAttributesDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
-    "@verificationScreenMissingAttributesDescription": {
+    "verificationDeclinedPageTitle": "Delen gestopt",
+    "verificationDeclinedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "verificationDeclinedPageFeedbackCta": "Geef feedback",
+    "missingAttributesPageTitle": "Je mist gegevens",
+    "missingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
+    "@missingAttributesPageDescription": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -128,8 +131,8 @@
         },
         "description": "Name of the organization"
     },
-    "verificationScreenMissingAttributesHowToProceedCta": "Wat kan ik doen?",
-    "verificationScreenMissingAttributesCloseCta": "Aanvraag sluiten",
+    "missingAttributesPageHowToProceedCta": "Wat kan ik doen?",
+    "missingAttributesPageCloseCta": "Aanvraag sluiten",
     "cardSummaryScreenTitle": "Kaart overzicht",
     "cardSummaryDataAttributesTitle": "Gegevens",
     "cardSummaryDataAttributesAllCta": "Alle gegevens",
@@ -243,5 +246,19 @@
         },
         "description": "Minutes"
     },
-    "issuanceScreenTitle": "Gegevens ophalen"
+    "issuanceScreenTitle": "Gegevens ophalen",
+    "proofIdentityPageTitle": "Bewijs wie je bent",
+    "proofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
+    "@proofIdentityPageSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        },
+        "description": "The organization's name"
+    },
+    "proofIdentityPageNegativeCta": "Stoppen",
+    "proofIdentityPagePositiveCta": "Delen",
+    "proofIdentityPageIncorrectCta": "Klopt er iets niet?"
 }
