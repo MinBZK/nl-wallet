@@ -11,5 +11,7 @@ abstract class WalletRepository {
 
   void lockWallet();
 
-  int get leftoverUnlockAttempts;
+  Future<bool> confirmTransaction(String pin);
+
+  int get leftoverPinAttempts;
 }

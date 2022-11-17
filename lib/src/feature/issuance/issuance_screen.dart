@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../wallet_constants.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/issuance_bloc.dart';
+import 'page/issuance_confirm_pin_page.dart';
 import 'page/proof_identity_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
@@ -43,7 +45,11 @@ class IssuanceScreen extends StatelessWidget {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
       builder: (context, state) {
-        return LinearProgressIndicator(value: state.stepperProgress);
+        return TweenAnimationBuilder<double>(
+          builder: (context, progress, child) => LinearProgressIndicator(value: progress),
+          duration: kDefaultAnimationDuration,
+          tween: Tween<double>(end: state.stepperProgress),
+        );
       },
     );
   }
@@ -51,19 +57,19 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
-        if (state is IssuanceInitial) return const CenteredLoadingIndicator();
-        if (state is IssuanceLoadInProgress) return const CenteredLoadingIndicator();
-        if (state is IssuanceCheckOrganization) return _buildCheckOrganizationPage(context, state);
-        if (state is IssuanceProofIdentity) return _buildProofIdentityPage(context, state);
-        if (state is IssuanceProvidePin) return Text(state.runtimeType.toString());
-        if (state is IssuanceProvidePinSuccess) return Text(state.runtimeType.toString());
-        if (state is IssuanceProvidePinFailure) return Text(state.runtimeType.toString());
-        if (state is IssuanceCheckCardAttributes) return Text(state.runtimeType.toString());
-        if (state is IssuanceCardAdded) return Text(state.runtimeType.toString());
-        if (state is IssuanceStopped) return Text(state.runtimeType.toString());
-        if (state is IssuanceGenericError) return Text(state.runtimeType.toString());
-        if (state is IssuanceIdentityValidationFailure) return Text(state.runtimeType.toString());
-        throw UnsupportedError('Unknown state: $state');
+        Widget? result;
+        if (state is IssuanceInitial) result = const CenteredLoadingIndicator();
+        if (state is IssuanceLoadInProgress) result = const CenteredLoadingIndicator();
+        if (state is IssuanceCheckOrganization) result = _buildCheckOrganizationPage(context, state);
+        if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
+        if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
+        if (state is IssuanceCheckCardAttributes) result = Text(state.runtimeType.toString());
+        if (state is IssuanceCardAdded) result = Text(state.runtimeType.toString());
+        if (state is IssuanceStopped) result = Text(state.runtimeType.toString());
+        if (state is IssuanceGenericError) result = Text(state.runtimeType.toString());
+        if (state is IssuanceIdentityValidationFailure) result = Text(state.runtimeType.toString());
+        if (result == null) throw UnsupportedError('Unknown state: $state');
+        return AnimatedSwitcher(duration: kDefaultAnimationDuration, child: result);
       },
     );
   }
@@ -95,6 +101,12 @@ class IssuanceScreen extends StatelessWidget {
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
       organization: state.organization,
       attributes: state.requestedAttributes,
+    );
+  }
+
+  Widget _buildProvidePinPage(BuildContext context, IssuanceProvidePin state) {
+    return IssuanceConfirmPinPage(
+      onPinValidated: () => context.read<IssuanceBloc>().add(const IssuancePinConfirmed()),
     );
   }
 }

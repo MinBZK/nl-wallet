@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/repository/wallet/wallet_repository.dart';
+import '../../domain/usecase/pin/unlock_wallet_usecase.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
@@ -18,7 +19,7 @@ class PinOverlay extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.data!) {
           return BlocProvider<PinBloc>(
-            create: (BuildContext context) => PinBloc(context.read(), context.read()),
+            create: (BuildContext context) => PinBloc(context.read<UnlockWalletUseCase>(), context.read()),
             child: const PinScreen(),
           );
         } else {

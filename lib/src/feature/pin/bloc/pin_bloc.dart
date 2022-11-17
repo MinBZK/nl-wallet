@@ -3,20 +3,20 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/usecase/pin/base_check_pin_usecase.dart';
 import '../../../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
-import '../../../domain/usecase/pin/unlock_wallet_usecase.dart';
 import '../../../wallet_constants.dart';
 
 part 'pin_event.dart';
 part 'pin_state.dart';
 
 class PinBloc extends Bloc<PinEvent, PinState> {
-  final UnlockWalletUseCase unlockWalletUseCase;
+  final CheckPinUseCase checkPinUseCase;
   final GetAvailablePinAttemptsUseCase getAvailablePinAttemptsUseCase;
 
   String _currentPin = '';
 
-  PinBloc(this.unlockWalletUseCase, this.getAvailablePinAttemptsUseCase) : super(const PinEntryInProgress(0)) {
+  PinBloc(this.checkPinUseCase, this.getAvailablePinAttemptsUseCase) : super(const PinEntryInProgress(0)) {
     on<PinDigitPressed>(_onEnterDigitEvent);
     on<PinBackspacePressed>(_onRemoveDigitEvent);
   }
@@ -42,7 +42,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   Future<void> _validatePin(Emitter<PinState> emit) async {
-    if (await unlockWalletUseCase.unlock(_currentPin)) {
+    if (await checkPinUseCase.invoke(_currentPin)) {
       emit(const PinValidateSuccess());
     } else {
       _currentPin = '';

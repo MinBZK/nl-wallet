@@ -34,7 +34,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   List<Object> get props => [organization];
 
   @override
-  double get stepperProgress => 0.33;
+  double get stepperProgress => 0.2;
 }
 
 class IssuanceProofIdentity extends IssuanceState {
@@ -53,7 +53,7 @@ class IssuanceProofIdentity extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  double get stepperProgress => 0.66;
+  double get stepperProgress => 0.4;
 }
 
 class IssuanceProvidePin extends IssuanceState {
@@ -66,21 +66,21 @@ class IssuanceProvidePin extends IssuanceState {
 
   @override
   bool get canGoBack => true;
-}
 
-class IssuanceProvidePinSuccess extends IssuanceState {
   @override
-  List<Object> get props => [];
-}
-
-class IssuanceProvidePinFailure extends IssuanceState {
-  @override
-  List<Object> get props => [];
+  double get stepperProgress => 0.6;
 }
 
 class IssuanceCheckCardAttributes extends IssuanceState {
+  final IssuanceResponse response;
+
+  const IssuanceCheckCardAttributes(this.response);
+
   @override
   List<Object> get props => [];
+
+  @override
+  double get stepperProgress => 0.8;
 }
 
 class IssuanceCardAdded extends IssuanceState {

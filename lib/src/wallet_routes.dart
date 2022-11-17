@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'domain/usecase/pin/unlock_wallet_usecase.dart';
 import 'feature/card/add/card_add_screen.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
@@ -14,6 +15,7 @@ import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
+import 'feature/pin/pin_prompt.dart';
 import 'feature/pin/pin_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
@@ -35,6 +37,7 @@ class WalletRoutes {
 
   static const splashRoute = '/';
   static const pinRoute = '/pin';
+  static const confirmRoute = '/confirm';
   static const walletCreateRoute = '/wallet/create';
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
@@ -61,6 +64,8 @@ class WalletRoutes {
         return _createSplashScreenBuilder;
       case WalletRoutes.pinRoute:
         return _createPinScreenBuilder;
+      case WalletRoutes.confirmRoute:
+        return _createConfirmScreenBuilder;
       case WalletRoutes.homeRoute:
         return _createHomeScreenBuilder;
       case WalletRoutes.cardAddRoute:
@@ -95,9 +100,11 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
     );
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read(), context.read()),
+      create: (BuildContext context) => PinBloc(context.read<UnlockWalletUseCase>(), context.read()),
       child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
     );
+
+Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createHomeScreenBuilder(BuildContext context) => BlocProvider<HomeBloc>(
       create: (BuildContext context) => HomeBloc(),

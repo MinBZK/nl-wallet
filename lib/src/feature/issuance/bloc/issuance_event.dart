@@ -47,3 +47,10 @@ class IssuanceShareRequestedAttributesDeclined extends IssuanceEvent {
   @override
   List<Object?> get props => [];
 }
+
+class IssuancePinConfirmed extends IssuanceEvent {
+  const IssuancePinConfirmed();
+
+  @override
+  List<Object?> get props => [];
+}

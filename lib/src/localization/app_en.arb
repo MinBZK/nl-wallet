@@ -260,5 +260,18 @@
     },
     "proofIdentityPageNegativeCta": "Stop",
     "proofIdentityPagePositiveCta": "Share",
-    "proofIdentityPageIncorrectCta": "Something not right?"
+    "proofIdentityPageIncorrectCta": "Something not right?",
+    "issuanceConfirmPinTitle": "Enter your pin",
+    "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+    "issuanceConfirmPinErrorTitle": "Invalid code",
+    "issuanceConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+    "@issuanceConfirmPinErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    }
 }

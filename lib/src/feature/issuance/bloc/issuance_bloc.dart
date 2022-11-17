@@ -22,6 +22,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
     on<IssuanceShareRequestedAttributesApproved>(_onIssuanceShareRequestedAttributesApproved);
+    on<IssuancePinConfirmed>(_onIssuancePinConfirmed);
   }
 
   FutureOr<void> _onIssuanceBackPressed(IssuanceBackPressed event, emit) async {
@@ -63,5 +64,11 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = this.state;
     if (state is! IssuanceProofIdentity) throw UnsupportedError('Incorrect state to $state');
     emit(IssuanceProvidePin(state.response));
+  }
+
+  FutureOr<void> _onIssuancePinConfirmed(IssuancePinConfirmed event, emit) async {
+    final state = this.state;
+    if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
+    emit(IssuanceCheckCardAttributes(state.response));
   }
 }

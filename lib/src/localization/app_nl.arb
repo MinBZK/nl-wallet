@@ -260,5 +260,18 @@
     },
     "proofIdentityPageNegativeCta": "Stoppen",
     "proofIdentityPagePositiveCta": "Delen",
-    "proofIdentityPageIncorrectCta": "Klopt er iets niet?"
+    "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
+    "issuanceConfirmPinTitle": "Vul je toegangscode in",
+    "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+    "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
+    "issuanceConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "@issuanceConfirmPinErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    }
 }

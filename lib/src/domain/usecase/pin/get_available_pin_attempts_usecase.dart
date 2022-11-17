@@ -5,5 +5,5 @@ class GetAvailablePinAttemptsUseCase {
 
   GetAvailablePinAttemptsUseCase(this.walletRepository);
 
-  int invoke() => walletRepository.leftoverUnlockAttempts;
+  int invoke() => walletRepository.leftoverPinAttempts;
 }
