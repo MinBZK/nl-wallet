@@ -5,11 +5,14 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
 import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/confirm_action_sheet.dart';
+import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/issuance_bloc.dart';
 import 'page/card_added_page.dart';
 import 'page/check_data_offering_page.dart';
 import 'page/issuance_confirm_pin_page.dart';
+import 'page/issuance_stopped_page.dart';
 import 'page/proof_identity_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
@@ -32,14 +35,17 @@ class IssuanceScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).issuanceScreenTitle),
         leading: _buildBackButton(context),
-        actions: const [CloseButton()],
+        actions: [CloseButton(onPressed: () => _stopIssuance(context))],
       ),
       body: WillPopScope(
         onWillPop: () async {
-          final state = context.read<IssuanceBloc>().state;
-          if (state.canGoBack) context.read<IssuanceBloc>().add(const IssuanceBackPressed());
-          //TODO: Handle terminal cases, and cases where pressing back should cause the 'stop' sheet.
-          return !state.canGoBack;
+          final bloc = context.read<IssuanceBloc>();
+          if (bloc.state.canGoBack) {
+            bloc.add(const IssuanceBackPressed());
+          } else {
+            _stopIssuance(context);
+          }
+          return false;
         },
         child: Column(
           children: [
@@ -68,14 +74,14 @@ class IssuanceScreen extends StatelessWidget {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
         Widget? result;
-        if (state is IssuanceInitial) return _buildLoading();
-        if (state is IssuanceLoadInProgress) return _buildLoading();
+        if (state is IssuanceInitial) result = _buildLoading();
+        if (state is IssuanceLoadInProgress) result = _buildLoading();
         if (state is IssuanceCheckOrganization) result = _buildCheckOrganizationPage(context, state);
         if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
         if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
         if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
         if (state is IssuanceCardAdded) result = _buildCardAddedPage(context, state);
-        if (state is IssuanceStopped) result = Text(state.runtimeType.toString());
+        if (state is IssuanceStopped) result = _buildStoppedPage(context, state);
         if (state is IssuanceGenericError) result = Text(state.runtimeType.toString());
         if (state is IssuanceIdentityValidationFailure) result = Text(state.runtimeType.toString());
         if (result == null) throw UnsupportedError('Unknown state: $state');
@@ -145,7 +151,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
     return ProofIdentityPage(
-      onDecline: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesDeclined()),
+      onDecline: () => _stopIssuance(context),
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
       organization: state.organization,
       attributes: state.requestedAttributes,
@@ -156,6 +162,31 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceConfirmPinPage(
       onPinValidated: () => context.read<IssuanceBloc>().add(const IssuancePinConfirmed()),
     );
+  }
+
+  Widget _buildStoppedPage(BuildContext context, IssuanceStopped state) {
+    return IssuanceStoppedPage(
+      onClosePressed: () => Navigator.pop(context),
+      onGiveFeedbackPressed: () => PlaceholderScreen.show(context, 'Give feedback'),
+    );
+  }
+
+  void _stopIssuance(BuildContext context) async {
+    final bloc = context.read<IssuanceBloc>();
+    if (bloc.state.showStopConfirmation) {
+      final locale = AppLocalizations.of(context);
+      final organizationName = context.read<IssuanceBloc>().state.organization?.shortName ?? '-';
+      final stopped = await ConfirmActionSheet.show(
+        context,
+        title: locale.issuanceStopSheetTitle,
+        description: locale.issuanceStopSheetDescription(organizationName),
+        cancelButtonText: locale.issuanceStopSheetNegativeCta,
+        confirmButtonText: locale.issuanceStopSheetPositiveCta,
+      );
+      if (stopped) bloc.add(const IssuanceStopRequested());
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {

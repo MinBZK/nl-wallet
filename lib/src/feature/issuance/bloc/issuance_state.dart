@@ -1,11 +1,15 @@
 part of 'issuance_bloc.dart';
 
 abstract class IssuanceState extends Equatable {
+  bool get showStopConfirmation => true;
+
   bool get canGoBack => false;
 
   bool get didGoBack => false;
 
   double get stepperProgress => 0.0;
+
+  Organization? get organization => null;
 
   const IssuanceState();
 }
@@ -29,6 +33,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   final IssuanceResponse response;
   final bool afterBackPressed;
 
+  @override
   Organization get organization => response.organization;
 
   const IssuanceCheckOrganization(this.response, {this.afterBackPressed = false});
@@ -47,6 +52,7 @@ class IssuanceProofIdentity extends IssuanceState {
   final IssuanceResponse response;
   final bool afterBackPressed;
 
+  @override
   Organization get organization => response.organization;
 
   List<DataAttribute> get requestedAttributes => response.requestedAttributes;
@@ -72,6 +78,9 @@ class IssuanceProvidePin extends IssuanceState {
   const IssuanceProvidePin(this.response);
 
   @override
+  Organization get organization => response.organization;
+
+  @override
   List<Object> get props => [response];
 
   @override
@@ -91,6 +100,9 @@ class IssuanceCheckDataOffering extends IssuanceState {
 
   @override
   double get stepperProgress => 0.8;
+
+  @override
+  Organization get organization => response.organization;
 }
 
 class IssuanceCardAdded extends IssuanceState {
@@ -100,19 +112,31 @@ class IssuanceCardAdded extends IssuanceState {
 
   @override
   List<Object> get props => [response];
+
+  @override
+  bool get showStopConfirmation => false;
 }
 
 class IssuanceStopped extends IssuanceState {
   @override
   List<Object> get props => [];
+
+  @override
+  bool get showStopConfirmation => false;
 }
 
 class IssuanceGenericError extends IssuanceState {
   @override
   List<Object> get props => [];
+
+  @override
+  bool get showStopConfirmation => false;
 }
 
 class IssuanceIdentityValidationFailure extends IssuanceState {
   @override
   List<Object> get props => [];
+
+  @override
+  bool get showStopConfirmation => false;
 }

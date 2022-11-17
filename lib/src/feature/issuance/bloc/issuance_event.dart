@@ -54,3 +54,10 @@ class IssuancePinConfirmed extends IssuanceEvent {
   @override
   List<Object?> get props => [];
 }
+
+class IssuanceStopRequested extends IssuanceEvent {
+  const IssuanceStopRequested();
+
+  @override
+  List<Object?> get props => [];
+}

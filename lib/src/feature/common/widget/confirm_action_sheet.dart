@@ -61,14 +61,14 @@ class ConfirmActionSheet extends StatelessWidget {
     );
   }
 
-  static Future<bool?> show(
+  static Future<bool> show(
     BuildContext context, {
     required String title,
     required String description,
     required String cancelButtonText,
     required String confirmButtonText,
-  }) {
-    return showModalBottomSheet<bool>(
+  }) async {
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
       builder: (BuildContext context) {
         return ConfirmActionSheet(
@@ -81,5 +81,6 @@ class ConfirmActionSheet extends StatelessWidget {
         );
       },
     );
+    return confirmed == true;
   }
 }

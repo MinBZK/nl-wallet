@@ -263,6 +263,23 @@
     "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
     "issuanceConfirmPinTitle": "Vul je toegangscode in",
     "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+    "issuanceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
+    "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
+    "@issuanceStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        },
+        "description": "The organization's name"
+    },
+    "issuanceStopSheetNegativeCta": "Nee",
+    "issuanceStopSheetPositiveCta": "Ja, Stoppen",
+    "issuanceStoppedPageTitle": "Delen gestopt",
+    "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
+    "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
+    "issuanceStoppedPageCloseCta": "Sluiten",
     "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
     "issuanceConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
     "@issuanceConfirmPinErrorDescription": {

@@ -263,6 +263,23 @@
     "proofIdentityPageIncorrectCta": "Something not right?",
     "issuanceConfirmPinTitle": "Enter your pin",
     "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+    "issuanceStopSheetTitle": "Are your sure you want to stop?",
+    "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
+    "@issuanceStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        },
+        "description": "The organization's name"
+    },
+    "issuanceStopSheetNegativeCta": "No",
+    "issuanceStopSheetPositiveCta": "Yes, Stop",
+    "issuanceStoppedPageTitle": "Sharing stopped",
+    "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
+    "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
+    "issuanceStoppedPageCloseCta": "Close",
     "issuanceConfirmPinErrorTitle": "Invalid code",
     "issuanceConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
     "@issuanceConfirmPinErrorDescription": {
