@@ -17,26 +17,12 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
     final organization = (await organizationDataSource.read('rvig'))!;
     switch (issuanceRequestId) {
       case '1':
-        if ((await walletDataSource.read(_kMockPassportWalletCard.id)) != null) {
-          return IssuanceResponse(
-            organization: organization,
-            cards: [],
-            requestedAttributes: _kMockRequestedAttributes,
-          );
-        }
         return IssuanceResponse(
           organization: organization,
           cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockRequestedAttributes,
         );
       case '2':
-        if ((await walletDataSource.read(_kMockLicenseWalletCard.id)) != null) {
-          return IssuanceResponse(
-            organization: organization,
-            cards: [],
-            requestedAttributes: _kMockRequestedAttributes,
-          );
-        }
         return IssuanceResponse(
           organization: organization,
           cards: [_kMockLicenseWalletCard],

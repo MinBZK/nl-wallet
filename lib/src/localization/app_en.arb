@@ -246,7 +246,7 @@
         },
         "description": "Minutes"
     },
-    "issuanceScreenTitle": "Download cards",
+    "issuanceScreenTitle": "Retrieve data",
     "proofIdentityPageTitle": "Proof who you are",
     "proofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
     "@proofIdentityPageSubtitle": {
@@ -273,5 +273,10 @@
             }
         },
         "description": "Attempts left counter on the pin entry screen"
-    }
+    },
+    "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
+    "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
+    "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
+    "issuanceCheckDataOfferingPagePositiveCta": "Add",
+    "issuanceCheckDataOfferingPageNegativeCta": "Decline"
 }

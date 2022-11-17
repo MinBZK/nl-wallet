@@ -273,5 +273,10 @@
             }
         },
         "description": "Attempts left counter on the pin entry screen"
-    }
+    },
+    "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
+    "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
+    "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
+    "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
+    "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen"
 }

@@ -78,6 +78,15 @@ class IssuanceCheckCardAttributes extends IssuanceState {
 
   @override
   List<Object> get props => [];
+}
+
+class IssuanceCheckDataOffering extends IssuanceState {
+  final IssuanceResponse response;
+
+  const IssuanceCheckDataOffering(this.response);
+
+  @override
+  List<Object> get props => [response];
 
   @override
   double get stepperProgress => 0.8;
