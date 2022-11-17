@@ -7,6 +7,7 @@ import '../../wallet_constants.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/issuance_bloc.dart';
+import 'page/card_added_page.dart';
 import 'page/check_data_offering_page.dart';
 import 'page/issuance_confirm_pin_page.dart';
 import 'page/proof_identity_page.dart';
@@ -73,7 +74,7 @@ class IssuanceScreen extends StatelessWidget {
         if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
         if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
         if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
-        if (state is IssuanceCardAdded) result = Text(state.runtimeType.toString());
+        if (state is IssuanceCardAdded) result = _buildCardAddedPage(context, state);
         if (state is IssuanceStopped) result = Text(state.runtimeType.toString());
         if (state is IssuanceGenericError) result = Text(state.runtimeType.toString());
         if (state is IssuanceIdentityValidationFailure) result = Text(state.runtimeType.toString());
@@ -162,6 +163,13 @@ class IssuanceScreen extends StatelessWidget {
       onDecline: () => {},
       onAccept: () => {},
       attributes: state.response.cards.first.attributes,
+    );
+  }
+
+  Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
+    return CardAddedPage(
+      onClose: () => {},
+      cardFront: state.response.cards.first.front,
     );
   }
 }

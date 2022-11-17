@@ -94,8 +94,12 @@ class IssuanceCheckDataOffering extends IssuanceState {
 }
 
 class IssuanceCardAdded extends IssuanceState {
+  final IssuanceResponse response;
+
+  const IssuanceCardAdded(this.response);
+
   @override
-  List<Object> get props => [];
+  List<Object> get props => [response];
 }
 
 class IssuanceStopped extends IssuanceState {

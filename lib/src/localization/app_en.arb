@@ -278,5 +278,9 @@
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
     "issuanceCheckDataOfferingPagePositiveCta": "Add",
-    "issuanceCheckDataOfferingPageNegativeCta": "Decline"
+    "issuanceCheckDataOfferingPageNegativeCta": "Decline",
+    "proofIdentityPageIncorrectCta": "Something not right?",
+    "issuanceCardAddedTitle": "Success!",
+    "issuanceCardAddedSubtitle": "Your card has been added",
+    "issuanceCardAddedCloseCta": "Close"
 }

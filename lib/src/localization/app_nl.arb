@@ -278,5 +278,9 @@
     "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
     "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
     "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
-    "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen"
+    "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
+    "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
+    "issuanceCardAddedTitle": "Gelukt!",
+    "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
+    "issuanceCardAddedCloseCta": "Sluiten"
 }
