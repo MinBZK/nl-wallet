@@ -33,11 +33,19 @@ class IssuanceScreen extends StatelessWidget {
         leading: _buildBackButton(context),
         actions: const [CloseButton()],
       ),
-      body: Column(
-        children: [
-          _buildStepper(),
-          Expanded(child: _buildPage()),
-        ],
+      body: WillPopScope(
+        onWillPop: () async {
+          final state = context.read<IssuanceBloc>().state;
+          if (state.canGoBack) context.read<IssuanceBloc>().add(const IssuanceBackPressed());
+          //TODO: Handle terminal cases, and cases where pressing back should cause the 'stop' sheet.
+          return !state.canGoBack;
+        },
+        child: Column(
+          children: [
+            _buildStepper(),
+            Expanded(child: _buildPage()),
+          ],
+        ),
       ),
     );
   }
@@ -64,14 +72,43 @@ class IssuanceScreen extends StatelessWidget {
         if (state is IssuanceCheckOrganization) result = _buildCheckOrganizationPage(context, state);
         if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
         if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
-        if (state is IssuanceCheckDataOffering) return _buildCheckDataOfferingPage(context, state);
+        if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
         if (state is IssuanceCardAdded) result = Text(state.runtimeType.toString());
         if (state is IssuanceStopped) result = Text(state.runtimeType.toString());
         if (state is IssuanceGenericError) result = Text(state.runtimeType.toString());
         if (state is IssuanceIdentityValidationFailure) result = Text(state.runtimeType.toString());
         if (result == null) throw UnsupportedError('Unknown state: $state');
-        return AnimatedSwitcher(duration: kDefaultAnimationDuration, child: result);
+        return _buildAnimatedResult(result, state);
       },
+    );
+  }
+
+  Widget _buildAnimatedResult(Widget result, IssuanceState state) {
+    return AnimatedSwitcher(
+      duration: kDefaultAnimationDuration,
+      switchOutCurve: Curves.easeInOut,
+      switchInCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return DualTransitionBuilder(
+          animation: animation,
+          forwardBuilder: (context, animation, forwardChild) => SlideTransition(
+            position: Tween<Offset>(
+              begin: Offset(state.didGoBack ? 0 : 1, 0),
+              end: Offset(state.didGoBack ? 1 : 0, 0),
+            ).animate(animation),
+            child: forwardChild,
+          ),
+          reverseBuilder: (context, animation, reverseChild) => SlideTransition(
+            position: Tween<Offset>(
+              begin: Offset(state.didGoBack ? -1 : 0, 0),
+              end: Offset(state.didGoBack ? 0 : -1, 0),
+            ).animate(animation),
+            child: reverseChild,
+          ),
+          child: child,
+        );
+      },
+      child: result,
     );
   }
 
@@ -82,11 +119,16 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildBackButton(BuildContext context) {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
-        if (state.canGoBack) {
-          return BackButton(onPressed: () => context.read<IssuanceBloc>().add(const IssuanceBackPressed()));
-        } else {
-          return const SizedBox.shrink();
-        }
+        return AnimatedOpacity(
+          opacity: state.canGoBack ? 1 : 0,
+          duration: kDefaultAnimationDuration,
+          child: IgnorePointer(
+            ignoring: !state.canGoBack,
+            child: BackButton(
+              onPressed: () => context.read<IssuanceBloc>().add(const IssuanceBackPressed()),
+            ),
+          ),
+        );
       },
     );
   }

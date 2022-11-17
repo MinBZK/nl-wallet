@@ -28,8 +28,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   FutureOr<void> _onIssuanceBackPressed(IssuanceBackPressed event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
-      if (state is IssuanceProofIdentity) emit(IssuanceCheckOrganization(state.response));
-      if (state is IssuanceProvidePin) emit(IssuanceProofIdentity(state.response));
+      if (state is IssuanceProofIdentity) emit(IssuanceCheckOrganization(state.response, afterBackPressed: true));
+      if (state is IssuanceProvidePin) emit(IssuanceProofIdentity(state.response, afterBackPressed: true));
     }
   }
 
@@ -69,6 +69,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   FutureOr<void> _onIssuancePinConfirmed(IssuancePinConfirmed event, emit) async {
     final state = this.state;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
-    emit(IssuanceCheckCardAttributes(state.response));
+    emit(IssuanceCheckDataOffering(state.response));
   }
 }

@@ -3,6 +3,8 @@ part of 'issuance_bloc.dart';
 abstract class IssuanceState extends Equatable {
   bool get canGoBack => false;
 
+  bool get didGoBack => false;
+
   double get stepperProgress => 0.0;
 
   const IssuanceState();
@@ -25,32 +27,40 @@ class IssuanceLoadFailure extends IssuanceState {
 
 class IssuanceCheckOrganization extends IssuanceState {
   final IssuanceResponse response;
+  final bool afterBackPressed;
 
   Organization get organization => response.organization;
 
-  const IssuanceCheckOrganization(this.response);
+  const IssuanceCheckOrganization(this.response, {this.afterBackPressed = false});
 
   @override
   List<Object> get props => [organization];
 
   @override
   double get stepperProgress => 0.2;
+
+  @override
+  bool get didGoBack => afterBackPressed;
 }
 
 class IssuanceProofIdentity extends IssuanceState {
   final IssuanceResponse response;
+  final bool afterBackPressed;
 
   Organization get organization => response.organization;
 
   List<DataAttribute> get requestedAttributes => response.requestedAttributes;
 
-  const IssuanceProofIdentity(this.response);
+  const IssuanceProofIdentity(this.response, {this.afterBackPressed = false});
 
   @override
   List<Object> get props => [response];
 
   @override
   bool get canGoBack => true;
+
+  @override
+  bool get didGoBack => afterBackPressed;
 
   @override
   double get stepperProgress => 0.4;
@@ -69,15 +79,6 @@ class IssuanceProvidePin extends IssuanceState {
 
   @override
   double get stepperProgress => 0.6;
-}
-
-class IssuanceCheckCardAttributes extends IssuanceState {
-  final IssuanceResponse response;
-
-  const IssuanceCheckCardAttributes(this.response);
-
-  @override
-  List<Object> get props => [];
 }
 
 class IssuanceCheckDataOffering extends IssuanceState {
