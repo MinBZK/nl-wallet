@@ -16,7 +16,7 @@ class MissingDataAttributeRow extends StatelessWidget {
         const Icon(Icons.do_not_disturb_on_outlined, size: 20),
         const SizedBox(width: 16),
         Text(
-          attribute.type,
+          attribute.label,
           style: Theme.of(context).textTheme.bodyText1,
         ),
       ],

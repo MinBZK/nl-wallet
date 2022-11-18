@@ -14,7 +14,7 @@ class DataAttributeRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          attribute.type,
+          attribute.label,
           style: Theme.of(context).textTheme.caption,
         ),
         Text(

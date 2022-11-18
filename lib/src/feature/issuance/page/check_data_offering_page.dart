@@ -73,7 +73,7 @@ class CheckDataOfferingPage extends StatelessWidget {
   }
 
   Widget _buildDataAttributeItem(DataAttribute attribute) {
-    if (attribute.type == 'Image') {
+    if (attribute.type == DataAttributeType.image) {
       return Align(
         alignment: Alignment.centerLeft,
         child: DataAttributeImage(image: AssetImage(attribute.value!)),

@@ -64,10 +64,10 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildDataAttribute(DataAttribute attribute) {
     assert(attribute.value != null, 'CardDataScreen does not support incomplete datasets');
-    if (attribute.type == 'Image') {
+    if (attribute.type == DataAttributeType.image) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: DataAttributeImage(image: AssetImage(attribute.value!)),
+        child: DataAttributeImage(label: attribute.label, image: AssetImage(attribute.value!)),
       );
     } else {
       return DataAttributeRow(attribute: attribute);

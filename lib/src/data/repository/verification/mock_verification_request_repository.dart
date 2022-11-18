@@ -17,10 +17,26 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           id: '1',
           organization: (await organizationDataSource.read('duo'))!,
           attributes: const [
-            DataAttribute(type: 'Niveau', value: 'Master - WO'),
-            DataAttribute(type: 'Onderwijsinstelling', value: 'Technische Universiteit Delft'),
-            DataAttribute(type: 'Opleidingsnaam', value: 'Integrated Product Design'),
-            DataAttribute(type: 'Verklaring Omtrent het Gedrag', value: 'Profiel 11, 12, 13'),
+            DataAttribute(
+              type: DataAttributeType.text,
+              label: 'Niveau',
+              value: 'Master - WO',
+            ),
+            DataAttribute(
+              type: DataAttributeType.text,
+              label: 'Onderwijsinstelling',
+              value: 'Technische Universiteit Delft',
+            ),
+            DataAttribute(
+              type: DataAttributeType.text,
+              label: 'Opleidingsnaam',
+              value: 'Integrated Product Design',
+            ),
+            DataAttribute(
+              type: DataAttributeType.text,
+              label: 'Verklaring Omtrent het Gedrag',
+              value: 'Profiel 11, 12, 13',
+            ),
           ],
           policy: _kMockDuoPolicy,
         );
@@ -29,10 +45,10 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           id: '2',
           organization: (await organizationDataSource.read('staatsloterij'))!,
           attributes: const [
-            DataAttribute(type: 'Naam', value: 'John Doe'),
-            DataAttribute(type: 'Email', value: 'john.doe@example.org'),
-            DataAttribute(type: 'Telefoon', value: '+31623456789'),
-            DataAttribute(type: 'Email', value: 'john.doe@example.org'),
+            DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'John Doe'),
+            DataAttribute(type: DataAttributeType.text, label: 'Email', value: 'john.doe@example.org'),
+            DataAttribute(type: DataAttributeType.text, label: 'Telefoon', value: '+31623456789'),
+            DataAttribute(type: DataAttributeType.text, label: 'Email', value: 'john.doe@example.org'),
           ],
           policy: _kMockLotteryPolicy,
         );
@@ -41,8 +57,8 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           id: '3',
           organization: (await organizationDataSource.read('duo'))!,
           attributes: const [
-            DataAttribute(type: 'Onderwijsinstelling', value: null),
-            DataAttribute(type: 'Verklaring Omtrent het Gedrag', value: null),
+            DataAttribute(type: DataAttributeType.text, label: 'Onderwijsinstelling', value: null),
+            DataAttribute(type: DataAttributeType.text, label: 'Verklaring Omtrent het Gedrag', value: null),
           ],
           policy: _kMockDuoPolicy,
         );
