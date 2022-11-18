@@ -7,8 +7,10 @@ class WalletThemeConstants {
   static const colorScheme = ColorScheme.light(
     primary: _primaryColor,
     error: _errorColor,
-    background: _defaultBackgroundColor,
+    background: _backgroundColor,
     secondaryContainer: _secondaryContainer,
+    onPrimary: _primaryTextColor,
+    onBackground: _onBackground,
   );
 
   // Indicator color
@@ -16,9 +18,6 @@ class WalletThemeConstants {
 
   // Dark variant of the primary color
   static const primaryColorDark = _primaryColorDark;
-
-  // Secondary text color
-  static const secondaryTextColor = _secondaryTextColor;
 
   // Default font family
   static const fontFamily = _defaultFontFamily;
@@ -108,17 +107,18 @@ class WalletThemeConstants {
   static const _primaryColorDark = Color(0xFF152A62);
   static const _errorColor = Color(0xFFCA005D);
   static const _secondaryContainer = Color(0xFFF3F4F7);
-  static const _defaultBackgroundColor = Color(0xFFFCFCFC);
+  static const _backgroundColor = Color(0xFFFCFCFC);
+  static const _onBackground = Color(0xFFFFFFFF);
 
   // App, bottom navigation bar & scaffold theme
-  static const _appBarBackgroundColor = _defaultBackgroundColor;
+  static const _appBarBackgroundColor = _backgroundColor;
   static const _appBarForegroundColor = Color(0xDE000000);
   static const _appBarCenterTitle = true;
   static const _appBarElevation = 1.0;
   static const _appBarIconThemeData = IconThemeData(color: _primaryTextColor);
   static const _bottomNavigationBarBackgroundColor = Colors.white;
   static const _bottomNavigationBarElevation = 4.0;
-  static const _scaffoldBackgroundColor = _defaultBackgroundColor;
+  static const _scaffoldBackgroundColor = _backgroundColor;
   static const _dividerColor = Color(0x66445581);
 
   // Button theme
@@ -131,7 +131,6 @@ class WalletThemeConstants {
 
   // Text colors
   static const _primaryTextColor = Color(0xFF152A62);
-  static const _secondaryTextColor = Color(0xFF445581);
 
   // Text styles
   static const _headline1TextStyle = TextStyle(

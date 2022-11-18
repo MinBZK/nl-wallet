@@ -12,9 +12,7 @@ class InitCardsUseCase {
   }
 
   void invoke() async {
-    final IssuanceResponse passport = await issuanceRepository.read('1');
-    final IssuanceResponse drivingLicense = await issuanceRepository.read('2');
-    walletCardRepository.create(passport.cards.first);
-    walletCardRepository.create(drivingLicense.cards.first);
+    final IssuanceResponse issuanceResponse = await issuanceRepository.read('PID_1');
+    walletCardRepository.create(issuanceResponse.cards.first);
   }
 }

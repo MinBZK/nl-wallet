@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class DataHighlight extends Equatable {
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final String? image;
 
   const DataHighlight({

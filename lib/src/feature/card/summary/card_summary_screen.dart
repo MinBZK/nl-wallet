@@ -136,7 +136,11 @@ class CardSummaryScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.subtitle1,
                     ),
                     const SizedBox(height: 8.0),
-                    Text('${highlight.title}\n${highlight.subtitle}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(highlight.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Visibility(
+                      visible: highlight.subtitle?.isNotEmpty ?? false,
+                      child: Text(highlight.subtitle ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                 ),
               ),
