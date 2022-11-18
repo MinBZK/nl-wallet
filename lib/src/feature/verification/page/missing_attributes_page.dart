@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../model/verification_request.dart';
-import '../widget/missing_data_attribute_row.dart';
 
 class MissingAttributesPage extends StatelessWidget {
   final VerificationRequest request;
@@ -63,7 +63,7 @@ class MissingAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: MissingDataAttributeRow(attribute: request.attributes[index]),
+        child: DataAttributeRow(attribute: request.attributes[index]),
       ),
       childCount: request.attributes.length,
     );

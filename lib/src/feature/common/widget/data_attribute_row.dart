@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/data_attribute.dart';
+import 'data_attribute_row_image.dart';
+import 'data_attribute_row_missing.dart';
+import 'data_attribute_row_text.dart';
 
 class DataAttributeRow extends StatelessWidget {
   final DataAttribute attribute;
@@ -9,19 +12,18 @@ class DataAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          attribute.label,
-          style: Theme.of(context).textTheme.caption,
-        ),
-        Text(
-          attribute.value ?? '-',
-          style: Theme.of(context).textTheme.subtitle1,
-        ),
-      ],
-    );
+    switch (attribute.type) {
+      case DataAttributeType.text:
+        if (attribute.value?.isNotEmpty ?? false) {
+          return DataAttributeRowText(attribute: attribute);
+        } else {
+          return DataAttributeRowMissing(attribute: attribute);
+        }
+      case DataAttributeType.image:
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: DataAttributeRowImage(image: AssetImage(attribute.value!), label: attribute.label),
+        );
+    }
   }
 }

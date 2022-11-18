@@ -4,11 +4,11 @@ const _kImageBorderRadius = 4.0;
 const _kImageWidth = 58.0;
 const _kImageHeight = 64.0;
 
-class DataAttributeImage extends StatelessWidget {
+class DataAttributeRowImage extends StatelessWidget {
   final ImageProvider image;
   final String? label;
 
-  const DataAttributeImage({required this.image, this.label, Key? key}) : super(key: key);
+  const DataAttributeRowImage({required this.image, this.label, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

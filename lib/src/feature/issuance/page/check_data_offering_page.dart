@@ -3,7 +3,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_attribute.dart';
 import '../../common/widget/confirm_buttons.dart';
-import '../../common/widget/data_attribute_image.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
@@ -73,14 +72,7 @@ class CheckDataOfferingPage extends StatelessWidget {
   }
 
   Widget _buildDataAttributeItem(DataAttribute attribute) {
-    if (attribute.type == DataAttributeType.image) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: DataAttributeImage(image: AssetImage(attribute.value!)),
-      );
-    } else {
-      return DataAttributeRow(attribute: attribute);
-    }
+    return DataAttributeRow(attribute: attribute);
   }
 
   Widget _buildFooterSection(BuildContext context) {

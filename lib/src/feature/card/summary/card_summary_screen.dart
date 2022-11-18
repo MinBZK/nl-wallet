@@ -11,7 +11,7 @@ import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_type_text_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/data_attribute_image.dart';
+import '../../common/widget/data_attribute_row_image.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_summary_bloc.dart';
@@ -152,7 +152,7 @@ class CardSummaryScreen extends StatelessWidget {
           ),
           if (highlight.image != null) ...[
             const SizedBox(width: 16.0),
-            DataAttributeImage(label: null, image: AssetImage(highlight.image!)),
+            DataAttributeRowImage(image: AssetImage(highlight.image!)),
           ],
         ],
       ),

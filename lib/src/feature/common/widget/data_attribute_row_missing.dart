@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/data_attribute.dart';
 
-class MissingDataAttributeRow extends StatelessWidget {
+class DataAttributeRowMissing extends StatelessWidget {
   final DataAttribute attribute;
 
-  const MissingDataAttributeRow({required this.attribute, Key? key}) : super(key: key);
+  const DataAttributeRowMissing({required this.attribute, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

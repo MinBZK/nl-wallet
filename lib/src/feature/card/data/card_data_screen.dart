@@ -5,7 +5,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_attribute.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/data_attribute_image.dart';
 import '../../common/widget/data_attribute_row.dart';
 import 'bloc/card_data_bloc.dart';
 
@@ -52,7 +51,7 @@ class CardDataScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       itemBuilder: (context, index) {
         if (index < attributes.length) {
-          return _buildDataAttribute(attributes[index]);
+          return DataAttributeRow(attribute: attributes[index]);
         } else {
           return _buildFooterButton(context);
         }
@@ -60,18 +59,6 @@ class CardDataScreen extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 16.0),
       itemCount: attributes.length + 1,
     );
-  }
-
-  Widget _buildDataAttribute(DataAttribute attribute) {
-    assert(attribute.value != null, 'CardDataScreen does not support incomplete datasets');
-    if (attribute.type == DataAttributeType.image) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: DataAttributeImage(label: attribute.label, image: AssetImage(attribute.value!)),
-      );
-    } else {
-      return DataAttributeRow(attribute: attribute);
-    }
   }
 
   Widget _buildFooterButton(BuildContext context) {
