@@ -296,8 +296,14 @@
     "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
     "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
     "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
-    "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
     "issuanceCardAddedTitle": "Gelukt!",
     "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
-    "issuanceCardAddedCloseCta": "Sluiten"
+    "issuanceCardAddedCloseCta": "Sluiten",
+    "issuanceGenericErrorPageTitle": "Er ging iets mis",
+    "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "issuanceGenericErrorPageCloseCta": "Sluiten",
+    "issuanceIdentityValidationFailedPageTitle": "Je identiteitscontrole kwam niet overeen",
+    "issuanceIdentityValidationFailedPageDescription": "Het lijkt er op dat de gegevens die je probeert op te halen van iemand anders zijn.",
+    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Klopt er iets niet?",
+    "issuanceIdentityValidationFailedPageCloseCta": "Sluiten"
 }

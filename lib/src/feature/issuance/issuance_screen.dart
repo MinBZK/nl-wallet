@@ -12,6 +12,8 @@ import 'bloc/issuance_bloc.dart';
 import 'page/card_added_page.dart';
 import 'page/check_data_offering_page.dart';
 import 'page/issuance_confirm_pin_page.dart';
+import 'page/issuance_generic_error_page.dart';
+import 'page/issuance_identity_validation_failed_page.dart';
 import 'page/issuance_stopped_page.dart';
 import 'page/proof_identity_page.dart';
 
@@ -82,8 +84,8 @@ class IssuanceScreen extends StatelessWidget {
         if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
         if (state is IssuanceCardAdded) result = _buildCardAddedPage(context, state);
         if (state is IssuanceStopped) result = _buildStoppedPage(context, state);
-        if (state is IssuanceGenericError) result = Text(state.runtimeType.toString());
-        if (state is IssuanceIdentityValidationFailure) result = Text(state.runtimeType.toString());
+        if (state is IssuanceGenericError) result = _buildGenericErrorPage(context, state);
+        if (state is IssuanceIdentityValidationFailure) result = _buildIdentityValidationFailedPage(context, state);
         if (result == null) throw UnsupportedError('Unknown state: $state');
         return _buildAnimatedResult(result, state);
       },
@@ -168,6 +170,17 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceStoppedPage(
       onClosePressed: () => Navigator.pop(context),
       onGiveFeedbackPressed: () => PlaceholderScreen.show(context, 'Give feedback'),
+    );
+  }
+
+  Widget _buildGenericErrorPage(BuildContext context, IssuanceGenericError state) {
+    return IssuanceGenericErrorPage(onClosePressed: () => Navigator.pop(context));
+  }
+
+  Widget _buildIdentityValidationFailedPage(BuildContext context, IssuanceIdentityValidationFailure state) {
+    return IssuanceIdentityValidationFailedPage(
+      onClosePressed: () => Navigator.pop(context),
+      onSomethingNotRightPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
     );
   }
 

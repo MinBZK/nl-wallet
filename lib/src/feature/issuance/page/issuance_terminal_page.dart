@@ -30,23 +30,26 @@ class IssuanceTerminalPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const SizedBox(height: 24),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: StatusIcon(
               icon: icon,
               color: Theme.of(context).primaryColorDark,
             ),
           ),
+          const SizedBox(height: 32),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               title,
               style: Theme.of(context).textTheme.headline2,
               textAlign: TextAlign.center,
             ),
           ),
+          const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               description,
               style: Theme.of(context).textTheme.bodyText1,

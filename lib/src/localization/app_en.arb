@@ -296,8 +296,14 @@
     "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
     "issuanceCheckDataOfferingPagePositiveCta": "Add",
     "issuanceCheckDataOfferingPageNegativeCta": "Decline",
-    "proofIdentityPageIncorrectCta": "Something not right?",
     "issuanceCardAddedTitle": "Success!",
     "issuanceCardAddedSubtitle": "Your card has been added",
-    "issuanceCardAddedCloseCta": "Close"
+    "issuanceCardAddedCloseCta": "Close",
+    "issuanceGenericErrorPageTitle": "Something went wrong",
+    "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
+    "issuanceGenericErrorPageCloseCta": "Close",
+    "issuanceIdentityValidationFailedPageTitle": "Your identity did not match",
+    "issuanceIdentityValidationFailedPageDescription": "It looks like the data your are trying to retrieve is meant for someone else.",
+    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Something not right?",
+    "issuanceIdentityValidationFailedPageCloseCta": "Close"
 }
