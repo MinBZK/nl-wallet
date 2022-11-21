@@ -1,324 +1,324 @@
 {
-    "@@locale": "en",
-    "@@last_modified": "2022-10-31T15:40:42+01:00",
-    "appTitle": "Wallet",
-    "pinScreenTitle": "Login",
-    "pinScreenHeader": "Enter your pin",
-    "pinScreenErrorHeader": "Invalid pin",
-    "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
-    "@pinScreenAttemptsCount": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+  "@@last_modified": "2022-10-31T15:40:42+01:00",
+  "@@locale": "en",
+  "appTitle": "Wallet",
+  "approveOrganizationPageApproveCta": "Yes, next",
+  "approveOrganizationPageDenyCta": "No, decline",
+  "approveOrganizationPageIncorrectCta": "Is something not right?",
+  "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
+  "@approveOrganizationPageReceiveFromTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "pinScreenForgotPinCta": "Forgot code?",
-    "homeBottomNavBarCardsCta": "Cards",
-    "homeBottomNavBarQrCta": "QR",
-    "homeBottomNavBarSettingsCta": "Settings",
-    "qrScreenTitle": "QR-code",
-    "settingsScreenTitle": "Settings",
-    "cardOverviewScreenTitle": "My cards",
-    "cardOverviewAddCardCta": "Add data",
-    "qrScreenMyCodeTabTitle": "My code",
-    "qrScreenScanTabTitle": "Scan",
-    "qrScreenHowToScanCta": "How does scanning work?",
-    "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
-    "qrScreenHowToScanSheetDescription": "English description goes here",
-    "qrScreenHowToScanSheetCloseCta": "Close",
-    "qrScreenScanTabGrantPermissionCta": "Toegang geven tot camera",
-    "qrScreenScanTabErrorRetryCta": "Retry",
-    "qrScreenScanTabContinueCta": "Scan another QR-code",
-    "verificationScreenTitle": "Share data",
-    "verificationScreenGenericError": "Verification failed",
-    "verificationScreenGenericErrorCta": "Exit",
-    "approveOrganizationPageIncorrectCta": "Is something not right?",
-    "confirmDataAttributesPageIncorrectCta": "Is something not right?",
-    "confirmDataAttributesPageAllTermsCta": "All terms",
-    "approveOrganizationPageApproveCta": "Yes, next",
-    "approveOrganizationPageDenyCta": "No, decline",
-    "confirmDataAttributesPageApproveCta": "Yes, next",
-    "confirmDataAttributesPageDenyCta": "No, decline",
-    "confirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
-    "verificationScreenPurposeTitle": "Purpose",
-    "verificationScreenUsageTitle": "Usage",
-    "confirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
-    "confirmDataAttributesPageDataWillBeShared": "Information will be shared",
-    "confirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
-    "confirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
-    "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
-    "@approveOrganizationPageShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown at the top of the screen when verifying"
+    "description": "Title shown at the top of the screen when requesting cards"
+  },
+  "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
+  "@approveOrganizationPageShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
-    "@approveOrganizationPageReceiveFromTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown at the top of the screen when requesting cards"
+    "description": "Title shown at the top of the screen when verifying"
+  },
+  "cardDataAttributesCloseCta": "Close",
+  "cardDataAttributesScreenTitle": "All data",
+  "cardHistoryScreenBackCta": "Back",
+  "cardHistoryScreenTitle": "History",
+  "cardOverviewAddCardCta": "Add data",
+  "cardOverviewScreenTitle": "My cards",
+  "cardSummaryDataAttributesAllCta": "All data",
+  "cardSummaryDataAttributesTitle": "Data",
+  "cardSummaryDataShareCta": "Share",
+  "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organization}",
+  "@cardSummaryDataShareHistory": {
+    "placeholders": {
+      "timeAgo": {
+        "example": "4 hours ago",
+        "type": "String"
+      },
+      "shareStatus": {
+        "example": "failed to share",
+        "type": "String"
+      },
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
     },
-    "verificationScreenAboutHeader": "About {organization}",
-    "@verificationScreenAboutHeader": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown on the expandable section"
+    "description": "Most recent data share history."
+  },
+  "cardSummaryDataShareHistoryAllCta": "History",
+  "cardSummaryDataShareHistoryTitle": "History",
+  "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
+  "cardSummaryOptionsCta": "Card options",
+  "cardSummaryScreenTitle": "Card summary",
+  "cardTimelineInteraction": "{interactionType} with {organization}",
+  "@cardTimelineInteraction": {
+    "placeholders": {
+      "interactionType": {
+        "example": "gedeeld",
+        "type": "String"
+      },
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
     },
-    "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
-    "@confirmDataAttributesPageDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        },
-        "description": "Duration that data will be stored by the verifier"
+    "description": "Most recent data share history."
+  },
+  "cardTimelineInteractionFailed": "Failed to share",
+  "cardTimelineInteractionRejected": "Rejected to share",
+  "cardTimelineInteractionSuccess": "Shared",
+  "cardTimelineOperation": "{interactionType}. {description}",
+  "@cardTimelineOperation": {
+    "placeholders": {
+      "interactionType": {
+        "example": "shared",
+        "type": "String"
+      },
+      "description": {
+        "example": "Valid until X",
+        "type": "String"
+      }
     },
-    "verificationSuccessPageTitle": "Success! Your information is shared with {organization}",
-    "@verificationSuccessPageTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown when data has been successfully shared"
+    "description": "Most recent data share history."
+  },
+  "cardTimelineOperationExpired": "Card is expired",
+  "cardTimelineOperationExtended": "Card is extended",
+  "cardTimelineOperationIssued": "Card is added",
+  "confirmDataAttributesPageAllTermsCta": "All terms",
+  "confirmDataAttributesPageApproveCta": "Yes, next",
+  "confirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
+  "confirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
+  "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "@confirmDataAttributesPageDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
     },
-    "verificationSuccessPageHistoryDescription": "You can find the details in your history",
-    "verificationDeclinedPageCloseCta": "Close",
-    "verificationSuccessPageShowHistoryCta": "History",
-    "verificationSuccessPageCloseCta": "Close",
-    "verificationScreenCancelSheetTitle": "Are you sure you want to stop?",
-    "verificationScreenCancelSheetDescription": "If you stop, no data will be shared with {organization}.",
-    "@verificationScreenCancelSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "confirmDataAttributesPageDataWillBeShared": "Information will be shared",
+  "confirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
+  "confirmDataAttributesPageDenyCta": "No, decline",
+  "confirmDataAttributesPageIncorrectCta": "Is something not right?",
+  "confirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
+  "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
+  "@generalDays": {
+    "placeholders": {
+      "days": {
+        "example": "200",
+        "type": "int"
+      }
     },
-    "verificationScreenCancelSheetNegativeCta": "No",
-    "verificationScreenCancelSheetPositiveCta": "Yes, stop",
-    "verificationDeclinedPageTitle": "Stopped",
-    "verificationDeclinedPageDescription": "Because you have stopped, no data has been shared.",
-    "verificationDeclinedPageFeedbackCta": "Give Feedback",
-    "verificationGenericErrorPageTitle": "Er ging iets mis",
-    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
-    "verificationGenericErrorPageCloseCta": "Sluiten",
-    "missingAttributesPageTitle": "You're missing information",
-    "missingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
-    "@missingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Name of the organization"
+    "description": "Days"
+  },
+  "generalHours": "{hours, plural, =1 {{hours} hour} other {{hours} hours}}",
+  "@generalHours": {
+    "placeholders": {
+      "hours": {
+        "example": "16",
+        "type": "int"
+      }
     },
-    "missingAttributesPageHowToProceedCta": "What can I do?",
-    "missingAttributesPageCloseCta": "Close request",
-    "cardSummaryScreenTitle": "Card summary",
-    "cardSummaryDataAttributesTitle": "Data",
-    "cardSummaryDataAttributesAllCta": "All data",
-    "cardSummaryDataShareHistoryTitle": "History",
-    "cardSummaryDataShareHistoryAllCta": "History",
-    "cardSummaryOptionsCta": "Card options",
-    "cardSummaryDataShareCta": "Share",
-    "verifierPolicyScreenBackCta": "Back",
-    "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
-    "verifierPolicyScreenRetryCta": "Try again",
-    "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
-    "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
-    "@verifierPolicyScreenPolicySectionText": {
-        "placeholders": {
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        },
-        "description": "Text showing the user where to find the privacy policy"
+    "description": "Hours"
+  },
+  "generalMinutes": "{minutes, plural, =1 {{minutes} minute} other {{minutes} minutes}}",
+  "@generalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "example": "59",
+        "type": "int"
+      }
     },
-    "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
-    "verifierPolicyScreenTitle": "Terms",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organization}",
-    "@cardSummaryDataShareHistory": {
-        "placeholders": {
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "Minutes"
+  },
+  "generalOnDate": "On",
+  "generalTimeAgo": "ago",
+  "generalTimeAgoLessThenOneMinute": "less then a minute",
+  "homeBottomNavBarCardsCta": "Cards",
+  "homeBottomNavBarQrCta": "QR",
+  "homeBottomNavBarSettingsCta": "Settings",
+  "issuanceCardAddedCloseCta": "Close",
+  "issuanceCardAddedSubtitle": "Your card has been added",
+  "issuanceCardAddedTitle": "Success!",
+  "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
+  "issuanceCheckDataOfferingPageNegativeCta": "Decline",
+  "issuanceCheckDataOfferingPagePositiveCta": "Add",
+  "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
+  "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
+  "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+  "issuanceConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+  "@issuanceConfirmPinErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
-    "cardTimelineInteractionSuccess": "Shared",
-    "cardTimelineInteractionRejected": "Rejected to share",
-    "cardTimelineInteractionFailed": "Failed to share",
-    "cardTimelineOperationIssued": "Card is added",
-    "cardTimelineOperationExtended": "Card is extended",
-    "cardTimelineOperationExpired": "Card is expired",
-    "cardTimelineInteraction": "{interactionType} with {organization}",
-    "@cardTimelineInteraction": {
-        "placeholders": {
-            "interactionType": {
-                "example": "gedeeld",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "issuanceConfirmPinErrorTitle": "Invalid code",
+  "issuanceConfirmPinTitle": "Enter your pin",
+  "issuanceGenericErrorPageCloseCta": "Close",
+  "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
+  "issuanceGenericErrorPageTitle": "Something went wrong",
+  "issuanceIdentityValidationFailedPageCloseCta": "Close",
+  "issuanceIdentityValidationFailedPageDescription": "It looks like the data your are trying to retrieve is meant for someone else.",
+  "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Something not right?",
+  "issuanceIdentityValidationFailedPageTitle": "Your identity did not match",
+  "issuanceScreenTitle": "Retrieve data",
+  "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
+  "@issuanceStopSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
     },
-    "cardTimelineOperation": "{interactionType}. {description}",
-    "@cardTimelineOperation": {
-        "placeholders": {
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            },
-            "description": {
-                "example": "Valid until X",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "The organization's name"
+  },
+  "issuanceStopSheetNegativeCta": "No",
+  "issuanceStopSheetPositiveCta": "Yes, Stop",
+  "issuanceStopSheetTitle": "Are your sure you want to stop?",
+  "issuanceStoppedPageCloseCta": "Close",
+  "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
+  "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
+  "issuanceStoppedPageTitle": "Sharing stopped",
+  "missingAttributesPageCloseCta": "Close request",
+  "missingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
+  "@missingAttributesPageDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "cardDataAttributesScreenTitle": "All data",
-    "cardDataAttributesCloseCta": "Close",
-    "cardHistoryScreenTitle": "History",
-    "cardHistoryScreenBackCta": "Back",
-    "generalTimeAgo": "ago",
-    "generalOnDate": "On",
-    "generalTimeAgoLessThenOneMinute": "less then a minute",
-    "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
-    "@generalDays": {
-        "placeholders": {
-            "days": {
-                "example": "200",
-                "type": "int"
-            }
-        },
-        "description": "Days"
+    "description": "Name of the organization"
+  },
+  "missingAttributesPageHowToProceedCta": "What can I do?",
+  "missingAttributesPageTitle": "You're missing information",
+  "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
+  "@pinScreenAttemptsCount": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "generalHours": "{hours, plural, =1 {{hours} hour} other {{hours} hours}}",
-    "@generalHours": {
-        "placeholders": {
-            "hours": {
-                "example": "16",
-                "type": "int"
-            }
-        },
-        "description": "Hours"
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "pinScreenErrorHeader": "Invalid pin",
+  "pinScreenForgotPinCta": "Forgot code?",
+  "pinScreenHeader": "Enter your pin",
+  "pinScreenTitle": "Login",
+  "proofIdentityPageIncorrectCta": "Something not right?",
+  "proofIdentityPageNegativeCta": "Stop",
+  "proofIdentityPagePositiveCta": "Share",
+  "proofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
+  "@proofIdentityPageSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
     },
-    "generalMinutes": "{minutes, plural, =1 {{minutes} minute} other {{minutes} minutes}}",
-    "@generalMinutes": {
-        "placeholders": {
-            "minutes": {
-                "example": "59",
-                "type": "int"
-            }
-        },
-        "description": "Minutes"
+    "description": "The organization's name"
+  },
+  "proofIdentityPageTitle": "Proof who you are",
+  "qrScreenHowToScanCta": "How does scanning work?",
+  "qrScreenHowToScanSheetCloseCta": "Close",
+  "qrScreenHowToScanSheetDescription": "English description goes here",
+  "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
+  "qrScreenMyCodeTabTitle": "My code",
+  "qrScreenScanTabContinueCta": "Scan another QR-code",
+  "qrScreenScanTabErrorRetryCta": "Retry",
+  "qrScreenScanTabGrantPermissionCta": "Toegang geven tot camera",
+  "qrScreenScanTabTitle": "Scan",
+  "qrScreenTitle": "QR-code",
+  "settingsScreenTitle": "Settings",
+  "verificationConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+  "verificationConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+  "@verificationConfirmPinErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "issuanceScreenTitle": "Retrieve data",
-    "proofIdentityPageTitle": "Proof who you are",
-    "proofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
-    "@proofIdentityPageSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        },
-        "description": "The organization's name"
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "verificationConfirmPinErrorTitle": "Invalid code",
+  "verificationConfirmPinTitle": "Enter your pin",
+  "verificationDeclinedPageCloseCta": "Close",
+  "verificationDeclinedPageDescription": "Because you have stopped, no data has been shared.",
+  "verificationDeclinedPageFeedbackCta": "Give Feedback",
+  "verificationDeclinedPageTitle": "Stopped",
+  "verificationGenericErrorPageCloseCta": "Sluiten",
+  "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+  "verificationGenericErrorPageTitle": "Er ging iets mis",
+  "verificationScreenAboutHeader": "About {organization}",
+  "@verificationScreenAboutHeader": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "proofIdentityPageNegativeCta": "Stop",
-    "proofIdentityPagePositiveCta": "Share",
-    "proofIdentityPageIncorrectCta": "Something not right?",
-    "issuanceConfirmPinTitle": "Enter your pin",
-    "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
-    "issuanceStopSheetTitle": "Are your sure you want to stop?",
-    "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
-    "@issuanceStopSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        },
-        "description": "The organization's name"
+    "description": "Title shown on the expandable section"
+  },
+  "verificationScreenCancelSheetDescription": "If you stop, no data will be shared with {organization}.",
+  "@verificationScreenCancelSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "issuanceStopSheetNegativeCta": "No",
-    "issuanceStopSheetPositiveCta": "Yes, Stop",
-    "issuanceStoppedPageTitle": "Sharing stopped",
-    "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
-    "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
-    "issuanceStoppedPageCloseCta": "Close",
-    "issuanceConfirmPinErrorTitle": "Invalid code",
-    "issuanceConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
-    "@issuanceConfirmPinErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "verificationScreenCancelSheetNegativeCta": "No",
+  "verificationScreenCancelSheetPositiveCta": "Yes, stop",
+  "verificationScreenCancelSheetTitle": "Are you sure you want to stop?",
+  "verificationScreenGenericError": "Verification failed",
+  "verificationScreenGenericErrorCta": "Exit",
+  "verificationScreenPurposeTitle": "Purpose",
+  "verificationScreenTitle": "Share data",
+  "verificationScreenUsageTitle": "Usage",
+  "verificationSuccessPageCloseCta": "Close",
+  "verificationSuccessPageHistoryDescription": "You can find the details in your history",
+  "verificationSuccessPageShowHistoryCta": "History",
+  "verificationSuccessPageTitle": "Success! Your information is shared with {organization}",
+  "@verificationSuccessPageTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
-    "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
-    "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
-    "issuanceCheckDataOfferingPagePositiveCta": "Add",
-    "issuanceCheckDataOfferingPageNegativeCta": "Decline",
-    "issuanceCardAddedTitle": "Success!",
-    "issuanceCardAddedSubtitle": "Your card has been added",
-    "issuanceCardAddedCloseCta": "Close",
-    "verificationConfirmPinTitle": "Enter your pin",
-    "verificationConfirmPinDescription": "By entering your pin you agree to exchange your information.",
-    "verificationConfirmPinErrorTitle": "Invalid code",
-    "verificationConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
-    "@verificationConfirmPinErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+    "description": "Title shown when data has been successfully shared"
+  },
+  "verifierPolicyScreenBackCta": "Back",
+  "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
+  "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
+  "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
+  "@verifierPolicyScreenPolicySectionText": {
+    "placeholders": {
+      "policy": {
+        "example": "privacy policy",
+        "type": "String"
+      }
     },
-    "issuanceGenericErrorPageTitle": "Something went wrong",
-    "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
-    "issuanceGenericErrorPageCloseCta": "Close",
-    "issuanceIdentityValidationFailedPageTitle": "Your identity did not match",
-    "issuanceIdentityValidationFailedPageDescription": "It looks like the data your are trying to retrieve is meant for someone else.",
-    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Something not right?",
-    "issuanceIdentityValidationFailedPageCloseCta": "Close"
+    "description": "Text showing the user where to find the privacy policy"
+  },
+  "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
+  "verifierPolicyScreenRetryCta": "Try again",
+  "verifierPolicyScreenTitle": "Terms"
 }

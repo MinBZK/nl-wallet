@@ -1,324 +1,324 @@
 {
-    "@@locale": "nl",
-    "@@last_modified": "2022-10-31T15:40:42+01:00",
-    "appTitle": "Wallet",
-    "pinScreenTitle": "Inloggen",
-    "pinScreenHeader": "Vul je toegangscode in",
-    "pinScreenErrorHeader": "Ongeldige toegangscode",
-    "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
-    "@pinScreenAttemptsCount": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+  "@@last_modified": "2022-10-31T15:40:42+01:00",
+  "@@locale": "nl",
+  "appTitle": "Wallet",
+  "approveOrganizationPageApproveCta": "Ja, verder",
+  "approveOrganizationPageDenyCta": "Nee",
+  "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
+  "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
+  "@approveOrganizationPageReceiveFromTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "pinScreenForgotPinCta": "Code vergeten?",
-    "homeBottomNavBarCardsCta": "Kaarten",
-    "homeBottomNavBarQrCta": "QR",
-    "homeBottomNavBarSettingsCta": "Instellingen",
-    "qrScreenTitle": "QR-code",
-    "settingsScreenTitle": "Instellingen",
-    "cardOverviewScreenTitle": "Mijn kaarten",
-    "cardOverviewAddCardCta": "Gegevens toevoegen",
-    "qrScreenMyCodeTabTitle": "Mijn code",
-    "qrScreenScanTabTitle": "Scannen",
-    "qrScreenHowToScanCta": "Hoe werkt scannen?",
-    "qrScreenHowToScanSheetTitle": "Hoe werkt scannen?",
-    "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
-    "qrScreenHowToScanSheetCloseCta": "Sluiten",
-    "qrScreenScanTabGrantPermissionCta": "Toegang geven tot camera",
-    "qrScreenScanTabErrorRetryCta": "Probeer opnieuw",
-    "qrScreenScanTabContinueCta": "Nog een QR scannen",
-    "verificationScreenTitle": "Gegevens delen",
-    "verificationScreenGenericError": "Verificatie mislukt",
-    "verificationScreenGenericErrorCta": "Sluiten",
-    "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
-    "confirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-    "confirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
-    "approveOrganizationPageApproveCta": "Ja, verder",
-    "approveOrganizationPageDenyCta": "Nee",
-    "confirmDataAttributesPageApproveCta": "Ja, verder",
-    "confirmDataAttributesPageDenyCta": "Nee",
-    "confirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
-    "verificationScreenPurposeTitle": "Doel",
-    "verificationScreenUsageTitle": "Gebruik",
-    "confirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
-    "confirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
-    "confirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "confirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-    "approveOrganizationPageShareWithTitle": "Wil je gegevens delen met {organization}?",
-    "@approveOrganizationPageShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown at the top of the screen when verifying"
+    "description": "Title shown at the top of the screen when fetching cards"
+  },
+  "approveOrganizationPageShareWithTitle": "Wil je gegevens delen met {organization}?",
+  "@approveOrganizationPageShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
-    "@approveOrganizationPageReceiveFromTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown at the top of the screen when fetching cards"
+    "description": "Title shown at the top of the screen when verifying"
+  },
+  "cardDataAttributesCloseCta": "Sluiten",
+  "cardDataAttributesScreenTitle": "Alle gegevens",
+  "cardHistoryScreenBackCta": "Terug",
+  "cardHistoryScreenTitle": "Geschiedenis",
+  "cardOverviewAddCardCta": "Gegevens toevoegen",
+  "cardOverviewScreenTitle": "Mijn kaarten",
+  "cardSummaryDataAttributesAllCta": "Alle gegevens",
+  "cardSummaryDataAttributesTitle": "Gegevens",
+  "cardSummaryDataShareCta": "Delen",
+  "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organization}",
+  "@cardSummaryDataShareHistory": {
+    "placeholders": {
+      "timeAgo": {
+        "example": "4 hours ago",
+        "type": "String"
+      },
+      "shareStatus": {
+        "example": "failed to share",
+        "type": "String"
+      },
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
     },
-    "verificationScreenAboutHeader": "Over {organization}",
-    "@verificationScreenAboutHeader": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown on the expandable section"
+    "description": "Most recent data share history."
+  },
+  "cardSummaryDataShareHistoryAllCta": "Geschiedenis",
+  "cardSummaryDataShareHistoryTitle": "Geschiedenis",
+  "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
+  "cardSummaryOptionsCta": "Kaart opties",
+  "cardSummaryScreenTitle": "Kaart overzicht",
+  "cardTimelineInteraction": "{interactionType} met {organization}",
+  "@cardTimelineInteraction": {
+    "placeholders": {
+      "interactionType": {
+        "example": "shared",
+        "type": "String"
+      },
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
     },
-    "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-    "@confirmDataAttributesPageDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        },
-        "description": "Duration that data will be stored by the verifier"
+    "description": "Most recent data share history."
+  },
+  "cardTimelineInteractionFailed": "Niet gelukt te delen",
+  "cardTimelineInteractionRejected": "Geweigerd te delen",
+  "cardTimelineInteractionSuccess": "Gedeeld",
+  "cardTimelineOperation": "{interactionType}. {description}",
+  "@cardTimelineOperation": {
+    "placeholders": {
+      "interactionType": {
+        "example": "shared",
+        "type": "String"
+      },
+      "description": {
+        "example": "Valid until X",
+        "type": "String"
+      }
     },
-    "verificationSuccessPageTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
-    "@verificationSuccessPageTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Title shown when data has been successfully shared"
+    "description": "Most recent data share history."
+  },
+  "cardTimelineOperationExpired": "Kaart is verlopen",
+  "cardTimelineOperationExtended": "Kaart is vernieuwd",
+  "cardTimelineOperationIssued": "Kaart is toegevoegd",
+  "confirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
+  "confirmDataAttributesPageApproveCta": "Ja, verder",
+  "confirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "confirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "confirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@confirmDataAttributesPageDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
     },
-    "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
-    "verificationDeclinedPageCloseCta": "Sluiten",
-    "verificationGenericErrorPageTitle": "Er ging iets mis",
-    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
-    "verificationGenericErrorPageCloseCta": "Sluiten",
-    "verificationSuccessPageShowHistoryCta": "Geschiedenis",
-    "verificationSuccessPageCloseCta": "Sluiten",
-    "verificationScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
-    "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}}. ",
-    "@verificationScreenCancelSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "confirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
+  "confirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
+  "confirmDataAttributesPageDenyCta": "Nee",
+  "confirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
+  "confirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
+  "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
+  "@generalDays": {
+    "placeholders": {
+      "days": {
+        "example": "200",
+        "type": "int"
+      }
     },
-    "verificationScreenCancelSheetNegativeCta": "Nee",
-    "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
-    "verificationDeclinedPageTitle": "Gestopt",
-    "verificationDeclinedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
-    "verificationDeclinedPageFeedbackCta": "Geef feedback",
-    "missingAttributesPageTitle": "Je mist gegevens",
-    "missingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
-    "@missingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        },
-        "description": "Name of the organization"
+    "description": "Days"
+  },
+  "generalHours": "{hours, plural, =1 {{hours} uur} other {{hours} uur}}",
+  "@generalHours": {
+    "placeholders": {
+      "hours": {
+        "example": "16",
+        "type": "int"
+      }
     },
-    "missingAttributesPageHowToProceedCta": "Wat kan ik doen?",
-    "missingAttributesPageCloseCta": "Aanvraag sluiten",
-    "cardSummaryScreenTitle": "Kaart overzicht",
-    "cardSummaryDataAttributesTitle": "Gegevens",
-    "cardSummaryDataAttributesAllCta": "Alle gegevens",
-    "cardSummaryDataShareHistoryTitle": "Geschiedenis",
-    "cardSummaryDataShareHistoryAllCta": "Geschiedenis",
-    "cardSummaryOptionsCta": "Kaart opties",
-    "cardSummaryDataShareCta": "Delen",
-    "verifierPolicyScreenBackCta": "Terug",
-    "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
-    "verifierPolicyScreenPolicySectionPolicyCta": "privacybeleid",
-    "verifierPolicyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
-    "verifierPolicyScreenRetryCta": "Probeer opnieuw",
-    "verifierPolicyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
-    "@verifierPolicyScreenPolicySectionText": {
-        "placeholders": {
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        },
-        "description": "Text showing the user where to find the privacy policy"
+    "description": "Hours"
+  },
+  "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
+  "@generalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "example": "59",
+        "type": "int"
+      }
     },
-    "verifierPolicyScreenTitle": "Voorwaarden",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organization}",
-    "@cardSummaryDataShareHistory": {
-        "placeholders": {
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "Minutes"
+  },
+  "generalOnDate": "Op",
+  "generalTimeAgo": "geleden",
+  "generalTimeAgoLessThenOneMinute": "minder dan een minute",
+  "homeBottomNavBarCardsCta": "Kaarten",
+  "homeBottomNavBarQrCta": "QR",
+  "homeBottomNavBarSettingsCta": "Instellingen",
+  "issuanceCardAddedCloseCta": "Sluiten",
+  "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
+  "issuanceCardAddedTitle": "Gelukt!",
+  "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
+  "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
+  "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
+  "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
+  "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
+  "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+  "issuanceConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+  "@issuanceConfirmPinErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
-    "cardTimelineInteractionSuccess": "Gedeeld",
-    "cardTimelineInteractionRejected": "Geweigerd te delen",
-    "cardTimelineInteractionFailed": "Niet gelukt te delen",
-    "cardTimelineOperationIssued": "Kaart is toegevoegd",
-    "cardTimelineOperationExtended": "Kaart is vernieuwd",
-    "cardTimelineOperationExpired": "Kaart is verlopen",
-    "cardTimelineInteraction": "{interactionType} met {organization}",
-    "@cardTimelineInteraction": {
-        "placeholders": {
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
+  "issuanceConfirmPinTitle": "Vul je toegangscode in",
+  "issuanceGenericErrorPageCloseCta": "Sluiten",
+  "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+  "issuanceGenericErrorPageTitle": "Er ging iets mis",
+  "issuanceIdentityValidationFailedPageCloseCta": "Sluiten",
+  "issuanceIdentityValidationFailedPageDescription": "Het lijkt er op dat de gegevens die je probeert op te halen van iemand anders zijn.",
+  "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Klopt er iets niet?",
+  "issuanceIdentityValidationFailedPageTitle": "Je identiteitscontrole kwam niet overeen",
+  "issuanceScreenTitle": "Gegevens ophalen",
+  "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
+  "@issuanceStopSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
     },
-    "cardTimelineOperation": "{interactionType}. {description}",
-    "@cardTimelineOperation": {
-        "placeholders": {
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            },
-            "description": {
-                "example": "Valid until X",
-                "type": "String"
-            }
-        },
-        "description": "Most recent data share history."
+    "description": "The organization's name"
+  },
+  "issuanceStopSheetNegativeCta": "Nee",
+  "issuanceStopSheetPositiveCta": "Ja, Stoppen",
+  "issuanceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
+  "issuanceStoppedPageCloseCta": "Sluiten",
+  "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
+  "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
+  "issuanceStoppedPageTitle": "Delen gestopt",
+  "missingAttributesPageCloseCta": "Aanvraag sluiten",
+  "missingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
+  "@missingAttributesPageDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "cardDataAttributesScreenTitle": "Alle gegevens",
-    "cardDataAttributesCloseCta": "Sluiten",
-    "cardHistoryScreenTitle": "Geschiedenis",
-    "cardHistoryScreenBackCta": "Terug",
-    "generalTimeAgo": "geleden",
-    "generalOnDate": "Op",
-    "generalTimeAgoLessThenOneMinute": "minder dan een minute",
-    "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
-    "@generalDays": {
-        "placeholders": {
-            "days": {
-                "example": "200",
-                "type": "int"
-            }
-        },
-        "description": "Days"
+    "description": "Name of the organization"
+  },
+  "missingAttributesPageHowToProceedCta": "Wat kan ik doen?",
+  "missingAttributesPageTitle": "Je mist gegevens",
+  "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
+  "@pinScreenAttemptsCount": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "generalHours": "{hours, plural, =1 {{hours} uur} other {{hours} uur}}",
-    "@generalHours": {
-        "placeholders": {
-            "hours": {
-                "example": "16",
-                "type": "int"
-            }
-        },
-        "description": "Hours"
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "pinScreenErrorHeader": "Ongeldige toegangscode",
+  "pinScreenForgotPinCta": "Code vergeten?",
+  "pinScreenHeader": "Vul je toegangscode in",
+  "pinScreenTitle": "Inloggen",
+  "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
+  "proofIdentityPageNegativeCta": "Stoppen",
+  "proofIdentityPagePositiveCta": "Delen",
+  "proofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
+  "@proofIdentityPageSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
     },
-    "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
-    "@generalMinutes": {
-        "placeholders": {
-            "minutes": {
-                "example": "59",
-                "type": "int"
-            }
-        },
-        "description": "Minutes"
+    "description": "The organization's name"
+  },
+  "proofIdentityPageTitle": "Bewijs wie je bent",
+  "qrScreenHowToScanCta": "Hoe werkt scannen?",
+  "qrScreenHowToScanSheetCloseCta": "Sluiten",
+  "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
+  "qrScreenHowToScanSheetTitle": "Hoe werkt scannen?",
+  "qrScreenMyCodeTabTitle": "Mijn code",
+  "qrScreenScanTabContinueCta": "Nog een QR scannen",
+  "qrScreenScanTabErrorRetryCta": "Probeer opnieuw",
+  "qrScreenScanTabGrantPermissionCta": "Toegang geven tot camera",
+  "qrScreenScanTabTitle": "Scannen",
+  "qrScreenTitle": "QR-code",
+  "settingsScreenTitle": "Instellingen",
+  "verificationConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+  "verificationConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+  "@verificationConfirmPinErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
     },
-    "issuanceScreenTitle": "Gegevens ophalen",
-    "proofIdentityPageTitle": "Bewijs wie je bent",
-    "proofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
-    "@proofIdentityPageSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        },
-        "description": "The organization's name"
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "verificationConfirmPinErrorTitle": "Ongeldige toegangscode",
+  "verificationConfirmPinTitle": "Vul je toegangscode in",
+  "verificationDeclinedPageCloseCta": "Sluiten",
+  "verificationDeclinedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+  "verificationDeclinedPageFeedbackCta": "Geef feedback",
+  "verificationDeclinedPageTitle": "Gestopt",
+  "verificationGenericErrorPageCloseCta": "Sluiten",
+  "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+  "verificationGenericErrorPageTitle": "Er ging iets mis",
+  "verificationScreenAboutHeader": "Over {organization}",
+  "@verificationScreenAboutHeader": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "proofIdentityPageNegativeCta": "Stoppen",
-    "proofIdentityPagePositiveCta": "Delen",
-    "proofIdentityPageIncorrectCta": "Klopt er iets niet?",
-    "issuanceConfirmPinTitle": "Vul je toegangscode in",
-    "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "issuanceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
-    "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
-    "@issuanceStopSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        },
-        "description": "The organization's name"
+    "description": "Title shown on the expandable section"
+  },
+  "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}}. ",
+  "@verificationScreenCancelSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "issuanceStopSheetNegativeCta": "Nee",
-    "issuanceStopSheetPositiveCta": "Ja, Stoppen",
-    "issuanceStoppedPageTitle": "Delen gestopt",
-    "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
-    "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
-    "issuanceStoppedPageCloseCta": "Sluiten",
-    "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
-    "issuanceConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
-    "@issuanceConfirmPinErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "verificationScreenCancelSheetNegativeCta": "Nee",
+  "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
+  "verificationScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
+  "verificationScreenGenericError": "Verificatie mislukt",
+  "verificationScreenGenericErrorCta": "Sluiten",
+  "verificationScreenPurposeTitle": "Doel",
+  "verificationScreenTitle": "Gegevens delen",
+  "verificationScreenUsageTitle": "Gebruik",
+  "verificationSuccessPageCloseCta": "Sluiten",
+  "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
+  "verificationSuccessPageShowHistoryCta": "Geschiedenis",
+  "verificationSuccessPageTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
+  "@verificationSuccessPageTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
-    "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
-    "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
-    "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
-    "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
-    "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
-    "issuanceCardAddedTitle": "Gelukt!",
-    "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
-    "issuanceCardAddedCloseCta": "Sluiten",
-    "verificationConfirmPinTitle": "Vul je toegangscode in",
-    "verificationConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "verificationConfirmPinErrorTitle": "Ongeldige toegangscode",
-    "verificationConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
-    "@verificationConfirmPinErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        },
-        "description": "Attempts left counter on the pin entry screen"
+    "description": "Title shown when data has been successfully shared"
+  },
+  "verifierPolicyScreenBackCta": "Terug",
+  "verifierPolicyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
+  "verifierPolicyScreenPolicySectionPolicyCta": "privacybeleid",
+  "verifierPolicyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
+  "@verifierPolicyScreenPolicySectionText": {
+    "placeholders": {
+      "policy": {
+        "example": "privacy policy",
+        "type": "String"
+      }
     },
-    "issuanceGenericErrorPageTitle": "Er ging iets mis",
-    "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
-    "issuanceGenericErrorPageCloseCta": "Sluiten",
-    "issuanceIdentityValidationFailedPageTitle": "Je identiteitscontrole kwam niet overeen",
-    "issuanceIdentityValidationFailedPageDescription": "Het lijkt er op dat de gegevens die je probeert op te halen van iemand anders zijn.",
-    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Klopt er iets niet?",
-    "issuanceIdentityValidationFailedPageCloseCta": "Sluiten"
+    "description": "Text showing the user where to find the privacy policy"
+  },
+  "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
+  "verifierPolicyScreenRetryCta": "Probeer opnieuw",
+  "verifierPolicyScreenTitle": "Voorwaarden"
 }

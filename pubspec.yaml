@@ -27,6 +27,7 @@ dependencies:
   vibration: ^1.7.6
   json_serializable: ^6.5.4
   json_annotation: ^4.7.0
+  arb_utils: ^0.4.1
 
 dev_dependencies:
   flutter_test:
