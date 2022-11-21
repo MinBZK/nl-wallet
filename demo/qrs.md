@@ -19,7 +19,7 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 
 | #1                                                 | #2                                                         | #3                                                                           |
 |----------------------------------------------------|------------------------------------------------------------|------------------------------------------------------------------------------|
-| ![DUO](assets/images/verification_request_duo.png) | ![Lottery](assets/images/verification_request_lottery.png) | ![Duo Missing Data](assets/images/verification_request_duo_missing_data.png) |
+| ![DUO](qrs/verification_request_duo.png) | ![Lottery](qrs/verification_request_lottery.png) | ![Duo Missing Data](qrs/verification_request_duo_missing_data.png) |
 
 # Card issuance
 
@@ -33,5 +33,5 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 
 | #1                                            | #2                                                          |
 |-----------------------------------------------|-------------------------------------------------------------|
-| ![PASSPORT](assets/images/issue_passport.png) | ![DRIVING LICENSE](assets/images/issue_driving_license.png) |
+| ![PASSPORT](qrs/issue_passport.png) | ![DRIVING LICENSE](qrs/issue_driving_license.png) |
 
