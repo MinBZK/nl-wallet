@@ -150,7 +150,7 @@ WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<VerificationBloc>(
       create: (BuildContext context) => VerificationBloc(context.read())..add(VerificationLoadRequested(sessionId)),
-      child: VerificationScreen(restorationId: sessionId),
+      child: const VerificationScreen(),
     );
   };
 }

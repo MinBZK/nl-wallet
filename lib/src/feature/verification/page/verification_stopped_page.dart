@@ -3,13 +3,13 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/flow_terminal_page.dart';
 
-class IssuanceStoppedPage extends StatelessWidget {
-  final VoidCallback onGiveFeedbackPressed;
+class VerificationStoppedPage extends StatelessWidget {
+  final VoidCallback? onGiveFeedbackPressed;
   final VoidCallback onClosePressed;
 
-  const IssuanceStoppedPage({
+  const VerificationStoppedPage({
     required this.onClosePressed,
-    required this.onGiveFeedbackPressed,
+    this.onGiveFeedbackPressed,
     Key? key,
   }) : super(key: key);
 
@@ -19,11 +19,11 @@ class IssuanceStoppedPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.not_interested,
       iconColor: Theme.of(context).primaryColorDark,
-      title: locale.issuanceStoppedPageTitle,
-      description: locale.issuanceStoppedPageDescription,
-      closeButtonCta: locale.issuanceStoppedPageCloseCta,
+      title: locale.verificationDeclinedPageTitle,
+      description: locale.verificationDeclinedPageDescription,
+      closeButtonCta: locale.verificationDeclinedPageCloseCta,
       onClosePressed: onClosePressed,
-      secondaryButtonCta: locale.issuanceStoppedPageGiveFeedbackCta,
+      secondaryButtonCta: locale.verificationDeclinedPageFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
     );
   }

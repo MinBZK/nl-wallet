@@ -12,22 +12,16 @@ abstract class IssuanceState extends Equatable {
   Organization? get organization => null;
 
   const IssuanceState();
+
+  @override
+  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, organization];
 }
 
-class IssuanceInitial extends IssuanceState {
-  @override
-  List<Object> get props => [];
-}
+class IssuanceInitial extends IssuanceState {}
 
-class IssuanceLoadInProgress extends IssuanceState {
-  @override
-  List<Object> get props => [];
-}
+class IssuanceLoadInProgress extends IssuanceState {}
 
-class IssuanceLoadFailure extends IssuanceState {
-  @override
-  List<Object> get props => [];
-}
+class IssuanceLoadFailure extends IssuanceState {}
 
 class IssuanceCheckOrganization extends IssuanceState {
   final IssuanceResponse response;
@@ -39,7 +33,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   const IssuanceCheckOrganization(this.response, {this.afterBackPressed = false});
 
   @override
-  List<Object> get props => [organization];
+  List<Object?> get props => [response, ...super.props];
 
   @override
   double get stepperProgress => 0.2;
@@ -60,7 +54,7 @@ class IssuanceProofIdentity extends IssuanceState {
   const IssuanceProofIdentity(this.response, {this.afterBackPressed = false});
 
   @override
-  List<Object> get props => [response];
+  List<Object?> get props => [response, ...super.props];
 
   @override
   bool get canGoBack => true;
@@ -81,7 +75,7 @@ class IssuanceProvidePin extends IssuanceState {
   Organization get organization => response.organization;
 
   @override
-  List<Object> get props => [response];
+  List<Object?> get props => [response, ...super.props];
 
   @override
   bool get canGoBack => true;
@@ -96,7 +90,7 @@ class IssuanceCheckDataOffering extends IssuanceState {
   const IssuanceCheckDataOffering(this.response);
 
   @override
-  List<Object> get props => [response];
+  List<Object?> get props => [response, ...super.props];
 
   @override
   double get stepperProgress => 0.8;
@@ -111,7 +105,7 @@ class IssuanceCardAdded extends IssuanceState {
   const IssuanceCardAdded(this.response);
 
   @override
-  List<Object> get props => [response];
+  List<Object?> get props => [response, ...super.props];
 
   @override
   bool get showStopConfirmation => false;

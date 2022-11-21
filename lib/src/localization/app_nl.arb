@@ -100,8 +100,10 @@
         "description": "Title shown when data has been successfully shared"
     },
     "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
-    "verificationDeclinedPageShowHistoryCta": "Geschiedenis",
     "verificationDeclinedPageCloseCta": "Sluiten",
+    "verificationGenericErrorPageTitle": "Er ging iets mis",
+    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "verificationGenericErrorPageCloseCta": "Sluiten",
     "verificationSuccessPageShowHistoryCta": "Geschiedenis",
     "verificationSuccessPageCloseCta": "Sluiten",
     "verificationScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
@@ -299,6 +301,19 @@
     "issuanceCardAddedTitle": "Gelukt!",
     "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
     "issuanceCardAddedCloseCta": "Sluiten",
+    "verificationConfirmPinTitle": "Vul je toegangscode in",
+    "verificationConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+    "verificationConfirmPinErrorTitle": "Ongeldige toegangscode",
+    "verificationConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "@verificationConfirmPinErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    },
     "issuanceGenericErrorPageTitle": "Er ging iets mis",
     "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
     "issuanceGenericErrorPageCloseCta": "Sluiten",

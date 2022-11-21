@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'issuance_terminal_page.dart';
+import '../../common/widget/flow_terminal_page.dart';
 
 class IssuanceIdentityValidationFailedPage extends StatelessWidget {
   final VoidCallback onSomethingNotRightPressed;
@@ -16,8 +16,9 @@ class IssuanceIdentityValidationFailedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return IssuanceTerminalPage(
+    return FlowTerminalPage(
       icon: Icons.priority_high,
+      iconColor: Theme.of(context).primaryColorDark,
       title: locale.issuanceIdentityValidationFailedPageTitle,
       description: locale.issuanceIdentityValidationFailedPageDescription,
       closeButtonCta: locale.issuanceIdentityValidationFailedPageCloseCta,

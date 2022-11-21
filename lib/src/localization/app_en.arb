@@ -100,7 +100,6 @@
         "description": "Title shown when data has been successfully shared"
     },
     "verificationSuccessPageHistoryDescription": "You can find the details in your history",
-    "verificationDeclinedPageShowHistoryCta": "History",
     "verificationDeclinedPageCloseCta": "Close",
     "verificationSuccessPageShowHistoryCta": "History",
     "verificationSuccessPageCloseCta": "Close",
@@ -120,6 +119,9 @@
     "verificationDeclinedPageTitle": "Stopped",
     "verificationDeclinedPageDescription": "Because you have stopped, no data has been shared.",
     "verificationDeclinedPageFeedbackCta": "Give Feedback",
+    "verificationGenericErrorPageTitle": "Er ging iets mis",
+    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "verificationGenericErrorPageCloseCta": "Sluiten",
     "missingAttributesPageTitle": "You're missing information",
     "missingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
     "@missingAttributesPageDescription": {
@@ -299,6 +301,19 @@
     "issuanceCardAddedTitle": "Success!",
     "issuanceCardAddedSubtitle": "Your card has been added",
     "issuanceCardAddedCloseCta": "Close",
+    "verificationConfirmPinTitle": "Enter your pin",
+    "verificationConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+    "verificationConfirmPinErrorTitle": "Invalid code",
+    "verificationConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+    "@verificationConfirmPinErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        },
+        "description": "Attempts left counter on the pin entry screen"
+    },
     "issuanceGenericErrorPageTitle": "Something went wrong",
     "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
     "issuanceGenericErrorPageCloseCta": "Close",

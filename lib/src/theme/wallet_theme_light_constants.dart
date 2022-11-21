@@ -49,6 +49,7 @@ class WalletThemeConstants {
       elevation: _elevatedButtonElevation,
       minimumSize: const Size.fromHeight(_elevatedButtonMinHeight),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_elevatedButtonBorderRadius)),
+      foregroundColor: Colors.white,
       textStyle: _buttonTextStyle,
     ),
   );

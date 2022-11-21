@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../../common/widget/text_icon_button.dart';
 import '../../verification/widget/status_icon.dart';
+import 'text_icon_button.dart';
 
-class IssuanceTerminalPage extends StatelessWidget {
+/// Base widget for the terminal (ending) page of the issuance/verification flow.
+class FlowTerminalPage extends StatelessWidget {
   final IconData icon;
+  final Color? iconColor;
   final String title;
   final String description;
   final String? secondaryButtonCta;
   final VoidCallback? onSecondaryButtonPressed;
+  final String? tertiaryButtonCta;
+  final VoidCallback? onTertiaryButtonPressed;
   final String closeButtonCta;
   final VoidCallback onClosePressed;
 
-  const IssuanceTerminalPage({
+  const FlowTerminalPage({
     required this.icon,
+    this.iconColor,
     required this.title,
     required this.description,
     this.secondaryButtonCta,
     this.onSecondaryButtonPressed,
+    this.tertiaryButtonCta,
+    this.onTertiaryButtonPressed,
     required this.closeButtonCta,
     required this.onClosePressed,
     Key? key,
@@ -35,7 +42,7 @@ class IssuanceTerminalPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: StatusIcon(
               icon: icon,
-              color: Theme.of(context).primaryColorDark,
+              color: iconColor,
             ),
           ),
           const SizedBox(height: 32),
@@ -56,6 +63,11 @@ class IssuanceTerminalPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
+          if (tertiaryButtonCta != null)
+            TextIconButton(
+              onPressed: onTertiaryButtonPressed,
+              child: Text(tertiaryButtonCta!),
+            ),
           const Spacer(),
           if (secondaryButtonCta != null)
             TextIconButton(
