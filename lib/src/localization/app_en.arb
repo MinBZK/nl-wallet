@@ -104,8 +104,8 @@
     "verificationDeclinedPageCloseCta": "Close",
     "verificationSuccessPageShowHistoryCta": "History",
     "verificationSuccessPageCloseCta": "Close",
-    "verificationScreenCancelSheetTitle": "Are you sure you want to stop sharing",
-    "verificationScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
+    "verificationScreenCancelSheetTitle": "Are you sure you want to stop?",
+    "verificationScreenCancelSheetDescription": "If you stop, no data will be shared with {organization}.",
     "@verificationScreenCancelSheetDescription": {
         "placeholders": {
             "organization": {
@@ -117,8 +117,8 @@
     },
     "verificationScreenCancelSheetNegativeCta": "No",
     "verificationScreenCancelSheetPositiveCta": "Yes, stop",
-    "verificationDeclinedPageTitle": "Stopped sharing data",
-    "verificationDeclinedPageDescription": "Your data was not shared. You can always try and share your data later.",
+    "verificationDeclinedPageTitle": "Stopped",
+    "verificationDeclinedPageDescription": "Because you have stopped, no data has been shared.",
     "verificationDeclinedPageFeedbackCta": "Give Feedback",
     "missingAttributesPageTitle": "You're missing information",
     "missingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
