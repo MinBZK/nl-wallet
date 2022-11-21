@@ -65,14 +65,10 @@ class CheckDataOfferingPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: _buildDataAttributeItem(attributes[index]),
+        child: DataAttributeRow(attribute: attributes[index]),
       ),
       childCount: attributes.length,
     );
-  }
-
-  Widget _buildDataAttributeItem(DataAttribute attribute) {
-    return DataAttributeRow(attribute: attribute);
   }
 
   Widget _buildFooterSection(BuildContext context) {

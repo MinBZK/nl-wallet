@@ -55,7 +55,7 @@ const _kMockPidDataAttributes = [
 ];
 
 const _kMockAllDataAttributes = [
-  DataAttribute(type: DataAttributeType.text, label: 'Pasfoto', value: 'assets/non-free/images/person_x.png'),
+  DataAttribute(type: DataAttributeType.image, label: 'Pasfoto', value: 'assets/non-free/images/person_x.png'),
   DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'De Bruijn'),
   DataAttribute(type: DataAttributeType.text, label: 'Echtgenote van', value: 'Molenaar'),
   DataAttribute(type: DataAttributeType.text, label: 'Voornamen', value: 'Willeke Liselotte'),

@@ -106,7 +106,7 @@ class WalletCardFront extends StatelessWidget {
 
   ThemeData _createTextTheme(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
-    final Color textColor = cardFront.theme == CardFrontTheme.light ? scheme.onPrimary : scheme.onBackground;
+    final Color textColor = cardFront.theme == CardFrontTheme.light ? scheme.onBackground : scheme.onPrimary;
     return Theme.of(context).copyWith(
       textTheme: Theme.of(context).textTheme.apply(
             bodyColor: textColor,

@@ -20,7 +20,7 @@ class GetWalletCardSummaryUseCase {
   Future<WalletCardSummary> getSummary(String cardId) async {
     WalletCard card = await walletCardRepository.read(cardId);
     DataHighlight dataHighlight = await walletCardDataHighlightRepository.getLatest(cardId);
-    InteractionAttribute? interactionAttribute = await timelineAttributeRepository.getLastInteraction(
+    InteractionAttribute? interactionAttribute = await timelineAttributeRepository.readLastInteraction(
       cardId,
       InteractionType.success,
     );

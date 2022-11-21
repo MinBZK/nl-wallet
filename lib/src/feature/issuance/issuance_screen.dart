@@ -166,6 +166,21 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
+    return CheckDataOfferingPage(
+      onDecline: () => _stopIssuance(context),
+      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceCheckDataOfferingApproved()),
+      attributes: state.response.cards.first.attributes,
+    );
+  }
+
+  Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
+    return CardAddedPage(
+      onClose: () => _stopIssuance(context),
+      cardFront: state.response.cards.first.front,
+    );
+  }
+
   Widget _buildStoppedPage(BuildContext context, IssuanceStopped state) {
     return IssuanceStoppedPage(
       onClosePressed: () => Navigator.pop(context),
@@ -200,20 +215,5 @@ class IssuanceScreen extends StatelessWidget {
     } else {
       Navigator.pop(context);
     }
-  }
-
-  Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
-    return CheckDataOfferingPage(
-      onDecline: () => {},
-      onAccept: () => {},
-      attributes: state.response.cards.first.attributes,
-    );
-  }
-
-  Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
-    return CardAddedPage(
-      onClose: () => {},
-      cardFront: state.response.cards.first.front,
-    );
   }
 }

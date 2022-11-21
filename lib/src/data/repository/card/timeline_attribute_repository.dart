@@ -1,7 +1,9 @@
 import '../../../domain/model/timeline_attribute.dart';
 
 abstract class TimelineAttributeRepository {
-  Future<List<TimelineAttribute>> getAll(String cardId);
+  Future<void> create(String cardId, TimelineAttribute attribute);
 
-  Future<InteractionAttribute?> getLastInteraction(String cardId, InteractionType type);
+  Future<List<TimelineAttribute>> readAll(String cardId);
+
+  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionType type);
 }

@@ -1,6 +1,6 @@
-import '../../../domain/model/wallet_card.dart';
-import '../../source/wallet_datasource.dart';
-import 'wallet_card_repository.dart';
+import '../../../../domain/model/wallet_card.dart';
+import '../../../source/wallet_datasource.dart';
+import '../wallet_card_repository.dart';
 
 class WalletCardRepositoryImpl implements WalletCardRepository {
   final WalletDataSource dataSource;

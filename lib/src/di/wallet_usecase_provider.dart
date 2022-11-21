@@ -4,12 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
-import '../domain/usecase/card/get_wallet_card_timeline_usecase.dart';
+import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/init_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
+import '../domain/usecase/issuance/wallet_add_issued_card_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../domain/usecase/pin/unlock_wallet_usecase.dart';
@@ -67,8 +68,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetWalletCardDataAttributesUseCase>(
           create: (context) => GetWalletCardDataAttributesUseCase(context.read()),
         ),
-        RepositoryProvider<GetWalletCardTimelineUseCase>(
-          create: (context) => GetWalletCardTimelineUseCase(context.read()),
+        RepositoryProvider<GetWalletCardTimelineAttributesUseCase>(
+          create: (context) => GetWalletCardTimelineAttributesUseCase(context.read()),
         ),
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCase(context.read()),
@@ -76,8 +77,11 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetIssuanceResponseUseCase>(
           create: (context) => GetIssuanceResponseUseCase(context.read()),
         ),
+        RepositoryProvider<WalletAddIssuedCardUseCase>(
+          create: (context) => WalletAddIssuedCardUseCase(context.read(), context.read()),
+        ),
         RepositoryProvider<InitCardsUseCase>(
-          create: (context) => InitCardsUseCase(context.read(), context.read()),
+          create: (context) => InitCardsUseCase(context.read(), context.read(), context.read()),
           lazy: false,
         ),
       ],

@@ -9,8 +9,8 @@ class WalletThemeConstants {
     error: _errorColor,
     background: _backgroundColor,
     secondaryContainer: _secondaryContainer,
-    onPrimary: _primaryTextColor,
-    onBackground: _onBackground,
+    onPrimary: _backgroundColor,
+    onBackground: _primaryColorDark,
   );
 
   // Indicator color
@@ -109,7 +109,6 @@ class WalletThemeConstants {
   static const _errorColor = Color(0xFFCA005D);
   static const _secondaryContainer = Color(0xFFF3F4F7);
   static const _backgroundColor = Color(0xFFFCFCFC);
-  static const _onBackground = Color(0xFFFFFFFF);
 
   // App, bottom navigation bar & scaffold theme
   static const _appBarBackgroundColor = _backgroundColor;
@@ -131,7 +130,7 @@ class WalletThemeConstants {
   static const _textButtonMinHeight = _elevatedButtonMinHeight;
 
   // Text colors
-  static const _primaryTextColor = Color(0xFF152A62);
+  static const _primaryTextColor = _primaryColorDark;
 
   // Text styles
   static const _headline1TextStyle = TextStyle(

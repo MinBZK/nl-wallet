@@ -1,9 +1,9 @@
-import '../../../data/repository/card/wallet_card_data_attribute_repository.dart';
+import '../../../data/repository/card/data_attribute_repository.dart';
 import '../../../wallet_constants.dart';
 import '../../model/data_attribute.dart';
 
 class GetWalletCardDataAttributesUseCase {
-  final WalletCardDataAttributeRepository dataAttributeRepository;
+  final DataAttributeRepository dataAttributeRepository;
 
   GetWalletCardDataAttributesUseCase(this.dataAttributeRepository);
 

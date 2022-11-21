@@ -1,5 +1,5 @@
-import '../../../domain/model/data_highlight.dart';
-import 'wallet_card_data_highlight_repository.dart';
+import '../../../../domain/model/data_highlight.dart';
+import '../wallet_card_data_highlight_repository.dart';
 
 part 'mock_wallet_card_data_highlight_repository.mocks.dart';
 

@@ -2,13 +2,13 @@ import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../wallet_constants.dart';
 import '../../model/timeline_attribute.dart';
 
-class GetWalletCardTimelineUseCase {
+class GetWalletCardTimelineAttributesUseCase {
   final TimelineAttributeRepository timelineAttributeRepository;
 
-  GetWalletCardTimelineUseCase(this.timelineAttributeRepository);
+  GetWalletCardTimelineAttributesUseCase(this.timelineAttributeRepository);
 
-  Future<List<TimelineAttribute>> getAll(String cardId) async {
+  Future<List<TimelineAttribute>> invoke(String cardId) async {
     await Future.delayed(kDefaultMockDelay);
-    return timelineAttributeRepository.getAll(cardId);
+    return timelineAttributeRepository.readAll(cardId);
   }
 }

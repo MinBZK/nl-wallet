@@ -1,11 +1,12 @@
 import 'package:rxdart/rxdart.dart';
 
+import '../../../domain/model/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../wallet_datasource.dart';
 
 class MemoryWalletDataSource implements WalletDataSource {
   final BehaviorSubject<Map<String, WalletCard>> wallet = BehaviorSubject.seeded({});
-  final BehaviorSubject<Map<String, List<String>>> interactions = BehaviorSubject.seeded({});
+  final BehaviorSubject<Map<String, List<TimelineAttribute>>> timelineAttributes = BehaviorSubject.seeded({});
 
   @override
   Future<void> create(WalletCard card) async {
@@ -42,21 +43,27 @@ class MemoryWalletDataSource implements WalletDataSource {
   }
 
   @override
-  Future<void> addInteraction(String cardId, String interaction) async {
-    final interactions = this.interactions.value;
-    interactions[cardId]?.add(interaction);
-    this.interactions.add(interactions);
+  Future<void> createTimelineAttribute(String cardId, TimelineAttribute attribute) async {
+    final timelineAttributes = this.timelineAttributes.value;
+    if (timelineAttributes[cardId] != null) {
+      timelineAttributes[cardId]?.add(attribute);
+    } else {
+      timelineAttributes[cardId] = [attribute];
+    }
+    this.timelineAttributes.add(timelineAttributes);
   }
 
   @override
-  Future<List<String>> getInteractions(String cardId) async {
-    final interactions = this.interactions.value;
-    return interactions[cardId] ?? [];
+  Future<List<TimelineAttribute>> readTimelineAttributes(String cardId) async {
+    final timelineAttributes = this.timelineAttributes.value;
+    return timelineAttributes[cardId] ?? [];
   }
 
   @override
   Stream<List<WalletCard>> observeCards() => wallet.stream.map((event) => event.values.toList());
 
   @override
-  Stream<List<String>> observeInteractions(String cardId) => interactions.map((event) => event[cardId] ?? []);
+  Stream<List<TimelineAttribute>> observeTimelineAttributes(String cardId) {
+    return timelineAttributes.map((event) => event[cardId] ?? []);
+  }
 }
