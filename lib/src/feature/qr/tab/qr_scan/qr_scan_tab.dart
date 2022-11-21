@@ -39,7 +39,7 @@ class QrScanTab extends StatelessWidget {
           ),
           TextIconButton(
             onPressed: () => _showHowToScanSheet(context),
-            child: Text(AppLocalizations.of(context).qrScreenHowToScanCta),
+            child: Text(AppLocalizations.of(context).qrScanTabHowToScanCta),
           ),
         ],
       ),
@@ -68,7 +68,7 @@ class QrScanTab extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScreenScanTabErrorRetryCta),
+              child: Text(AppLocalizations.of(context).qrScanTabErrorRetryCta),
             )
           ],
         ),
@@ -97,7 +97,7 @@ class QrScanTab extends StatelessWidget {
                     context.read<QrScanBloc>().add(const QrScanCheckPermission());
                   }
                 },
-                child: Text(AppLocalizations.of(context).qrScreenScanTabGrantPermissionCta),
+                child: Text(AppLocalizations.of(context).qrScanTabGrantPermissionCta),
               ),
             )
           ],
@@ -118,7 +118,7 @@ class QrScanTab extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScreenScanTabContinueCta),
+              child: Text(AppLocalizations.of(context).qrScanTabContinueCta),
             )
           ],
         ),
@@ -142,19 +142,19 @@ class QrScanTab extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                locale.qrScreenHowToScanSheetTitle,
+                locale.qrScanTabHowToScanSheetTitle,
                 style: Theme.of(context).textTheme.headline2,
                 textAlign: TextAlign.start,
               ),
               const SizedBox(height: 16),
               Text(
-                locale.qrScreenHowToScanSheetDescription,
+                locale.qrScanTabHowToScanSheetDescription,
                 style: Theme.of(context).textTheme.bodyText1,
               ),
               const SizedBox(height: 16),
               Center(
                 child: TextButton(
-                  child: Text(locale.qrScreenHowToScanSheetCloseCta),
+                  child: Text(locale.qrScanTabHowToScanSheetCloseCta),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),

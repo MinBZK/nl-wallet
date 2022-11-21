@@ -9,12 +9,12 @@ import '../../common/widget/placeholder_screen.dart';
 import '../model/verification_request.dart';
 import '../widget/policy_row.dart';
 
-class ConfirmDataAttributesPage extends StatelessWidget {
+class VerificationConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final VerificationRequest request;
 
-  const ConfirmDataAttributesPage({
+  const VerificationConfirmDataAttributesPage({
     required this.onDecline,
     required this.onAccept,
     required this.request,
@@ -40,9 +40,9 @@ class ConfirmDataAttributesPage extends StatelessWidget {
           fillOverscroll: true,
           child: ConfirmButtons(
             onAccept: onAccept,
-            acceptText: locale.confirmDataAttributesPageApproveCta,
+            acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
             onDecline: onDecline,
-            declineText: locale.confirmDataAttributesPageDenyCta,
+            declineText: locale.verificationConfirmDataAttributesPageDenyCta,
           ),
         ),
       ],
@@ -53,7 +53,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Text(
-        AppLocalizations.of(context).confirmDataAttributesPageShareDataTitle,
+        AppLocalizations.of(context).verificationConfirmDataAttributesPageShareDataTitle,
         style: Theme.of(context).textTheme.headline2,
         textAlign: TextAlign.start,
       ),
@@ -77,7 +77,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(AppLocalizations.of(context).confirmDataAttributesPageIncorrectCta),
+          child: Text(AppLocalizations.of(context).verificationConfirmDataAttributesPageIncorrectCta),
         ),
       ),
     );
@@ -91,19 +91,20 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         children: [
           PolicyRow(
             icon: Icons.access_time_rounded,
-            text: locale.confirmDataAttributesPageDataRetentionDuration(request.policy.storageDuration.inDays),
+            text: locale
+                .verificationConfirmDataAttributesPageDataRetentionDuration(request.policy.storageDuration.inDays),
           ),
           PolicyRow(
             icon: Icons.share,
             text: request.policy.dataIsShared
-                ? locale.confirmDataAttributesPageDataWillBeShared
-                : locale.confirmDataAttributesPageDataWillNotBeShared,
+                ? locale.verificationConfirmDataAttributesPageDataWillBeShared
+                : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
           ),
           PolicyRow(
             icon: Icons.delete_outline,
             text: request.policy.deletionCanBeRequested
-                ? locale.confirmDataAttributesPageDataCanBeDeleted
-                : locale.confirmDataAttributesPageDataCanNotBeDeleted,
+                ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
+                : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
           ),
         ],
       ),
@@ -121,7 +122,7 @@ class ConfirmDataAttributesPage extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(AppLocalizations.of(context).confirmDataAttributesPageAllTermsCta),
+          child: Text(AppLocalizations.of(context).verificationConfirmDataAttributesPageAllTermsCta),
         ),
       ),
     );

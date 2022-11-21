@@ -5,11 +5,11 @@ import '../../../domain/model/card_front.dart';
 import '../../common/widget/wallet_card_front.dart';
 import '../../verification/widget/status_icon.dart';
 
-class CardAddedPage extends StatelessWidget {
+class IssuanceCardAddedPage extends StatelessWidget {
   final VoidCallback onClose;
   final CardFront cardFront;
 
-  const CardAddedPage({
+  const IssuanceCardAddedPage({
     required this.onClose,
     required this.cardFront,
     Key? key,

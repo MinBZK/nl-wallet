@@ -9,10 +9,10 @@ import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/verification_bloc.dart';
-import 'page/confirm_data_attributes_page.dart';
-import 'page/missing_attributes_page.dart';
+import 'page/verification_confirm_data_attributes_page.dart';
 import 'page/verification_confirm_pin_page.dart';
 import 'page/verification_generic_error_page.dart';
+import 'page/verification_missing_attributes_page.dart';
 import 'page/verification_stopped_page.dart';
 import 'page/verification_success_page.dart';
 
@@ -148,14 +148,14 @@ class VerificationScreen extends StatelessWidget {
   }
 
   Widget _buildMissingAttributesPage(BuildContext context, VerificationMissingAttributes state) {
-    return MissingAttributesPage(
+    return VerificationMissingAttributesPage(
       onDecline: () => context.read<VerificationBloc>().add(const VerificationStopRequested()),
       request: state.request,
     );
   }
 
   Widget _buildConfirmDataAttributesPage(BuildContext context, VerificationConfirmDataAttributes state) {
-    return ConfirmDataAttributesPage(
+    return VerificationConfirmDataAttributesPage(
       onDecline: () => _stopVerification(context),
       onAccept: () => context.read<VerificationBloc>().add(const VerificationShareRequestedAttributesApproved()),
       request: state.request,

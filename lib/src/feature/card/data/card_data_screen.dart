@@ -25,7 +25,7 @@ class CardDataScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).cardDataAttributesScreenTitle),
+        title: Text(AppLocalizations.of(context).cardDataScreenTitle),
       ),
       body: _buildBody(),
     );
@@ -64,7 +64,7 @@ class CardDataScreen extends StatelessWidget {
   Widget _buildFooterButton(BuildContext context) {
     return TextButton(
       onPressed: () => _onCloseButtonPressed(context),
-      child: Text(AppLocalizations.of(context).cardDataAttributesCloseCta),
+      child: Text(AppLocalizations.of(context).cardDataScreenCloseCta),
     );
   }
 

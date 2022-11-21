@@ -9,13 +9,13 @@ import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/issuance_bloc.dart';
-import 'page/card_added_page.dart';
-import 'page/check_data_offering_page.dart';
+import 'page/issuance_card_added_page.dart';
+import 'page/issuance_check_data_offering_page.dart';
 import 'page/issuance_confirm_pin_page.dart';
 import 'page/issuance_generic_error_page.dart';
 import 'page/issuance_identity_validation_failed_page.dart';
+import 'page/issuance_proof_identity_page.dart';
 import 'page/issuance_stopped_page.dart';
-import 'page/proof_identity_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -152,7 +152,7 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
-    return ProofIdentityPage(
+    return IssuanceProofIdentityPage(
       onDecline: () => _stopIssuance(context),
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
       organization: state.organization,
@@ -167,7 +167,7 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
-    return CheckDataOfferingPage(
+    return IssuanceCheckDataOfferingPage(
       onDecline: () => _stopIssuance(context),
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceCheckDataOfferingApproved()),
       attributes: state.response.cards.first.attributes,
@@ -175,7 +175,7 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
-    return CardAddedPage(
+    return IssuanceCardAddedPage(
       onClose: () => _stopIssuance(context),
       cardFront: state.response.cards.first.front,
     );

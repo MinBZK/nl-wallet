@@ -6,11 +6,11 @@ import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../model/verification_request.dart';
 
-class MissingAttributesPage extends StatelessWidget {
+class VerificationMissingAttributesPage extends StatelessWidget {
   final VerificationRequest request;
   final VoidCallback onDecline;
 
-  const MissingAttributesPage({
+  const VerificationMissingAttributesPage({
     required this.request,
     required this.onDecline,
     Key? key,
@@ -44,13 +44,13 @@ class MissingAttributesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context).missingAttributesPageTitle,
+            AppLocalizations.of(context).verificationMissingAttributesPageTitle,
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).missingAttributesPageDescription(request.organization.name),
+            AppLocalizations.of(context).verificationMissingAttributesPageDescription(request.organization.name),
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.start,
           ),
@@ -76,7 +76,7 @@ class MissingAttributesPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context, 'Wat kan ik doen?'),
         child: Padding(
           padding: const EdgeInsets.only(left: 10),
-          child: Text(AppLocalizations.of(context).missingAttributesPageHowToProceedCta),
+          child: Text(AppLocalizations.of(context).verificationMissingAttributesPageHowToProceedCta),
         ),
       ),
     );
@@ -89,7 +89,7 @@ class MissingAttributesPage extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ElevatedButton(
           onPressed: onDecline,
-          child: Text(AppLocalizations.of(context).missingAttributesPageCloseCta),
+          child: Text(AppLocalizations.of(context).verificationMissingAttributesPageCloseCta),
         ),
       ),
     );

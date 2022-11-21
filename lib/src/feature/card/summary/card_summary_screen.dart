@@ -49,7 +49,7 @@ class CardSummaryScreen extends StatelessWidget {
         if (state is CardSummaryLoadSuccess) {
           return FloatingActionButton.extended(
             onPressed: () => _onCardDataSharePressed(context),
-            label: Text(AppLocalizations.of(context).cardSummaryDataShareCta),
+            label: Text(AppLocalizations.of(context).cardSummaryScreenShareCta),
             icon: const Icon(Icons.qr_code),
           );
         } else {
@@ -96,7 +96,7 @@ class CardSummaryScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: LinkButton(
-              child: Text(AppLocalizations.of(context).cardSummaryOptionsCta),
+              child: Text(AppLocalizations.of(context).cardSummaryScreenOptionsCta),
               onPressed: () => _onCardOptionsPressed(context),
             ),
           ),
@@ -132,7 +132,7 @@ class CardSummaryScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppLocalizations.of(context).cardSummaryDataAttributesTitle,
+                      AppLocalizations.of(context).cardSummaryScreenDataAttributesTitle,
                       style: Theme.of(context).textTheme.subtitle1,
                     ),
                     const SizedBox(height: 8.0),
@@ -146,7 +146,7 @@ class CardSummaryScreen extends StatelessWidget {
               ),
               LinkButton(
                 onPressed: () => _onCardDataPressed(context, cardId),
-                child: Text(AppLocalizations.of(context).cardSummaryDataAttributesAllCta),
+                child: Text(AppLocalizations.of(context).cardSummaryScreenAddCardCta),
               ),
             ],
           ),
@@ -171,7 +171,7 @@ class CardSummaryScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppLocalizations.of(context).cardSummaryDataShareHistoryTitle,
+                  AppLocalizations.of(context).cardSummaryScreenShareHistoryTitle,
                   style: Theme.of(context).textTheme.subtitle1,
                 ),
                 const SizedBox(height: 8.0),
@@ -181,7 +181,7 @@ class CardSummaryScreen extends StatelessWidget {
           ),
           LinkButton(
             onPressed: () => _onCardHistoryPressed(context, cardId),
-            child: Text(AppLocalizations.of(context).cardSummaryDataShareHistoryAllCta),
+            child: Text(AppLocalizations.of(context).cardSummaryScreenShareHistoryAllCta),
           ),
         ],
       ),
@@ -193,9 +193,9 @@ class CardSummaryScreen extends StatelessWidget {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
       final String status = TimelineAttributeTypeTextMapper.map(locale, attribute).toLowerCase();
-      return locale.cardSummaryDataShareHistory(timeAgo, status, attribute.organization);
+      return locale.cardSummaryScreenShareHistory(timeAgo, status, attribute.organization);
     } else {
-      return locale.cardSummaryDataShareSuccessNoHistory;
+      return locale.cardSummaryScreenShareSuccessNoHistory;
     }
   }
 

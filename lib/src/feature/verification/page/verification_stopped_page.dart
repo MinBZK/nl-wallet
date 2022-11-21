@@ -19,11 +19,11 @@ class VerificationStoppedPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.not_interested,
       iconColor: Theme.of(context).primaryColorDark,
-      title: locale.verificationDeclinedPageTitle,
-      description: locale.verificationDeclinedPageDescription,
-      closeButtonCta: locale.verificationDeclinedPageCloseCta,
+      title: locale.verificationStoppedPageTitle,
+      description: locale.verificationStoppedPageDescription,
+      closeButtonCta: locale.verificationStoppedPageCloseCta,
       onClosePressed: onClosePressed,
-      secondaryButtonCta: locale.verificationDeclinedPageFeedbackCta,
+      secondaryButtonCta: locale.verificationStoppedPageFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
     );
   }

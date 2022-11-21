@@ -6,18 +6,15 @@ import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../verification/model/organization.dart';
 
-class ProofIdentityPage extends StatelessWidget {
+class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
-  final Organization organization;
   final List<DataAttribute> attributes;
 
-  const ProofIdentityPage({
+  const IssuanceCheckDataOfferingPage({
     required this.onDecline,
     required this.onAccept,
-    required this.organization,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -25,26 +22,18 @@ class ProofIdentityPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
-      restorationId: 'proof_identity_scrollview',
+      restorationId: 'check_data_offering_scrollview',
       slivers: <Widget>[
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 8)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        const SliverToBoxAdapter(child: Divider(height: 1)),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverList(delegate: _getDataAttributesDelegate()),
-        SliverToBoxAdapter(child: _buildDescriptionSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 20)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: ConfirmButtons(
-            onAccept: onAccept,
-            acceptText: AppLocalizations.of(context).proofIdentityPagePositiveCta,
-            onDecline: onDecline,
-            declineText: AppLocalizations.of(context).proofIdentityPageNegativeCta,
-            acceptIcon: Icons.arrow_forward,
-          ),
-        ),
+        const SliverToBoxAdapter(child: Divider(height: 16)),
+        SliverToBoxAdapter(child: _buildFooterSection(context)),
+        const SliverToBoxAdapter(child: Divider(height: 16)),
+        SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
       ],
     );
   }
@@ -52,19 +41,20 @@ class ProofIdentityPage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            locale.proofIdentityPageTitle,
+            locale.issuanceCheckDataOfferingPageTitle,
             style: Theme.of(context).textTheme.headline2,
           ),
           const SizedBox(height: 8),
           Text(
-            locale.proofIdentityPageSubtitle(organization.name),
+            locale.issuanceCheckDataOfferingPageSubtitle,
             style: Theme.of(context).textTheme.bodyText1,
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -81,16 +71,30 @@ class ProofIdentityPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionSection(BuildContext context) {
+  Widget _buildFooterSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8.0),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: LinkButton(
-          onPressed: () => PlaceholderScreen.show(context, AppLocalizations.of(context).proofIdentityPageIncorrectCta),
-          child: Text(AppLocalizations.of(context).proofIdentityPageIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(
+            context,
+            AppLocalizations.of(context).issuanceCheckDataOfferingPageIncorrectCta,
+          ),
+          child: Text(AppLocalizations.of(context).issuanceCheckDataOfferingPageIncorrectCta),
         ),
       ),
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    return ConfirmButtons(
+      onAccept: onAccept,
+      acceptText: locale.issuanceCheckDataOfferingPagePositiveCta,
+      onDecline: onDecline,
+      declineText: locale.issuanceCheckDataOfferingPageNegativeCta,
+      acceptIcon: Icons.check,
     );
   }
 }

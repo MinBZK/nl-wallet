@@ -35,7 +35,7 @@ class PolicyEntriesBuilder {
     return PolicyEntry(
       title: TextSpan(
         //FIXME: Currently relying on translation from [VerificationScreen]
-        text: locale.confirmDataAttributesPageDataRetentionDuration(
+        text: locale.verificationConfirmDataAttributesPageDataRetentionDuration(
           policy.storageDuration.inDays,
         ),
       ),
@@ -49,8 +49,8 @@ class PolicyEntriesBuilder {
       //FIXME: Currently relying on translation from [VerificationScreen]
       title: TextSpan(
         text: policy.dataIsShared
-            ? locale.confirmDataAttributesPageDataWillBeShared
-            : locale.confirmDataAttributesPageDataWillNotBeShared,
+            ? locale.verificationConfirmDataAttributesPageDataWillBeShared
+            : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
       ),
       description: const TextSpan(text: _kLoremIpsum),
       icon: Icons.share_outlined,
@@ -62,8 +62,8 @@ class PolicyEntriesBuilder {
       title: TextSpan(
         //FIXME: Currently relying on translation from [VerificationScreen]
         text: policy.deletionCanBeRequested
-            ? locale.confirmDataAttributesPageDataCanBeDeleted
-            : locale.confirmDataAttributesPageDataCanNotBeDeleted,
+            ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
+            : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
       ),
       description: const TextSpan(text: _kLoremIpsumShort),
       icon: Icons.delete_outline,

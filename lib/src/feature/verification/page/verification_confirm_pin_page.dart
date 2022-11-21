@@ -40,12 +40,12 @@ class VerificationConfirmPinPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          locale.verificationConfirmPinTitle,
+          locale.verificationConfirmPinPageTitle,
           style: Theme.of(context).textTheme.headline2,
         ),
         const SizedBox(height: 8),
         Text(
-          locale.verificationConfirmPinDescription,
+          locale.verificationConfirmPinPageDescription,
           style: Theme.of(context).textTheme.bodyText1,
         ),
       ],
@@ -59,12 +59,12 @@ class VerificationConfirmPinPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          locale.verificationConfirmPinErrorTitle,
+          locale.verificationConfirmPinPageErrorTitle,
           style: Theme.of(context).textTheme.headline2?.copyWith(color: Theme.of(context).errorColor),
         ),
         const SizedBox(height: 8),
         Text(
-          locale.verificationConfirmPinErrorDescription(attempts),
+          locale.verificationConfirmPinPageErrorDescription(attempts),
           style: Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor),
         ),
       ],
