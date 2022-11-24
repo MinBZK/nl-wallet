@@ -38,13 +38,17 @@ class CardOverviewScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardOverviewBloc, CardOverviewState>(
       builder: (context, state) {
-        if (state is CardOverviewInitial) return const CenteredLoadingIndicator();
-        if (state is CardOverviewLoadInProgress) return const CenteredLoadingIndicator();
+        if (state is CardOverviewInitial) return _buildLoading();
+        if (state is CardOverviewLoadInProgress) return _buildLoading();
         if (state is CardOverviewLoadSuccess) return _buildCards(context, state.cards);
         if (state is CardOverviewLoadFailure) return const Center(child: Icon(Icons.error_outline));
         throw UnsupportedError('Unknown state: $state');
       },
     );
+  }
+
+  Widget _buildLoading() {
+    return const CenteredLoadingIndicator();
   }
 
   Widget _buildCards(BuildContext context, List<WalletCard> cards) {

@@ -14,7 +14,7 @@ class MockWalletCardDataHighlightRepository implements WalletCardDataHighlightRe
       case '1':
         return _kMockPassportDataAttribute;
       case '2':
-        return _kMockLicenseDataAttribute;
+        return _kMockDrivingLicenseDataAttribute;
       default:
         throw UnimplementedError();
     }

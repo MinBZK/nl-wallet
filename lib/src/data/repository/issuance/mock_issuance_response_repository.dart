@@ -16,24 +16,23 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
 
   @override
   Future<IssuanceResponse> read(String issuanceRequestId) async {
-    final organization = (await organizationDataSource.read('rvig'))!;
     switch (issuanceRequestId) {
       case 'PID_1':
         return IssuanceResponse(
-          organization: organization,
+          organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPidWalletCard],
           requestedAttributes: [],
         );
       case '1':
         return IssuanceResponse(
-          organization: organization,
+          organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockRequestedAttributes,
         );
       case '2':
         return IssuanceResponse(
-          organization: organization,
-          cards: [_kMockLicenseWalletCard],
+          organization: (await organizationDataSource.read('rdw'))!,
+          cards: [_kMockDrivingLicenseWalletCard],
           requestedAttributes: _kMockRequestedAttributes,
         );
     }

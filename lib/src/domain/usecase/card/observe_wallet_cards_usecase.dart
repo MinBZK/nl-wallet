@@ -7,8 +7,6 @@ class ObserveWalletCardsUseCase {
   ObserveWalletCardsUseCase(this.walletCardRepository);
 
   Stream<List<WalletCard>> invoke() {
-    return walletCardRepository.observeWalletCards().map((cards) {
-      return cards..sort((WalletCard a, WalletCard b) => a.id.compareTo(b.id));
-    });
+    return walletCardRepository.observeWalletCards();
   }
 }

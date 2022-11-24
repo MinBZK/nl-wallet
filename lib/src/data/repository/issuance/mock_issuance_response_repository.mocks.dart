@@ -12,9 +12,9 @@ const _kMockPassportWalletCard = WalletCard(
   attributes: _kMockAllDataAttributes,
 );
 
-const _kMockLicenseWalletCard = WalletCard(
+const _kMockDrivingLicenseWalletCard = WalletCard(
   id: '2',
-  front: _kMockLicenseCardFront,
+  front: _kMockDrivingLicenseCardFront,
   attributes: _kMockAllDataAttributes,
 );
 
@@ -34,7 +34,7 @@ const _kMockPassportCardFront = CardFront(
   theme: CardFrontTheme.light,
 );
 
-const _kMockLicenseCardFront = CardFront(
+const _kMockDrivingLicenseCardFront = CardFront(
   title: 'Rijbewijs',
   info: 'Categorie AM, B, C1, BE',
   logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
