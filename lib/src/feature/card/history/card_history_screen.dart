@@ -4,13 +4,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 
+import '../../../domain/model/card_front.dart';
 import '../../../domain/model/timeline_attribute.dart';
 import '../../../util/extension/date_time_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/text_icon_button.dart';
+import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_history_bloc.dart';
 import 'widget/timeline_header.dart';
 import 'widget/timeline_row.dart';
+
+const double _kCardFrontScaleFactor = 0.35;
 
 class CardHistoryScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -40,7 +44,7 @@ class CardHistoryScreen extends StatelessWidget {
       builder: (context, state) {
         if (state is CardHistoryInitial) return _buildLoading();
         if (state is CardHistoryLoadInProgress) return _buildLoading();
-        if (state is CardHistoryLoadSuccess) return _buildHistory(context, state.attributes);
+        if (state is CardHistoryLoadSuccess) return _buildHistory(context, state);
         throw UnsupportedError('Unknown state: $state');
       },
     );
@@ -50,26 +54,53 @@ class CardHistoryScreen extends StatelessWidget {
     return const CenteredLoadingIndicator();
   }
 
-  Map<DateTime, List<TimelineAttribute>> _monthYearAttributeMap(List<TimelineAttribute> attributes) {
-    Map<DateTime, List<TimelineAttribute>> map = {};
+  Widget _buildHeader(BuildContext context, CardFront cardFront) {
+    const walletCardOriginalHeight = kWalletCardHeight;
+    const walletCardScaledWidth = kWalletCardWidth * _kCardFrontScaleFactor;
+    const walletCardScaledHeight = kWalletCardHeight * _kCardFrontScaleFactor;
 
-    for (TimelineAttribute attribute in attributes) {
-      final DateTime yearMonthKey = attribute.dateTime.yearMonthOnly();
-
-      List<TimelineAttribute>? mapEntry = map[yearMonthKey];
-      if (mapEntry != null) {
-        mapEntry.add(attribute);
-      } else {
-        map[yearMonthKey] = [attribute];
-      }
-    }
-    return map;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Column(
+            children: [
+              SizedBox(
+                width: walletCardScaledWidth,
+                height: walletCardScaledHeight,
+                child: FittedBox(
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    height: walletCardOriginalHeight,
+                    child: WalletCardFront(cardFront: cardFront, onPressed: null),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                cardFront.title,
+                style: Theme.of(context).textTheme.headline2,
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+      ],
+    );
   }
 
-  Widget _buildHistory(BuildContext context, List<TimelineAttribute> attributes) {
-    final Map<DateTime, List<TimelineAttribute>> monthYearMap = _monthYearAttributeMap(attributes);
-
+  Widget _buildHistory(BuildContext context, CardHistoryLoadSuccess state) {
     final List<Widget> slivers = [];
+
+    // Card front & title
+    slivers.add(
+      SliverToBoxAdapter(
+        child: _buildHeader(context, state.card.front),
+      ),
+    );
+
+    // Timeline
+    final Map<DateTime, List<TimelineAttribute>> monthYearMap = _monthYearAttributeMap(state.attributes);
     monthYearMap.forEach((dateTime, values) {
       slivers.add(
         SliverStickyHeader(
@@ -83,6 +114,8 @@ class CardHistoryScreen extends StatelessWidget {
         ),
       );
     });
+
+    // Close button
     slivers.add(
       SliverFillRemaining(
         hasScrollBody: false,
@@ -108,5 +141,21 @@ class CardHistoryScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Map<DateTime, List<TimelineAttribute>> _monthYearAttributeMap(List<TimelineAttribute> attributes) {
+    Map<DateTime, List<TimelineAttribute>> map = {};
+
+    for (TimelineAttribute attribute in attributes) {
+      final DateTime yearMonthKey = attribute.dateTime.yearMonthOnly();
+
+      List<TimelineAttribute>? mapEntry = map[yearMonthKey];
+      if (mapEntry != null) {
+        mapEntry.add(attribute);
+      } else {
+        map[yearMonthKey] = [attribute];
+      }
+    }
+    return map;
   }
 }

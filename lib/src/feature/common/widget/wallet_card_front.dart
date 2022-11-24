@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/card_front.dart';
 
-const _kCardAspectRatio = 328.0 / 192.0;
-const _kCardBorderRadius = 12.0;
-const _kLogoBorderRadius = 4.0;
-const _kLogoHeight = 40.0;
+const kWalletCardWidth = 328.0;
+const kWalletCardHeight = 192.0;
 
+const _kCardAspectRatio = kWalletCardWidth / kWalletCardHeight;
 const _kTitleMaxLines = 2;
 const _kSubtitleMaxLines = 2;
 const _kInfoMaxLines = 2;
+
+const _kDefaultPadding = 16.0;
+const _kDefaultCardBorderRadius = 12.0;
+const _kDefaultLogoBorderRadius = 4.0;
+const _kDefaultLogoHeight = 40.0;
 
 class WalletCardFront extends StatelessWidget {
   final CardFront cardFront;
@@ -28,14 +32,14 @@ class WalletCardFront extends StatelessWidget {
       child: Builder(builder: (context) {
         return InkWell(
           onTap: onPressed,
-          radius: _kCardBorderRadius,
-          borderRadius: BorderRadius.circular(_kCardBorderRadius),
+          radius: _kDefaultCardBorderRadius,
+          borderRadius: BorderRadius.circular(_kDefaultCardBorderRadius),
           child: AspectRatio(
             aspectRatio: _kCardAspectRatio,
             child: Card(
               elevation: 0.0,
               margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_kCardBorderRadius)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_kDefaultCardBorderRadius)),
               semanticContainer: true,
               clipBehavior: Clip.antiAliasWithSaveLayer,
               child: Stack(
@@ -46,7 +50,7 @@ class WalletCardFront extends StatelessWidget {
                     fit: BoxFit.fill,
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(_kDefaultPadding),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,17 +79,17 @@ class WalletCardFront extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12.0),
+                            const SizedBox(width: _kDefaultPadding),
                             ClipRRect(
-                              borderRadius: const BorderRadius.all(Radius.circular(_kLogoBorderRadius)),
+                              borderRadius: const BorderRadius.all(Radius.circular(_kDefaultLogoBorderRadius)),
                               child: Image(
-                                height: _kLogoHeight,
+                                height: _kDefaultLogoHeight,
                                 image: AssetImage(cardFront.logoImage ?? ''),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: _kDefaultPadding),
                         Text(
                           cardFront.info ?? '',
                           maxLines: _kInfoMaxLines,
@@ -108,10 +112,7 @@ class WalletCardFront extends StatelessWidget {
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final Color textColor = cardFront.theme == CardFrontTheme.light ? scheme.onBackground : scheme.onPrimary;
     return Theme.of(context).copyWith(
-      textTheme: Theme.of(context).textTheme.apply(
-            bodyColor: textColor,
-            displayColor: textColor,
-          ),
+      textTheme: Theme.of(context).textTheme.apply(bodyColor: textColor, displayColor: textColor),
     );
   }
 }

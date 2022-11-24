@@ -143,7 +143,7 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
   return (context) {
     final String cardId = CardHistoryScreen.getArguments(settings);
     return BlocProvider<CardHistoryBloc>(
-      create: (context) => CardHistoryBloc(context.read())..add(CardHistoryLoadTriggered(cardId)),
+      create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(cardId)),
       child: const CardHistoryScreen(),
     );
   };

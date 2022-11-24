@@ -20,7 +20,7 @@ const _kMockDrivingLicenseWalletCard = WalletCard(
 
 const _kMockPidCardFront = CardFront(
   title: 'Persoonsgegevens',
-  info: 'W. de Bruijn',
+  subtitle: 'Willeke',
   logoImage: 'assets/non-free/images/logo_rijksoverheid.png',
   backgroundImage: 'assets/images/bg_pid.png',
   theme: CardFrontTheme.dark,

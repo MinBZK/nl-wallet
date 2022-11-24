@@ -14,11 +14,11 @@ class InteractionTypeTextFormatter {
   static String map(AppLocalizations locale, InteractionType type) {
     switch (type) {
       case InteractionType.success:
-        return locale.cardTimelineInteractionSuccess;
+        return locale.cardHistoryTimelineInteractionSuccess;
       case InteractionType.rejected:
-        return locale.cardTimelineInteractionRejected;
+        return locale.cardHistoryTimelineInteractionRejected;
       case InteractionType.failed:
-        return locale.cardTimelineInteractionFailed;
+        return locale.cardHistoryTimelineInteractionFailed;
     }
   }
 }
@@ -27,11 +27,11 @@ class OperationTypeTextFormatter {
   static String map(AppLocalizations locale, OperationType type) {
     switch (type) {
       case OperationType.issued:
-        return locale.cardTimelineOperationIssued;
+        return locale.cardHistoryTimelineOperationIssued;
       case OperationType.extended:
-        return locale.cardTimelineOperationExtended;
+        return locale.cardHistoryTimelineOperationExtended;
       case OperationType.expired:
-        return locale.cardTimelineOperationExpired;
+        return locale.cardHistoryTimelineOperationExpired;
     }
   }
 }

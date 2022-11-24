@@ -5,57 +5,52 @@ class WalletThemeConstants {
 
   // Color scheme
   static const colorScheme = ColorScheme.light(
-    primary: _primaryColor,
-    error: _errorColor,
-    background: _backgroundColor,
-    secondaryContainer: _secondaryContainer,
-    onPrimary: _backgroundColor,
-    onBackground: _primaryColorDark,
+    primary: Color(0xFF2065E0),
+    error: Color(0xFFCA005D),
+    background: Color(0xFFFCFCFC),
+    secondaryContainer: Color(0xFFF3F4F7),
+    onPrimary: Color(0xFFFCFCFC),
+    onBackground: Color(0xFF152A62),
   );
 
-  // Indicator color
-  static const indicatorColor = _primaryColor;
-
-  // Dark variant of the primary color
-  static const primaryColorDark = _primaryColorDark;
-
   // Default font family
-  static const fontFamily = _defaultFontFamily;
+  static const fontFamily = 'RijksoverheidSansWebText';
 
-  // Divider color
-  static const dividerColor = _dividerColor;
-
-  // Scaffold colors
-  static const scaffoldBackgroundColor = _scaffoldBackgroundColor;
+  // Colors
+  static const dividerColor = Color(0x66445581);
+  static const indicatorColor = Color(0xFF2065E0);
+  static const neutralDarkBlueColor = Color(0xFF0D193B);
+  static const primaryColorDark = Color(0xFF152A62);
+  static const scaffoldBackgroundColor = Color(0xFFFCFCFC);
 
   // App bar theme
   static final appBarTheme = AppBarTheme(
-    backgroundColor: _appBarBackgroundColor,
-    centerTitle: _appBarCenterTitle,
-    elevation: _appBarElevation,
-    foregroundColor: _appBarForegroundColor,
-    iconTheme: _appBarIconThemeData,
-    titleTextStyle: _subtitle1TextStyle.copyWith(color: _primaryTextColor),
+    backgroundColor: const Color(0xFFFCFCFC),
+    centerTitle: true,
+    elevation: 1.0,
+    foregroundColor: const Color(0xDE000000),
+    iconTheme: const IconThemeData(color: Color(0xFF152A62)),
+    titleTextStyle: textTheme.subtitle1,
   );
 
   // Bottom navigation bar theme
   static const bottomNavigationBarThemeData = BottomNavigationBarThemeData(
-    backgroundColor: _bottomNavigationBarBackgroundColor,
-    elevation: _bottomNavigationBarElevation,
+    backgroundColor: Colors.white,
+    elevation: 4.0,
   );
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      elevation: _elevatedButtonElevation,
-      minimumSize: const Size.fromHeight(_elevatedButtonMinHeight),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_elevatedButtonBorderRadius)),
+      elevation: 0.0,
+      minimumSize: const Size.fromHeight(_buttonMinHeight),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_buttonBorderRadius)),
       foregroundColor: Colors.white,
       textStyle: _buttonTextStyle,
     ),
   );
 
   static const floatingActionButtonTheme = FloatingActionButtonThemeData(
-    backgroundColor: _primaryColor,
+    backgroundColor: Color(0xFF2065E0),
     foregroundColor: Colors.white,
     extendedTextStyle: _buttonTextStyle,
   );
@@ -63,25 +58,25 @@ class WalletThemeConstants {
   static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       elevation: 0,
-      minimumSize: const Size.fromHeight(_outlinedButtonMinHeight),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_outlinedButtonBorderRadius)),
+      minimumSize: const Size.fromHeight(_buttonMinHeight),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_buttonBorderRadius)),
       textStyle: _buttonTextStyle,
-      side: const BorderSide(color: _primaryColor, width: 0.5),
+      side: const BorderSide(color: Color(0xFF2065E0), width: 0.5),
     ),
   );
 
   static final textButtonTheme = TextButtonThemeData(
     style: TextButton.styleFrom(
-      minimumSize: const Size(0.0, _textButtonMinHeight),
+      minimumSize: const Size(0.0, _buttonMinHeight),
       textStyle: _buttonTextStyle,
-      foregroundColor: _primaryColor,
+      foregroundColor: const Color(0xFF2065E0),
     ),
   );
 
   static const tabBarTheme = TabBarTheme(
-    labelColor: _primaryColor,
+    labelColor: Color(0xFF2065E0),
     labelStyle: _subtitle2TextStyle,
-    unselectedLabelColor: _primaryTextColor,
+    unselectedLabelColor: Color(0xFF152A62),
     unselectedLabelStyle: _body2TextStyle,
   );
 
@@ -99,38 +94,13 @@ class WalletThemeConstants {
     caption: _captionTextStyle,
     overline: _overlineTextStyle,
   ).apply(
-    bodyColor: _primaryTextColor,
-    displayColor: _primaryTextColor,
+    bodyColor: const Color(0xFF152A62),
+    displayColor: const Color(0xFF152A62),
   );
 
-  // Color scheme
-  static const _primaryColor = Color(0xFF2065E0);
-  static const _primaryColorDark = Color(0xFF152A62);
-  static const _errorColor = Color(0xFFCA005D);
-  static const _secondaryContainer = Color(0xFFF3F4F7);
-  static const _backgroundColor = Color(0xFFFCFCFC);
-
-  // App, bottom navigation bar & scaffold theme
-  static const _appBarBackgroundColor = _backgroundColor;
-  static const _appBarForegroundColor = Color(0xDE000000);
-  static const _appBarCenterTitle = true;
-  static const _appBarElevation = 1.0;
-  static const _appBarIconThemeData = IconThemeData(color: _primaryTextColor);
-  static const _bottomNavigationBarBackgroundColor = Colors.white;
-  static const _bottomNavigationBarElevation = 4.0;
-  static const _scaffoldBackgroundColor = _backgroundColor;
-  static const _dividerColor = Color(0x66445581);
-
   // Button theme
-  static const _elevatedButtonBorderRadius = 8.0;
-  static const _elevatedButtonElevation = 0.0;
-  static const _elevatedButtonMinHeight = 48.0;
-  static const _outlinedButtonBorderRadius = _elevatedButtonBorderRadius;
-  static const _outlinedButtonMinHeight = _elevatedButtonMinHeight;
-  static const _textButtonMinHeight = _elevatedButtonMinHeight;
-
-  // Text colors
-  static const _primaryTextColor = _primaryColorDark;
+  static const _buttonMinHeight = 48.0;
+  static const _buttonBorderRadius = 8.0;
 
   // Text styles
   static const _headline1TextStyle = TextStyle(
@@ -152,7 +122,7 @@ class WalletThemeConstants {
   static const _subtitle1TextStyle = TextStyle(
     fontSize: _subtitle1FontSize,
     fontWeight: FontWeight.bold,
-    height: _subtitle1LineHeight,
+    height: 1.4,
   );
   static const _subtitle2TextStyle = TextStyle(
     fontSize: _subtitle2FontSize,
@@ -163,7 +133,7 @@ class WalletThemeConstants {
   );
   static const _body2TextStyle = TextStyle(
     fontSize: _body2FontSize,
-    height: _body2LineHeight,
+    height: 1.4,
   );
   static const _buttonTextStyle = TextStyle(
     fontSize: _buttonFontSize,
@@ -177,9 +147,6 @@ class WalletThemeConstants {
     fontWeight: FontWeight.bold,
   );
 
-  // Font families
-  static const _defaultFontFamily = 'RijksoverheidSansWebText';
-
   // Font sizes
   static const _headline1FontSize = 34.0;
   static const _headline2FontSize = 24.0;
@@ -192,8 +159,4 @@ class WalletThemeConstants {
   static const _buttonFontSize = 14.0;
   static const _captionFontSize = 12.0;
   static const _overlineFontSize = 14.0;
-
-  // Line height
-  static const _subtitle1LineHeight = 1.4;
-  static const _body2LineHeight = 1.4;
 }

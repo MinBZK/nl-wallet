@@ -28,7 +28,13 @@
   "cardDataScreenCloseCta": "Sluiten",
   "cardDataScreenTitle": "Alle gegevens",
   "cardHistoryScreenBackCta": "Terug",
-  "cardHistoryScreenTitle": "Geschiedenis",
+  "cardHistoryScreenTitle": "Kaart geschiedenis",
+  "cardHistoryTimelineInteractionFailed": "Delen mislukt",
+  "cardHistoryTimelineInteractionRejected": "Delen gestopt",
+  "cardHistoryTimelineInteractionSuccess": "Gegevens gedeeld",
+  "cardHistoryTimelineOperationExpired": "Kaart verlopen",
+  "cardHistoryTimelineOperationExtended": "Kaart vernieuwd",
+  "cardHistoryTimelineOperationIssued": "Kaart aangemaakt",
   "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
   "cardOverviewScreenTitle": "Mijn kaarten",
   "cardSummaryScreenAddCardCta": "Alle gegevens",
@@ -57,40 +63,6 @@
   "cardSummaryScreenShareHistoryTitle": "Geschiedenis",
   "cardSummaryScreenShareSuccessNoHistory": "Nog nooit gedeeld.",
   "cardSummaryScreenTitle": "Kaart overzicht",
-  "cardTimelineInteraction": "{interactionType} met {organization}",
-  "@cardTimelineInteraction": {
-    "placeholders": {
-      "interactionType": {
-        "example": "shared",
-        "type": "String"
-      },
-      "organization": {
-        "example": "Organization",
-        "type": "String"
-      }
-    },
-    "description": "Most recent data share history."
-  },
-  "cardTimelineInteractionFailed": "Niet gelukt te delen",
-  "cardTimelineInteractionRejected": "Geweigerd te delen",
-  "cardTimelineInteractionSuccess": "Gedeeld",
-  "cardTimelineOperation": "{interactionType}. {description}",
-  "@cardTimelineOperation": {
-    "placeholders": {
-      "interactionType": {
-        "example": "shared",
-        "type": "String"
-      },
-      "description": {
-        "example": "Valid until X",
-        "type": "String"
-      }
-    },
-    "description": "Most recent data share history."
-  },
-  "cardTimelineOperationExpired": "Kaart is verlopen",
-  "cardTimelineOperationExtended": "Kaart is vernieuwd",
-  "cardTimelineOperationIssued": "Kaart is toegevoegd",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {

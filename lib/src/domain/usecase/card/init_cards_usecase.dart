@@ -43,7 +43,7 @@ final List<TimelineAttribute> _kMockPidTimelineAttributes = [
     dateTime: DateTime.now().subtract(const Duration(days: 5)),
   ),
   InteractionAttribute(
-    interactionType: InteractionType.rejected,
+    interactionType: InteractionType.failed,
     organization: 'DUO',
     dateTime: DateTime.now().subtract(const Duration(days: 5)),
   ),

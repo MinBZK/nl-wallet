@@ -28,7 +28,13 @@
   "cardDataScreenCloseCta": "Close",
   "cardDataScreenTitle": "All data",
   "cardHistoryScreenBackCta": "Back",
-  "cardHistoryScreenTitle": "History",
+  "cardHistoryScreenTitle": "Card history",
+  "cardHistoryTimelineInteractionFailed": "Failed to share",
+  "cardHistoryTimelineInteractionRejected": "Rejected to share",
+  "cardHistoryTimelineInteractionSuccess": "Shared",
+  "cardHistoryTimelineOperationExpired": "Card is expired",
+  "cardHistoryTimelineOperationExtended": "Card is extended",
+  "cardHistoryTimelineOperationIssued": "Card is added",
   "cardOverviewScreenAddCardCta": "Add data",
   "cardOverviewScreenTitle": "My cards",
   "cardSummaryScreenAddCardCta": "All data",
@@ -57,40 +63,6 @@
   "cardSummaryScreenShareHistoryTitle": "History",
   "cardSummaryScreenShareSuccessNoHistory": "Never shared yet.",
   "cardSummaryScreenTitle": "Card summary",
-  "cardTimelineInteraction": "{interactionType} with {organization}",
-  "@cardTimelineInteraction": {
-    "placeholders": {
-      "interactionType": {
-        "example": "gedeeld",
-        "type": "String"
-      },
-      "organization": {
-        "example": "Organization",
-        "type": "String"
-      }
-    },
-    "description": "Most recent data share history."
-  },
-  "cardTimelineInteractionFailed": "Failed to share",
-  "cardTimelineInteractionRejected": "Rejected to share",
-  "cardTimelineInteractionSuccess": "Shared",
-  "cardTimelineOperation": "{interactionType}. {description}",
-  "@cardTimelineOperation": {
-    "placeholders": {
-      "interactionType": {
-        "example": "shared",
-        "type": "String"
-      },
-      "description": {
-        "example": "Valid until X",
-        "type": "String"
-      }
-    },
-    "description": "Most recent data share history."
-  },
-  "cardTimelineOperationExpired": "Card is expired",
-  "cardTimelineOperationExtended": "Card is extended",
-  "cardTimelineOperationIssued": "Card is added",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
     "placeholders": {

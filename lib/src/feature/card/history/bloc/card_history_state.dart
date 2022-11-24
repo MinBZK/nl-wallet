@@ -17,12 +17,13 @@ class CardHistoryLoadInProgress extends CardHistoryState {
 }
 
 class CardHistoryLoadSuccess extends CardHistoryState {
+  final WalletCard card;
   final List<TimelineAttribute> attributes;
 
-  const CardHistoryLoadSuccess(this.attributes);
+  const CardHistoryLoadSuccess(this.card, this.attributes);
 
   @override
-  List<Object> get props => [attributes];
+  List<Object> get props => [card, attributes];
 }
 
 class CardHistoryLoadFailure extends CardHistoryState {
