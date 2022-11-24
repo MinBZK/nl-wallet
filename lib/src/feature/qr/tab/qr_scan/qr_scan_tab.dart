@@ -5,9 +5,9 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../domain/model/qr/qr_request.dart';
 import '../../../../wallet_routes.dart';
-import '../../../common/widget/bottom_sheet_drag_handle.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/check_permission_on_resume.dart';
+import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/text_icon_button.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
@@ -127,41 +127,12 @@ class QrScanTab extends StatelessWidget {
   }
 
   void _showHowToScanSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (BuildContext context) {
-        final locale = AppLocalizations.of(context);
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Center(
-                child: BottomSheetDragHandle(),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                locale.qrScanTabHowToScanSheetTitle,
-                style: Theme.of(context).textTheme.headline2,
-                textAlign: TextAlign.start,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                locale.qrScanTabHowToScanSheetDescription,
-                style: Theme.of(context).textTheme.bodyText1,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton(
-                  child: Text(locale.qrScanTabHowToScanSheetCloseCta),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    final locale = AppLocalizations.of(context);
+    ExplanationSheet.show(
+      context,
+      title: locale.qrScanTabHowToScanSheetTitle,
+      description: locale.qrScanTabHowToScanSheetDescription,
+      closeButtonText: locale.qrScanTabHowToScanSheetCloseCta,
     );
   }
 

@@ -28,6 +28,8 @@ dependencies:
   json_serializable: ^6.5.4
   json_annotation: ^4.7.0
   arb_utils: ^0.4.1
+  qr_flutter: ^4.0.0
+  screen_brightness: ^0.2.2
 
 dev_dependencies:
   flutter_test:
