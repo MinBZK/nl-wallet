@@ -25,11 +25,9 @@ class CardOverviewBloc extends Bloc<CardOverviewEvent, CardOverviewState> {
   void _onCardOverviewLoadTriggered(event, emit) async {
     emit(const CardOverviewLoadInProgress());
     await Future.delayed(kDefaultMockDelay);
-    emit.forEach(
+    await emit.forEach(
       observeWalletCardsUseCase.invoke(),
-      onData: (cards) {
-        return CardOverviewLoadSuccess(cards);
-      },
+      onData: (cards) => CardOverviewLoadSuccess(cards),
       onError: (ex, stack) {
         //Note: when providing onError like this the subscription is not cancelled on errors
         Fimber.e('Failed to observe cards', ex: ex, stacktrace: stack);
