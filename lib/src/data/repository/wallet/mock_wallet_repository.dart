@@ -4,10 +4,12 @@ import '../../../wallet_constants.dart';
 import 'wallet_repository.dart';
 
 class MockWalletRepository implements WalletRepository {
+  String? _pin;
+
   /// The amount of times the user incorrectly entered the pin, resets to 0 on a successful attempt.
-  var _invalidPinAttempts = 0;
+  int _invalidPinAttempts = 0;
   final BehaviorSubject<bool> _locked = BehaviorSubject<bool>.seeded(true);
-  final BehaviorSubject<bool> _isInitialized = BehaviorSubject<bool>.seeded(true);
+  final BehaviorSubject<bool> _isInitialized = BehaviorSubject<bool>.seeded(false);
 
   MockWalletRepository();
 
@@ -17,7 +19,7 @@ class MockWalletRepository implements WalletRepository {
   @override
   void unlockWallet(String pin) {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
-    if (pin == kMockPin) {
+    if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;
     } else {
@@ -32,7 +34,7 @@ class MockWalletRepository implements WalletRepository {
   Future<bool> confirmTransaction(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     if (isLocked) throw UnsupportedError('Wallet is locked');
-    if (pin == kMockPin) {
+    if (_pin != null && pin == _pin) {
       _invalidPinAttempts = 0;
       return true;
     } else {
@@ -44,8 +46,10 @@ class MockWalletRepository implements WalletRepository {
 
   @override
   Future<bool> createWallet(String pin) async {
+    if (pin.length != kPinDigits) throw UnsupportedError('Invalid pin. Length should be $kPinDigits');
     if (isInitialized) throw UnsupportedError('Wallet is already initialized');
     await Future.delayed(kDefaultMockDelay);
+    _pin = pin;
     _isInitialized.add(true);
     _invalidPinAttempts = 0;
     return _isInitialized.value;
@@ -54,6 +58,7 @@ class MockWalletRepository implements WalletRepository {
   @override
   Future<void> destroyWallet() async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
+    _pin = null;
     _isInitialized.add(false);
     _locked.add(true);
   }

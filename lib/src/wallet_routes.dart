@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'domain/usecase/pin/unlock_wallet_usecase.dart';
+import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'feature/card/add/card_add_screen.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
@@ -17,6 +17,8 @@ import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_prompt.dart';
 import 'feature/pin/pin_screen.dart';
+import 'feature/setup_security/bloc/setup_security_bloc.dart';
+import 'feature/setup_security/setup_security_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
@@ -24,7 +26,6 @@ import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
 import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
 import 'feature/verifier_policy/verifier_policy_screen.dart';
-import 'feature/wallet/create/wallet_create_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -33,12 +34,12 @@ class WalletRoutes {
 
   /// Routes in this list will be shown WITHOUT pin (wallet unlock) requirement
   @visibleForTesting
-  static const publicRoutes = [splashRoute, pinRoute, themeRoute, walletCreateRoute];
+  static const publicRoutes = [splashRoute, setupSecurityRoute, pinRoute, themeRoute];
 
   static const splashRoute = '/';
   static const pinRoute = '/pin';
+  static const setupSecurityRoute = '/security/setup';
   static const confirmRoute = '/confirm';
-  static const walletCreateRoute = '/wallet/create';
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
@@ -64,6 +65,8 @@ class WalletRoutes {
         return _createSplashScreenBuilder;
       case WalletRoutes.pinRoute:
         return _createPinScreenBuilder;
+      case WalletRoutes.setupSecurityRoute:
+        return _createSetupSecurityScreenBuilder;
       case WalletRoutes.confirmRoute:
         return _createConfirmScreenBuilder;
       case WalletRoutes.homeRoute:
@@ -84,8 +87,6 @@ class WalletRoutes {
         return _createVerifierPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
         return _createIssuanceScreenBuilder(settings);
-      case WalletRoutes.walletCreateRoute:
-        return _createWalletCreateScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -100,8 +101,13 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
     );
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<UnlockWalletUseCase>(), context.read()),
+      create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>(), context.read()),
       child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
+    );
+
+Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
+      create: (BuildContext context) => SetupSecurityBloc(context.read(), context.read(), context.read()),
+      child: const SetupSecurityScreen(),
     );
 
 Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
@@ -176,8 +182,6 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     );
   };
 }
-
-Widget _createWalletCreateScreenBuilder(BuildContext context) => const WalletCreateScreen();
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {
   SecuredPageRoute({required WidgetBuilder builder, super.settings})

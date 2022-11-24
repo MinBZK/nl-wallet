@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../wallet_constants.dart';
+import '../common/widget/animated_linear_progress_indicator.dart';
+import '../common/widget/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
+import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'bloc/verification_bloc.dart';
@@ -61,15 +63,9 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildBackButton(BuildContext context) {
     return BlocBuilder<VerificationBloc, VerificationState>(
       builder: (context, state) {
-        return AnimatedOpacity(
-          opacity: state.canGoBack ? 1 : 0,
-          duration: kDefaultAnimationDuration,
-          child: IgnorePointer(
-            ignoring: !state.canGoBack,
-            child: BackButton(
-              onPressed: () => context.read<VerificationBloc>().add(const VerificationBackPressed()),
-            ),
-          ),
+        return AnimatedVisibilityBackButton(
+          visible: state.canGoBack,
+          onPressed: () => context.read<VerificationBloc>().add(const VerificationBackPressed()),
         );
       },
     );
@@ -78,13 +74,7 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildStepper() {
     return BlocBuilder<VerificationBloc, VerificationState>(
       buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) {
-        return TweenAnimationBuilder<double>(
-          builder: (context, progress, child) => LinearProgressIndicator(value: progress),
-          duration: kDefaultAnimationDuration,
-          tween: Tween<double>(end: state.stepperProgress),
-        );
-      },
+      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 
@@ -102,37 +92,8 @@ class VerificationScreen extends StatelessWidget {
         if (state is VerificationSuccess) result = _buildSuccessPage(context, state);
         if (state is VerificationGenericError) result = _buildGenericErrorPage(context, state);
         if (result == null) throw UnsupportedError('Unknown state: $state');
-        return _buildAnimatedResult(result, state);
+        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
-    );
-  }
-
-  Widget _buildAnimatedResult(Widget result, VerificationState state) {
-    return AnimatedSwitcher(
-      duration: kDefaultAnimationDuration,
-      switchOutCurve: Curves.easeInOut,
-      switchInCurve: Curves.easeInOut,
-      transitionBuilder: (child, animation) {
-        return DualTransitionBuilder(
-          animation: animation,
-          forwardBuilder: (context, animation, forwardChild) => SlideTransition(
-            position: Tween<Offset>(
-              begin: Offset(state.didGoBack ? 0 : 1, 0),
-              end: Offset(state.didGoBack ? 1 : 0, 0),
-            ).animate(animation),
-            child: forwardChild,
-          ),
-          reverseBuilder: (context, animation, reverseChild) => SlideTransition(
-            position: Tween<Offset>(
-              begin: Offset(state.didGoBack ? -1 : 0, 0),
-              end: Offset(state.didGoBack ? 0 : -1, 0),
-            ).animate(animation),
-            child: reverseChild,
-          ),
-          child: child,
-        );
-      },
-      child: result,
     );
   }
 

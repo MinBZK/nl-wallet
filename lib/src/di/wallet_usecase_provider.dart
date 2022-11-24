@@ -11,12 +11,14 @@ import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/issuance/wallet_add_issued_card_usecase.dart';
+import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
-import '../domain/usecase/pin/unlock_wallet_usecase.dart';
+import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
+import '../domain/usecase/wallet/create_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -34,8 +36,14 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CheckIsAppInitializedUseCase>(
           create: (context) => CheckIsAppInitializedUseCase(context.read()),
         ),
-        RepositoryProvider<UnlockWalletUseCase>(
-          create: (context) => UnlockWalletUseCase(context.read()),
+        RepositoryProvider<UnlockWalletWithPinUseCase>(
+          create: (context) => UnlockWalletWithPinUseCase(context.read()),
+        ),
+        RepositoryProvider<CreateWalletUseCase>(
+          create: (context) => CreateWalletUseCase(context.read()),
+        ),
+        RepositoryProvider<CheckIsValidPinUseCase>(
+          create: (context) => CheckIsValidPinUseCase(),
         ),
         RepositoryProvider<ConfirmTransactionUseCase>(
           create: (context) => ConfirmTransactionUseCase(context.read()),

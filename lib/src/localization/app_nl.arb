@@ -216,6 +216,16 @@
   "qrScreenScanTabTitle": "Scannen",
   "qrScreenTitle": "QR-code",
   "settingsScreenTitle": "Instellingen",
+  "setupSecurityCompletedPageCreateWalletCta": "Mijn Wallet aanmaken",
+  "setupSecurityCompletedPageDescription": "Je beveiliging is ingesteld.",
+  "setupSecurityCompletedPageTitle": "Gelukt",
+  "setupSecurityConfirmationErrorPageDescription": "Probeer het opnieuw",
+  "setupSecurityConfirmationErrorPageTitle": "Deze toegangscode is anders",
+  "setupSecurityConfirmationPageTitle": "Herhaal je toegangscode",
+  "setupSecurityScreenTitle": "Beveiliging instellen",
+  "setupSecuritySelectPinErrorPageDescription": "Kies een andere toegangscode",
+  "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
+  "setupSecuritySelectPinPageTitle": "Kies een 6 cijferige toegangscode",
   "verificationConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
   "verificationConfirmDataAttributesPageApproveCta": "Ja, verder",
   "verificationConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
@@ -310,5 +320,5 @@
   },
   "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
   "verifierPolicyScreenRetryCta": "Probeer opnieuw",
-  "verifierPolicyScreenTitle": "Voorwaarden"
+  "verifierPolicyScreenTitle": "Terms"
 }

@@ -216,6 +216,16 @@
   "qrScreenScanTabTitle": "Scan",
   "qrScreenTitle": "QR-code",
   "settingsScreenTitle": "Settings",
+  "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
+  "setupSecurityCompletedPageDescription": "Your security is configured.",
+  "setupSecurityCompletedPageTitle": "Success",
+  "setupSecurityConfirmationErrorPageDescription": "Try again",
+  "setupSecurityConfirmationErrorPageTitle": "This code is different",
+  "setupSecurityConfirmationPageTitle": "Repeat your code",
+  "setupSecurityScreenTitle": "Setup security",
+  "setupSecuritySelectPinErrorPageDescription": "Choose another code",
+  "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
+  "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",
   "verificationConfirmDataAttributesPageAllTermsCta": "All terms",
   "verificationConfirmDataAttributesPageApproveCta": "Yes, next",
   "verificationConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
@@ -310,5 +320,5 @@
   },
   "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
   "verifierPolicyScreenRetryCta": "Try again",
-  "verifierPolicyScreenTitle": "Terms"
+  "verifierPolicyScreenTitle": "Voorwaarden"
 }

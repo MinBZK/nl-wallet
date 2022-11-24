@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecase/pin/base_check_pin_usecase.dart';
 import '../../../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
 part 'pin_event.dart';
@@ -33,11 +34,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   FutureOr<void> _onRemoveDigitEvent(event, emit) {
-    if (_currentPin.length == 1) {
-      _currentPin = '';
-    } else if (_currentPin.length > 1) {
-      _currentPin = _currentPin.substring(0, _currentPin.length - 1);
-    }
+    _currentPin = _currentPin.removeLastChar();
     emit(PinEntryInProgress(_currentPin.length));
   }
 
