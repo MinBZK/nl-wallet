@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/card_front.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/wallet_card_front.dart';
 import '../../verification/widget/status_icon.dart';
 
@@ -20,11 +21,11 @@ class IssuanceCardAddedPage extends StatelessWidget {
     return CustomScrollView(
       restorationId: 'proof_identity_scrollview',
       slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 48.0)),
+        const SliverSizedBox(height: 48.0),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 32.0)),
+        const SliverSizedBox(height: 32.0),
         SliverToBoxAdapter(child: _buildCardFront()),
-        const SliverToBoxAdapter(child: SizedBox(height: 16.0)),
+        const SliverSizedBox(height: 16.0),
         SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
       ],
     );

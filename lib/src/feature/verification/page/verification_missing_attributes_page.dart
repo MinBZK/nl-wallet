@@ -4,6 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../model/verification_request.dart';
 
 class VerificationMissingAttributesPage extends StatelessWidget {
@@ -21,11 +22,11 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return CustomScrollView(
       restorationId: 'missing_data_attributes_scrollview',
       slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        const SliverSizedBox(height: 20),
         SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        const SliverSizedBox(height: 20),
         SliverToBoxAdapter(child: _buildHowToProceedButton(context)),
         const SliverToBoxAdapter(child: Divider(height: 48)),
         SliverFillRemaining(

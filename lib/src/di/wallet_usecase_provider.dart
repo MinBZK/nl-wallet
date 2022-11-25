@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
+import '../domain/usecase/card/create_card_usecase.dart';
+import '../domain/usecase/card/get_pid_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
-import '../domain/usecase/card/init_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
@@ -92,9 +93,11 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<WalletAddIssuedCardUseCase>(
           create: (context) => WalletAddIssuedCardUseCase(context.read(), context.read()),
         ),
-        RepositoryProvider<InitCardsUseCase>(
-          create: (context) => InitCardsUseCase(context.read(), context.read(), context.read()),
-          lazy: false,
+        RepositoryProvider<CreateCardUseCase>(
+          create: (context) => CreateCardUseCase(context.read(), context.read()),
+        ),
+        RepositoryProvider<GetPidCardUseCase>(
+          create: (context) => GetPidCardUseCase(context.read()),
         ),
       ],
       child: child,

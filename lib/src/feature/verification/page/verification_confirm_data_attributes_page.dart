@@ -6,6 +6,7 @@ import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../model/verification_request.dart';
 import '../widget/policy_row.dart';
 
@@ -27,7 +28,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     return CustomScrollView(
       restorationId: 'confirm_data_attributes_scrollview',
       slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        const SliverSizedBox(height: 8),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
         SliverList(delegate: _getDataAttributesDelegate()),
         SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
@@ -38,11 +39,14 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         SliverFillRemaining(
           hasScrollBody: false,
           fillOverscroll: true,
-          child: ConfirmButtons(
-            onAccept: onAccept,
-            acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
-            onDecline: onDecline,
-            declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+          child: Container(
+            alignment: Alignment.bottomCenter,
+            child: ConfirmButtons(
+              onAccept: onAccept,
+              acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
+              onDecline: onDecline,
+              declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+            ),
           ),
         ),
       ],

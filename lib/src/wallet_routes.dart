@@ -27,6 +27,8 @@ import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
 import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
 import 'feature/verifier_policy/verifier_policy_screen.dart';
+import 'feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
+import 'feature/wallet/personalize/wallet_personalize_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -41,6 +43,7 @@ class WalletRoutes {
   static const pinRoute = '/pin';
   static const setupSecurityRoute = '/security/setup';
   static const confirmRoute = '/confirm';
+  static const walletPersonalize = '/wallet/personalize';
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
@@ -91,6 +94,8 @@ class WalletRoutes {
         return _createVerifierPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
         return _createIssuanceScreenBuilder(settings);
+      case WalletRoutes.walletPersonalize:
+        return _createWalletPersonalizeScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -192,6 +197,13 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
       child: const IssuanceScreen(),
     );
   };
+}
+
+Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
+  return BlocProvider<WalletPersonalizeBloc>(
+    create: (BuildContext context) => WalletPersonalizeBloc(context.read(), context.read()),
+    child: const WalletPersonalizeScreen(),
+  );
 }
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {

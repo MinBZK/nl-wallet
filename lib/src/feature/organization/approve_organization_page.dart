@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../common/widget/confirm_buttons.dart';
 import '../common/widget/placeholder_screen.dart';
+import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text_icon_button.dart';
 import '../verification/model/organization.dart';
 
@@ -26,7 +27,7 @@ class ApproveOrganizationPage extends StatelessWidget {
     return CustomScrollView(
       restorationId: 'confirm_verifier_scrollview',
       slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
         const SliverToBoxAdapter(child: Divider(height: 48)),
         SliverToBoxAdapter(child: _buildDescriptionSection(context)),
@@ -35,11 +36,14 @@ class ApproveOrganizationPage extends StatelessWidget {
         SliverFillRemaining(
           hasScrollBody: false,
           fillOverscroll: true,
-          child: ConfirmButtons(
-            onAccept: onAccept,
-            acceptText: locale.approveOrganizationPageApproveCta,
-            onDecline: onDecline,
-            declineText: locale.approveOrganizationPageDenyCta,
+          child: Container(
+            alignment: Alignment.bottomCenter,
+            child: ConfirmButtons(
+              onAccept: onAccept,
+              acceptText: locale.approveOrganizationPageApproveCta,
+              onDecline: onDecline,
+              declineText: locale.approveOrganizationPageDenyCta,
+            ),
           ),
         ),
       ],

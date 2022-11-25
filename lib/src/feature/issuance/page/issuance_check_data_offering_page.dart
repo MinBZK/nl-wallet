@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_attribute.dart';
+import '../../common/widget/check_data_offering_page.dart';
 import '../../common/widget/confirm_buttons.dart';
-import '../../common/widget/data_attribute_row.dart';
-import '../../common/widget/link_button.dart';
-import '../../common/widget/placeholder_screen.dart';
 
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDecline;
@@ -21,69 +19,13 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      restorationId: 'check_data_offering_scrollview',
-      slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        const SliverToBoxAdapter(child: Divider(height: 1)),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverToBoxAdapter(child: Divider(height: 16)),
-        SliverToBoxAdapter(child: _buildFooterSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 16)),
-        SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
-      ],
-    );
-  }
-
-  Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            locale.issuanceCheckDataOfferingPageTitle,
-            style: Theme.of(context).textTheme.headline2,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            locale.issuanceCheckDataOfferingPageSubtitle,
-            style: Theme.of(context).textTheme.bodyText1,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  SliverChildBuilderDelegate _getDataAttributesDelegate() {
-    return SliverChildBuilderDelegate(
-      (context, index) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: DataAttributeRow(attribute: attributes[index]),
-      ),
-      childCount: attributes.length,
-    );
-  }
-
-  Widget _buildFooterSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: LinkButton(
-          onPressed: () => PlaceholderScreen.show(
-            context,
-            AppLocalizations.of(context).issuanceCheckDataOfferingPageIncorrectCta,
-          ),
-          child: Text(AppLocalizations.of(context).issuanceCheckDataOfferingPageIncorrectCta),
-        ),
-      ),
+    return CheckDataOfferingPage(
+      bottomSection: _buildBottomSection(context),
+      attributes: attributes,
+      title: locale.issuanceCheckDataOfferingPageTitle,
+      subtitle: locale.issuanceCheckDataOfferingPageSubtitle,
+      footerCta: locale.issuanceCheckDataOfferingPageIncorrectCta,
     );
   }
 

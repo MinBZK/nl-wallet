@@ -20,53 +20,50 @@ class ConfirmButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: onDecline,
-                  child: declineIcon == null
-                      ? Text(declineText)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(declineIcon, size: 16),
-                            const SizedBox(width: 8),
-                            Text(declineText),
-                          ],
-                        ),
-                ),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: OutlinedButton(
+                onPressed: onDecline,
+                child: declineIcon == null
+                    ? Text(declineText)
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(declineIcon, size: 16),
+                          const SizedBox(width: 8),
+                          Text(declineText),
+                        ],
+                      ),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: onAccept,
-                  child: acceptIcon == null
-                      ? Text(acceptText)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(acceptIcon, size: 16),
-                            const SizedBox(width: 8),
-                            Text(acceptText),
-                          ],
-                        ),
-                ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: onAccept,
+                child: acceptIcon == null
+                    ? Text(acceptText)
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(acceptIcon, size: 16),
+                          const SizedBox(width: 8),
+                          Text(acceptText),
+                        ],
+                      ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

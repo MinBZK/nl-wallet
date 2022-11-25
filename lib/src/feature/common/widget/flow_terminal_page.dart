@@ -15,6 +15,7 @@ class FlowTerminalPage extends StatelessWidget {
   final VoidCallback? onTertiaryButtonPressed;
   final String closeButtonCta;
   final VoidCallback onClosePressed;
+  final Widget? content;
 
   const FlowTerminalPage({
     required this.icon,
@@ -25,6 +26,7 @@ class FlowTerminalPage extends StatelessWidget {
     this.onSecondaryButtonPressed,
     this.tertiaryButtonCta,
     this.onTertiaryButtonPressed,
+    this.content,
     required this.closeButtonCta,
     required this.onClosePressed,
     Key? key,
@@ -68,7 +70,7 @@ class FlowTerminalPage extends StatelessWidget {
               onPressed: onTertiaryButtonPressed,
               child: Text(tertiaryButtonCta!),
             ),
-          const Spacer(),
+          content != null ? Expanded(child: content!) : const Spacer(),
           if (secondaryButtonCta != null)
             TextIconButton(
               onPressed: onSecondaryButtonPressed,

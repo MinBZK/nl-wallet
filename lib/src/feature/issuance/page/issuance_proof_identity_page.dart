@@ -6,6 +6,7 @@ import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../../verification/model/organization.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
@@ -27,9 +28,9 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     return CustomScrollView(
       restorationId: 'proof_identity_scrollview',
       slivers: <Widget>[
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        const SliverSizedBox(height: 8),
         const SliverToBoxAdapter(child: Divider(height: 32)),
         SliverList(delegate: _getDataAttributesDelegate()),
         SliverToBoxAdapter(child: _buildDescriptionSection(context)),
@@ -37,12 +38,15 @@ class IssuanceProofIdentityPage extends StatelessWidget {
         SliverFillRemaining(
           hasScrollBody: false,
           fillOverscroll: true,
-          child: ConfirmButtons(
-            onAccept: onAccept,
-            acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
-            onDecline: onDecline,
-            declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
-            acceptIcon: Icons.arrow_forward,
+          child: Container(
+            alignment: Alignment.bottomCenter,
+            child: ConfirmButtons(
+              onAccept: onAccept,
+              acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
+              onDecline: onDecline,
+              declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
+              acceptIcon: Icons.arrow_forward,
+            ),
           ),
         ),
       ],
