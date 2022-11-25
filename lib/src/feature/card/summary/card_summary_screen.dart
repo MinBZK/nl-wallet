@@ -48,7 +48,7 @@ class CardSummaryScreen extends StatelessWidget {
       builder: (context, state) {
         if (state is CardSummaryLoadSuccess) {
           return FloatingActionButton.extended(
-            onPressed: () => _onCardDataSharePressed(context),
+            onPressed: () => _onCardDataSharePressed(context, state.summary.card.front.title),
             label: Text(AppLocalizations.of(context).cardSummaryScreenShareCta),
             icon: const Icon(Icons.qr_code),
           );
@@ -211,7 +211,7 @@ class CardSummaryScreen extends StatelessWidget {
     Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: cardId);
   }
 
-  void _onCardDataSharePressed(BuildContext context) {
-    Fimber.d('_onCardDataSharePressed');
+  void _onCardDataSharePressed(BuildContext context, String screenTitle) {
+    Navigator.restorablePushNamed(context, WalletRoutes.cardShareRoute, arguments: screenTitle);
   }
 }

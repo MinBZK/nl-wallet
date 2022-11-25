@@ -7,6 +7,7 @@ import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/bloc/card_history_bloc.dart';
 import 'feature/card/history/card_history_screen.dart';
+import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
@@ -45,6 +46,7 @@ class WalletRoutes {
   static const cardSummaryRoute = '/card/summary';
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
+  static const cardShareRoute = '/card/share';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
   static const issuanceRoute = '/issuance';
@@ -79,6 +81,8 @@ class WalletRoutes {
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
         return _createCardHistoryScreenBuilder(settings);
+      case WalletRoutes.cardShareRoute:
+        return _createCardShareScreenBuilder(settings);
       case WalletRoutes.themeRoute:
         return _createThemeScreenBuilder;
       case WalletRoutes.verificationRoute:
@@ -146,6 +150,13 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
       create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(cardId)),
       child: const CardHistoryScreen(),
     );
+  };
+}
+
+WidgetBuilder _createCardShareScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final String screenTitle = CardShareScreen.getArguments(settings);
+    return CardShareScreen(screenTitle: screenTitle);
   };
 }
 

@@ -3,8 +3,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../common/widget/explanation_sheet.dart';
+import '../../../common/widget/max_brightness.dart';
 import '../../../common/widget/text_icon_button.dart';
-import '../../widget/max_brightness.dart';
 
 class MyQrTab extends StatelessWidget {
   const MyQrTab({Key? key}) : super(key: key);

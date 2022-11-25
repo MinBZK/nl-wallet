@@ -292,5 +292,10 @@
   },
   "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
   "verifierPolicyScreenRetryCta": "Try again",
-  "verifierPolicyScreenTitle": "Voorwaarden"
+  "verifierPolicyScreenTitle": "Voorwaarden",
+  "cardShareScreenSubtitle": "Have the QR code scanned to start sharing.",
+  "cardShareScreenExplanationCta": "How does sharing work?",
+  "cardShareScreenExplanationSheetTitle": "How does sharing work?",
+  "cardShareScreenExplanationSheetDescription": "Have the QR code scanned by a reviewer to start sharing. After your QR code has been scanned, you will receive a data request. Data will only be shared if you agree to the request.",
+  "cardShareScreenExplanationSheetCloseCta": "Close"
 }

@@ -292,5 +292,10 @@
   },
   "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
   "verifierPolicyScreenRetryCta": "Probeer opnieuw",
-  "verifierPolicyScreenTitle": "Terms"
+  "verifierPolicyScreenTitle": "Terms",
+  "cardShareScreenSubtitle": "Laat de QR-code scannen om te beginnen met delen.",
+  "cardShareScreenExplanationCta": "Hoe werkt delen?",
+  "cardShareScreenExplanationSheetTitle": "Hoe werkt delen?",
+  "cardShareScreenExplanationSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Nadat je QR-code is gescant krijg je een gegevensverzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
+  "cardShareScreenExplanationSheetCloseCta": "Sluiten"
 }
