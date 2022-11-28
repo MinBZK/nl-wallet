@@ -30,6 +30,7 @@ dependencies:
   arb_utils: ^0.4.1
   qr_flutter: ^4.0.0
   screen_brightness: ^0.2.2
+  package_info_plus: ^3.0.2
 
 dev_dependencies:
   flutter_test:

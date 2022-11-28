@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_routes.dart';
+import '../common/widget/version_text.dart';
 
 class SettingScreen extends StatelessWidget {
   const SettingScreen({Key? key}) : super(key: key);
@@ -19,6 +20,7 @@ class SettingScreen extends StatelessWidget {
           children: [
             const Text('Placeholder; settings'),
             _buildThemeButton(context),
+            const VersionText(),
           ],
         ),
       ),
