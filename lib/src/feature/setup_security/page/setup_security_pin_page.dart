@@ -9,12 +9,14 @@ class SetupSecurityPinPage extends StatelessWidget {
   final Function(int)? onKeyPressed;
   final VoidCallback? onBackspacePressed;
   final int enteredDigits;
+  final bool showInput;
 
   const SetupSecurityPinPage({
     required this.content,
     required this.onKeyPressed,
     required this.onBackspacePressed,
     required this.enteredDigits,
+    this.showInput = true,
     Key? key,
   }) : super(key: key);
 
@@ -28,15 +30,17 @@ class SetupSecurityPinPage extends StatelessWidget {
         _buildImagePlaceholder(context),
         const SizedBox(height: 24),
         Expanded(flex: 3, child: content),
-        PinField(
-          digits: kPinDigits,
-          enteredDigits: enteredDigits,
-        ),
+        if (showInput)
+          PinField(
+            digits: kPinDigits,
+            enteredDigits: enteredDigits,
+          ),
         const Spacer(),
-        PinKeyboard(
-          onKeyPressed: onKeyPressed,
-          onBackspacePressed: onBackspacePressed,
-        ),
+        if (showInput)
+          PinKeyboard(
+            onKeyPressed: onKeyPressed,
+            onBackspacePressed: onBackspacePressed,
+          ),
       ],
     );
   }

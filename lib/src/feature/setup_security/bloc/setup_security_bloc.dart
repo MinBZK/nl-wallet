@@ -11,6 +11,8 @@ import '../../../wallet_constants.dart';
 part 'setup_security_event.dart';
 part 'setup_security_state.dart';
 
+const int _kMaxConfirmAttempts = 1;
+
 class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   final UnlockWalletWithPinUseCase unlockWalletWithPinUseCase;
   final CheckIsValidPinUseCase checkIsValidPinUseCase;
@@ -18,6 +20,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
 
   String _newPin = '';
   String _confirmPin = '';
+  int _confirmAttempt = 0;
 
   SetupSecurityBloc(
     this.checkIsValidPinUseCase,
@@ -70,7 +73,8 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
         await _createAndUnlockWallet(_newPin, emit);
       } else {
         _confirmPin = '';
-        emit(SetupSecurityPinConfirmationFailed());
+        emit(SetupSecurityPinConfirmationFailed(retryAllowed: _confirmAttempt < _kMaxConfirmAttempts));
+        _confirmAttempt++;
       }
     }
   }
@@ -109,6 +113,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   Future<void> _resetFlow(emit) async {
     _newPin = '';
     _confirmPin = '';
+    _confirmAttempt = 0;
     emit(const SetupSecuritySelectPinInProgress(0, afterBackPressed: true));
   }
 }

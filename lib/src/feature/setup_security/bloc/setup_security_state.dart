@@ -53,6 +53,10 @@ class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
 }
 
 class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
+  final bool retryAllowed;
+
+  const SetupSecurityPinConfirmationFailed({required this.retryAllowed});
+
   @override
   bool get canGoBack => true;
 

@@ -7,6 +7,7 @@ import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/text_icon_button.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
@@ -123,20 +124,34 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildPinConfirmationErrorPage(BuildContext context, SetupSecurityPinConfirmationFailed state) {
-    return SetupSecurityPinPage(
-      key: _kConfirmPinKey,
-      content: Column(
+    final locale = AppLocalizations.of(context);
+    final titleStyle = Theme.of(context).textTheme.headline3?.copyWith(color: Theme.of(context).errorColor);
+    final descriptionStyle = Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor);
+    Widget content;
+    if (state.retryAllowed) {
+      content = Column(
         children: [
-          Text(
-            AppLocalizations.of(context).setupSecurityConfirmationErrorPageTitle,
-            style: Theme.of(context).textTheme.headline3?.copyWith(color: Theme.of(context).errorColor),
-          ),
-          Text(
-            AppLocalizations.of(context).setupSecurityConfirmationErrorPageDescription,
-            style: Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor),
+          Text(locale.setupSecurityConfirmationErrorPageTitle, style: titleStyle),
+          Text(locale.setupSecurityConfirmationErrorPageDescription, style: descriptionStyle),
+        ],
+      );
+    } else {
+      content = Column(
+        children: [
+          Text(locale.setupSecurityConfirmationErrorPageFatalTitle, style: titleStyle),
+          Text(locale.setupSecurityConfirmationErrorPageFatalDescription, style: descriptionStyle),
+          const SizedBox(height: 24),
+          TextIconButton(
+            child: Text(locale.setupSecurityConfirmationErrorPageFatalCta),
+            onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
           ),
         ],
-      ),
+      );
+    }
+    return SetupSecurityPinPage(
+      key: _kConfirmPinKey,
+      showInput: state.retryAllowed,
+      content: content,
       enteredDigits: 0,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
       onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
