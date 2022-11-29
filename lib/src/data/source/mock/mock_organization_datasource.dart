@@ -10,7 +10,13 @@ class MockOrganizationDataSource implements OrganizationDataSource {
   }
 }
 
-const _kOrganizations = [_kRijksOrganization, _kRdwOrganization, _kDuoOrganization, _kLotteryOrganization];
+const _kOrganizations = [
+  _kRijksOrganization,
+  _kRdwOrganization,
+  _kDuoOrganization,
+  _kLotteryOrganization,
+  _kEmployerOrganization
+];
 
 const _kRijksOrganization = Organization(
   id: 'rvig',
@@ -45,4 +51,12 @@ const _kLotteryOrganization = Organization(
   description:
       'Staatsloterij B.V. is een van de dochtervennootschappen van Nederlandse Loterij B.V.[1] De rechtsvoorganger Stichting Exploitatie Nederlandse Staatsloterij (SENS)[2] is in 1992 opgericht en heeft tot 2018 de Staatsloterij georganiseerd.',
   logoUrl: 'assets/non-free/images/logo_staatsloterij.png',
+);
+
+const _kEmployerOrganization = Organization(
+  id: 'employer_1',
+  name: 'Werkgever X',
+  shortName: 'Werkgever X',
+  description: 'Werkgever X draagt bij aan een betere digitale overheid',
+  logoUrl: 'assets/images/work_logo.png',
 );

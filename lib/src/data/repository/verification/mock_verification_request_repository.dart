@@ -12,37 +12,9 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
   @override
   Future<VerificationRequest> getRequest(String sessionId) async {
     switch (sessionId) {
-      case '1':
+      case 'LOTTERY':
         return VerificationRequest(
-          id: '1',
-          organization: (await organizationDataSource.read('duo'))!,
-          attributes: const [
-            DataAttribute(
-              type: DataAttributeType.text,
-              label: 'Niveau',
-              value: 'Master - WO',
-            ),
-            DataAttribute(
-              type: DataAttributeType.text,
-              label: 'Onderwijsinstelling',
-              value: 'Technische Universiteit Delft',
-            ),
-            DataAttribute(
-              type: DataAttributeType.text,
-              label: 'Opleidingsnaam',
-              value: 'Integrated Product Design',
-            ),
-            DataAttribute(
-              type: DataAttributeType.text,
-              label: 'Verklaring Omtrent het Gedrag',
-              value: 'Profiel 11, 12, 13',
-            ),
-          ],
-          policy: _kMockDuoPolicy,
-        );
-      case '2':
-        return VerificationRequest(
-          id: '2',
+          id: 'LOTTERY',
           organization: (await organizationDataSource.read('staatsloterij'))!,
           attributes: const [
             DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'John Doe'),
@@ -52,22 +24,36 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           ],
           policy: _kMockLotteryPolicy,
         );
-      case '3':
+      case 'JOB_APPLICATION_INCOMPLETE':
         return VerificationRequest(
-          id: '3',
-          organization: (await organizationDataSource.read('duo'))!,
+          id: 'JOB_APPLICATION_INCOMPLETE',
+          organization: (await organizationDataSource.read('employer_1'))!,
           attributes: const [
             DataAttribute(type: DataAttributeType.text, label: 'Onderwijsinstelling', value: null),
-            DataAttribute(type: DataAttributeType.text, label: 'Verklaring Omtrent het Gedrag', value: null),
+            DataAttribute(type: DataAttributeType.text, label: 'Opleiding', value: null),
+            DataAttribute(type: DataAttributeType.text, label: 'Type', value: null),
+            DataAttribute(type: DataAttributeType.text, label: 'Uitgiftedatum', value: null),
           ],
-          policy: _kMockDuoPolicy,
+          policy: _kEmployerPolicy,
+        );
+      case 'JOB_APPLICATION_COMPLETE':
+        return VerificationRequest(
+          id: 'JOB_APPLICATION_COMPLETE',
+          organization: (await organizationDataSource.read('employer_1'))!,
+          attributes: const [
+            DataAttribute(type: DataAttributeType.text, label: 'Onderwijsinstelling', value: 'Universiteit X'),
+            DataAttribute(type: DataAttributeType.text, label: 'Opleiding', value: 'WO Master Bedrijfskunde'),
+            DataAttribute(type: DataAttributeType.text, label: 'Type', value: 'Getuigschrift'),
+            DataAttribute(type: DataAttributeType.text, label: 'Uitgiftedatum', value: '1 januari 2013'),
+          ],
+          policy: _kEmployerPolicy,
         );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
 }
 
-const _kMockDuoPolicy = VerifierPolicy(
+const _kEmployerPolicy = VerifierPolicy(
   storageDuration: Duration(days: 3 * 30),
   dataPurpose: 'Gegevens controle',
   privacyPolicyUrl: 'https://www.example.org',

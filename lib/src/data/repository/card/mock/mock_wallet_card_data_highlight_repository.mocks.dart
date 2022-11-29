@@ -20,6 +20,6 @@ const _kMockPassportDataAttribute = DataHighlight(
 
 const _kMockDrivingLicenseDataAttribute = DataHighlight(
   title: 'Naam: W. de Bruijn',
-  subtitle: 'Geldig t/m 23 januari 2024',
+  subtitle: 'Geldig t/m 23 april 2028',
   image: 'assets/non-free/images/person_x.png',
 );

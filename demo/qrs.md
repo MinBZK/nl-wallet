@@ -17,9 +17,9 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 4. Allow camera permissions (if needed)
 5. Scan one of the QR codes below:
 
-| #1                                                 | #2                                                         | #3                                                                           |
-|----------------------------------------------------|------------------------------------------------------------|------------------------------------------------------------------------------|
-| ![DUO](qrs/verification_request_duo.png) | ![Lottery](qrs/verification_request_lottery.png) | ![Duo Missing Data](qrs/verification_request_duo_missing_data.png) |
+| #1                                                             | #2                                                         | #3                                                                          |
+|----------------------------------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------|
+| ![Job Application - Success](qrs/job_application_complete.png) | ![Lottery](qrs/verification_request_lottery.png) | ![Job Application - Failure](qrs/job_application_incomplete.png) |
 
 # Card issuance
 
@@ -31,7 +31,7 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 4. Allow camera permissions (if needed)
 5. Scan one of the QR codes below:
 
-| #1                                            | #2                                                          |
-|-----------------------------------------------|-------------------------------------------------------------|
-| ![PASSPORT](qrs/issue_passport.png) | ![DRIVING LICENSE](qrs/issue_driving_license.png) |
+| #1                                            | #2                                                          | #3                                |
+|-----------------------------------------------|-------------------------------------------------------------|-----------------------------------|
+| ![PASSPORT](qrs/issue_passport.png) | ![DRIVING LICENSE](qrs/issue_driving_license.png) | ![DIPLOMA](qrs/issue_diploma.png) |
 

@@ -9,35 +9,35 @@
     "issue_passport.png": {
         "name": "Issue passport",
         "content": {
-            "id": "2",
+            "id": "PASSPORT",
             "type": "issue"
         }
     },
     "issue_driving_license.png": {
         "name": "Issue driving license",
         "content": {
-            "id": "3",
+            "id": "DRIVING_LICENSE",
             "type":"issue"
         }
     },
-    "verification_request_duo.png": {
-        "name": "DUO",
+    "job_application_complete.png": {
+        "name": "Job Application - Complete",
         "content": {
-            "id": "1",
+            "id": "JOB_APPLICATION_COMPLETE",
             "type": "verify"
         }
     },
     "verification_request_lottery.png": {
         "name": "Lottery",
         "content": {
-            "id": "2",
+            "id": "LOTTERY",
             "type": "verify"
         }
     },
-    "verification_request_duo_missing_data.png": {
-        "name": "Missing data - DUO",
+    "job_application_incomplete.png": {
+        "name": "Job Application - Incomplete",
         "content": {
-            "id": "3",
+            "id": "JOB_APPLICATION_INCOMPLETE",
             "type": "verify"
         }
     }

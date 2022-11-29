@@ -18,13 +18,13 @@ const _kMockDiplomaWalletCard = WalletCard(
 );
 
 const _kMockPassportWalletCard = WalletCard(
-  id: '2',
+  id: 'PASSPORT',
   front: _kMockPassportCardFront,
   attributes: _kMockPassportDataAttributes,
 );
 
 const _kMockDrivingLicenseWalletCard = WalletCard(
-  id: '3',
+  id: 'DRIVING_LICENSE',
   front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
 );

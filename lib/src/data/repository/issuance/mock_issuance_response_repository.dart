@@ -29,13 +29,13 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
           cards: [_kMockDiplomaWalletCard],
           requestedAttributes: _kMockDiplomaRequestedAttributes,
         );
-      case '2':
+      case 'PASSPORT':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockRequestedAttributes,
         );
-      case '3':
+      case 'DRIVING_LICENSE':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
