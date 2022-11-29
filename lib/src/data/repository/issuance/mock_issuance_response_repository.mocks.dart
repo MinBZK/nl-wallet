@@ -1,5 +1,9 @@
 part of 'mock_issuance_response_repository.dart';
 
+const _kMockBirthDate = '10 maart 1997';
+const _kMockBirthPlace = 'Delft';
+const _kMockLastName = 'De Bruijn';
+
 const _kMockPidWalletCard = WalletCard(
   id: 'PID_1',
   front: _kMockPidCardFront,
@@ -45,22 +49,22 @@ const _kMockDrivingLicenseCardFront = CardFront(
 const _kMockPidDataAttributes = [
   DataAttribute(type: DataAttributeType.image, label: 'Pasfoto', value: 'assets/non-free/images/person_x.png'),
   DataAttribute(type: DataAttributeType.text, label: 'Voornamen', value: 'Willeke Liselotte'),
-  DataAttribute(type: DataAttributeType.text, label: 'Achternaam', value: 'De Bruijn'),
+  DataAttribute(type: DataAttributeType.text, label: 'Achternaam', value: _kMockLastName),
   DataAttribute(type: DataAttributeType.text, label: 'Geslachtsnaam', value: 'Molenaar'),
   DataAttribute(type: DataAttributeType.text, label: 'Geslacht', value: 'Vrouw'),
-  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: '10 maart 1965'),
-  DataAttribute(type: DataAttributeType.text, label: 'Geboorteplaats', value: 'Delft'),
+  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: _kMockBirthDate),
+  DataAttribute(type: DataAttributeType.text, label: 'Geboorteplaats', value: _kMockBirthPlace),
   DataAttribute(type: DataAttributeType.text, label: 'Geboorteland', value: 'Nederland'),
   DataAttribute(type: DataAttributeType.text, label: 'Burgerservicenummer (BSN)', value: '999999999'),
 ];
 
 const _kMockAllDataAttributes = [
   DataAttribute(type: DataAttributeType.image, label: 'Pasfoto', value: 'assets/non-free/images/person_x.png'),
-  DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'De Bruijn'),
+  DataAttribute(type: DataAttributeType.text, label: 'Naam', value: _kMockLastName),
   DataAttribute(type: DataAttributeType.text, label: 'Echtgenote van', value: 'Molenaar'),
   DataAttribute(type: DataAttributeType.text, label: 'Voornamen', value: 'Willeke Liselotte'),
-  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: '10 maart 1965'),
-  DataAttribute(type: DataAttributeType.text, label: 'Geboorteplaats', value: 'Delft'),
+  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: _kMockBirthDate),
+  DataAttribute(type: DataAttributeType.text, label: 'Geboorteplaats', value: _kMockBirthPlace),
   DataAttribute(type: DataAttributeType.text, label: 'Geslacht', value: 'Vrouw'),
   DataAttribute(type: DataAttributeType.text, label: 'Lengte', value: '1,75 m'),
   DataAttribute(type: DataAttributeType.text, label: 'Persoonsnummer', value: '9999999999'),
@@ -72,6 +76,6 @@ const _kMockAllDataAttributes = [
 ];
 
 const _kMockRequestedAttributes = [
-  DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'De Bruijn'),
-  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: '10 maart 1965'),
+  DataAttribute(type: DataAttributeType.text, label: 'Naam', value: _kMockLastName),
+  DataAttribute(type: DataAttributeType.text, label: 'Geboortedatum', value: _kMockBirthDate),
 ];
