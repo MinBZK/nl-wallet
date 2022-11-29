@@ -67,7 +67,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            locale.issuanceProofIdentityPageSubtitle(organization.name),
+            locale.issuanceProofIdentityPageSubtitle(organization.shortName),
             style: Theme.of(context).textTheme.bodyText1,
           ),
         ],
@@ -86,14 +86,14 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
+    final buttonText = AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta;
     return Padding(
       padding: const EdgeInsets.only(left: 8.0),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: LinkButton(
-          onPressed: () =>
-              PlaceholderScreen.show(context, AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta),
-          child: Text(AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(context, buttonText),
+          child: Text(buttonText),
         ),
       ),
     );

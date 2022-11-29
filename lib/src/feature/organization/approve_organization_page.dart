@@ -25,7 +25,7 @@ class ApproveOrganizationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return CustomScrollView(
-      restorationId: 'confirm_verifier_scrollview',
+      restorationId: 'approve_organization_scrollview',
       slivers: <Widget>[
         const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
@@ -33,6 +33,7 @@ class ApproveOrganizationPage extends StatelessWidget {
         SliverToBoxAdapter(child: _buildDescriptionSection(context)),
         const SliverToBoxAdapter(child: Divider(height: 48)),
         SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+        const SliverToBoxAdapter(child: Divider(height: 48)),
         SliverFillRemaining(
           hasScrollBody: false,
           fillOverscroll: true,
@@ -51,15 +52,6 @@ class ApproveOrganizationPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final String title;
-    switch (purpose) {
-      case ApprovalPurpose.issuance:
-        title = AppLocalizations.of(context).approveOrganizationPageReceiveFromTitle(organization.shortName);
-        break;
-      case ApprovalPurpose.verification:
-        title = AppLocalizations.of(context).approveOrganizationPageShareWithTitle(organization.shortName);
-        break;
-    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -80,13 +72,23 @@ class ApproveOrganizationPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            title,
+            _headerTitleText(context),
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.center,
           ),
         ],
       ),
     );
+  }
+
+  String _headerTitleText(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    switch (purpose) {
+      case ApprovalPurpose.issuance:
+        return locale.approveOrganizationPageReceiveFromTitle(organization.shortName);
+      case ApprovalPurpose.verification:
+        return locale.approveOrganizationPageShareWithTitle(organization.shortName);
+    }
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
@@ -96,7 +98,7 @@ class ApproveOrganizationPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            organization.name,
+            organization.shortName,
             style: Theme.of(context).textTheme.subtitle1,
             textAlign: TextAlign.center,
           ),
@@ -112,10 +114,11 @@ class ApproveOrganizationPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButton(BuildContext context) {
+    final buttonText = AppLocalizations.of(context).approveOrganizationPageIncorrectCta;
     return Center(
       child: TextIconButton(
-        child: Text(AppLocalizations.of(context).approveOrganizationPageIncorrectCta),
-        onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
+        child: Text(buttonText),
+        onPressed: () => PlaceholderScreen.show(context, buttonText),
       ),
     );
   }

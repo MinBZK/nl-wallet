@@ -6,6 +6,12 @@ const _kMockPidDataAttribute = DataHighlight(
   image: null,
 );
 
+const _kMockDiplomaDataAttribute = DataHighlight(
+  title: 'Naam: W. de Bruijn',
+  subtitle: null,
+  image: null,
+);
+
 const _kMockPassportDataAttribute = DataHighlight(
   title: 'Naam: W. de Bruijn',
   subtitle: 'Geldig t/m 23 januari 2024',

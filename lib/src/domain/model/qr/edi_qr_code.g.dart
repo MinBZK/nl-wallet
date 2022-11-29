@@ -7,16 +7,16 @@ part of 'edi_qr_code.dart';
 // **************************************************************************
 
 EdiQrCode _$EdiQrCodeFromJson(Map<String, dynamic> json) => EdiQrCode(
-      id: json['id'] as int,
-      type: $enumDecode(_$QrTypeEnumMap, json['type']),
+      id: json['id'] as String,
+      type: $enumDecode(_$EdiQrTypeEnumMap, json['type']),
     );
 
 Map<String, dynamic> _$EdiQrCodeToJson(EdiQrCode instance) => <String, dynamic>{
       'id': instance.id,
-      'type': _$QrTypeEnumMap[instance.type]!,
+      'type': _$EdiQrTypeEnumMap[instance.type]!,
     };
 
-const _$QrTypeEnumMap = {
+const _$EdiQrTypeEnumMap = {
   EdiQrType.issue: 'issue',
   EdiQrType.verify: 'verify',
 };

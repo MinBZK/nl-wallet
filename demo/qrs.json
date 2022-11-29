@@ -1,36 +1,43 @@
 {
-    "issue_driving_license.png": {
-        "name": "Issue driving license",
+    "issue_diploma.png": {
+        "name": "Issue diploma",
         "content": {
-            "id": 2,
-            "type":"issue"
+            "id": "DIPLOMA_1",
+            "type": "issue"
         }
     },
     "issue_passport.png": {
         "name": "Issue passport",
         "content": {
-            "id": 1,
+            "id": "2",
             "type": "issue"
+        }
+    },
+    "issue_driving_license.png": {
+        "name": "Issue driving license",
+        "content": {
+            "id": "3",
+            "type":"issue"
         }
     },
     "verification_request_duo.png": {
         "name": "DUO",
         "content": {
-            "id": 1,
-            "type": "verify"
-        }
-    },
-    "verification_request_duo_missing_data.png": {
-        "name": "Missing data - DUO",
-        "content": {
-            "id": 3,
+            "id": "1",
             "type": "verify"
         }
     },
     "verification_request_lottery.png": {
         "name": "Lottery",
         "content": {
-            "id": 2,
+            "id": "2",
+            "type": "verify"
+        }
+    },
+    "verification_request_duo_missing_data.png": {
+        "name": "Missing data - DUO",
+        "content": {
+            "id": "3",
             "type": "verify"
         }
     }

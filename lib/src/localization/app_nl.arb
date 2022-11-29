@@ -2,10 +2,10 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
   "appTitle": "Wallet",
-  "approveOrganizationPageApproveCta": "Ja, verder",
+  "approveOrganizationPageApproveCta": "Ja, volgende",
   "approveOrganizationPageDenyCta": "Nee",
   "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
-  "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ontvangen van {organization}?",
+  "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
   "@approveOrganizationPageReceiveFromTitle": {
     "placeholders": {
       "organization": {
@@ -118,8 +118,8 @@
   "homeScreenBottomNavBarCardsCta": "Kaarten",
   "homeScreenBottomNavBarQrCta": "QR",
   "homeScreenBottomNavBarSettingsCta": "Instellingen",
-  "issuanceCardAddedCloseCta": "Sluiten",
-  "issuanceCardAddedSubtitle": "Je kaart is toegevoegd",
+  "issuanceCardAddedCloseCta": "Naar mijn kaarten",
+  "issuanceCardAddedSubtitle": "Je kunt de gegevens vinden in je kaarten overzicht.",
   "issuanceCardAddedTitle": "Gelukt!",
   "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
@@ -147,7 +147,7 @@
   "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Klopt er iets niet?",
   "issuanceIdentityValidationFailedPageTitle": "Je identiteitscontrole kwam niet overeen",
   "issuanceProofIdentityPageIncorrectCta": "Klopt er iets niet?",
-  "issuanceProofIdentityPageNegativeCta": "Stoppen",
+  "issuanceProofIdentityPageNegativeCta": "Nee",
   "issuanceProofIdentityPagePositiveCta": "Delen",
   "issuanceProofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
   "@issuanceProofIdentityPageSubtitle": {
@@ -172,7 +172,7 @@
     "description": "The organization's name"
   },
   "issuanceStopSheetNegativeCta": "Nee",
-  "issuanceStopSheetPositiveCta": "Ja, Stoppen",
+  "issuanceStopSheetPositiveCta": "Ja, stoppen",
   "issuanceStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "issuanceStoppedPageCloseCta": "Sluiten",
   "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",

@@ -4,7 +4,7 @@ part 'edi_qr_code.g.dart';
 
 @JsonSerializable()
 class EdiQrCode {
-  final int id;
+  final String id;
   final EdiQrType type;
 
   EdiQrCode({required this.id, required this.type});

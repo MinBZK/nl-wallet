@@ -26,7 +26,7 @@ const _kRdwOrganization = Organization(
   shortName: 'RDW',
   logoUrl: 'assets/non-free/images/logo_rdw.png',
   description:
-      'Organisatie voor onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.',
+      'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.',
 );
 
 const _kDuoOrganization = Organization(
@@ -35,7 +35,7 @@ const _kDuoOrganization = Organization(
   shortName: 'DUO',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
   description:
-      'Organisatie voor onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.',
+      'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.',
 );
 
 const _kLotteryOrganization = Organization(

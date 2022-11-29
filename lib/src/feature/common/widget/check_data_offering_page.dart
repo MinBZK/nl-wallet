@@ -34,8 +34,9 @@ class CheckDataOfferingPage extends StatelessWidget {
         const SliverSizedBox(height: 16),
         SliverList(delegate: _getDataAttributesDelegate()),
         const SliverSizedBox(height: 16),
+        const SliverToBoxAdapter(child: Divider(height: 24)),
         SliverToBoxAdapter(child: _buildFooterSection(context)),
-        const SliverSizedBox(height: 16),
+        const SliverToBoxAdapter(child: Divider(height: 24)),
         SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
       ],
     );

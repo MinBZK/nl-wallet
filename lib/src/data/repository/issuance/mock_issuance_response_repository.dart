@@ -23,17 +23,23 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
           cards: [_kMockPidWalletCard],
           requestedAttributes: [],
         );
-      case '1':
+      case 'DIPLOMA_1':
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('duo'))!,
+          cards: [_kMockDiplomaWalletCard],
+          requestedAttributes: _kMockDiplomaRequestedAttributes,
+        );
+      case '2':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockRequestedAttributes,
         );
-      case '2':
+      case '3':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
-          requestedAttributes: _kMockRequestedAttributes,
+          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
         );
     }
     throw UnsupportedError('Unknown issuer: $issuanceRequestId');
