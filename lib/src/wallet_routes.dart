@@ -12,6 +12,8 @@ import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
+import 'feature/introduction/bloc/introduction_bloc.dart';
+import 'feature/introduction/introduction_screen.dart';
 import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
@@ -37,11 +39,12 @@ class WalletRoutes {
 
   /// Routes in this list will be shown WITHOUT pin (wallet unlock) requirement
   @visibleForTesting
-  static const publicRoutes = [splashRoute, setupSecurityRoute, pinRoute, themeRoute];
+  static const publicRoutes = [splashRoute, introductionRoute, setupSecurityRoute, pinRoute, themeRoute];
 
   static const splashRoute = '/';
-  static const pinRoute = '/pin';
+  static const introductionRoute = '/introduction';
   static const setupSecurityRoute = '/security/setup';
+  static const pinRoute = '/pin';
   static const confirmRoute = '/confirm';
   static const walletPersonalize = '/wallet/personalize';
   static const homeRoute = '/home';
@@ -68,6 +71,8 @@ class WalletRoutes {
     switch (settings.name) {
       case WalletRoutes.splashRoute:
         return _createSplashScreenBuilder;
+      case WalletRoutes.introductionRoute:
+        return _createIntroductionScreenBuilder;
       case WalletRoutes.pinRoute:
         return _createPinScreenBuilder;
       case WalletRoutes.setupSecurityRoute:
@@ -109,6 +114,13 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
       child: const SplashScreen(),
     );
 
+Widget _createIntroductionScreenBuilder(BuildContext context) => BlocProvider<IntroductionBloc>(
+      create: (context) => IntroductionBloc(),
+      child: const IntroductionScreen(),
+    );
+
+Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
+
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>(), context.read()),
       child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
@@ -118,8 +130,6 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
       create: (BuildContext context) => SetupSecurityBloc(context.read(), context.read(), context.read()),
       child: const SetupSecurityScreen(),
     );
-
-Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createHomeScreenBuilder(BuildContext context) => BlocProvider<HomeBloc>(
       create: (BuildContext context) => HomeBloc(),

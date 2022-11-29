@@ -108,7 +108,7 @@ class VerifierPolicyScreen extends StatelessWidget {
         width: double.infinity,
         child: TextIconButton(
           onPressed: () => Navigator.pop(context),
-          arrowPosition: ArrowPosition.start,
+          iconPosition: IconPosition.start,
           icon: Icons.arrow_back,
           child: Text(AppLocalizations.of(context).verifierPolicyScreenBackCta),
         ),

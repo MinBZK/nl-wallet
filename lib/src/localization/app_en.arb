@@ -331,5 +331,12 @@
   },
   "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
   "verifierPolicyScreenRetryCta": "Try again",
-  "verifierPolicyScreenTitle": "Voorwaarden"
+  "verifierPolicyScreenTitle": "Voorwaarden",
+  "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
+  "introductionAppIntroPageTitle": "Jouw gegevens makkelijk op je mobiel",
+  "introductionAppBenefitsPageTitle": "Jij bepaalt met wie je gegevens deelt",
+  "introductionAppSecurityPageTitle": "Alleen jij kan bij jouw gegevens",
+  "introductionLanguageSelectCta": "English",
+  "introductionNextPageCta": "Volgende",
+  "introductionPrivacyPolicyCta": "Privacy policy"
 }
