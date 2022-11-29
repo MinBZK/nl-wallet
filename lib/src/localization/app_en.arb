@@ -25,7 +25,7 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
-  "cardDataScreenCloseCta": "Close",
+  "cardDataScreenCloseCta": "Back",
   "cardDataScreenTitle": "All data",
   "cardHistoryScreenBackCta": "Back",
   "cardHistoryScreenTitle": "Card history",

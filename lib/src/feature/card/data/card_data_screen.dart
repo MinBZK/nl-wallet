@@ -6,6 +6,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../domain/model/data_attribute.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/data_attribute_row.dart';
+import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text_icon_button.dart';
 import 'bloc/card_data_bloc.dart';
 
 class CardDataScreen extends StatelessWidget {
@@ -36,7 +38,7 @@ class CardDataScreen extends StatelessWidget {
       builder: (context, state) {
         if (state is CardDataInitial) return _buildLoading();
         if (state is CardDataLoadInProgress) return _buildLoading();
-        if (state is CardDataLoadSuccess) return _buildDataAttributes(state.attributes);
+        if (state is CardDataLoadSuccess) return _buildDataAttributes(context, state.attributes);
         throw UnsupportedError('Unknown state: $state');
       },
     );
@@ -46,29 +48,47 @@ class CardDataScreen extends StatelessWidget {
     return const CenteredLoadingIndicator();
   }
 
-  Widget _buildDataAttributes(List<DataAttribute> attributes) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16.0),
-      itemBuilder: (context, index) {
-        if (index < attributes.length) {
-          return DataAttributeRow(attribute: attributes[index]);
-        } else {
-          return _buildFooterButton(context);
-        }
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 16.0),
-      itemCount: attributes.length + 1,
+  Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
+    final List<Widget> slivers = [];
+    slivers.add(const SliverSizedBox(height: 8));
+
+    // Data attributes
+    for (var element in attributes) {
+      slivers.add(SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: DataAttributeRow(attribute: element),
+        ),
+      ));
+    }
+
+    // Close button
+    slivers.add(
+      SliverFillRemaining(
+        hasScrollBody: false,
+        fillOverscroll: true,
+        child: _buildBackButton(context),
+      ),
+    );
+
+    return CustomScrollView(
+      slivers: slivers,
     );
   }
 
-  Widget _buildFooterButton(BuildContext context) {
-    return TextButton(
-      onPressed: () => _onCloseButtonPressed(context),
-      child: Text(AppLocalizations.of(context).cardDataScreenCloseCta),
+  Widget _buildBackButton(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        height: 72,
+        width: double.infinity,
+        child: TextIconButton(
+          onPressed: () => Navigator.pop(context),
+          iconPosition: IconPosition.start,
+          icon: Icons.arrow_back,
+          child: Text(AppLocalizations.of(context).cardDataScreenCloseCta),
+        ),
+      ),
     );
-  }
-
-  void _onCloseButtonPressed(BuildContext context) {
-    Navigator.pop(context);
   }
 }
