@@ -1,6 +1,7 @@
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/data_attribute.dart';
 import '../../../domain/model/issuance_response.dart';
+import '../../../domain/model/requested_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../source/organization_datasource.dart';
 import '../../source/wallet_datasource.dart';
@@ -33,13 +34,19 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPassportWalletCard],
-          requestedAttributes: _kMockRequestedAttributes,
+          requestedAttributes: _kMockGenericRequestedAttributes,
         );
       case 'DRIVING_LICENSE':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
-          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+          requestedAttributes: _kMockGenericRequestedAttributes,
+        );
+      case 'VOG':
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('justis'))!,
+          cards: [_kMockVOGWalletCard],
+          requestedAttributes: _kMockGenericRequestedAttributes,
         );
     }
     throw UnsupportedError('Unknown issuer: $issuanceRequestId');

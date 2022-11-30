@@ -3,17 +3,20 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
+import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../../../wallet_constants.dart';
 import '../model/organization.dart';
-import '../model/verification_request.dart';
+import '../model/verification_flow.dart';
 
 part 'verification_event.dart';
 part 'verification_state.dart';
 
 class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   final GetVerificationRequestUseCase getVerificationRequestUseCase;
+  final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
 
-  VerificationBloc(this.getVerificationRequestUseCase) : super(VerificationInitial()) {
+  VerificationBloc(this.getVerificationRequestUseCase, this.getRequestedAttributesFromWalletUseCase)
+      : super(VerificationInitial()) {
     on<VerificationLoadRequested>(_onVerificationLoadRequested);
     on<VerificationOrganizationApproved>(_onVerificationOrganizationApproved);
     on<VerificationShareRequestedAttributesApproved>(_onVerificationShareRequestedAttributesApproved);
@@ -27,7 +30,17 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
       try {
         emit(VerificationLoadInProgress());
         final request = await getVerificationRequestUseCase.invoke(event.sessionId);
-        emit(VerificationCheckOrganization(request));
+        emit(
+          VerificationCheckOrganization(
+            VerificationFlow(
+              id: request.id,
+              organization: request.organization,
+              requestedDataAttributes:
+                  await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
+              policy: request.policy,
+            ),
+          ),
+        );
       } catch (ex, stack) {
         Fimber.e('Failed to load VerificationRequest for id ${event.sessionId}', ex: ex, stacktrace: stack);
         emit(VerificationGenericError());
@@ -38,17 +51,17 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   void _onVerificationOrganizationApproved(VerificationOrganizationApproved event, emit) {
     final state = this.state;
     if (state is VerificationCheckOrganization) {
-      if (state.request.hasMissingAttributes) {
-        emit(VerificationMissingAttributes(state.request));
+      if (state.flow.hasMissingAttributes) {
+        emit(VerificationMissingAttributes(state.flow));
       } else {
-        emit(VerificationConfirmDataAttributes(state.request));
+        emit(VerificationConfirmDataAttributes(state.flow));
       }
     }
   }
 
   void _onVerificationShareRequestedAttributesApproved(VerificationShareRequestedAttributesApproved event, emit) {
     final state = this.state;
-    if (state is VerificationConfirmDataAttributes) emit(VerificationConfirmPin(state.request));
+    if (state is VerificationConfirmDataAttributes) emit(VerificationConfirmPin(state.flow));
   }
 
   void _onVerificationPinConfirmed(VerificationPinConfirmed event, emit) async {
@@ -56,7 +69,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     if (state is VerificationConfirmPin) {
       emit(VerificationLoadInProgress());
       await Future.delayed(kDefaultMockDelay);
-      emit(VerificationSuccess(state.request));
+      emit(VerificationSuccess(state.flow));
     }
   }
 
@@ -64,11 +77,11 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     final state = this.state;
     if (state.canGoBack) {
       if (state is VerificationConfirmDataAttributes) {
-        emit(VerificationCheckOrganization(state.request, afterBackPressed: true));
+        emit(VerificationCheckOrganization(state.flow, afterBackPressed: true));
       } else if (state is VerificationMissingAttributes) {
-        emit(VerificationCheckOrganization(state.request, afterBackPressed: true));
+        emit(VerificationCheckOrganization(state.flow, afterBackPressed: true));
       } else if (state is VerificationConfirmPin) {
-        emit(VerificationConfirmDataAttributes(state.request, afterBackPressed: true));
+        emit(VerificationConfirmDataAttributes(state.flow, afterBackPressed: true));
       }
     }
   }

@@ -24,16 +24,16 @@ class IssuanceLoadInProgress extends IssuanceState {}
 class IssuanceLoadFailure extends IssuanceState {}
 
 class IssuanceCheckOrganization extends IssuanceState {
-  final IssuanceResponse response;
+  final IssuanceFlow flow;
   final bool afterBackPressed;
 
   @override
-  Organization get organization => response.organization;
+  Organization get organization => flow.organization;
 
-  const IssuanceCheckOrganization(this.response, {this.afterBackPressed = false});
+  const IssuanceCheckOrganization(this.flow, {this.afterBackPressed = false});
 
   @override
-  List<Object?> get props => [response, ...super.props];
+  List<Object?> get props => [flow, ...super.props];
 
   @override
   double get stepperProgress => 0.2;
@@ -43,18 +43,18 @@ class IssuanceCheckOrganization extends IssuanceState {
 }
 
 class IssuanceProofIdentity extends IssuanceState {
-  final IssuanceResponse response;
+  final IssuanceFlow flow;
   final bool afterBackPressed;
 
   @override
-  Organization get organization => response.organization;
+  Organization get organization => flow.organization;
 
-  List<DataAttribute> get requestedAttributes => response.requestedAttributes;
+  List<DataAttribute> get requestedAttributes => flow.requestedDataAttributes;
 
-  const IssuanceProofIdentity(this.response, {this.afterBackPressed = false});
+  const IssuanceProofIdentity(this.flow, {this.afterBackPressed = false});
 
   @override
-  List<Object?> get props => [response, ...super.props];
+  List<Object?> get props => [flow, ...super.props];
 
   @override
   bool get canGoBack => true;
@@ -67,15 +67,15 @@ class IssuanceProofIdentity extends IssuanceState {
 }
 
 class IssuanceProvidePin extends IssuanceState {
-  final IssuanceResponse response;
+  final IssuanceFlow flow;
 
-  const IssuanceProvidePin(this.response);
-
-  @override
-  Organization get organization => response.organization;
+  const IssuanceProvidePin(this.flow);
 
   @override
-  List<Object?> get props => [response, ...super.props];
+  Organization get organization => flow.organization;
+
+  @override
+  List<Object?> get props => [flow, ...super.props];
 
   @override
   bool get canGoBack => true;
@@ -85,27 +85,27 @@ class IssuanceProvidePin extends IssuanceState {
 }
 
 class IssuanceCheckDataOffering extends IssuanceState {
-  final IssuanceResponse response;
+  final IssuanceFlow flow;
 
-  const IssuanceCheckDataOffering(this.response);
+  const IssuanceCheckDataOffering(this.flow);
 
   @override
-  List<Object?> get props => [response, ...super.props];
+  List<Object?> get props => [flow, ...super.props];
 
   @override
   double get stepperProgress => 0.8;
 
   @override
-  Organization get organization => response.organization;
+  Organization get organization => flow.organization;
 }
 
 class IssuanceCardAdded extends IssuanceState {
-  final IssuanceResponse response;
+  final IssuanceFlow flow;
 
-  const IssuanceCardAdded(this.response);
+  const IssuanceCardAdded(this.flow);
 
   @override
-  List<Object?> get props => [response, ...super.props];
+  List<Object?> get props => [flow, ...super.props];
 
   @override
   bool get showStopConfirmation => false;

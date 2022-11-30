@@ -13,12 +13,14 @@ class MockWalletCardDataHighlightRepository implements WalletCardDataHighlightRe
         return _kMockPidDataAttribute;
       case 'DIPLOMA_1':
         return _kMockDiplomaDataAttribute;
-      case '2':
+      case 'PASSPORT':
         return _kMockPassportDataAttribute;
-      case '3':
+      case 'DRIVING_LICENSE':
         return _kMockDrivingLicenseDataAttribute;
+      case 'VOG':
+        return _kMockVOGDataAttribute;
       default:
-        throw UnimplementedError();
+        throw UnimplementedError('No highlight configured for card: $cardId');
     }
   }
 }

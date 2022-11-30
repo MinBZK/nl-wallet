@@ -6,6 +6,13 @@
             "type": "issue"
         }
     },
+    "issue_vog.png": {
+        "name": "Issue vog",
+        "content": {
+            "id": "VOG",
+            "type": "issue"
+        }
+    },
     "issue_passport.png": {
         "name": "Issue passport",
         "content": {
@@ -20,13 +27,6 @@
             "type":"issue"
         }
     },
-    "job_application_complete.png": {
-        "name": "Job Application - Complete",
-        "content": {
-            "id": "JOB_APPLICATION_COMPLETE",
-            "type": "verify"
-        }
-    },
     "verification_request_lottery.png": {
         "name": "Lottery",
         "content": {
@@ -34,10 +34,10 @@
             "type": "verify"
         }
     },
-    "job_application_incomplete.png": {
-        "name": "Job Application - Incomplete",
+    "job_application.png": {
+        "name": "Job Application",
         "content": {
-            "id": "JOB_APPLICATION_INCOMPLETE",
+            "id": "JOB_APPLICATION",
             "type": "verify"
         }
     }

@@ -4,15 +4,41 @@ class DataAttribute extends Equatable {
   final DataAttributeType type;
   final String label;
   final String? value;
+  final DataAttributeValueType valueType;
 
   const DataAttribute({
-    required this.type,
+    required this.valueType,
     required this.label,
     required this.value,
+    this.type = DataAttributeType.other,
   });
 
   @override
-  List<Object?> get props => [type, label, value];
+  List<Object?> get props => [valueType, label, value, type];
 }
 
-enum DataAttributeType { image, text }
+enum DataAttributeValueType { image, text }
+
+enum DataAttributeType {
+  firstName,
+  lastName,
+  fullName,
+  gender,
+  profilePhoto,
+  birthDate,
+  birthPlace,
+  birthCountry,
+  citizenshipNumber,
+  documentNr,
+  issuanceDate,
+  expiryDate,
+  height,
+  university,
+  education,
+  educationLevel,
+  certificateOfConduct,
+  phone,
+  email,
+  address,
+  other,
+}

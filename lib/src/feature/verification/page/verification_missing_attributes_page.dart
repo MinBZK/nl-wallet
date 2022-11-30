@@ -5,14 +5,14 @@ import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../model/verification_request.dart';
+import '../model/verification_flow.dart';
 
 class VerificationMissingAttributesPage extends StatelessWidget {
-  final VerificationRequest request;
+  final VerificationFlow flow;
   final VoidCallback onDecline;
 
   const VerificationMissingAttributesPage({
-    required this.request,
+    required this.flow,
     required this.onDecline,
     Key? key,
   }) : super(key: key);
@@ -51,7 +51,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).verificationMissingAttributesPageDescription(request.organization.name),
+            AppLocalizations.of(context).verificationMissingAttributesPageDescription(flow.organization.name),
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.start,
           ),
@@ -64,9 +64,9 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: DataAttributeRow(attribute: request.attributes[index]),
+        child: DataAttributeRow(attribute: flow.requestedDataAttributes[index]),
       ),
-      childCount: request.attributes.length,
+      childCount: flow.requestedDataAttributes.length,
     );
   }
 

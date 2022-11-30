@@ -103,7 +103,7 @@ class VerificationScreen extends StatelessWidget {
     return ApproveOrganizationPage(
       onDecline: () => _stopVerification(context),
       onAccept: () => context.read<VerificationBloc>().add(const VerificationOrganizationApproved()),
-      organization: state.request.organization,
+      organization: state.flow.organization,
       purpose: ApprovalPurpose.verification,
     );
   }
@@ -111,7 +111,7 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildMissingAttributesPage(BuildContext context, VerificationMissingAttributes state) {
     return VerificationMissingAttributesPage(
       onDecline: () => context.read<VerificationBloc>().add(const VerificationStopRequested()),
-      request: state.request,
+      flow: state.flow,
     );
   }
 
@@ -119,7 +119,7 @@ class VerificationScreen extends StatelessWidget {
     return VerificationConfirmDataAttributesPage(
       onDecline: () => _stopVerification(context),
       onAccept: () => context.read<VerificationBloc>().add(const VerificationShareRequestedAttributesApproved()),
-      request: state.request,
+      flow: state.flow,
     );
   }
 
@@ -138,7 +138,7 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, VerificationSuccess state) {
     return VerificationSuccessPage(
-      verifierShortName: state.request.organization.shortName,
+      verifierShortName: state.flow.organization.shortName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => PlaceholderScreen.show(context, 'Geschiedenis'),
     );

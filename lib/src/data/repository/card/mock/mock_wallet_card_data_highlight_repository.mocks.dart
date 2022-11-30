@@ -23,3 +23,9 @@ const _kMockDrivingLicenseDataAttribute = DataHighlight(
   subtitle: 'Geldig t/m 23 april 2028',
   image: 'assets/non-free/images/person_x.png',
 );
+
+const _kMockVOGDataAttribute = DataHighlight(
+  title: 'Verklaring Omtrent het Gedrag',
+  subtitle: null,
+  image: null,
+);

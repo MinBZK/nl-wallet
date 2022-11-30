@@ -15,7 +15,8 @@ const _kOrganizations = [
   _kRdwOrganization,
   _kDuoOrganization,
   _kLotteryOrganization,
-  _kEmployerOrganization
+  _kEmployerOrganization,
+  _kJustisOrganization
 ];
 
 const _kRijksOrganization = Organization(
@@ -59,4 +60,13 @@ const _kEmployerOrganization = Organization(
   shortName: 'Werkgever X',
   description: 'Werkgever X draagt bij aan een betere digitale overheid',
   logoUrl: 'assets/images/work_logo.png',
+);
+
+const _kJustisOrganization = Organization(
+  id: 'justis',
+  name: 'Ministerie van Justitie en Veiligheid',
+  shortName: 'Justis',
+  description:
+      'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.',
+  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
 );

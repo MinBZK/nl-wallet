@@ -21,6 +21,7 @@ import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
+import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -55,6 +56,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetVerificationRequestUseCase>(
           create: (context) => GetVerificationRequestUseCase(context.read()),
+        ),
+        RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
+          create: (context) => GetRequestedAttributesFromWalletUseCase(context.read()),
         ),
         RepositoryProvider<GetVerifierPolicyUseCase>(
           create: (context) => GetVerifierPolicyUseCase(context.read()),

@@ -7,18 +7,18 @@ import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../model/verification_request.dart';
+import '../model/verification_flow.dart';
 import '../widget/policy_row.dart';
 
 class VerificationConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
-  final VerificationRequest request;
+  final VerificationFlow flow;
 
   const VerificationConfirmDataAttributesPage({
     required this.onDecline,
     required this.onAccept,
-    required this.request,
+    required this.flow,
     Key? key,
   }) : super(key: key);
 
@@ -68,9 +68,9 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: DataAttributeRow(attribute: request.attributes[index]),
+        child: DataAttributeRow(attribute: flow.requestedDataAttributes[index]),
       ),
-      childCount: request.attributes.length,
+      childCount: flow.requestedDataAttributes.length,
     );
   }
 
@@ -95,18 +95,17 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         children: [
           PolicyRow(
             icon: Icons.access_time_rounded,
-            text: locale
-                .verificationConfirmDataAttributesPageDataRetentionDuration(request.policy.storageDuration.inDays),
+            text: locale.verificationConfirmDataAttributesPageDataRetentionDuration(flow.policy.storageDuration.inDays),
           ),
           PolicyRow(
             icon: Icons.share,
-            text: request.policy.dataIsShared
+            text: flow.policy.dataIsShared
                 ? locale.verificationConfirmDataAttributesPageDataWillBeShared
                 : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
           ),
           PolicyRow(
             icon: Icons.delete_outline,
-            text: request.policy.deletionCanBeRequested
+            text: flow.policy.deletionCanBeRequested
                 ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
                 : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
           ),
@@ -122,7 +121,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         onPressed: () => Navigator.restorablePushNamed(
           context,
           WalletRoutes.verifierPolicyRoute,
-          arguments: request.id.toString(),
+          arguments: flow.id.toString(),
         ),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),

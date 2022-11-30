@@ -1,4 +1,5 @@
 import '../../../domain/model/data_attribute.dart';
+import '../../../domain/model/requested_attribute.dart';
 import '../../../feature/verification/model/verification_request.dart';
 import '../../../feature/verification/model/verifier_policy.dart';
 import '../../source/organization_datasource.dart';
@@ -16,35 +17,44 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
         return VerificationRequest(
           id: 'LOTTERY',
           organization: (await organizationDataSource.read('staatsloterij'))!,
-          attributes: const [
-            DataAttribute(type: DataAttributeType.text, label: 'Naam', value: 'John Doe'),
-            DataAttribute(type: DataAttributeType.text, label: 'Email', value: 'john.doe@example.org'),
-            DataAttribute(type: DataAttributeType.text, label: 'Telefoon', value: '+31623456789'),
-            DataAttribute(type: DataAttributeType.text, label: 'Email', value: 'john.doe@example.org'),
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Voornaam',
+              type: DataAttributeType.firstName,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Achternaam',
+              type: DataAttributeType.lastName,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'BSN Nummer',
+              type: DataAttributeType.citizenshipNumber,
+              valueType: DataAttributeValueType.text,
+            ),
           ],
           policy: _kMockLotteryPolicy,
         );
-      case 'JOB_APPLICATION_INCOMPLETE':
+      case 'JOB_APPLICATION':
         return VerificationRequest(
-          id: 'JOB_APPLICATION_INCOMPLETE',
+          id: 'JOB_APPLICATION',
           organization: (await organizationDataSource.read('employer_1'))!,
-          attributes: const [
-            DataAttribute(type: DataAttributeType.text, label: 'Onderwijsinstelling', value: null),
-            DataAttribute(type: DataAttributeType.text, label: 'Opleiding', value: null),
-            DataAttribute(type: DataAttributeType.text, label: 'Type', value: null),
-            DataAttribute(type: DataAttributeType.text, label: 'Uitgiftedatum', value: null),
-          ],
-          policy: _kEmployerPolicy,
-        );
-      case 'JOB_APPLICATION_COMPLETE':
-        return VerificationRequest(
-          id: 'JOB_APPLICATION_COMPLETE',
-          organization: (await organizationDataSource.read('employer_1'))!,
-          attributes: const [
-            DataAttribute(type: DataAttributeType.text, label: 'Onderwijsinstelling', value: 'Universiteit X'),
-            DataAttribute(type: DataAttributeType.text, label: 'Opleiding', value: 'WO Master Bedrijfskunde'),
-            DataAttribute(type: DataAttributeType.text, label: 'Type', value: 'Getuigschrift'),
-            DataAttribute(type: DataAttributeType.text, label: 'Uitgiftedatum', value: '1 januari 2013'),
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Opleidingsnaam',
+              type: DataAttributeType.education,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+                name: 'Onderwijsinstelling',
+                type: DataAttributeType.university,
+                valueType: DataAttributeValueType.text),
+            RequestedAttribute(
+              name: 'Niveau',
+              type: DataAttributeType.educationLevel,
+              valueType: DataAttributeValueType.text,
+            ),
           ],
           policy: _kEmployerPolicy,
         );

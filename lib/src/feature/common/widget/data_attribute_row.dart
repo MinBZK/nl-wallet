@@ -12,14 +12,14 @@ class DataAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (attribute.type) {
-      case DataAttributeType.text:
+    switch (attribute.valueType) {
+      case DataAttributeValueType.text:
         if (attribute.value?.isNotEmpty ?? false) {
           return DataAttributeRowText(attribute: attribute);
         } else {
           return DataAttributeRowMissing(attribute: attribute);
         }
-      case DataAttributeType.image:
+      case DataAttributeValueType.image:
         return Align(
           alignment: Alignment.centerLeft,
           child: DataAttributeRowImage(image: AssetImage(attribute.value!), label: attribute.label),

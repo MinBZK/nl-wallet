@@ -129,14 +129,14 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceCheckDataOfferingPage(
       onDecline: () => _stopIssuance(context),
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceCheckDataOfferingApproved()),
-      attributes: state.response.cards.first.attributes,
+      attributes: state.flow.cards.first.attributes,
     );
   }
 
   Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
     return IssuanceCardAddedPage(
       onClose: () => _stopIssuance(context),
-      cardFront: state.response.cards.first.front,
+      cardFront: state.flow.cards.first.front,
     );
   }
 
