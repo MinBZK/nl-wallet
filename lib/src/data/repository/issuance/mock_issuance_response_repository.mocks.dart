@@ -158,6 +158,18 @@ const _kMockPidDataAttributes = [
     value: '999999999',
     type: DataAttributeType.citizenshipNumber,
   ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Woonplaats',
+    value: 'Den Haag',
+    type: DataAttributeType.city,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Postcode',
+    value: '2511 DP',
+    type: DataAttributeType.postalCode,
+  ),
 ];
 
 const _kMockDiplomaDataAttributes = [

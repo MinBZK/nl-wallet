@@ -54,5 +54,12 @@
             "id": "LOTTERY",
             "type": "verify"
         }
+    },
+    "marketplace_login_request.png": {
+        "name": "Marketplace Login",
+        "content": {
+            "id": "MARKETPLACE_LOGIN",
+            "type": "verify"
+        }
     }
 }

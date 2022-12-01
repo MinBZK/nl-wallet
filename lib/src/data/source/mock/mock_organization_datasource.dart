@@ -17,6 +17,7 @@ const _kOrganizations = [
   _kLotteryOrganization,
   _kEmployerOrganization,
   _kJustisOrganization,
+  _kMarketPlaceOrganization,
   _kBarOrganization,
   _kHealthInsurerOrganization,
 ];
@@ -71,6 +72,14 @@ const _kJustisOrganization = Organization(
   description:
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+);
+
+const _kMarketPlaceOrganization = Organization(
+  id: 'marketplace',
+  name: 'Online Marketplace Y',
+  shortName: 'Marketplace Y',
+  description: 'Online Marketplace Y is een Nederlands online marktplaats met een hoofdkantoor in Amsterdam.',
+  logoUrl: 'assets/non-free/images/logo_ecommerce.png',
 );
 
 const _kBarOrganization = Organization(

@@ -58,6 +58,34 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           ],
           policy: _kEmployerPolicy,
         );
+      case 'MARKETPLACE_LOGIN':
+        return VerificationRequest(
+          id: 'MARKETPLACE_LOGIN',
+          organization: (await organizationDataSource.read('marketplace'))!,
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Voornamen',
+              type: DataAttributeType.firstNames,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Achternaam',
+              type: DataAttributeType.lastName,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Postcode',
+              type: DataAttributeType.postalCode,
+              valueType: DataAttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Woonplaats',
+              type: DataAttributeType.city,
+              valueType: DataAttributeValueType.text,
+            ),
+          ],
+          policy: _kMockMarketPlacePolicy,
+        );
       case 'BAR':
         return VerificationRequest(
           id: 'BAR',
@@ -95,6 +123,14 @@ const _kMockLotteryPolicy = VerifierPolicy(
   privacyPolicyUrl: 'https://www.example.org',
   deletionCanBeRequested: false,
   dataIsShared: true,
+);
+
+const _kMockMarketPlacePolicy = VerifierPolicy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Registreren',
+  privacyPolicyUrl: 'https://www.example.org',
+  deletionCanBeRequested: true,
+  dataIsShared: false,
 );
 
 const _kMockBarPolicy = VerifierPolicy(
