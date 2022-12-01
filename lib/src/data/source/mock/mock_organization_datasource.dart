@@ -16,7 +16,8 @@ const _kOrganizations = [
   _kDuoOrganization,
   _kLotteryOrganization,
   _kEmployerOrganization,
-  _kJustisOrganization
+  _kJustisOrganization,
+  _kBarOrganization
 ];
 
 const _kRijksOrganization = Organization(
@@ -69,4 +70,12 @@ const _kJustisOrganization = Organization(
   description:
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+);
+
+const _kBarOrganization = Organization(
+  id: 'bar',
+  name: 'Cafe de Dobbelaar',
+  shortName: 'Cafe de Dobbelaar',
+  description: 'Poolcafe in Delft',
+  logoUrl: 'assets/non-free/images/logo_bar.png',
 );

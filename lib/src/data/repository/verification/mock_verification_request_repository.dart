@@ -58,6 +58,24 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           ],
           policy: _kEmployerPolicy,
         );
+      case 'BAR':
+        return VerificationRequest(
+          id: 'BAR',
+          organization: (await organizationDataSource.read('bar'))!,
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Pasfoto',
+              type: DataAttributeType.profilePhoto,
+              valueType: DataAttributeValueType.image,
+            ),
+            RequestedAttribute(
+              name: 'Ouder dan 18',
+              type: DataAttributeType.olderThan18,
+              valueType: DataAttributeValueType.text,
+            ),
+          ],
+          policy: _kMockBarPolicy,
+        );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
@@ -77,4 +95,12 @@ const _kMockLotteryPolicy = VerifierPolicy(
   privacyPolicyUrl: 'https://www.example.org',
   deletionCanBeRequested: false,
   dataIsShared: true,
+);
+
+const _kMockBarPolicy = VerifierPolicy(
+  storageDuration: Duration(days: 0),
+  dataPurpose: 'Leeftijd controle',
+  privacyPolicyUrl: 'https://www.example.org',
+  deletionCanBeRequested: true,
+  dataIsShared: false,
 );

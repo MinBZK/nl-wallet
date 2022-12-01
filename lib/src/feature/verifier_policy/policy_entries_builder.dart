@@ -18,7 +18,9 @@ class PolicyEntriesBuilder {
     result.add(_buildDataPurposeEntry(policy));
     result.add(_buildStorageDurationPolicy(policy));
     result.add(_buildDataSharingPolicy(policy));
-    result.add(_buildDeletionPolicy(policy));
+    if (policy.storageDuration.inDays > 0) {
+      result.add(_buildDeletionPolicy(policy));
+    }
     result.add(_buildPrivacyPolicy(policy));
     return result;
   }

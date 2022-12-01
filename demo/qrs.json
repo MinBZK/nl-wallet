@@ -34,6 +34,13 @@
             "type": "verify"
         }
     },
+    "bar_request.png": {
+        "name": "Bar",
+        "content": {
+            "id": "BAR",
+            "type": "verify"
+        }
+    },
     "job_application.png": {
         "name": "Job Application",
         "content": {

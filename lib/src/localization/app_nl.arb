@@ -241,7 +241,7 @@
   "verificationConfirmDataAttributesPageApproveCta": "Ja, verder",
   "verificationConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
   "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
   "@verificationConfirmDataAttributesPageDataRetentionDuration": {
     "placeholders": {
       "days": {

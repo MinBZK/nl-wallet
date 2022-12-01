@@ -101,7 +101,11 @@ const _kMockPidDataAttributes = [
     value: _kMockLastName,
     type: DataAttributeType.lastName,
   ),
-  DataAttribute(valueType: DataAttributeValueType.text, label: 'Geslachtsnaam', value: 'Molenaar'),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geslachtsnaam',
+    value: 'Molenaar',
+  ),
   DataAttribute(
     valueType: DataAttributeValueType.text,
     label: 'Geslacht',
@@ -113,6 +117,12 @@ const _kMockPidDataAttributes = [
     label: 'Geboortedatum',
     value: _kMockBirthDate,
     type: DataAttributeType.birthDate,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Ouder dan 18',
+    value: 'Ja',
+    type: DataAttributeType.olderThan18,
   ),
   DataAttribute(
     valueType: DataAttributeValueType.text,

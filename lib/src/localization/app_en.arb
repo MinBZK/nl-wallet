@@ -241,7 +241,7 @@
   "verificationConfirmDataAttributesPageApproveCta": "Yes, next",
   "verificationConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
   "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
-  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
   "@verificationConfirmDataAttributesPageDataRetentionDuration": {
     "placeholders": {
       "days": {

@@ -40,5 +40,6 @@ enum DataAttributeType {
   phone,
   email,
   address,
+  olderThan18,
   other,
 }

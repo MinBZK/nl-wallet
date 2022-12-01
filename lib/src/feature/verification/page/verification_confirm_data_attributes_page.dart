@@ -103,12 +103,13 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
                 ? locale.verificationConfirmDataAttributesPageDataWillBeShared
                 : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
           ),
-          PolicyRow(
-            icon: Icons.delete_outline,
-            text: flow.policy.deletionCanBeRequested
-                ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
-                : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
-          ),
+          if (flow.policy.storageDuration.inDays > 0)
+            PolicyRow(
+              icon: Icons.delete_outline,
+              text: flow.policy.deletionCanBeRequested
+                  ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
+                  : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
+            ),
         ],
       ),
     );

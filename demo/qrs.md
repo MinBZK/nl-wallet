@@ -17,9 +17,9 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 4. Allow camera permissions (if needed)
 5. Scan one of the QR codes below:
 
-| #1                                                             | #2                                                         |
-|----------------------------------------------------------------|------------------------------------------------------------|
-| ![Job Application](qrs/job_application.png) | ![Lottery](qrs/verification_request_lottery.png) |
+| #1                                                             | #2                                                         | #3                          |
+|----------------------------------------------------------------|------------------------------------------------------------|-----------------------------|
+| ![Job Application](qrs/job_application.png) | ![Lottery](qrs/verification_request_lottery.png) | ![Bar](qrs/bar_request.png) |
 
 # Card issuance
 
