@@ -17,14 +17,15 @@ const _kOrganizations = [
   _kLotteryOrganization,
   _kEmployerOrganization,
   _kJustisOrganization,
-  _kBarOrganization
+  _kBarOrganization,
+  _kHealthInsurerOrganization,
 ];
 
 const _kRijksOrganization = Organization(
   id: 'rvig',
   name: 'Rijksdienst voor Identiteitsgegevens',
   shortName: 'RvIG',
-  description: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens',
+  description: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
 );
 
@@ -59,7 +60,7 @@ const _kEmployerOrganization = Organization(
   id: 'employer_1',
   name: 'Werkgever X',
   shortName: 'Werkgever X',
-  description: 'Werkgever X draagt bij aan een betere digitale overheid',
+  description: 'Werkgever X draagt bij aan een betere digitale overheid.',
   logoUrl: 'assets/images/work_logo.png',
 );
 
@@ -76,6 +77,15 @@ const _kBarOrganization = Organization(
   id: 'bar',
   name: 'Cafe de Dobbelaar',
   shortName: 'Cafe de Dobbelaar',
-  description: 'Poolcafe in Delft',
+  description: 'Poolcafe in Delft.',
   logoUrl: 'assets/non-free/images/logo_bar.png',
+);
+
+const _kHealthInsurerOrganization = Organization(
+  id: 'health_insurer_1',
+  name: 'Zorgverzekeraar Z',
+  shortName: 'Zorgverzekeraar Z',
+  description:
+      'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.',
+  logoUrl: 'assets/images/logo_zorgverzekeraar_z.png',
 );

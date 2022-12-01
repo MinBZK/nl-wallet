@@ -6,10 +6,17 @@
             "type": "issue"
         }
     },
-    "issue_vog.png": {
-        "name": "Issue vog",
+    "issue_driving_license.png": {
+        "name": "Issue driving license",
         "content": {
-            "id": "VOG",
+            "id": "DRIVING_LICENSE",
+            "type":"issue"
+        }
+    },
+    "issue_health_insurance.png": {
+        "name": "Issue health insurance",
+        "content": {
+            "id": "HEALTH_INSURANCE",
             "type": "issue"
         }
     },
@@ -20,18 +27,11 @@
             "type": "issue"
         }
     },
-    "issue_driving_license.png": {
-        "name": "Issue driving license",
+    "issue_vog.png": {
+        "name": "Issue vog",
         "content": {
-            "id": "DRIVING_LICENSE",
-            "type":"issue"
-        }
-    },
-    "verification_request_lottery.png": {
-        "name": "Lottery",
-        "content": {
-            "id": "LOTTERY",
-            "type": "verify"
+            "id": "VOG",
+            "type": "issue"
         }
     },
     "bar_request.png": {
@@ -45,6 +45,13 @@
         "name": "Job Application",
         "content": {
             "id": "JOB_APPLICATION",
+            "type": "verify"
+        }
+    },
+    "verification_request_lottery.png": {
+        "name": "Lottery",
+        "content": {
+            "id": "LOTTERY",
             "type": "verify"
         }
     }

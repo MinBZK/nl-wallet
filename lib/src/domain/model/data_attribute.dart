@@ -20,7 +20,7 @@ class DataAttribute extends Equatable {
 enum DataAttributeValueType { image, text }
 
 enum DataAttributeType {
-  firstName,
+  firstNames,
   lastName,
   fullName,
   gender,
@@ -41,5 +41,6 @@ enum DataAttributeType {
   email,
   address,
   olderThan18,
+  healthIssuerId,
   other,
 }

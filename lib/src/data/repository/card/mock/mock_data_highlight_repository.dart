@@ -1,10 +1,10 @@
 import '../../../../domain/model/data_highlight.dart';
-import '../wallet_card_data_highlight_repository.dart';
+import '../data_highlight_repository.dart';
 
-part 'mock_wallet_card_data_highlight_repository.mocks.dart';
+part 'mock_data_highlight_repository.mocks.dart';
 
-class MockWalletCardDataHighlightRepository implements WalletCardDataHighlightRepository {
-  MockWalletCardDataHighlightRepository();
+class MockDataHighlightRepository implements DataHighlightRepository {
+  MockDataHighlightRepository();
 
   @override
   Future<DataHighlight> getLatest(String cardId) async {
@@ -13,12 +13,14 @@ class MockWalletCardDataHighlightRepository implements WalletCardDataHighlightRe
         return _kMockPidDataAttribute;
       case 'DIPLOMA_1':
         return _kMockDiplomaDataAttribute;
-      case 'PASSPORT':
-        return _kMockPassportDataAttribute;
       case 'DRIVING_LICENSE':
         return _kMockDrivingLicenseDataAttribute;
+      case 'HEALTH_INSURANCE':
+        return _kMockHealthInsuranceDataAttribute;
       case 'VOG':
         return _kMockVOGDataAttribute;
+      case 'PASSPORT':
+        return _kMockPassportDataAttribute;
       default:
         throw UnimplementedError('No highlight configured for card: $cardId');
     }

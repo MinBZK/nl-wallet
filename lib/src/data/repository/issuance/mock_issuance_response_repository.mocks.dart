@@ -3,7 +3,9 @@ part of 'mock_issuance_response_repository.dart';
 const _kMockBirthDate = '10 maart 1997';
 const _kMockBirthPlace = 'Delft';
 const _kMockFirstNames = 'Willeke Liselotte';
+const _kMockFullName = 'Willeke De Bruijn';
 const _kMockLastName = 'De Bruijn';
+const _kMockGender = 'Vrouw';
 
 // region WalletCards
 const _kMockPidWalletCard = WalletCard(
@@ -18,22 +20,28 @@ const _kMockDiplomaWalletCard = WalletCard(
   attributes: _kMockDiplomaDataAttributes,
 );
 
-const _kMockPassportWalletCard = WalletCard(
-  id: 'PASSPORT',
-  front: _kMockPassportCardFront,
-  attributes: _kMockPassportDataAttributes,
-);
-
 const _kMockDrivingLicenseWalletCard = WalletCard(
   id: 'DRIVING_LICENSE',
   front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
 );
 
+const _kMockHealthInsuranceWalletCard = WalletCard(
+  id: 'HEALTH_INSURANCE',
+  front: _kMockHealthInsuranceCardFront,
+  attributes: _kMockHealthInsuranceDataAttributes,
+);
+
 const _kMockVOGWalletCard = WalletCard(
   id: 'VOG',
   front: _kMockVOGCardFront,
   attributes: _kMockVOGDataAttributes,
+);
+
+const _kMockPassportWalletCard = WalletCard(
+  id: 'PASSPORT',
+  front: _kMockPassportCardFront,
+  attributes: _kMockPassportDataAttributes,
 );
 // endregion
 
@@ -55,14 +63,6 @@ const _kMockDiplomaCardFront = CardFront(
   theme: CardFrontTheme.dark,
 );
 
-const _kMockPassportCardFront = CardFront(
-  title: 'Paspoort',
-  info: 'Koninkrijk der Nederlanden',
-  logoImage: 'assets/non-free/images/logo_nl_passport.png',
-  backgroundImage: 'assets/images/bg_nl_passport.png',
-  theme: CardFrontTheme.light,
-);
-
 const _kMockDrivingLicenseCardFront = CardFront(
   title: 'Rijbewijs',
   info: 'Categorie AM, B, C1, BE',
@@ -71,12 +71,28 @@ const _kMockDrivingLicenseCardFront = CardFront(
   theme: CardFrontTheme.light,
 );
 
+const _kMockHealthInsuranceCardFront = CardFront(
+  title: 'European Health Insurance Card',
+  subtitle: 'Zorgverzekeraar Z',
+  logoImage: 'assets/non-free/images/logo_nl_health_insurance.png',
+  backgroundImage: 'assets/images/bg_health_insurance.png',
+  theme: CardFrontTheme.dark,
+);
+
 const _kMockVOGCardFront = CardFront(
   title: 'Verklaring Omtrent het Gedrag',
   info: 'Justis',
   logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
   backgroundImage: 'assets/images/bg_diploma.png',
   theme: CardFrontTheme.dark,
+);
+
+const _kMockPassportCardFront = CardFront(
+  title: 'Paspoort',
+  info: 'Koninkrijk der Nederlanden',
+  logoImage: 'assets/non-free/images/logo_nl_passport.png',
+  backgroundImage: 'assets/images/bg_nl_passport.png',
+  theme: CardFrontTheme.light,
 );
 
 // endregion
@@ -93,7 +109,7 @@ const _kMockPidDataAttributes = [
     valueType: DataAttributeValueType.text,
     label: 'Voornamen',
     value: _kMockFirstNames,
-    type: DataAttributeType.firstName,
+    type: DataAttributeType.firstNames,
   ),
   DataAttribute(
     valueType: DataAttributeValueType.text,
@@ -109,7 +125,7 @@ const _kMockPidDataAttributes = [
   DataAttribute(
     valueType: DataAttributeValueType.text,
     label: 'Geslacht',
-    value: 'Vrouw',
+    value: _kMockGender,
     type: DataAttributeType.gender,
   ),
   DataAttribute(
@@ -172,73 +188,6 @@ const _kMockDiplomaDataAttributes = [
   ),
 ];
 
-const _kMockPassportDataAttributes = [
-  DataAttribute(
-    valueType: DataAttributeValueType.image,
-    label: 'Pasfoto',
-    value: 'assets/non-free/images/person_x.png',
-    type: DataAttributeType.profilePhoto,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Voornamen',
-    value: _kMockFirstNames,
-    type: DataAttributeType.firstName,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Naam',
-    value: _kMockLastName,
-    type: DataAttributeType.lastName,
-  ),
-  DataAttribute(valueType: DataAttributeValueType.text, label: 'Echtgenote van', value: 'Molenaar'),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Geboortedatum',
-    value: _kMockBirthDate,
-    type: DataAttributeType.birthDate,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Geboorteplaats',
-    value: _kMockBirthPlace,
-    type: DataAttributeType.birthPlace,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Geslacht',
-    value: 'Vrouw',
-    type: DataAttributeType.gender,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Lengte',
-    value: '1,75 m',
-    type: DataAttributeType.height,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Persoonsnummer',
-    value: '9999999999',
-    type: DataAttributeType.citizenshipNumber,
-  ),
-  DataAttribute(valueType: DataAttributeValueType.text, label: 'Documentnummer', value: 'SPECI2022'),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Datum verstrekking',
-    value: '20 oktober 2014',
-    type: DataAttributeType.issuanceDate,
-  ),
-  DataAttribute(
-    valueType: DataAttributeValueType.text,
-    label: 'Geldig tot',
-    value: '20 OKT 2024',
-    type: DataAttributeType.expiryDate,
-  ),
-  DataAttribute(valueType: DataAttributeValueType.text, label: 'Type', value: 'P'),
-  DataAttribute(valueType: DataAttributeValueType.text, label: 'Code', value: 'NL'),
-];
-
 const _kMockDrivingLicenseDataAttributes = [
   DataAttribute(
     valueType: DataAttributeValueType.image,
@@ -250,7 +199,7 @@ const _kMockDrivingLicenseDataAttributes = [
     valueType: DataAttributeValueType.text,
     label: 'Voornamen',
     value: _kMockFirstNames,
-    type: DataAttributeType.firstName,
+    type: DataAttributeType.firstNames,
   ),
   DataAttribute(
     valueType: DataAttributeValueType.text,
@@ -286,6 +235,50 @@ const _kMockDrivingLicenseDataAttributes = [
   DataAttribute(valueType: DataAttributeValueType.text, label: 'Rijbewijscategorieën', value: 'AM, B, C1, BE'),
 ];
 
+const _kMockHealthInsuranceDataAttributes = [
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Naam',
+    value: _kMockFullName,
+    type: DataAttributeType.fullName,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geslacht',
+    value: _kMockGender,
+    type: DataAttributeType.gender,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geboortedatum',
+    value: _kMockBirthDate,
+    type: DataAttributeType.birthDate,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Klantnummer',
+    value: '12345678',
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Kaartnummer',
+    value: '9999999999',
+    type: DataAttributeType.documentNr,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'UZOVI',
+    value: 'XXXX - 9999',
+    type: DataAttributeType.healthIssuerId,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Verloopdatum',
+    value: '1 januari 2024',
+    type: DataAttributeType.expiryDate,
+  ),
+];
+
 const _kMockVOGDataAttributes = [
   DataAttribute(
     valueType: DataAttributeValueType.text,
@@ -301,11 +294,94 @@ const _kMockVOGDataAttributes = [
   ),
 ];
 
+const _kMockPassportDataAttributes = [
+  DataAttribute(
+    valueType: DataAttributeValueType.image,
+    label: 'Pasfoto',
+    value: 'assets/non-free/images/person_x.png',
+    type: DataAttributeType.profilePhoto,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Voornamen',
+    value: _kMockFirstNames,
+    type: DataAttributeType.firstNames,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Achternaam',
+    value: _kMockLastName,
+    type: DataAttributeType.lastName,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Echtgenote van',
+    value: 'Molenaar',
+    type: DataAttributeType.other,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geboortedatum',
+    value: _kMockBirthDate,
+    type: DataAttributeType.birthDate,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geboorteplaats',
+    value: _kMockBirthPlace,
+    type: DataAttributeType.birthPlace,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geslacht',
+    value: _kMockGender,
+    type: DataAttributeType.gender,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Lengte',
+    value: '1,75 m',
+    type: DataAttributeType.height,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Persoonsnummer',
+    value: '9999999999',
+    type: DataAttributeType.citizenshipNumber,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Documentnummer',
+    value: 'SPECI2022',
+    type: DataAttributeType.documentNr,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Datum verstrekking',
+    value: '20 oktober 2014',
+    type: DataAttributeType.issuanceDate,
+  ),
+  DataAttribute(
+    valueType: DataAttributeValueType.text,
+    label: 'Geldig tot',
+    value: '20 OKT 2024',
+    type: DataAttributeType.expiryDate,
+  ),
+  DataAttribute(valueType: DataAttributeValueType.text, label: 'Type', value: 'P'),
+  DataAttribute(valueType: DataAttributeValueType.text, label: 'Code', value: 'NL'),
+];
+
 // endregion
 
 // region RequestedAttributes
 const _kMockDiplomaRequestedAttributes = [
-  RequestedAttribute(name: 'Voornamen', type: DataAttributeType.firstName, valueType: DataAttributeValueType.text),
+  RequestedAttribute(name: 'Voornamen', type: DataAttributeType.firstNames, valueType: DataAttributeValueType.text),
+  RequestedAttribute(name: 'Achternaam', type: DataAttributeType.lastName, valueType: DataAttributeValueType.text),
+  RequestedAttribute(name: 'Geboortedatum', type: DataAttributeType.birthDate, valueType: DataAttributeValueType.text),
+];
+
+const _kMockHealthInsuranceRequestedAttributes = [
+  RequestedAttribute(name: 'Voornamen', type: DataAttributeType.firstNames, valueType: DataAttributeValueType.text),
   RequestedAttribute(name: 'Achternaam', type: DataAttributeType.lastName, valueType: DataAttributeValueType.text),
   RequestedAttribute(name: 'Geboortedatum', type: DataAttributeType.birthDate, valueType: DataAttributeValueType.text),
 ];

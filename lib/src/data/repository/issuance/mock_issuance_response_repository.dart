@@ -30,22 +30,28 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
           cards: [_kMockDiplomaWalletCard],
           requestedAttributes: _kMockDiplomaRequestedAttributes,
         );
-      case 'PASSPORT':
-        return IssuanceResponse(
-          organization: (await organizationDataSource.read('rvig'))!,
-          cards: [_kMockPassportWalletCard],
-          requestedAttributes: _kMockGenericRequestedAttributes,
-        );
       case 'DRIVING_LICENSE':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
           requestedAttributes: _kMockGenericRequestedAttributes,
         );
+      case 'HEALTH_INSURANCE':
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('health_insurer_1'))!,
+          cards: [_kMockHealthInsuranceWalletCard],
+          requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
+        );
       case 'VOG':
         return IssuanceResponse(
           organization: (await organizationDataSource.read('justis'))!,
           cards: [_kMockVOGWalletCard],
+          requestedAttributes: _kMockGenericRequestedAttributes,
+        );
+      case 'PASSPORT':
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('rvig'))!,
+          cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockGenericRequestedAttributes,
         );
     }

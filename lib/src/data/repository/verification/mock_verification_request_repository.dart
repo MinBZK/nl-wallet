@@ -20,7 +20,7 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           requestedAttributes: const [
             RequestedAttribute(
               name: 'Voornaam',
-              type: DataAttributeType.firstName,
+              type: DataAttributeType.firstNames,
               valueType: DataAttributeValueType.text,
             ),
             RequestedAttribute(

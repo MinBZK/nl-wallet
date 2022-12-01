@@ -48,7 +48,7 @@ class WalletCardFront extends StatelessWidget {
                   children: [
                     Image(
                       image: AssetImage(cardFront.backgroundImage ?? ''),
-                      fit: BoxFit.fill,
+                      fit: BoxFit.fitWidth,
                     ),
                     Padding(
                       padding: const EdgeInsets.all(_kDefaultPadding),
