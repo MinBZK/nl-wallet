@@ -17,8 +17,8 @@ class WalletAddIssuedCardUseCase {
       card.id,
       OperationAttribute(
         operationType: OperationType.issued,
+        cardTitle: card.front.title,
         dateTime: DateTime.now(),
-        description: '',
       ),
     );
     return;

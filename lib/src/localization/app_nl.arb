@@ -27,7 +27,6 @@
   },
   "cardDataScreenCloseCta": "Terug",
   "cardDataScreenTitle": "Alle gegevens",
-  "cardHistoryScreenBackCta": "Terug",
   "cardHistoryScreenTitle": "Kaart geschiedenis",
   "cardHistoryTimelineInteractionFailed": "Delen mislukt",
   "cardHistoryTimelineInteractionRejected": "Delen gestopt",
@@ -338,5 +337,7 @@
   "introductionAppSecurityPageTitle": "Alleen jij kan bij jouw gegevens",
   "introductionLanguageSelectCta": "Nederlands",
   "introductionNextPageCta": "Volgende",
-  "introductionPrivacyPolicyCta": "Privacybeleid"
+  "introductionPrivacyPolicyCta": "Privacybeleid",
+  "walletHistoryScreenTitle": "Gebruiksgeschiedenis",
+  "timelineScrollViewBackCta": "Terug"
 }

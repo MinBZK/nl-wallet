@@ -19,6 +19,7 @@ class SettingScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Placeholder; settings'),
+            _buildHistoryButton(context),
             _buildThemeButton(context),
             const VersionText(),
           ],
@@ -27,10 +28,20 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildHistoryButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ElevatedButton(
+        child: const Text('Gebruikersgeschiedenis'),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+      ),
+    );
+  }
+
   Widget _buildThemeButton(BuildContext context) {
     if (kDebugMode) {
       return Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: ElevatedButton(
           child: const Text('Design System'),
           onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),

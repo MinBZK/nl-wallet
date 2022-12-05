@@ -15,13 +15,18 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
   }
 
   @override
-  Future<List<TimelineAttribute>> readAll(String cardId) async {
-    return dataSource.readTimelineAttributes(cardId);
+  Future<List<TimelineAttribute>> readAll() {
+    return dataSource.readTimelineAttributes();
+  }
+
+  @override
+  Future<List<TimelineAttribute>> readFiltered(String cardId) async {
+    return dataSource.readTimelineAttributesByCardId(cardId);
   }
 
   @override
   Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionType type) async {
-    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributes(cardId);
+    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId);
     return _readLastInteraction(attributes, type);
   }
 

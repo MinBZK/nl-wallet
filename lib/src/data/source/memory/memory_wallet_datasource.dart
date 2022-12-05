@@ -45,19 +45,37 @@ class MemoryWalletDataSource implements WalletDataSource {
 
   @override
   Future<void> createTimelineAttribute(String cardId, TimelineAttribute attribute) async {
-    final timelineAttributes = this.timelineAttributes.value;
-    if (timelineAttributes[cardId] != null) {
-      timelineAttributes[cardId]?.add(attribute);
+    final attributes = timelineAttributes.value;
+    if (attributes[cardId] != null) {
+      attributes[cardId]?.add(attribute);
     } else {
-      timelineAttributes[cardId] = [attribute];
+      attributes[cardId] = [attribute];
     }
-    this.timelineAttributes.add(timelineAttributes);
+    timelineAttributes.add(attributes);
   }
 
+  /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
   @override
-  Future<List<TimelineAttribute>> readTimelineAttributes(String cardId) async {
-    final timelineAttributes = this.timelineAttributes.value;
-    return timelineAttributes[cardId] ?? [];
+  Future<List<TimelineAttribute>> readTimelineAttributes() async {
+    List<TimelineAttribute> attributes = [];
+
+    // Collect all cards; timeline attributes
+    timelineAttributes.value.forEach((key, value) {
+      attributes.addAll(value);
+    });
+
+    // Sort by date/time
+    attributes.sortBy((element) => element.dateTime);
+
+    return attributes;
+  }
+
+  /// Returns all card specific [TimelineAttribute] sorted by date ASC (oldest first)
+  @override
+  Future<List<TimelineAttribute>> readTimelineAttributesByCardId(String cardId) async {
+    List<TimelineAttribute> attributes = timelineAttributes.value[cardId] ?? [];
+    attributes.sortBy((element) => element.dateTime); // Sort by date/time
+    return attributes;
   }
 
   @override

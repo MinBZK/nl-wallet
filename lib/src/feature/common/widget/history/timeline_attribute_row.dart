@@ -10,18 +10,27 @@ import '../../../../util/mapper/timeline_attribute_type_icon_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_type_text_mapper.dart';
 import '../../../verification/widget/status_icon.dart';
 
-class TimelineRow extends StatelessWidget {
+class TimelineAttributeRow extends StatelessWidget {
   final TimelineAttribute attribute;
+  final bool showOperationTitle;
 
-  const TimelineRow({required this.attribute, Key? key}) : super(key: key);
+  const TimelineAttributeRow({
+    required this.attribute,
+    this.showOperationTitle = true,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    final String titleText = TimelineAttributeTitleFormatter.format(
+      attribute,
+      showOperationTitle: showOperationTitle,
+    );
     final Color iconColor = TimelineAttributeTypeIconColorMapper.map(theme, attribute);
     final IconData iconData = TimelineAttributeTypeIconMapper.map(attribute);
-    final String titleText = TimelineAttributeTitleFormatter.format(attribute);
     final String typeText = TimelineAttributeTypeTextMapper.map(locale, attribute);
     final Color typeTextColor = TimelineAttributeTypeColorMapper.map(theme, attribute);
     final String timeAgoText = TimeAgoFormatter.format(locale, attribute.dateTime);

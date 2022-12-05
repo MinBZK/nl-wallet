@@ -27,16 +27,16 @@ enum InteractionType { success, rejected, failed }
 
 class OperationAttribute extends TimelineAttribute {
   final OperationType operationType;
-  final String description;
+  final String cardTitle;
 
   const OperationAttribute({
     required this.operationType,
-    required this.description,
+    required this.cardTitle,
     required DateTime dateTime,
   }) : super(dateTime, TimelineType.operation);
 
   @override
-  List<Object?> get props => [operationType, description, dateTime];
+  List<Object?> get props => [operationType, cardTitle, dateTime];
 }
 
 enum OperationType { issued, extended, expired }

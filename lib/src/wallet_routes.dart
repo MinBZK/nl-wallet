@@ -29,6 +29,8 @@ import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
 import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
 import 'feature/verifier_policy/verifier_policy_screen.dart';
+import 'feature/wallet/history/bloc/wallet_history_bloc.dart';
+import 'feature/wallet/history/wallet_history_screen.dart';
 import 'feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'feature/wallet/personalize/wallet_personalize_screen.dart';
 
@@ -46,7 +48,8 @@ class WalletRoutes {
   static const setupSecurityRoute = '/security/setup';
   static const pinRoute = '/pin';
   static const confirmRoute = '/confirm';
-  static const walletPersonalize = '/wallet/personalize';
+  static const walletPersonalizeRoute = '/wallet/personalize';
+  static const walletHistoryRoute = '/wallet/history';
   static const homeRoute = '/home';
   static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
@@ -99,8 +102,10 @@ class WalletRoutes {
         return _createVerifierPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
         return _createIssuanceScreenBuilder(settings);
-      case WalletRoutes.walletPersonalize:
+      case WalletRoutes.walletPersonalizeRoute:
         return _createWalletPersonalizeScreenBuilder;
+      case WalletRoutes.walletHistoryRoute:
+        return _createWalletHistoryScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -217,6 +222,13 @@ Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
   return BlocProvider<WalletPersonalizeBloc>(
     create: (BuildContext context) => WalletPersonalizeBloc(context.read(), context.read()),
     child: const WalletPersonalizeScreen(),
+  );
+}
+
+Widget _createWalletHistoryScreenBuilder(BuildContext context) {
+  return BlocProvider<WalletHistoryBloc>(
+    create: (BuildContext context) => WalletHistoryBloc(context.read()),
+    child: const WalletHistoryScreen(),
   );
 }
 

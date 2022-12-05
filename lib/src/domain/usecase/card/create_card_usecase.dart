@@ -16,7 +16,7 @@ class CreateCardUseCase {
       card.id,
       OperationAttribute(
         operationType: OperationType.issued,
-        description: '',
+        cardTitle: card.front.title,
         dateTime: DateTime.now(),
       ),
     );
