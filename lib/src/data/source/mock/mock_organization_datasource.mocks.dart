@@ -39,10 +39,11 @@ const _kDuoOrganization = Organization(
 
 const _kEmployerOrganization = Organization(
   id: 'employer_1',
-  name: 'Werkgever X',
-  shortName: 'Werkgever X',
-  description: 'Werkgever X draagt bij aan een betere digitale overheid.',
-  logoUrl: 'assets/images/work_logo.png',
+  name: 'ICTU',
+  shortName: 'ICTU',
+  description:
+      'ICTU is van en voor de overheid, en werkt uitsluitend voor de overheid. We helpen overheidsorganisaties met uiteenlopende uitdagingen rondom digitalisering.',
+  logoUrl: 'assets/non-free/images/ictu_logo.png',
 );
 
 const _kJustisOrganization = Organization(
