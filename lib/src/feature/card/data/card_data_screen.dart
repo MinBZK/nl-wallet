@@ -6,6 +6,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/link_button.dart';
+import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text_icon_button.dart';
 import 'bloc/card_data_bloc.dart';
@@ -62,6 +64,11 @@ class CardDataScreen extends StatelessWidget {
       ));
     }
 
+    // Incorrect button
+    slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
+    slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
+    slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
+
     // Close button
     slivers.add(
       SliverFillRemaining(
@@ -73,6 +80,20 @@ class CardDataScreen extends StatelessWidget {
 
     return CustomScrollView(
       slivers: slivers,
+    );
+  }
+
+  Widget _buildIncorrectButton(BuildContext context) {
+    final buttonText = AppLocalizations.of(context).cardDataScreenIncorrectCta;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: LinkButton(
+          child: Text(buttonText),
+          onPressed: () => PlaceholderScreen.show(context, buttonText),
+        ),
+      ),
     );
   }
 

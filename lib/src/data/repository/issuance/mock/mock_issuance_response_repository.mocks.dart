@@ -23,10 +23,17 @@ const _kMockDiplomaWalletCard = WalletCard(
 );
 
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
-const _kMockDrivingLicenseWalletCard = WalletCard(
+final _kMockDrivingLicenseWalletCard = WalletCard(
   id: _kDrivingLicenseId,
   front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
+);
+
+const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
+final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
+  id: _kDrivingLicenseId, // Same id as initial license! Used to mock 'renewal' a.k.a. card update
+  front: _kMockDrivingLicenseRenewedCardFront,
+  attributes: _kMockDrivingLicenseRenewedDataAttributes,
 );
 
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
@@ -42,6 +49,7 @@ const _kMockVOGWalletCard = WalletCard(
   front: _kMockVOGCardFront,
   attributes: _kMockVOGDataAttributes,
 );
+
 // endregion
 
 // region CardFronts
@@ -64,6 +72,14 @@ const _kMockDiplomaCardFront = CardFront(
 
 const _kMockDrivingLicenseCardFront = CardFront(
   title: 'Rijbewijs',
+  info: 'Categorie AM, B, BE',
+  logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
+  backgroundImage: 'assets/images/bg_nl_driving_license.png',
+  theme: CardFrontTheme.light,
+);
+
+const _kMockDrivingLicenseRenewedCardFront = CardFront(
+  title: 'Rijbewijs',
   info: 'Categorie AM, B, C1, BE',
   logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
   backgroundImage: 'assets/images/bg_nl_driving_license.png',
@@ -85,6 +101,7 @@ const _kMockVOGCardFront = CardFront(
   backgroundImage: 'assets/images/bg_diploma.png',
   theme: CardFrontTheme.dark,
 );
+
 // endregion
 
 // region DataAttributes
@@ -211,69 +228,74 @@ const _kMockDiplomaDataAttributes = [
   ),
 ];
 
-const _kMockDrivingLicenseDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.image,
-    label: 'Pasfoto',
-    value: 'assets/non-free/images/person_x.png',
-    type: AttributeType.profilePhoto,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Voornamen',
-    value: _kMockFirstNames,
-    type: AttributeType.firstNames,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Naam',
-    value: _kMockLastName,
-    type: AttributeType.lastName,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Geboortedatum',
-    value: _kMockBirthDate,
-    type: AttributeType.birthDate,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Geboorteplaats',
-    value: _kMockBirthPlace,
-    type: AttributeType.birthPlace,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Afgiftedatum',
-    value: '23-04-2018',
-    type: AttributeType.issuanceDate,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Datum geldig tot',
-    value: '23-04-2028',
-    type: AttributeType.expiryDate,
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Rijbewijsnummer',
-    value: '99999999999',
-    sourceCardId: _kDrivingLicenseId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Rijbewijscategorieën',
-    value: 'AM, B, C1, BE',
-    sourceCardId: _kDrivingLicenseId,
-  ),
-];
+final _kMockDrivingLicenseDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, BE');
+final _kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, C1, BE');
+
+List<DataAttribute> _buildDrivingLicenseDataAttributes({required String category}) {
+  return [
+    const DataAttribute(
+      valueType: AttributeValueType.image,
+      label: 'Pasfoto',
+      value: 'assets/non-free/images/person_x.png',
+      type: AttributeType.profilePhoto,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Voornamen',
+      value: _kMockFirstNames,
+      type: AttributeType.firstNames,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Naam',
+      value: _kMockLastName,
+      type: AttributeType.lastName,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Geboortedatum',
+      value: _kMockBirthDate,
+      type: AttributeType.birthDate,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Geboorteplaats',
+      value: _kMockBirthPlace,
+      type: AttributeType.birthPlace,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Afgiftedatum',
+      value: '23-04-2018',
+      type: AttributeType.issuanceDate,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Datum geldig tot',
+      value: '23-04-2028',
+      type: AttributeType.expiryDate,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    const DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Rijbewijsnummer',
+      value: '99999999999',
+      sourceCardId: _kDrivingLicenseId,
+    ),
+    DataAttribute(
+      valueType: AttributeValueType.text,
+      label: 'Rijbewijscategorieën',
+      value: category,
+      sourceCardId: _kDrivingLicenseId,
+    ),
+  ];
+}
 
 const _kMockHealthInsuranceDataAttributes = [
   DataAttribute(
@@ -342,6 +364,7 @@ const _kMockVOGDataAttributes = [
     sourceCardId: _kVOGId,
   ),
 ];
+
 // endregion
 
 // region RequestedAttributes
@@ -349,6 +372,13 @@ const _kMockDiplomaRequestedAttributes = [
   RequestedAttribute(name: 'Voornamen', type: AttributeType.firstNames, valueType: AttributeValueType.text),
   RequestedAttribute(name: 'Achternaam', type: AttributeType.lastName, valueType: AttributeValueType.text),
   RequestedAttribute(name: 'Geboortedatum', type: AttributeType.birthDate, valueType: AttributeValueType.text),
+];
+
+const _kMockDrivingLicenseRequestedAttributes = [
+  RequestedAttribute(name: 'Voornamen', type: AttributeType.firstNames, valueType: AttributeValueType.text),
+  RequestedAttribute(name: 'Achternaam', type: AttributeType.lastName, valueType: AttributeValueType.text),
+  RequestedAttribute(name: 'Geboortedatum', type: AttributeType.birthDate, valueType: AttributeValueType.text),
+  RequestedAttribute(name: 'BSN', type: AttributeType.citizenshipNumber, valueType: AttributeValueType.text),
 ];
 
 const _kMockHealthInsuranceRequestedAttributes = [
@@ -360,4 +390,5 @@ const _kMockHealthInsuranceRequestedAttributes = [
 const _kMockGenericRequestedAttributes = [
   RequestedAttribute(name: 'BSN', type: AttributeType.citizenshipNumber, valueType: AttributeValueType.text),
 ];
+
 // endregion

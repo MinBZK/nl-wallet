@@ -13,17 +13,17 @@
             "type":"issue"
         }
     },
+    "issue_driving_license_renewed.png": {
+        "name": "Issue driving license (renewed)",
+        "content": {
+            "id": "DRIVING_LICENSE_RENEWED",
+            "type":"issue"
+        }
+    },
     "issue_health_insurance.png": {
         "name": "Issue health insurance",
         "content": {
             "id": "HEALTH_INSURANCE",
-            "type": "issue"
-        }
-    },
-    "issue_passport.png": {
-        "name": "Issue passport",
-        "content": {
-            "id": "PASSPORT",
             "type": "issue"
         }
     },
@@ -34,24 +34,17 @@
             "type": "issue"
         }
     },
-    "bar_request.png": {
-        "name": "Bar",
-        "content": {
-            "id": "BAR",
-            "type": "verify"
-        }
-    },
-    "job_application.png": {
-        "name": "Job Application",
+    "job_application_request.png": {
+        "name": "Job application",
         "content": {
             "id": "JOB_APPLICATION",
             "type": "verify"
         }
     },
-    "verification_request_lottery.png": {
-        "name": "Lottery",
+    "bar_request.png": {
+        "name": "Bar",
         "content": {
-            "id": "LOTTERY",
+            "id": "BAR",
             "type": "verify"
         }
     },

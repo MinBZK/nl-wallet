@@ -13,29 +13,6 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
   @override
   Future<VerificationRequest> getRequest(String sessionId) async {
     switch (sessionId) {
-      case 'LOTTERY':
-        return VerificationRequest(
-          id: 'LOTTERY',
-          organization: (await organizationDataSource.read('staatsloterij'))!,
-          requestedAttributes: const [
-            RequestedAttribute(
-              name: 'Voornaam',
-              type: AttributeType.firstNames,
-              valueType: AttributeValueType.text,
-            ),
-            RequestedAttribute(
-              name: 'Achternaam',
-              type: AttributeType.lastName,
-              valueType: AttributeValueType.text,
-            ),
-            RequestedAttribute(
-              name: 'BSN Nummer',
-              type: AttributeType.citizenshipNumber,
-              valueType: AttributeValueType.text,
-            ),
-          ],
-          policy: _kMockLotteryPolicy,
-        );
       case 'JOB_APPLICATION':
         return VerificationRequest(
           id: 'JOB_APPLICATION',
@@ -47,7 +24,10 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
               valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
-                name: 'Onderwijsinstelling', type: AttributeType.university, valueType: AttributeValueType.text),
+              name: 'Onderwijsinstelling',
+              type: AttributeType.university,
+              valueType: AttributeValueType.text,
+            ),
             RequestedAttribute(
               name: 'Niveau',
               type: AttributeType.educationLevel,
@@ -113,14 +93,6 @@ const _kEmployerPolicy = VerifierPolicy(
   privacyPolicyUrl: 'https://www.example.org',
   deletionCanBeRequested: true,
   dataIsShared: false,
-);
-
-const _kMockLotteryPolicy = VerifierPolicy(
-  storageDuration: Duration(days: 30),
-  dataPurpose: 'Authenticatie',
-  privacyPolicyUrl: 'https://www.example.org',
-  deletionCanBeRequested: false,
-  dataIsShared: true,
 );
 
 const _kMockMarketPlacePolicy = VerifierPolicy(

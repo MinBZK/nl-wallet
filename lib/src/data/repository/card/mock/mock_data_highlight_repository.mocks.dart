@@ -13,8 +13,8 @@ const _kMockDiplomaDataAttribute = DataHighlight(
 );
 
 const _kMockDrivingLicenseDataAttribute = DataHighlight(
-  title: 'Naam: W. de Bruijn',
-  subtitle: 'Geldig t/m 23 april 2028',
+  title: 'Voornamen: Willeke Liselotte',
+  subtitle: null,
   image: 'assets/non-free/images/person_x.png',
 );
 

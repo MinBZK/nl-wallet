@@ -1,11 +1,11 @@
-import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/requested_attribute.dart';
-import '../../../domain/model/card_front.dart';
-import '../../../domain/model/issuance_response.dart';
-import '../../../domain/model/wallet_card.dart';
-import '../../source/organization_datasource.dart';
-import '../../source/wallet_datasource.dart';
-import 'issuance_response_repository.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
+import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/card_front.dart';
+import '../../../../domain/model/issuance_response.dart';
+import '../../../../domain/model/wallet_card.dart';
+import '../../../source/organization_datasource.dart';
+import '../../../source/wallet_datasource.dart';
+import '../issuance_response_repository.dart';
 
 part 'mock_issuance_response_repository.mocks.dart';
 
@@ -34,7 +34,13 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
-          requestedAttributes: _kMockGenericRequestedAttributes,
+          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+        );
+      case _kDrivingLicenseRenewedId:
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('rdw'))!,
+          cards: [_kMockDrivingLicenseRenewedWalletCard],
+          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
         );
       case _kHealthInsuranceId:
         return IssuanceResponse(

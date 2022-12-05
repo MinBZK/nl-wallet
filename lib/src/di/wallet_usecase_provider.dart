@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
-import '../domain/usecase/card/create_card_usecase.dart';
 import '../domain/usecase/card/get_pid_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
@@ -12,8 +11,8 @@ import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
+import '../domain/usecase/card/wallet_add_issued_card_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
-import '../domain/usecase/issuance/wallet_add_issued_card_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
@@ -101,9 +100,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<WalletAddIssuedCardUseCase>(
           create: (context) => WalletAddIssuedCardUseCase(context.read(), context.read()),
-        ),
-        RepositoryProvider<CreateCardUseCase>(
-          create: (context) => CreateCardUseCase(context.read(), context.read()),
         ),
         RepositoryProvider<GetPidCardUseCase>(
           create: (context) => GetPidCardUseCase(context.read()),

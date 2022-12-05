@@ -28,8 +28,8 @@ class OperationTypeTextFormatter {
     switch (type) {
       case OperationType.issued:
         return locale.cardHistoryTimelineOperationIssued;
-      case OperationType.extended:
-        return locale.cardHistoryTimelineOperationExtended;
+      case OperationType.renewed:
+        return locale.cardHistoryTimelineOperationRenewed;
       case OperationType.expired:
         return locale.cardHistoryTimelineOperationExpired;
     }

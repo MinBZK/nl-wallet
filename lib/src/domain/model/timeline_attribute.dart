@@ -39,4 +39,4 @@ class OperationAttribute extends TimelineAttribute {
   List<Object?> get props => [operationType, cardTitle, dateTime];
 }
 
-enum OperationType { issued, extended, expired }
+enum OperationType { issued, renewed, expired }

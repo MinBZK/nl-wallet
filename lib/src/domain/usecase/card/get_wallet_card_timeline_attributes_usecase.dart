@@ -11,6 +11,7 @@ class GetWalletCardTimelineAttributesUseCase {
   Future<List<TimelineAttribute>> invoke(String cardId) async {
     await Future.delayed(kDefaultMockDelay);
     List<TimelineAttribute> results = await timelineAttributeRepository.readFiltered(cardId);
-    return results.reversed.toList();
+    results.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
+    return results;
   }
 }

@@ -12,11 +12,22 @@ class WalletAddIssuedCardUseCase {
 
   Future<void> invoke(WalletCard card) async {
     await Future.delayed(kDefaultMockDelay);
-    await walletCardRepository.create(card);
-    await timelineAttributeRepository.create(
+
+    final bool cardExistsInWallet = await walletCardRepository.exists(card.id);
+    if (!cardExistsInWallet) {
+      walletCardRepository.create(card);
+      _createTimelineEntry(card, OperationType.issued);
+    } else {
+      walletCardRepository.update(card);
+      _createTimelineEntry(card, OperationType.renewed);
+    }
+  }
+
+  void _createTimelineEntry(WalletCard card, OperationType operationType) {
+    timelineAttributeRepository.create(
       card.id,
       OperationAttribute(
-        operationType: OperationType.issued,
+        operationType: operationType,
         cardTitle: card.front.title,
         dateTime: DateTime.now(),
       ),

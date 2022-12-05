@@ -10,7 +10,7 @@ import '../data/repository/card/mock/mock_data_highlight_repository.dart';
 import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
-import '../data/repository/issuance/mock_issuance_response_repository.dart';
+import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/verification/mock_verification_request_repository.dart';

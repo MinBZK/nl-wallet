@@ -13,6 +13,8 @@ import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/data_attribute_row_image.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/link_button.dart';
+import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/text_icon_button.dart';
 import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_summary_bloc.dart';
 
@@ -76,6 +78,9 @@ class CardSummaryScreen extends StatelessWidget {
   }
 
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
+    final locale = AppLocalizations.of(context);
+    final deleteButtonText = locale.cardSummaryScreenCardDeleteCta;
+
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       children: [
@@ -90,18 +95,31 @@ class CardSummaryScreen extends StatelessWidget {
         _buildInteractionHighlight(context, summary.card.id, summary.interactionAttribute),
         const SizedBox(height: 8.0),
         const Divider(),
-        const SizedBox(height: 8.0),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: LinkButton(
-              child: Text(AppLocalizations.of(context).cardSummaryScreenOptionsCta),
-              onPressed: () => _onCardOptionsPressed(context),
+            child: TextIconButton(
+              icon: Icons.replay,
+              iconPosition: IconPosition.start,
+              onPressed: () => Navigator.pop(context),
+              child: Text(locale.cardSummaryScreenCardRenewCta),
             ),
           ),
         ),
-        const SizedBox(height: 8.0),
+        const Divider(),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: TextIconButton(
+              icon: Icons.delete,
+              iconPosition: IconPosition.start,
+              onPressed: () => PlaceholderScreen.show(context, deleteButtonText),
+              child: Text(deleteButtonText),
+            ),
+          ),
+        ),
         const Divider(),
         const SizedBox(height: kFloatingActionButtonMargin + 64),
       ],
@@ -197,10 +215,6 @@ class CardSummaryScreen extends StatelessWidget {
     } else {
       return locale.cardSummaryScreenShareSuccessNoHistory;
     }
-  }
-
-  void _onCardOptionsPressed(BuildContext context) {
-    Fimber.d('_onCardOptionsPressed');
   }
 
   void _onCardDataPressed(BuildContext context, String cardId) {
