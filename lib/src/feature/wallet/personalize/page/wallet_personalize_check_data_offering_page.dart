@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../../domain/model/data_attribute.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../common/widget/check_data_offering_page.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {

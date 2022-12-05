@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../common/widget/data_attribute_row.dart';
+import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -64,9 +64,9 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: DataAttributeRow(attribute: flow.requestedDataAttributes[index]),
+        child: AttributeRow(attribute: flow.attributes[index]),
       ),
-      childCount: flow.requestedDataAttributes.length,
+      childCount: flow.attributes.length,
     );
   }
 

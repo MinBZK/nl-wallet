@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/data_attribute.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
 
 class DataAttributeRowText extends StatelessWidget {
   final DataAttribute attribute;
@@ -18,7 +18,7 @@ class DataAttributeRowText extends StatelessWidget {
           style: Theme.of(context).textTheme.caption,
         ),
         Text(
-          attribute.value ?? '-',
+          attribute.value,
           style: Theme.of(context).textTheme.subtitle1,
         ),
       ],

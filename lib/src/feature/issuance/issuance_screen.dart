@@ -170,7 +170,7 @@ class IssuanceScreen extends StatelessWidget {
         cancelButtonText: locale.issuanceStopSheetNegativeCta,
         confirmButtonText: locale.issuanceStopSheetPositiveCta,
       );
-      if (stopped) bloc.add(const IssuanceStopRequested());
+      if (stopped) bloc.add(IssuanceStopRequested(bloc.state.flow));
     } else {
       Navigator.pop(context);
     }

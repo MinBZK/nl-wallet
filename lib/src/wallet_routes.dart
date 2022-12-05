@@ -182,7 +182,8 @@ WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<VerificationBloc>(
       create: (BuildContext context) {
-        return VerificationBloc(context.read(), context.read())..add(VerificationLoadRequested(sessionId));
+        return VerificationBloc(context.read(), context.read(), context.read())
+          ..add(VerificationLoadRequested(sessionId));
       },
       child: const VerificationScreen(),
     );
@@ -204,7 +205,8 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     String sessionId = IssuanceScreen.getArguments(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
-        return IssuanceBloc(context.read(), context.read(), context.read())..add(IssuanceLoadTriggered(sessionId));
+        return IssuanceBloc(context.read(), context.read(), context.read(), context.read())
+          ..add(IssuanceLoadTriggered(sessionId));
       },
       child: const IssuanceScreen(),
     );

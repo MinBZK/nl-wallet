@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/data_attribute.dart';
-import 'data_attribute_row.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import 'attribute/data_attribute_row.dart';
 import 'link_button.dart';
 import 'placeholder_screen.dart';
 import 'sliver_sized_box.dart';

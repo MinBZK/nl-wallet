@@ -63,8 +63,10 @@ class IssuanceCheckDataOfferingApproved extends IssuanceEvent {
 }
 
 class IssuanceStopRequested extends IssuanceEvent {
-  const IssuanceStopRequested();
+  final IssuanceFlow? flow;
+
+  const IssuanceStopRequested(this.flow);
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [flow];
 }

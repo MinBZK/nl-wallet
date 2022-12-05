@@ -9,12 +9,14 @@ abstract class IssuanceState extends Equatable {
 
   double get stepperProgress => 0.0;
 
-  Organization? get organization => null;
+  IssuanceFlow? get flow => null;
+
+  Organization? get organization => flow?.organization;
 
   const IssuanceState();
 
   @override
-  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, organization];
+  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, flow];
 }
 
 class IssuanceInitial extends IssuanceState {}
@@ -24,7 +26,9 @@ class IssuanceLoadInProgress extends IssuanceState {}
 class IssuanceLoadFailure extends IssuanceState {}
 
 class IssuanceCheckOrganization extends IssuanceState {
+  @override
   final IssuanceFlow flow;
+
   final bool afterBackPressed;
 
   @override
@@ -43,13 +47,15 @@ class IssuanceCheckOrganization extends IssuanceState {
 }
 
 class IssuanceProofIdentity extends IssuanceState {
+  @override
   final IssuanceFlow flow;
+
   final bool afterBackPressed;
 
   @override
   Organization get organization => flow.organization;
 
-  List<DataAttribute> get requestedAttributes => flow.requestedDataAttributes;
+  List<Attribute> get requestedAttributes => flow.attributes;
 
   const IssuanceProofIdentity(this.flow, {this.afterBackPressed = false});
 
@@ -67,12 +73,10 @@ class IssuanceProofIdentity extends IssuanceState {
 }
 
 class IssuanceProvidePin extends IssuanceState {
+  @override
   final IssuanceFlow flow;
 
   const IssuanceProvidePin(this.flow);
-
-  @override
-  Organization get organization => flow.organization;
 
   @override
   List<Object?> get props => [flow, ...super.props];
@@ -85,6 +89,7 @@ class IssuanceProvidePin extends IssuanceState {
 }
 
 class IssuanceCheckDataOffering extends IssuanceState {
+  @override
   final IssuanceFlow flow;
 
   const IssuanceCheckDataOffering(this.flow);
@@ -94,12 +99,10 @@ class IssuanceCheckDataOffering extends IssuanceState {
 
   @override
   double get stepperProgress => 0.8;
-
-  @override
-  Organization get organization => flow.organization;
 }
 
 class IssuanceCardAdded extends IssuanceState {
+  @override
   final IssuanceFlow flow;
 
   const IssuanceCardAdded(this.flow);

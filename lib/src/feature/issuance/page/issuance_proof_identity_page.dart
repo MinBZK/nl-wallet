@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../domain/model/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
+import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/confirm_buttons.dart';
-import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -13,7 +13,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final Organization organization;
-  final List<DataAttribute> attributes;
+  final List<Attribute> attributes;
 
   const IssuanceProofIdentityPage({
     required this.onDecline,
@@ -79,7 +79,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: DataAttributeRow(attribute: attributes[index]),
+        child: AttributeRow(attribute: attributes[index]),
       ),
       childCount: attributes.length,
     );

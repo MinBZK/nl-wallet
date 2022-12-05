@@ -1,5 +1,5 @@
-import '../../../domain/model/data_attribute.dart';
-import '../../../domain/model/requested_attribute.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/requested_attribute.dart';
 import '../../../feature/verification/model/verification_request.dart';
 import '../../../feature/verification/model/verifier_policy.dart';
 import '../../source/organization_datasource.dart';
@@ -20,18 +20,18 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           requestedAttributes: const [
             RequestedAttribute(
               name: 'Voornaam',
-              type: DataAttributeType.firstNames,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.firstNames,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
               name: 'Achternaam',
-              type: DataAttributeType.lastName,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.lastName,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
               name: 'BSN Nummer',
-              type: DataAttributeType.citizenshipNumber,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.citizenshipNumber,
+              valueType: AttributeValueType.text,
             ),
           ],
           policy: _kMockLotteryPolicy,
@@ -43,17 +43,15 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           requestedAttributes: const [
             RequestedAttribute(
               name: 'Opleidingsnaam',
-              type: DataAttributeType.education,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.education,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
-                name: 'Onderwijsinstelling',
-                type: DataAttributeType.university,
-                valueType: DataAttributeValueType.text),
+                name: 'Onderwijsinstelling', type: AttributeType.university, valueType: AttributeValueType.text),
             RequestedAttribute(
               name: 'Niveau',
-              type: DataAttributeType.educationLevel,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.educationLevel,
+              valueType: AttributeValueType.text,
             ),
           ],
           policy: _kEmployerPolicy,
@@ -65,23 +63,23 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           requestedAttributes: const [
             RequestedAttribute(
               name: 'Voornamen',
-              type: DataAttributeType.firstNames,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.firstNames,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
               name: 'Achternaam',
-              type: DataAttributeType.lastName,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.lastName,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
               name: 'Postcode',
-              type: DataAttributeType.postalCode,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.postalCode,
+              valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
               name: 'Woonplaats',
-              type: DataAttributeType.city,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.city,
+              valueType: AttributeValueType.text,
             ),
           ],
           policy: _kMockMarketPlacePolicy,
@@ -93,13 +91,13 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           requestedAttributes: const [
             RequestedAttribute(
               name: 'Pasfoto',
-              type: DataAttributeType.profilePhoto,
-              valueType: DataAttributeValueType.image,
+              type: AttributeType.profilePhoto,
+              valueType: AttributeValueType.image,
             ),
             RequestedAttribute(
               name: 'Ouder dan 18',
-              type: DataAttributeType.olderThan18,
-              valueType: DataAttributeValueType.text,
+              type: AttributeType.olderThan18,
+              valueType: AttributeValueType.text,
             ),
           ],
           policy: _kMockBarPolicy,

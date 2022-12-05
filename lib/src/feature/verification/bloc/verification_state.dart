@@ -9,12 +9,14 @@ abstract class VerificationState extends Equatable {
 
   double get stepperProgress => 0.0;
 
-  Organization? get organization => null;
+  VerificationFlow? get flow => null;
+
+  Organization? get organization => flow?.organization;
 
   const VerificationState();
 
   @override
-  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, organization];
+  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, flow];
 }
 
 class VerificationInitial extends VerificationState {}
@@ -27,7 +29,9 @@ class VerificationGenericError extends VerificationState {
 }
 
 class VerificationCheckOrganization extends VerificationState {
+  @override
   final VerificationFlow flow;
+
   final bool afterBackPressed;
 
   const VerificationCheckOrganization(this.flow, {this.afterBackPressed = false});
@@ -40,12 +44,10 @@ class VerificationCheckOrganization extends VerificationState {
 
   @override
   bool get didGoBack => afterBackPressed;
-
-  @override
-  Organization? get organization => flow.organization;
 }
 
 class VerificationMissingAttributes extends VerificationState {
+  @override
   final VerificationFlow flow;
 
   const VerificationMissingAttributes(this.flow);
@@ -61,13 +63,12 @@ class VerificationMissingAttributes extends VerificationState {
 
   @override
   bool get showStopConfirmation => false;
-
-  @override
-  Organization? get organization => flow.organization;
 }
 
 class VerificationConfirmDataAttributes extends VerificationState {
+  @override
   final VerificationFlow flow;
+
   final bool afterBackPressed;
 
   const VerificationConfirmDataAttributes(this.flow, {this.afterBackPressed = false});
@@ -82,13 +83,11 @@ class VerificationConfirmDataAttributes extends VerificationState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  Organization? get organization => flow.organization;
-
-  @override
   bool get canGoBack => true;
 }
 
 class VerificationConfirmPin extends VerificationState {
+  @override
   final VerificationFlow flow;
 
   const VerificationConfirmPin(this.flow);
@@ -100,13 +99,11 @@ class VerificationConfirmPin extends VerificationState {
   double get stepperProgress => 0.75;
 
   @override
-  Organization? get organization => flow.organization;
-
-  @override
   bool get canGoBack => true;
 }
 
 class VerificationSuccess extends VerificationState {
+  @override
   final VerificationFlow flow;
 
   const VerificationSuccess(this.flow);
@@ -116,9 +113,6 @@ class VerificationSuccess extends VerificationState {
 
   @override
   double get stepperProgress => 1;
-
-  @override
-  Organization? get organization => flow.organization;
 
   @override
   bool get showStopConfirmation => false;

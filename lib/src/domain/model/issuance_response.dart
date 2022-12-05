@@ -1,5 +1,5 @@
 import '../../feature/verification/model/organization.dart';
-import 'requested_attribute.dart';
+import 'attribute/requested_attribute.dart';
 import 'wallet_card.dart';
 
 class IssuanceResponse {

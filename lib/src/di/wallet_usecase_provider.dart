@@ -10,6 +10,7 @@ import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart'
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
+import '../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/issuance/wallet_add_issued_card_usecase.dart';
@@ -59,6 +60,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
           create: (context) => GetRequestedAttributesFromWalletUseCase(context.read()),
+        ),
+        RepositoryProvider<LogCardInteractionUseCase>(
+          create: (context) => LogCardInteractionUseCase(context.read()),
         ),
         RepositoryProvider<GetVerifierPolicyUseCase>(
           create: (context) => GetVerifierPolicyUseCase(context.read()),

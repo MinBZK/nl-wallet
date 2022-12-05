@@ -28,7 +28,9 @@ class VerificationShareRequestedAttributesApproved extends VerificationEvent {
 }
 
 class VerificationPinConfirmed extends VerificationEvent {
-  const VerificationPinConfirmed();
+  final VerificationFlow? flow;
+
+  const VerificationPinConfirmed(this.flow);
 
   @override
   List<Object?> get props => [];
@@ -42,7 +44,9 @@ class VerificationBackPressed extends VerificationEvent {
 }
 
 class VerificationStopRequested extends VerificationEvent {
-  const VerificationStopRequested();
+  final VerificationFlow? flow;
+
+  const VerificationStopRequested(this.flow);
 
   @override
   List<Object?> get props => [];

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../domain/model/requested_attribute.dart';
+import '../../../domain/model/attribute/requested_attribute.dart';
 import 'organization.dart';
 import 'verifier_policy.dart';
 

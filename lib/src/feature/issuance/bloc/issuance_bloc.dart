@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
+import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../../../domain/usecase/issuance/wallet_add_issued_card_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
@@ -18,10 +20,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final GetIssuanceResponseUseCase getIssuanceResponseUseCase;
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
   final WalletAddIssuedCardUseCase walletAddIssuedCardUseCase;
+  final LogCardInteractionUseCase logCardInteractionUseCase;
 
   IssuanceBloc(
-      this.getIssuanceResponseUseCase, this.walletAddIssuedCardUseCase, this.getRequestedAttributesFromWalletUseCase)
-      : super(IssuanceInitial()) {
+    this.getIssuanceResponseUseCase,
+    this.walletAddIssuedCardUseCase,
+    this.getRequestedAttributesFromWalletUseCase,
+    this.logCardInteractionUseCase,
+  ) : super(IssuanceInitial()) {
     on<IssuanceLoadTriggered>(_onIssuanceLoadTriggered);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationDeclined>(_onIssuanceOrganizationDeclined);
@@ -33,7 +39,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
   }
 
-  FutureOr<void> _onIssuanceBackPressed(event, emit) async {
+  void _onIssuanceBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is IssuanceProofIdentity) emit(IssuanceCheckOrganization(state.flow, afterBackPressed: true));
@@ -41,7 +47,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  FutureOr<void> _onIssuanceLoadTriggered(event, emit) async {
+  void _onIssuanceLoadTriggered(event, emit) async {
     emit(IssuanceLoadInProgress());
     await Future.delayed(kDefaultMockDelay);
     final response = await getIssuanceResponseUseCase.invoke(event.sessionId);
@@ -49,53 +55,65 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       IssuanceCheckOrganization(
         IssuanceFlow(
           organization: response.organization,
-          requestedDataAttributes: await getRequestedAttributesFromWalletUseCase.invoke(response.requestedAttributes),
+          attributes: await getRequestedAttributesFromWalletUseCase.invoke(response.requestedAttributes),
           cards: response.cards,
         ),
       ),
     );
   }
 
-  FutureOr<void> _onIssuanceOrganizationDeclined(event, emit) async {
+  void _onIssuanceOrganizationDeclined(event, emit) async {
     emit(IssuanceLoadInProgress());
     await Future.delayed(kDefaultMockDelay);
     emit(IssuanceStopped());
   }
 
-  FutureOr<void> _onIssuanceOrganizationApproved(event, emit) async {
+  void _onIssuanceOrganizationApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckOrganization) throw UnsupportedError('Incorrect state to $state');
     emit(IssuanceProofIdentity(state.flow));
   }
 
-  FutureOr<void> _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
+  void _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
     emit(IssuanceLoadInProgress());
     await Future.delayed(kDefaultMockDelay);
     emit(IssuanceStopped());
   }
 
-  FutureOr<void> _onIssuanceShareRequestedAttributesApproved(event, emit) async {
+  void _onIssuanceShareRequestedAttributesApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProofIdentity) throw UnsupportedError('Incorrect state to $state');
     emit(IssuanceProvidePin(state.flow));
   }
 
-  FutureOr<void> _onIssuancePinConfirmed(event, emit) async {
+  void _onIssuancePinConfirmed(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
     emit(IssuanceCheckDataOffering(state.flow));
   }
 
-  FutureOr<void> _onIssuanceCheckDataOfferingApproved(event, emit) async {
+  void _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
+    _logCardInteraction(state.flow, InteractionType.success);
     await walletAddIssuedCardUseCase.invoke(state.flow.cards.first);
     emit(IssuanceCardAdded(state.flow));
   }
 
-  FutureOr<void> _onIssuanceStopRequested(event, emit) async {
+  void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
+    if (event.flow != null) {
+      bool userAlreadySharedData = state is IssuanceCheckDataOffering;
+      _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionType.success : InteractionType.rejected);
+    }
     emit(IssuanceLoadInProgress());
     await Future.delayed(kDefaultMockDelay);
     emit(IssuanceStopped());
+  }
+
+  void _logCardInteraction(IssuanceFlow flow, InteractionType type) {
+    final usedCardIds = flow.resolvedAttributes.map((e) => e.sourceCardId).toSet();
+    for (var cardId in usedCardIds) {
+      logCardInteractionUseCase.invoke(cardId, type, flow.organization.shortName);
+    }
   }
 }

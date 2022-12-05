@@ -1,7 +1,7 @@
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/requested_attribute.dart';
 import '../../../domain/model/card_front.dart';
-import '../../../domain/model/data_attribute.dart';
 import '../../../domain/model/issuance_response.dart';
-import '../../../domain/model/requested_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../source/organization_datasource.dart';
 import '../../source/wallet_datasource.dart';
@@ -18,40 +18,34 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
   @override
   Future<IssuanceResponse> read(String issuanceRequestId) async {
     switch (issuanceRequestId) {
-      case 'PID_1':
+      case _kPidId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
           cards: [_kMockPidWalletCard],
           requestedAttributes: [],
         );
-      case 'DIPLOMA_1':
+      case _kDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
           cards: [_kMockDiplomaWalletCard],
           requestedAttributes: _kMockDiplomaRequestedAttributes,
         );
-      case 'DRIVING_LICENSE':
+      case _kDrivingLicenseId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           cards: [_kMockDrivingLicenseWalletCard],
           requestedAttributes: _kMockGenericRequestedAttributes,
         );
-      case 'HEALTH_INSURANCE':
+      case _kHealthInsuranceId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('health_insurer_1'))!,
           cards: [_kMockHealthInsuranceWalletCard],
           requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
         );
-      case 'VOG':
+      case _kVOGId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('justis'))!,
           cards: [_kMockVOGWalletCard],
-          requestedAttributes: _kMockGenericRequestedAttributes,
-        );
-      case 'PASSPORT':
-        return IssuanceResponse(
-          organization: (await organizationDataSource.read('rvig'))!,
-          cards: [_kMockPassportWalletCard],
           requestedAttributes: _kMockGenericRequestedAttributes,
         );
     }

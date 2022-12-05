@@ -1,5 +1,5 @@
+import 'attribute/data_attribute.dart';
 import 'card_front.dart';
-import 'data_attribute.dart';
 
 class WalletCard {
   final String id;

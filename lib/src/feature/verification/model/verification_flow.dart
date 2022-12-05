@@ -1,24 +1,30 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../domain/model/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/requested_attribute.dart';
 import 'organization.dart';
 import 'verifier_policy.dart';
 
 class VerificationFlow extends Equatable {
   final String id;
   final Organization organization;
-  final List<DataAttribute> requestedDataAttributes;
+  final List<Attribute> attributes;
   final VerifierPolicy policy;
 
   const VerificationFlow({
     required this.id,
     required this.organization,
-    required this.requestedDataAttributes,
+    required this.attributes,
     required this.policy,
   });
 
-  bool get hasMissingAttributes => requestedDataAttributes.any((element) => element.value == null);
+  List<DataAttribute> get resolvedAttributes => attributes.whereType<DataAttribute>().toList();
+
+  List<RequestedAttribute> get missingAttributes => attributes.whereType<RequestedAttribute>().toList();
+
+  bool get hasMissingAttributes => missingAttributes.isNotEmpty;
 
   @override
-  List<Object?> get props => [id, organization, requestedDataAttributes, policy];
+  List<Object?> get props => [id, organization, attributes, policy];
 }

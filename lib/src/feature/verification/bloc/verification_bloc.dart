@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../../../wallet_constants.dart';
@@ -13,9 +15,11 @@ part 'verification_state.dart';
 
 class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   final GetVerificationRequestUseCase getVerificationRequestUseCase;
+  final LogCardInteractionUseCase logCardInteractionUseCase;
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
 
-  VerificationBloc(this.getVerificationRequestUseCase, this.getRequestedAttributesFromWalletUseCase)
+  VerificationBloc(
+      this.getVerificationRequestUseCase, this.getRequestedAttributesFromWalletUseCase, this.logCardInteractionUseCase)
       : super(VerificationInitial()) {
     on<VerificationLoadRequested>(_onVerificationLoadRequested);
     on<VerificationOrganizationApproved>(_onVerificationOrganizationApproved);
@@ -35,8 +39,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
             VerificationFlow(
               id: request.id,
               organization: request.organization,
-              requestedDataAttributes:
-                  await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
+              attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
               policy: request.policy,
             ),
           ),
@@ -68,6 +71,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     final state = this.state;
     if (state is VerificationConfirmPin) {
       emit(VerificationLoadInProgress());
+      if (event.flow != null) _logCardInteraction(event.flow!, InteractionType.success);
       await Future.delayed(kDefaultMockDelay);
       emit(VerificationSuccess(state.flow));
     }
@@ -88,7 +92,15 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
 
   void _onVerificationStopRequested(VerificationStopRequested event, emit) async {
     emit(VerificationLoadInProgress());
+    if (event.flow != null) _logCardInteraction(event.flow!, InteractionType.rejected);
     await Future.delayed(kDefaultMockDelay);
     emit(const VerificationStopped());
+  }
+
+  void _logCardInteraction(VerificationFlow flow, InteractionType type) {
+    final usedCardIds = flow.resolvedAttributes.map((e) => e.sourceCardId).toSet();
+    for (var cardId in usedCardIds) {
+      logCardInteractionUseCase.invoke(cardId, type, flow.organization.shortName);
+    }
   }
 }

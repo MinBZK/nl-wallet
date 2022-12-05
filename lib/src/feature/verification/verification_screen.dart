@@ -110,7 +110,7 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildMissingAttributesPage(BuildContext context, VerificationMissingAttributes state) {
     return VerificationMissingAttributesPage(
-      onDecline: () => context.read<VerificationBloc>().add(const VerificationStopRequested()),
+      onDecline: () => context.read<VerificationBloc>().add(VerificationStopRequested(state.flow)),
       flow: state.flow,
     );
   }
@@ -125,7 +125,7 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, VerificationConfirmPin state) {
     return VerificationConfirmPinPage(
-      onPinValidated: () => context.read<VerificationBloc>().add(const VerificationPinConfirmed()),
+      onPinValidated: () => context.read<VerificationBloc>().add(VerificationPinConfirmed(state.flow)),
     );
   }
 
@@ -162,7 +162,7 @@ class VerificationScreen extends StatelessWidget {
         cancelButtonText: locale.verificationScreenCancelSheetNegativeCta,
         confirmButtonText: locale.verificationScreenCancelSheetPositiveCta,
       );
-      if (stopped) bloc.add(const VerificationStopRequested());
+      if (stopped) bloc.add(VerificationStopRequested(bloc.state.flow));
     } else {
       Navigator.pop(context);
     }

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../domain/model/data_attribute.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/data_attribute_row.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text_icon_button.dart';
 import 'bloc/card_data_bloc.dart';

@@ -1,0 +1,1 @@
+enum AttributeValueType { image, text }

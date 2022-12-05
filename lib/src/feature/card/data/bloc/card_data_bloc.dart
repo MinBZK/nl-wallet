@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../domain/model/data_attribute.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 
 part 'card_data_event.dart';
