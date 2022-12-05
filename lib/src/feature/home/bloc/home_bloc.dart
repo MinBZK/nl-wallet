@@ -12,6 +12,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   FutureOr<void> _onHomeTabPressedEvent(HomeTabPressed event, emit) {
-    emit(HomeScreenSelect(event.index));
+    emit(HomeScreenSelect(event.index, timestamp: DateTime.now().millisecondsSinceEpoch));
   }
 }

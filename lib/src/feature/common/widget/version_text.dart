@@ -12,7 +12,10 @@ class VersionText extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          return Text(AppLocalizations.of(context).generalVersionText(data.version, data.buildNumber));
+          return Text(
+            AppLocalizations.of(context).generalVersionText(data.version, data.buildNumber),
+            style: Theme.of(context).textTheme.bodyText2,
+          );
         } else {
           return const SizedBox.shrink();
         }

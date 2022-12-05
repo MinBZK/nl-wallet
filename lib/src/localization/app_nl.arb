@@ -103,7 +103,7 @@
   "generalOnDate": "Op",
   "generalTimeAgo": "geleden",
   "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
-  "generalVersionText": "Versie: {versionName} ({versionCode})",
+  "generalVersionText": "App versie: {versionName} ({versionCode})",
   "@generalVersionText": {
     "placeholders": {
       "versionName": {
@@ -118,8 +118,8 @@
     "description": "App version and build number"
   },
   "homeScreenBottomNavBarCardsCta": "Kaarten",
+  "homeScreenBottomNavBarMenuCta": "Menu",
   "homeScreenBottomNavBarQrCta": "QR",
-  "homeScreenBottomNavBarSettingsCta": "Instellingen",
   "introductionAppBenefitsPageTitle": "Jij bepaalt met wie je gegevens deelt",
   "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
   "introductionAppIntroPageTitle": "Jouw gegevens makkelijk op je mobiel",
@@ -187,6 +187,35 @@
   "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
   "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
   "issuanceStoppedPageTitle": "Delen gestopt",
+  "menuAboutPageDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
+  "menuAboutPageFeedbackCta": "Geef feedback",
+  "menuAboutPagePrivacyCta": "Privacybeleid",
+  "menuAboutPageTermsCta": "Gebruiksvoorwaarden",
+  "menuAboutPageTitle": "Over deze app",
+  "menuAboutPageUrl": "edi.pleio.nl",
+  "menuMainPageAboutCta": "Over deze app",
+  "menuMainPageDesignCta": "Design System",
+  "menuMainPageGreeting": "Hallo {name}",
+  "@menuMainPageGreeting": {
+    "placeholders": {
+      "name": {
+        "example": "Willeke",
+        "type": "String"
+      }
+    },
+    "description": "Greeting at top of the setting screen"
+  },
+  "menuMainPageHelpCta": "Help",
+  "menuMainPageHistoryCta": "Gebruiksgeschiedenis",
+  "menuMainPageLockCta": "Uitloggen",
+  "menuMainPageSettingsCta": "Instellingen",
+  "menuScreenAboutTitle": "Over de app",
+  "menuScreenMainTitle": "Menu",
+  "menuScreenSettingsTitle": "Instellingen",
+  "menuSettingsPageChangeLanguageCta": "Taal veranderen",
+  "menuSettingsPageChangePinCta": "Toegangscode veranderen",
+  "menuSettingsPageClearDataCta": "Gegevens wissen",
+  "menuSettingsPageSetupBiometricsCta": "Biometrie instellen",
   "mockDigidScreenCta": "Inloggen met DigiD",
   "mockDigidScreenDescription": "Tijdens de demo is het inloggen met DigiD enkel ter illustratie, als je op volgende klikt ga je verder alsof je je zojuist hebt aangemeld.",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
@@ -218,7 +247,6 @@
   "qrScreenMyCodeTabTitle": "Mijn code",
   "qrScreenScanTabTitle": "Scannen",
   "qrScreenTitle": "QR-code",
-  "settingsScreenTitle": "Instellingen",
   "setupSecurityCompletedPageCreateWalletCta": "Mijn Wallet aanmaken",
   "setupSecurityCompletedPageDescription": "Je beveiliging is ingesteld.",
   "setupSecurityCompletedPageTitle": "Gelukt",

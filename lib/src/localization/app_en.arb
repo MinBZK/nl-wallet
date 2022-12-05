@@ -103,7 +103,7 @@
   "generalOnDate": "On",
   "generalTimeAgo": "ago",
   "generalTimeAgoLessThenOneMinute": "less then a minute",
-  "generalVersionText": "Version: {versionName} ({versionCode})",
+  "generalVersionText": "App version: {versionName} ({versionCode})",
   "@generalVersionText": {
     "placeholders": {
       "versionName": {
@@ -118,8 +118,8 @@
     "description": "App version and build number"
   },
   "homeScreenBottomNavBarCardsCta": "Cards",
+  "homeScreenBottomNavBarMenuCta": "Menu",
   "homeScreenBottomNavBarQrCta": "QR",
-  "homeScreenBottomNavBarSettingsCta": "Settings",
   "introductionAppBenefitsPageTitle": "Jij bepaalt met wie je gegevens deelt",
   "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
   "introductionAppIntroPageTitle": "Jouw gegevens makkelijk op je mobiel",
@@ -187,9 +187,38 @@
   "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
   "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
   "issuanceStoppedPageTitle": "Sharing stopped",
-  "mockDigidScreenCta": "Inloggen met DigiD",
-  "mockDigidScreenDescription": "Tijdens de demo is het inloggen met DigiD enkel ter illustratie, als je op volgende klikt ga je verder alsof je je zojuist hebt aangemeld.",
-  "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+  "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
+  "menuAboutPageFeedbackCta": "Give feedback",
+  "menuAboutPagePrivacyCta": "Privacy policy",
+  "menuAboutPageTermsCta": "Terms and conditions",
+  "menuAboutPageTitle": "About this app",
+  "menuAboutPageUrl": "edi.pleio.nl",
+  "menuMainPageAboutCta": "About this app",
+  "menuMainPageDesignCta": "Design System",
+  "menuMainPageGreeting": "Hi {name}",
+  "@menuMainPageGreeting": {
+    "placeholders": {
+      "name": {
+        "example": "Willeke",
+        "type": "String"
+      }
+    },
+    "description": "Greeting at top of the setting screen"
+  },
+  "menuMainPageHelpCta": "Help",
+  "menuMainPageHistoryCta": "Usage history",
+  "menuMainPageLockCta": "Log out",
+  "menuMainPageSettingsCta": "Settings",
+  "menuScreenAboutTitle": "About the app",
+  "menuScreenMainTitle": "Menu",
+  "menuScreenSettingsTitle": "Settings",
+  "menuSettingsPageChangeLanguageCta": "Change language",
+  "menuSettingsPageChangePinCta": "Change pin",
+  "menuSettingsPageClearDataCta": "Remove data",
+  "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
+  "mockDigidScreenCta": "Login with DigiD",
+  "mockDigidScreenDescription": "During the demo, DigiD is only used for illustrative purposes.",
+  "mockDigidScreenTitle": "Securely Login with DigiD",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {
@@ -218,7 +247,6 @@
   "qrScreenMyCodeTabTitle": "My code",
   "qrScreenScanTabTitle": "Scan",
   "qrScreenTitle": "QR-code",
-  "settingsScreenTitle": "Settings",
   "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
   "setupSecurityCompletedPageDescription": "Your security is configured.",
   "setupSecurityCompletedPageTitle": "Success",

@@ -7,6 +7,7 @@ import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/bloc/card_history_bloc.dart';
 import 'feature/card/history/card_history_screen.dart';
+import 'feature/card/overview/bloc/card_overview_bloc.dart';
 import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
@@ -16,6 +17,7 @@ import 'feature/introduction/bloc/introduction_bloc.dart';
 import 'feature/introduction/introduction_screen.dart';
 import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
+import 'feature/menu/bloc/menu_bloc.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_prompt.dart';
@@ -136,8 +138,18 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
       child: const SetupSecurityScreen(),
     );
 
-Widget _createHomeScreenBuilder(BuildContext context) => BlocProvider<HomeBloc>(
-      create: (BuildContext context) => HomeBloc(),
+Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
+      providers: [
+        BlocProvider<HomeBloc>(
+          create: (BuildContext context) => HomeBloc(),
+        ),
+        BlocProvider<CardOverviewBloc>(
+          create: (BuildContext context) => CardOverviewBloc(context.read(), context.read()),
+        ),
+        BlocProvider<MenuBloc>(
+          create: (BuildContext context) => MenuBloc(context.read(), context.read()),
+        ),
+      ],
       child: const HomeScreen(),
     );
 

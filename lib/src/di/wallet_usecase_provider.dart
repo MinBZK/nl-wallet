@@ -21,6 +21,7 @@ import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
+import '../domain/usecase/wallet/get_first_name_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_wallet_timeline_attributes_usecase.dart';
 
@@ -69,6 +70,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCase(context.read()),
+        ),
+        RepositoryProvider<GetFirstNamesUseCase>(
+          create: (context) => GetFirstNamesUseCase(context.read()),
         ),
         RepositoryProvider<GetWalletCardsUseCase>(
           create: (context) => GetWalletCardsUseCase(context.read()),

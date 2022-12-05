@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../card/overview/bloc/card_overview_bloc.dart';
 import '../card/overview/card_overview_screen.dart';
+import '../menu/bloc/menu_bloc.dart';
+import '../menu/menu_screen.dart';
 import '../qr/qr_screen.dart';
-import '../setting/setting_screen.dart';
 import 'bloc/home_bloc.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -20,15 +20,23 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildBody() {
-    return BlocBuilder<HomeBloc, HomeState>(
+    return BlocConsumer<HomeBloc, HomeState>(
+      listenWhen: (prev, current) => prev.screenIndex == current.screenIndex,
+      listener: (context, state) {
+        switch (state.screenIndex) {
+          case 2:
+            context.read<MenuBloc>().add(MenuHomePressed());
+            break;
+        }
+      },
       builder: (context, state) {
         switch (state.screenIndex) {
           case 0:
-            return _cardOverviewBlocProvider(context);
+            return const CardOverviewScreen();
           case 1:
             return const QrScreen();
           case 2:
-            return const SettingScreen();
+            return const MenuScreen();
           default:
             throw UnsupportedError('Unhandled screenIndex: ${state.screenIndex}');
         }
@@ -41,8 +49,7 @@ class HomeScreen extends StatelessWidget {
     final items = [
       BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: locale.homeScreenBottomNavBarCardsCta),
       BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: locale.homeScreenBottomNavBarQrCta),
-      BottomNavigationBarItem(
-          icon: const Icon(Icons.settings_outlined), label: locale.homeScreenBottomNavBarSettingsCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.menu), label: locale.homeScreenBottomNavBarMenuCta),
     ];
 
     return BlocBuilder<HomeBloc, HomeState>(
@@ -55,11 +62,6 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
-
-  Widget _cardOverviewBlocProvider(BuildContext context) => BlocProvider<CardOverviewBloc>(
-        create: (BuildContext context) => CardOverviewBloc(context.read(), context.read()),
-        child: const CardOverviewScreen(),
-      );
 
   int _resolveBottomNavigationBarCurrentIndex(HomeState state) {
     if (state is HomeScreenSelect) return state.screenIndex;

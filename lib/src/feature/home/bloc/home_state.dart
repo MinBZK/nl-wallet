@@ -7,8 +7,11 @@ abstract class HomeState extends Equatable {
 }
 
 class HomeScreenSelect extends HomeState {
-  const HomeScreenSelect(super.screenIndex);
+  // Used to distinguish between repeated presses
+  final int timestamp;
+
+  const HomeScreenSelect(super.screenIndex, {this.timestamp = 0});
 
   @override
-  List<Object> get props => [screenIndex];
+  List<Object> get props => [screenIndex, timestamp];
 }
