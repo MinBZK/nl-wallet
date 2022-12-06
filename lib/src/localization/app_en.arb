@@ -101,6 +101,7 @@
     "description": "Minutes"
   },
   "generalOnDate": "On",
+  "generalRetry": "Retry",
   "generalTimeAgo": "ago",
   "generalTimeAgoLessThenOneMinute": "less then a minute",
   "generalVersionText": "App version: {versionName} ({versionCode})",
@@ -341,6 +342,20 @@
     "description": "Title shown when data has been successfully shared"
   },
   "verifierPolicyScreenBackCta": "Back",
+  "verifierPolicyScreenDataCanBeDeleted": "You can request data deletion",
+  "verifierPolicyScreenDataCanNotBeDeleted": "You can not request data deletion",
+  "verifierPolicyScreenDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "@verifierPolicyScreenDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "verifierPolicyScreenDataWillBeShared": "Information will be shared",
+  "verifierPolicyScreenDataWillNotBeShared": "Information will not be shared",
   "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
   "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
   "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",

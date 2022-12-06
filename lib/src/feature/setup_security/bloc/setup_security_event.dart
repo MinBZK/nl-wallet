@@ -19,3 +19,5 @@ class PinDigitPressed extends SetupSecurityEvent {
 }
 
 class PinBackspacePressed extends SetupSecurityEvent {}
+
+class SetupSecurityRetryPressed extends SetupSecurityEvent {}

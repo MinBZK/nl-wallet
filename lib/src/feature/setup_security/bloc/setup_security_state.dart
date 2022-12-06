@@ -73,3 +73,8 @@ class SetupSecurityCompleted extends SetupSecurityState {
   @override
   double get stepperProgress => 3 / _kTotalSteps;
 }
+
+class SetupSecurityFailure extends SetupSecurityState {
+  @override
+  double get stepperProgress => 0;
+}

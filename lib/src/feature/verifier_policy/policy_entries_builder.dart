@@ -36,8 +36,7 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildStorageDurationPolicy(VerifierPolicy policy) {
     return PolicyEntry(
       title: TextSpan(
-        //FIXME: Currently relying on translation from [VerificationScreen]
-        text: locale.verificationConfirmDataAttributesPageDataRetentionDuration(
+        text: locale.verifierPolicyScreenDataRetentionDuration(
           policy.storageDuration.inDays,
         ),
       ),
@@ -48,11 +47,10 @@ class PolicyEntriesBuilder {
 
   PolicyEntry _buildDataSharingPolicy(VerifierPolicy policy) {
     return PolicyEntry(
-      //FIXME: Currently relying on translation from [VerificationScreen]
       title: TextSpan(
         text: policy.dataIsShared
-            ? locale.verificationConfirmDataAttributesPageDataWillBeShared
-            : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
+            ? locale.verifierPolicyScreenDataWillBeShared
+            : locale.verifierPolicyScreenDataWillNotBeShared,
       ),
       description: const TextSpan(text: _kLoremIpsum),
       icon: Icons.share_outlined,
@@ -62,10 +60,9 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildDeletionPolicy(VerifierPolicy policy) {
     return PolicyEntry(
       title: TextSpan(
-        //FIXME: Currently relying on translation from [VerificationScreen]
         text: policy.deletionCanBeRequested
-            ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
-            : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
+            ? locale.verifierPolicyScreenDataCanBeDeleted
+            : locale.verifierPolicyScreenDataCanNotBeDeleted,
       ),
       description: const TextSpan(text: _kLoremIpsumShort),
       icon: Icons.delete_outline,

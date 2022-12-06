@@ -59,6 +59,7 @@ class SetupSecurityScreen extends StatelessWidget {
         if (state is SetupSecurityPinConfirmationFailed) result = _buildPinConfirmationErrorPage(context, state);
         if (state is SetupSecurityCreatingWallet) result = _buildCreatingWallet(context, state);
         if (state is SetupSecurityCompleted) result = _buildSetupCompletedPage(context, state);
+        if (state is SetupSecurityFailure) result = _buildSetupFailed(context);
         if (result == null) throw UnsupportedError('Unknown state: $state');
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -164,6 +165,24 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
       onSetupWalletPressed: () => Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
+    );
+  }
+
+  Widget _buildSetupFailed(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline),
+          const SizedBox(height: 16),
+          IntrinsicWidth(
+            child: ElevatedButton(
+              onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityRetryPressed()),
+              child: Text(AppLocalizations.of(context).generalRetry),
+            ),
+          )
+        ],
+      ),
     );
   }
 }

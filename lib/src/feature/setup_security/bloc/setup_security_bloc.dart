@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +32,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     on<SetupSecurityBackPressed>(_onSetupSecurityBackPressedEvent);
     on<PinDigitPressed>(_onPinDigitPressedEvent);
     on<PinBackspacePressed>(_onPinBackspacePressedEvent);
+    on<SetupSecurityRetryPressed>(_onRetryPressed);
   }
 
   Future<void> _onSetupSecurityBackPressedEvent(event, emit) async {
@@ -83,11 +86,11 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     try {
       await createWalletUseCase.invoke(pin);
       await unlockWalletWithPinUseCase.invoke(pin);
+      emit(SetupSecurityCompleted());
     } catch (ex, stack) {
       Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);
-      await _resetFlow(emit); //FIXME: Implement proper error state?
+      emit(SetupSecurityFailure());
     }
-    emit(SetupSecurityCompleted());
   }
 
   Future<void> _onPinBackspacePressedEvent(event, emit) async {
@@ -109,6 +112,8 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     _confirmPin = _confirmPin.removeLastChar();
     emit(SetupSecurityPinConfirmationInProgress(_confirmPin.length));
   }
+
+  Future<void> _onRetryPressed(event, emit) => _resetFlow(emit);
 
   Future<void> _resetFlow(emit) async {
     _newPin = '';

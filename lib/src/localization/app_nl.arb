@@ -101,6 +101,7 @@
     "description": "Minutes"
   },
   "generalOnDate": "Op",
+  "generalRetry": "Probeer opnieuw",
   "generalTimeAgo": "geleden",
   "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
   "generalVersionText": "App versie: {versionName} ({versionCode})",
@@ -341,6 +342,20 @@
     "description": "Title shown when data has been successfully shared"
   },
   "verifierPolicyScreenBackCta": "Terug",
+  "verifierPolicyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "verifierPolicyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "verifierPolicyScreenDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@verifierPolicyScreenDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "verifierPolicyScreenDataWillBeShared": "Gegevens worden gedeeld",
+  "verifierPolicyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
   "verifierPolicyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
   "verifierPolicyScreenPolicySectionPolicyCta": "privacybeleid",
   "verifierPolicyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
