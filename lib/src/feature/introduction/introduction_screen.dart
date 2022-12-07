@@ -82,7 +82,7 @@ class IntroductionScreen extends StatelessWidget {
       image: const AssetImage('assets/non-free/images/image_introduction_app_security.png'),
       title: AppLocalizations.of(context).introductionAppSecurityPageTitle,
       progressStepper: _buildProgressStepper(state),
-      onNextPressed: () => Navigator.pushReplacementNamed(context, WalletRoutes.setupSecurityRoute),
+      onNextPressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.setupSecurityRoute),
       secondaryCta: _buildPrivacyPolicyCta(context),
       onBackPressed: () => _onBackPressed(context),
     );

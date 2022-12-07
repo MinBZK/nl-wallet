@@ -110,7 +110,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
     return WalletPersonalizeSuccessPage(
-      onContinuePressed: () => Navigator.pushReplacementNamed(context, WalletRoutes.homeRoute),
+      onContinuePressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute),
       cardFront: state.cardFront,
     );
   }

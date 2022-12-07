@@ -164,7 +164,8 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
-      onSetupWalletPressed: () => Navigator.pushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
+      onSetupWalletPressed: () =>
+          Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
     );
   }
 
