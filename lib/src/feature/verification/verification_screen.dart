@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -140,7 +141,7 @@ class VerificationScreen extends StatelessWidget {
     return VerificationSuccessPage(
       verifierShortName: state.flow.organization.shortName,
       onClosePressed: () => Navigator.pop(context),
-      onHistoryPressed: () => PlaceholderScreen.show(context, 'Geschiedenis'),
+      onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
     );
   }
 

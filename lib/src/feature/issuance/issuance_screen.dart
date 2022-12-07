@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -135,7 +136,11 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
     return IssuanceCardAddedPage(
-      onClose: () => _stopIssuance(context),
+      onClose: () => Navigator.restorablePushNamedAndRemoveUntil(
+        context,
+        WalletRoutes.homeRoute,
+        ModalRoute.withName(WalletRoutes.splashRoute),
+      ),
       cardFront: state.flow.cards.first.front,
     );
   }
