@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/placeholder_screen.dart';
 import '../common/widget/text_icon_button.dart';
 import 'bloc/introduction_bloc.dart';
 import 'page/introduction_page.dart';
@@ -50,7 +53,7 @@ class IntroductionScreen extends StatelessWidget {
       title: AppLocalizations.of(context).introductionAppDisclaimerPageTitle,
       progressStepper: _buildProgressStepper(state),
       onNextPressed: () => _onNextPressed(context),
-      secondaryCta: _buildLanguageSelectCta(context),
+      secondaryCta: _buildSecondaryCta(context),
     );
   }
 
@@ -92,14 +95,28 @@ class IntroductionScreen extends StatelessWidget {
     return IntroductionProgressStepper(currentStep: state.currentStep, totalSteps: state.totalSteps);
   }
 
-  Widget _buildLanguageSelectCta(BuildContext context) {
-    return TextIconButton(
-      icon: Icons.language,
-      iconPosition: IconPosition.start,
-      onPressed: () {},
-      centerChild: false,
-      child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
-    );
+  Widget _buildSecondaryCta(BuildContext context) {
+    if (kDebugMode) {
+      return TextIconButton(
+        icon: Icons.skip_next,
+        iconPosition: IconPosition.start,
+        onPressed: () async {
+          final navigator = Navigator.of(context);
+          await context.read<SetupMockedWalletUseCase>().invoke();
+          navigator.pushReplacementNamed(WalletRoutes.homeRoute);
+        },
+        centerChild: false,
+        child: const Text('SKIP INTRO (DEV ONLY)'),
+      );
+    } else {
+      return TextIconButton(
+        icon: Icons.language,
+        iconPosition: IconPosition.start,
+        onPressed: () => PlaceholderScreen.show(context, AppLocalizations.of(context).introductionLanguageSelectCta),
+        centerChild: false,
+        child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
+      );
+    }
   }
 
   Widget _buildPrivacyPolicyCta(BuildContext context) {

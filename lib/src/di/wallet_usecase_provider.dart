@@ -24,6 +24,7 @@ import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_name_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_wallet_timeline_attributes_usecase.dart';
+import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -110,6 +111,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetWalletTimelineAttributesUseCase>(
           create: (context) => GetWalletTimelineAttributesUseCase(context.read()),
+        ),
+        RepositoryProvider<SetupMockedWalletUseCase>(
+          create: (context) => SetupMockedWalletUseCase(context.read(), context.read(), context.read(), context.read()),
         ),
       ],
       child: child,
