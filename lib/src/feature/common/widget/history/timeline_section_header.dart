@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../../../../util/extension/string_extension.dart';
 
-class TimelineAttributeSection extends StatelessWidget {
+class TimelineSectionHeader extends StatelessWidget {
   final DateTime dateTime;
 
-  const TimelineAttributeSection({required this.dateTime, Key? key}) : super(key: key);
+  const TimelineSectionHeader({required this.dateTime, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

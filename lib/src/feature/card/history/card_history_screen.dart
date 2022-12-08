@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../domain/model/card_front.dart';
+import '../../../domain/model/timeline_section.dart';
+import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/history/timeline_scroll_view.dart';
+import '../../common/widget/history/timeline_card_header.dart';
+import '../../common/widget/history/timeline_section_sliver.dart';
+import '../../common/widget/text_icon_button.dart';
 import 'bloc/card_history_bloc.dart';
 
 class CardHistoryScreen extends StatelessWidget {
@@ -46,6 +51,38 @@ class CardHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildHistory(BuildContext context, CardHistoryLoadSuccess state) {
-    return TimelineScrollView(cardFront: state.card.front, attributes: state.attributes);
+    final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
+
+    List<Widget> slivers = [
+      _buildCardHeader(state.card.front),
+      ...sections.map((section) => TimelineSectionSliver(section: section)),
+      _buildBackButton(context),
+    ];
+
+    return CustomScrollView(slivers: slivers);
+  }
+
+  Widget _buildCardHeader(CardFront front) {
+    return SliverToBoxAdapter(child: TimelineCardHeader(cardFront: front));
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      fillOverscroll: true,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          height: 72,
+          width: double.infinity,
+          child: TextIconButton(
+            onPressed: () => Navigator.pop(context),
+            iconPosition: IconPosition.start,
+            icon: Icons.arrow_back,
+            child: Text(AppLocalizations.of(context).timelineScrollViewBackCta),
+          ),
+        ),
+      ),
+    );
   }
 }
