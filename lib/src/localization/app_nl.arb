@@ -25,6 +25,16 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
+  "approveOrganizationPageSignWithTitle": "{organization} vraagt of je wil ondertekenen. Klopt dat?",
+  "@approveOrganizationPageSignWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when signing"
+  },
   "cardDataScreenCloseCta": "Terug",
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
   "cardDataScreenTitle": "Alle gegevens",
@@ -70,6 +80,44 @@
   "cardSummaryScreenShareHistoryTitle": "Geschiedenis",
   "cardSummaryScreenShareSuccessNoHistory": "Nog nooit gedeeld.",
   "cardSummaryScreenTitle": "Kaart overzicht",
+  "checkAgreementPageCancelCta": "Nee",
+  "checkAgreementPageConfirmCta": "Ja, volgende",
+  "checkAgreementPageDataIncorrectCta": "Klopt er iets niet?",
+  "checkAgreementPageShowDocumentCta": "PDF bekijken",
+  "checkAgreementPageSignProvider": "{organization} gebruikt {provider} voor het ondertekenen van afspraken.",
+  "@checkAgreementPageSignProvider": {
+    "placeholders": {
+      "organization": {
+        "example": "Housing Corporation A",
+        "type": "String"
+      },
+      "provider": {
+        "example": "DocuSign",
+        "type": "String"
+      }
+    },
+    "description": "Text to inform which third party is used to sign documents"
+  },
+  "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
+  "checkAgreementPageTitle": "Ken je de afspraken?",
+  "confirmAgreementPageAllPoliciesCta": "Alle voorwaarden",
+  "confirmAgreementPageCancelCta": "Nee",
+  "confirmAgreementPageConfirmCta": "Ja, tekenen",
+  "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
+  "confirmAgreementPageDataNotShared": "Je gegevens worden niet gedeeld met derden",
+  "confirmAgreementPageDataShared": "Je gegevens worden gedeeld met derden",
+  "confirmAgreementPageSignProvider": "Je gaat ondertekenen met {provider}",
+  "@confirmAgreementPageSignProvider": {
+    "placeholders": {
+      "provider": {
+        "example": "DocuSign",
+        "type": "String"
+      }
+    },
+    "description": "Text to inform which third party is used to sign documents"
+  },
+  "confirmAgreementPageSigningContextInfo": "Met ondertekenen maak je een afspraak definitief",
+  "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {
@@ -136,9 +184,9 @@
   "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
   "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
   "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
-  "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-  "issuanceConfirmPinErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
-  "@issuanceConfirmPinErrorDescription": {
+  "issuanceConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+  "issuanceConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+  "@issuanceConfirmPinPageErrorDescription": {
     "placeholders": {
       "count": {
         "example": "3",
@@ -147,8 +195,8 @@
     },
     "description": "Attempts left counter on the pin entry screen"
   },
-  "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
-  "issuanceConfirmPinTitle": "Vul je toegangscode in",
+  "issuanceConfirmPinPageErrorTitle": "Ongeldige toegangscode",
+  "issuanceConfirmPinPageTitle": "Vul je toegangscode in",
   "issuanceGenericErrorPageCloseCta": "Sluiten",
   "issuanceGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
   "issuanceGenericErrorPageTitle": "Er ging iets mis",
@@ -261,6 +309,44 @@
   "setupSecuritySelectPinErrorPageDescription": "Kies een andere toegangscode",
   "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
   "setupSecuritySelectPinPageTitle": "Kies een 6 cijferige toegangscode",
+  "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+  "signConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+  "@signConfirmPinPageErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "signConfirmPinPageErrorTitle": "Ongeldige toegangscode",
+  "signConfirmPinPageTitle": "Vul je toegangscode in",
+  "signGenericErrorPageCloseCta": "Sluiten",
+  "signGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+  "signGenericErrorPageTitle": "Er ging iets mis",
+  "signScreenCancelSheetDescription": "Als je stopt worden de afspraken niet ondertekend.",
+  "signScreenCancelSheetNegativeCta": "Nee",
+  "signScreenCancelSheetPositiveCta": "Ja, stoppen",
+  "signScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
+  "signScreenTitle": "Ondertekenen",
+  "signStoppedPageCloseCta": "Sluiten",
+  "signStoppedPageDescription": "Door te stoppen heb je de afspraken niet ondertekend.",
+  "signStoppedPageFeedbackCta": "Geef feedback",
+  "signStoppedPageTitle": "Ondertekenen gestopt",
+  "signSuccessPageCloseCta": "Sluiten",
+  "signSuccessPageDescription": "Je hebt de afspraken met {organization} ondertekend.",
+  "@signSuccessPageDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "Housing Corp. A",
+        "type": "String"
+      }
+    },
+    "description": "Text to confirm with which organization you signed a contract"
+  },
+  "signSuccessPageHistoryCta": "Geschiedenis",
+  "signSuccessPageTitle": "Gelukt!",
   "timelineScrollViewBackCta": "Terug",
   "verificationConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
   "verificationConfirmDataAttributesPageApproveCta": "Ja, verder",

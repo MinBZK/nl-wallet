@@ -16,4 +16,4 @@ class EdiQrCode {
   Map<String, dynamic> toJson() => _$EdiQrCodeToJson(this);
 }
 
-enum EdiQrType { issue, verify }
+enum EdiQrType { issue, verify, sign }

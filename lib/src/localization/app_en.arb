@@ -25,6 +25,16 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
+  "approveOrganizationPageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
+  "@approveOrganizationPageSignWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when signing"
+  },
   "cardDataScreenCloseCta": "Back",
   "cardDataScreenIncorrectCta": "Is something not right?",
   "cardDataScreenTitle": "All data",
@@ -70,6 +80,44 @@
   "cardSummaryScreenShareHistoryTitle": "History",
   "cardSummaryScreenShareSuccessNoHistory": "Never shared yet.",
   "cardSummaryScreenTitle": "Card summary",
+  "checkAgreementPageCancelCta": "No",
+  "checkAgreementPageConfirmCta": "Yes, next",
+  "checkAgreementPageDataIncorrectCta": "Is something not right?",
+  "checkAgreementPageShowDocumentCta": "View PDF",
+  "checkAgreementPageSignProvider": "{organization} uses {provider} to sign agreements.",
+  "@checkAgreementPageSignProvider": {
+    "placeholders": {
+      "organization": {
+        "example": "Housing Corporation A",
+        "type": "String"
+      },
+      "provider": {
+        "example": "DocuSign",
+        "type": "String"
+      }
+    },
+    "description": "Text to inform which third party is used to sign documents"
+  },
+  "checkAgreementPageSubtitle": "Check the agreement before continuing",
+  "checkAgreementPageTitle": "Are you aware of the agreement?",
+  "confirmAgreementPageAllPoliciesCta": "All policies",
+  "confirmAgreementPageCancelCta": "No",
+  "confirmAgreementPageConfirmCta": "Yes, sign",
+  "confirmAgreementPageDataIncorrectCta": "Something not right?",
+  "confirmAgreementPageDataNotShared": "You information will not be shared with third parties",
+  "confirmAgreementPageDataShared": "You information will be shared with third parties",
+  "confirmAgreementPageSignProvider": "You will be signing through {provider}",
+  "@confirmAgreementPageSignProvider": {
+    "placeholders": {
+      "provider": {
+        "example": "DocuSign",
+        "type": "String"
+      }
+    },
+    "description": "Text to inform which third party is used to sign documents"
+  },
+  "confirmAgreementPageSigningContextInfo": "By continuing the agreement will be definitive",
+  "confirmAgreementPageTitle": "Do you want to sign using this information",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
     "placeholders": {
@@ -136,9 +184,9 @@
   "issuanceCheckDataOfferingPagePositiveCta": "Add",
   "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
   "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
-  "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
-  "issuanceConfirmPinErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
-  "@issuanceConfirmPinErrorDescription": {
+  "issuanceConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
+  "issuanceConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+  "@issuanceConfirmPinPageErrorDescription": {
     "placeholders": {
       "count": {
         "example": "3",
@@ -147,8 +195,8 @@
     },
     "description": "Attempts left counter on the pin entry screen"
   },
-  "issuanceConfirmPinErrorTitle": "Invalid code",
-  "issuanceConfirmPinTitle": "Enter your pin",
+  "issuanceConfirmPinPageErrorTitle": "Invalid code",
+  "issuanceConfirmPinPageTitle": "Enter your pin",
   "issuanceGenericErrorPageCloseCta": "Close",
   "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
   "issuanceGenericErrorPageTitle": "Something went wrong",
@@ -261,6 +309,44 @@
   "setupSecuritySelectPinErrorPageDescription": "Choose another code",
   "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
   "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",
+  "signConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
+  "signConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+  "@signConfirmPinPageErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "signConfirmPinPageErrorTitle": "Invalid code",
+  "signConfirmPinPageTitle": "Enter your pin",
+  "signGenericErrorPageCloseCta": "Close",
+  "signGenericErrorPageDescription": "An error occurred, please try again later.",
+  "signGenericErrorPageTitle": "Something went wrong",
+  "signScreenCancelSheetDescription": "If you stop, no agreement will be signed.",
+  "signScreenCancelSheetNegativeCta": "No",
+  "signScreenCancelSheetPositiveCta": "Yes, stop",
+  "signScreenCancelSheetTitle": "Are you sure you want to stop?",
+  "signScreenTitle": "Sign",
+  "signStoppedPageCloseCta": "Close",
+  "signStoppedPageDescription": "By stopping, no agreements have been signed",
+  "signStoppedPageFeedbackCta": "Give feedback",
+  "signStoppedPageTitle": "Signing stopped",
+  "signSuccessPageCloseCta": "Close",
+  "signSuccessPageDescription": "You signed the agreement with {organization}.",
+  "@signSuccessPageDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "Housing Corp. A",
+        "type": "String"
+      }
+    },
+    "description": "Text to confirm with which organization you signed a contract"
+  },
+  "signSuccessPageHistoryCta": "History",
+  "signSuccessPageTitle": "Success!",
   "timelineScrollViewBackCta": "Back",
   "verificationConfirmDataAttributesPageAllTermsCta": "All terms",
   "verificationConfirmDataAttributesPageApproveCta": "Yes, next",

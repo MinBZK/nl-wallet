@@ -7,10 +7,10 @@ import '../../common/widget/pin_header.dart';
 import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
 
-class IssuanceConfirmPinPage extends StatelessWidget {
+class SignConfirmPinPage extends StatelessWidget {
   final VoidCallback onPinValidated;
 
-  const IssuanceConfirmPinPage({
+  const SignConfirmPinPage({
     required this.onPinValidated,
     Key? key,
   }) : super(key: key);
@@ -25,11 +25,11 @@ class IssuanceConfirmPinPage extends StatelessWidget {
           final hasError = attempts != null;
           final String title, description;
           if (!hasError) {
-            title = locale.issuanceConfirmPinPageTitle;
-            description = locale.issuanceConfirmPinPageDescription;
+            title = locale.signConfirmPinPageTitle;
+            description = locale.signConfirmPinPageDescription;
           } else {
-            title = locale.issuanceConfirmPinPageErrorTitle;
-            description = locale.issuanceConfirmPinPageErrorDescription(attempts);
+            title = locale.signConfirmPinPageErrorTitle;
+            description = locale.signConfirmPinPageErrorDescription(attempts);
           }
           return Expanded(
             child: PinHeader(

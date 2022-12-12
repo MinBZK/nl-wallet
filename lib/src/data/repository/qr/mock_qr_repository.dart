@@ -13,9 +13,11 @@ class MockQrRepository implements QrRepository {
     final code = EdiQrCode.fromJson(json);
     switch (code.type) {
       case EdiQrType.issue:
-        return QrIssuanceRequest(code.id.toString());
+        return QrIssuanceRequest(code.id);
       case EdiQrType.verify:
-        return QrVerificationRequest(code.id.toString());
+        return QrVerificationRequest(code.id);
+      case EdiQrType.sign:
+        return QrSignRequest(code.id);
     }
   }
 }

@@ -9,6 +9,7 @@ const _kOrganizations = [
   _kMarketPlaceOrganization,
   _kBarOrganization,
   _kHealthInsurerOrganization,
+  _kHousingCorporationOrganization,
 ];
 
 const _kRijksOrganization = Organization(
@@ -78,4 +79,12 @@ const _kHealthInsurerOrganization = Organization(
   description:
       'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.',
   logoUrl: 'assets/images/logo_zorgverzekeraar_z.png',
+);
+
+const _kHousingCorporationOrganization = Organization(
+  id: 'housing_corp_1',
+  name: 'Woningcorporatie A',
+  shortName: 'Woningcorporatie A',
+  description: 'Richt zich op het bouwen, beheren en verhuren van kwalitatieve woonruimte met een betaalbare huur.',
+  logoUrl: 'assets/non-free/images/logo_housing_corp.png',
 );

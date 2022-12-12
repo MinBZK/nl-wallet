@@ -24,6 +24,8 @@ import 'feature/pin/pin_prompt.dart';
 import 'feature/pin/pin_screen.dart';
 import 'feature/setup_security/bloc/setup_security_bloc.dart';
 import 'feature/setup_security/setup_security_screen.dart';
+import 'feature/sign/bloc/sign_bloc.dart';
+import 'feature/sign/sign_screen.dart';
 import 'feature/splash/bloc/splash_bloc.dart';
 import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
@@ -61,6 +63,7 @@ class WalletRoutes {
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
   static const issuanceRoute = '/issuance';
+  static const signRoute = '/sign';
   static const verifierPolicyRoute = '/verifier/policy';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -104,6 +107,8 @@ class WalletRoutes {
         return _createVerifierPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
         return _createIssuanceScreenBuilder(settings);
+      case WalletRoutes.signRoute:
+        return _createSignScreenBuilder(settings);
       case WalletRoutes.walletPersonalizeRoute:
         return _createWalletPersonalizeScreenBuilder;
       case WalletRoutes.walletHistoryRoute:
@@ -226,6 +231,18 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
           ..add(IssuanceLoadTriggered(sessionId));
       },
       child: const IssuanceScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
+  return (context) {
+    String sessionId = SignScreen.getArguments(settings);
+    return BlocProvider<SignBloc>(
+      create: (BuildContext context) {
+        return SignBloc(context.read(), context.read(), context.read())..add(SignLoadTriggered(sessionId));
+      },
+      child: const SignScreen(),
     );
   };
 }

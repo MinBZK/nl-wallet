@@ -13,6 +13,8 @@ import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
+import '../data/repository/sign/mock_sign_request_repository.dart';
+import '../data/repository/sign/sign_request_repository.dart';
 import '../data/repository/verification/mock_verification_request_repository.dart';
 import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/mock_wallet_repository.dart';
@@ -52,6 +54,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<IssuanceResponseRepository>(
           create: (context) => MockIssuanceResponseRepository(context.read(), context.read()),
+        ),
+        RepositoryProvider<SignRequestRepository>(
+          create: (context) => MockSignRequestRepository(context.read()),
         ),
       ],
       child: child,

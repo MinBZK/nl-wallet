@@ -24,4 +24,14 @@ class QrVerificationRequest implements QrRequest {
   QrRequestType get type => QrRequestType.verification;
 }
 
-enum QrRequestType { verification, issuance }
+class QrSignRequest implements QrRequest {
+  @override
+  final String sessionId;
+
+  QrSignRequest(this.sessionId);
+
+  @override
+  QrRequestType get type => QrRequestType.sign;
+}
+
+enum QrRequestType { verification, issuance, sign }

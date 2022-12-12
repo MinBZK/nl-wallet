@@ -54,5 +54,12 @@
             "id": "MARKETPLACE_LOGIN",
             "type": "verify"
         }
+    },
+    "sign_rental_agreement.png": {
+        "name": "Sign Rental Agreement",
+        "content": {
+            "id": "RENTAL_AGREEMENT",
+            "type": "sign"
+        }
     }
 }

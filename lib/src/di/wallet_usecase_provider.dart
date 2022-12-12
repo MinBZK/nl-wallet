@@ -18,6 +18,7 @@ import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
+import '../domain/usecase/sign/get_sign_request_usecase.dart';
 import '../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
@@ -114,6 +115,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<SetupMockedWalletUseCase>(
           create: (context) => SetupMockedWalletUseCase(context.read(), context.read(), context.read(), context.read()),
+        ),
+        RepositoryProvider<GetSignRequestUseCase>(
+          create: (context) => GetSignRequestUseCase(context.read()),
         ),
       ],
       child: child,

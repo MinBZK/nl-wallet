@@ -88,6 +88,8 @@ class ApproveOrganizationPage extends StatelessWidget {
         return locale.approveOrganizationPageReceiveFromTitle(organization.shortName);
       case ApprovalPurpose.verification:
         return locale.approveOrganizationPageShareWithTitle(organization.shortName);
+      case ApprovalPurpose.sign:
+        return locale.approveOrganizationPageSignWithTitle(organization.shortName);
     }
   }
 
@@ -124,4 +126,4 @@ class ApproveOrganizationPage extends StatelessWidget {
   }
 }
 
-enum ApprovalPurpose { issuance, verification }
+enum ApprovalPurpose { issuance, verification, sign }

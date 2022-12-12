@@ -5,7 +5,8 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 # Table of Contents
 
 1. [Card issuance](#card-issuance)
-1. [Verification requests](#verification-requests)
+2. [Verification requests](#verification-requests)
+3. [Signing requests](#signing-requests)
 
 # Card issuance
 
@@ -39,3 +40,18 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 | #1                                                  | #2                          | #3                                                |
 |-----------------------------------------------------|-----------------------------|---------------------------------------------------|
 | ![JOB APPLICATION](qrs/job_application_request.png) | ![BAR](qrs/bar_request.png) | ![MARKETPLACE](qrs/marketplace_login_request.png) |
+
+
+# Signing requests
+
+## How to use
+
+1. Open app on physical device
+2. Enter pin
+3. Navigate to `QR` via bottom navigation
+4. Allow camera permissions (if needed)
+5. Scan one of the QR codes below:
+
+| #1                                                 |
+|----------------------------------------------------|
+| ![RENTAL AGREEMENT](qrs/sign_rental_agreement.png) | 
