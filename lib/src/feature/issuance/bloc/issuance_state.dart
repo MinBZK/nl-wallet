@@ -1,29 +1,45 @@
 part of 'issuance_bloc.dart';
 
 abstract class IssuanceState extends Equatable {
+  final bool isRefreshFlow;
+
+  double get stepperProgress => 0.0;
+
   bool get showStopConfirmation => true;
 
   bool get canGoBack => false;
 
   bool get didGoBack => false;
 
-  double get stepperProgress => 0.0;
-
   IssuanceFlow? get flow => null;
 
   Organization? get organization => flow?.organization;
 
-  const IssuanceState();
+  const IssuanceState(this.isRefreshFlow);
 
   @override
-  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, flow];
+  List<Object?> get props => [
+        isRefreshFlow,
+        stepperProgress,
+        showStopConfirmation,
+        canGoBack,
+        didGoBack,
+        flow,
+        organization,
+      ];
 }
 
-class IssuanceInitial extends IssuanceState {}
+class IssuanceInitial extends IssuanceState {
+  const IssuanceInitial(super.isRefreshFlow);
+}
 
-class IssuanceLoadInProgress extends IssuanceState {}
+class IssuanceLoadInProgress extends IssuanceState {
+  const IssuanceLoadInProgress(super.isRefreshFlow);
+}
 
-class IssuanceLoadFailure extends IssuanceState {}
+class IssuanceLoadFailure extends IssuanceState {
+  const IssuanceLoadFailure(super.isRefreshFlow);
+}
 
 class IssuanceCheckOrganization extends IssuanceState {
   @override
@@ -34,7 +50,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   @override
   Organization get organization => flow.organization;
 
-  const IssuanceCheckOrganization(this.flow, {this.afterBackPressed = false});
+  const IssuanceCheckOrganization(super.isRefreshFlow, this.flow, {this.afterBackPressed = false});
 
   @override
   List<Object?> get props => [flow, ...super.props];
@@ -57,13 +73,13 @@ class IssuanceProofIdentity extends IssuanceState {
 
   List<Attribute> get requestedAttributes => flow.attributes;
 
-  const IssuanceProofIdentity(this.flow, {this.afterBackPressed = false});
+  const IssuanceProofIdentity(super.isRefreshFlow, this.flow, {this.afterBackPressed = false});
 
   @override
   List<Object?> get props => [flow, ...super.props];
 
   @override
-  bool get canGoBack => true;
+  bool get canGoBack => !isRefreshFlow;
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -76,7 +92,7 @@ class IssuanceProvidePin extends IssuanceState {
   @override
   final IssuanceFlow flow;
 
-  const IssuanceProvidePin(this.flow);
+  const IssuanceProvidePin(super.isRefreshFlow, this.flow);
 
   @override
   List<Object?> get props => [flow, ...super.props];
@@ -92,7 +108,7 @@ class IssuanceCheckDataOffering extends IssuanceState {
   @override
   final IssuanceFlow flow;
 
-  const IssuanceCheckDataOffering(this.flow);
+  const IssuanceCheckDataOffering(super.isRefreshFlow, this.flow);
 
   @override
   List<Object?> get props => [flow, ...super.props];
@@ -105,7 +121,7 @@ class IssuanceCardAdded extends IssuanceState {
   @override
   final IssuanceFlow flow;
 
-  const IssuanceCardAdded(this.flow);
+  const IssuanceCardAdded(super.isRefreshFlow, this.flow);
 
   @override
   List<Object?> get props => [flow, ...super.props];
@@ -115,6 +131,8 @@ class IssuanceCardAdded extends IssuanceState {
 }
 
 class IssuanceStopped extends IssuanceState {
+  const IssuanceStopped(super.isRefreshFlow);
+
   @override
   List<Object> get props => [];
 
@@ -123,6 +141,8 @@ class IssuanceStopped extends IssuanceState {
 }
 
 class IssuanceGenericError extends IssuanceState {
+  const IssuanceGenericError(super.isRefreshFlow);
+
   @override
   List<Object> get props => [];
 
@@ -131,6 +151,8 @@ class IssuanceGenericError extends IssuanceState {
 }
 
 class IssuanceIdentityValidationFailure extends IssuanceState {
+  const IssuanceIdentityValidationFailure(super.isRefreshFlow);
+
   @override
   List<Object> get props => [];
 

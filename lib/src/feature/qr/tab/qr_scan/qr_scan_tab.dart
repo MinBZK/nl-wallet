@@ -9,6 +9,7 @@ import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/check_permission_on_resume.dart';
 import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/text_icon_button.dart';
+import '../../../issuance/argument/issuance_screen_argument.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
 import 'bloc/qr_scan_bloc.dart';
@@ -149,7 +150,7 @@ class QrScanTab extends StatelessWidget {
         Navigator.restorablePushNamed(
           context,
           WalletRoutes.issuanceRoute,
-          arguments: state.request.sessionId,
+          arguments: IssuanceScreenArgument(sessionId: state.request.sessionId).toMap(),
         );
         break;
       case QrRequestType.sign:

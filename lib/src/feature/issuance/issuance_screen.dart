@@ -11,6 +11,7 @@ import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
+import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'page/issuance_card_added_page.dart';
 import 'page/issuance_check_data_offering_page.dart';
@@ -21,13 +22,13 @@ import 'page/issuance_proof_identity_page.dart';
 import 'page/issuance_stopped_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+  static IssuanceScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return IssuanceScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a (mock) id when opening the IssuanceScreen');
+      throw UnsupportedError('Make sure to pass in [IssuanceScreenArgument] when opening the IssuanceScreen');
     }
   }
 
@@ -38,7 +39,7 @@ class IssuanceScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'issuance_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).issuanceScreenTitle),
+        title: _buildTitle(context),
         leading: _buildBackButton(context),
         actions: [CloseButton(onPressed: () => _stopIssuance(context))],
       ),
@@ -59,6 +60,20 @@ class IssuanceScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    return BlocBuilder<IssuanceBloc, IssuanceState>(
+      buildWhen: (previous, current) => current is IssuanceInitial && current is IssuanceLoadInProgress,
+      builder: (context, state) {
+        final locale = AppLocalizations.of(context);
+        if (state.isRefreshFlow) {
+          return Text(locale.issuanceScreenRefreshTitle);
+        } else {
+          return Text(locale.issuanceScreenTitle);
+        }
+      },
     );
   }
 
@@ -117,6 +132,7 @@ class IssuanceScreen extends StatelessWidget {
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
       organization: state.organization,
       attributes: state.requestedAttributes,
+      isRefreshFlow: state.isRefreshFlow,
     );
   }
 

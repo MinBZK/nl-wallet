@@ -15,6 +15,7 @@ import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
 import 'feature/introduction/bloc/introduction_bloc.dart';
 import 'feature/introduction/introduction_screen.dart';
+import 'feature/issuance/argument/issuance_screen_argument.dart';
 import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
 import 'feature/menu/bloc/menu_bloc.dart';
@@ -224,11 +225,11 @@ WidgetBuilder _createVerifierPolicyScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
   return (context) {
-    String sessionId = IssuanceScreen.getArguments(settings);
+    IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
         return IssuanceBloc(context.read(), context.read(), context.read(), context.read())
-          ..add(IssuanceLoadTriggered(sessionId));
+          ..add(IssuanceLoadTriggered(argument.sessionId, argument.isRefreshFlow));
       },
       child: const IssuanceScreen(),
     );

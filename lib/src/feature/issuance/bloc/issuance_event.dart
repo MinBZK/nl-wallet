@@ -6,11 +6,12 @@ abstract class IssuanceEvent extends Equatable {
 
 class IssuanceLoadTriggered extends IssuanceEvent {
   final String sessionId;
+  final bool isRefreshFlow;
 
-  const IssuanceLoadTriggered(this.sessionId);
+  const IssuanceLoadTriggered(this.sessionId, this.isRefreshFlow);
 
   @override
-  List<Object?> get props => [sessionId];
+  List<Object?> get props => [sessionId, isRefreshFlow];
 }
 
 class IssuanceOrganizationApproved extends IssuanceEvent {

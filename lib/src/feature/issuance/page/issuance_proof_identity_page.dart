@@ -14,12 +14,14 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   final VoidCallback onAccept;
   final Organization organization;
   final List<Attribute> attributes;
+  final bool isRefreshFlow;
 
   const IssuanceProofIdentityPage({
     required this.onDecline,
     required this.onAccept,
     required this.organization,
     required this.attributes,
+    required this.isRefreshFlow,
     Key? key,
   }) : super(key: key);
 
@@ -55,6 +57,10 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
+    final issuanceProofIdentityPageSubtitle = isRefreshFlow
+        ? locale.issuanceProofIdentityPageRefreshDataSubtitle(organization.shortName)
+        : locale.issuanceProofIdentityPageSubtitle(organization.shortName);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -67,7 +73,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            locale.issuanceProofIdentityPageSubtitle(organization.shortName),
+            issuanceProofIdentityPageSubtitle,
             style: Theme.of(context).textTheme.bodyText1,
           ),
         ],

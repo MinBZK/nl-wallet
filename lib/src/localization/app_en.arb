@@ -57,6 +57,9 @@
   "cardSummaryScreenCardDeleteCta": "Delete",
   "cardSummaryScreenCardRenewCta": "Renew data",
   "cardSummaryScreenDataAttributesTitle": "Data",
+  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
   "cardSummaryScreenShareCta": "Share",
   "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} with {organization}",
   "@cardSummaryScreenShareHistory": {
@@ -207,6 +210,16 @@
   "issuanceProofIdentityPageIncorrectCta": "Something not right?",
   "issuanceProofIdentityPageNegativeCta": "No",
   "issuanceProofIdentityPagePositiveCta": "Share",
+  "issuanceProofIdentityPageRefreshDataSubtitle": "Share your identity with {organization} to refresh your data.",
+  "@issuanceProofIdentityPageRefreshDataSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "issuanceProofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
   "@issuanceProofIdentityPageSubtitle": {
     "placeholders": {
@@ -219,6 +232,7 @@
   },
   "issuanceProofIdentityPageTitle": "Proof who you are",
   "issuanceScreenTitle": "Retrieve data",
+  "issuanceScreenRefreshTitle": "Refresh data",
   "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {

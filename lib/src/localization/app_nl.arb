@@ -55,8 +55,11 @@
   "cardShareScreenSubtitle": "Laat de QR-code scannen om te beginnen met delen.",
   "cardSummaryScreenAddCardCta": "Alle gegevens",
   "cardSummaryScreenCardDeleteCta": "Verwijderen",
-  "cardSummaryScreenCardRenewCta": "Gegevens opnieuw ophalen",
+  "cardSummaryScreenCardRenewCta": "Opnieuw ophalen",
   "cardSummaryScreenDataAttributesTitle": "Gegevens",
+  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
   "cardSummaryScreenShareCta": "Delen",
   "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} met {organization}",
   "@cardSummaryScreenShareHistory": {
@@ -207,6 +210,16 @@
   "issuanceProofIdentityPageIncorrectCta": "Klopt er iets niet?",
   "issuanceProofIdentityPageNegativeCta": "Nee",
   "issuanceProofIdentityPagePositiveCta": "Delen",
+  "issuanceProofIdentityPageRefreshDataSubtitle": "Deel je identiteit met {organization} om opnieuw je gegevens op te halen.",
+  "@issuanceProofIdentityPageRefreshDataSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "issuanceProofIdentityPageSubtitle": "Deel je identiteit met {organization} om gegevens op te halen.",
   "@issuanceProofIdentityPageSubtitle": {
     "placeholders": {
@@ -219,6 +232,7 @@
   },
   "issuanceProofIdentityPageTitle": "Bewijs wie je bent",
   "issuanceScreenTitle": "Gegevens ophalen",
+  "issuanceScreenRefreshTitle": "Opnieuw ophalen",
   "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {

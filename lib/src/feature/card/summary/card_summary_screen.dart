@@ -7,15 +7,18 @@ import '../../../domain/model/data_highlight.dart';
 import '../../../domain/model/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
+import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_type_text_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/data_attribute_row_image.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/text_icon_button.dart';
 import '../../common/widget/wallet_card_front.dart';
+import '../../issuance/argument/issuance_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 
 class CardSummaryScreen extends StatelessWidget {
@@ -80,7 +83,6 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
     final locale = AppLocalizations.of(context);
     final deleteButtonText = locale.cardSummaryScreenCardDeleteCta;
-
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       children: [
@@ -102,7 +104,7 @@ class CardSummaryScreen extends StatelessWidget {
             child: TextIconButton(
               icon: Icons.replay,
               iconPosition: IconPosition.start,
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => _onRefreshPressed(context, summary.card),
               child: Text(locale.cardSummaryScreenCardRenewCta),
             ),
           ),
@@ -123,6 +125,36 @@ class CardSummaryScreen extends StatelessWidget {
         const Divider(),
         const SizedBox(height: kFloatingActionButtonMargin + 64),
       ],
+    );
+  }
+
+  /// Temporary async logic inside [CardSummaryScreen] class;
+  /// This async flow isn't designed (happy & unhappy paths); it's to do for after demo day.
+  void _onRefreshPressed(BuildContext context, WalletCard card) {
+    GetWalletCardUpdateIssuanceRequestIdUseCase useCase = context.read();
+    useCase.invoke(card).then((issuanceRequestId) {
+      if (issuanceRequestId != null) {
+        Navigator.restorablePushNamed(
+          context,
+          WalletRoutes.issuanceRoute,
+          arguments: IssuanceScreenArgument(
+            sessionId: issuanceRequestId,
+            isRefreshFlow: true,
+          ).toMap(),
+        );
+      } else {
+        _showNoUpdateAvailableSheet(context);
+      }
+    });
+  }
+
+  void _showNoUpdateAvailableSheet(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    ExplanationSheet.show(
+      context,
+      title: locale.cardSummaryScreenNoUpdateAvailableSheetTitle,
+      description: locale.cardSummaryScreenNoUpdateAvailableSheetDescription,
+      closeButtonText: locale.cardSummaryScreenNoUpdateAvailableSheetCloseCta,
     );
   }
 
