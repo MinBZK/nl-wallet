@@ -62,12 +62,7 @@ class ApproveOrganizationPage extends StatelessWidget {
             height: 64,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(6.4),
-              child: organization.logoUrl == null
-                  ? Container(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      child: const Icon(Icons.question_mark),
-                    )
-                  : Image.asset(organization.logoUrl!),
+              child: Image.asset(organization.logoUrl),
             ),
           ),
           const SizedBox(height: 24),

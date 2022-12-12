@@ -5,17 +5,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/wallet_card.dart';
-import '../../../../domain/usecase/card/get_pid_card_usecase.dart';
+import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_card_usecase.dart';
+import '../../../verification/model/organization.dart';
 
 part 'wallet_personalize_event.dart';
 part 'wallet_personalize_state.dart';
 
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
-  final GetPidCardUseCase getPidCardUseCase;
+  final GetPidIssuanceResponseUseCase getPidIssuanceResponseUseCase;
   final WalletAddIssuedCardUseCase walletAddIssuedCardUseCase;
 
-  WalletPersonalizeBloc(this.getPidCardUseCase, this.walletAddIssuedCardUseCase) : super(WalletPersonalizeInitial()) {
+  WalletPersonalizeBloc(
+    this.getPidIssuanceResponseUseCase,
+    this.walletAddIssuedCardUseCase,
+  ) : super(WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeOfferingVerified>(_onOfferingVerified);
@@ -32,8 +36,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   void _onLoginWithDigidSucceeded(event, emit) async {
     try {
-      final card = await getPidCardUseCase.invoke();
-      // For brevity I opted to use' the getPidCardUseCase here to get the data, that way we rely on the same mock data.
+      // For brevity I opted to use' the getPidIssuanceResponseUseCase here to get the data, that way we rely on the same mock data.
+      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
+      final card = issuanceResponse.cards.first;
       final firstNames = card.attributes.firstWhere((element) => element.type == AttributeType.firstNames).value;
       final availableAttributes = card.attributes.where((element) => element.type != AttributeType.profilePhoto);
       emit(WalletPersonalizeCheckData(firstNames: firstNames, availableAttributes: availableAttributes.toList()));
@@ -56,7 +61,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     emit(const WalletPersonalizeLoadingPhoto(mockDelay));
     await Future.delayed(mockDelay);
     try {
-      final card = await getPidCardUseCase.invoke();
+      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
+      final card = issuanceResponse.cards.first;
       final photo = card.attributes.firstWhere((element) => element.type == AttributeType.profilePhoto);
       emit(WalletPersonalizePhotoAdded(photo));
     } catch (ex, stack) {
@@ -67,9 +73,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   void _onPhotoApproved(event, emit) async {
     try {
-      final card = await getPidCardUseCase.invoke();
-      await walletAddIssuedCardUseCase.invoke(card);
-      emit(WalletPersonalizeSuccess(card));
+      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
+      final card = issuanceResponse.cards.first;
+      final organization = issuanceResponse.organization;
+      await walletAddIssuedCardUseCase.invoke(card, organization);
+      emit(WalletPersonalizeSuccess(card, organization));
     } catch (ex, stack) {
       Fimber.e('Failed create PID card', ex: ex, stacktrace: stack);
       emit(WalletPersonalizeFailure());

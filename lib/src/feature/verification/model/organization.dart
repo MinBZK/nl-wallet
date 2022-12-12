@@ -5,14 +5,14 @@ class Organization extends Equatable {
   final String name;
   final String shortName;
   final String description;
-  final String? logoUrl;
+  final String logoUrl;
 
   const Organization({
     required this.id,
     required this.name,
     required this.shortName,
     required this.description,
-    this.logoUrl,
+    required this.logoUrl,
   });
 
   @override

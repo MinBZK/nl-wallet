@@ -4,6 +4,8 @@ import '../../domain/model/wallet_card.dart';
 abstract class WalletDataSource {
   Future<void> create(WalletCard card);
 
+  Future<List<WalletCard>> readAll();
+
   Future<WalletCard?> read(String cardId);
 
   Future<void> update(WalletCard card);
@@ -18,7 +20,8 @@ abstract class WalletDataSource {
   /// Returns all card specific [TimelineAttribute] sorted by date ASC (oldest first)
   Future<List<TimelineAttribute>> readTimelineAttributesByCardId(String cardId);
 
-  Future<List<WalletCard>> readAll();
+  /// Returns single [TimelineAttribute] by [timelineAttributeId]
+  Future<TimelineAttribute> readTimelineAttributeById(String timelineAttributeId);
 
   Stream<List<WalletCard>> observeCards();
 

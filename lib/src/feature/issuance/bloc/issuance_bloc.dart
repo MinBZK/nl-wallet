@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -104,7 +105,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
     _logCardInteraction(state.flow, InteractionType.success);
-    await walletAddIssuedCardUseCase.invoke(state.flow.cards.first);
+    await walletAddIssuedCardUseCase.invoke(state.flow.cards.first, state.flow.organization);
     emit(IssuanceCardAdded(state.isRefreshFlow, state.flow));
   }
 
@@ -119,9 +120,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _logCardInteraction(IssuanceFlow flow, InteractionType type) {
-    final usedCardIds = flow.resolvedAttributes.map((e) => e.sourceCardId).toSet();
-    for (var cardId in usedCardIds) {
-      logCardInteractionUseCase.invoke(cardId, type, flow.organization.shortName);
-    }
+    final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
+    attributesByCardId.forEach((cardId, attributes) {
+      logCardInteractionUseCase.invoke(type, cardId, flow.organization, attributes);
+    });
   }
 }

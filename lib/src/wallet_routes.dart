@@ -11,6 +11,10 @@ import 'feature/card/overview/bloc/card_overview_bloc.dart';
 import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
+import 'feature/history/detail/bloc/history_detail_bloc.dart';
+import 'feature/history/detail/history_detail_screen.dart';
+import 'feature/history/overview/bloc/history_overview_bloc.dart';
+import 'feature/history/overview/history_overview_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
 import 'feature/introduction/bloc/introduction_bloc.dart';
@@ -34,8 +38,6 @@ import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
 import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
 import 'feature/verifier_policy/verifier_policy_screen.dart';
-import 'feature/wallet/history/bloc/wallet_history_bloc.dart';
-import 'feature/wallet/history/wallet_history_screen.dart';
 import 'feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'feature/wallet/personalize/wallet_personalize_screen.dart';
 
@@ -66,6 +68,7 @@ class WalletRoutes {
   static const issuanceRoute = '/issuance';
   static const signRoute = '/sign';
   static const verifierPolicyRoute = '/verifier/policy';
+  static const historyDetailRoute = '/history';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -113,7 +116,9 @@ class WalletRoutes {
       case WalletRoutes.walletPersonalizeRoute:
         return _createWalletPersonalizeScreenBuilder;
       case WalletRoutes.walletHistoryRoute:
-        return _createWalletHistoryScreenBuilder;
+        return _createHistoryOverviewScreenBuilder;
+      case WalletRoutes.historyDetailRoute:
+        return _createHistoryDetailScreenBuilder(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -255,11 +260,21 @@ Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
   );
 }
 
-Widget _createWalletHistoryScreenBuilder(BuildContext context) {
-  return BlocProvider<WalletHistoryBloc>(
-    create: (BuildContext context) => WalletHistoryBloc(context.read()),
-    child: const WalletHistoryScreen(),
+Widget _createHistoryOverviewScreenBuilder(BuildContext context) {
+  return BlocProvider<HistoryOverviewBloc>(
+    create: (BuildContext context) => HistoryOverviewBloc(context.read()),
+    child: const HistoryOverviewScreen(),
   );
+}
+
+WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
+  return (context) {
+    String attributeId = HistoryDetailScreen.getArguments(settings);
+    return BlocProvider<HistoryDetailBloc>(
+      create: (BuildContext context) => HistoryDetailBloc(context.read())..add(HistoryDetailLoadTriggered(attributeId)),
+      child: const HistoryDetailScreen(),
+    );
+  };
 }
 
 class SecuredPageRoute<T> extends MaterialPageRoute<T> {

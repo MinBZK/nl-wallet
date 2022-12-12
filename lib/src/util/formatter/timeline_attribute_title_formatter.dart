@@ -9,7 +9,7 @@ class TimelineAttributeTitleFormatter {
   /// When [TimelineAttribute] is displayed in for example a single card specific context; set:
   /// [showOperationTitle]: false
   static String format(TimelineAttribute attribute, {bool showOperationTitle = true}) {
-    if (attribute is InteractionAttribute) return attribute.organization;
+    if (attribute is InteractionAttribute) return attribute.organization.shortName;
     if (attribute is OperationAttribute) return showOperationTitle ? attribute.cardTitle : '';
     throw ('Unsupported attribute: $attribute');
   }

@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/timeline_section.dart';
 import '../../../util/timeline/timeline_section_list_factory.dart';
+import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
@@ -55,7 +56,10 @@ class CardHistoryScreen extends StatelessWidget {
 
     List<Widget> slivers = [
       _buildCardHeader(state.card.front),
-      ...sections.map((section) => TimelineSectionSliver(section: section)),
+      ...sections.map((section) => TimelineSectionSliver(
+            section: section,
+            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
+          )),
       _buildBackButton(context),
     ];
 
@@ -84,5 +88,9 @@ class CardHistoryScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _onTimelineRowPressed(BuildContext context, String timelineAttributeId) {
+    Navigator.restorablePushNamed(context, WalletRoutes.historyDetailRoute, arguments: timelineAttributeId);
   }
 }

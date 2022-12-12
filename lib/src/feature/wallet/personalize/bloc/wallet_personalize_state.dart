@@ -78,13 +78,17 @@ class WalletPersonalizePhotoAdded extends WalletPersonalizeState {
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {
   final WalletCard pidCard;
+  final Organization organization;
 
-  const WalletPersonalizeSuccess(this.pidCard);
+  const WalletPersonalizeSuccess(this.pidCard, this.organization);
 
   CardFront get cardFront => pidCard.front;
 
   @override
   double get stepperProgress => 1;
+
+  @override
+  List<Object?> get props => [pidCard, organization, ...super.props];
 }
 
 class WalletPersonalizeFailure extends WalletPersonalizeState {

@@ -9,7 +9,7 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/mapper/timeline_attribute_type_text_mapper.dart';
+import '../../../util/mapper/timeline_attribute_type_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/data_attribute_row_image.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -243,7 +243,7 @@ class CardSummaryScreen extends StatelessWidget {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
       final String status = TimelineAttributeTypeTextMapper.map(locale, attribute).toLowerCase();
-      return locale.cardSummaryScreenShareHistory(timeAgo, status, attribute.organization);
+      return locale.cardSummaryScreenShareHistory(timeAgo, status, attribute.organization.shortName);
     } else {
       return locale.cardSummaryScreenShareSuccessNoHistory;
     }

@@ -18,6 +18,11 @@ class MemoryWalletDataSource implements WalletDataSource {
   }
 
   @override
+  Future<List<WalletCard>> readAll() async {
+    return wallet.value;
+  }
+
+  @override
   Future<WalletCard?> read(String cardId) async {
     final cards = wallet.value;
     return cards.firstWhereOrNull((element) => element.id == cardId);
@@ -39,11 +44,6 @@ class MemoryWalletDataSource implements WalletDataSource {
   }
 
   @override
-  Future<List<WalletCard>> readAll() async {
-    return wallet.value;
-  }
-
-  @override
   Future<void> createTimelineAttribute(String cardId, TimelineAttribute attribute) async {
     final attributes = timelineAttributes.value;
     if (attributes[cardId] != null) {
@@ -57,12 +57,7 @@ class MemoryWalletDataSource implements WalletDataSource {
   /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
   @override
   Future<List<TimelineAttribute>> readTimelineAttributes() async {
-    List<TimelineAttribute> attributes = [];
-
-    // Collect all cards; timeline attributes
-    timelineAttributes.value.forEach((key, value) {
-      attributes.addAll(value);
-    });
+    List<TimelineAttribute> attributes = _getAllTimelineAttributes();
 
     // Sort by date/time
     attributes.sortBy((element) => element.dateTime);
@@ -78,11 +73,26 @@ class MemoryWalletDataSource implements WalletDataSource {
     return attributes;
   }
 
+  /// Returns single [TimelineAttribute] by [timelineAttributeId]
+  @override
+  Future<TimelineAttribute> readTimelineAttributeById(String timelineAttributeId) async {
+    List<TimelineAttribute> attributes = _getAllTimelineAttributes();
+    return attributes.firstWhere((element) => element.id == timelineAttributeId);
+  }
+
   @override
   Stream<List<WalletCard>> observeCards() => wallet.stream;
 
   @override
   Stream<List<TimelineAttribute>> observeTimelineAttributes(String cardId) {
     return timelineAttributes.map((event) => event[cardId] ?? []);
+  }
+
+  List<TimelineAttribute> _getAllTimelineAttributes() {
+    List<TimelineAttribute> attributes = [];
+    timelineAttributes.value.forEach((key, value) {
+      attributes.addAll(value);
+    });
+    return attributes;
   }
 }

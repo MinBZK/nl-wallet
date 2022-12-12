@@ -27,7 +27,13 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
   @override
   Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionType type) async {
     List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId);
+    attributes.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
     return _readLastInteraction(attributes, type);
+  }
+
+  @override
+  Future<TimelineAttribute> read(String timelineAttributeId) {
+    return dataSource.readTimelineAttributeById(timelineAttributeId);
   }
 
   InteractionAttribute? _readLastInteraction(List<TimelineAttribute> attributes, InteractionType type) {

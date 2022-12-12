@@ -1,26 +1,36 @@
 import 'package:equatable/equatable.dart';
 
-abstract class TimelineAttribute extends Equatable {
-  final DateTime dateTime;
-  final TimelineType timelineType;
+import '../../feature/verification/model/organization.dart';
+import 'attribute/data_attribute.dart';
 
-  const TimelineAttribute(this.dateTime, this.timelineType);
+abstract class TimelineAttribute extends Equatable {
+  final TimelineType timelineType;
+  final DateTime dateTime;
+  final Organization organization;
+  final List<DataAttribute> attributes;
+
+  String get id => '${dateTime.microsecondsSinceEpoch.toString()}_${attributes.toString()}';
+
+  const TimelineAttribute(this.timelineType, this.dateTime, this.organization, this.attributes);
+
+  @override
+  List<Object?> get props => [timelineType, dateTime, organization, attributes];
 }
 
-enum TimelineType { operation, interaction }
+enum TimelineType { interaction, operation }
 
 class InteractionAttribute extends TimelineAttribute {
   final InteractionType interactionType;
-  final String organization;
 
   const InteractionAttribute({
     required this.interactionType,
-    required this.organization,
     required DateTime dateTime,
-  }) : super(dateTime, TimelineType.interaction);
+    required Organization organization,
+    required List<DataAttribute> attributes,
+  }) : super(TimelineType.interaction, dateTime, organization, attributes);
 
   @override
-  List<Object?> get props => [interactionType, organization, dateTime];
+  List<Object?> get props => [interactionType, ...super.props];
 }
 
 enum InteractionType { success, rejected, failed }
@@ -33,10 +43,12 @@ class OperationAttribute extends TimelineAttribute {
     required this.operationType,
     required this.cardTitle,
     required DateTime dateTime,
-  }) : super(dateTime, TimelineType.operation);
+    required Organization organization,
+    required List<DataAttribute> attributes,
+  }) : super(TimelineType.operation, dateTime, organization, attributes);
 
   @override
-  List<Object?> get props => [operationType, cardTitle, dateTime];
+  List<Object?> get props => [operationType, cardTitle, ...super.props];
 }
 
 enum OperationType { issued, renewed, expired }

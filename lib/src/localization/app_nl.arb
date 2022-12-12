@@ -169,6 +169,15 @@
     },
     "description": "App version and build number"
   },
+  "historyDetailScreenInteractionAttributesTitle": "Gedeelde gegevens",
+  "historyDetailScreenInteractionTypeFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
+  "historyDetailScreenInteractionTypeRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
+  "historyDetailScreenOperationTypeExpiredDescription": "Je kaart is verlopen.",
+  "historyDetailScreenOperationTypeIssuedDescription": "Kaart aangemaakt",
+  "historyDetailScreenOperationTypeRenewedDescription": "Kaart vernieuwd",
+  "historyDetailScreenTitle": "Details",
+  "historyOverviewScreenTitle": "Gebruiksgeschiedenis",
   "homeScreenBottomNavBarCardsCta": "Kaarten",
   "homeScreenBottomNavBarMenuCta": "Menu",
   "homeScreenBottomNavBarQrCta": "QR",
@@ -231,8 +240,8 @@
     "description": "The organization's name"
   },
   "issuanceProofIdentityPageTitle": "Bewijs wie je bent",
-  "issuanceScreenTitle": "Gegevens ophalen",
   "issuanceScreenRefreshTitle": "Opnieuw ophalen",
+  "issuanceScreenTitle": "Gegevens ophalen",
   "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {
@@ -471,7 +480,6 @@
   "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
   "verifierPolicyScreenRetryCta": "Probeer opnieuw",
   "verifierPolicyScreenTitle": "Voorwaarden",
-  "walletHistoryScreenTitle": "Gebruiksgeschiedenis",
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -122,9 +123,9 @@ class SignBloc extends Bloc<SignEvent, SignState> {
   }
 
   void _logCardInteraction(SignFlow flow, InteractionType type) {
-    final usedCardIds = flow.resolvedAttributes.map((e) => e.sourceCardId).toSet();
-    for (var cardId in usedCardIds) {
-      logCardInteractionUseCase.invoke(cardId, type, flow.organization.shortName);
-    }
+    final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
+    attributesByCardId.forEach((cardId, attributes) {
+      logCardInteractionUseCase.invoke(type, cardId, flow.organization, attributes);
+    });
   }
 }

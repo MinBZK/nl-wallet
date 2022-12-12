@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/card/get_pid_card_usecase.dart';
+import '../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
@@ -13,6 +14,8 @@ import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_card_usecase.dart';
+import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
+import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
@@ -25,7 +28,6 @@ import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_name_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
@@ -111,11 +113,23 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetPidCardUseCase>(
           create: (context) => GetPidCardUseCase(context.read()),
         ),
+        RepositoryProvider<GetPidIssuanceResponseUseCase>(
+          create: (context) => GetPidIssuanceResponseUseCase(context.read()),
+        ),
         RepositoryProvider<GetWalletTimelineAttributesUseCase>(
           create: (context) => GetWalletTimelineAttributesUseCase(context.read()),
         ),
+        RepositoryProvider<GetTimelineAttributeUseCase>(
+          create: (context) => GetTimelineAttributeUseCase(context.read()),
+        ),
         RepositoryProvider<SetupMockedWalletUseCase>(
-          create: (context) => SetupMockedWalletUseCase(context.read(), context.read(), context.read(), context.read()),
+          create: (context) => SetupMockedWalletUseCase(
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
         RepositoryProvider<GetSignRequestUseCase>(
           create: (context) => GetSignRequestUseCase(context.read()),
