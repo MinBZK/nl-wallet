@@ -6,10 +6,12 @@ import '../../../common/widget/check_data_offering_page.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAccept;
+  final String name;
   final List<DataAttribute> attributes;
 
   const WalletPersonalizeCheckDataOfferingPage({
     required this.onAccept,
+    required this.name,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -20,14 +22,13 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
       attributes: attributes,
-      title: locale.walletPersonalizeCheckDataOfferingPageTitle,
-      subtitle: locale.walletPersonalizeCheckDataOfferingPageSubtitle,
+      title: locale.walletPersonalizeCheckDataOfferingPageTitle(name),
       footerCta: locale.walletPersonalizeCheckDataOfferingPageIncorrectCta,
+      showHeaderAttributesDivider: false,
     );
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ElevatedButton(
@@ -37,7 +38,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
           children: [
             const Icon(Icons.check, size: 16),
             const SizedBox(width: 8),
-            Text(locale.walletPersonalizeCheckDataOfferingPageContinueCta),
+            Text(AppLocalizations.of(context).walletPersonalizeCheckDataOfferingPageContinueCta),
           ],
         ),
       ),

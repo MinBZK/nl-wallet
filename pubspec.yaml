@@ -31,6 +31,7 @@ dependencies:
   qr_flutter: ^4.0.0
   screen_brightness: ^0.2.2
   package_info_plus: ^3.0.2
+  nfc_manager: ^3.2.0
 
 dev_dependencies:
   flutter_test:

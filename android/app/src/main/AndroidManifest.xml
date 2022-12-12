@@ -2,6 +2,7 @@
     package="nl.rijksoverheid.edi.wallet">
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.NFC" />
 
     <application
         android:name="${applicationName}"

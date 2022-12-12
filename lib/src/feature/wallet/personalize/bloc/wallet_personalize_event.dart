@@ -11,13 +11,14 @@ class WalletPersonalizeLoginWithDigidClicked extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {}
 
-class WalletPersonalizeOfferingAccepted extends WalletPersonalizeEvent {
-  final WalletCard acceptedCard;
+class WalletPersonalizeOfferingVerified extends WalletPersonalizeEvent {}
 
-  const WalletPersonalizeOfferingAccepted(this.acceptedCard);
+class WalletPersonalizeScanInitiated extends WalletPersonalizeEvent {}
 
-  @override
-  List<Object?> get props => [acceptedCard, ...super.props];
-}
+class WalletPersonalizeScanEvent extends WalletPersonalizeEvent {}
+
+class WalletPersonalizePhotoApproved extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeOnRetryClicked extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeOnBackPressed extends WalletPersonalizeEvent {}

@@ -475,11 +475,31 @@
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
-  "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
+  "walletPersonalizeCheckDataOfferingPageTitle": "Hallo {name}, zijn dit jouw gegevens?",
+  "@walletPersonalizeCheckDataOfferingPageTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Jane Doe",
+        "type": "String"
+      }
+    },
+    "description": "Header of the data offering page when setting up your wallet"
+  },
   "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoongegevens toe te voegen via DigiD",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",
   "walletPersonalizeIntroPageTitle": "Login met DigiD om te beginnen",
+  "walletPersonalizeLoadingPhotoPageSubtitle": "Even geduld...",
+  "walletPersonalizeLoadingPhotoPageTitle": "Je pasfoto wordt nu geladen",
+  "walletPersonalizePhotoAddedPageContinueCta": "Volgende",
+  "walletPersonalizePhotoAddedPageDataIncorrectCta": "Klopt er iets niet?",
+  "walletPersonalizePhotoAddedPageSubtitle": "Je hebt je pasfoto toegevoegd",
+  "walletPersonalizePhotoAddedPageTitle": "Gelukt!",
+  "walletPersonalizeScanIdIntroPageContinueCta": "Start met scannen",
+  "walletPersonalizeScanIdIntroPageDescription": "Je hebt een pasfoto nodig in je Wallet. Je kunt deze toevoegen met een:\n      •    paspoort;\n      •    identiteitskaart.",
+  "walletPersonalizeScanIdIntroPageTitle": "Je pasfoto van een identiteitsbewijs toevoegen",
+  "walletPersonalizeScanIdPageDescription": "Beweeg je paspoort of identiteitskaart heen en weer tot er verbinding is.",
+  "walletPersonalizeScanIdPageTitle": "Houd het midden van je identiteitsbewijs tegen de achterkant van je telefoon",
   "walletPersonalizeScreenLoadingSubtitle": "Wacht even...",
   "walletPersonalizeScreenLoadingTitle": "Aan het laden",
   "walletPersonalizeScreenTitle": "Wallet aanmaken",

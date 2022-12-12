@@ -472,14 +472,34 @@
   "verifierPolicyScreenRetryCta": "Try again",
   "verifierPolicyScreenTitle": "Voorwaarden",
   "walletHistoryScreenTitle": "Usage history",
-  "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, create wallet",
+  "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, next",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
-  "walletPersonalizeCheckDataOfferingPageTitle": "Is the retrieved data correct?",
+  "walletPersonalizeCheckDataOfferingPageTitle": "Hi {name}, is this your information?",
+  "@walletPersonalizeCheckDataOfferingPageTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Jane Doe",
+        "type": "String"
+      }
+    },
+    "description": "Header of the data offering page when setting up your wallet"
+  },
   "walletPersonalizeIntroPageDescription": "You create a wallet by retrieving your personal information through DigiD",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Login with DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "I don't have DigiD",
   "walletPersonalizeIntroPageTitle": "Login with DigiD to get started",
+  "walletPersonalizeLoadingPhotoPageSubtitle": "One moment...",
+  "walletPersonalizeLoadingPhotoPageTitle": "Downloading your profile photo",
+  "walletPersonalizePhotoAddedPageContinueCta": "Next",
+  "walletPersonalizePhotoAddedPageDataIncorrectCta": "Something not right?",
+  "walletPersonalizePhotoAddedPageSubtitle": "You photo has been added",
+  "walletPersonalizePhotoAddedPageTitle": "Success!",
+  "walletPersonalizeScanIdIntroPageContinueCta": "Start scanning",
+  "walletPersonalizeScanIdIntroPageDescription": "You need a picture in your wallet. You can add this using a:\n      •    passport;\n      •    ID card.",
+  "walletPersonalizeScanIdIntroPageTitle": "Add the picture from your ID",
+  "walletPersonalizeScanIdPageDescription": "Move your passport or ID card back and forth to setup the connection.",
+  "walletPersonalizeScanIdPageTitle": "Press the center of your ID against the back of your phone",
   "walletPersonalizeScreenLoadingSubtitle": "One moment please...",
   "walletPersonalizeScreenLoadingTitle": "Loading",
   "walletPersonalizeScreenTitle": "Create wallet",

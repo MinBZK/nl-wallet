@@ -11,11 +11,14 @@ import 'sliver_sized_box.dart';
 class CheckDataOfferingPage extends StatelessWidget {
   final List<DataAttribute> attributes;
   final Widget bottomSection;
-  final String title, subtitle, footerCta;
+  final String title, footerCta;
+  final String? subtitle;
+  final bool showHeaderAttributesDivider;
 
   const CheckDataOfferingPage({
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.showHeaderAttributesDivider = true,
     required this.footerCta,
     required this.bottomSection,
     required this.attributes,
@@ -30,7 +33,7 @@ class CheckDataOfferingPage extends StatelessWidget {
         const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),
         const SliverSizedBox(height: 24),
-        const SliverToBoxAdapter(child: Divider(height: 1)),
+        if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
         const SliverSizedBox(height: 16),
         SliverList(delegate: _getDataAttributesDelegate()),
         const SliverSizedBox(height: 16),
@@ -53,12 +56,15 @@ class CheckDataOfferingPage extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.headline2,
           ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyText1,
-            textAlign: TextAlign.center,
-          ),
+          if (subtitle != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                subtitle!,
+                style: Theme.of(context).textTheme.bodyText1,
+                textAlign: TextAlign.center,
+              ),
+            )
         ],
       ),
     );
