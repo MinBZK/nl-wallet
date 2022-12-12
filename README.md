@@ -1,7 +1,7 @@
 
 # EDI - NL Public Reference Wallet
 
-Within the European Digital Identity program of the Ministry of the Interior and Kingdom Relations, a team is working on a Dutch Public Reference Wallet: the NL Wallet. The program conducts its work in an open and transparent way. This means that the products of the development team – the app designs and source code – are viewable for everyone who wants to. It’s also possible to contribute to the project. We offer three platforms for contributions: Pleio as a central hub, GitHub for the source code and Figma for screens/flows. 
+Within the European Digital Identity program of the Ministry of the Interior and Kingdom Relations, a team is working on a Dutch Public Reference Wallet: the NL Wallet. The program conducts its work in an open and transparent way. This means that the products of the development team – the app designs and source code – are viewable for everyone who wants to. It’s also possible to contribute to the project. We offer three platforms for contributions: [Pleio](https://edi.pleio.nl) as a central hub, [GitHub](https://github.com/MinBZK/nl-wallet-demo-app) for the source code and [Figma](https://www.figma.com/file/dO5pKIIIyDgG0N2ZX4C2xd/2212_V1_Designs_NL-Voorbeeld-Wallet?node-id=1%3A3717&t=nwzAEOJZJEb0eC0o-1) for screens/flows.
 
 The development of a public and open source reference wallet is a dynamic process. What has been released in the current version, may in a next version be developed further, be modified drastically or even removed altogether.
 
@@ -11,7 +11,7 @@ We look forward to your [feedback and great ideas](mailto:edi@minbzk.nl?subject=
 
 It’s important to note that a demo app will always be developed ahead of an actually functioning wallet. A clickable demo app contains little technical implementation under the hood. That makes it fast and easy to explore, visualize and discuss different scenarios and possibilities. It also provides a testbed for engineers to explore / experiment / try out certain technical aspects of a wallet.
 
-When you look at the screens in Figma or in the demo app, they suggest a lot of functionality that seems to work, but which still requires a lot of development to realize in practice. 
+When you look at the screens in [Figma](https://www.figma.com/file/dO5pKIIIyDgG0N2ZX4C2xd/2212_V1_Designs_NL-Voorbeeld-Wallet?node-id=1%3A3717&t=nwzAEOJZJEb0eC0o-1) or in the demo app, they suggest a lot of functionality that seems to work, but which still requires a lot of development to realize in practice.
 
 It’s possible to use such a wallet in a lot of different situations, for example to share your diploma’s when applying for a job, or to prove that you’re 18+ to buy a beer. With the demo app, we can demonstrate how such a wallet would work in a relatively simple way. 
 
@@ -40,7 +40,7 @@ Although parts of this demo might later be used in wallet related projects, this
 
 # Current release
 
-The latest version has been released on the **2nd of December 2022**. Currently this is a clickable demo that shows a number of 'flows' that the user of a wallet can walk through in the context of example use cases. These try out use cases have been chosen because of a variety of reasons: what we want to show, what we want to learn, if they are realistic use cases in practice, and if it is feasible to prototype them in this phase. You can follow the latest work by subscribing to the releases of this GitHub repository at the top of this page.
+See the [releases page](https://github.com/MinBZK/nl-wallet-demo-app/releases) for the latest release. The current releases are a clickable demo app that show a number of 'flows' that the user of a wallet can walk through in the context of example use cases. These try out use cases have been chosen because of a variety of reasons: what we want to show, what we want to learn, if they are realistic use cases in practice, and if it is feasible to prototype them in this phase. You can follow the latest work by subscribing to the releases of this GitHub repository at the top of this page.
 
 # Documentation
 
@@ -54,15 +54,15 @@ With the NL reference wallet we want to achieve the following things:
 - We want to offer a testing ground for a variety of use cases.
 - We want to share the lessons we learn with the public and share them with the EU.
 
-If you want to learn more about the NL Wallet development, please read the background information on the Pleio hub. The development of the user flows and screens can be followed through Figma.
+If you want to learn more about the NL Wallet development, please read the background information on the Pleio hub. The development of the user flows and screens can be followed through [Figma](https://www.figma.com/file/dO5pKIIIyDgG0N2ZX4C2xd/2212_V1_Designs_NL-Voorbeeld-Wallet?node-id=1%3A3717&t=nwzAEOJZJEb0eC0o-1).
 
 # Licensing
 
-The source code of the NL Wallet is released under the [EUPL license](./LICENSES/EUPL-1.2.txt). The documentation is released under the [CC0 license](./LICENSES/CC0-1.0.txt). Please see the [.reuse/dep5](./.reuse/dep5) file for more details.
+The source code of the NL Wallet is released under the [EUPL license](./LICENSES/EUPL-1.2.txt). The documentation is released under the [CC0 license](./LICENSES/CC0-1.0.txt). Please see the [.reuse/dep5](./.reuse/dep5) file for more details, which follows the [Reuse specfication](https://reuse.software/spec/).
 
 # Contributing
 
-We’re releasing the source code with the explicit intention of allowing contributions. The coordination of the project lies with the development team of the European Digital Identity Progam, but we’re open to all contributions. You can directly create a new Pull Request via Github,or contact the community manager via [edi@minbzk.nl](mailto:edi@minbzk.nl).
+We’re releasing the source code with the explicit intention of allowing contributions. The coordination of the project lies with the development team of the European Digital Identity Progam, but we’re open to all contributions. You can directly create a new Pull Request via Github,or contact the community manager via [edi@minbzk.nl](mailto:edi@minbzk.nl?subject=Contribution%20via%20GitHub).
 
 The development team works on the repository in a private fork (for reasons of compliance with existing processes) and shares its work as often as possible. If you watch the repository on GitHub, you will be notified of a new release. We will also send a notification through Pleio.
 
