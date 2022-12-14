@@ -17,7 +17,6 @@ import 'feature/history/overview/bloc/history_overview_bloc.dart';
 import 'feature/history/overview/history_overview_screen.dart';
 import 'feature/home/bloc/home_bloc.dart';
 import 'feature/home/home_screen.dart';
-import 'feature/introduction/bloc/introduction_bloc.dart';
 import 'feature/introduction/introduction_screen.dart';
 import 'feature/issuance/argument/issuance_screen_argument.dart';
 import 'feature/issuance/bloc/issuance_bloc.dart';
@@ -132,10 +131,7 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
       child: const SplashScreen(),
     );
 
-Widget _createIntroductionScreenBuilder(BuildContext context) => BlocProvider<IntroductionBloc>(
-      create: (context) => IntroductionBloc(),
-      child: const IntroductionScreen(),
-    );
+Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 

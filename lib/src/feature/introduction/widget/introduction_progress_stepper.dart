@@ -1,20 +1,38 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
+const double _selectedStepHeight = 6;
+const double _selectedStepWidth = 16;
+const double _stepHeight = 4;
+const double _stepWidth = 4;
+
 class IntroductionProgressStepper extends StatelessWidget {
-  final int currentStep;
+  final double currentStep;
   final int totalSteps;
 
-  const IntroductionProgressStepper({required this.currentStep, required this.totalSteps, Key? key}) : super(key: key);
+  const IntroductionProgressStepper({
+    required this.currentStep,
+    required this.totalSteps,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> steps = List.generate(totalSteps, (index) {
-      if (currentStep != index) {
-        return _buildStep(context);
-      } else {
-        return _buildCurrentStep(context);
-      }
-    });
+    List<Widget> steps = List.generate(
+      totalSteps,
+      (index) {
+        if (currentStep.floor() == index) {
+          final progress = currentStep - currentStep.floor();
+          return _buildCurrentStep(context, 1 - progress);
+        } else if (currentStep.ceil() == index) {
+          final progress = currentStep.ceil() - currentStep;
+          return _buildCurrentStep(context, 1 - progress);
+        } else {
+          return _buildStep(context);
+        }
+      },
+    );
 
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -25,26 +43,29 @@ class IntroductionProgressStepper extends StatelessWidget {
 
   Widget _buildStep(BuildContext context) {
     return SizedBox(
-      width: 4,
-      height: 4,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColorDark,
-          shape: BoxShape.circle,
+      height: _selectedStepHeight, //Makes sure all bubbles are always center aligned
+      child: SizedBox(
+        width: _stepWidth,
+        height: _stepHeight,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColorDark,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCurrentStep(BuildContext context) {
+  Widget _buildCurrentStep(BuildContext context, double size) {
     return SizedBox(
-      width: 16,
-      height: 6,
+      width: max(_stepWidth, _selectedStepWidth * size),
+      height: max(_stepHeight, _selectedStepHeight * size),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
+          color: ColorTween(begin: Theme.of(context).primaryColorDark, end: Theme.of(context).primaryColor).lerp(size),
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(_stepHeight),
         ),
       ),
     );

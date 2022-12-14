@@ -4,16 +4,43 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
+import '../../util/extension/num_extensions.dart';
+import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
-import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../common/widget/text_icon_button.dart';
-import 'bloc/introduction_bloc.dart';
 import 'page/introduction_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 
-class IntroductionScreen extends StatelessWidget {
+const int _kNrOfPages = 4;
+
+class IntroductionScreen extends StatefulWidget {
   const IntroductionScreen({Key? key}) : super(key: key);
+
+  @override
+  State<IntroductionScreen> createState() => _IntroductionScreenState();
+}
+
+class _IntroductionScreenState extends State<IntroductionScreen> {
+  final PageController _pageController = PageController();
+
+  double get _currentPage => _pageController.hasClients ? _pageController.page ?? 0 : 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(_onPageChanged);
+  }
+
+  void _onPageChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,83 +48,93 @@ class IntroductionScreen extends StatelessWidget {
       restorationId: 'introduction_scaffold',
       body: WillPopScope(
         onWillPop: () async {
-          final bloc = context.read<IntroductionBloc>();
-          if (bloc.state.canGoBack) {
-            bloc.add(const IntroductionBackPressed());
-          }
-          return !bloc.state.canGoBack;
+          final canGoBack = _currentPage >= 1;
+          if (canGoBack) _onBackPressed(context);
+          return !canGoBack;
         },
-        child: _buildPage(),
+        child: _buildPager(context),
       ),
     );
   }
 
-  Widget _buildPage() {
-    return BlocBuilder<IntroductionBloc, IntroductionState>(
-      builder: (context, state) {
-        Widget? result;
-        if (state is IntroductionAppDisclaimer) result = _buildAppDisclaimerPage(context, state);
-        if (state is IntroductionAppIntroduction) result = _buildAppIntroductionPage(context, state);
-        if (state is IntroductionAppBenefits) result = _buildAppBenefitsPage(context, state);
-        if (state is IntroductionAppSecurity) result = _buildAppSecurityPage(context, state);
-        if (result == null) throw UnsupportedError('Unknown state: $state');
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
-      },
+  Widget _buildPager(BuildContext context) {
+    return Stack(
+      children: [
+        PageView(
+          controller: _pageController,
+          children: [
+            _buildAppDisclaimerPage(context),
+            _buildAppIntroductionPage(context),
+            _buildAppBenefitsPage(context),
+            _buildAppSecurityPage(context),
+          ],
+        ),
+        _buildBackButton(),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildProgressStepper(_currentPage),
+              const SizedBox(height: 32),
+              _buildSecondaryCta(context),
+              _buildNextButton(context),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildAppDisclaimerPage(BuildContext context, IntroductionState state) {
+  Widget _buildAppDisclaimerPage(BuildContext context) {
     return IntroductionPage(
-      key: ValueKey(state.currentStep),
       image: const AssetImage('assets/non-free/images/image_introduction_app_disclaimer.png'),
       title: AppLocalizations.of(context).introductionAppDisclaimerPageTitle,
-      progressStepper: _buildProgressStepper(state),
-      onNextPressed: () => _onNextPressed(context),
-      secondaryCta: _buildSecondaryCta(context),
     );
   }
 
-  Widget _buildAppIntroductionPage(BuildContext context, IntroductionState state) {
+  Widget _buildAppIntroductionPage(BuildContext context) {
     return IntroductionPage(
-      key: ValueKey(state.currentStep),
       image: const AssetImage('assets/non-free/images/image_introduction_app_introduction.png'),
       title: AppLocalizations.of(context).introductionAppIntroPageTitle,
-      progressStepper: _buildProgressStepper(state),
-      onNextPressed: () => _onNextPressed(context),
-      onBackPressed: () => _onBackPressed(context),
     );
   }
 
-  Widget _buildAppBenefitsPage(BuildContext context, IntroductionState state) {
+  Widget _buildAppBenefitsPage(BuildContext context) {
     return IntroductionPage(
-      key: ValueKey(state.currentStep),
       image: const AssetImage('assets/non-free/images/image_introduction_app_benefits.png'),
       title: AppLocalizations.of(context).introductionAppBenefitsPageTitle,
-      progressStepper: _buildProgressStepper(state),
-      onNextPressed: () => _onNextPressed(context),
-      onBackPressed: () => _onBackPressed(context),
     );
   }
 
-  Widget _buildAppSecurityPage(BuildContext context, IntroductionState state) {
+  Widget _buildAppSecurityPage(BuildContext context) {
     return IntroductionPage(
-      key: ValueKey(state.currentStep),
       image: const AssetImage('assets/non-free/images/image_introduction_app_security.png'),
       title: AppLocalizations.of(context).introductionAppSecurityPageTitle,
-      progressStepper: _buildProgressStepper(state),
-      onNextPressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.setupSecurityRoute),
-      secondaryCta: _buildPrivacyPolicyCta(context),
-      onBackPressed: () => _onBackPressed(context),
     );
   }
 
-  Widget _buildProgressStepper(IntroductionState state) {
-    return IntroductionProgressStepper(currentStep: state.currentStep, totalSteps: state.totalSteps);
+  Widget _buildProgressStepper(double currentStep) {
+    return IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages);
   }
 
   Widget _buildSecondaryCta(BuildContext context) {
+    final mainVisiblePage = (_currentPage + 0.5).floor();
+    if (mainVisiblePage == 0 /* _buildAppDisclaimerPage */) {
+      final opacity = 1.0 - _currentPage.clamp(0, 0.5).normalize(0, 0.5);
+      return _buildLanguageButton(opacity);
+    } else if (mainVisiblePage == 3 /* _buildAppSecurityPage */) {
+      final opacity = _currentPage.clamp(2.5, 3).normalize(2.5, 3);
+      return _buildPrivacyPolicyCta(context, opacity.toDouble());
+    }
+    // Empty button, to make sure content above the 'secondary' button doesn't move around.
+    return const TextButton(onPressed: null, child: Text(''));
+  }
+
+  Widget _buildLanguageButton(double opacity) {
+    final Widget result;
     if (kDebugMode) {
-      return TextIconButton(
+      result = TextIconButton(
         icon: Icons.skip_next,
         iconPosition: IconPosition.start,
         onPressed: () async {
@@ -109,29 +146,85 @@ class IntroductionScreen extends StatelessWidget {
         child: const Text('SKIP INTRO (DEV ONLY)'),
       );
     } else {
-      return TextIconButton(
+      result = TextIconButton(
         icon: Icons.language,
         iconPosition: IconPosition.start,
-        onPressed: () => PlaceholderScreen.show(context, AppLocalizations.of(context).introductionLanguageSelectCta),
+        onPressed: () => PlaceholderScreen.show(
+          context,
+          AppLocalizations.of(context).introductionLanguageSelectCta,
+          secured: false,
+        ),
         centerChild: false,
         child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
       );
     }
+    return Opacity(opacity: opacity, child: result);
   }
 
-  Widget _buildPrivacyPolicyCta(BuildContext context) {
-    return TextIconButton(
-      icon: Icons.arrow_forward,
-      onPressed: () {},
-      child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
+  Widget _buildPrivacyPolicyCta(BuildContext context, double opacity) {
+    return Opacity(
+      opacity: opacity,
+      child: TextIconButton(
+        icon: Icons.arrow_forward,
+        onPressed: () => PlaceholderScreen.show(
+          context,
+          AppLocalizations.of(context).introductionPrivacyPolicyCta,
+          secured: false,
+        ),
+        child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
+      ),
     );
   }
 
   void _onNextPressed(BuildContext context) {
-    context.read<IntroductionBloc>().add(const IntroductionNextPressed());
+    final isOnLastPage = (_currentPage + 0.5).toInt() == (_kNrOfPages - 1);
+    if (isOnLastPage) {
+      Navigator.restorablePushReplacementNamed(context, WalletRoutes.setupSecurityRoute);
+    } else {
+      _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
+    }
   }
 
   void _onBackPressed(BuildContext context) {
-    context.read<IntroductionBloc>().add(const IntroductionBackPressed());
+    _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
+  }
+
+  Widget _buildNextButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+      child: ElevatedButton(
+        onPressed: () => _onNextPressed(context),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.arrow_forward, size: 16),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context).introductionNextPageCta),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    final backButton = SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.hardEdge,
+          child: InkWell(
+            onTap: () => _onBackPressed(context),
+            child: Ink(
+              width: 32,
+              height: 32,
+              child: const Icon(Icons.arrow_back),
+            ),
+          ),
+        ),
+      ),
+    );
+    return Opacity(opacity: (_currentPage).clamp(0.0, 1.0), child: backButton);
   }
 }
