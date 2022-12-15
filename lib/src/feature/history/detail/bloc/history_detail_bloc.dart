@@ -17,8 +17,8 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
   void _onHistoryDetailLoadTriggered(HistoryDetailLoadTriggered event, emit) async {
     emit(const HistoryDetailLoadInProgress());
     try {
-      TimelineAttribute attribute = await getTimelineAttributeUseCase.invoke(event.attributeId);
-      emit(HistoryDetailLoadSuccess(attribute));
+      TimelineAttribute timelineAttribute = await getTimelineAttributeUseCase.invoke(event.attributeId);
+      emit(HistoryDetailLoadSuccess(timelineAttribute));
     } catch (error) {
       emit(const HistoryDetailLoadFailure());
     }

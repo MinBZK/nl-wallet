@@ -1,75 +1,50 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../common/widget/centered_loading_indicator.dart';
+import '../../domain/model/policy/interaction_policy.dart';
 import '../common/widget/text_icon_button.dart';
-import 'bloc/verifier_policy_bloc.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
 
-class VerifierPolicyScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+class PolicyScreen extends StatelessWidget {
+  static InteractionPolicy getArguments(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return args as InteractionPolicy;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args (type: ${args.runtimeType})', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a verification sessionId.');
+      throw UnsupportedError('Make sure to pass in an interaction policy.');
     }
   }
 
-  const VerifierPolicyScreen({Key? key}) : super(key: key);
+  final InteractionPolicy interactionPolicy;
+
+  const PolicyScreen({required this.interactionPolicy, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      restorationId: 'verifier_policy_scaffold',
+      restorationId: 'policy_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).verifierPolicyScreenTitle),
+        title: Text(AppLocalizations.of(context).policyScreenTitle),
       ),
-      body: BlocBuilder<VerifierPolicyBloc, VerifierPolicyState>(
-        builder: (context, state) {
-          if (state is VerifierPolicyInitial) return const CenteredLoadingIndicator();
-          if (state is VerifierPolicyLoadInProgress) return const CenteredLoadingIndicator();
-          if (state is VerifierPolicyLoadFailure) return _buildError(context, state);
-          if (state is VerifierPolicyLoadSuccess) return _buildLoaded(context, state);
-          throw UnsupportedError('Unknown state: $state');
-        },
-      ),
+      body: _buildBody(context),
     );
   }
 
-  Widget _buildError(BuildContext context, VerifierPolicyLoadFailure state) {
-    final locale = AppLocalizations.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(locale.verifierPolicyScreenErrorDescription),
-          ElevatedButton(
-            onPressed: () => context.read<VerifierPolicyBloc>().add(VerifierPolicyLoadTriggered(state.sessionId)),
-            child: Text(locale.verifierPolicyScreenRetryCta),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoaded(BuildContext context, VerifierPolicyLoadSuccess state) {
+  Widget _buildBody(BuildContext context) {
     final urlTheme = Theme.of(context).textTheme.bodyText1!.copyWith(
           color: Theme.of(context).primaryColor,
           decoration: TextDecoration.underline,
         );
     final policyBuilder = PolicyEntriesBuilder(AppLocalizations.of(context), urlTheme);
     return CustomScrollView(
-      restorationId: 'verifier_policy_list',
+      restorationId: 'policy_list',
       slivers: [
         SliverList(
-          delegate: _getPolicyEntriesDelegate(policyBuilder.build(state.policy)),
+          delegate: _getPolicyEntriesDelegate(policyBuilder.build(interactionPolicy)),
         ),
         SliverFillRemaining(
           hasScrollBody: false,
@@ -110,7 +85,7 @@ class VerifierPolicyScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           iconPosition: IconPosition.start,
           icon: Icons.arrow_back,
-          child: Text(AppLocalizations.of(context).verifierPolicyScreenBackCta),
+          child: Text(AppLocalizations.of(context).policyScreenBackCta),
         ),
       ),
     );

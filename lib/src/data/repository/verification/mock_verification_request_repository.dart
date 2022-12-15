@@ -1,7 +1,7 @@
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/requested_attribute.dart';
+import '../../../domain/model/policy/interaction_policy.dart';
 import '../../../feature/verification/model/verification_request.dart';
-import '../../../feature/verification/model/verifier_policy.dart';
 import '../../source/organization_datasource.dart';
 import 'verification_request_repository.dart';
 
@@ -34,7 +34,7 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
               valueType: AttributeValueType.text,
             ),
           ],
-          policy: _kEmployerPolicy,
+          interactionPolicy: _kEmployerPolicy,
         );
       case 'MARKETPLACE_LOGIN':
         return VerificationRequest(
@@ -62,7 +62,7 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
               valueType: AttributeValueType.text,
             ),
           ],
-          policy: _kMockMarketPlacePolicy,
+          interactionPolicy: _kMockMarketPlacePolicy,
         );
       case 'BAR':
         return VerificationRequest(
@@ -80,33 +80,36 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
               valueType: AttributeValueType.text,
             ),
           ],
-          policy: _kMockBarPolicy,
+          interactionPolicy: _kMockBarPolicy,
         );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
 }
 
-const _kEmployerPolicy = VerifierPolicy(
+const _kEmployerPolicy = InteractionPolicy(
   storageDuration: Duration(days: 3 * 30),
   dataPurpose: 'Gegevens controle',
-  privacyPolicyUrl: 'https://www.example.org',
-  deletionCanBeRequested: true,
   dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockMarketPlacePolicy = VerifierPolicy(
+const _kMockMarketPlacePolicy = InteractionPolicy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Registreren',
-  privacyPolicyUrl: 'https://www.example.org',
-  deletionCanBeRequested: true,
   dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockBarPolicy = VerifierPolicy(
+const _kMockBarPolicy = InteractionPolicy(
   storageDuration: Duration(days: 0),
   dataPurpose: 'Leeftijd controle',
-  privacyPolicyUrl: 'https://www.example.org',
-  deletionCanBeRequested: true,
   dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
 );

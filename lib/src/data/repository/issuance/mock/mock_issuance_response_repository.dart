@@ -2,6 +2,7 @@ import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/attribute/requested_attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
+import '../../../../domain/model/policy/interaction_policy.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../source/organization_datasource.dart';
 import '../../../source/wallet_datasource.dart';
@@ -21,38 +22,44 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
       case _kPidId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
-          cards: [_kMockPidWalletCard],
           requestedAttributes: [],
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockPidWalletCard],
         );
       case _kDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
-          cards: [_kMockDiplomaWalletCard],
           requestedAttributes: _kMockDiplomaRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockDiplomaWalletCard],
         );
       case _kDrivingLicenseId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
-          cards: [_kMockDrivingLicenseWalletCard],
           requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockDrivingLicenseWalletCard],
         );
       case _kDrivingLicenseRenewedId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
-          cards: [_kMockDrivingLicenseRenewedWalletCard],
           requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockDrivingLicenseRenewedWalletCard],
         );
       case _kHealthInsuranceId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('health_insurer_1'))!,
-          cards: [_kMockHealthInsuranceWalletCard],
           requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockHealthInsuranceWalletCard],
         );
       case _kVOGId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('justis'))!,
-          cards: [_kMockVOGWalletCard],
           requestedAttributes: _kMockGenericRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockVOGWalletCard],
         );
     }
     throw UnsupportedError('Unknown issuer: $issuanceRequestId');

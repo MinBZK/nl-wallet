@@ -1,12 +1,12 @@
 import '../../../data/repository/verification/verification_request_repository.dart';
-import '../../../feature/verification/model/verifier_policy.dart';
+import '../../model/policy/interaction_policy.dart';
 
 class GetVerifierPolicyUseCase {
   final VerificationRequestRepository verificationRepository;
 
   GetVerifierPolicyUseCase(this.verificationRepository);
 
-  Future<VerifierPolicy> invoke(String sessionId) async {
-    return (await verificationRepository.getRequest(sessionId)).policy;
+  Future<InteractionPolicy> invoke(String sessionId) async {
+    return (await verificationRepository.getRequest(sessionId)).interactionPolicy;
   }
 }

@@ -8,7 +8,7 @@ import '../../../../util/mapper/timeline_attribute_type_color_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_type_icon_color_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_type_icon_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_type_mapper.dart';
-import '../../../verification/widget/status_icon.dart';
+import '../status_icon.dart';
 
 class TimelineAttributeRow extends StatelessWidget {
   final TimelineAttribute attribute;

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/policy/interaction_policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/verification_flow.dart';
-import '../widget/policy_row.dart';
 
 class VerificationConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDecline;
@@ -33,8 +32,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         SliverList(delegate: _getDataAttributesDelegate()),
         SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
         const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: _buildPolicySection(context)),
-        SliverToBoxAdapter(child: _buildShowPoliciesButton(context)),
+        SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
         const SliverToBoxAdapter(child: Divider(height: 32)),
         SliverFillRemaining(
           hasScrollBody: false,
@@ -82,51 +80,6 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(AppLocalizations.of(context).verificationConfirmDataAttributesPageIncorrectCta),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPolicySection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          PolicyRow(
-            icon: Icons.access_time_rounded,
-            text: locale.verificationConfirmDataAttributesPageDataRetentionDuration(flow.policy.storageDuration.inDays),
-          ),
-          PolicyRow(
-            icon: Icons.share,
-            text: flow.policy.dataIsShared
-                ? locale.verificationConfirmDataAttributesPageDataWillBeShared
-                : locale.verificationConfirmDataAttributesPageDataWillNotBeShared,
-          ),
-          if (flow.policy.storageDuration.inDays > 0)
-            PolicyRow(
-              icon: Icons.delete_outline,
-              text: flow.policy.deletionCanBeRequested
-                  ? locale.verificationConfirmDataAttributesPageDataCanBeDeleted
-                  : locale.verificationConfirmDataAttributesPageDataCanNotBeDeleted,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShowPoliciesButton(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: LinkButton(
-        onPressed: () => Navigator.restorablePushNamed(
-          context,
-          WalletRoutes.verifierPolicyRoute,
-          arguments: flow.id.toString(),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: Text(AppLocalizations.of(context).verificationConfirmDataAttributesPageAllTermsCta),
         ),
       ),
     );

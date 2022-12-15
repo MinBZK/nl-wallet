@@ -9,6 +9,7 @@ import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/policy/interaction_policy_section.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/history_detail_header.dart';
 import 'widget/history_detail_timeline_attribute_row.dart';
@@ -52,16 +53,16 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
-    final TimelineAttribute attribute = state.attribute;
-    final bool showTimelineTypeRow = _showTimelineTypeRow(attribute);
+    final TimelineAttribute timelineAttribute = state.timelineAttribute;
+    final bool showTimelineTypeRow = _showTimelineTypeRow(timelineAttribute);
     final List<Widget> slivers = [];
 
     // Header
     slivers.addAll([
       SliverToBoxAdapter(
         child: HistoryDetailHeader(
-          organization: attribute.organization,
-          dateTime: attribute.dateTime,
+          organization: timelineAttribute.organization,
+          dateTime: timelineAttribute.dateTime,
         ),
       ),
       const SliverToBoxAdapter(child: Divider(height: 1)),
@@ -70,16 +71,16 @@ class HistoryDetailScreen extends StatelessWidget {
     // Interaction/operation type
     if (showTimelineTypeRow) {
       slivers.addAll([
-        SliverToBoxAdapter(child: HistoryDetailTimelineAttributeRow(attribute: attribute)),
+        SliverToBoxAdapter(child: HistoryDetailTimelineAttributeRow(attribute: timelineAttribute)),
         const SliverToBoxAdapter(child: Divider(height: 1)),
       ]);
     }
 
     // Data attributes
-    final List<DataAttribute> dataAttributes = attribute.attributes;
+    final List<DataAttribute> dataAttributes = timelineAttribute.attributes;
     if (dataAttributes.isNotEmpty) {
       // Section title
-      slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, attribute)));
+      slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, timelineAttribute)));
 
       // Data attributes
       for (DataAttribute dataAttribute in dataAttributes) {
@@ -89,6 +90,12 @@ class HistoryDetailScreen extends StatelessWidget {
             child: DataAttributeRow(attribute: dataAttribute),
           ),
         ));
+      }
+
+      // Policy section
+      if (timelineAttribute is InteractionAttribute && timelineAttribute.interactionType == InteractionType.success) {
+        slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
+        slivers.add(SliverToBoxAdapter(child: InteractionPolicySection(timelineAttribute.interactionPolicy)));
       }
 
       // Incorrect button

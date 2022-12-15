@@ -17,12 +17,12 @@ class HistoryDetailLoadInProgress extends HistoryDetailState {
 }
 
 class HistoryDetailLoadSuccess extends HistoryDetailState {
-  final TimelineAttribute attribute;
+  final TimelineAttribute timelineAttribute;
 
-  const HistoryDetailLoadSuccess(this.attribute);
+  const HistoryDetailLoadSuccess(this.timelineAttribute);
 
   @override
-  List<Object> get props => [attribute];
+  List<Object> get props => [timelineAttribute];
 }
 
 class HistoryDetailLoadFailure extends HistoryDetailState {

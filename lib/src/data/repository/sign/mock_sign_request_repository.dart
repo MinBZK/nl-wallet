@@ -1,6 +1,7 @@
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/requested_attribute.dart';
 import '../../../domain/model/document.dart';
+import '../../../domain/model/policy/interaction_policy.dart';
 import '../../../domain/model/sign_request.dart';
 import '../../../domain/model/trust_provider.dart';
 import '../../source/organization_datasource.dart';
@@ -18,6 +19,10 @@ class MockSignRequestRepository implements SignRequestRepository {
         return SignRequest(
           id: 'RENTAL_AGREEMENT',
           organization: (await organizationDataSource.read('housing_corp_1'))!,
+          trustProvider: const TrustProvider(
+            name: 'Veilig Ondertekenen B.V.',
+            logoUrl: 'assets/non-free/images/logo_sign_provider.png',
+          ),
           document: const Document(
             title: 'Huurovereenkomst',
             fileName: '230110_Huurcontract_Bruijn.pdf',
@@ -40,13 +45,18 @@ class MockSignRequestRepository implements SignRequestRepository {
               valueType: AttributeValueType.text,
             ),
           ],
-          trustProvider: const TrustProvider(
-            name: 'Veilig Ondertekenen B.V.',
-            logoUrl: 'assets/non-free/images/logo_sign_provider.png',
-          ),
-          dataIsShared: false,
+          interactionPolicy: _kMockSignPolicy,
         );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
 }
+
+const _kMockSignPolicy = InteractionPolicy(
+  storageDuration: null,
+  dataPurpose: null,
+  dataIsShared: false,
+  dataIsSignature: true,
+  deletionCanBeRequested: false,
+  privacyPolicyUrl: null,
+);

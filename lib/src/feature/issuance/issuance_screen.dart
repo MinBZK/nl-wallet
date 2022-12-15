@@ -130,8 +130,7 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceProofIdentityPage(
       onDecline: () => _stopIssuance(context),
       onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
-      organization: state.organization,
-      attributes: state.requestedAttributes,
+      flow: state.flow,
       isRefreshFlow: state.isRefreshFlow,
     );
   }

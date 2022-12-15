@@ -3,8 +3,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/card_front.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/status_icon.dart';
 import '../../common/widget/wallet_card_front.dart';
-import '../../verification/widget/status_icon.dart';
 
 class IssuanceCardAddedPage extends StatelessWidget {
   final VoidCallback onClose;

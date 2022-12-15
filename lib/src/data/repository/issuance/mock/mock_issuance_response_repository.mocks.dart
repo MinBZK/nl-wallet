@@ -392,3 +392,16 @@ const _kMockGenericRequestedAttributes = [
 ];
 
 // endregion
+
+// region Policies
+
+const _kMockIssuancePolicy = InteractionPolicy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Kaart uitgifte',
+  dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+// endregion

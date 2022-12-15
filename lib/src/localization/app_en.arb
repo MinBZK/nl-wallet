@@ -103,12 +103,9 @@
   },
   "checkAgreementPageSubtitle": "Check the agreement before continuing",
   "checkAgreementPageTitle": "Are you aware of the agreement?",
-  "confirmAgreementPageAllPoliciesCta": "All policies",
   "confirmAgreementPageCancelCta": "No",
   "confirmAgreementPageConfirmCta": "Yes, sign",
   "confirmAgreementPageDataIncorrectCta": "Something not right?",
-  "confirmAgreementPageDataNotShared": "You information will not be shared with third parties",
-  "confirmAgreementPageDataShared": "You information will be shared with third parties",
   "confirmAgreementPageSignProvider": "You will be signing through {provider}",
   "@confirmAgreementPageSignProvider": {
     "placeholders": {
@@ -119,7 +116,6 @@
     },
     "description": "Text to inform which third party is used to sign documents"
   },
-  "confirmAgreementPageSigningContextInfo": "By continuing the agreement will be definitive",
   "confirmAgreementPageTitle": "Do you want to sign using this information",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
@@ -141,6 +137,22 @@
     },
     "description": "Hours"
   },
+  "generalInteractionPolicyAllTermsCta": "All terms",
+  "generalInteractionPolicyDataCanBeDeleted": "You can request data deletion",
+  "generalInteractionPolicyDataCanNotBeDeleted": "You can not request data deletion",
+  "generalInteractionPolicyDataIsSignature": "By continuing the agreement will be definitive",
+  "generalInteractionPolicyDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "@generalInteractionPolicyDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "generalInteractionPolicyDataWillBeShared": "Your information will be shared with third parties",
+  "generalInteractionPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
   "generalMinutes": "{minutes, plural, =1 {{minutes} minute} other {{minutes} minutes}}",
   "@generalMinutes": {
     "placeholders": {
@@ -305,6 +317,37 @@
   "pinScreenForgotPinCta": "Forgot code?",
   "pinScreenHeader": "Enter your pin",
   "pinScreenTitle": "Login",
+  "policyScreenBackCta": "Back",
+  "policyScreenDataCanBeDeleted": "You can request data deletion",
+  "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
+  "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
+  "policyScreenDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "@policyScreenDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "policyScreenDataWillBeShared": "Your information will be shared with third parties",
+  "policyScreenDataWillNotBeShared": "Your information will not be shared with third parties",
+  "policyScreenErrorDescription": "The policy could not be loaded",
+  "policyScreenPolicySectionPolicyCta": "privacy policy",
+  "policyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
+  "@policyScreenPolicySectionText": {
+    "placeholders": {
+      "policy": {
+        "example": "privacy policy",
+        "type": "String"
+      }
+    },
+    "description": "Text showing the user where to find the privacy policy"
+  },
+  "policyScreenPolicySectionTitle": "Want to know more?",
+  "policyScreenRetryCta": "Try again",
+  "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "How does my QR-code work?",
   "qrMyCodeTabHowToSheetCloseCta": "Close",
   "qrMyCodeTabHowToSheetDescription": "Information can be shared by showing your QR-code. Further english translation goes here...",
@@ -371,22 +414,7 @@
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
   "timelineScrollViewBackCta": "Back",
-  "verificationConfirmDataAttributesPageAllTermsCta": "All terms",
   "verificationConfirmDataAttributesPageApproveCta": "Yes, next",
-  "verificationConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
-  "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
-  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
-  "@verificationConfirmDataAttributesPageDataRetentionDuration": {
-    "placeholders": {
-      "days": {
-        "example": "30",
-        "type": "int"
-      }
-    },
-    "description": "Duration that data will be stored by the verifier"
-  },
-  "verificationConfirmDataAttributesPageDataWillBeShared": "Information will be shared",
-  "verificationConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
   "verificationConfirmDataAttributesPageDenyCta": "No, decline",
   "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",
   "verificationConfirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
@@ -450,36 +478,6 @@
     },
     "description": "Title shown when data has been successfully shared"
   },
-  "verifierPolicyScreenBackCta": "Back",
-  "verifierPolicyScreenDataCanBeDeleted": "You can request data deletion",
-  "verifierPolicyScreenDataCanNotBeDeleted": "You can not request data deletion",
-  "verifierPolicyScreenDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
-  "@verifierPolicyScreenDataRetentionDuration": {
-    "placeholders": {
-      "days": {
-        "example": "30",
-        "type": "int"
-      }
-    },
-    "description": "Duration that data will be stored by the verifier"
-  },
-  "verifierPolicyScreenDataWillBeShared": "Information will be shared",
-  "verifierPolicyScreenDataWillNotBeShared": "Information will not be shared",
-  "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
-  "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
-  "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
-  "@verifierPolicyScreenPolicySectionText": {
-    "placeholders": {
-      "policy": {
-        "example": "privacy policy",
-        "type": "String"
-      }
-    },
-    "description": "Text showing the user where to find the privacy policy"
-  },
-  "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
-  "verifierPolicyScreenRetryCta": "Try again",
-  "verifierPolicyScreenTitle": "Voorwaarden",
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, next",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",

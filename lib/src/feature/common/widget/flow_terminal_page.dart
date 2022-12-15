@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../verification/widget/status_icon.dart';
+import 'status_icon.dart';
 import 'text_icon_button.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/verification flow.

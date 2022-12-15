@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../feature/verification/model/organization.dart';
 import 'attribute/data_attribute.dart';
+import 'policy/interaction_policy.dart';
 
 abstract class TimelineAttribute extends Equatable {
   final TimelineType timelineType;
@@ -21,16 +22,18 @@ enum TimelineType { interaction, operation }
 
 class InteractionAttribute extends TimelineAttribute {
   final InteractionType interactionType;
+  final InteractionPolicy interactionPolicy;
 
   const InteractionAttribute({
     required this.interactionType,
+    required this.interactionPolicy,
     required DateTime dateTime,
     required Organization organization,
     required List<DataAttribute> attributes,
   }) : super(TimelineType.interaction, dateTime, organization, attributes);
 
   @override
-  List<Object?> get props => [interactionType, ...super.props];
+  List<Object?> get props => [interactionType, interactionPolicy, ...super.props];
 }
 
 enum InteractionType { success, rejected, failed }

@@ -2,28 +2,25 @@ import 'package:flutter/material.dart';
 
 class PolicyRow extends StatelessWidget {
   final IconData icon;
-  final String text;
+  final String title;
 
   const PolicyRow({
     required this.icon,
-    required this.text,
+    required this.title,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 40),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodyText1,
+          Icon(icon),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(title, style: Theme.of(context).textTheme.bodyText1),
           ),
         ],
       ),

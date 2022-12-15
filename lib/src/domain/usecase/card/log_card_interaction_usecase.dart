@@ -1,6 +1,7 @@
 import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../feature/verification/model/organization.dart';
 import '../../model/attribute/data_attribute.dart';
+import '../../model/policy/interaction_policy.dart';
 import '../../model/timeline_attribute.dart';
 
 class LogCardInteractionUseCase {
@@ -9,16 +10,18 @@ class LogCardInteractionUseCase {
   LogCardInteractionUseCase(this.timelineAttributeRepository);
 
   Future<void> invoke(
-    InteractionType type,
-    String cardId,
+    InteractionType interactionType,
+    InteractionPolicy interactionPolicy,
     Organization organization,
+    String cardId,
     List<DataAttribute> attributes,
   ) async {
     final interaction = InteractionAttribute(
-      interactionType: type,
+      interactionType: interactionType,
+      interactionPolicy: interactionPolicy,
       dateTime: DateTime.now(),
       organization: organization,
-      attributes: _getFilteredAttributes(type, attributes),
+      attributes: _getFilteredAttributes(interactionType, attributes),
     );
     await timelineAttributeRepository.create(cardId, interaction);
   }

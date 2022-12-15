@@ -41,7 +41,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
               id: request.id,
               organization: request.organization,
               attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
-              policy: request.policy,
+              interactionPolicy: request.interactionPolicy,
             ),
           ),
         );
@@ -101,7 +101,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   void _logCardInteraction(VerificationFlow flow, InteractionType type) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, cardId, flow.organization, attributes);
+      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
     });
   }
 }

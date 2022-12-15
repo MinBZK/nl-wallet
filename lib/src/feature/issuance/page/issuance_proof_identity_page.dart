@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/issuance_flow.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/policy/interaction_policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../verification/model/organization.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
-  final Organization organization;
-  final List<Attribute> attributes;
+  final IssuanceFlow flow;
   final bool isRefreshFlow;
 
   const IssuanceProofIdentityPage({
     required this.onDecline,
     required this.onAccept,
-    required this.organization,
-    required this.attributes,
+    required this.flow,
     required this.isRefreshFlow,
     Key? key,
   }) : super(key: key);
@@ -35,8 +33,11 @@ class IssuanceProofIdentityPage extends StatelessWidget {
         const SliverSizedBox(height: 8),
         const SliverToBoxAdapter(child: Divider(height: 32)),
         SliverList(delegate: _getDataAttributesDelegate()),
-        SliverToBoxAdapter(child: _buildDescriptionSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 20)),
+        const SliverToBoxAdapter(child: Divider(height: 32)),
+        SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
+        const SliverToBoxAdapter(child: Divider(height: 32)),
+        SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+        const SliverToBoxAdapter(child: Divider(height: 32)),
         SliverFillRemaining(
           hasScrollBody: false,
           fillOverscroll: true,
@@ -57,6 +58,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
+    final organization = flow.organization;
     final issuanceProofIdentityPageSubtitle = isRefreshFlow
         ? locale.issuanceProofIdentityPageRefreshDataSubtitle(organization.shortName)
         : locale.issuanceProofIdentityPageSubtitle(organization.shortName);
@@ -82,6 +84,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
+    final attributes = flow.attributes;
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -91,7 +94,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionSection(BuildContext context) {
+  Widget _buildDataIncorrectButton(BuildContext context) {
     final buttonText = AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta;
     return Padding(
       padding: const EdgeInsets.only(left: 8.0),

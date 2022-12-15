@@ -103,12 +103,9 @@
   },
   "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
   "checkAgreementPageTitle": "Ken je de afspraken?",
-  "confirmAgreementPageAllPoliciesCta": "Alle voorwaarden",
   "confirmAgreementPageCancelCta": "Nee",
   "confirmAgreementPageConfirmCta": "Ja, tekenen",
   "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
-  "confirmAgreementPageDataNotShared": "Je gegevens worden niet gedeeld met derden",
-  "confirmAgreementPageDataShared": "Je gegevens worden gedeeld met derden",
   "confirmAgreementPageSignProvider": "Je gaat ondertekenen met {provider}",
   "@confirmAgreementPageSignProvider": {
     "placeholders": {
@@ -119,7 +116,6 @@
     },
     "description": "Text to inform which third party is used to sign documents"
   },
-  "confirmAgreementPageSigningContextInfo": "Met ondertekenen maak je een afspraak definitief",
   "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
@@ -141,6 +137,22 @@
     },
     "description": "Hours"
   },
+  "generalInteractionPolicyAllTermsCta": "Alle voorwaarden",
+  "generalInteractionPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "generalInteractionPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "generalInteractionPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+  "generalInteractionPolicyDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@generalInteractionPolicyDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "generalInteractionPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "generalInteractionPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
   "@generalMinutes": {
     "placeholders": {
@@ -305,6 +317,37 @@
   "pinScreenForgotPinCta": "Code vergeten?",
   "pinScreenHeader": "Vul je toegangscode in",
   "pinScreenTitle": "Inloggen",
+  "policyScreenBackCta": "Terug",
+  "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+  "policyScreenDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@policyScreenDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "policyScreenDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "policyScreenDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
+  "policyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
+  "policyScreenPolicySectionPolicyCta": "privacybeleid",
+  "policyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
+  "@policyScreenPolicySectionText": {
+    "placeholders": {
+      "policy": {
+        "example": "privacy policy",
+        "type": "String"
+      }
+    },
+    "description": "Text showing the user where to find the privacy policy"
+  },
+  "policyScreenPolicySectionTitle": "Meer weten?",
+  "policyScreenRetryCta": "Probeer opnieuw",
+  "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
   "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
   "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
@@ -371,22 +414,7 @@
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
   "timelineScrollViewBackCta": "Terug",
-  "verificationConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
   "verificationConfirmDataAttributesPageApproveCta": "Ja, verder",
-  "verificationConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-  "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-  "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-  "@verificationConfirmDataAttributesPageDataRetentionDuration": {
-    "placeholders": {
-      "days": {
-        "example": "30",
-        "type": "int"
-      }
-    },
-    "description": "Duration that data will be stored by the verifier"
-  },
-  "verificationConfirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
-  "verificationConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
   "verificationConfirmDataAttributesPageDenyCta": "Nee",
   "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
   "verificationConfirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
@@ -450,36 +478,6 @@
     },
     "description": "Title shown when data has been successfully shared"
   },
-  "verifierPolicyScreenBackCta": "Terug",
-  "verifierPolicyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-  "verifierPolicyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-  "verifierPolicyScreenDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-  "@verifierPolicyScreenDataRetentionDuration": {
-    "placeholders": {
-      "days": {
-        "example": "30",
-        "type": "int"
-      }
-    },
-    "description": "Duration that data will be stored by the verifier"
-  },
-  "verifierPolicyScreenDataWillBeShared": "Gegevens worden gedeeld",
-  "verifierPolicyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
-  "verifierPolicyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
-  "verifierPolicyScreenPolicySectionPolicyCta": "privacybeleid",
-  "verifierPolicyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
-  "@verifierPolicyScreenPolicySectionText": {
-    "placeholders": {
-      "policy": {
-        "example": "privacy policy",
-        "type": "String"
-      }
-    },
-    "description": "Text showing the user where to find the privacy policy"
-  },
-  "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
-  "verifierPolicyScreenRetryCta": "Probeer opnieuw",
-  "verifierPolicyScreenTitle": "Voorwaarden",
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",

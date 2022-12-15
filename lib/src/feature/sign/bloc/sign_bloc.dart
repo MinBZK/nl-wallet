@@ -40,10 +40,10 @@ class SignBloc extends Bloc<SignEvent, SignState> {
           SignFlow(
             id: request.id,
             organization: request.organization,
-            attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
-            dataIsShared: request.dataIsShared,
             trustProvider: request.trustProvider,
             document: request.document,
+            attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
+            interactionPolicy: request.interactionPolicy,
           ),
         ),
       );
@@ -125,7 +125,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
   void _logCardInteraction(SignFlow flow, InteractionType type) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, cardId, flow.organization, attributes);
+      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
     });
   }
 }

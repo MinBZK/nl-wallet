@@ -61,6 +61,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final IssuanceFlow flow = IssuanceFlow(
       organization: response.organization,
       attributes: attributes,
+      interactionPolicy: response.interactionPolicy,
       cards: response.cards,
     );
 
@@ -122,7 +123,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _logCardInteraction(IssuanceFlow flow, InteractionType type) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, cardId, flow.organization, attributes);
+      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
     });
   }
 }

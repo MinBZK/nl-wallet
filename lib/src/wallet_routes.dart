@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'domain/model/policy/interaction_policy.dart';
 import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'feature/card/add/card_add_screen.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
@@ -26,6 +27,7 @@ import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_prompt.dart';
 import 'feature/pin/pin_screen.dart';
+import 'feature/policy/policy_screen.dart';
 import 'feature/setup_security/bloc/setup_security_bloc.dart';
 import 'feature/setup_security/setup_security_screen.dart';
 import 'feature/sign/bloc/sign_bloc.dart';
@@ -35,8 +37,6 @@ import 'feature/splash/splash_screen.dart';
 import 'feature/theme/theme_screen.dart';
 import 'feature/verification/bloc/verification_bloc.dart';
 import 'feature/verification/verification_screen.dart';
-import 'feature/verifier_policy/bloc/verifier_policy_bloc.dart';
-import 'feature/verifier_policy/verifier_policy_screen.dart';
 import 'feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'feature/wallet/personalize/wallet_personalize_screen.dart';
 
@@ -66,7 +66,7 @@ class WalletRoutes {
   static const verificationRoute = '/verification';
   static const issuanceRoute = '/issuance';
   static const signRoute = '/sign';
-  static const verifierPolicyRoute = '/verifier/policy';
+  static const policyRoute = '/policy';
   static const historyDetailRoute = '/history';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -106,8 +106,8 @@ class WalletRoutes {
         return _createThemeScreenBuilder;
       case WalletRoutes.verificationRoute:
         return _createVerificationScreenBuilder(settings);
-      case WalletRoutes.verifierPolicyRoute:
-        return _createVerifierPolicyScreenBuilder(settings);
+      case WalletRoutes.policyRoute:
+        return _createPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
         return _createIssuanceScreenBuilder(settings);
       case WalletRoutes.signRoute:
@@ -214,13 +214,10 @@ WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createVerifierPolicyScreenBuilder(RouteSettings settings) {
+WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
-    String sessionId = VerifierPolicyScreen.getArguments(settings);
-    return BlocProvider<VerifierPolicyBloc>(
-      create: (BuildContext context) => VerifierPolicyBloc(context.read())..add(VerifierPolicyLoadTriggered(sessionId)),
-      child: const VerifierPolicyScreen(),
-    );
+    InteractionPolicy interactionPolicy = PolicyScreen.getArguments(settings);
+    return PolicyScreen(interactionPolicy: interactionPolicy);
   };
 }
 

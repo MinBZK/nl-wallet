@@ -5,9 +5,9 @@ import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/policy/interaction_policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/sign_flow.dart';
-import '../widget/sign_policy_row.dart';
 
 const _kContextIllustration = 'assets/non-free/images/sign_illustration_2.png';
 
@@ -33,7 +33,7 @@ class ConfirmAgreementPage extends StatelessWidget {
         SliverList(delegate: _getDataAttributesDelegate()),
         SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
         const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: _buildPrivacySection(context)),
+        SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
         const SliverToBoxAdapter(child: Divider(height: 32)),
         SliverToBoxAdapter(child: _buildTrustProvider(context)),
         const SliverToBoxAdapter(child: Divider(height: 32)),
@@ -83,40 +83,6 @@ class ConfirmAgreementPage extends StatelessWidget {
         child: DataAttributeRow(attribute: flow.resolvedAttributes[index]),
       ),
       childCount: flow.resolvedAttributes.length,
-    );
-  }
-
-  Widget _buildPrivacySection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SignPolicyRow(
-              icon: Icons.share_outlined,
-              title: flow.dataIsShared
-                  ? AppLocalizations.of(context).confirmAgreementPageDataShared
-                  : AppLocalizations.of(context).confirmAgreementPageDataNotShared,
-            ),
-            SignPolicyRow(
-              icon: Icons.security,
-              title: AppLocalizations.of(context).confirmAgreementPageSigningContextInfo,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinkButton(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(AppLocalizations.of(context).confirmAgreementPageAllPoliciesCta),
-          ),
-          onPressed: () => PlaceholderScreen.show(
-            context,
-            AppLocalizations.of(context).confirmAgreementPageAllPoliciesCta,
-          ),
-        ),
-      ],
     );
   }
 
