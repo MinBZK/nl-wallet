@@ -7,11 +7,11 @@ import '../../../common/widget/wallet_card_front.dart';
 
 class WalletPersonalizeSuccessPage extends StatelessWidget {
   final VoidCallback onContinuePressed;
-  final CardFront cardFront;
+  final List<CardFront> cards;
 
   const WalletPersonalizeSuccessPage({
     required this.onContinuePressed,
-    required this.cardFront,
+    required this.cards,
     Key? key,
   }) : super(key: key);
 
@@ -26,9 +26,7 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: WalletCardFront(
-              cardFront: cardFront,
-            ),
+            child: _buildCards(),
           ),
         ],
       ),
@@ -36,5 +34,17 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
       closeButtonCta: locale.walletPersonalizeSuccessPageContinueCta,
       onClosePressed: onContinuePressed,
     );
+  }
+
+  Widget _buildCards() {
+    const cardOverlap = 56.0;
+    List<Widget> children = List<Widget>.generate(cards.length, (index) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(0, index * cardOverlap, 0, 0),
+        child: WalletCardFront(cardFront: cards[index]),
+      );
+    });
+
+    return Stack(children: children);
   }
 }

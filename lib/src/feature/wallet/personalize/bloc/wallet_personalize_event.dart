@@ -32,3 +32,17 @@ class WalletPersonalizePhotoApproved extends WalletPersonalizeEvent {}
 class WalletPersonalizeOnRetryClicked extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeOnBackPressed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeRetrieveMoreCardsPressed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeSkipRetrieveMoreCardsPressed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeSkipAddMoreCardsPressed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeAddSelectedCardsPressed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizeSelectedCardToggled extends WalletPersonalizeEvent {
+  final WalletCard card;
+
+  const WalletPersonalizeSelectedCardToggled(this.card);
+}

@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 class LinkButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onPressed;
+  final EdgeInsets? customPadding;
 
   const LinkButton({
     required this.child,
     required this.onPressed,
+    this.customPadding,
     Key? key,
   }) : super(key: key);
 
@@ -17,9 +19,12 @@ class LinkButton extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       style: ButtonStyle(
+        padding: customPadding != null ? MaterialStatePropertyAll(customPadding!) : null,
         overlayColor: MaterialStateProperty.all(Colors.transparent),
         splashFactory: NoSplash.splashFactory,
-        foregroundColor: MaterialStateProperty.resolveWith(_getForegroundColor(context)),
+        foregroundColor: MaterialStateProperty.resolveWith(
+          _getForegroundColor(context),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

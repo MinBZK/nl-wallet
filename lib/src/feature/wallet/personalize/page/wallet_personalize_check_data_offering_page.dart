@@ -6,12 +6,10 @@ import '../../../common/widget/check_data_offering_page.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAccept;
-  final String name;
   final List<DataAttribute> attributes;
 
   const WalletPersonalizeCheckDataOfferingPage({
     required this.onAccept,
-    required this.name,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -22,7 +20,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
       attributes: attributes,
-      title: locale.walletPersonalizeCheckDataOfferingPageTitle(name),
+      title: locale.walletPersonalizeCheckDataOfferingPageTitle,
       footerCta: locale.walletPersonalizeCheckDataOfferingPageIncorrectCta,
       showHeaderAttributesDivider: false,
     );

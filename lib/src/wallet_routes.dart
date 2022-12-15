@@ -251,7 +251,8 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 
 Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
   return BlocProvider<WalletPersonalizeBloc>(
-    create: (BuildContext context) => WalletPersonalizeBloc(context.read(), context.read()),
+    create: (BuildContext context) =>
+        WalletPersonalizeBloc(context.read(), context.read(), context.read(), context.read()),
     child: const WalletPersonalizeScreen(),
   );
 }

@@ -14,9 +14,11 @@ import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_card_usecase.dart';
+import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
+import '../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
@@ -110,11 +112,17 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<WalletAddIssuedCardUseCase>(
           create: (context) => WalletAddIssuedCardUseCase(context.read(), context.read()),
         ),
+        RepositoryProvider<WalletAddIssuedCardsUseCase>(
+          create: (context) => WalletAddIssuedCardsUseCase(context.read()),
+        ),
         RepositoryProvider<GetPidCardUseCase>(
           create: (context) => GetPidCardUseCase(context.read()),
         ),
         RepositoryProvider<GetPidIssuanceResponseUseCase>(
           create: (context) => GetPidIssuanceResponseUseCase(context.read()),
+        ),
+        RepositoryProvider<GetMyGovernmentIssuanceResponsesUseCase>(
+          create: (context) => GetMyGovernmentIssuanceResponsesUseCase(context.read()),
         ),
         RepositoryProvider<GetWalletTimelineAttributesUseCase>(
           create: (context) => GetWalletTimelineAttributesUseCase(context.read()),

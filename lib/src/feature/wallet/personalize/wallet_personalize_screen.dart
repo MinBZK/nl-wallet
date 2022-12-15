@@ -13,9 +13,10 @@ import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_loading_photo_page.dart';
-import 'page/wallet_personalize_photo_added_page.dart';
+import 'page/wallet_personalize_retrieve_more_cards_page.dart';
 import 'page/wallet_personalize_scan_id_intro_page.dart';
 import 'page/wallet_personalize_scan_id_page.dart';
+import 'page/wallet_personalize_select_cards_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 import 'widget/mock_digid_screen.dart';
 
@@ -47,7 +48,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizeOnBackPressed()),
+          onPressed: () => context.bloc.add(WalletPersonalizeOnBackPressed()),
         );
       },
     );
@@ -68,11 +69,13 @@ class WalletPersonalizeScreen extends StatelessWidget {
         Widget? result;
         if (state is WalletPersonalizeInitial) result = _buildWalletIntroPage(context);
         if (state is WalletPersonalizeLoadingPid) result = _buildLoading(context);
+        if (state is WalletPersonalizeLoadInProgress) result = _buildLoading(context);
         if (state is WalletPersonalizeCheckData) result = _buildCheckDataOfferingPage(context, state);
         if (state is WalletPersonalizeScanIdIntro) result = _buildScanIdIntroPage(context, state);
+        if (state is WalletPersonalizeRetrieveMoreCards) result = _buildRetrieveMoreCardsPage(context);
+        if (state is WalletPersonalizeSelectCards) result = _buildSelectCardsPage(context, state);
         if (state is WalletPersonalizeScanId) result = _buildScanIdPage(context, state);
         if (state is WalletPersonalizeLoadingPhoto) result = _buildLoadingPhotoPage(context, state);
-        if (state is WalletPersonalizePhotoAdded) result = _buildPhotoAddedPage(context, state);
         if (state is WalletPersonalizeSuccess) result = _buildSuccessPage(context, state);
         if (state is WalletPersonalizeFailure) result = _buildErrorPage(context);
         if (result == null) throw UnsupportedError('Unknown state: $state');
@@ -83,9 +86,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     return WalletPersonalizeCheckDataOfferingPage(
-      onAccept: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizeOfferingVerified()),
+      onAccept: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
       attributes: state.availableAttributes,
-      name: state.firstNames,
     );
   }
 
@@ -114,9 +116,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildWalletIntroPage(BuildContext context) {
     return WalletPersonalizeIntroPage(
-      onLoginWithDigidPressed: () {
-        context.read<WalletPersonalizeBloc>().add(WalletPersonalizeLoginWithDigidClicked());
-      },
+      onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
       onNoDigidPressed: () {
         PlaceholderScreen.show(context, AppLocalizations.of(context).walletPersonalizeIntroPageNoDigidCta);
       },
@@ -124,16 +124,15 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   void _loginWithDigid(BuildContext context) async {
-    final bloc = context.read<WalletPersonalizeBloc>();
     await MockDigidScreen.show(context);
     await Future.delayed(kDefaultMockDelay);
-    bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+    context.bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
   }
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
     return WalletPersonalizeSuccessPage(
       onContinuePressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute),
-      cardFront: state.cardFront,
+      cards: state.cardFronts,
     );
   }
 
@@ -141,7 +140,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return Center(
       child: IconButton(
         iconSize: 64,
-        onPressed: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizeOnRetryClicked()),
+        onPressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
         icon: Icon(
           Icons.error,
           color: Theme.of(context).errorColor,
@@ -152,13 +151,13 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildScanIdIntroPage(BuildContext context, WalletPersonalizeScanIdIntro state) {
     return WalletPersonalizeScanIdIntroPage(
-      onStartScanPressed: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizeScanInitiated()),
+      onStartScanPressed: () => context.bloc.add(WalletPersonalizeScanInitiated()),
     );
   }
 
   Widget _buildScanIdPage(BuildContext context, WalletPersonalizeScanId state) {
     return WalletPersonalizeScanIdPage(
-      onNfcDetected: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizeScanEvent()),
+      onNfcDetected: () => context.bloc.add(WalletPersonalizeScanEvent()),
     );
   }
 
@@ -166,10 +165,24 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return WalletPersonalizeLoadingPhotoPage(mockDelay: state.mockedScanDuration);
   }
 
-  Widget _buildPhotoAddedPage(BuildContext context, WalletPersonalizePhotoAdded state) {
-    return WalletPersonalizePhotoAddedPage(
-      photo: state.photo,
-      onNextPressed: () => context.read<WalletPersonalizeBloc>().add(WalletPersonalizePhotoApproved()),
+  Widget _buildRetrieveMoreCardsPage(BuildContext context) {
+    return WalletPersonalizeRetrieveMoreCardsPage(
+      onContinuePressed: () => context.bloc.add(WalletPersonalizeRetrieveMoreCardsPressed()),
+      onSkipPressed: () => context.bloc.add(WalletPersonalizeSkipRetrieveMoreCardsPressed()),
     );
   }
+
+  Widget _buildSelectCardsPage(BuildContext context, WalletPersonalizeSelectCards state) {
+    return WalletPersonalizeSelectCardsPage(
+      onSkipPressed: () => context.bloc.add(WalletPersonalizeSkipAddMoreCardsPressed()),
+      cards: state.availableCards,
+      selectedCardIds: state.selectedCardIds,
+      onCardSelectionToggled: (card) => context.bloc.add(WalletPersonalizeSelectedCardToggled(card)),
+      onAddSelectedPressed: () => context.bloc.add(WalletPersonalizeAddSelectedCardsPressed()),
+    );
+  }
+}
+
+extension _WalletPersonalizeScreenExtension on BuildContext {
+  WalletPersonalizeBloc get bloc => read<WalletPersonalizeBloc>();
 }

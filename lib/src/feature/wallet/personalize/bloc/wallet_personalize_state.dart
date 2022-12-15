@@ -1,6 +1,6 @@
 part of 'wallet_personalize_bloc.dart';
 
-const _kNrOfPages = 8;
+const _kNrOfPages = 11;
 
 abstract class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
@@ -26,16 +26,15 @@ class WalletPersonalizeLoadingPid extends WalletPersonalizeState {
 }
 
 class WalletPersonalizeCheckData extends WalletPersonalizeState {
-  final String firstNames;
   final List<DataAttribute> availableAttributes;
 
-  const WalletPersonalizeCheckData({required this.firstNames, required this.availableAttributes});
+  const WalletPersonalizeCheckData({required this.availableAttributes});
 
   @override
-  double get stepperProgress => 3 / _kNrOfPages;
+  double get stepperProgress => 7 / _kNrOfPages;
 
   @override
-  List<Object?> get props => [firstNames, availableAttributes, ...super.props];
+  List<Object?> get props => [availableAttributes, ...super.props];
 }
 
 class WalletPersonalizeScanIdIntro extends WalletPersonalizeState {
@@ -67,31 +66,58 @@ class WalletPersonalizeLoadingPhoto extends WalletPersonalizeState {
   double get stepperProgress => 6 / _kNrOfPages;
 }
 
-class WalletPersonalizePhotoAdded extends WalletPersonalizeState {
-  final DataAttribute photo;
-
-  const WalletPersonalizePhotoAdded(this.photo);
-
-  @override
-  double get stepperProgress => 7 / _kNrOfPages;
-}
-
 class WalletPersonalizeSuccess extends WalletPersonalizeState {
-  final WalletCard pidCard;
-  final Organization organization;
+  final List<WalletCard> addedCards;
 
-  const WalletPersonalizeSuccess(this.pidCard, this.organization);
+  const WalletPersonalizeSuccess(this.addedCards);
 
-  CardFront get cardFront => pidCard.front;
+  List<CardFront> get cardFronts => addedCards.map((e) => e.front).toList();
 
   @override
   double get stepperProgress => 1;
 
   @override
-  List<Object?> get props => [pidCard, organization, ...super.props];
+  List<Object?> get props => [addedCards, ...super.props];
 }
 
 class WalletPersonalizeFailure extends WalletPersonalizeState {
   @override
   double get stepperProgress => 0;
+}
+
+class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
+  @override
+  double get stepperProgress => 8 / _kNrOfPages;
+}
+
+class WalletPersonalizeSelectCards extends WalletPersonalizeState {
+  final List<IssuanceResponse> issuanceResponses;
+  final List<String> selectedCardIds;
+
+  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+
+  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+
+  const WalletPersonalizeSelectCards({
+    required this.issuanceResponses,
+    required this.selectedCardIds,
+  });
+
+  @override
+  double get stepperProgress => 9 / _kNrOfPages;
+
+  @override
+  List<Object?> get props => [issuanceResponses, selectedCardIds, ...super.props];
+}
+
+class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
+  final double step;
+
+  const WalletPersonalizeLoadInProgress(this.step);
+
+  @override
+  double get stepperProgress => step / _kNrOfPages;
+
+  @override
+  List<Object?> get props => [step, ...super.props];
 }
