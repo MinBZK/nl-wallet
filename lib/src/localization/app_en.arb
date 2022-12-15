@@ -95,7 +95,7 @@
         "type": "String"
       },
       "provider": {
-        "example": "DocuSign",
+        "example": "Veilig Ondertekenen B.V.",
         "type": "String"
       }
     },
@@ -113,7 +113,7 @@
   "@confirmAgreementPageSignProvider": {
     "placeholders": {
       "provider": {
-        "example": "DocuSign",
+        "example": "Veilig Ondertekenen B.V.",
         "type": "String"
       }
     },

@@ -41,7 +41,7 @@ class MockSignRequestRepository implements SignRequestRepository {
             ),
           ],
           trustProvider: const TrustProvider(
-            name: 'DocuSign',
+            name: 'Veilig Ondertekenen B.V.',
             logoUrl: 'assets/non-free/images/logo_sign_provider.png',
           ),
           dataIsShared: false,
