@@ -40,11 +40,11 @@ const _kDuoOrganization = Organization(
 
 const _kEmployerOrganization = Organization(
   id: 'employer_1',
-  name: 'ICTU',
-  shortName: 'ICTU',
+  name: 'Werken voor Nederland',
+  shortName: 'Werken voor Nederland',
   description:
-      'ICTU is van en voor de overheid, en werkt uitsluitend voor de overheid. We helpen overheidsorganisaties met uiteenlopende uitdagingen rondom digitalisering.',
-  logoUrl: 'assets/non-free/images/ictu_logo.png',
+      'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.',
+  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
 );
 
 const _kJustisOrganization = Organization(
