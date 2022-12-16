@@ -478,10 +478,40 @@
     },
     "description": "Title shown when data has been successfully shared"
   },
+  "walletPersonalizeCheckCardPageConfirmCta": "Ja, volgende",
+  "walletPersonalizeCheckCardPageOverline": "Kaart {current} van {total}",
+  "@walletPersonalizeCheckCardPageOverline": {
+    "placeholders": {
+      "current": {
+        "example": "1",
+        "type": "int"
+      },
+      "total": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Indicator to show how far along you are in checking all your MijnOverheid cards"
+  },
+  "walletPersonalizeCheckCardPageRejectCta": "Nee",
+  "walletPersonalizeCheckCardPageTitle": "Kloppen de gegevens",
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
   "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
+  "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om de kaarten aan je Wallet toe te voegen.",
+  "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+  "@walletPersonalizeConfirmPinPageErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "walletPersonalizeConfirmPinPageErrorTitle": "Ongeldige toegangscode",
+  "walletPersonalizeConfirmPinPageTitle": "Vul je toegangscode in",
   "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoongegevens toe te voegen via DigiD",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",
@@ -505,6 +535,10 @@
   "walletPersonalizeScanIdIntroPageTitle": "Inloggen gelukt.\nBewijs je identiteit.",
   "walletPersonalizeScanIdPageDescription": "Leg je identiteitsbewijs tegen de achterkant van je telefoon. Beweeg je paspoort of identiteitskaart heen en weer tot er verbinding is.",
   "walletPersonalizeScanIdPageTitle": "Houd je identiteitsbewijs tegen je telefoon",
+  "walletPersonalizeScreenExitSheetCancelCta": "Nee",
+  "walletPersonalizeScreenExitSheetConfirmCta": "Ja, stoppen",
+  "walletPersonalizeScreenExitSheetDescription": "Weet je zeker dat je wilt stoppen met het aanmaken van een wallet?",
+  "walletPersonalizeScreenExitSheetTitle": "Afbreken",
   "walletPersonalizeScreenLoadingSubtitle": "Wacht even...",
   "walletPersonalizeScreenLoadingTitle": "Aan het laden",
   "walletPersonalizeScreenTitle": "Wallet aanmaken",

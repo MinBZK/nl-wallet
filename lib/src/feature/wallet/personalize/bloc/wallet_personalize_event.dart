@@ -41,6 +41,10 @@ class WalletPersonalizeSkipAddMoreCardsPressed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeAddSelectedCardsPressed extends WalletPersonalizeEvent {}
 
+class WalletPersonalizeDataOnCardConfirmed extends WalletPersonalizeEvent {}
+
+class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {}
+
 class WalletPersonalizeSelectedCardToggled extends WalletPersonalizeEvent {
   final WalletCard card;
 

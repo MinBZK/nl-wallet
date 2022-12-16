@@ -478,10 +478,40 @@
     },
     "description": "Title shown when data has been successfully shared"
   },
+  "walletPersonalizeCheckCardPageConfirmCta": "Yes, next",
+  "walletPersonalizeCheckCardPageOverline": "Card {current} of {total}",
+  "@walletPersonalizeCheckCardPageOverline": {
+    "placeholders": {
+      "current": {
+        "example": "1",
+        "type": "int"
+      },
+      "total": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Indicator to show how far along you are in checking all your MijnOverheid cards"
+  },
+  "walletPersonalizeCheckCardPageRejectCta": "No",
+  "walletPersonalizeCheckCardPageTitle": "Are these details correct?",
   "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, next",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
   "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
+  "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add these cards to your wallet.",
+  "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
+  "@walletPersonalizeConfirmPinPageErrorDescription": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Attempts left counter on the pin entry screen"
+  },
+  "walletPersonalizeConfirmPinPageErrorTitle": "Invalid code",
+  "walletPersonalizeConfirmPinPageTitle": "Enter your pin",
   "walletPersonalizeIntroPageDescription": "You create a wallet by retrieving your personal information through DigiD",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Login with DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "I don't have DigiD",
@@ -505,6 +535,10 @@
   "walletPersonalizeScanIdIntroPageTitle": "Login successful.\nProof your identity.",
   "walletPersonalizeScanIdPageDescription": "Move your passport or ID card back and forth to setup the connection.",
   "walletPersonalizeScanIdPageTitle": "Tap your ID with your phone",
+  "walletPersonalizeScreenExitSheetCancelCta": "No",
+  "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
+  "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your wallet?",
+  "walletPersonalizeScreenExitSheetTitle": "Exit",
   "walletPersonalizeScreenLoadingSubtitle": "One moment please...",
   "walletPersonalizeScreenLoadingTitle": "Loading",
   "walletPersonalizeScreenTitle": "Create wallet",

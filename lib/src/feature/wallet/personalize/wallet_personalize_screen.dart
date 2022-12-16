@@ -7,10 +7,13 @@ import '../../../wallet_routes.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/animated_visibility_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
+import 'page/wallet_personalize_check_card_page.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
+import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_loading_photo_page.dart';
 import 'page/wallet_personalize_retrieve_more_cards_page.dart';
@@ -32,7 +35,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
         title: Text(AppLocalizations.of(context).walletPersonalizeScreenTitle),
       ),
       body: WillPopScope(
-        onWillPop: () async => false,
+        onWillPop: () async {
+          if (context.bloc.state.canGoBack) {
+            context.bloc.add(WalletPersonalizeOnBackPressed());
+          } else {
+            return _showExitSheet(context);
+          }
+          return false;
+        },
         child: Column(
           children: [
             _buildStepper(),
@@ -74,8 +84,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
         if (state is WalletPersonalizeScanIdIntro) result = _buildScanIdIntroPage(context, state);
         if (state is WalletPersonalizeRetrieveMoreCards) result = _buildRetrieveMoreCardsPage(context);
         if (state is WalletPersonalizeSelectCards) result = _buildSelectCardsPage(context, state);
+        if (state is WalletPersonalizeCheckCards) result = _buildCheckCardPage(context, state);
         if (state is WalletPersonalizeScanId) result = _buildScanIdPage(context, state);
         if (state is WalletPersonalizeLoadingPhoto) result = _buildLoadingPhotoPage(context, state);
+        if (state is WalletPersonalizeConfirmPin) result = _buildConfirmPinPage(context, state);
         if (state is WalletPersonalizeSuccess) result = _buildSuccessPage(context, state);
         if (state is WalletPersonalizeFailure) result = _buildErrorPage(context);
         if (result == null) throw UnsupportedError('Unknown state: $state');
@@ -179,6 +191,35 @@ class WalletPersonalizeScreen extends StatelessWidget {
       selectedCardIds: state.selectedCardIds,
       onCardSelectionToggled: (card) => context.bloc.add(WalletPersonalizeSelectedCardToggled(card)),
       onAddSelectedPressed: () => context.bloc.add(WalletPersonalizeAddSelectedCardsPressed()),
+    );
+  }
+
+  Widget _buildCheckCardPage(BuildContext context, WalletPersonalizeCheckCards state) {
+    return WalletPersonalizeCheckCardPage(
+      key: ValueKey(state.cardToCheck.id),
+      card: state.cardToCheck,
+      onAccept: () => context.bloc.add(WalletPersonalizeDataOnCardConfirmed()),
+      onDecline: () => _showExitSheet(context),
+      totalNrOfCards: state.totalNrOfCardsToCheck,
+      currentCardIndex: state.indexOfCardToCheck,
+    );
+  }
+
+  ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.
+  Future<bool> _showExitSheet(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    return ConfirmActionSheet.show(
+      context,
+      title: locale.walletPersonalizeScreenExitSheetTitle,
+      description: locale.walletPersonalizeScreenExitSheetDescription,
+      cancelButtonText: locale.walletPersonalizeScreenExitSheetCancelCta,
+      confirmButtonText: locale.walletPersonalizeScreenExitSheetConfirmCta,
+    );
+  }
+
+  Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
+    return WalletPersonalizeConfirmPinPage(
+      onPinValidated: () => context.bloc.add(WalletPersonalizePinConfirmed()),
     );
   }
 }

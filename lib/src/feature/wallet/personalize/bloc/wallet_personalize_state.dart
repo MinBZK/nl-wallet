@@ -1,6 +1,6 @@
 part of 'wallet_personalize_bloc.dart';
 
-const _kNrOfPages = 11;
+const _kNrOfPages = 13;
 
 abstract class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
@@ -93,6 +93,8 @@ class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
 class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   final List<IssuanceResponse> issuanceResponses;
   final List<String> selectedCardIds;
+  @override
+  final bool didGoBack;
 
   List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
 
@@ -101,10 +103,88 @@ class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   const WalletPersonalizeSelectCards({
     required this.issuanceResponses,
     required this.selectedCardIds,
+    this.didGoBack = false,
   });
 
   @override
   double get stepperProgress => 9 / _kNrOfPages;
+
+  @override
+  List<Object?> get props => [issuanceResponses, selectedCardIds, ...super.props];
+}
+
+class WalletPersonalizeCheckCards extends WalletPersonalizeState {
+  final List<IssuanceResponse> issuanceResponses;
+  final List<String> selectedCardIds;
+  final int indexOfCardToCheck;
+  @override
+  final bool didGoBack;
+
+  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+
+  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+
+  WalletCard get cardToCheck => selectedCards[indexOfCardToCheck];
+
+  int get totalNrOfCardsToCheck => selectedCardIds.length;
+
+  bool get hasMoreCards => indexOfCardToCheck < (totalNrOfCardsToCheck - 1);
+
+  const WalletPersonalizeCheckCards({
+    required this.issuanceResponses,
+    required this.selectedCardIds,
+    this.indexOfCardToCheck = 0,
+    this.didGoBack = false,
+  });
+
+  WalletPersonalizeCheckCards copyForNextCard() {
+    if (!hasMoreCards) throw UnsupportedError('There is no next card to check!');
+    return WalletPersonalizeCheckCards(
+      issuanceResponses: issuanceResponses,
+      selectedCardIds: selectedCardIds,
+      indexOfCardToCheck: indexOfCardToCheck + 1,
+    );
+  }
+
+  WalletPersonalizeCheckCards copyForPreviousCard() {
+    if (indexOfCardToCheck <= 0) throw UnsupportedError('There is no previous card to check!');
+    return WalletPersonalizeCheckCards(
+      issuanceResponses: issuanceResponses,
+      selectedCardIds: selectedCardIds,
+      indexOfCardToCheck: indexOfCardToCheck - 1,
+      didGoBack: true,
+    );
+  }
+
+  @override
+  double get stepperProgress {
+    if (totalNrOfCardsToCheck <= 1) return 10 / _kNrOfPages;
+    final checkCardsProgress = (indexOfCardToCheck / (totalNrOfCardsToCheck - 1));
+    return (10 + checkCardsProgress) / _kNrOfPages;
+  }
+
+  @override
+  List<Object?> get props => [issuanceResponses, selectedCardIds, indexOfCardToCheck, ...super.props];
+
+  @override
+  bool get canGoBack => true;
+}
+
+class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
+  final List<IssuanceResponse> issuanceResponses;
+  final List<String> selectedCardIds;
+
+  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+
+  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+
+  const WalletPersonalizeConfirmPin({
+    required this.issuanceResponses,
+    required this.selectedCardIds,
+  });
+
+  @override
+  double get stepperProgress => 12 / _kNrOfPages;
 
   @override
   List<Object?> get props => [issuanceResponses, selectedCardIds, ...super.props];

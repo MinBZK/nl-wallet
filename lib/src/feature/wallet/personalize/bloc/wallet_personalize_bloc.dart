@@ -43,6 +43,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeRetrieveMoreCardsPressed>(_onRetrieveMoreCardsPressed);
     on<WalletPersonalizeSelectedCardToggled>(_onSelectedCardToggled);
     on<WalletPersonalizeAddSelectedCardsPressed>(_onAddSelectedCardsPressed);
+    on<WalletPersonalizeDataOnCardConfirmed>(_onDataOnCardConfirmed);
+    on<WalletPersonalizePinConfirmed>(_onPinConfirmed);
     on<WalletPersonalizeSkipRetrieveMoreCardsPressed>(_loadCardsAndEmitSuccessState);
     on<WalletPersonalizeSkipAddMoreCardsPressed>(_loadCardsAndEmitSuccessState);
   }
@@ -103,9 +105,21 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onBackPressed(event, emit) async {
+    final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeScanId) {
         emit(const WalletPersonalizeScanIdIntro(afterBackPressed: true));
+      }
+      if (state is WalletPersonalizeCheckCards) {
+        if (state.indexOfCardToCheck > 0) {
+          emit(state.copyForPreviousCard());
+        } else {
+          emit(WalletPersonalizeSelectCards(
+            issuanceResponses: state.issuanceResponses,
+            selectedCardIds: state.selectedCardIds,
+            didGoBack: true,
+          ));
+        }
       }
     }
   }
@@ -143,7 +157,35 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onAddSelectedCardsPressed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeSelectCards) {
-      emit(const WalletPersonalizeLoadInProgress(8));
+      emit(
+        WalletPersonalizeCheckCards(
+          issuanceResponses: state.issuanceResponses,
+          selectedCardIds: state.selectedCardIds,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onDataOnCardConfirmed(event, emit) async {
+    final state = this.state;
+    if (state is WalletPersonalizeCheckCards) {
+      if (state.hasMoreCards) {
+        emit(state.copyForNextCard());
+      } else {
+        emit(
+          WalletPersonalizeConfirmPin(
+            issuanceResponses: state.issuanceResponses,
+            selectedCardIds: state.selectedCardIds,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _onPinConfirmed(event, emit) async {
+    final state = this.state;
+    if (state is WalletPersonalizeConfirmPin) {
+      emit(const WalletPersonalizeLoadInProgress(12.5));
       await Future.delayed(kDefaultMockDelay);
       try {
         for (final response in state.issuanceResponses) {
@@ -161,7 +203,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   Future<void> _loadCardsAndEmitSuccessState(event, emit) async {
     try {
-      final cards = await getWalletCardsUseCase.getWalletCardsOrderedByIdAsc();
+      final cards = await getWalletCardsUseCase.invoke();
       emit(WalletPersonalizeSuccess(cards));
     } catch (ex, stack) {
       Fimber.e('Failed to fetch cards from wallet', ex: ex, stacktrace: stack);
