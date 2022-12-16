@@ -52,17 +52,19 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildCards(BuildContext context, List<WalletCard> cards) {
-    return ListView.separated(
-      itemCount: cards.length + 1,
-      padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
-      itemBuilder: (context, index) {
-        if (index < cards.length) {
-          return _buildCardListItem(context, cards[index]);
-        } else {
-          return _buildFooterButton(context);
-        }
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 16.0),
+    return Scrollbar(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
+        itemCount: cards.length + 1,
+        itemBuilder: (context, index) {
+          if (index < cards.length) {
+            return _buildCardListItem(context, cards[index]);
+          } else {
+            return _buildFooterButton(context);
+          }
+        },
+        separatorBuilder: (context, index) => const SizedBox(height: 16.0),
+      ),
     );
   }
 

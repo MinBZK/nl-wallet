@@ -104,7 +104,11 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
     }
 
-    return CustomScrollView(slivers: slivers);
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: slivers,
+      ),
+    );
   }
 
   bool _showTimelineTypeRow(TimelineAttribute attribute) {

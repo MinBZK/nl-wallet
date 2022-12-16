@@ -24,30 +24,32 @@ class ApproveOrganizationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return CustomScrollView(
-      restorationId: 'approve_organization_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 32),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 48)),
-        SliverToBoxAdapter(child: _buildDescriptionSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 48)),
-        SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-        const SliverToBoxAdapter(child: Divider(height: 48)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: Container(
-            alignment: Alignment.bottomCenter,
-            child: ConfirmButtons(
-              onAccept: onAccept,
-              acceptText: locale.approveOrganizationPageApproveCta,
-              onDecline: onDecline,
-              declineText: locale.approveOrganizationPageDenyCta,
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'approve_organization_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 48)),
+          SliverToBoxAdapter(child: _buildDescriptionSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 48)),
+          SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+          const SliverToBoxAdapter(child: Divider(height: 48)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              child: ConfirmButtons(
+                onAccept: onAccept,
+                acceptText: locale.approveOrganizationPageApproveCta,
+                onDecline: onDecline,
+                declineText: locale.approveOrganizationPageDenyCta,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -27,20 +27,22 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        const SliverSizedBox(height: 24),
-        SliverToBoxAdapter(child: _buildHeader(context)),
-        const SliverSizedBox(height: 24),
-        const SliverToBoxAdapter(child: Divider(height: 1)),
-        SliverList(delegate: _cardBuilderDelegate()),
-        SliverToBoxAdapter(child: _buildDataIncorrect(context)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: _buildActionButtons(context),
-        )
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: [
+          const SliverSizedBox(height: 24),
+          SliverToBoxAdapter(child: _buildHeader(context)),
+          const SliverSizedBox(height: 24),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+          SliverList(delegate: _cardBuilderDelegate()),
+          SliverToBoxAdapter(child: _buildDataIncorrect(context)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: _buildActionButtons(context),
+          )
+        ],
+      ),
     );
   }
 

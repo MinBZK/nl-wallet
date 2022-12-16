@@ -21,39 +21,41 @@ class MenuAboutPage extends StatelessWidget {
         context.read<MenuBloc>().add(MenuBackPressed());
         return false;
       },
-      child: ListView(
-        children: [
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              locale.menuAboutPageTitle,
-              style: Theme.of(context).textTheme.bodyText1?.copyWith(fontWeight: FontWeight.bold),
+      child: Scrollbar(
+        child: ListView(
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                locale.menuAboutPageTitle,
+                style: Theme.of(context).textTheme.bodyText1?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: _buildDescription(context),
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          MenuRow(
-            label: locale.menuAboutPagePrivacyCta,
-            onTap: () => PlaceholderScreen.show(context, locale.menuAboutPagePrivacyCta),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: locale.menuAboutPageTermsCta,
-            onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageTermsCta),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: locale.menuAboutPageFeedbackCta,
-            onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageFeedbackCta),
-          ),
-          const Divider(height: 1),
-        ],
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: _buildDescription(context),
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            MenuRow(
+              label: locale.menuAboutPagePrivacyCta,
+              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPagePrivacyCta),
+            ),
+            const Divider(height: 1),
+            MenuRow(
+              label: locale.menuAboutPageTermsCta,
+              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageTermsCta),
+            ),
+            const Divider(height: 1),
+            MenuRow(
+              label: locale.menuAboutPageFeedbackCta,
+              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageFeedbackCta),
+            ),
+            const Divider(height: 1),
+          ],
+        ),
       ),
     );
   }

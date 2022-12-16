@@ -18,16 +18,18 @@ class IssuanceCardAddedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      restorationId: 'proof_identity_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 48.0),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverSizedBox(height: 32.0),
-        SliverToBoxAdapter(child: _buildCardFront()),
-        const SliverSizedBox(height: 16.0),
-        SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'proof_identity_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 48.0),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 32.0),
+          SliverToBoxAdapter(child: _buildCardFront()),
+          const SliverSizedBox(height: 16.0),
+          SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
+        ],
+      ),
     );
   }
 

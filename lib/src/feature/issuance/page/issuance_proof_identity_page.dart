@@ -25,34 +25,36 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      restorationId: 'proof_identity_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 32),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverSizedBox(height: 8),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: Container(
-            alignment: Alignment.bottomCenter,
-            child: ConfirmButtons(
-              onAccept: onAccept,
-              acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
-              onDecline: onDecline,
-              declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
-              acceptIcon: Icons.arrow_forward,
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'proof_identity_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 8),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverList(delegate: _getDataAttributesDelegate()),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              child: ConfirmButtons(
+                onAccept: onAccept,
+                acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
+                onDecline: onDecline,
+                declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
+                acceptIcon: Icons.arrow_forward,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

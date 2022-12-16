@@ -19,66 +19,68 @@ class MenuMainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-          child: Text(
-            locale.menuMainPageGreeting(name),
-            style: Theme.of(context).textTheme.headline2,
+    return Scrollbar(
+      child: ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: Text(
+              locale.menuMainPageGreeting(name),
+              style: Theme.of(context).textTheme.headline2,
+            ),
           ),
-        ),
-        const Divider(height: 1),
-        MenuRow(
-          label: locale.menuMainPageHelpCta,
-          icon: Icons.help_outline,
-          onTap: () => PlaceholderScreen.show(context, locale.menuMainPageHelpCta),
-        ),
-        const Divider(height: 1),
-        MenuRow(
-          label: locale.menuMainPageHistoryCta,
-          icon: Icons.history,
-          onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
-        ),
-        const Divider(height: 1),
-        MenuRow(
-          label: locale.menuMainPageSettingsCta,
-          icon: Icons.settings_outlined,
-          onTap: () => context.read<MenuBloc>().add(MenuSettingsPressed()),
-        ),
-        const Divider(height: 1),
-        MenuRow(
-          label: locale.menuMainPageAboutCta,
-          icon: Icons.info_outline,
-          onTap: () => context.read<MenuBloc>().add(MenuAboutPressed()),
-        ),
-        const Divider(height: 1),
-        if (showDesignSystemRow)
+          const Divider(height: 1),
           MenuRow(
-            label: locale.menuMainPageDesignCta,
-            icon: Icons.design_services,
-            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
+            label: locale.menuMainPageHelpCta,
+            icon: Icons.help_outline,
+            onTap: () => PlaceholderScreen.show(context, locale.menuMainPageHelpCta),
           ),
-        if (showDesignSystemRow) const Divider(height: 1),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
-          child: VersionText(),
-        ),
-        Center(
-          child: IntrinsicWidth(
-            child: OutlinedButton(
-              onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
-              child: Row(
-                children: [
-                  const Icon(Icons.lock, size: 14),
-                  const SizedBox(width: 8),
-                  Text(locale.menuMainPageLockCta),
-                ],
+          const Divider(height: 1),
+          MenuRow(
+            label: locale.menuMainPageHistoryCta,
+            icon: Icons.history,
+            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: locale.menuMainPageSettingsCta,
+            icon: Icons.settings_outlined,
+            onTap: () => context.read<MenuBloc>().add(MenuSettingsPressed()),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: locale.menuMainPageAboutCta,
+            icon: Icons.info_outline,
+            onTap: () => context.read<MenuBloc>().add(MenuAboutPressed()),
+          ),
+          const Divider(height: 1),
+          if (showDesignSystemRow)
+            MenuRow(
+              label: locale.menuMainPageDesignCta,
+              icon: Icons.design_services,
+              onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
+            ),
+          if (showDesignSystemRow) const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+            child: VersionText(),
+          ),
+          Center(
+            child: IntrinsicWidth(
+              child: OutlinedButton(
+                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock, size: 14),
+                    const SizedBox(width: 8),
+                    Text(locale.menuMainPageLockCta),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -40,18 +40,20 @@ class PolicyScreen extends StatelessWidget {
           decoration: TextDecoration.underline,
         );
     final policyBuilder = PolicyEntriesBuilder(AppLocalizations.of(context), urlTheme);
-    return CustomScrollView(
-      restorationId: 'policy_list',
-      slivers: [
-        SliverList(
-          delegate: _getPolicyEntriesDelegate(policyBuilder.build(interactionPolicy)),
-        ),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: _buildBackButton(context),
-        )
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'policy_list',
+        slivers: [
+          SliverList(
+            delegate: _getPolicyEntriesDelegate(policyBuilder.build(interactionPolicy)),
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: _buildBackButton(context),
+          )
+        ],
+      ),
     );
   }
 

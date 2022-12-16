@@ -83,48 +83,51 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
     final locale = AppLocalizations.of(context);
     final deleteButtonText = locale.cardSummaryScreenCardDeleteCta;
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 24.0),
-      children: [
-        _buildCardFront(summary.card),
-        const SizedBox(height: 24.0),
-        const Divider(),
-        const SizedBox(height: 24.0),
-        _buildDataHighlight(context, summary.card.id, summary.dataHighlight),
-        const SizedBox(height: 8.0),
-        const Divider(),
-        const SizedBox(height: 24.0),
-        _buildInteractionHighlight(context, summary.card.id, summary.interactionAttribute),
-        const SizedBox(height: 8.0),
-        const Divider(),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: TextIconButton(
-              icon: Icons.replay,
-              iconPosition: IconPosition.start,
-              onPressed: () => _onRefreshPressed(context, summary.card),
-              child: Text(locale.cardSummaryScreenCardRenewCta),
+
+    return Scrollbar(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        children: [
+          _buildCardFront(summary.card),
+          const SizedBox(height: 24.0),
+          const Divider(),
+          const SizedBox(height: 24.0),
+          _buildDataHighlight(context, summary.card.id, summary.dataHighlight),
+          const SizedBox(height: 8.0),
+          const Divider(),
+          const SizedBox(height: 24.0),
+          _buildInteractionHighlight(context, summary.card.id, summary.interactionAttribute),
+          const SizedBox(height: 8.0),
+          const Divider(),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: TextIconButton(
+                icon: Icons.replay,
+                iconPosition: IconPosition.start,
+                onPressed: () => _onRefreshPressed(context, summary.card),
+                child: Text(locale.cardSummaryScreenCardRenewCta),
+              ),
             ),
           ),
-        ),
-        const Divider(),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: TextIconButton(
-              icon: Icons.delete,
-              iconPosition: IconPosition.start,
-              onPressed: () => PlaceholderScreen.show(context, deleteButtonText),
-              child: Text(deleteButtonText),
+          const Divider(),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: TextIconButton(
+                icon: Icons.delete,
+                iconPosition: IconPosition.start,
+                onPressed: () => PlaceholderScreen.show(context, deleteButtonText),
+                child: Text(deleteButtonText),
+              ),
             ),
           ),
-        ),
-        const Divider(),
-        const SizedBox(height: kFloatingActionButtonMargin + 64),
-      ],
+          const Divider(),
+          const SizedBox(height: kFloatingActionButtonMargin + 64),
+        ],
+      ),
     );
   }
 

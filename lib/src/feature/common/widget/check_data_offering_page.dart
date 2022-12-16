@@ -27,21 +27,23 @@ class CheckDataOfferingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      restorationId: 'check_data_offering_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 32),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverSizedBox(height: 24),
-        if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
-        const SliverSizedBox(height: 16),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverSizedBox(height: 16),
-        const SliverToBoxAdapter(child: Divider(height: 24)),
-        SliverToBoxAdapter(child: _buildFooterSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 24)),
-        SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'check_data_offering_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 24),
+          if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverSizedBox(height: 16),
+          SliverList(delegate: _getDataAttributesDelegate()),
+          const SliverSizedBox(height: 16),
+          const SliverToBoxAdapter(child: Divider(height: 24)),
+          SliverToBoxAdapter(child: _buildFooterSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 24)),
+          SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
+        ],
+      ),
     );
   }
 

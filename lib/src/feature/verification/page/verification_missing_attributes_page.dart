@@ -19,22 +19,24 @@ class VerificationMissingAttributesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      restorationId: 'missing_data_attributes_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 32),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverSizedBox(height: 20),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverSizedBox(height: 20),
-        SliverToBoxAdapter(child: _buildHowToProceedButton(context)),
-        const SliverToBoxAdapter(child: Divider(height: 48)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: _buildCloseRequestButton(context),
-        ),
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'missing_data_attributes_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 20),
+          SliverList(delegate: _getDataAttributesDelegate()),
+          const SliverSizedBox(height: 20),
+          SliverToBoxAdapter(child: _buildHowToProceedButton(context)),
+          const SliverToBoxAdapter(child: Divider(height: 48)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: _buildCloseRequestButton(context),
+          ),
+        ],
+      ),
     );
   }
 

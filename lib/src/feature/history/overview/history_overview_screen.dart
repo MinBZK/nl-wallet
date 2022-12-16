@@ -49,7 +49,11 @@ class HistoryOverviewScreen extends StatelessWidget {
       _buildBackButton(context),
     ];
 
-    return CustomScrollView(slivers: slivers);
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: slivers,
+      ),
+    );
   }
 
   Widget _buildBackButton(BuildContext context) {

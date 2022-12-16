@@ -24,30 +24,32 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return CustomScrollView(
-      restorationId: 'confirm_data_attributes_scrollview',
-      slivers: <Widget>[
-        const SliverSizedBox(height: 8),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: Container(
-            alignment: Alignment.bottomCenter,
-            child: ConfirmButtons(
-              onAccept: onAccept,
-              acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
-              onDecline: onDecline,
-              declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+    return Scrollbar(
+      child: CustomScrollView(
+        restorationId: 'confirm_data_attributes_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 8),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          SliverList(delegate: _getDataAttributesDelegate()),
+          SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              child: ConfirmButtons(
+                onAccept: onAccept,
+                acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
+                onDecline: onDecline,
+                declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

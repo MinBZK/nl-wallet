@@ -23,31 +23,33 @@ class CheckAgreementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: <Widget>[
-        const SliverSizedBox(height: 8),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 1)),
-        SliverToBoxAdapter(child: _buildContractSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: _buildTrustProvider(context)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-        const SliverToBoxAdapter(child: Divider(height: 32)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          fillOverscroll: true,
-          child: Container(
-            alignment: Alignment.bottomCenter,
-            child: ConfirmButtons(
-              onAccept: onAccept,
-              acceptText: AppLocalizations.of(context).checkAgreementPageConfirmCta,
-              onDecline: onDecline,
-              declineText: AppLocalizations.of(context).checkAgreementPageCancelCta,
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: <Widget>[
+          const SliverSizedBox(height: 8),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+          SliverToBoxAdapter(child: _buildContractSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(child: _buildTrustProvider(context)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: Container(
+              alignment: Alignment.bottomCenter,
+              child: ConfirmButtons(
+                onAccept: onAccept,
+                acceptText: AppLocalizations.of(context).checkAgreementPageConfirmCta,
+                onDecline: onDecline,
+                declineText: AppLocalizations.of(context).checkAgreementPageCancelCta,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

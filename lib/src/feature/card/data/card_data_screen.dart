@@ -78,8 +78,10 @@ class CardDataScreen extends StatelessWidget {
       ),
     );
 
-    return CustomScrollView(
-      slivers: slivers,
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: slivers,
+      ),
     );
   }
 
