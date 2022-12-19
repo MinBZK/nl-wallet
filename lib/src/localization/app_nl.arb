@@ -447,7 +447,7 @@
   },
   "verificationMissingAttributesPageHowToProceedCta": "Wat kan ik doen?",
   "verificationMissingAttributesPageTitle": "Je mist gegevens",
-  "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}}. ",
+  "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
   "@verificationScreenCancelSheetDescription": {
     "placeholders": {
       "organization": {

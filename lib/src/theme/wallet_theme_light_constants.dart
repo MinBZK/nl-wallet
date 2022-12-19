@@ -156,7 +156,7 @@ class WalletThemeConstants {
   static const _subtitle2FontSize = 14.0;
   static const _body1FontSize = 16.0;
   static const _body2FontSize = 14.0;
-  static const _buttonFontSize = 14.0;
+  static const _buttonFontSize = 16.0;
   static const _captionFontSize = 12.0;
   static const _overlineFontSize = 14.0;
 }
