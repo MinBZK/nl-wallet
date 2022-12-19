@@ -157,12 +157,16 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onAddSelectedCardsPressed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeSelectCards) {
-      emit(
-        WalletPersonalizeCheckCards(
-          issuanceResponses: state.issuanceResponses,
-          selectedCardIds: state.selectedCardIds,
-        ),
-      );
+      if (state.selectedCardIds.isEmpty) {
+        _loadCardsAndEmitSuccessState(event, emit);
+      } else {
+        emit(
+          WalletPersonalizeCheckCards(
+            issuanceResponses: state.issuanceResponses,
+            selectedCardIds: state.selectedCardIds,
+          ),
+        );
+      }
     }
   }
 
