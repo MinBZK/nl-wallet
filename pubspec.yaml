@@ -1,5 +1,5 @@
 name: wallet
-description: Wild WALLET appeared!
+description: EDI - NL Public Reference Wallet
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
