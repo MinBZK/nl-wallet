@@ -200,9 +200,23 @@
   "introductionLanguageSelectCta": "English",
   "introductionNextPageCta": "Volgende",
   "introductionPrivacyPolicyCta": "Privacy policy",
-  "issuanceCardAddedCloseCta": "To my cards",
-  "issuanceCardAddedSubtitle": "You can find the data in your cards overview.",
-  "issuanceCardAddedTitle": "Success!",
+  "issuanceCheckCardPageConfirmCta": "Yes, next",
+  "issuanceCheckCardPageOverline": "Card {current} of {total}",
+  "@issuanceCheckCardPageOverline": {
+    "placeholders": {
+      "current": {
+        "example": "1",
+        "type": "int"
+      },
+      "total": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Indicator to show how far along you are in checking all your MijnOverheid cards"
+  },
+  "issuanceCheckCardPageRejectCta": "No",
+  "issuanceCheckCardPageTitle": "Are these details correct?",
   "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
   "issuanceCheckDataOfferingPageNegativeCta": "Decline",
   "issuanceCheckDataOfferingPagePositiveCta": "Add",
@@ -254,6 +268,12 @@
   "issuanceProofIdentityPageTitle": "Proof who you are",
   "issuanceScreenRefreshTitle": "Refresh data",
   "issuanceScreenTitle": "Retrieve data",
+  "issuanceSelectCardsPageAddCta": "Add",
+  "issuanceSelectCardsPageDataIncorrectCta": "Something not right?",
+  "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
+  "issuanceSelectCardsPageNoSelectionError": "Select one or more cards to add",
+  "issuanceSelectCardsPageStopCta": "Stop",
+  "issuanceSelectCardsPageTitle": "The following cards are available",
   "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {
@@ -271,6 +291,18 @@
   "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
   "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
   "issuanceStoppedPageTitle": "Sharing stopped",
+  "issuanceSuccessPageCloseCta": "To my cards",
+  "issuanceSuccessPageSubtitle": "{cards, plural, =1 {Your card has been added} other {Your cards have been added}}",
+  "@issuanceSuccessPageSubtitle": {
+    "placeholders": {
+      "cards": {
+        "example": "2",
+        "type": "int"
+      }
+    },
+    "description": "Info on where the user can locate the added cards"
+  },
+  "issuanceSuccessPageTitle": "Success!",
   "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
   "menuAboutPageFeedbackCta": "Give feedback",
   "menuAboutPagePrivacyCta": "Privacy policy",

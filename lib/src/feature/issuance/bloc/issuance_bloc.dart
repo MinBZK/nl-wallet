@@ -6,11 +6,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
+import '../../../domain/model/multiple_cards_flow.dart';
 import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
-import '../../../domain/usecase/card/wallet_add_issued_card_usecase.dart';
+import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
+import '../../../util/extension/set_extensions.dart';
 import '../../../wallet_constants.dart';
 import '../../verification/model/organization.dart';
 
@@ -20,12 +23,12 @@ part 'issuance_state.dart';
 class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final GetIssuanceResponseUseCase getIssuanceResponseUseCase;
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
-  final WalletAddIssuedCardUseCase walletAddIssuedCardUseCase;
+  final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final LogCardInteractionUseCase logCardInteractionUseCase;
 
   IssuanceBloc(
     this.getIssuanceResponseUseCase,
-    this.walletAddIssuedCardUseCase,
+    this.walletAddIssuedCardsUseCase,
     this.getRequestedAttributesFromWalletUseCase,
     this.logCardInteractionUseCase,
   ) : super(const IssuanceInitial(false)) {
@@ -37,6 +40,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceShareRequestedAttributesApproved>(_onIssuanceShareRequestedAttributesApproved);
     on<IssuancePinConfirmed>(_onIssuancePinConfirmed);
     on<IssuanceCheckDataOfferingApproved>(_onIssuanceCheckDataOfferingApproved);
+    on<IssuanceCardToggled>(_onIssuanceCardToggled);
+    on<IssuanceSelectedCardsConfirmed>(_onIssuanceSelectedCardsConfirmed);
+    on<IssuanceCardApproved>(_onIssuanceCardApproved);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
   }
 
@@ -48,6 +54,22 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       }
       if (state is IssuanceProvidePin) {
         emit(IssuanceProofIdentity(state.isRefreshFlow, state.flow, afterBackPressed: true));
+      }
+      if (state is IssuanceCheckCards && state.multipleCardsFlow.isAtFirstCard) {
+        emit(IssuanceSelectCards(
+          state.isRefreshFlow,
+          state.flow,
+          state.multipleCardsFlow,
+          didGoBack: true,
+        ));
+      }
+      if (state is IssuanceCheckCards && !state.multipleCardsFlow.isAtFirstCard) {
+        emit(IssuanceCheckCards(
+          state.isRefreshFlow,
+          flow: state.flow,
+          multipleCardsFlow: state.multipleCardsFlow.previous(),
+          didGoBack: true,
+        ));
       }
     }
   }
@@ -99,15 +121,25 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuancePinConfirmed(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
-    emit(IssuanceCheckDataOffering(state.isRefreshFlow, state.flow));
+    if (state.flow.cards.length > 1) {
+      emit(
+        IssuanceSelectCards(
+          state.isRefreshFlow,
+          state.flow,
+          MultipleCardsFlow.fromCards(state.flow.cards, state.flow.organization),
+        ),
+      );
+    } else {
+      emit(IssuanceCheckDataOffering(state.isRefreshFlow, state.flow));
+    }
   }
 
   void _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
     _logCardInteraction(state.flow, InteractionType.success);
-    await walletAddIssuedCardUseCase.invoke(state.flow.cards.first, state.flow.organization);
-    emit(IssuanceCardAdded(state.isRefreshFlow, state.flow));
+    await walletAddIssuedCardsUseCase.invoke(state.flow.cards, state.flow.organization);
+    emit(IssuanceCompleted(state.isRefreshFlow, state.flow, state.flow.cards));
   }
 
   void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
@@ -125,5 +157,41 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     attributesByCardId.forEach((cardId, attributes) {
       logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
     });
+  }
+
+  FutureOr<void> _onIssuanceCardToggled(IssuanceCardToggled event, emit) {
+    final state = this.state;
+    if (state is! IssuanceSelectCards) throw UnsupportedError('Incorrect state to $state');
+    emit(state.toggleCard(event.card.id));
+  }
+
+  FutureOr<void> _onIssuanceSelectedCardsConfirmed(IssuanceSelectedCardsConfirmed event, emit) {
+    final state = this.state;
+    if (state is! IssuanceSelectCards) throw UnsupportedError('Incorrect state to $state');
+    if (state.selectedCards.isEmpty) {
+      emit(state.copyWith(showNoSelectionError: true));
+    } else {
+      emit(IssuanceCheckCards(
+        state.isRefreshFlow,
+        flow: state.flow,
+        multipleCardsFlow: state.multipleCardsFlow,
+      ));
+    }
+  }
+
+  FutureOr<void> _onIssuanceCardApproved(IssuanceCardApproved event, emit) async {
+    final state = this.state;
+    if (state is! IssuanceCheckCards) throw UnsupportedError('Incorrect state to $state');
+    if (state.multipleCardsFlow.hasMoreCards) {
+      emit(IssuanceCheckCards(
+        state.isRefreshFlow,
+        flow: state.flow,
+        multipleCardsFlow: state.multipleCardsFlow.next(),
+      ));
+    } else {
+      _logCardInteraction(state.flow, InteractionType.success);
+      await walletAddIssuedCardsUseCase.invoke(state.multipleCardsFlow.selectedCards, state.flow.organization);
+      emit(IssuanceCompleted(state.isRefreshFlow, state.flow, state.multipleCardsFlow.selectedCards));
+    }
   }
 }

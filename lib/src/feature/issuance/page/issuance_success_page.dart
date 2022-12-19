@@ -3,16 +3,16 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/card_front.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
-import '../../common/widget/wallet_card_front.dart';
 
-class IssuanceCardAddedPage extends StatelessWidget {
+class IssuanceSuccessPage extends StatelessWidget {
   final VoidCallback onClose;
-  final CardFront cardFront;
+  final List<CardFront> cards;
 
-  const IssuanceCardAddedPage({
+  const IssuanceSuccessPage({
     required this.onClose,
-    required this.cardFront,
+    required this.cards,
     Key? key,
   }) : super(key: key);
 
@@ -20,12 +20,21 @@ class IssuanceCardAddedPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scrollbar(
       child: CustomScrollView(
-        restorationId: 'proof_identity_scrollview',
+        restorationId: 'issuance_success_page',
         slivers: <Widget>[
           const SliverSizedBox(height: 48.0),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverSizedBox(height: 32.0),
-          SliverToBoxAdapter(child: _buildCardFront()),
+          SliverToBoxAdapter(
+              child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: StackedWalletCards(cards: cards),
+              ),
+            ],
+          )),
           const SliverSizedBox(height: 16.0),
           SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
         ],
@@ -49,7 +58,7 @@ class IssuanceCardAddedPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            locale.issuanceCardAddedTitle,
+            locale.issuanceSuccessPageTitle,
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.center,
           ),
@@ -58,22 +67,12 @@ class IssuanceCardAddedPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            locale.issuanceCardAddedSubtitle,
+            locale.issuanceSuccessPageSubtitle(cards.length),
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.center,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCardFront() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: WalletCardFront(
-        cardFront: cardFront,
-        onPressed: null,
-      ),
     );
   }
 
@@ -86,7 +85,7 @@ class IssuanceCardAddedPage extends StatelessWidget {
           height: 48,
           child: ElevatedButton(
             onPressed: onClose,
-            child: Text(AppLocalizations.of(context).issuanceCardAddedCloseCta),
+            child: Text(AppLocalizations.of(context).issuanceSuccessPageCloseCta),
           ),
         ),
       ),

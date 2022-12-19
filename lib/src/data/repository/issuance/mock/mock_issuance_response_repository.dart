@@ -33,6 +33,13 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
           interactionPolicy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard],
         );
+      case _kMultiDiplomaId:
+        return IssuanceResponse(
+          organization: (await organizationDataSource.read('duo'))!,
+          requestedAttributes: _kMockDiplomaRequestedAttributes,
+          interactionPolicy: _kMockIssuancePolicy,
+          cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
+        );
       case _kDrivingLicenseId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,

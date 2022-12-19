@@ -117,14 +117,115 @@ class IssuanceCheckDataOffering extends IssuanceState {
   double get stepperProgress => 0.8;
 }
 
-class IssuanceCardAdded extends IssuanceState {
+class IssuanceSelectCards extends IssuanceState {
   @override
   final IssuanceFlow flow;
 
-  const IssuanceCardAdded(super.isRefreshFlow, this.flow);
+  final MultipleCardsFlow multipleCardsFlow;
+
+  final bool showNoSelectionError;
 
   @override
-  List<Object?> get props => [flow, ...super.props];
+  final bool didGoBack;
+
+  List<WalletCard> get availableCards => flow.cards;
+
+  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
+
+  const IssuanceSelectCards(
+    super.isRefreshFlow,
+    this.flow,
+    this.multipleCardsFlow, {
+    this.didGoBack = false,
+    this.showNoSelectionError = false,
+  });
+
+  @override
+  List<Object?> get props => [flow, multipleCardsFlow, showNoSelectionError, ...super.props];
+
+  @override
+  double get stepperProgress => 0.8;
+
+  IssuanceSelectCards toggleCard(String cardId) {
+    final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);
+    return IssuanceSelectCards(
+      isRefreshFlow,
+      flow,
+      multipleCardsFlow.copyWith(selectedCardIds: selection..toggle(cardId)),
+    );
+  }
+
+  IssuanceSelectCards copyWith({bool? showNoSelectionError}) {
+    return IssuanceSelectCards(
+      isRefreshFlow,
+      flow,
+      multipleCardsFlow,
+      showNoSelectionError: showNoSelectionError ?? this.showNoSelectionError,
+      didGoBack: didGoBack,
+    );
+  }
+}
+
+class IssuanceCheckCards extends IssuanceState {
+  @override
+  final IssuanceFlow flow;
+
+  final MultipleCardsFlow multipleCardsFlow;
+
+  @override
+  final bool didGoBack;
+
+  WalletCard get cardToCheck => multipleCardsFlow.activeCard;
+
+  int get totalNrOfCardsToCheck => multipleCardsFlow.selectedCards.length;
+
+  const IssuanceCheckCards(
+    super.isRefreshFlow, {
+    required this.flow,
+    required this.multipleCardsFlow,
+    this.didGoBack = false,
+  });
+
+  IssuanceCheckCards copyForNextCard() {
+    if (!multipleCardsFlow.hasMoreCards) throw UnsupportedError('There is no next card to check!');
+    return IssuanceCheckCards(
+      isRefreshFlow,
+      flow: flow,
+      multipleCardsFlow: multipleCardsFlow.next(),
+      didGoBack: false,
+    );
+  }
+
+  IssuanceCheckCards copyForPreviousCard() {
+    if (multipleCardsFlow.isAtFirstCard) throw UnsupportedError('There is no previous card to check!');
+    return IssuanceCheckCards(
+      isRefreshFlow,
+      flow: flow,
+      multipleCardsFlow: multipleCardsFlow.previous(),
+      didGoBack: true,
+    );
+  }
+
+  @override
+  List<Object?> get props => [flow, multipleCardsFlow, ...super.props];
+
+  @override
+  double get stepperProgress => 0.9;
+
+  @override
+  bool get canGoBack => true;
+}
+
+class IssuanceCompleted extends IssuanceState {
+  @override
+  final IssuanceFlow flow;
+
+  final List<WalletCard> addedCards;
+
+  const IssuanceCompleted(super.isRefreshFlow, this.flow, this.addedCards);
+
+  @override
+  List<Object?> get props => [flow, addedCards, ...super.props];
 
   @override
   bool get showStopConfirmation => false;

@@ -200,9 +200,23 @@
   "introductionLanguageSelectCta": "Nederlands",
   "introductionNextPageCta": "Volgende",
   "introductionPrivacyPolicyCta": "Privacybeleid",
-  "issuanceCardAddedCloseCta": "Naar mijn kaarten",
-  "issuanceCardAddedSubtitle": "Je kunt de gegevens vinden in je kaarten overzicht.",
-  "issuanceCardAddedTitle": "Gelukt!",
+  "issuanceCheckCardPageConfirmCta": "Ja, volgende",
+  "issuanceCheckCardPageOverline": "Kaart {current} van {total}",
+  "@issuanceCheckCardPageOverline": {
+    "placeholders": {
+      "current": {
+        "example": "1",
+        "type": "int"
+      },
+      "total": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Indicator to show how far along you are in checking all your MijnOverheid cards"
+  },
+  "issuanceCheckCardPageRejectCta": "Nee",
+  "issuanceCheckCardPageTitle": "Kloppen de gegevens",
   "issuanceCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "issuanceCheckDataOfferingPageNegativeCta": "Afwijzen",
   "issuanceCheckDataOfferingPagePositiveCta": "Toevoegen",
@@ -254,6 +268,12 @@
   "issuanceProofIdentityPageTitle": "Bewijs wie je bent",
   "issuanceScreenRefreshTitle": "Opnieuw ophalen",
   "issuanceScreenTitle": "Gegevens ophalen",
+  "issuanceSelectCardsPageAddCta": "Toevoegen",
+  "issuanceSelectCardsPageDataIncorrectCta": "Klopt er iets niet?",
+  "issuanceSelectCardsPageDescription": "Kies welke je wilt toevoegen.",
+  "issuanceSelectCardsPageNoSelectionError": "Kies één of meerdere kaarten om toe te voegen.",
+  "issuanceSelectCardsPageStopCta": "Stop",
+  "issuanceSelectCardsPageTitle": "De volgende kaarten zijn opgehaald",
   "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {
@@ -271,6 +291,18 @@
   "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
   "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
   "issuanceStoppedPageTitle": "Delen gestopt",
+  "issuanceSuccessPageCloseCta": "Naar mijn kaarten",
+  "issuanceSuccessPageSubtitle": "{cards, plural, =1 {Je kaart is toegevoegd.} other {Je kaarten zijn toegevoegd!}}",
+  "@issuanceSuccessPageSubtitle": {
+    "placeholders": {
+      "cards": {
+        "example": "2",
+        "type": "int"
+      }
+    },
+    "description": "Info on where the user can locate the added cards"
+  },
+  "issuanceSuccessPageTitle": "Gelukt!",
   "menuAboutPageDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
   "menuAboutPageFeedbackCta": "Geef feedback",
   "menuAboutPagePrivacyCta": "Privacybeleid",

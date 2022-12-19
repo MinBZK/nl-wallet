@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/card_front.dart';
 import '../../../common/widget/flow_terminal_page.dart';
-import '../../../common/widget/wallet_card_front.dart';
+import '../../../common/widget/stacked_wallet_cards.dart';
 
 class WalletPersonalizeSuccessPage extends StatelessWidget {
   final VoidCallback onContinuePressed;
@@ -26,7 +26,7 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: _buildCards(),
+            child: StackedWalletCards(cards: cards),
           ),
         ],
       ),
@@ -34,17 +34,5 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
       closeButtonCta: locale.walletPersonalizeSuccessPageContinueCta,
       onClosePressed: onContinuePressed,
     );
-  }
-
-  Widget _buildCards() {
-    const cardOverlap = 56.0;
-    List<Widget> children = List<Widget>.generate(cards.length, (index) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(0, index * cardOverlap, 0, 0),
-        child: WalletCardFront(cardFront: cards[index]),
-      );
-    });
-
-    return Stack(children: children);
   }
 }

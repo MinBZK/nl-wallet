@@ -22,6 +22,14 @@ const _kMockDiplomaWalletCard = WalletCard(
   attributes: _kMockDiplomaDataAttributes,
 );
 
+const _kMultiDiplomaId = 'MULTI_DIPLOMA';
+const _kMasterDiplomaId = 'DIPLOMA_2';
+const _kMockMasterDiplomaWalletCard = WalletCard(
+  id: _kMasterDiplomaId,
+  front: _kMockMasterDiplomaCardFront,
+  attributes: _kMockMasterDiplomaDataAttributes,
+);
+
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
 final _kMockDrivingLicenseWalletCard = WalletCard(
   id: _kDrivingLicenseId,
@@ -63,7 +71,15 @@ const _kMockPidCardFront = CardFront(
 );
 
 const _kMockDiplomaCardFront = CardFront(
-  title: 'Diploma',
+  title: 'BSc. Diploma',
+  info: 'Dienst Uitvoerend Onderwijs',
+  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+  backgroundImage: 'assets/images/bg_diploma.png',
+  theme: CardFrontTheme.dark,
+);
+
+const _kMockMasterDiplomaCardFront = CardFront(
+  title: 'MSc. Diploma',
   info: 'Dienst Uitvoerend Onderwijs',
   logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
   backgroundImage: 'assets/images/bg_diploma.png',
@@ -202,7 +218,7 @@ const _kMockDiplomaDataAttributes = [
   DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Opleiding',
-    value: 'WO Master Bedrijfskunde',
+    value: 'WO Bachelor Bedrijfskunde',
     type: AttributeType.education,
     sourceCardId: _kDiplomaId,
   ),
@@ -225,6 +241,43 @@ const _kMockDiplomaDataAttributes = [
     value: '1 januari 2013',
     type: AttributeType.issuanceDate,
     sourceCardId: _kDiplomaId,
+  ),
+];
+
+const _kMockMasterDiplomaDataAttributes = [
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Onderwijsinstelling',
+    value: 'Universiteit X',
+    type: AttributeType.university,
+    sourceCardId: _kMasterDiplomaId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Opleiding',
+    value: 'WO Master Bedrijfskunde',
+    type: AttributeType.education,
+    sourceCardId: _kMasterDiplomaId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Niveau',
+    value: 'WO',
+    type: AttributeType.educationLevel,
+    sourceCardId: _kMasterDiplomaId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Type',
+    value: 'Getuigschrift',
+    sourceCardId: _kMasterDiplomaId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Uitgifte datum',
+    value: '1 januari 2015',
+    type: AttributeType.issuanceDate,
+    sourceCardId: _kMasterDiplomaId,
   ),
 ];
 

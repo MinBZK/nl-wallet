@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../domain/model/wallet_card.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
@@ -13,13 +14,15 @@ import '../common/widget/placeholder_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
-import 'page/issuance_card_added_page.dart';
+import 'page/issuance_check_card_page.dart';
 import 'page/issuance_check_data_offering_page.dart';
 import 'page/issuance_confirm_pin_page.dart';
 import 'page/issuance_generic_error_page.dart';
 import 'page/issuance_identity_validation_failed_page.dart';
 import 'page/issuance_proof_identity_page.dart';
+import 'page/issuance_select_cards_page.dart';
 import 'page/issuance_stopped_page.dart';
+import 'page/issuance_success_page.dart';
 
 class IssuanceScreen extends StatelessWidget {
   static IssuanceScreenArgument getArgument(RouteSettings settings) {
@@ -45,7 +48,7 @@ class IssuanceScreen extends StatelessWidget {
       ),
       body: WillPopScope(
         onWillPop: () async {
-          final bloc = context.read<IssuanceBloc>();
+          final bloc = context.bloc;
           if (bloc.state.canGoBack) {
             bloc.add(const IssuanceBackPressed());
           } else {
@@ -94,7 +97,9 @@ class IssuanceScreen extends StatelessWidget {
         if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
         if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
         if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
-        if (state is IssuanceCardAdded) result = _buildCardAddedPage(context, state);
+        if (state is IssuanceSelectCards) result = _buildSelectCardsPage(context, state);
+        if (state is IssuanceCheckCards) result = _buildCheckCardsPage(context, state);
+        if (state is IssuanceCompleted) result = _buildIssuanceCompletedPage(context, state);
         if (state is IssuanceStopped) result = _buildStoppedPage(context, state);
         if (state is IssuanceGenericError) result = _buildGenericErrorPage(context, state);
         if (state is IssuanceIdentityValidationFailure) result = _buildIdentityValidationFailedPage(context, state);
@@ -111,7 +116,7 @@ class IssuanceScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.read<IssuanceBloc>().add(const IssuanceBackPressed()),
+          onPressed: () => context.bloc.add(const IssuanceBackPressed()),
         );
       },
     );
@@ -119,8 +124,8 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
     return ApproveOrganizationPage(
-      onDecline: () => context.read<IssuanceBloc>().add(const IssuanceOrganizationDeclined()),
-      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceOrganizationApproved()),
+      onDecline: () => context.bloc.add(const IssuanceOrganizationDeclined()),
+      onAccept: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
     );
@@ -129,7 +134,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
     return IssuanceProofIdentityPage(
       onDecline: () => _stopIssuance(context),
-      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceShareRequestedAttributesApproved()),
+      onAccept: () => context.bloc.add(const IssuanceShareRequestedAttributesApproved()),
       flow: state.flow,
       isRefreshFlow: state.isRefreshFlow,
     );
@@ -137,26 +142,26 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProvidePinPage(BuildContext context, IssuanceProvidePin state) {
     return IssuanceConfirmPinPage(
-      onPinValidated: () => context.read<IssuanceBloc>().add(const IssuancePinConfirmed()),
+      onPinValidated: () => context.bloc.add(const IssuancePinConfirmed()),
     );
   }
 
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
     return IssuanceCheckDataOfferingPage(
       onDecline: () => _stopIssuance(context),
-      onAccept: () => context.read<IssuanceBloc>().add(const IssuanceCheckDataOfferingApproved()),
+      onAccept: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
       attributes: state.flow.cards.first.attributes,
     );
   }
 
-  Widget _buildCardAddedPage(BuildContext context, IssuanceCardAdded state) {
-    return IssuanceCardAddedPage(
+  Widget _buildIssuanceCompletedPage(BuildContext context, IssuanceCompleted state) {
+    return IssuanceSuccessPage(
       onClose: () => Navigator.restorablePushNamedAndRemoveUntil(
         context,
         WalletRoutes.homeRoute,
         ModalRoute.withName(WalletRoutes.splashRoute),
       ),
-      cardFront: state.flow.cards.first.front,
+      cards: state.addedCards.map((e) => e.front).toList(),
     );
   }
 
@@ -179,10 +184,10 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   void _stopIssuance(BuildContext context) async {
-    final bloc = context.read<IssuanceBloc>();
+    final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final locale = AppLocalizations.of(context);
-      final organizationName = context.read<IssuanceBloc>().state.organization?.shortName ?? '-';
+      final organizationName = bloc.state.organization?.shortName ?? '-';
       final stopped = await ConfirmActionSheet.show(
         context,
         title: locale.issuanceStopSheetTitle,
@@ -195,4 +200,30 @@ class IssuanceScreen extends StatelessWidget {
       Navigator.pop(context);
     }
   }
+
+  Widget? _buildSelectCardsPage(BuildContext context, IssuanceSelectCards state) {
+    return IssuanceSelectCardsPage(
+      cards: state.availableCards,
+      selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),
+      onCardSelectionToggled: (WalletCard card) => context.bloc.add(IssuanceCardToggled(card)),
+      onAddSelectedPressed: () => context.bloc.add(const IssuanceSelectedCardsConfirmed()),
+      onStopPressed: () => _stopIssuance(context),
+      showNoSelectionError: state.showNoSelectionError,
+    );
+  }
+
+  Widget _buildCheckCardsPage(BuildContext context, IssuanceCheckCards state) {
+    return IssuanceCheckCardPage(
+      key: ValueKey(state.cardToCheck.id),
+      card: state.cardToCheck,
+      onAccept: () => context.bloc.add(IssuanceCardApproved(state.cardToCheck)),
+      onDecline: () => _stopIssuance(context),
+      totalNrOfCards: state.totalNrOfCardsToCheck,
+      currentCardIndex: state.multipleCardsFlow.activeIndex,
+    );
+  }
+}
+
+extension _IssuanceScreenExtensions on BuildContext {
+  IssuanceBloc get bloc => read<IssuanceBloc>();
 }

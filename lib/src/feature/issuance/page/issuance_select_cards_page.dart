@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../../domain/model/wallet_card.dart';
-import '../../../common/widget/link_button.dart';
-import '../../../common/widget/placeholder_screen.dart';
-import '../../../common/widget/select_card_row.dart';
-import '../../../common/widget/sliver_sized_box.dart';
-import '../../../common/widget/text_icon_button.dart';
+import '../../../domain/model/wallet_card.dart';
+import '../../common/widget/confirm_buttons.dart';
+import '../../common/widget/link_button.dart';
+import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/select_card_row.dart';
+import '../../common/widget/sliver_sized_box.dart';
 
-class WalletPersonalizeSelectCardsPage extends StatelessWidget {
+class IssuanceSelectCardsPage extends StatelessWidget {
   final List<WalletCard> cards;
   final List<String> selectedCardIds;
   final Function(WalletCard) onCardSelectionToggled;
-  final VoidCallback onSkipPressed;
+  final VoidCallback onStopPressed;
   final VoidCallback onAddSelectedPressed;
+  final bool showNoSelectionError;
 
-  const WalletPersonalizeSelectCardsPage({
+  const IssuanceSelectCardsPage({
     required this.cards,
     required this.selectedCardIds,
     required this.onCardSelectionToggled,
-    required this.onSkipPressed,
+    required this.onStopPressed,
     required this.onAddSelectedPressed,
+    this.showNoSelectionError = false,
     Key? key,
   }) : super(key: key);
 
@@ -50,16 +52,17 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            locale.walletPersonalizeSelectCardsPageTitle,
+            locale.issuanceSelectCardsPageTitle,
             style: Theme.of(context).textTheme.headline2,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            locale.walletPersonalizeSelectCardsPageDescription,
+            locale.issuanceSelectCardsPageDescription,
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.start,
           ),
@@ -76,8 +79,8 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
       children: [
         LinkButton(
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(locale.walletPersonalizeSelectCardsPageDataIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context, locale.walletPersonalizeSelectCardsPageDataIncorrectCta),
+          child: Text(locale.issuanceSelectCardsPageDataIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(context, locale.issuanceSelectCardsPageDataIncorrectCta),
         ),
         const Divider(
           height: 1,
@@ -95,6 +98,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
           onCardSelectionToggled: onCardSelectionToggled,
           card: card,
           isSelected: isSelected,
+          showError: showNoSelectionError,
         );
       },
       childCount: cards.length,
@@ -103,23 +107,43 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    return Align(
       alignment: Alignment.bottomCenter,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ElevatedButton(
-            onPressed: onAddSelectedPressed,
-            child: Text(locale.walletPersonalizeSelectCardsPageAddCta),
+          if (showNoSelectionError) _buildNoSelectionRow(context),
+          ConfirmButtons(
+            onDecline: onStopPressed,
+            onAccept: onAddSelectedPressed,
+            acceptText: locale.issuanceSelectCardsPageAddCta,
+            declineText: locale.issuanceSelectCardsPageStopCta,
+            acceptIcon: Icons.arrow_forward,
+            declineIcon: Icons.block,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSelectionRow(BuildContext context) {
+    final errorColor = Theme.of(context).errorColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: errorColor,
           ),
-          const SizedBox(height: 16),
-          Center(
-            child: TextIconButton(
-              onPressed: onSkipPressed,
-              child: Text(locale.walletPersonalizeSelectCardsPageSkipCta),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).issuanceSelectCardsPageNoSelectionError,
+              style: Theme.of(context).textTheme.bodyText2?.copyWith(color: errorColor),
             ),
-          ),
+          )
         ],
       ),
     );
