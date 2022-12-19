@@ -29,18 +29,20 @@ class HistoryDetailHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                organization.shortName,
-                style: Theme.of(context).textTheme.subtitle1,
-              ),
-              Text(
-                TimeAgoFormatter.format(AppLocalizations.of(context), dateTime),
-                style: Theme.of(context).textTheme.bodyText1,
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  organization.shortName,
+                  style: Theme.of(context).textTheme.subtitle1,
+                ),
+                Text(
+                  TimeAgoFormatter.format(AppLocalizations.of(context), dateTime),
+                  style: Theme.of(context).textTheme.bodyText1,
+                ),
+              ],
+            ),
           ),
         ],
       ),

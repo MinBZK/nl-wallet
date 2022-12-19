@@ -70,6 +70,7 @@ class ConfirmActionSheet extends StatelessWidget {
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return ConfirmActionSheet(
           title: title,

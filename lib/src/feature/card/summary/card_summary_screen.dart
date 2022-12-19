@@ -175,33 +175,43 @@ class CardSummaryScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         mainAxisSize: MainAxisSize.max,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).cardSummaryScreenDataAttributesTitle,
-                      style: Theme.of(context).textTheme.subtitle1,
-                    ),
-                    const SizedBox(height: 8.0),
-                    Text(highlight.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Visibility(
-                      visible: highlight.subtitle?.isNotEmpty ?? false,
-                      child: Text(highlight.subtitle ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).cardSummaryScreenDataAttributesTitle,
+                        style: Theme.of(context).textTheme.subtitle1,
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        highlight.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Visibility(
+                        visible: highlight.subtitle?.isNotEmpty ?? false,
+                        child: Text(
+                          highlight.subtitle ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              LinkButton(
-                onPressed: () => _onCardDataPressed(context, cardId),
-                child: Text(AppLocalizations.of(context).cardSummaryScreenAddCardCta),
-              ),
-            ],
+                LinkButton(
+                  onPressed: () => _onCardDataPressed(context, cardId),
+                  child: Text(AppLocalizations.of(context).cardSummaryScreenAddCardCta),
+                ),
+              ],
+            ),
           ),
           if (highlight.image != null) ...[
             const SizedBox(width: 16.0),

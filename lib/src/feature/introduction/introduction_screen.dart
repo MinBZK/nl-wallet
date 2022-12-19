@@ -76,7 +76,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildProgressStepper(_currentPage),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               _buildSecondaryCta(context),
               _buildNextButton(context),
             ],
@@ -191,7 +191,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   Widget _buildNextButton(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ElevatedButton(
         onPressed: () => _onNextPressed(context),
         child: Row(

@@ -19,7 +19,7 @@ class IntroductionPage extends StatelessWidget {
       children: [
         Column(
           children: [
-            _buildHeaderImages(),
+            _buildHeaderImages(context),
             _buildTextHeadline(context),
           ],
         ),
@@ -27,12 +27,13 @@ class IntroductionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderImages() {
+  Widget _buildHeaderImages(BuildContext context) {
+    final textScaleFactor = MediaQuery.of(context).textScaleFactor;
     return Stack(
       children: [
         SizedBox(
           width: double.infinity,
-          height: _kCoverHeaderImageHeight,
+          height: _kCoverHeaderImageHeight / textScaleFactor,
           child: Image(image: image, fit: BoxFit.cover),
         ),
         Align(
@@ -45,7 +46,7 @@ class IntroductionPage extends StatelessWidget {
 
   Widget _buildTextHeadline(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Text(
         title,
         style: Theme.of(context).textTheme.headline1,

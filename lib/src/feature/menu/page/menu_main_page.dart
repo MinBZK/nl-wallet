@@ -21,6 +21,7 @@ class MenuMainPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
