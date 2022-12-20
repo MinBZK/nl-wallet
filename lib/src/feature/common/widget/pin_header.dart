@@ -16,7 +16,7 @@ class PinHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
       child: _buildHeader(context),
     );
   }
@@ -25,7 +25,7 @@ class PinHeader extends StatelessWidget {
     final textColor = hasError ? Theme.of(context).errorColor : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           title,

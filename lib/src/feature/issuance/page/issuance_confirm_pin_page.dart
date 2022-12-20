@@ -31,12 +31,10 @@ class IssuanceConfirmPinPage extends StatelessWidget {
             title = locale.issuanceConfirmPinPageErrorTitle;
             description = locale.issuanceConfirmPinPageErrorDescription(attempts);
           }
-          return Expanded(
-            child: PinHeader(
-              hasError: hasError,
-              title: title,
-              description: description,
-            ),
+          return PinHeader(
+            hasError: hasError,
+            title: title,
+            description: description,
           );
         },
         onPinValidated: onPinValidated,

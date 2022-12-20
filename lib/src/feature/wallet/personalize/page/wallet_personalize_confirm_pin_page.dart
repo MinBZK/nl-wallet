@@ -31,12 +31,10 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
             title = locale.walletPersonalizeConfirmPinPageErrorTitle;
             description = locale.walletPersonalizeConfirmPinPageErrorDescription(attempts);
           }
-          return Expanded(
-            child: PinHeader(
-              hasError: hasError,
-              title: title,
-              description: description,
-            ),
+          return PinHeader(
+            hasError: hasError,
+            title: title,
+            description: description,
           );
         },
         onPinValidated: onPinValidated,

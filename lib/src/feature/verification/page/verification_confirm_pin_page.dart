@@ -31,12 +31,10 @@ class VerificationConfirmPinPage extends StatelessWidget {
             title = locale.verificationConfirmPinPageErrorTitle;
             description = locale.verificationConfirmPinPageErrorDescription(attempts);
           }
-          return Expanded(
-            child: PinHeader(
-              hasError: hasError,
-              title: title,
-              description: description,
-            ),
+          return PinHeader(
+            hasError: hasError,
+            title: title,
+            description: description,
           );
         },
         onPinValidated: onPinValidated,

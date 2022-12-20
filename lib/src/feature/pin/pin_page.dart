@@ -43,9 +43,9 @@ class PinPage extends StatelessWidget {
         children: [
           if (headerBuilder == null) const Spacer(),
           _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-          const SizedBox(height: 24),
+          const Spacer(),
           _buildPinField(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           _buildForgotCodeButton(),
           const Spacer(),
           _buildPinKeyboard(),
