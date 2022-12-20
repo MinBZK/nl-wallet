@@ -20,8 +20,8 @@ class VerificationSuccessPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.check,
-      title: locale.verificationSuccessPageTitle(verifierShortName),
-      description: locale.verificationSuccessPageHistoryDescription,
+      title: locale.verificationSuccessPageTitle,
+      description: locale.verificationSuccessPageDescription(verifierShortName),
       closeButtonCta: locale.verificationSuccessPageCloseCta,
       onClosePressed: onClosePressed,
       tertiaryButtonCta: locale.verificationSuccessPageShowHistoryCta,

@@ -498,18 +498,18 @@
   "verificationStoppedPageFeedbackCta": "Give Feedback",
   "verificationStoppedPageTitle": "Stopped",
   "verificationSuccessPageCloseCta": "Close",
-  "verificationSuccessPageHistoryDescription": "You can find the details in your history",
-  "verificationSuccessPageShowHistoryCta": "History",
-  "verificationSuccessPageTitle": "Success! Your information is shared with {organization}",
-  "@verificationSuccessPageTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
+  "verificationSuccessPageDescription": " Your information is shared with {organization}.",
+  "@verificationSuccessPageDescription": {
+      "placeholders": {
+        "organization": {
+          "example": "DUO",
+          "type": "String"
+        }
+      },
+      "description": "Shown when data has been successfully shared"
     },
-    "description": "Title shown when data has been successfully shared"
-  },
+  "verificationSuccessPageShowHistoryCta": "History",
+  "verificationSuccessPageTitle": "Success!",
   "walletPersonalizeCheckCardPageConfirmCta": "Yes, next",
   "walletPersonalizeCheckCardPageOverline": "Card {current} of {total}",
   "@walletPersonalizeCheckCardPageOverline": {

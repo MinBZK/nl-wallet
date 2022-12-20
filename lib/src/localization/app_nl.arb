@@ -498,18 +498,18 @@
   "verificationStoppedPageFeedbackCta": "Geef feedback",
   "verificationStoppedPageTitle": "Gestopt",
   "verificationSuccessPageCloseCta": "Sluiten",
-  "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
-  "verificationSuccessPageShowHistoryCta": "Geschiedenis",
-  "verificationSuccessPageTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
-  "@verificationSuccessPageTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
+  "verificationSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
+  "@verificationSuccessPageDescription": {
+      "placeholders": {
+        "organization": {
+          "example": "DUO",
+          "type": "String"
+        }
+      },
+      "description": "Description shown when data has been successfully shared"
     },
-    "description": "Title shown when data has been successfully shared"
-  },
+  "verificationSuccessPageShowHistoryCta": "Geschiedenis",
+  "verificationSuccessPageTitle": "Gelukt!",
   "walletPersonalizeCheckCardPageConfirmCta": "Ja, volgende",
   "walletPersonalizeCheckCardPageOverline": "Kaart {current} van {total}",
   "@walletPersonalizeCheckCardPageOverline": {
