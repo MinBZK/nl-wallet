@@ -527,7 +527,7 @@
   },
   "walletPersonalizeCheckCardPageRejectCta": "Nee",
   "walletPersonalizeCheckCardPageTitle": "Kloppen de gegevens",
-  "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
+  "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, volgende",
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
   "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
@@ -579,7 +579,7 @@
   "walletPersonalizeSelectCardsPageDescription": "Je gegevens staan in kaarten. Kies welke kaarten je wil toevoegen.",
   "walletPersonalizeSelectCardsPageSkipCta": "Overslaan",
   "walletPersonalizeSelectCardsPageTitle": "De volgende gegevens zijn opgehaald",
-  "walletPersonalizeSuccessPageContinueCta": "Sluiten",
+  "walletPersonalizeSuccessPageContinueCta": "Naar mijn Wallet",
   "walletPersonalizeSuccessPageDescription": "Je kaarten zijn toegevoegd!",
   "walletPersonalizeSuccessPageTitle": "Gelukt!"
 }

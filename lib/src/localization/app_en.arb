@@ -579,7 +579,7 @@
   "walletPersonalizeSelectCardsPageDescription": "Your information will be stored in cards, select which ones you would like to add.",
   "walletPersonalizeSelectCardsPageSkipCta": "Skip",
   "walletPersonalizeSelectCardsPageTitle": "The following information has been found",
-  "walletPersonalizeSuccessPageContinueCta": "Close",
+  "walletPersonalizeSuccessPageContinueCta": "To my Wallet",
   "walletPersonalizeSuccessPageDescription": "Your cards have been added!",
   "walletPersonalizeSuccessPageTitle": "Success!"
 }
