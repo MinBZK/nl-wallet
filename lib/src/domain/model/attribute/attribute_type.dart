@@ -22,5 +22,7 @@ enum AttributeType {
   city,
   olderThan18,
   healthIssuerId,
+  healthIssuerClientId,
+  drivingLicenseCategories,
   other,
 }

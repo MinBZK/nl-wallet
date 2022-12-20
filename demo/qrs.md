@@ -22,7 +22,6 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 |-----------------------------------|---------------------------------------------------|-------------------------------------------------------------------|
 | ![DIPLOMA](qrs/issue_diploma.png) | ![DRIVING LICENSE](qrs/issue_driving_license.png) | ![DRIVING LICENSE RENEWED](qrs/issue_driving_license_renewed.png) |
 
-
 | #4                                                  | #5                        | #6                      |  
 |-----------------------------------------------------|---------------------------|-------------------------|
 | ![HEALTH INSURANCE](qrs/issue_health_insurance.png) | ![VOG](qrs/issue_vog.png) | ![MULTI](qrs/issue_multi_diploma.png) |
@@ -41,6 +40,9 @@ Home of QR codes; which trigger (mocked) demo scenarios.
 |-----------------------------------------------------|-----------------------------|---------------------------------------------------|
 | ![JOB APPLICATION](qrs/job_application_request.png) | ![BAR](qrs/bar_request.png) | ![MARKETPLACE](qrs/marketplace_login_request.png) |
 
+| #4                                        | #5                                      |
+|-------------------------------------------|-----------------------------------------|
+| ![CAR_RENTAL](qrs/car_rental_request.png) | ![FIRST_AID](qrs/first_aid_request.png) |
 
 # Signing requests
 

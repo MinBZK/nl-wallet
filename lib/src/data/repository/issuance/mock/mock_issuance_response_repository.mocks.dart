@@ -345,6 +345,7 @@ List<DataAttribute> _buildDrivingLicenseDataAttributes({required String category
       valueType: AttributeValueType.text,
       label: 'Rijbewijscategorieën',
       value: category,
+      type: AttributeType.drivingLicenseCategories,
       sourceCardId: _kDrivingLicenseId,
     ),
   ];
@@ -376,6 +377,7 @@ const _kMockHealthInsuranceDataAttributes = [
     valueType: AttributeValueType.text,
     label: 'Klantnummer',
     value: '12345678',
+    type: AttributeType.healthIssuerClientId,
     sourceCardId: _kHealthInsuranceId,
   ),
   DataAttribute(

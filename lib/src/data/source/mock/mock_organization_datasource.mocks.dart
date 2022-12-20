@@ -10,6 +10,8 @@ const _kOrganizations = [
   _kBarOrganization,
   _kHealthInsurerOrganization,
   _kHousingCorporationOrganization,
+  _kCarRentalOrganization,
+  _kFirstAidOrganization,
 ];
 
 const _kRijksOrganization = Organization(
@@ -87,4 +89,21 @@ const _kHousingCorporationOrganization = Organization(
   shortName: 'Woningcorporatie A',
   description: 'Richt zich op het bouwen, beheren en verhuren van kwalitatieve woonruimte met een betaalbare huur.',
   logoUrl: 'assets/non-free/images/logo_housing_corp.png',
+);
+
+const _kCarRentalOrganization = Organization(
+  id: 'car_rental',
+  name: 'CarRental',
+  shortName: 'CarRental',
+  description: 'Betrouwbaar huren.',
+  logoUrl: 'assets/non-free/images/logo_car_rental.png',
+);
+
+const _kFirstAidOrganization = Organization(
+  id: 'first_aid',
+  name: 'Medische Partij',
+  shortName: 'Medische Partij',
+  description:
+      'Deze Medische Partij is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.',
+  logoUrl: 'assets/non-free/images/logo_first_aid.png',
 );

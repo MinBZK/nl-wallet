@@ -62,6 +62,20 @@
             "type": "verify"
         }
     },
+    "car_rental_request.png": {
+        "name": "Car Rental",
+        "content": {
+            "id": "CAR_RENTAL",
+            "type": "verify"
+        }
+    },
+    "first_aid_request.png": {
+        "name": "First Aid",
+        "content": {
+            "id": "FIRST_AID",
+            "type": "verify"
+        }
+    },
     "sign_rental_agreement.png": {
         "name": "Sign Rental Agreement",
         "content": {

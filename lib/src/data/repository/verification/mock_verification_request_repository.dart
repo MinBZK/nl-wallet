@@ -82,6 +82,77 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           ],
           interactionPolicy: _kMockBarPolicy,
         );
+      case 'CAR_RENTAL':
+        return VerificationRequest(
+          id: 'CAR_RENTAL',
+          organization: (await organizationDataSource.read('car_rental'))!,
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Voornamen',
+              type: AttributeType.firstNames,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Achternaam',
+              type: AttributeType.lastName,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Geboortedatum',
+              type: AttributeType.birthDate,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Rijbewijscategorieën',
+              type: AttributeType.drivingLicenseCategories,
+              valueType: AttributeValueType.text,
+            ),
+          ],
+          interactionPolicy: _kMockCarRentalPolicy,
+        );
+      case 'FIRST_AID':
+        return VerificationRequest(
+          id: 'FIRST_AID',
+          organization: (await organizationDataSource.read('first_aid'))!,
+          requestedAttributes: const [
+            RequestedAttribute(
+              name: 'Naam',
+              type: AttributeType.fullName,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Geslacht',
+              type: AttributeType.gender,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Geboortedatum',
+              type: AttributeType.birthDate,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Klantnummer',
+              type: AttributeType.healthIssuerClientId,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Kaartnummer',
+              type: AttributeType.documentNr,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'UZOVI',
+              type: AttributeType.healthIssuerId,
+              valueType: AttributeValueType.text,
+            ),
+            RequestedAttribute(
+              name: 'Verloopdatum',
+              type: AttributeType.expiryDate,
+              valueType: AttributeValueType.text,
+            ),
+          ],
+          interactionPolicy: _kMockCarRentalPolicy,
+        );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');
   }
@@ -108,6 +179,15 @@ const _kMockMarketPlacePolicy = InteractionPolicy(
 const _kMockBarPolicy = InteractionPolicy(
   storageDuration: Duration(days: 0),
   dataPurpose: 'Leeftijd controle',
+  dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+const _kMockCarRentalPolicy = InteractionPolicy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Rijvaardigheid',
   dataIsShared: false,
   dataIsSignature: false,
   deletionCanBeRequested: true,
