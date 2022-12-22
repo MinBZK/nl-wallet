@@ -6,7 +6,7 @@ class TimeAgoFormatter {
     final difference = DateTime.now().difference(dateTime);
 
     if (difference.inDays >= DateTime.daysPerWeek) {
-      DateFormat dateFormat = DateFormat(DateFormat.YEAR_MONTH_DAY, locale.localeName);
+      DateFormat dateFormat = DateFormat(DateFormat.MONTH_DAY, locale.localeName);
       return dateFormat.format(dateTime);
     } else {
       String time = '';
