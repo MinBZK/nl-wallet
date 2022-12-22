@@ -4,10 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 /// Force highest res version here, avoids bloating the assets with files that are temporary by nature.
 const _kDigidLogoPath = 'assets/images/3.0x/digid_logo.png';
 
-/// Screen that can be navigated to when DigiD authentication is to be faked.
-/// Most likely used via 'await MockDigidScreen.show(context);`
-class MockDigidScreen extends StatelessWidget {
-  const MockDigidScreen({Key? key}) : super(key: key);
+class DigidSplashPage extends StatelessWidget {
+  const DigidSplashPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +14,12 @@ class MockDigidScreen extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.topCenter,
-            child: Container(
-              height: 100,
-              width: 50,
-              color: const Color.fromARGB(255, 48, 81, 130),
-            ),
+            child: Image.asset('assets/non-free/images/logo_rijksoverheid_label.png'),
           ),
           SafeArea(child: _buildBody(context)),
         ],
       ),
-      backgroundColor: const Color(0xFFD2762B),
+      backgroundColor: Theme.of(context).primaryColor,
     );
   }
 
@@ -50,12 +44,7 @@ class MockDigidScreen extends StatelessWidget {
                     children: [
                       Text(
                         locale.mockDigidScreenTitle,
-                        style: Theme.of(context).textTheme.headline3?.copyWith(color: Colors.black),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        locale.mockDigidScreenDescription,
-                        style: Theme.of(context).textTheme.bodyText1?.copyWith(color: Colors.black),
+                        style: Theme.of(context).textTheme.headline2?.copyWith(color: Colors.black),
                       ),
                     ],
                   ),
@@ -64,19 +53,9 @@ class MockDigidScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.mockDigidScreenCta),
-          ),
           const SizedBox(height: 8),
         ],
       ),
     );
-  }
-
-  static Future<void> show(BuildContext context) {
-    return Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const MockDigidScreen();
-    }));
   }
 }

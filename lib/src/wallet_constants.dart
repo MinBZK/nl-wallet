@@ -12,3 +12,4 @@ const kIdleLockTimeout = Duration(minutes: kDebugMode ? 50 : 5);
 
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 500);
+const kDefaultDigidMockDelay = Duration(seconds: 2);

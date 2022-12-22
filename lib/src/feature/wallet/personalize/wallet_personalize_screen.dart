@@ -10,6 +10,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_card_page.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
@@ -21,7 +22,6 @@ import 'page/wallet_personalize_scan_id_intro_page.dart';
 import 'page/wallet_personalize_scan_id_page.dart';
 import 'page/wallet_personalize_select_cards_page.dart';
 import 'page/wallet_personalize_success_page.dart';
-import 'widget/mock_digid_screen.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
   const WalletPersonalizeScreen({Key? key}) : super(key: key);

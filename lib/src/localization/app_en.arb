@@ -1,7 +1,7 @@
 {
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "en",
-  "appTitle": "Wallet",
+  "appTitle": "NL Wallet",
   "approveOrganizationPageApproveCta": "Yes, next",
   "approveOrganizationPageDenyCta": "No, decline",
   "approveOrganizationPageIncorrectCta": "Is something not right?",
@@ -342,9 +342,13 @@
   "menuSettingsPageChangePinCta": "Change pin",
   "menuSettingsPageClearDataCta": "Remove data",
   "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
-  "mockDigidScreenCta": "Login with DigiD",
-  "mockDigidScreenDescription": "During the demo, DigiD is only used for illustrative purposes.",
-  "mockDigidScreenTitle": "Securely Login with DigiD",
+  "mockDigidScreenAcceptCta": "login",
+  "mockDigidScreenDeclineCta": "cancel",
+  "mockDigidScreenEnterPin": "Enter pin to continue",
+  "mockDigidScreenForgotPinCta": "Forgot pin",
+  "mockDigidScreenHeaderSubtitle": "You are logging in at:",
+  "mockDigidScreenHeaderTitle": "Login",
+  "mockDigidScreenTitle": "Securely login with DigiD",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {

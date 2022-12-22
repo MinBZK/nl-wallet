@@ -1,0 +1,49 @@
+import 'dart:async';
+
+import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../wallet_constants.dart';
+
+part 'mock_digid_event.dart';
+part 'mock_digid_state.dart';
+
+class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
+  MockDigidBloc() : super(MockDigidInitial()) {
+    on<MockDigidSplashDismissed>(_onSplashDismissed);
+    on<MockDigidPinKeyPressed>(_onPinKeyPressed);
+    on<MockDigidPinBackspacePressed>(_onPinBackspacePressed);
+    on<MockDigidConfirmPressed>(_onConfirmPressed);
+
+    //Dismiss digid splash after 2 seconds.
+    Future.delayed(kDefaultDigidMockDelay).then((_) => add(MockDigidSplashDismissed()));
+  }
+
+  FutureOr<void> _onSplashDismissed(event, emit) async {
+    emit(const MockDigidEnteringPin(0));
+  }
+
+  FutureOr<void> _onPinKeyPressed(event, emit) async {
+    final state = this.state;
+    if (state is MockDigidEnteringPin && state.enteredDigits < 4) {
+      emit(MockDigidEnteringPin(state.enteredDigits + 1));
+    } else {
+      emit(const MockDigidEnteringPin(5));
+      await Future.delayed(const Duration(milliseconds: 150));
+      emit(MockDigidConfirmApp());
+    }
+  }
+
+  FutureOr<void> _onPinBackspacePressed(event, emit) async {
+    final state = this.state;
+    if (state is MockDigidEnteringPin && state.enteredDigits > 0) {
+      emit(MockDigidEnteringPin(state.enteredDigits - 1));
+    }
+  }
+
+  FutureOr<void> _onConfirmPressed(event, emit) async {
+    emit(const MockDigidLoadInProgress(kDefaultDigidMockDelay));
+    await Future.delayed(kDefaultDigidMockDelay);
+    emit(MockDigidLoggedIn());
+  }
+}

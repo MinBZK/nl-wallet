@@ -1,7 +1,7 @@
 {
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
-  "appTitle": "Wallet",
+  "appTitle": "NL Wallet",
   "approveOrganizationPageApproveCta": "Ja, volgende",
   "approveOrganizationPageDenyCta": "Nee",
   "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
@@ -342,8 +342,12 @@
   "menuSettingsPageChangePinCta": "Toegangscode veranderen",
   "menuSettingsPageClearDataCta": "Gegevens wissen",
   "menuSettingsPageSetupBiometricsCta": "Biometrie instellen",
-  "mockDigidScreenCta": "Inloggen met DigiD",
-  "mockDigidScreenDescription": "Tijdens de demo is het inloggen met DigiD enkel ter illustratie, als je op volgende klikt ga je verder alsof je je zojuist hebt aangemeld.",
+  "mockDigidScreenAcceptCta": "inloggen",
+  "mockDigidScreenDeclineCta": "annuleren",
+  "mockDigidScreenEnterPin": "Voer pincode in om verder te gaan",
+  "mockDigidScreenForgotPinCta": "Pincode vergeten",
+  "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
+  "mockDigidScreenHeaderTitle": "Inloggen",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
   "@pinScreenAttemptsCount": {
