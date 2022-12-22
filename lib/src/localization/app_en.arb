@@ -291,17 +291,27 @@
   "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
   "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
   "issuanceStoppedPageTitle": "Sharing stopped",
-  "issuanceSuccessPageCloseCta": "To my cards",
-  "issuanceSuccessPageSubtitle": "{cards, plural, =1 {Your card has been added} other {Your cards have been added}}",
-  "@issuanceSuccessPageSubtitle": {
+  "issuanceSuccessPageCardsAddedSubtitle": "{cards, plural, =1 {Your card has been added.} other {Your cards have been added.}}",
+  "@issuanceSuccessPageCardsAddedSubtitle": {
     "placeholders": {
       "cards": {
         "example": "2",
         "type": "int"
       }
     },
-    "description": "Info on where the user can locate the added cards"
+    "description": "Confirmation on added card(s)"
   },
+  "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, =1 {Your card has been updated.} other {Your cards have been updated.}}",
+  "@issuanceSuccessPageCardsUpdatedSubtitle": {
+    "placeholders": {
+      "cards": {
+        "example": "2",
+        "type": "int"
+      }
+    },
+    "description": "Confirmation on updated card(s)"
+  },
+  "issuanceSuccessPageCloseCta": "To my cards",
   "issuanceSuccessPageTitle": "Success!",
   "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
   "menuAboutPageFeedbackCta": "Give feedback",
@@ -500,14 +510,14 @@
   "verificationSuccessPageCloseCta": "Close",
   "verificationSuccessPageDescription": " Your information is shared with {organization}.",
   "@verificationSuccessPageDescription": {
-      "placeholders": {
-        "organization": {
-          "example": "DUO",
-          "type": "String"
-        }
-      },
-      "description": "Shown when data has been successfully shared"
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
+    "description": "Shown when data has been successfully shared"
+  },
   "verificationSuccessPageShowHistoryCta": "History",
   "verificationSuccessPageTitle": "Success!",
   "walletPersonalizeCheckCardPageConfirmCta": "Yes, next",

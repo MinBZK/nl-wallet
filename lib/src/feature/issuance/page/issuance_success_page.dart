@@ -9,10 +9,12 @@ import '../../common/widget/status_icon.dart';
 class IssuanceSuccessPage extends StatelessWidget {
   final VoidCallback onClose;
   final List<CardFront> cards;
+  final bool isRefreshFlow;
 
   const IssuanceSuccessPage({
     required this.onClose,
     required this.cards,
+    required this.isRefreshFlow,
     Key? key,
   }) : super(key: key);
 
@@ -44,6 +46,10 @@ class IssuanceSuccessPage extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
+    final subtitle = isRefreshFlow
+        ? locale.issuanceSuccessPageCardsUpdatedSubtitle(cards.length)
+        : locale.issuanceSuccessPageCardsAddedSubtitle(cards.length);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -67,7 +73,7 @@ class IssuanceSuccessPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            locale.issuanceSuccessPageSubtitle(cards.length),
+            subtitle,
             style: Theme.of(context).textTheme.bodyText1,
             textAlign: TextAlign.center,
           ),

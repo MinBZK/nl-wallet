@@ -162,6 +162,7 @@ class IssuanceScreen extends StatelessWidget {
         ModalRoute.withName(WalletRoutes.splashRoute),
       ),
       cards: state.addedCards.map((e) => e.front).toList(),
+      isRefreshFlow: state.isRefreshFlow,
     );
   }
 

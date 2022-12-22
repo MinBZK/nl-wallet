@@ -291,17 +291,27 @@
   "issuanceStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens opgehaald.",
   "issuanceStoppedPageGiveFeedbackCta": "Geef feedback",
   "issuanceStoppedPageTitle": "Delen gestopt",
-  "issuanceSuccessPageCloseCta": "Naar mijn kaarten",
-  "issuanceSuccessPageSubtitle": "{cards, plural, =1 {Je kaart is toegevoegd.} other {Je kaarten zijn toegevoegd!}}",
-  "@issuanceSuccessPageSubtitle": {
+  "issuanceSuccessPageCardsAddedSubtitle": "{cards, plural, =1 {Je kaart is toegevoegd.} other {Je kaarten zijn toegevoegd.}}",
+  "@issuanceSuccessPageCardsAddedSubtitle": {
     "placeholders": {
       "cards": {
         "example": "2",
         "type": "int"
       }
     },
-    "description": "Info on where the user can locate the added cards"
+    "description": "Confirmation on added card(s)"
   },
+  "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, =1 {Je kaart is vernieuwd.} other {Je kaarten zijn vernieuwd.}}",
+  "@issuanceSuccessPageCardsUpdatedSubtitle": {
+    "placeholders": {
+      "cards": {
+        "example": "2",
+        "type": "int"
+      }
+    },
+    "description": "Confirmation on updated card(s)"
+  },
+  "issuanceSuccessPageCloseCta": "Naar mijn kaarten",
   "issuanceSuccessPageTitle": "Gelukt!",
   "menuAboutPageDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
   "menuAboutPageFeedbackCta": "Geef feedback",
@@ -500,14 +510,14 @@
   "verificationSuccessPageCloseCta": "Sluiten",
   "verificationSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
   "@verificationSuccessPageDescription": {
-      "placeholders": {
-        "organization": {
-          "example": "DUO",
-          "type": "String"
-        }
-      },
-      "description": "Description shown when data has been successfully shared"
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
     },
+    "description": "Description shown when data has been successfully shared"
+  },
   "verificationSuccessPageShowHistoryCta": "Geschiedenis",
   "verificationSuccessPageTitle": "Gelukt!",
   "walletPersonalizeCheckCardPageConfirmCta": "Ja, volgende",
