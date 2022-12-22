@@ -188,7 +188,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return WalletPersonalizeSelectCardsPage(
       onSkipPressed: () => context.bloc.add(WalletPersonalizeSkipAddMoreCardsPressed()),
       cards: state.availableCards,
-      selectedCardIds: state.selectedCardIds,
+      selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),
       onCardSelectionToggled: (card) => context.bloc.add(WalletPersonalizeSelectedCardToggled(card)),
       onAddSelectedPressed: () => context.bloc.add(WalletPersonalizeAddSelectedCardsPressed()),
     );
@@ -201,7 +201,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       onAccept: () => context.bloc.add(WalletPersonalizeDataOnCardConfirmed()),
       onDecline: () => _showExitSheet(context),
       totalNrOfCards: state.totalNrOfCardsToCheck,
-      currentCardIndex: state.indexOfCardToCheck,
+      currentCardIndex: state.multipleCardsFlow.activeIndex,
     );
   }
 

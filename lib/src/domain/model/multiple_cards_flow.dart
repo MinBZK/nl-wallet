@@ -9,14 +9,15 @@ class MultipleCardsFlow extends Equatable {
   final Map<WalletCard, Organization> cardToOrganizations;
   final Set<String> selectedCardIds;
 
-  List<WalletCard> get selectedCards =>
-      cardToOrganizations.keys.where((card) => selectedCardIds.contains(card.id)).toList();
+  List<WalletCard> get availableCards => cardToOrganizations.keys.toList();
+
+  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
 
   WalletCard get activeCard => selectedCards[activeIndex];
 
   bool get hasMoreCards => activeIndex < (selectedCardIds.length - 1);
 
-  bool get isAtFirstCard => activeIndex <= 0;
+  bool get isAtFirstCard => activeIndex == 0;
 
   const MultipleCardsFlow({
     required this.cardToOrganizations,

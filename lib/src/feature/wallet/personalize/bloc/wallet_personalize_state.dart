@@ -91,18 +91,17 @@ class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
 }
 
 class WalletPersonalizeSelectCards extends WalletPersonalizeState {
-  final List<IssuanceResponse> issuanceResponses;
-  final List<String> selectedCardIds;
+  final MultipleCardsFlow multipleCardsFlow;
+
   @override
   final bool didGoBack;
 
-  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+  List<WalletCard> get availableCards => multipleCardsFlow.availableCards;
 
-  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
 
   const WalletPersonalizeSelectCards({
-    required this.issuanceResponses,
-    required this.selectedCardIds,
+    required this.multipleCardsFlow,
     this.didGoBack = false,
   });
 
@@ -110,84 +109,80 @@ class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   double get stepperProgress => 9 / _kNrOfPages;
 
   @override
-  List<Object?> get props => [issuanceResponses, selectedCardIds, ...super.props];
+  List<Object?> get props => [multipleCardsFlow, ...super.props];
+
+  WalletPersonalizeSelectCards toggleCard(String cardId) {
+    final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);
+    return WalletPersonalizeSelectCards(
+      multipleCardsFlow: multipleCardsFlow.copyWith(selectedCardIds: selection..toggle(cardId)),
+    );
+  }
 }
 
 class WalletPersonalizeCheckCards extends WalletPersonalizeState {
-  final List<IssuanceResponse> issuanceResponses;
-  final List<String> selectedCardIds;
-  final int indexOfCardToCheck;
+  final MultipleCardsFlow multipleCardsFlow;
+
   @override
   final bool didGoBack;
 
-  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+  List<WalletCard> get availableCards => multipleCardsFlow.cardToOrganizations.keys.toList();
 
-  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
 
-  WalletCard get cardToCheck => selectedCards[indexOfCardToCheck];
+  WalletCard get cardToCheck => multipleCardsFlow.activeCard;
 
-  int get totalNrOfCardsToCheck => selectedCardIds.length;
+  int get totalNrOfCardsToCheck => multipleCardsFlow.selectedCardIds.length;
 
-  bool get hasMoreCards => indexOfCardToCheck < (totalNrOfCardsToCheck - 1);
+  bool get hasMoreCards => multipleCardsFlow.hasMoreCards;
 
   const WalletPersonalizeCheckCards({
-    required this.issuanceResponses,
-    required this.selectedCardIds,
-    this.indexOfCardToCheck = 0,
+    required this.multipleCardsFlow,
     this.didGoBack = false,
   });
 
   WalletPersonalizeCheckCards copyForNextCard() {
-    if (!hasMoreCards) throw UnsupportedError('There is no next card to check!');
-    return WalletPersonalizeCheckCards(
-      issuanceResponses: issuanceResponses,
-      selectedCardIds: selectedCardIds,
-      indexOfCardToCheck: indexOfCardToCheck + 1,
-    );
+    if (!multipleCardsFlow.hasMoreCards) throw UnsupportedError('There is no next card to check!');
+    return WalletPersonalizeCheckCards(multipleCardsFlow: multipleCardsFlow.next());
   }
 
   WalletPersonalizeCheckCards copyForPreviousCard() {
-    if (indexOfCardToCheck <= 0) throw UnsupportedError('There is no previous card to check!');
-    return WalletPersonalizeCheckCards(
-      issuanceResponses: issuanceResponses,
-      selectedCardIds: selectedCardIds,
-      indexOfCardToCheck: indexOfCardToCheck - 1,
-      didGoBack: true,
-    );
+    if (multipleCardsFlow.isAtFirstCard) throw UnsupportedError('There is no previous card to check!');
+    return WalletPersonalizeCheckCards(multipleCardsFlow: multipleCardsFlow.previous(), didGoBack: true);
   }
 
   @override
   double get stepperProgress {
     if (totalNrOfCardsToCheck <= 1) return 10 / _kNrOfPages;
-    final checkCardsProgress = (indexOfCardToCheck / (totalNrOfCardsToCheck - 1));
+    final checkCardsProgress = (multipleCardsFlow.activeIndex / (totalNrOfCardsToCheck - 1));
     return (10 + checkCardsProgress) / _kNrOfPages;
   }
 
   @override
-  List<Object?> get props => [issuanceResponses, selectedCardIds, indexOfCardToCheck, ...super.props];
+  List<Object?> get props => [multipleCardsFlow, ...super.props];
 
   @override
   bool get canGoBack => true;
 }
 
 class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
-  final List<IssuanceResponse> issuanceResponses;
-  final List<String> selectedCardIds;
+  final MultipleCardsFlow multipleCardsFlow;
 
-  List<WalletCard> get availableCards => issuanceResponses.map((e) => e.cards).flattened.toList();
+  List<WalletCard> get availableCards => multipleCardsFlow.availableCards;
 
-  List<WalletCard> get selectedCards => availableCards.where((card) => selectedCardIds.contains(card.id)).toList();
+  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
 
   const WalletPersonalizeConfirmPin({
-    required this.issuanceResponses,
-    required this.selectedCardIds,
+    required this.multipleCardsFlow,
   });
 
   @override
   double get stepperProgress => 12 / _kNrOfPages;
 
   @override
-  List<Object?> get props => [issuanceResponses, selectedCardIds, ...super.props];
+  bool get canGoBack => true;
+
+  @override
+  List<Object?> get props => [multipleCardsFlow, ...super.props];
 }
 
 class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {

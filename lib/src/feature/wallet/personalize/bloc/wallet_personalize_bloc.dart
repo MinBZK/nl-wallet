@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
@@ -8,12 +7,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/card_front.dart';
-import '../../../../domain/model/issuance_response.dart';
+import '../../../../domain/model/multiple_cards_flow.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
+import '../../../../util/extension/set_extensions.dart';
 import '../../../../wallet_constants.dart';
 import '../../../verification/model/organization.dart';
 
@@ -111,15 +111,20 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         emit(const WalletPersonalizeScanIdIntro(afterBackPressed: true));
       }
       if (state is WalletPersonalizeCheckCards) {
-        if (state.indexOfCardToCheck > 0) {
+        if (!state.multipleCardsFlow.isAtFirstCard) {
           emit(state.copyForPreviousCard());
         } else {
           emit(WalletPersonalizeSelectCards(
-            issuanceResponses: state.issuanceResponses,
-            selectedCardIds: state.selectedCardIds,
             didGoBack: true,
+            multipleCardsFlow: state.multipleCardsFlow,
           ));
         }
+      }
+      if (state is WalletPersonalizeConfirmPin) {
+        emit(WalletPersonalizeCheckCards(
+          didGoBack: true,
+          multipleCardsFlow: state.multipleCardsFlow,
+        ));
       }
     }
   }
@@ -129,42 +134,26 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     await Future.delayed(kDefaultMockDelay);
 
     final issuanceResponses = await getDemoWalletCardsIssuanceResponsesUseCase.invoke();
-    final allCardIds = issuanceResponses.map((response) => response.cards).flattened.map((card) => card.id);
     emit(
-      WalletPersonalizeSelectCards(
-        issuanceResponses: issuanceResponses,
-        selectedCardIds: allCardIds.toList(),
-      ),
+      WalletPersonalizeSelectCards(multipleCardsFlow: MultipleCardsFlow.fromIssuance(issuanceResponses)),
     );
   }
 
   void _onSelectedCardToggled(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeSelectCards) {
-      final currentSelection = Set<String>.from(state.selectedCardIds);
-      if (currentSelection.contains(event.card.id)) {
-        currentSelection.remove(event.card.id);
-      } else {
-        currentSelection.add(event.card.id);
-      }
-      emit(WalletPersonalizeSelectCards(
-        issuanceResponses: state.issuanceResponses,
-        selectedCardIds: currentSelection.toList(),
-      ));
+      emit(state.toggleCard(event.card.id));
     }
   }
 
   void _onAddSelectedCardsPressed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeSelectCards) {
-      if (state.selectedCardIds.isEmpty) {
+      if (state.selectedCards.isEmpty) {
         _loadCardsAndEmitSuccessState(event, emit);
       } else {
         emit(
-          WalletPersonalizeCheckCards(
-            issuanceResponses: state.issuanceResponses,
-            selectedCardIds: state.selectedCardIds,
-          ),
+          WalletPersonalizeCheckCards(multipleCardsFlow: state.multipleCardsFlow),
         );
       }
     }
@@ -176,12 +165,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       if (state.hasMoreCards) {
         emit(state.copyForNextCard());
       } else {
-        emit(
-          WalletPersonalizeConfirmPin(
-            issuanceResponses: state.issuanceResponses,
-            selectedCardIds: state.selectedCardIds,
-          ),
-        );
+        emit(WalletPersonalizeConfirmPin(multipleCardsFlow: state.multipleCardsFlow));
       }
     }
   }
@@ -192,10 +176,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       emit(const WalletPersonalizeLoadInProgress(12.5));
       await Future.delayed(kDefaultMockDelay);
       try {
-        for (final response in state.issuanceResponses) {
-          final cardsToAdd = response.cards.where((card) => state.selectedCardIds.contains(card.id));
-          final organization = response.organization;
-          await walletAddIssuedCardsUseCase.invoke(cardsToAdd.toList(), organization);
+        for (final card in state.multipleCardsFlow.selectedCards) {
+          final organization = state.multipleCardsFlow.cardToOrganizations[card];
+          await walletAddIssuedCardsUseCase.invoke([card], organization!);
         }
         await _loadCardsAndEmitSuccessState(event, emit);
       } catch (ex, stack) {
