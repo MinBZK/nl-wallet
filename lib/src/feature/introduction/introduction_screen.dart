@@ -209,7 +209,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildBackButton() {
     final backButton = SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(12.0),
         child: Material(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),

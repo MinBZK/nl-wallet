@@ -1,48 +1,48 @@
 {
-    "issue_diploma.png": {
-        "name": "Issue diploma",
-        "content": {
-            "id": "DIPLOMA_1",
-            "type": "issue"
-        }
-    },
-    "issue_multi_diploma.png": {
-        "name": "Issue multiple diplomas",
-        "content": {
-            "id": "MULTI_DIPLOMA",
-            "type": "issue"
-        }
-    },
     "issue_driving_license.png": {
-        "name": "Issue driving license",
+        "name": "Driving License",
         "content": {
             "id": "DRIVING_LICENSE",
             "type":"issue"
         }
     },
+    "issue_diploma.png": {
+        "name": "Diploma",
+        "content": {
+            "id": "DIPLOMA_1",
+            "type": "issue"
+        }
+    },
     "issue_driving_license_renewed.png": {
-        "name": "Issue driving license (renewed)",
+        "name": "Driving License (C1)",
         "content": {
             "id": "DRIVING_LICENSE_RENEWED",
             "type":"issue"
         }
     },
     "issue_health_insurance.png": {
-        "name": "Issue health insurance",
+        "name": "Health Insurance",
         "content": {
             "id": "HEALTH_INSURANCE",
             "type": "issue"
         }
     },
     "issue_vog.png": {
-        "name": "Issue vog",
+        "name": "VOG",
         "content": {
             "id": "VOG",
             "type": "issue"
         }
     },
+    "issue_multi_diploma.png": {
+        "name": "Multiple Diplomas",
+        "content": {
+            "id": "MULTI_DIPLOMA",
+            "type": "issue"
+        }
+    },
     "job_application_request.png": {
-        "name": "Job application",
+        "name": "Job Application",
         "content": {
             "id": "JOB_APPLICATION",
             "type": "verify"
