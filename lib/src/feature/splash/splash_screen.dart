@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_routes.dart';
 import '../common/widget/loading_indicator.dart';
+import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -26,12 +28,15 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              FlutterLogo(size: 80),
-              SizedBox(height: 16),
-              Text('EDI Wallet'),
-              SizedBox(height: 16),
-              LoadingIndicator(),
+            children: [
+              const WalletLogo(size: 80),
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context).appTitle,
+                style: Theme.of(context).textTheme.headline3,
+              ),
+              const SizedBox(height: 16),
+              const LoadingIndicator(),
             ],
           ),
         ),

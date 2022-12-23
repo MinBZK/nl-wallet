@@ -6,6 +6,7 @@ import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../common/widget/text_icon_button.dart';
+import '../common/widget/wallet_logo.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
@@ -69,7 +70,7 @@ class PinPage extends StatelessWidget {
   Widget _defaultHeaderBuilder(BuildContext context, int? attempts) {
     return Column(
       children: [
-        const FlutterLogo(size: 80),
+        const WalletLogo(size: 80),
         const SizedBox(height: 24),
         _buildTextHeader(context, attempts),
       ],

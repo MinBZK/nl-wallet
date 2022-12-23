@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../wallet_constants.dart';
+import '../../common/widget/wallet_logo.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
@@ -27,7 +28,7 @@ class SetupSecurityPinPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const SizedBox(height: 48),
-        _buildImagePlaceholder(context),
+        const WalletLogo(size: 80),
         const SizedBox(height: 24),
         Expanded(flex: 3, child: content),
         if (showInput)
@@ -42,19 +43,6 @@ class SetupSecurityPinPage extends StatelessWidget {
             onBackspacePressed: onBackspacePressed,
           ),
       ],
-    );
-  }
-
-  Widget _buildImagePlaceholder(BuildContext context) {
-    return Container(
-      width: 80,
-      height: 80,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFFe6e6e6),
-      ),
-      child: Text('Image', style: Theme.of(context).textTheme.headline4),
     );
   }
 }

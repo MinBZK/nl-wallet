@@ -21,7 +21,7 @@ class SetupSecurityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      restorationId: 'setup_pin_scaffold',
+      restorationId: 'setup_security_scaffold',
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).setupSecurityScreenTitle),
         leading: _buildBackButton(context),
