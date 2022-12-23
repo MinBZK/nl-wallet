@@ -79,6 +79,15 @@ class IssuanceSelectedCardsConfirmed extends IssuanceEvent {
   List<Object?> get props => [];
 }
 
+class IssuanceCardDeclined extends IssuanceEvent {
+  final WalletCard card;
+
+  const IssuanceCardDeclined(this.card);
+
+  @override
+  List<Object?> get props => [card];
+}
+
 class IssuanceCardApproved extends IssuanceEvent {
   final WalletCard card;
 

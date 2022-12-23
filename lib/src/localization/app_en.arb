@@ -117,6 +117,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Do you want to sign using this information",
+  "dataIncorrectScreenApproveCta": "Add card",
+  "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
+  "dataIncorrectScreenApproveTitle": "Add card",
+  "dataIncorrectScreenBackCta": "Back",
+  "dataIncorrectScreenDeclineCta": "Decline card",
+  "dataIncorrectScreenDeclineDescription": "If you decline the card, it will not be added to your wallet.",
+  "dataIncorrectScreenDeclineTitle": "Decline card",
+  "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
+  "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
+  "dataIncorrectScreenTitle": "Retrieve data",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
     "placeholders": {

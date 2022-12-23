@@ -41,6 +41,8 @@ class WalletPersonalizeSkipAddMoreCardsPressed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeAddSelectedCardsPressed extends WalletPersonalizeEvent {}
 
+class WalletPersonalizeDataOnCardDeclined extends WalletPersonalizeEvent {}
+
 class WalletPersonalizeDataOnCardConfirmed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {}

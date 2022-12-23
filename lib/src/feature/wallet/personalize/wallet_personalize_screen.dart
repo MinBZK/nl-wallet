@@ -10,6 +10,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/placeholder_screen.dart';
+import '../../data_incorrect/data_incorrect_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_card_page.dart';
@@ -199,7 +200,18 @@ class WalletPersonalizeScreen extends StatelessWidget {
       key: ValueKey(state.cardToCheck.id),
       card: state.cardToCheck,
       onAccept: () => context.bloc.add(WalletPersonalizeDataOnCardConfirmed()),
-      onDecline: () => _showExitSheet(context),
+      onDecline: () async {
+        final result = await DataIncorrectScreen.show(context);
+        if (result == null) return; //Screen dismissed without explicit action.
+        switch (result) {
+          case DataIncorrectResult.declineCard:
+            context.bloc.add(WalletPersonalizeDataOnCardDeclined());
+            break;
+          case DataIncorrectResult.acceptCard:
+            context.bloc.add(WalletPersonalizeDataOnCardConfirmed());
+            break;
+        }
+      },
       totalNrOfCards: state.totalNrOfCardsToCheck,
       currentCardIndex: state.multipleCardsFlow.activeIndex,
     );
@@ -214,6 +226,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       description: locale.walletPersonalizeScreenExitSheetDescription,
       cancelButtonText: locale.walletPersonalizeScreenExitSheetCancelCta,
       confirmButtonText: locale.walletPersonalizeScreenExitSheetConfirmCta,
+      confirmButtonColor: Theme.of(context).errorColor,
     );
   }
 

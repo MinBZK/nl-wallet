@@ -117,6 +117,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
+  "dataIncorrectScreenApproveCta": "Kaart toch toevoegen",
+  "dataIncorrectScreenApproveDescription": "De kaart nu toevoegen en updaten als de gegevens zijn aangepast.",
+  "dataIncorrectScreenApproveTitle": "Kaart toevoegen",
+  "dataIncorrectScreenBackCta": "Terug",
+  "dataIncorrectScreenDeclineCta": "Kaart afwijzen",
+  "dataIncorrectScreenDeclineDescription": "Als je de gegevens afwijst worden deze gegevens niet opgeslagen in je Wallet.",
+  "dataIncorrectScreenDeclineTitle": "Kaart afwijzen",
+  "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
+  "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
+  "dataIncorrectScreenTitle": "Gegevens ophalen",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {

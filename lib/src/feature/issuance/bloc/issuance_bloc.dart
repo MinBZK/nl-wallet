@@ -42,6 +42,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceCheckDataOfferingApproved>(_onIssuanceCheckDataOfferingApproved);
     on<IssuanceCardToggled>(_onIssuanceCardToggled);
     on<IssuanceSelectedCardsConfirmed>(_onIssuanceSelectedCardsConfirmed);
+    on<IssuanceCardDeclined>(_onIssuanceCardDeclined);
     on<IssuanceCardApproved>(_onIssuanceCardApproved);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
   }
@@ -95,9 +96,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _onIssuanceOrganizationDeclined(event, emit) async {
-    emit(IssuanceLoadInProgress(state.isRefreshFlow));
-    await Future.delayed(kDefaultMockDelay);
-    emit(IssuanceStopped(state.isRefreshFlow));
+    await _transitionToIssuanceStopped(emit);
   }
 
   void _onIssuanceOrganizationApproved(event, emit) async {
@@ -107,9 +106,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
-    emit(IssuanceLoadInProgress(state.isRefreshFlow));
-    await Future.delayed(kDefaultMockDelay);
-    emit(IssuanceStopped(state.isRefreshFlow));
+    await _transitionToIssuanceStopped(emit);
   }
 
   void _onIssuanceShareRequestedAttributesApproved(event, emit) async {
@@ -147,9 +144,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       bool userAlreadySharedData = state is IssuanceCheckDataOffering;
       _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionType.success : InteractionType.rejected);
     }
-    emit(IssuanceLoadInProgress(state.isRefreshFlow));
-    await Future.delayed(kDefaultMockDelay);
-    emit(IssuanceStopped(state.isRefreshFlow));
+    await _transitionToIssuanceStopped(emit);
   }
 
   void _logCardInteraction(IssuanceFlow flow, InteractionType type) {
@@ -189,9 +184,39 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         multipleCardsFlow: state.multipleCardsFlow.next(),
       ));
     } else {
-      _logCardInteraction(state.flow, InteractionType.success);
-      await walletAddIssuedCardsUseCase.invoke(state.multipleCardsFlow.selectedCards, state.flow.organization);
-      emit(IssuanceCompleted(state.isRefreshFlow, state.flow, state.multipleCardsFlow.selectedCards));
+      await _addCardsAndEmitCompleted(state.flow, state.multipleCardsFlow.selectedCards, emit);
     }
+  }
+
+  FutureOr<void> _onIssuanceCardDeclined(IssuanceCardDeclined event, emit) async {
+    final state = this.state;
+    if (state is! IssuanceCheckCards) throw UnsupportedError('Incorrect state to $state');
+    final selectedCardIds = Set<String>.from(state.multipleCardsFlow.selectedCardIds);
+    selectedCardIds.remove(event.card.id);
+    final updatedMultipleCardFlow = state.multipleCardsFlow.copyWith(selectedCardIds: selectedCardIds);
+    if (state.multipleCardsFlow.hasMoreCards) {
+      //activeIndex is maintained, but since the selected set is now shorter the next card is now the activeCard.
+      emit(IssuanceCheckCards(state.isRefreshFlow, flow: state.flow, multipleCardsFlow: updatedMultipleCardFlow));
+    } else {
+      if (updatedMultipleCardFlow.selectedCardIds.isEmpty) {
+        //All cards are declined, show stopped.
+        await _transitionToIssuanceStopped(emit);
+      } else {
+        //No more cards to check, add the selected ones and show completed state
+        await _addCardsAndEmitCompleted(state.flow, updatedMultipleCardFlow.selectedCards, emit);
+      }
+    }
+  }
+
+  Future<void> _addCardsAndEmitCompleted(IssuanceFlow flow, List<WalletCard> selectedCards, emit) async {
+    _logCardInteraction(flow, InteractionType.success);
+    await walletAddIssuedCardsUseCase.invoke(selectedCards, flow.organization);
+    emit(IssuanceCompleted(state.isRefreshFlow, flow, selectedCards));
+  }
+
+  Future<void> _transitionToIssuanceStopped(emit) async {
+    emit(IssuanceLoadInProgress(state.isRefreshFlow));
+    await Future.delayed(kDefaultMockDelay);
+    emit(IssuanceStopped(state.isRefreshFlow));
   }
 }

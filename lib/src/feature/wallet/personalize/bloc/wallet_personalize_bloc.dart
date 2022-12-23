@@ -43,6 +43,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeRetrieveMoreCardsPressed>(_onRetrieveMoreCardsPressed);
     on<WalletPersonalizeSelectedCardToggled>(_onSelectedCardToggled);
     on<WalletPersonalizeAddSelectedCardsPressed>(_onAddSelectedCardsPressed);
+    on<WalletPersonalizeDataOnCardDeclined>(_onDataOnCardDeclined);
     on<WalletPersonalizeDataOnCardConfirmed>(_onDataOnCardConfirmed);
     on<WalletPersonalizePinConfirmed>(_onPinConfirmed);
     on<WalletPersonalizeSkipRetrieveMoreCardsPressed>(_loadCardsAndEmitSuccessState);
@@ -155,6 +156,26 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         emit(
           WalletPersonalizeCheckCards(multipleCardsFlow: state.multipleCardsFlow),
         );
+      }
+    }
+  }
+
+  Future<void> _onDataOnCardDeclined(event, emit) async {
+    final state = this.state;
+    if (state is! WalletPersonalizeCheckCards) throw UnsupportedError('Unsupported state to decline cards: $state');
+    final selectedCardIds = Set<String>.from(state.multipleCardsFlow.selectedCardIds);
+    selectedCardIds.remove(state.cardToCheck.id);
+    final updatedMultipleCardFlow = state.multipleCardsFlow.copyWith(selectedCardIds: selectedCardIds);
+    if (state.hasMoreCards) {
+      //activeIndex is maintained, but since the selected set is now shorter the next card is now the activeCard.
+      emit(WalletPersonalizeCheckCards(multipleCardsFlow: updatedMultipleCardFlow));
+    } else {
+      if (updatedMultipleCardFlow.selectedCardIds.isEmpty) {
+        //All cards are declined, skip to end.
+        _loadCardsAndEmitSuccessState(event, emit);
+      } else {
+        //No more cards to check, let user enter pin to confirm adding the approved ones.
+        emit(WalletPersonalizeConfirmPin(multipleCardsFlow: updatedMultipleCardFlow));
       }
     }
   }

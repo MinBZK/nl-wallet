@@ -11,6 +11,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
+import '../data_incorrect/data_incorrect_screen.dart';
 import '../organization/approve_organization_page.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
@@ -148,7 +149,18 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
     return IssuanceCheckDataOfferingPage(
-      onDecline: () => _stopIssuance(context),
+      onDecline: () async {
+        final result = await DataIncorrectScreen.show(context);
+        if (result == null) return;
+        switch (result) {
+          case DataIncorrectResult.declineCard:
+            context.bloc.add(IssuanceStopRequested(state.flow));
+            break;
+          case DataIncorrectResult.acceptCard:
+            context.bloc.add(const IssuanceCheckDataOfferingApproved());
+            break;
+        }
+      },
       onAccept: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
       attributes: state.flow.cards.first.attributes,
     );
@@ -195,6 +207,7 @@ class IssuanceScreen extends StatelessWidget {
         description: locale.issuanceStopSheetDescription(organizationName),
         cancelButtonText: locale.issuanceStopSheetNegativeCta,
         confirmButtonText: locale.issuanceStopSheetPositiveCta,
+        confirmButtonColor: Theme.of(context).errorColor,
       );
       if (stopped) bloc.add(IssuanceStopRequested(bloc.state.flow));
     } else {
@@ -218,7 +231,18 @@ class IssuanceScreen extends StatelessWidget {
       key: ValueKey(state.cardToCheck.id),
       card: state.cardToCheck,
       onAccept: () => context.bloc.add(IssuanceCardApproved(state.cardToCheck)),
-      onDecline: () => _stopIssuance(context),
+      onDecline: () async {
+        final result = await DataIncorrectScreen.show(context);
+        if (result == null) return; //Screen dismissed without explicit action.
+        switch (result) {
+          case DataIncorrectResult.declineCard:
+            context.bloc.add(IssuanceCardDeclined(state.cardToCheck));
+            break;
+          case DataIncorrectResult.acceptCard:
+            context.bloc.add(IssuanceCardApproved(state.cardToCheck));
+            break;
+        }
+      },
       totalNrOfCards: state.totalNrOfCardsToCheck,
       currentCardIndex: state.multipleCardsFlow.activeIndex,
     );
