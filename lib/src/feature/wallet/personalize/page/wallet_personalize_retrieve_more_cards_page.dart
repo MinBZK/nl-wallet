@@ -5,6 +5,8 @@ import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/link_button.dart';
 import '../../../common/widget/text_icon_button.dart';
 
+const _kMijnOverheidIllustration = 'assets/non-free/images/mijn_overheid_illustration.png';
+
 class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
   final VoidCallback onContinuePressed;
   final VoidCallback onSkipPressed;
@@ -49,15 +51,10 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
             },
           ),
           const SizedBox(height: 32),
-          Container(
+          Image.asset(
+            _kMijnOverheidIllustration,
             width: double.infinity,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            height: 105,
-            child: const Text('Placeholder image'),
+            fit: BoxFit.cover,
           ),
           const Spacer(),
           ElevatedButton(
