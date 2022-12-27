@@ -20,7 +20,7 @@ class CardSummaryBloc extends Bloc<CardSummaryEvent, CardSummaryState> {
       WalletCardSummary summary = await getWalletCardSummaryUseCase.getSummary(event.cardId);
       emit(CardSummaryLoadSuccess(summary));
     } catch (error) {
-      emit(const CardSummaryLoadFailure());
+      emit(CardSummaryLoadFailure(event.cardId));
     }
   }
 }

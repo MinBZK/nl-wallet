@@ -13,6 +13,8 @@ class MockDataHighlightRepository implements DataHighlightRepository {
         return _kMockPidDataAttribute;
       case 'DIPLOMA_1':
         return _kMockDiplomaDataAttribute;
+      case 'DIPLOMA_2':
+        return _kMockDiplomaDataAttribute;
       case 'DRIVING_LICENSE':
         return _kMockDrivingLicenseDataAttribute;
       case 'HEALTH_INSURANCE':

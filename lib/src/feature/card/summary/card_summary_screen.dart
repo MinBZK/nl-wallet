@@ -66,11 +66,11 @@ class CardSummaryScreen extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardSummaryBloc, CardSummaryState>(
-      buildWhen: (previous, current) => current is CardSummaryLoadSuccess,
       builder: (context, state) {
         if (state is CardSummaryInitial) return _buildLoading();
         if (state is CardSummaryLoadInProgress) return _buildLoading();
         if (state is CardSummaryLoadSuccess) return _buildSummary(context, state.summary);
+        if (state is CardSummaryLoadFailure) return _buildError(context, state);
         throw UnsupportedError('Unknown state: $state');
       },
     );
@@ -272,5 +272,21 @@ class CardSummaryScreen extends StatelessWidget {
 
   void _onCardDataSharePressed(BuildContext context, String screenTitle) {
     Navigator.restorablePushNamed(context, WalletRoutes.cardShareRoute, arguments: screenTitle);
+  }
+
+  Widget _buildError(BuildContext context, CardSummaryLoadFailure state) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline),
+          const SizedBox(height: 16),
+          TextButton(
+            child: Text(AppLocalizations.of(context).generalRetry),
+            onPressed: () => context.read<CardSummaryBloc>().add(CardSummaryLoadTriggered(state.cardId)),
+          ),
+        ],
+      ),
+    );
   }
 }

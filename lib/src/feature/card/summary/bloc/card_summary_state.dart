@@ -26,8 +26,10 @@ class CardSummaryLoadSuccess extends CardSummaryState {
 }
 
 class CardSummaryLoadFailure extends CardSummaryState {
-  const CardSummaryLoadFailure();
+  final String cardId;
+
+  const CardSummaryLoadFailure(this.cardId);
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [cardId];
 }
