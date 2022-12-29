@@ -7,6 +7,7 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
+import '../../common/widget/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
@@ -106,11 +107,18 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
     }
 
-    return Scrollbar(
-      thumbVisibility: true,
-      child: CustomScrollView(
-        slivers: slivers,
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: CustomScrollView(
+              slivers: slivers,
+            ),
+          ),
+        ),
+        const BottomBackButton(),
+      ],
     );
   }
 

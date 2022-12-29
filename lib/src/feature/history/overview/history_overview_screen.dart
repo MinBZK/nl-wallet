@@ -46,22 +46,20 @@ class HistoryOverviewScreen extends StatelessWidget {
             section: section,
             onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
           )),
-      _buildBackButton(context),
     ];
 
-    return Scrollbar(
-      thumbVisibility: true,
-      child: CustomScrollView(
-        slivers: slivers,
-      ),
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return const SliverFillRemaining(
-      hasScrollBody: false,
-      fillOverscroll: true,
-      child: BottomBackButton(),
+    return Column(
+      children: [
+        Expanded(
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: CustomScrollView(
+              slivers: slivers,
+            ),
+          ),
+        ),
+        const BottomBackButton(),
+      ],
     );
   }
 

@@ -69,20 +69,18 @@ class CardDataScreen extends StatelessWidget {
     slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
     slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
 
-    // Back button
-    slivers.add(
-      const SliverFillRemaining(
-        hasScrollBody: false,
-        fillOverscroll: true,
-        child: BottomBackButton(),
-      ),
-    );
-
-    return Scrollbar(
-      thumbVisibility: true,
-      child: CustomScrollView(
-        slivers: slivers,
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: CustomScrollView(
+              slivers: slivers,
+            ),
+          ),
+        ),
+        const BottomBackButton(),
+      ],
     );
   }
 

@@ -60,27 +60,25 @@ class CardHistoryScreen extends StatelessWidget {
             section: section,
             onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
           )),
-      _buildBackButton(context),
     ];
 
-    return Scrollbar(
-      thumbVisibility: true,
-      child: CustomScrollView(
-        slivers: slivers,
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: CustomScrollView(
+              slivers: slivers,
+            ),
+          ),
+        ),
+        const BottomBackButton(),
+      ],
     );
   }
 
   Widget _buildCardHeader(CardFront front) {
     return SliverToBoxAdapter(child: TimelineCardHeader(cardFront: front));
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return const SliverFillRemaining(
-      hasScrollBody: false,
-      fillOverscroll: true,
-      child: BottomBackButton(),
-    );
   }
 
   void _onTimelineRowPressed(BuildContext context, String timelineAttributeId) {
