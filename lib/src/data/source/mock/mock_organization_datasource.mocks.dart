@@ -101,8 +101,8 @@ const _kCarRentalOrganization = Organization(
 
 const _kFirstAidOrganization = Organization(
   id: 'first_aid',
-  name: 'Medische Partij',
-  shortName: 'Medische Partij',
+  name: 'Healthcare Facility',
+  shortName: 'Healthcare Facility',
   description:
       'Deze Medische Partij is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.',
   logoUrl: 'assets/non-free/images/logo_first_aid.png',

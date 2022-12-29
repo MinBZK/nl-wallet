@@ -92,8 +92,13 @@ const _kFirstAidRequestedAttributes = [
     valueType: AttributeValueType.image,
   ),
   RequestedAttribute(
-    name: 'Naam',
-    type: AttributeType.fullName,
+    name: 'Voornamen',
+    type: AttributeType.firstNames,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Achternaam',
+    type: AttributeType.lastName,
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
