@@ -30,6 +30,7 @@ class WalletAddIssuedCardUseCase {
         dateTime: DateTime.now(),
         organization: organization,
         attributes: card.attributes,
+        isSession: false,
       ),
     );
     return;

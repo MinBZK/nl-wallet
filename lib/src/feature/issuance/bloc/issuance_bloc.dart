@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -148,10 +147,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) {
-    final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
-    attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, cardId, attributes);
-    });
+    logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, flow.resolvedAttributes);
   }
 
   FutureOr<void> _onIssuanceCardToggled(IssuanceCardToggled event, emit) {

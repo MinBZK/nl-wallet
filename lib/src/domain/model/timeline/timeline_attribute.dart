@@ -9,6 +9,7 @@ abstract class TimelineAttribute extends Equatable {
   final DateTime dateTime;
   final Organization organization;
   final List<DataAttribute> attributes;
+  final bool isSession;
 
   String get id => '${dateTime.microsecondsSinceEpoch.toString()}_${attributes.toString()}';
 
@@ -17,10 +18,11 @@ abstract class TimelineAttribute extends Equatable {
     required this.dateTime,
     required this.organization,
     required this.attributes,
+    required this.isSession,
   });
 
   @override
-  List<Object?> get props => [type, dateTime, organization, attributes];
+  List<Object?> get props => [type, dateTime, organization, attributes, isSession];
 }
 
 enum TimelineType { interaction, operation, signing }
@@ -35,6 +37,7 @@ class InteractionAttribute extends TimelineAttribute {
     required super.dateTime,
     required super.organization,
     required super.attributes,
+    required super.isSession,
   }) : super(type: TimelineType.interaction);
 
   @override
@@ -53,6 +56,7 @@ class OperationAttribute extends TimelineAttribute {
     required super.dateTime,
     required super.organization,
     required super.attributes,
+    required super.isSession,
   }) : super(type: TimelineType.operation);
 
   @override
@@ -71,6 +75,7 @@ class SigningAttribute extends TimelineAttribute {
     required super.dateTime,
     required super.organization,
     required super.attributes,
+    required super.isSession,
   }) : super(type: TimelineType.signing);
 
   @override

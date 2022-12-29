@@ -43,6 +43,7 @@ class SetupMockedWalletUseCase {
           cardTitle: card.front.title,
           organization: issuanceResponse.organization,
           attributes: card.attributes,
+          isSession: false,
         ),
       );
     }

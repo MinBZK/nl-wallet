@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -101,9 +100,6 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   }
 
   void _logCardInteraction(VerificationFlow flow, InteractionStatus status) {
-    final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
-    attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, cardId, attributes);
-    });
+    logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, flow.resolvedAttributes);
   }
 }
