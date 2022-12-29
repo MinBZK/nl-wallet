@@ -14,6 +14,8 @@ import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
 import 'bloc/qr_scan_bloc.dart';
 
+final _scannerKey = GlobalKey();
+
 class QrScanTab extends StatelessWidget {
   const QrScanTab({Key? key}) : super(key: key);
 
@@ -33,8 +35,9 @@ class QrScanTab extends StatelessWidget {
               if (state is QrScanInitial) return _buildInitialState(context);
               if (state is QrScanFailure) return _buildErrorState(context);
               if (state is QrScanNoPermission) return _buildNoPermission(context, state.permanentlyDenied);
-              if (state is QrScanScanning) return QrScanner();
+              if (state is QrScanScanning) return QrScanner(key: _scannerKey);
               if (state is QrScanSuccess) return _buildSuccessState(context);
+              if (state is QrScanLoading) return _buildLoading();
               throw UnsupportedError('Unknown state: $state');
             },
           ),
@@ -44,6 +47,23 @@ class QrScanTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        QrScanner(key: _scannerKey),
+        Container(
+          width: 60,
+          height: 60,
+          padding: const EdgeInsets.all(16),
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+          child: const CircularProgressIndicator(),
+        ),
+      ],
     );
   }
 

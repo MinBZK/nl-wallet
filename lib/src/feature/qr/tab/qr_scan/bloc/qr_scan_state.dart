@@ -14,6 +14,13 @@ class QrScanScanning extends QrScanState {
   List<Object> get props => [];
 }
 
+class QrScanLoading extends QrScanState {
+  const QrScanLoading();
+
+  @override
+  List<Object> get props => [];
+}
+
 class QrScanSuccess extends QrScanState {
   final QrRequest request;
 

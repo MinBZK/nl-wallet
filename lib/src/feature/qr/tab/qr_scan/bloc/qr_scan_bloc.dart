@@ -6,6 +6,7 @@ import 'package:vibration/vibration.dart';
 
 import '../../../../../domain/model/qr/qr_request.dart';
 import '../../../../../domain/usecase/qr/decode_qr_usecase.dart';
+import '../../../../../wallet_constants.dart';
 
 part 'qr_scan_event.dart';
 part 'qr_scan_state.dart';
@@ -31,7 +32,9 @@ class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
 
   void onCodeDetected(QrScanCodeDetected event, emit) async {
     Vibration.vibrate();
+    emit(const QrScanLoading());
     final request = await decodeQrUseCase.invoke(event.code);
+    await Future.delayed(kDefaultMockDelay);
     if (request == null) {
       emit(QrScanFailure());
     } else {

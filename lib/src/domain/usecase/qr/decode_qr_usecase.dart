@@ -11,7 +11,7 @@ class DecodeQrUseCase {
 
   Future<QrRequest?> invoke(Barcode barcode) async {
     try {
-      return qrRepository.getRequest(barcode.rawValue!);
+      return await qrRepository.getRequest(barcode.rawValue!);
     } catch (ex, stack) {
       Fimber.e('Failed to parse barcode: $barcode', ex: ex, stacktrace: stack);
       return null;
