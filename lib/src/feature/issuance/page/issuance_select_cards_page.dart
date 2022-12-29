@@ -29,6 +29,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
           const SliverSizedBox(height: 24),

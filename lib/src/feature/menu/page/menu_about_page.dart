@@ -22,6 +22,7 @@ class MenuAboutPage extends StatelessWidget {
         return false;
       },
       child: Scrollbar(
+        thumbVisibility: true,
         child: ListView(
           children: [
             const SizedBox(height: 16),

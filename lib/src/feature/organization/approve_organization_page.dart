@@ -25,6 +25,7 @@ class ApproveOrganizationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'approve_organization_scrollview',
         slivers: <Widget>[

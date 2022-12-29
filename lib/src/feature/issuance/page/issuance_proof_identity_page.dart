@@ -26,6 +26,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'proof_identity_scrollview',
         slivers: <Widget>[

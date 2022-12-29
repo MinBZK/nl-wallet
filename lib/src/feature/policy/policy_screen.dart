@@ -41,6 +41,7 @@ class PolicyScreen extends StatelessWidget {
         );
     final policyBuilder = PolicyEntriesBuilder(AppLocalizations.of(context), urlTheme);
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'policy_list',
         slivers: [

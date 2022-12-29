@@ -29,6 +29,7 @@ class ThemeScreen extends StatelessWidget {
             ),
             Expanded(
               child: Scrollbar(
+                thumbVisibility: true,
                 child: ListView(
                   padding: const EdgeInsets.all(16.0),
                   children: [

@@ -22,5 +22,6 @@ class WalletTheme {
     textButtonTheme: WalletThemeConstants.textButtonTheme,
     tabBarTheme: WalletThemeConstants.tabBarTheme,
     textTheme: WalletThemeConstants.textTheme,
+    scrollbarTheme: WalletThemeConstants.scrollbarTheme,
   );
 }

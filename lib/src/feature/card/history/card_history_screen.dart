@@ -64,6 +64,7 @@ class CardHistoryScreen extends StatelessWidget {
     ];
 
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         slivers: slivers,
       ),

@@ -20,6 +20,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'missing_data_attributes_scrollview',
         slivers: <Widget>[

@@ -25,6 +25,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'confirm_data_attributes_scrollview',
         slivers: <Widget>[

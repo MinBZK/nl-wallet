@@ -20,6 +20,7 @@ class MenuMainPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
+      thumbVisibility: true,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [

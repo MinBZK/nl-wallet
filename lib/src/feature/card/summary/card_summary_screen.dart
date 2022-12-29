@@ -84,6 +84,7 @@ class CardSummaryScreen extends StatelessWidget {
     final locale = AppLocalizations.of(context);
 
     return Scrollbar(
+      thumbVisibility: true,
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
         children: [

@@ -80,6 +80,14 @@ class WalletThemeConstants {
     unselectedLabelStyle: _body2TextStyle,
   );
 
+  static const scrollbarTheme = ScrollbarThemeData(
+    thumbColor: MaterialStatePropertyAll(Color(0xFF152A62)),
+    thickness: MaterialStatePropertyAll(4.0),
+    crossAxisMargin: 8.0,
+    mainAxisMargin: 8.0,
+    radius: Radius.circular(8),
+  );
+
   // Text theme
   static final textTheme = const TextTheme(
     headline1: _headline1TextStyle,

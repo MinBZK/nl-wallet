@@ -21,6 +21,7 @@ class IssuanceSuccessPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'issuance_success_page',
         slivers: <Widget>[

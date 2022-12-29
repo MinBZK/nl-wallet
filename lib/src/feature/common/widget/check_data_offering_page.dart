@@ -33,6 +33,7 @@ class CheckDataOfferingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(restorationId: 'check_data_offering_scrollview', slivers: <Widget>[
         const SliverSizedBox(height: 32),
         SliverToBoxAdapter(child: _buildHeaderSection(context)),

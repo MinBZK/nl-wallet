@@ -27,6 +27,7 @@ class ConfirmAgreementPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
+      thumbVisibility: true,
       child: CustomScrollView(
         slivers: <Widget>[
           const SliverSizedBox(height: 8),

@@ -54,6 +54,7 @@ class CardOverviewScreen extends StatelessWidget {
 
   Widget _buildCards(BuildContext context, List<WalletCard> cards) {
     return Scrollbar(
+      thumbVisibility: true,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
         itemCount: cards.length + 1,
