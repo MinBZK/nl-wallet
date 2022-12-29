@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/link_button.dart';
+import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/text_icon_button.dart';
 
 const _kMijnOverheidIllustration = 'assets/non-free/images/mijn_overheid_illustration.png';
@@ -19,11 +20,41 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Expanded(
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: CustomScrollView(
+          restorationId: 'check_data_offering_scrollview',
+          slivers: <Widget>[
+            const SliverSizedBox(height: 24),
+            SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            const SliverSizedBox(height: 32),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Image.asset(
+                  _kMijnOverheidIllustration,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: _buildFooterSection(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -50,13 +81,19 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 32),
-          Image.asset(
-            _kMijnOverheidIllustration,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterSection(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      alignment: Alignment.bottomCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           ElevatedButton(
             onPressed: onContinuePressed,
             child: Text(locale.walletPersonalizeRetrieveMoreCardsPageContinueCta),
