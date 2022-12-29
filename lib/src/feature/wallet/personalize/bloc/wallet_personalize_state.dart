@@ -92,6 +92,7 @@ class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
 
 class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   final MultipleCardsFlow multipleCardsFlow;
+  final bool showNoSelectionError;
 
   @override
   final bool didGoBack;
@@ -103,13 +104,14 @@ class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   const WalletPersonalizeSelectCards({
     required this.multipleCardsFlow,
     this.didGoBack = false,
+    this.showNoSelectionError = false,
   });
 
   @override
   double get stepperProgress => 9 / _kNrOfPages;
 
   @override
-  List<Object?> get props => [multipleCardsFlow, ...super.props];
+  List<Object?> get props => [multipleCardsFlow, showNoSelectionError, ...super.props];
 
   WalletPersonalizeSelectCards toggleCard(String cardId) {
     final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);

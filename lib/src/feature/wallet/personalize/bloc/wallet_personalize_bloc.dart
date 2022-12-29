@@ -151,7 +151,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state is WalletPersonalizeSelectCards) {
       if (state.selectedCards.isEmpty) {
-        _loadCardsAndEmitSuccessState(event, emit);
+        emit(WalletPersonalizeSelectCards(multipleCardsFlow: state.multipleCardsFlow, showNoSelectionError: true));
       } else {
         emit(
           WalletPersonalizeCheckCards(multipleCardsFlow: state.multipleCardsFlow),

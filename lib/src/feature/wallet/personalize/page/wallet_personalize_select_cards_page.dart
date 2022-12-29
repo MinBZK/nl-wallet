@@ -14,6 +14,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
   final Function(WalletCard) onCardSelectionToggled;
   final VoidCallback onSkipPressed;
   final VoidCallback onAddSelectedPressed;
+  final bool showNoSelectionError;
 
   const WalletPersonalizeSelectCardsPage({
     required this.cards,
@@ -21,6 +22,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
     required this.onCardSelectionToggled,
     required this.onSkipPressed,
     required this.onAddSelectedPressed,
+    this.showNoSelectionError = false,
     Key? key,
   }) : super(key: key);
 
@@ -96,6 +98,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
           onCardSelectionToggled: onCardSelectionToggled,
           card: card,
           isSelected: isSelected,
+          showError: showNoSelectionError,
         );
       },
       childCount: cards.length,
@@ -110,6 +113,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (showNoSelectionError) _buildNoSelectionRow(context),
           ElevatedButton(
             onPressed: onAddSelectedPressed,
             child: Text(locale.walletPersonalizeSelectCardsPageAddCta),
@@ -121,6 +125,26 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
               child: Text(locale.walletPersonalizeSelectCardsPageSkipCta),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSelectionRow(BuildContext context) {
+    final errorColor = Theme.of(context).errorColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, color: errorColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).walletPersonalizationSelectCardsPageNoSelectionError,
+              style: Theme.of(context).textTheme.bodyText2?.copyWith(color: errorColor),
+            ),
+          )
         ],
       ),
     );

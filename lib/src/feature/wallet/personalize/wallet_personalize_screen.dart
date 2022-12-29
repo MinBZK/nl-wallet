@@ -179,17 +179,20 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildRetrieveMoreCardsPage(BuildContext context) {
     return WalletPersonalizeRetrieveMoreCardsPage(
       onContinuePressed: () => context.bloc.add(WalletPersonalizeRetrieveMoreCardsPressed()),
-      onSkipPressed: () => context.bloc.add(WalletPersonalizeSkipRetrieveMoreCardsPressed()),
+      onSkipPressed: () {
+        _showSkipSheet(context, () => context.bloc.add(WalletPersonalizeSkipRetrieveMoreCardsPressed()));
+      },
     );
   }
 
   Widget _buildSelectCardsPage(BuildContext context, WalletPersonalizeSelectCards state) {
     return WalletPersonalizeSelectCardsPage(
-      onSkipPressed: () => context.bloc.add(WalletPersonalizeSkipAddMoreCardsPressed()),
+      onSkipPressed: () => _showSkipSheet(context, () => context.bloc.add(WalletPersonalizeSkipAddMoreCardsPressed())),
       cards: state.availableCards,
       selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),
       onCardSelectionToggled: (card) => context.bloc.add(WalletPersonalizeSelectedCardToggled(card)),
       onAddSelectedPressed: () => context.bloc.add(WalletPersonalizeAddSelectedCardsPressed()),
+      showNoSelectionError: state.showNoSelectionError,
     );
   }
 
@@ -213,6 +216,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
       totalNrOfCards: state.totalNrOfCardsToCheck,
       currentCardIndex: state.multipleCardsFlow.activeIndex,
     );
+  }
+
+  Future<void> _showSkipSheet(BuildContext context, VoidCallback onSkip) async {
+    final locale = AppLocalizations.of(context);
+    final skipped = await ConfirmActionSheet.show(
+      context,
+      title: locale.walletPersonalizeScreenSkipSheetTitle,
+      description: locale.walletPersonalizeScreenSkipSheetSubtitle,
+      cancelButtonText: locale.walletPersonalizeScreenSkipSheetNegativeCta,
+      confirmButtonText: locale.walletPersonalizeScreenSkipSheetPositiveCta,
+      confirmButtonColor: Theme.of(context).errorColor,
+    );
+    if (skipped) onSkip();
   }
 
   ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.
