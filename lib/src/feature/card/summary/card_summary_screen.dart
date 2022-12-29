@@ -82,7 +82,6 @@ class CardSummaryScreen extends StatelessWidget {
 
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
     final locale = AppLocalizations.of(context);
-    final deleteButtonText = locale.cardSummaryScreenCardDeleteCta;
 
     return Scrollbar(
       child: ListView(
@@ -119,8 +118,8 @@ class CardSummaryScreen extends StatelessWidget {
               child: TextIconButton(
                 icon: Icons.delete,
                 iconPosition: IconPosition.start,
-                onPressed: () => PlaceholderScreen.show(context, deleteButtonText),
-                child: Text(deleteButtonText),
+                onPressed: () => PlaceholderScreen.show(context),
+                child: Text(locale.cardSummaryScreenCardDeleteCta),
               ),
             ),
           ),

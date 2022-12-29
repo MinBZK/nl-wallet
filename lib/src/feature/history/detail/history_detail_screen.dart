@@ -143,14 +143,13 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildIncorrectButton(BuildContext context) {
-    final buttonText = AppLocalizations.of(context).cardDataScreenIncorrectCta;
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: LinkButton(
-          child: Text(buttonText),
-          onPressed: () => PlaceholderScreen.show(context, buttonText),
+          child: Text(AppLocalizations.of(context).cardDataScreenIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(context),
         ),
       ),
     );

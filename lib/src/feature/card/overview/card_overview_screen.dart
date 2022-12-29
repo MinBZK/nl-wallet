@@ -5,6 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_overview_bloc.dart';
 
@@ -89,7 +90,7 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   void _onCardCreatePressed(BuildContext context) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardAddRoute);
+    PlaceholderScreen.show(context);
   }
 
   void _onCardPressed(BuildContext context, String cardId) {

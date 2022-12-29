@@ -130,9 +130,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildWalletIntroPage(BuildContext context) {
     return WalletPersonalizeIntroPage(
       onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onNoDigidPressed: () {
-        PlaceholderScreen.show(context, AppLocalizations.of(context).walletPersonalizeIntroPageNoDigidCta);
-      },
+      onNoDigidPressed: () => PlaceholderScreen.show(context),
     );
   }
 

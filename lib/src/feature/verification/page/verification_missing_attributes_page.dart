@@ -76,7 +76,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
-        onPressed: () => PlaceholderScreen.show(context, 'Wat kan ik doen?'),
+        onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 10),
           child: Text(AppLocalizations.of(context).verificationMissingAttributesPageHowToProceedCta),

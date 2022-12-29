@@ -127,7 +127,7 @@ class PinPage extends StatelessWidget {
       builder: (context, state) {
         final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
         return TextIconButton(
-          onPressed: buttonEnabled ? () => PlaceholderScreen.show(context, 'Code vergeten?', secured: false) : null,
+          onPressed: buttonEnabled ? () => PlaceholderScreen.show(context, secured: false) : null,
           child: Text(AppLocalizations.of(context).pinScreenForgotPinCta),
         );
       },

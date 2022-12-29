@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'domain/model/policy/interaction_policy.dart';
 import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
-import 'feature/card/add/card_add_screen.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/bloc/card_history_bloc.dart';
@@ -57,7 +56,6 @@ class WalletRoutes {
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletHistoryRoute = '/wallet/history';
   static const homeRoute = '/home';
-  static const cardAddRoute = '/card/add';
   static const cardSummaryRoute = '/card/summary';
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
@@ -92,8 +90,6 @@ class WalletRoutes {
         return _createConfirmScreenBuilder;
       case WalletRoutes.homeRoute:
         return _createHomeScreenBuilder;
-      case WalletRoutes.cardAddRoute:
-        return _createCardAddScreenBuilder;
       case WalletRoutes.cardSummaryRoute:
         return _createCardSummaryScreenBuilder(settings);
       case WalletRoutes.cardDataRoute:
@@ -159,8 +155,6 @@ Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
       ],
       child: const HomeScreen(),
     );
-
-Widget _createCardAddScreenBuilder(BuildContext context) => const CardAddScreen();
 
 WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
   return (context) {

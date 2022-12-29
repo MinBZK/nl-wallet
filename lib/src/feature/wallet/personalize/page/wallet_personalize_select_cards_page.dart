@@ -77,7 +77,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
         LinkButton(
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Text(locale.walletPersonalizeSelectCardsPageDataIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context, locale.walletPersonalizeSelectCardsPageDataIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(context),
         ),
         const Divider(
           height: 1,

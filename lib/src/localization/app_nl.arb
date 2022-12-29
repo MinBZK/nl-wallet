@@ -35,10 +35,8 @@
     },
     "description": "Title shown at the top of the screen when signing"
   },
-  "cardDataScreenCloseCta": "Terug",
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
   "cardDataScreenTitle": "Alle gegevens",
-  "cardHistoryScreenBackCta": "Terug",
   "cardHistoryScreenTitle": "Kaart geschiedenis",
   "cardHistoryTimelineInteractionFailed": "Delen mislukt",
   "cardHistoryTimelineInteractionRejected": "Delen gestopt",
@@ -127,6 +125,7 @@
   "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
   "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
   "dataIncorrectScreenTitle": "Gegevens ophalen",
+  "generalBottomBackCta": "Terug",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {
@@ -373,7 +372,9 @@
   "pinScreenForgotPinCta": "Code vergeten?",
   "pinScreenHeader": "Vul je toegangscode in",
   "pinScreenTitle": "Inloggen",
-  "policyScreenBackCta": "Terug",
+  "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
+  "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
+  "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
   "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
   "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
@@ -469,7 +470,6 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
-  "timelineScrollViewBackCta": "Terug",
   "verificationConfirmDataAttributesPageApproveCta": "Ja, verder",
   "verificationConfirmDataAttributesPageDenyCta": "Nee",
   "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",

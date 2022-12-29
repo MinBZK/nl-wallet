@@ -72,15 +72,14 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrect(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LinkButton(
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(locale.issuanceSelectCardsPageDataIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context, locale.issuanceSelectCardsPageDataIncorrectCta),
+          child: Text(AppLocalizations.of(context).issuanceSelectCardsPageDataIncorrectCta),
+          onPressed: () => PlaceholderScreen.show(context),
         ),
         const Divider(
           height: 1,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/policy/interaction_policy.dart';
-import '../common/widget/text_icon_button.dart';
+import '../common/widget/bottom_back_button.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
@@ -47,10 +47,10 @@ class PolicyScreen extends StatelessWidget {
           SliverList(
             delegate: _getPolicyEntriesDelegate(policyBuilder.build(interactionPolicy)),
           ),
-          SliverFillRemaining(
+          const SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
-            child: _buildBackButton(context),
+            child: BottomBackButton(),
           )
         ],
       ),
@@ -74,22 +74,6 @@ class PolicyScreen extends StatelessWidget {
         ],
       ),
       childCount: entries.length,
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: SizedBox(
-        height: 72,
-        width: double.infinity,
-        child: TextIconButton(
-          onPressed: () => Navigator.pop(context),
-          iconPosition: IconPosition.start,
-          icon: Icons.arrow_back,
-          child: Text(AppLocalizations.of(context).policyScreenBackCta),
-        ),
-      ),
     );
   }
 }

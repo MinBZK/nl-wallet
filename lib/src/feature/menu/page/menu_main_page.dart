@@ -34,7 +34,7 @@ class MenuMainPage extends StatelessWidget {
           MenuRow(
             label: locale.menuMainPageHelpCta,
             icon: Icons.help_outline,
-            onTap: () => PlaceholderScreen.show(context, locale.menuMainPageHelpCta),
+            onTap: () => PlaceholderScreen.show(context),
           ),
           const Divider(height: 1),
           MenuRow(

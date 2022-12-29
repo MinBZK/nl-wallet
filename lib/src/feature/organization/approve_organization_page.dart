@@ -113,11 +113,10 @@ class ApproveOrganizationPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButton(BuildContext context) {
-    final buttonText = AppLocalizations.of(context).approveOrganizationPageIncorrectCta;
     return Center(
       child: TextIconButton(
-        child: Text(buttonText),
-        onPressed: () => PlaceholderScreen.show(context, buttonText),
+        child: Text(AppLocalizations.of(context).approveOrganizationPageIncorrectCta),
+        onPressed: () => PlaceholderScreen.show(context),
       ),
     );
   }

@@ -78,7 +78,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
-        onPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
+        onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(AppLocalizations.of(context).verificationConfirmDataAttributesPageIncorrectCta),

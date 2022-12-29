@@ -97,14 +97,13 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButton(BuildContext context) {
-    final buttonText = AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta;
     return Padding(
       padding: const EdgeInsets.only(left: 8.0),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: LinkButton(
-          onPressed: () => PlaceholderScreen.show(context, buttonText),
-          child: Text(buttonText),
+          onPressed: () => PlaceholderScreen.show(context),
+          child: Text(AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta),
         ),
       ),
     );

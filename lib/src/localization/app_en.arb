@@ -35,10 +35,8 @@
     },
     "description": "Title shown at the top of the screen when signing"
   },
-  "cardDataScreenCloseCta": "Back",
   "cardDataScreenIncorrectCta": "Is something not right?",
   "cardDataScreenTitle": "All data",
-  "cardHistoryScreenBackCta": "Back",
   "cardHistoryScreenTitle": "Card history",
   "cardHistoryTimelineInteractionFailed": "Failed to share",
   "cardHistoryTimelineInteractionRejected": "Rejected to share",
@@ -127,6 +125,7 @@
   "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
   "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
   "dataIncorrectScreenTitle": "Retrieve data",
+  "generalBottomBackCta": "Back",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
     "placeholders": {
@@ -373,7 +372,9 @@
   "pinScreenForgotPinCta": "Forgot code?",
   "pinScreenHeader": "Enter your pin",
   "pinScreenTitle": "Login",
-  "policyScreenBackCta": "Back",
+  "placeholderScreenContractInformTitle": "The contract will be displayed here.",
+  "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
+  "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "You can request data deletion",
   "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
   "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
@@ -469,7 +470,6 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
-  "timelineScrollViewBackCta": "Back",
   "verificationConfirmDataAttributesPageApproveCta": "Yes, next",
   "verificationConfirmDataAttributesPageDenyCta": "No, decline",
   "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",

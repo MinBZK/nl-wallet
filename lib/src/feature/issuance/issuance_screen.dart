@@ -181,7 +181,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildStoppedPage(BuildContext context, IssuanceStopped state) {
     return IssuanceStoppedPage(
       onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.show(context, 'Give feedback'),
+      onGiveFeedbackPressed: () => PlaceholderScreen.show(context),
     );
   }
 
@@ -192,7 +192,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildIdentityValidationFailedPage(BuildContext context, IssuanceIdentityValidationFailure state) {
     return IssuanceIdentityValidationFailedPage(
       onClosePressed: () => Navigator.pop(context),
-      onSomethingNotRightPressed: () => PlaceholderScreen.show(context, 'Klopt er iets niet?'),
+      onSomethingNotRightPressed: () => PlaceholderScreen.show(context),
     );
   }
 

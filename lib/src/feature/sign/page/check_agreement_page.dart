@@ -115,7 +115,7 @@ class CheckAgreementPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(AppLocalizations.of(context).checkAgreementPageShowDocumentCta),
           ),
-          onPressed: () => PlaceholderScreen.show(context, flow.document.url),
+          onPressed: () => PlaceholderScreen.show(context, type: PlaceholderType.contract),
         ),
       ],
     );
@@ -125,8 +125,7 @@ class CheckAgreementPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
-        onPressed: () =>
-            PlaceholderScreen.show(context, AppLocalizations.of(context).checkAgreementPageDataIncorrectCta),
+        onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
           child: Text(AppLocalizations.of(context).checkAgreementPageDataIncorrectCta),

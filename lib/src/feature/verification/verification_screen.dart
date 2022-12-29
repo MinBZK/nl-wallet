@@ -133,7 +133,7 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildStoppedPage(BuildContext context, VerificationStopped state) {
     return VerificationStoppedPage(
       onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.show(context, 'Geef Feedback'),
+      onGiveFeedbackPressed: () => PlaceholderScreen.show(context),
     );
   }
 

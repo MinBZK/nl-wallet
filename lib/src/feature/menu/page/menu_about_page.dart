@@ -41,17 +41,17 @@ class MenuAboutPage extends StatelessWidget {
             const Divider(height: 1),
             MenuRow(
               label: locale.menuAboutPagePrivacyCta,
-              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPagePrivacyCta),
+              onTap: () => PlaceholderScreen.show(context),
             ),
             const Divider(height: 1),
             MenuRow(
               label: locale.menuAboutPageTermsCta,
-              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageTermsCta),
+              onTap: () => PlaceholderScreen.show(context),
             ),
             const Divider(height: 1),
             MenuRow(
               label: locale.menuAboutPageFeedbackCta,
-              onTap: () => PlaceholderScreen.show(context, locale.menuAboutPageFeedbackCta),
+              onTap: () => PlaceholderScreen.show(context),
             ),
             const Divider(height: 1),
           ],

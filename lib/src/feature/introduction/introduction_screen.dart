@@ -149,11 +149,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       result = TextIconButton(
         icon: Icons.language,
         iconPosition: IconPosition.start,
-        onPressed: () => PlaceholderScreen.show(
-          context,
-          AppLocalizations.of(context).introductionLanguageSelectCta,
-          secured: false,
-        ),
+        onPressed: () => PlaceholderScreen.show(context, secured: false),
         centerChild: false,
         child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
       );
@@ -166,11 +162,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       opacity: opacity,
       child: TextIconButton(
         icon: Icons.arrow_forward,
-        onPressed: () => PlaceholderScreen.show(
-          context,
-          AppLocalizations.of(context).introductionPrivacyPolicyCta,
-          secured: false,
-        ),
+        onPressed: () => PlaceholderScreen.show(context, secured: false),
         child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
       ),
     );
