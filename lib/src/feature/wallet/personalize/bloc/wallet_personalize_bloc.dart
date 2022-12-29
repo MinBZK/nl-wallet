@@ -75,7 +75,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onScanEvent(event, emit) async {
-    const mockDelay = kDebugMode ? kDefaultMockDelay : Duration(seconds: 8);
+    const mockDelay = kDebugMode ? kDefaultMockDelay : Duration(seconds: 3);
     emit(const WalletPersonalizeLoadingPhoto(mockDelay));
     await Future.delayed(mockDelay);
 
