@@ -83,6 +83,7 @@ class SetupSecurityScreen extends StatelessWidget {
       content: Text(
         AppLocalizations.of(context).setupSecuritySelectPinPageTitle,
         style: Theme.of(context).textTheme.headline3,
+        textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
@@ -117,6 +118,7 @@ class SetupSecurityScreen extends StatelessWidget {
       content: Text(
         AppLocalizations.of(context).setupSecurityConfirmationPageTitle,
         style: Theme.of(context).textTheme.headline3,
+        textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),

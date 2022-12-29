@@ -5,6 +5,8 @@ import '../../common/widget/wallet_logo.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
+const _requiredHeightToShowLogo = 192.0;
+
 class SetupSecurityPinPage extends StatelessWidget {
   final Widget content;
   final Function(int)? onKeyPressed;
@@ -27,10 +29,19 @@ class SetupSecurityPinPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const SizedBox(height: 48),
-        const WalletLogo(size: 80),
-        const SizedBox(height: 24),
-        Expanded(flex: 3, child: content),
+        Expanded(
+          flex: 3,
+          child: LayoutBuilder(builder: (context, constraints) {
+            return Column(
+              children: [
+                const SizedBox(height: 48),
+                if (constraints.maxHeight > _requiredHeightToShowLogo) const WalletLogo(size: 80),
+                const SizedBox(height: 24),
+                Expanded(child: content),
+              ],
+            );
+          }),
+        ),
         if (showInput)
           PinField(
             digits: kPinDigits,

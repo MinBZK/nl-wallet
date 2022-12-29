@@ -1,8 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'keyboard_backspace_key.dart';
 import 'keyboard_digit_key.dart';
 import 'keyboard_row.dart';
+
+const _preferredKeyboardHeight = 340.0;
+const _maxHeightAsFractionOfScreen = 0.44;
 
 class PinKeyboard extends StatelessWidget {
   final Function(int)? onKeyPressed;
@@ -12,8 +17,9 @@ class PinKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * _maxHeightAsFractionOfScreen;
     return SizedBox(
-      height: 340,
+      height: min(maxHeight, _preferredKeyboardHeight),
       child: DefaultTextStyle(
         style: Theme.of(context).textTheme.headline2!,
         child: Column(
