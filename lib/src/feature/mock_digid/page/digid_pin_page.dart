@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -6,6 +8,7 @@ import '../../pin/widget/pin_keyboard.dart';
 
 /// Force highest res version here, avoids bloating the assets with files that are temporary by nature.
 const _kDigidLogoPath = 'assets/images/3.0x/digid_logo.png';
+const _kDigidPinCount = 5;
 
 class DigidPinPage extends StatelessWidget {
   final int selectedIndex;
@@ -55,7 +58,7 @@ class DigidPinPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(5, (index) {
+                children: List.generate(_kDigidPinCount, (index) {
                   return _buildPinField(context, index == selectedIndex, index < selectedIndex);
                 }),
               ),
@@ -84,10 +87,11 @@ class DigidPinPage extends StatelessWidget {
   }
 
   Widget _buildPinField(BuildContext context, bool selected, bool filled) {
+    final maxWidth = (MediaQuery.of(context).size.width - 32) / _kDigidPinCount;
     return AnimatedContainer(
       duration: kDefaultAnimationDuration,
-      height: 60,
-      width: 60,
+      height: min(60, maxWidth),
+      width: min(60, maxWidth),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.grey.withOpacity(selected || filled ? 0.01 : 0.4),

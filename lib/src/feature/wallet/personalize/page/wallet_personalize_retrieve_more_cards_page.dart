@@ -20,32 +20,30 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Scrollbar(
-        thumbVisibility: true,
-        child: CustomScrollView(
-          restorationId: 'check_data_offering_scrollview',
-          slivers: <Widget>[
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(child: _buildHeaderSection(context)),
-            const SliverSizedBox(height: 32),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Image.asset(
-                  _kMijnOverheidIllustration,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+    return Scrollbar(
+      thumbVisibility: true,
+      child: CustomScrollView(
+        restorationId: 'check_data_offering_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 24),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Image.asset(
+                _kMijnOverheidIllustration,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
             ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: _buildFooterSection(context),
-            ),
-          ],
-        ),
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            fillOverscroll: true,
+            child: _buildFooterSection(context),
+          ),
+        ],
       ),
     );
   }
