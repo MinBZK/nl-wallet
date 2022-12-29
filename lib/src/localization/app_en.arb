@@ -15,7 +15,7 @@
     },
     "description": "Title shown at the top of the screen when requesting cards"
   },
-  "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
+  "approveOrganizationPageShareWithTitle": "{organization} is requesting information, is that correct?",
   "@approveOrganizationPageShareWithTitle": {
     "placeholders": {
       "organization": {

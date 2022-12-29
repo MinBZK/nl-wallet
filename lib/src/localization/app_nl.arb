@@ -15,7 +15,7 @@
     },
     "description": "Title shown at the top of the screen when fetching cards"
   },
-  "approveOrganizationPageShareWithTitle": "Wil je gegevens delen met {organization}?",
+  "approveOrganizationPageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
   "@approveOrganizationPageShareWithTitle": {
     "placeholders": {
       "organization": {
