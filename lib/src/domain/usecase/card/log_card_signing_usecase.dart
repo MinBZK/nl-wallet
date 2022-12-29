@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../feature/verification/model/organization.dart';
 import '../../model/attribute/data_attribute.dart';
+import '../../model/document.dart';
 import '../../model/policy/policy.dart';
 import '../../model/timeline/timeline_attribute.dart';
 
@@ -15,6 +16,7 @@ class LogCardSigningUseCase {
     SigningStatus status,
     Policy policy,
     Organization organization,
+    Document document,
     List<DataAttribute> resolvedAttributes,
   ) async {
     final attributesByCardId = resolvedAttributes.groupListsBy((element) => element.sourceCardId);
@@ -22,6 +24,7 @@ class LogCardSigningUseCase {
       final cardInteraction = SigningAttribute(
         status: status,
         policy: policy,
+        document: document,
         dateTime: DateTime.now(),
         organization: organization,
         attributes: _getFilteredAttributes(status, attributes),
@@ -34,6 +37,7 @@ class LogCardSigningUseCase {
     final sessionInteraction = SigningAttribute(
       status: status,
       policy: policy,
+      document: document,
       dateTime: DateTime.now(),
       organization: organization,
       attributes: _getFilteredAttributes(status, resolvedAttributes),

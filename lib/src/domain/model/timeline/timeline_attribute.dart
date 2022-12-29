@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../feature/verification/model/organization.dart';
 import '../attribute/data_attribute.dart';
+import '../document.dart';
 import '../policy/policy.dart';
 
 abstract class TimelineAttribute extends Equatable {
@@ -68,10 +69,12 @@ enum OperationStatus { issued, renewed, expired }
 class SigningAttribute extends TimelineAttribute {
   final SigningStatus status;
   final Policy policy;
+  final Document document;
 
   const SigningAttribute({
     required this.status,
     required this.policy,
+    required this.document,
     required super.dateTime,
     required super.organization,
     required super.attributes,
@@ -79,7 +82,7 @@ class SigningAttribute extends TimelineAttribute {
   }) : super(type: TimelineType.signing);
 
   @override
-  List<Object?> get props => [status, ...super.props];
+  List<Object?> get props => [status, policy, document, ...super.props];
 }
 
 enum SigningStatus { success, rejected }

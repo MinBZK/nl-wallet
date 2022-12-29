@@ -125,6 +125,12 @@ class SignBloc extends Bloc<SignEvent, SignState> {
   }
 
   void _logCardInteraction(SignFlow flow, SigningStatus status) {
-    logCardSigningUseCase.invoke(status, flow.policy, flow.organization, flow.resolvedAttributes);
+    logCardSigningUseCase.invoke(
+      status,
+      flow.policy,
+      flow.organization,
+      flow.document,
+      flow.resolvedAttributes,
+    );
   }
 }

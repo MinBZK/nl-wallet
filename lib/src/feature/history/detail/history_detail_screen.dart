@@ -9,6 +9,7 @@ import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/document_section.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/policy/policy_section.dart';
@@ -83,6 +84,23 @@ class HistoryDetailScreen extends StatelessWidget {
     if (dataAttributes.isNotEmpty) {
       // Section title
       slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, timelineAttribute)));
+
+      // Signed contract (optional)
+      bool showContract = (state.timelineAttribute is SigningAttribute) &&
+          (state.timelineAttribute as SigningAttribute).status == SigningStatus.success;
+      if (showContract) {
+        final signingAttribute = (state.timelineAttribute as SigningAttribute);
+        slivers.addAll([
+          SliverToBoxAdapter(
+            child: DocumentSection(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              document: signingAttribute.document,
+              organization: signingAttribute.organization,
+            ),
+          ),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+        ]);
+      }
 
       // Data attributes
       for (DataAttribute dataAttribute in dataAttributes) {

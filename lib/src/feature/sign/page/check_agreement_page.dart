@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/confirm_buttons.dart';
+import '../../common/widget/document_section.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -30,7 +31,13 @@ class CheckAgreementPage extends StatelessWidget {
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverToBoxAdapter(child: _buildContractSection(context)),
+          SliverToBoxAdapter(
+            child: DocumentSection(
+              document: flow.document,
+              organization: flow.organization,
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+            ),
+          ),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
@@ -79,46 +86,6 @@ class CheckAgreementPage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildContractSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                flow.document.title,
-                style: Theme.of(context).textTheme.subtitle1,
-                textAlign: TextAlign.start,
-              ),
-              Text(
-                flow.organization.name,
-                style: Theme.of(context).textTheme.bodyText1,
-                textAlign: TextAlign.start,
-              ),
-              Text(
-                flow.document.fileName,
-                style: Theme.of(context).textTheme.bodyText1,
-                textAlign: TextAlign.start,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        LinkButton(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(AppLocalizations.of(context).checkAgreementPageShowDocumentCta),
-          ),
-          onPressed: () => PlaceholderScreen.show(context, type: PlaceholderType.contract),
-        ),
-      ],
     );
   }
 
