@@ -450,7 +450,7 @@ const _kMockGenericRequestedAttributes = [
 
 // region Policies
 
-const _kMockIssuancePolicy = InteractionPolicy(
+const _kMockIssuancePolicy = Policy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Kaart uitgifte',
   dataIsShared: false,

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../domain/model/timeline_attribute.dart';
+import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_card_usecase.dart';

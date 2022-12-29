@@ -4,12 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/policy/interaction_policy_section.dart';
+import '../../common/widget/policy/policy_section.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/history_detail_header.dart';
 import 'widget/history_detail_timeline_attribute_row.dart';
@@ -93,9 +94,10 @@ class HistoryDetailScreen extends StatelessWidget {
       }
 
       // Policy section
-      if (timelineAttribute is InteractionAttribute && timelineAttribute.interactionType == InteractionType.success) {
+      final Policy? policy = _getPolicyToDisplay(timelineAttribute);
+      if (policy != null) {
         slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
-        slivers.add(SliverToBoxAdapter(child: InteractionPolicySection(timelineAttribute.interactionPolicy)));
+        slivers.add(SliverToBoxAdapter(child: PolicySection(policy)));
       }
 
       // Incorrect button
@@ -113,9 +115,20 @@ class HistoryDetailScreen extends StatelessWidget {
 
   bool _showTimelineTypeRow(TimelineAttribute attribute) {
     if (attribute is InteractionAttribute) {
-      return attribute.interactionType != InteractionType.success;
+      return attribute.status != InteractionStatus.success;
+    } else if (attribute is SigningAttribute) {
+      return attribute.status != SigningStatus.success;
     }
     return true;
+  }
+
+  Policy? _getPolicyToDisplay(TimelineAttribute timelineAttribute) {
+    if (timelineAttribute is InteractionAttribute && timelineAttribute.status == InteractionStatus.success) {
+      return timelineAttribute.policy;
+    } else if (timelineAttribute is SigningAttribute && timelineAttribute.status == SigningStatus.success) {
+      return timelineAttribute.policy;
+    }
+    return null;
   }
 
   Widget _buildDataAttributesSectionTitle(BuildContext context, TimelineAttribute attribute) {
@@ -126,6 +139,8 @@ class HistoryDetailScreen extends StatelessWidget {
       title = locale.historyDetailScreenInteractionAttributesTitle;
     } else if (attribute is OperationAttribute) {
       title = locale.historyDetailScreenOperationAttributesTitle;
+    } else if (attribute is SigningAttribute) {
+      title = locale.historyDetailScreenSigningAttributesTitle;
     }
 
     return Padding(

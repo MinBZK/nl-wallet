@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
@@ -43,7 +43,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
               id: request.id,
               organization: request.organization,
               attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
-              interactionPolicy: request.interactionPolicy,
+              policy: request.interactionPolicy,
             ),
           ),
         );
@@ -74,7 +74,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     final state = this.state;
     if (state is VerificationConfirmPin) {
       emit(VerificationLoadInProgress());
-      if (event.flow != null) _logCardInteraction(event.flow!, InteractionType.success);
+      if (event.flow != null) _logCardInteraction(event.flow!, InteractionStatus.success);
       await Future.delayed(kDefaultMockDelay);
       emit(VerificationSuccess(state.flow));
     }
@@ -95,15 +95,15 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
 
   void _onVerificationStopRequested(VerificationStopRequested event, emit) async {
     emit(VerificationLoadInProgress());
-    if (event.flow != null) _logCardInteraction(event.flow!, InteractionType.rejected);
+    if (event.flow != null) _logCardInteraction(event.flow!, InteractionStatus.rejected);
     await Future.delayed(kDefaultMockDelay);
     emit(const VerificationStopped());
   }
 
-  void _logCardInteraction(VerificationFlow flow, InteractionType type) {
+  void _logCardInteraction(VerificationFlow flow, InteractionStatus status) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
+      logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, cardId, attributes);
     });
   }
 }

@@ -11,6 +11,7 @@ import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/log_card_interaction_usecase.dart';
+import '../domain/usecase/card/log_card_signing_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_card_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
@@ -70,6 +71,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<LogCardInteractionUseCase>(
           create: (context) => LogCardInteractionUseCase(context.read()),
+        ),
+        RepositoryProvider<LogCardSigningUseCase>(
+          create: (context) => LogCardSigningUseCase(context.read()),
         ),
         RepositoryProvider<GetVerifierPolicyUseCase>(
           create: (context) => GetVerifierPolicyUseCase(context.read()),

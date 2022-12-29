@@ -6,7 +6,7 @@ import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/confirm_buttons.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/policy/interaction_policy_section.dart';
+import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
@@ -35,7 +35,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverToBoxAdapter(child: Divider(height: 32)),
-          SliverToBoxAdapter(child: InteractionPolicySection(flow.interactionPolicy)),
+          SliverToBoxAdapter(child: PolicySection(flow.policy)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),

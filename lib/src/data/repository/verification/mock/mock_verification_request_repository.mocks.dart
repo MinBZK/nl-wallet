@@ -132,7 +132,7 @@ const _kFirstAidRequestedAttributes = [
 
 // region InteractionPolicies
 
-const _kEmployerPolicy = InteractionPolicy(
+const _kEmployerPolicy = Policy(
   storageDuration: Duration(days: 3 * 30),
   dataPurpose: 'Gegevens controle',
   dataIsShared: false,
@@ -141,7 +141,7 @@ const _kEmployerPolicy = InteractionPolicy(
   privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockMarketPlacePolicy = InteractionPolicy(
+const _kMockMarketPlacePolicy = Policy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Registreren',
   dataIsShared: false,
@@ -150,7 +150,7 @@ const _kMockMarketPlacePolicy = InteractionPolicy(
   privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockBarPolicy = InteractionPolicy(
+const _kMockBarPolicy = Policy(
   storageDuration: Duration(days: 0),
   dataPurpose: 'Leeftijd controle',
   dataIsShared: false,
@@ -159,7 +159,7 @@ const _kMockBarPolicy = InteractionPolicy(
   privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockCarRentalPolicy = InteractionPolicy(
+const _kMockCarRentalPolicy = Policy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Rijvaardigheid',
   dataIsShared: false,

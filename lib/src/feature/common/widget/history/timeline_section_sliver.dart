@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 
-import '../../../../domain/model/timeline_attribute.dart';
-import '../../../../domain/model/timeline_section.dart';
+import '../../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../../domain/model/timeline/timeline_section.dart';
 import 'timeline_attribute_row.dart';
 import 'timeline_section_header.dart';
 

@@ -7,7 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
 import '../../../domain/model/multiple_cards_flow.dart';
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
@@ -84,7 +84,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final IssuanceFlow flow = IssuanceFlow(
       organization: response.organization,
       attributes: attributes,
-      interactionPolicy: response.interactionPolicy,
+      policy: response.policy,
       cards: response.cards,
     );
 
@@ -134,7 +134,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
-    _logCardInteraction(state.flow, InteractionType.success);
+    _logCardInteraction(state.flow, InteractionStatus.success);
     await walletAddIssuedCardsUseCase.invoke(state.flow.cards, state.flow.organization);
     emit(IssuanceCompleted(state.isRefreshFlow, state.flow, state.flow.cards));
   }
@@ -142,15 +142,15 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
     if (event.flow != null) {
       bool userAlreadySharedData = state is IssuanceCheckDataOffering;
-      _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionType.success : InteractionType.rejected);
+      _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionStatus.success : InteractionStatus.rejected);
     }
     await _transitionToIssuanceStopped(emit);
   }
 
-  void _logCardInteraction(IssuanceFlow flow, InteractionType type) {
+  void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
+      logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, cardId, attributes);
     });
   }
 
@@ -209,7 +209,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   Future<void> _addCardsAndEmitCompleted(IssuanceFlow flow, List<WalletCard> selectedCards, emit) async {
-    _logCardInteraction(flow, InteractionType.success);
+    _logCardInteraction(flow, InteractionStatus.success);
     await walletAddIssuedCardsUseCase.invoke(selectedCards, flow.organization);
     emit(IssuanceCompleted(state.isRefreshFlow, flow, selectedCards));
   }

@@ -2,7 +2,7 @@ import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/attribute/requested_attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
-import '../../../../domain/model/policy/interaction_policy.dart';
+import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../source/organization_datasource.dart';
 import '../../../source/wallet_datasource.dart';
@@ -23,49 +23,49 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rvig'))!,
           requestedAttributes: [],
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockPidWalletCard],
         );
       case _kDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
           requestedAttributes: _kMockDiplomaRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard],
         );
       case _kMultiDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
           requestedAttributes: _kMockDiplomaRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
         );
       case _kDrivingLicenseId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseWalletCard],
         );
       case _kDrivingLicenseRenewedId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
           requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseRenewedWalletCard],
         );
       case _kHealthInsuranceId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('health_insurer_1'))!,
           requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockHealthInsuranceWalletCard],
         );
       case _kVOGId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('justis'))!,
           requestedAttributes: _kMockGenericRequestedAttributes,
-          interactionPolicy: _kMockIssuancePolicy,
+          policy: _kMockIssuancePolicy,
           cards: [_kMockVOGWalletCard],
         );
     }

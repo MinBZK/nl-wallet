@@ -1,4 +1,4 @@
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 
 abstract class TimelineAttributeRepository {
   /// Creates [TimelineAttribute] entry
@@ -13,5 +13,5 @@ abstract class TimelineAttributeRepository {
   /// Returns single [TimelineAttribute] by ID
   Future<TimelineAttribute> read(String timelineAttributeId);
 
-  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionType type);
+  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionStatus status);
 }

@@ -44,6 +44,8 @@
   "cardHistoryTimelineOperationExpired": "Kaart verlopen",
   "cardHistoryTimelineOperationIssued": "Kaart aangemaakt",
   "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
+  "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
+  "cardHistoryTimelineSigningSuccess": "Ondertekend",
   "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
   "cardOverviewScreenTitle": "Mijn kaarten",
   "cardShareScreenExplanationCta": "Hoe werkt delen?",
@@ -146,12 +148,12 @@
     },
     "description": "Hours"
   },
-  "generalInteractionPolicyAllTermsCta": "Alle voorwaarden",
-  "generalInteractionPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-  "generalInteractionPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-  "generalInteractionPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-  "generalInteractionPolicyDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-  "@generalInteractionPolicyDataRetentionDuration": {
+  "generaPolicyAllTermsCta": "Alle voorwaarden",
+  "generaPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "generaPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "generaPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+  "generaPolicyDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@generaPolicyDataRetentionDuration": {
     "placeholders": {
       "days": {
         "example": "30",
@@ -160,8 +162,8 @@
     },
     "description": "Duration that data will be stored by the verifier"
   },
-  "generalInteractionPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
-  "generalInteractionPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
+  "generaPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "generaPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
   "@generalMinutes": {
     "placeholders": {
@@ -191,12 +193,14 @@
     "description": "App version and build number"
   },
   "historyDetailScreenInteractionAttributesTitle": "Gedeelde gegevens",
-  "historyDetailScreenInteractionTypeFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
-  "historyDetailScreenInteractionTypeRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
+  "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
   "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
-  "historyDetailScreenOperationTypeExpiredDescription": "Je kaart is verlopen.",
-  "historyDetailScreenOperationTypeIssuedDescription": "Kaart aangemaakt",
-  "historyDetailScreenOperationTypeRenewedDescription": "Kaart vernieuwd",
+  "historyDetailScreenSigningAttributesTitle": "Ondertekend",
+  "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
+  "historyDetailScreenOperationStatusIssuedDescription": "Kaart aangemaakt",
+  "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
+  "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Gebruiksgeschiedenis",
   "homeScreenBottomNavBarCardsCta": "Kaarten",

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../domain/model/policy/interaction_policy.dart';
+import '../../domain/model/policy/policy.dart';
 import 'model/policy_entry.dart';
 
 /// Helper class to organize all the provided policy attributes into a render-able list of [PolicyEntry]s
@@ -13,7 +13,7 @@ class PolicyEntriesBuilder {
 
   PolicyEntriesBuilder(this.locale, this.urlTheme);
 
-  List<PolicyEntry> build(InteractionPolicy interactionPolicy) {
+  List<PolicyEntry> build(Policy interactionPolicy) {
     final results = <PolicyEntry>[];
 
     final dataPurpose = interactionPolicy.dataPurpose;
@@ -60,7 +60,7 @@ class PolicyEntriesBuilder {
     );
   }
 
-  PolicyEntry _buildDataSharingPolicy(InteractionPolicy interactionPolicy) {
+  PolicyEntry _buildDataSharingPolicy(Policy interactionPolicy) {
     return PolicyEntry(
       title: TextSpan(
         text: interactionPolicy.dataIsShared

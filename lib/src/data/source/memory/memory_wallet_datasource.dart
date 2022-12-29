@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../wallet_datasource.dart';
 

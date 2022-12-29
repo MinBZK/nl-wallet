@@ -1,6 +1,6 @@
 import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../wallet_constants.dart';
-import '../../model/timeline_attribute.dart';
+import '../../model/timeline/timeline_attribute.dart';
 
 class GetTimelineAttributeUseCase {
   final TimelineAttributeRepository timelineAttributeRepository;

@@ -44,6 +44,8 @@
   "cardHistoryTimelineOperationExpired": "Card is expired",
   "cardHistoryTimelineOperationIssued": "Card added",
   "cardHistoryTimelineOperationRenewed": "Card updated",
+  "cardHistoryTimelineSigningRejected": "Signing stopped",
+  "cardHistoryTimelineSigningSuccess": "Signed",
   "cardOverviewScreenAddCardCta": "Add data",
   "cardOverviewScreenTitle": "My cards",
   "cardShareScreenExplanationCta": "How does sharing work?",
@@ -146,12 +148,12 @@
     },
     "description": "Hours"
   },
-  "generalInteractionPolicyAllTermsCta": "All terms",
-  "generalInteractionPolicyDataCanBeDeleted": "You can request data deletion",
-  "generalInteractionPolicyDataCanNotBeDeleted": "You can not request data deletion",
-  "generalInteractionPolicyDataIsSignature": "By continuing the agreement will be definitive",
-  "generalInteractionPolicyDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
-  "@generalInteractionPolicyDataRetentionDuration": {
+  "generaPolicyAllTermsCta": "All terms",
+  "generaPolicyDataCanBeDeleted": "You can request data deletion",
+  "generaPolicyDataCanNotBeDeleted": "You can not request data deletion",
+  "generaPolicyDataIsSignature": "By continuing the agreement will be definitive",
+  "generaPolicyDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "@generaPolicyDataRetentionDuration": {
     "placeholders": {
       "days": {
         "example": "30",
@@ -160,8 +162,8 @@
     },
     "description": "Duration that data will be stored by the verifier"
   },
-  "generalInteractionPolicyDataWillBeShared": "Your information will be shared with third parties",
-  "generalInteractionPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
+  "generaPolicyDataWillBeShared": "Your information will be shared with third parties",
+  "generaPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
   "generalMinutes": "{minutes, plural, =1 {{minutes} minute} other {{minutes} minutes}}",
   "@generalMinutes": {
     "placeholders": {
@@ -191,12 +193,14 @@
     "description": "App version and build number"
   },
   "historyDetailScreenInteractionAttributesTitle": "Shared data",
-  "historyDetailScreenInteractionTypeFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
-  "historyDetailScreenInteractionTypeRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
+  "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
   "historyDetailScreenOperationAttributesTitle": "Retrieved data",
-  "historyDetailScreenOperationTypeExpiredDescription": "Your card is expired.",
-  "historyDetailScreenOperationTypeIssuedDescription": "Card added",
-  "historyDetailScreenOperationTypeRenewedDescription": "Card updated",
+  "historyDetailScreenSigningAttributesTitle": "Signed",
+  "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
+  "historyDetailScreenOperationStatusIssuedDescription": "Card added",
+  "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
+  "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Usage history",
   "homeScreenBottomNavBarCardsCta": "Cards",

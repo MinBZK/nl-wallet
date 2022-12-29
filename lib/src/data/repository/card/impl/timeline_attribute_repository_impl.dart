@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import '../../../../domain/model/timeline_attribute.dart';
+import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../source/wallet_datasource.dart';
 import '../timeline_attribute_repository.dart';
 
@@ -25,10 +25,10 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
   }
 
   @override
-  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionType type) async {
+  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionStatus status) async {
     List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId);
     attributes.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
-    return _readLastInteraction(attributes, type);
+    return _readLastInteraction(attributes, status);
   }
 
   @override
@@ -36,9 +36,9 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
     return dataSource.readTimelineAttributeById(timelineAttributeId);
   }
 
-  InteractionAttribute? _readLastInteraction(List<TimelineAttribute> attributes, InteractionType type) {
+  InteractionAttribute? _readLastInteraction(List<TimelineAttribute> attributes, InteractionStatus status) {
     return attributes.firstWhereOrNull((element) {
-      return element is InteractionAttribute && element.interactionType == type;
+      return element is InteractionAttribute && element.status == status;
     }) as InteractionAttribute?;
   }
 }

@@ -1,5 +1,5 @@
 import 'data_highlight.dart';
-import 'timeline_attribute.dart';
+import 'timeline/timeline_attribute.dart';
 import 'wallet_card.dart';
 
 class WalletCardSummary {

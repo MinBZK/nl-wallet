@@ -1,6 +1,6 @@
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/attribute/requested_attribute.dart';
-import '../../../../domain/model/policy/interaction_policy.dart';
+import '../../../../domain/model/policy/policy.dart';
 import '../../../../feature/verification/model/verification_request.dart';
 import '../../../source/organization_datasource.dart';
 import '../verification_request_repository.dart';

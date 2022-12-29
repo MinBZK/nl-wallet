@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-class InteractionPolicy extends Equatable {
+class Policy extends Equatable {
   final Duration? storageDuration;
   final String? dataPurpose;
   final bool dataIsShared;
@@ -8,7 +8,7 @@ class InteractionPolicy extends Equatable {
   final bool deletionCanBeRequested;
   final String? privacyPolicyUrl;
 
-  const InteractionPolicy({
+  const Policy({
     required this.storageDuration,
     required this.dataPurpose,
     required this.dataIsShared,

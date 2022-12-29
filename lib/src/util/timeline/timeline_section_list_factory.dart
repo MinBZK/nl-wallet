@@ -1,5 +1,5 @@
-import '../../domain/model/timeline_attribute.dart';
-import '../../domain/model/timeline_section.dart';
+import '../../domain/model/timeline/timeline_attribute.dart';
+import '../../domain/model/timeline/timeline_section.dart';
 import '../extension/date_time_extension.dart';
 
 class TimelineSectionListFactory {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'domain/model/policy/interaction_policy.dart';
+import 'domain/model/policy/policy.dart';
 import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
@@ -210,8 +210,8 @@ WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
-    InteractionPolicy interactionPolicy = PolicyScreen.getArguments(settings);
-    return PolicyScreen(interactionPolicy: interactionPolicy);
+    Policy policy = PolicyScreen.getArguments(settings);
+    return PolicyScreen(policy: policy);
   };
 }
 

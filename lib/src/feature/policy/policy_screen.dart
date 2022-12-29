@@ -2,26 +2,26 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../domain/model/policy/interaction_policy.dart';
+import '../../domain/model/policy/policy.dart';
 import '../common/widget/bottom_back_button.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
 
 class PolicyScreen extends StatelessWidget {
-  static InteractionPolicy getArguments(RouteSettings settings) {
+  static Policy getArguments(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as InteractionPolicy;
+      return args as Policy;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args (type: ${args.runtimeType})', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in an interaction policy.');
+      throw UnsupportedError('Make sure to pass in an policy.');
     }
   }
 
-  final InteractionPolicy interactionPolicy;
+  final Policy policy;
 
-  const PolicyScreen({required this.interactionPolicy, Key? key}) : super(key: key);
+  const PolicyScreen({required this.policy, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class PolicyScreen extends StatelessWidget {
         restorationId: 'policy_list',
         slivers: [
           SliverList(
-            delegate: _getPolicyEntriesDelegate(policyBuilder.build(interactionPolicy)),
+            delegate: _getPolicyEntriesDelegate(policyBuilder.build(policy)),
           ),
           const SliverFillRemaining(
             hasScrollBody: false,

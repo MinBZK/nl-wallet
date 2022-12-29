@@ -1,4 +1,4 @@
-import '../../domain/model/timeline_attribute.dart';
+import '../../domain/model/timeline/timeline_attribute.dart';
 import '../../domain/model/wallet_card.dart';
 
 abstract class WalletDataSource {

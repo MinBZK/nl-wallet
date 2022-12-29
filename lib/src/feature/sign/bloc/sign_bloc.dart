@@ -5,8 +5,8 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/timeline_attribute.dart';
-import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../domain/usecase/card/log_card_signing_usecase.dart';
 import '../../../domain/usecase/sign/get_sign_request_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../../../wallet_constants.dart';
@@ -17,11 +17,14 @@ part 'sign_state.dart';
 
 class SignBloc extends Bloc<SignEvent, SignState> {
   final GetSignRequestUseCase getSignRequestUseCase;
-  final LogCardInteractionUseCase logCardInteractionUseCase;
+  final LogCardSigningUseCase logCardSigningUseCase;
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
 
-  SignBloc(this.getRequestedAttributesFromWalletUseCase, this.logCardInteractionUseCase, this.getSignRequestUseCase)
-      : super(const SignInitial()) {
+  SignBloc(
+    this.getRequestedAttributesFromWalletUseCase,
+    this.logCardSigningUseCase,
+    this.getSignRequestUseCase,
+  ) : super(const SignInitial()) {
     on<SignLoadTriggered>(_onLoadTriggered);
     on<SignOrganizationApproved>(_onOrganizationApproved);
     on<SignAgreementChecked>(_onAgreementChecked);
@@ -43,7 +46,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
             trustProvider: request.trustProvider,
             document: request.document,
             attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
-            interactionPolicy: request.interactionPolicy,
+            policy: request.policy,
           ),
         ),
       );
@@ -88,7 +91,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     emit(SignLoadInProgress(state.flow));
     await Future.delayed(kDefaultMockDelay);
     try {
-      _logCardInteraction(state.flow!, InteractionType.success);
+      _logCardInteraction(state.flow!, SigningStatus.success);
       emit(SignSuccess(state.flow!));
     } catch (ex) {
       Fimber.e('Failed to move to SignSuccess state', ex: ex);
@@ -101,7 +104,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     emit(SignLoadInProgress(state.flow));
     await Future.delayed(kDefaultMockDelay);
     try {
-      _logCardInteraction(state.flow!, InteractionType.rejected);
+      _logCardInteraction(state.flow!, SigningStatus.rejected);
       emit(SignStopped(state.flow!));
     } catch (ex) {
       Fimber.e('Failed to move to SignStopped state', ex: ex);
@@ -122,10 +125,10 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _logCardInteraction(SignFlow flow, InteractionType type) {
+  void _logCardInteraction(SignFlow flow, SigningStatus status) {
     final attributesByCardId = flow.resolvedAttributes.groupListsBy((element) => element.sourceCardId);
     attributesByCardId.forEach((cardId, attributes) {
-      logCardInteractionUseCase.invoke(type, flow.interactionPolicy, flow.organization, cardId, attributes);
+      logCardSigningUseCase.invoke(status, flow.policy, flow.organization, cardId, attributes);
     });
   }
 }

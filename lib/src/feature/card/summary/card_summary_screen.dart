@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_highlight.dart';
-import '../../../domain/model/timeline_attribute.dart';
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/mapper/timeline_attribute_type_mapper.dart';
+import '../../../util/mapper/timeline_attribute_status_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/data_attribute_row_image.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -254,7 +254,7 @@ class CardSummaryScreen extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
-      final String status = TimelineAttributeTypeTextMapper.map(locale, attribute).toLowerCase();
+      final String status = TimelineAttributeStatusTextMapper.map(locale, attribute).toLowerCase();
       return locale.cardSummaryScreenShareHistory(timeAgo, status, attribute.organization.shortName);
     } else {
       return locale.cardSummaryScreenShareSuccessNoHistory;
