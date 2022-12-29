@@ -15,7 +15,7 @@ import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/sign/mock_sign_request_repository.dart';
 import '../data/repository/sign/sign_request_repository.dart';
-import '../data/repository/verification/mock_verification_request_repository.dart';
+import '../data/repository/verification/mock/mock_verification_request_repository.dart';
 import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';

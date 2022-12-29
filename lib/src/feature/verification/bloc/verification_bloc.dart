@@ -20,8 +20,10 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
 
   VerificationBloc(
-      this.getVerificationRequestUseCase, this.getRequestedAttributesFromWalletUseCase, this.logCardInteractionUseCase)
-      : super(VerificationInitial()) {
+    this.getVerificationRequestUseCase,
+    this.getRequestedAttributesFromWalletUseCase,
+    this.logCardInteractionUseCase,
+  ) : super(VerificationInitial()) {
     on<VerificationLoadRequested>(_onVerificationLoadRequested);
     on<VerificationOrganizationApproved>(_onVerificationOrganizationApproved);
     on<VerificationShareRequestedAttributesApproved>(_onVerificationShareRequestedAttributesApproved);

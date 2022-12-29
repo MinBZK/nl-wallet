@@ -16,11 +16,15 @@ class DataAttributeRepositoryImpl implements DataAttributeRepository {
     return walletCard?.attributes;
   }
 
+  /// Finds single [AttributeType] available in Wallet
+  ///
+  /// Returns `DataAttribute` when requested [AttributeType] is found.
+  /// Returns `null` when requested [AttributeType] is not found.
   @override
-  Future<DataAttribute?> find(AttributeType property) async {
+  Future<DataAttribute?> find(AttributeType type) async {
     final cards = await dataSource.readAll();
     for (WalletCard card in cards) {
-      final result = card.attributes.firstWhereOrNull((attribute) => attribute.type == property);
+      final result = card.attributes.firstWhereOrNull((attribute) => attribute.type == type);
       if (result != null) return result;
     }
     return null;

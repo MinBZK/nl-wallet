@@ -1,6 +1,7 @@
 import '../../../domain/model/timeline_attribute.dart';
 
 abstract class TimelineAttributeRepository {
+  /// Creates [TimelineAttribute] entry
   Future<void> create(String cardId, TimelineAttribute attribute);
 
   /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
