@@ -423,16 +423,7 @@ const _kMockVOGDataAttributes = [
 // endregion
 
 // region RequestedAttributes
-const _kMockDiplomaRequestedAttributes = [
-  RequestedAttribute(name: 'Voornamen', type: AttributeType.firstNames, valueType: AttributeValueType.text),
-  RequestedAttribute(name: 'Achternaam', type: AttributeType.lastName, valueType: AttributeValueType.text),
-  RequestedAttribute(name: 'Geboortedatum', type: AttributeType.birthDate, valueType: AttributeValueType.text),
-];
-
-const _kMockDrivingLicenseRequestedAttributes = [
-  RequestedAttribute(name: 'Voornamen', type: AttributeType.firstNames, valueType: AttributeValueType.text),
-  RequestedAttribute(name: 'Achternaam', type: AttributeType.lastName, valueType: AttributeValueType.text),
-  RequestedAttribute(name: 'Geboortedatum', type: AttributeType.birthDate, valueType: AttributeValueType.text),
+const _kMockGovernmentOrganizationRequestedAttributes = [
   RequestedAttribute(name: 'BSN', type: AttributeType.citizenshipNumber, valueType: AttributeValueType.text),
 ];
 
@@ -441,11 +432,6 @@ const _kMockHealthInsuranceRequestedAttributes = [
   RequestedAttribute(name: 'Achternaam', type: AttributeType.lastName, valueType: AttributeValueType.text),
   RequestedAttribute(name: 'Geboortedatum', type: AttributeType.birthDate, valueType: AttributeValueType.text),
 ];
-
-const _kMockGenericRequestedAttributes = [
-  RequestedAttribute(name: 'BSN', type: AttributeType.citizenshipNumber, valueType: AttributeValueType.text),
-];
-
 // endregion
 
 // region Policies

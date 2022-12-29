@@ -29,28 +29,28 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
       case _kDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
-          requestedAttributes: _kMockDiplomaRequestedAttributes,
+          requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard],
         );
       case _kMultiDiplomaId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('duo'))!,
-          requestedAttributes: _kMockDiplomaRequestedAttributes,
+          requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
         );
       case _kDrivingLicenseId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
-          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+          requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseWalletCard],
         );
       case _kDrivingLicenseRenewedId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('rdw'))!,
-          requestedAttributes: _kMockDrivingLicenseRequestedAttributes,
+          requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseRenewedWalletCard],
         );
@@ -64,7 +64,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
       case _kVOGId:
         return IssuanceResponse(
           organization: (await organizationDataSource.read('justis'))!,
-          requestedAttributes: _kMockGenericRequestedAttributes,
+          requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockVOGWalletCard],
         );
