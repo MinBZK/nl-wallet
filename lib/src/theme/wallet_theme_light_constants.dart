@@ -11,6 +11,7 @@ class WalletThemeConstants {
     secondaryContainer: Color(0xFFF3F4F7),
     onPrimary: Color(0xFFFCFCFC),
     onBackground: Color(0xFF152A62),
+    onSurface: Color(0xFF445581),
   );
 
   // Default font family

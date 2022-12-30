@@ -477,7 +477,7 @@
   "verificationConfirmDataAttributesPageDenyCta": "No, decline",
   "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",
   "verificationConfirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
-  "verificationConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
+  "verificationConfirmPinPageDescription": "By entering your pin you agree to share your information.",
   "verificationConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
   "@verificationConfirmPinPageErrorDescription": {
     "placeholders": {

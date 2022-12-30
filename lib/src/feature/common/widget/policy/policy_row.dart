@@ -17,10 +17,16 @@ class PolicyRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon),
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.bodyText1),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodyText1,
+            ),
           ),
         ],
       ),

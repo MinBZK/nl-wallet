@@ -477,7 +477,7 @@
   "verificationConfirmDataAttributesPageDenyCta": "Nee",
   "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
   "verificationConfirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
-  "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
+  "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
   "verificationConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
   "@verificationConfirmPinPageErrorDescription": {
     "placeholders": {

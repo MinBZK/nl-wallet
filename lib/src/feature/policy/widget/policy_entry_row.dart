@@ -19,7 +19,13 @@ class PolicyEntryRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          icon == null ? const SizedBox.shrink() : Icon(icon, size: 24),
+          icon == null
+              ? const SizedBox.shrink()
+              : Icon(
+                  icon,
+                  size: 24,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           SizedBox(width: icon == null ? 0 : 16),
           Expanded(
             child: Column(

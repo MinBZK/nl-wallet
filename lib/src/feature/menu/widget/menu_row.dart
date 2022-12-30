@@ -7,7 +7,12 @@ class MenuRow extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const MenuRow({Key? key, this.icon, required this.label, required this.onTap}) : super(key: key);
+  const MenuRow({
+    Key? key,
+    this.icon,
+    required this.label,
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,7 @@ class MenuRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildLeading(),
+            _buildLeading(context),
             Expanded(
               child: Text(
                 label,
@@ -37,11 +42,16 @@ class MenuRow extends StatelessWidget {
     );
   }
 
-  Widget _buildLeading() {
+  Widget _buildLeading(BuildContext context) {
     if (icon == null) return const SizedBox(width: 16);
     return SizedBox(
       width: _kMinHeight,
-      child: Center(child: Icon(icon)),
+      child: Center(
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
     );
   }
 }
