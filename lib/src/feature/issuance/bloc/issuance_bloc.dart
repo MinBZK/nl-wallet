@@ -95,7 +95,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _onIssuanceOrganizationDeclined(event, emit) async {
-    await _transitionToIssuanceStopped(emit);
+    emit(IssuanceStopped(state.isRefreshFlow));
   }
 
   void _onIssuanceOrganizationApproved(event, emit) async {
@@ -105,7 +105,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
-    await _transitionToIssuanceStopped(emit);
+    emit(IssuanceStopped(state.isRefreshFlow));
   }
 
   void _onIssuanceShareRequestedAttributesApproved(event, emit) async {
@@ -143,7 +143,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       bool userAlreadySharedData = state is IssuanceCheckDataOffering;
       _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionStatus.success : InteractionStatus.rejected);
     }
-    await _transitionToIssuanceStopped(emit);
+    emit(IssuanceStopped(state.isRefreshFlow));
   }
 
   void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) {
@@ -196,7 +196,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     } else {
       if (updatedMultipleCardFlow.selectedCardIds.isEmpty) {
         //All cards are declined, show stopped.
-        await _transitionToIssuanceStopped(emit);
+        emit(IssuanceStopped(state.isRefreshFlow));
       } else {
         //No more cards to check, add the selected ones and show completed state
         await _addCardsAndEmitCompleted(state.flow, updatedMultipleCardFlow.selectedCards, emit);
@@ -208,11 +208,5 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     _logCardInteraction(flow, InteractionStatus.success);
     await walletAddIssuedCardsUseCase.invoke(selectedCards, flow.organization);
     emit(IssuanceCompleted(state.isRefreshFlow, flow, selectedCards));
-  }
-
-  Future<void> _transitionToIssuanceStopped(emit) async {
-    emit(IssuanceLoadInProgress(state.isRefreshFlow));
-    await Future.delayed(kDefaultMockDelay);
-    emit(IssuanceStopped(state.isRefreshFlow));
   }
 }

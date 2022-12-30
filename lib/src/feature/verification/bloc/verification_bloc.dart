@@ -93,9 +93,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   }
 
   void _onVerificationStopRequested(VerificationStopRequested event, emit) async {
-    emit(VerificationLoadInProgress());
     if (event.flow != null) _logCardInteraction(event.flow!, InteractionStatus.rejected);
-    await Future.delayed(kDefaultMockDelay);
     emit(const VerificationStopped());
   }
 

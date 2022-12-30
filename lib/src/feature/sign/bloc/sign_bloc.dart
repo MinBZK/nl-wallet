@@ -100,8 +100,6 @@ class SignBloc extends Bloc<SignEvent, SignState> {
 
   void _onStopRequested(event, emit) async {
     assert(state.flow != null, 'Stop can only be requested after flow is loaded');
-    emit(SignLoadInProgress(state.flow));
-    await Future.delayed(kDefaultMockDelay);
     try {
       _logCardInteraction(state.flow!, SigningStatus.rejected);
       emit(SignStopped(state.flow!));
