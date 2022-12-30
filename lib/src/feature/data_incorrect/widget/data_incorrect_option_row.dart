@@ -4,12 +4,14 @@ import '../../common/widget/link_button.dart';
 
 class DataIncorrectOptionRow extends StatelessWidget {
   final String title, description, cta;
+  final IconData icon;
   final VoidCallback onTap;
 
   const DataIncorrectOptionRow({
     required this.title,
     required this.description,
     required this.cta,
+    required this.icon,
     required this.onTap,
     Key? key,
   }) : super(key: key);
@@ -24,7 +26,7 @@ class DataIncorrectOptionRow extends StatelessWidget {
           width: 56,
           margin: const EdgeInsets.only(top: 8),
           alignment: Alignment.center,
-          child: const Icon(Icons.drive_file_rename_outline),
+          child: Icon(icon),
         ),
         Expanded(
           child: Padding(
