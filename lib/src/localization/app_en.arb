@@ -286,7 +286,7 @@
   "issuanceSelectCardsPageNoSelectionError": "Select one or more cards to add",
   "issuanceSelectCardsPageStopCta": "Stop",
   "issuanceSelectCardsPageTitle": "The following cards are available",
-  "issuanceStopSheetDescription": "If you stop, no further information will be exchanged with {organization}",
+  "issuanceStopSheetDescription": "If you stop, no further information will be retrieved from {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {
       "organization": {

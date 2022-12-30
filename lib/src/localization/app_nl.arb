@@ -286,7 +286,7 @@
   "issuanceSelectCardsPageNoSelectionError": "Kies één of meerdere kaarten om toe te voegen.",
   "issuanceSelectCardsPageStopCta": "Stop",
   "issuanceSelectCardsPageTitle": "De volgende kaarten zijn opgehaald",
-  "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer uitgewisseld met {organization}",
+  "issuanceStopSheetDescription": "Als je stopt worden er verder geen gegevens meer opgehaald bij {organization}",
   "@issuanceStopSheetDescription": {
     "placeholders": {
       "organization": {
