@@ -31,8 +31,9 @@ class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
   }
 
   void onCodeDetected(QrScanCodeDetected event, emit) async {
-    Vibration.vibrate();
+    if (state is QrScanLoading || state is QrScanSuccess) return; //Already processing a QR code
     emit(const QrScanLoading());
+    Vibration.vibrate();
     final request = await decodeQrUseCase.invoke(event.code);
     await Future.delayed(kDefaultMockDelay);
     if (request == null) {
