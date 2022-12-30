@@ -48,7 +48,7 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           id: _kFirstAid,
           organization: (await organizationDataSource.read('first_aid'))!,
           requestedAttributes: _kFirstAidRequestedAttributes,
-          interactionPolicy: _kMockCarRentalPolicy,
+          interactionPolicy: _kMockFirstAidPolicy,
         );
     }
     throw UnimplementedError('No mock usecase for id: $sessionId');

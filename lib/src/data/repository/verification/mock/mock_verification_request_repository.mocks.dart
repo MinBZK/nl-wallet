@@ -173,4 +173,13 @@ const _kMockCarRentalPolicy = Policy(
   privacyPolicyUrl: 'https://www.example.org',
 );
 
+const _kMockFirstAidPolicy = Policy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Zorgverlening',
+  dataIsShared: false,
+  dataIsSignature: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
 // endregion
