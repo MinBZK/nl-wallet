@@ -187,7 +187,7 @@ const _kMockPidDataAttributes = [
   DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Burgerservicenummer (BSN)',
-    value: '999999999',
+    value: '******999',
     type: AttributeType.citizenshipNumber,
     sourceCardId: _kPidId,
   ),
