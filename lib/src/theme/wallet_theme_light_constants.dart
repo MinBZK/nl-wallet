@@ -28,7 +28,8 @@ class WalletThemeConstants {
   static final appBarTheme = AppBarTheme(
     backgroundColor: const Color(0xFFFCFCFC),
     centerTitle: true,
-    elevation: 1.0,
+    elevation: 0.0,
+    shape: const Border(bottom: BorderSide(color: Color(0xFFE8EAEF))),
     foregroundColor: const Color(0xDE000000),
     iconTheme: const IconThemeData(color: Color(0xFF152A62)),
     titleTextStyle: textTheme.subtitle1,
