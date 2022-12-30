@@ -8,6 +8,7 @@ import '../../../wallet_routes.dart';
 import '../../common/widget/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
+import '../detail/argument/history_detail_screen_argument.dart';
 import 'bloc/history_overview_bloc.dart';
 
 class HistoryOverviewScreen extends StatelessWidget {
@@ -64,6 +65,12 @@ class HistoryOverviewScreen extends StatelessWidget {
   }
 
   void _onTimelineRowPressed(BuildContext context, String timelineAttributeId) {
-    Navigator.restorablePushNamed(context, WalletRoutes.historyDetailRoute, arguments: timelineAttributeId);
+    Navigator.restorablePushNamed(
+      context,
+      WalletRoutes.historyDetailRoute,
+      arguments: HistoryDetailScreenArgument(
+        timelineAttributeId: timelineAttributeId,
+      ).toMap(),
+    );
   }
 }

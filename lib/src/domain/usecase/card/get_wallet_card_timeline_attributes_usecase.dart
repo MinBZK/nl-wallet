@@ -10,7 +10,7 @@ class GetWalletCardTimelineAttributesUseCase {
   /// Returns all card specific [TimelineAttribute]s sorted by date DESC (newest first)
   Future<List<TimelineAttribute>> invoke(String cardId) async {
     await Future.delayed(kDefaultMockDelay);
-    List<TimelineAttribute> results = await timelineAttributeRepository.readFiltered(cardId);
+    List<TimelineAttribute> results = await timelineAttributeRepository.readFiltered(cardId: cardId);
     results.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
     return results;
   }

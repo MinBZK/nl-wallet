@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/data_highlight.dart';
-import '../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
@@ -222,7 +222,7 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInteractionHighlight(BuildContext context, String cardId, InteractionAttribute? attribute) {
+  Widget _buildInteractionHighlight(BuildContext context, String cardId, InteractionTimelineAttribute? attribute) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -251,7 +251,7 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  String _createInteractionText(BuildContext context, InteractionAttribute? attribute) {
+  String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
     final locale = AppLocalizations.of(context);
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);

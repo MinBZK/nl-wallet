@@ -7,8 +7,8 @@ class GetTimelineAttributeUseCase {
 
   GetTimelineAttributeUseCase(this.timelineAttributeRepository);
 
-  Future<TimelineAttribute> invoke(String attributeId) async {
+  Future<TimelineAttribute> invoke({required String timelineAttributeId, required String? cardId}) async {
     await Future.delayed(kDefaultMockDelay);
-    return await timelineAttributeRepository.read(attributeId);
+    return await timelineAttributeRepository.read(timelineAttributeId: timelineAttributeId, cardId: cardId);
   }
 }

@@ -12,18 +12,16 @@ abstract class WalletDataSource {
 
   Future<void> delete(String cardId);
 
-  Future<void> createTimelineAttribute(String cardId, TimelineAttribute attribute);
+  Future<void> createTimelineAttribute(TimelineAttribute attribute);
 
   /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
   Future<List<TimelineAttribute>> readTimelineAttributes();
 
   /// Returns all card specific [TimelineAttribute] sorted by date ASC (oldest first)
-  Future<List<TimelineAttribute>> readTimelineAttributesByCardId(String cardId);
+  Future<List<TimelineAttribute>> readTimelineAttributesByCardId({required String cardId});
 
   /// Returns single [TimelineAttribute] by [timelineAttributeId]
-  Future<TimelineAttribute> readTimelineAttributeById(String timelineAttributeId);
+  Future<TimelineAttribute> readTimelineAttributeById({required String timelineAttributeId, String? cardId});
 
   Stream<List<WalletCard>> observeCards();
-
-  Stream<List<TimelineAttribute>> observeTimelineAttributes(String cardId);
 }

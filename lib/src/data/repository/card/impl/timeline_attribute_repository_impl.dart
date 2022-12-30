@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import '../../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../source/wallet_datasource.dart';
 import '../timeline_attribute_repository.dart';
@@ -10,8 +11,8 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
   TimelineAttributeRepositoryImpl(this.dataSource);
 
   @override
-  Future<void> create(String cardId, TimelineAttribute attribute) async {
-    dataSource.createTimelineAttribute(cardId, attribute);
+  Future<void> create(TimelineAttribute attribute) async {
+    dataSource.createTimelineAttribute(attribute);
   }
 
   @override
@@ -20,25 +21,25 @@ class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
   }
 
   @override
-  Future<List<TimelineAttribute>> readFiltered(String cardId) async {
-    return dataSource.readTimelineAttributesByCardId(cardId);
+  Future<List<TimelineAttribute>> readFiltered({required String cardId}) async {
+    return dataSource.readTimelineAttributesByCardId(cardId: cardId);
   }
 
   @override
-  Future<InteractionAttribute?> readLastInteraction(String cardId, InteractionStatus status) async {
-    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId);
+  Future<InteractionTimelineAttribute?> readLastInteraction(String cardId, InteractionStatus status) async {
+    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId: cardId);
     attributes.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
     return _readLastInteraction(attributes, status);
   }
 
   @override
-  Future<TimelineAttribute> read(String timelineAttributeId) {
-    return dataSource.readTimelineAttributeById(timelineAttributeId);
+  Future<TimelineAttribute> read({required String timelineAttributeId, String? cardId}) {
+    return dataSource.readTimelineAttributeById(timelineAttributeId: timelineAttributeId, cardId: cardId);
   }
 
-  InteractionAttribute? _readLastInteraction(List<TimelineAttribute> attributes, InteractionStatus status) {
+  InteractionTimelineAttribute? _readLastInteraction(List<TimelineAttribute> attributes, InteractionStatus status) {
     return attributes.firstWhereOrNull((element) {
-      return element is InteractionAttribute && element.status == status;
-    }) as InteractionAttribute?;
+      return element is InteractionTimelineAttribute && element.status == status;
+    }) as InteractionTimelineAttribute?;
   }
 }

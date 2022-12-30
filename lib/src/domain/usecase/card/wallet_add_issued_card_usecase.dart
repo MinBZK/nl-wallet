@@ -1,7 +1,7 @@
 import '../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../data/repository/card/wallet_card_repository.dart';
 import '../../../feature/verification/model/organization.dart';
-import '../../model/timeline/timeline_attribute.dart';
+import '../../model/timeline/operation_timeline_attribute.dart';
 import '../../model/wallet_card.dart';
 
 class WalletAddIssuedCardUseCase {
@@ -23,14 +23,12 @@ class WalletAddIssuedCardUseCase {
 
   void _createTimelineEntry(OperationStatus status, WalletCard card, Organization organization) {
     timelineAttributeRepository.create(
-      card.id,
-      OperationAttribute(
+      OperationTimelineAttribute(
         status: status,
         cardTitle: card.front.title,
         dateTime: DateTime.now(),
         organization: organization,
-        attributes: card.attributes,
-        isSession: false,
+        dataAttributes: card.attributes,
       ),
     );
     return;

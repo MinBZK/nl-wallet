@@ -1,98 +1,104 @@
 import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../wallet_datasource.dart';
 
 class MemoryWalletDataSource implements WalletDataSource {
-  final BehaviorSubject<List<WalletCard>> wallet = BehaviorSubject.seeded([]);
-  final BehaviorSubject<Map<String, List<TimelineAttribute>>> timelineAttributes = BehaviorSubject.seeded({});
+  final BehaviorSubject<List<WalletCard>> walletCards = BehaviorSubject.seeded([]);
+  final BehaviorSubject<List<TimelineAttribute>> timelineAttributes = BehaviorSubject.seeded([]);
 
   @override
   Future<void> create(WalletCard card) async {
-    final cards = wallet.value;
+    final cards = walletCards.value;
     delete(card.id); // Check to prevent duplicate cards entries
     cards.add(card);
-    wallet.add(cards);
+    walletCards.add(cards);
   }
 
   @override
   Future<List<WalletCard>> readAll() async {
-    return wallet.value;
+    return walletCards.value;
   }
 
   @override
   Future<WalletCard?> read(String cardId) async {
-    final cards = wallet.value;
+    final cards = walletCards.value;
     return cards.firstWhereOrNull((element) => element.id == cardId);
   }
 
   @override
   Future<void> update(WalletCard card) async {
-    final cards = wallet.value;
+    final cards = walletCards.value;
     assert(cards.firstWhereOrNull((element) => element.id == card.id) != null);
     cards[cards.indexWhere((element) => element.id == card.id)] = card;
-    wallet.add(cards);
+    walletCards.add(cards);
   }
 
   @override
   Future<void> delete(String cardId) async {
-    final cards = wallet.value;
+    final cards = walletCards.value;
     cards.removeWhere((element) => element.id == cardId);
-    wallet.add(cards);
+    walletCards.add(cards);
   }
 
   @override
-  Future<void> createTimelineAttribute(String cardId, TimelineAttribute attribute) async {
-    final attributes = timelineAttributes.value;
-    if (attributes[cardId] != null) {
-      attributes[cardId]?.add(attribute);
-    } else {
-      attributes[cardId] = [attribute];
-    }
-    timelineAttributes.add(attributes);
+  Future<void> createTimelineAttribute(TimelineAttribute attribute) async {
+    timelineAttributes.value.add(attribute);
   }
 
   /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
   @override
   Future<List<TimelineAttribute>> readTimelineAttributes() async {
     List<TimelineAttribute> attributes = _getAllTimelineAttributes();
-
-    // Sort by date/time
     attributes.sortBy((element) => element.dateTime);
-
     return attributes;
   }
 
-  /// Returns all card specific [TimelineAttribute] sorted by date ASC (oldest first)
+  /// Returns [TimelineAttribute] with card specific data that has been used, sorted by date ASC (oldest first)
   @override
-  Future<List<TimelineAttribute>> readTimelineAttributesByCardId(String cardId) async {
-    List<TimelineAttribute> attributes = timelineAttributes.value[cardId] ?? [];
-    attributes.sortBy((element) => element.dateTime); // Sort by date/time
-    return attributes;
+  Future<List<TimelineAttribute>> readTimelineAttributesByCardId({required String cardId}) async {
+    // Filter [TimelineAttribute]s containing [cardId]
+    List<TimelineAttribute> results = timelineAttributes.value.where((timelineAttribute) {
+      return timelineAttribute.dataAttributes.firstWhereOrNull((dataAttribute) {
+            return dataAttribute.sourceCardId == cardId;
+          }) !=
+          null;
+    }).toList();
+
+    // Only show [DataAttribute]s from [cardId]
+    results = results.map((timelineAttribute) {
+      List<DataAttribute> filtered = _filterDataAttributesByCardId(cardId, timelineAttribute.dataAttributes);
+      return timelineAttribute.copyWith(dataAttributes: filtered);
+    }).toList();
+
+    // Sort by date/time
+    results.sortBy((element) => element.dateTime);
+    return results;
   }
 
   /// Returns single [TimelineAttribute] by [timelineAttributeId]
   @override
-  Future<TimelineAttribute> readTimelineAttributeById(String timelineAttributeId) async {
-    List<TimelineAttribute> attributes = _getAllTimelineAttributes();
-    return attributes.firstWhere((element) => element.id == timelineAttributeId);
+  Future<TimelineAttribute> readTimelineAttributeById({required String timelineAttributeId, String? cardId}) async {
+    TimelineAttribute timelineAttribute = _getAllTimelineAttributes().firstWhere((element) {
+      return element.id == timelineAttributeId;
+    });
+
+    final List<DataAttribute> filtered = _filterDataAttributesByCardId(cardId, timelineAttribute.dataAttributes);
+    return timelineAttribute.copyWith(dataAttributes: filtered);
   }
 
   @override
-  Stream<List<WalletCard>> observeCards() => wallet.stream;
+  Stream<List<WalletCard>> observeCards() => walletCards.stream;
 
-  @override
-  Stream<List<TimelineAttribute>> observeTimelineAttributes(String cardId) {
-    return timelineAttributes.map((event) => event[cardId] ?? []);
+  List<DataAttribute> _filterDataAttributesByCardId(String? cardId, List<DataAttribute> dataAttributes) {
+    if (cardId == null) return dataAttributes;
+    return dataAttributes.where((element) => element.sourceCardId == cardId).toList();
   }
 
   List<TimelineAttribute> _getAllTimelineAttributes() {
-    List<TimelineAttribute> attributes = [];
-    timelineAttributes.value.forEach((key, value) {
-      attributes.addAll(value);
-    });
-    return attributes;
+    return timelineAttributes.value;
   }
 }

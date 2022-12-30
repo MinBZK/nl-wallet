@@ -5,6 +5,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
+import '../../../domain/model/timeline/operation_timeline_attribute.dart';
+import '../../../domain/model/timeline/signing_timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/bottom_back_button.dart';
@@ -13,18 +16,19 @@ import '../../common/widget/document_section.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/policy/policy_section.dart';
+import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/history_detail_header.dart';
 import 'widget/history_detail_timeline_attribute_row.dart';
 
 class HistoryDetailScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+  static HistoryDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return HistoryDetailScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
-      Fimber.e('Failed to decode $args (type: ${args.runtimeType})', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in an attributeId.');
+      Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
+      throw UnsupportedError('Make sure to pass in [HistoryDetailScreenArgument] when opening the HistoryDetailScreen');
     }
   }
 
@@ -80,16 +84,16 @@ class HistoryDetailScreen extends StatelessWidget {
     }
 
     // Data attributes
-    final List<DataAttribute> dataAttributes = timelineAttribute.attributes;
+    final List<DataAttribute> dataAttributes = timelineAttribute.dataAttributes;
     if (dataAttributes.isNotEmpty) {
       // Section title
       slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, timelineAttribute)));
 
       // Signed contract (optional)
-      bool showContract = (state.timelineAttribute is SigningAttribute) &&
-          (state.timelineAttribute as SigningAttribute).status == SigningStatus.success;
+      bool showContract = (state.timelineAttribute is SigningTimelineAttribute) &&
+          (state.timelineAttribute as SigningTimelineAttribute).status == SigningStatus.success;
       if (showContract) {
-        final signingAttribute = (state.timelineAttribute as SigningAttribute);
+        final signingAttribute = (state.timelineAttribute as SigningTimelineAttribute);
         slivers.addAll([
           SliverToBoxAdapter(
             child: DocumentSection(
@@ -141,18 +145,18 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   bool _showTimelineTypeRow(TimelineAttribute attribute) {
-    if (attribute is InteractionAttribute) {
+    if (attribute is InteractionTimelineAttribute) {
       return attribute.status != InteractionStatus.success;
-    } else if (attribute is SigningAttribute) {
+    } else if (attribute is SigningTimelineAttribute) {
       return attribute.status != SigningStatus.success;
     }
     return true;
   }
 
   Policy? _getPolicyToDisplay(TimelineAttribute timelineAttribute) {
-    if (timelineAttribute is InteractionAttribute && timelineAttribute.status == InteractionStatus.success) {
+    if (timelineAttribute is InteractionTimelineAttribute && timelineAttribute.status == InteractionStatus.success) {
       return timelineAttribute.policy;
-    } else if (timelineAttribute is SigningAttribute && timelineAttribute.status == SigningStatus.success) {
+    } else if (timelineAttribute is SigningTimelineAttribute && timelineAttribute.status == SigningStatus.success) {
       return timelineAttribute.policy;
     }
     return null;
@@ -162,11 +166,11 @@ class HistoryDetailScreen extends StatelessWidget {
     final locale = AppLocalizations.of(context);
 
     String title = '';
-    if (attribute is InteractionAttribute) {
+    if (attribute is InteractionTimelineAttribute) {
       title = locale.historyDetailScreenInteractionAttributesTitle;
-    } else if (attribute is OperationAttribute) {
+    } else if (attribute is OperationTimelineAttribute) {
       title = locale.historyDetailScreenOperationAttributesTitle;
-    } else if (attribute is SigningAttribute) {
+    } else if (attribute is SigningTimelineAttribute) {
       title = locale.historyDetailScreenSigningAttributesTitle;
     }
 

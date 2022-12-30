@@ -4,7 +4,7 @@ import '../../../data/repository/issuance/issuance_response_repository.dart';
 import '../../../data/repository/wallet/wallet_repository.dart';
 import '../../../data/source/organization_datasource.dart';
 import '../../model/issuance_response.dart';
-import '../../model/timeline/timeline_attribute.dart';
+import '../../model/timeline/operation_timeline_attribute.dart';
 
 class SetupMockedWalletUseCase {
   final WalletRepository walletRepository;
@@ -36,14 +36,12 @@ class SetupMockedWalletUseCase {
 
       // Add history
       timelineAttributeRepository.create(
-        cardId,
-        OperationAttribute(
+        OperationTimelineAttribute(
           status: OperationStatus.issued,
           dateTime: DateTime.now(),
           cardTitle: card.front.title,
           organization: issuanceResponse.organization,
-          attributes: card.attributes,
-          isSession: false,
+          dataAttributes: card.attributes,
         ),
       );
     }

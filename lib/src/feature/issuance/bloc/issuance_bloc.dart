@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
 import '../../../domain/model/multiple_cards_flow.dart';
-import '../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';

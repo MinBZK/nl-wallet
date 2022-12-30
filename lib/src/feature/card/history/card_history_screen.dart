@@ -11,6 +11,7 @@ import '../../common/widget/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
+import '../../history/detail/argument/history_detail_screen_argument.dart';
 import 'bloc/card_history_bloc.dart';
 
 class CardHistoryScreen extends StatelessWidget {
@@ -58,7 +59,7 @@ class CardHistoryScreen extends StatelessWidget {
       _buildCardHeader(state.card.front),
       ...sections.map((section) => TimelineSectionSliver(
             section: section,
-            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
+            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId, state.card.id),
           )),
     ];
 
@@ -81,7 +82,14 @@ class CardHistoryScreen extends StatelessWidget {
     return SliverToBoxAdapter(child: TimelineCardHeader(cardFront: front));
   }
 
-  void _onTimelineRowPressed(BuildContext context, String timelineAttributeId) {
-    Navigator.restorablePushNamed(context, WalletRoutes.historyDetailRoute, arguments: timelineAttributeId);
+  void _onTimelineRowPressed(BuildContext context, String timelineAttributeId, String cardId) {
+    Navigator.restorablePushNamed(
+      context,
+      WalletRoutes.historyDetailRoute,
+      arguments: HistoryDetailScreenArgument(
+        timelineAttributeId: timelineAttributeId,
+        cardId: cardId,
+      ).toMap(),
+    );
   }
 }

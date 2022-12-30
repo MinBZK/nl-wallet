@@ -7,12 +7,11 @@ class GetWalletTimelineAttributesUseCase {
 
   GetWalletTimelineAttributesUseCase(this.timelineAttributeRepository);
 
-  /// Returns all wallet cards [TimelineAttribute]s where `isSession` == true, sorted by date DESC (newest first)
+  /// Returns all wallet cards [TimelineAttribute]s, sorted by date DESC (newest first)
   Future<List<TimelineAttribute>> invoke() async {
     await Future.delayed(kDefaultMockDelay);
     List<TimelineAttribute> results = await timelineAttributeRepository.readAll();
-    List<TimelineAttribute> sessionResults = results.where((e) => e.isSession).toList();
-    sessionResults.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
-    return sessionResults;
+    results.sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort by date/time DESC
+    return results;
   }
 }

@@ -6,9 +6,10 @@ abstract class HistoryDetailEvent extends Equatable {
 
 class HistoryDetailLoadTriggered extends HistoryDetailEvent {
   final String attributeId;
+  final String? cardId;
 
-  const HistoryDetailLoadTriggered(this.attributeId);
+  const HistoryDetailLoadTriggered({required this.attributeId, required this.cardId});
 
   @override
-  List<Object?> get props => [attributeId];
+  List<Object?> get props => [attributeId, cardId];
 }

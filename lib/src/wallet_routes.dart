@@ -11,6 +11,7 @@ import 'feature/card/overview/bloc/card_overview_bloc.dart';
 import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
+import 'feature/history/detail/argument/history_detail_screen_argument.dart';
 import 'feature/history/detail/bloc/history_detail_bloc.dart';
 import 'feature/history/detail/history_detail_screen.dart';
 import 'feature/history/overview/bloc/history_overview_bloc.dart';
@@ -257,9 +258,13 @@ Widget _createHistoryOverviewScreenBuilder(BuildContext context) {
 
 WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    String attributeId = HistoryDetailScreen.getArguments(settings);
+    HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
     return BlocProvider<HistoryDetailBloc>(
-      create: (BuildContext context) => HistoryDetailBloc(context.read())..add(HistoryDetailLoadTriggered(attributeId)),
+      create: (BuildContext context) => HistoryDetailBloc(context.read())
+        ..add(HistoryDetailLoadTriggered(
+          attributeId: argument.timelineAttributeId,
+          cardId: argument.cardId,
+        )),
       child: const HistoryDetailScreen(),
     );
   };
