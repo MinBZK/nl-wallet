@@ -138,6 +138,7 @@ class WalletThemeConstants {
   );
   static const _body1TextStyle = TextStyle(
     fontSize: _body1FontSize,
+    height: 1.5,
   );
   static const _body2TextStyle = TextStyle(
     fontSize: _body2FontSize,
