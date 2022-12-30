@@ -21,6 +21,7 @@ class PinField extends StatelessWidget {
         (index) => PinDot(
           checked: index < enteredDigits,
           key: ValueKey(index),
+          color: Theme.of(context).colorScheme.onBackground,
         ),
       ),
     );
