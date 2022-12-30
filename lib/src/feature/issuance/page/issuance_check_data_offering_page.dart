@@ -25,7 +25,6 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
       attributes: attributes,
       title: locale.issuanceCheckDataOfferingPageTitle,
       subtitle: locale.issuanceCheckDataOfferingPageSubtitle,
-      footerCta: locale.issuanceCheckDataOfferingPageIncorrectCta,
     );
   }
 
