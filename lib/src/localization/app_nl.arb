@@ -585,7 +585,7 @@
   "walletPersonalizeRetrieveMoreCardsPageContinueCta": "Ja, ophalen",
   "walletPersonalizeRetrieveMoreCardsPageDescription": "Omdat je bent ingelogd met DigiD kan je Wallet meer gegevens ophalen bij de overheid.",
   "walletPersonalizeRetrieveMoreCardsPageInfoSheetCloseCta": "Sluiten",
-  "walletPersonalizeRetrieveMoreCardsPageInfoSheetDescription": "Wat er wordt opgehaald verschilt per persoon. Mijn Overheid zoekt naar gegevens over jou bij deze overheidspartijen:\n\n• Basisregistratie Personen (BRP)\n• Basisregistratie Inkomen\n• Landelijk Bureau Inning Onderhoudsbijdragen (LBIO)\n• Officiële bekendmakingen\n• Basisregistratie Kadaster\n• Basisregistratie Voertuigen\n• Dienst Uitvoering Onderwijs (DUO)\n• RDW",
+  "walletPersonalizeRetrieveMoreCardsPageInfoSheetDescription": "Wat er wordt opgehaald verschilt per persoon. Mijn Overheid zoekt naar gegevens over jou bij deze overheidspartijen:\n\n• Basisregistratie Personen (BRP)\n• Basisregistratie Inkomen (BRI)\n• Landelijk Bureau Inning Onderhoudsbijdragen (LBIO)\n• Officiële bekendmakingen\n• Basisregistratie Kadaster (BRK)\n• Basisregistratie Voertuigen (BRV)\n• Dienst Uitvoering Onderwijs (DUO)\n• Rijksdienst wegverkeer (RDW)",
   "walletPersonalizeRetrieveMoreCardsPageInfoSheetTitle": "Wat wordt er opgehaald?",
   "walletPersonalizeRetrieveMoreCardsPageSkipCta": "Overslaan",
   "walletPersonalizeRetrieveMoreCardsPageTitle": "Wil je meer gegevens ophalen bij Mijn Overheid?",
