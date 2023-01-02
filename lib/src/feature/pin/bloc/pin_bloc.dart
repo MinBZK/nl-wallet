@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/usecase/pin/base_check_pin_usecase.dart';
+import '../../../domain/usecase/pin/check_pin_usecase.dart';
 import '../../../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';

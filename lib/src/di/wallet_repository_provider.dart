@@ -32,7 +32,7 @@ class WalletRepositoryProvider extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<WalletRepository>(
-          create: (context) => MockWalletRepository(),
+          create: (context) => MockWalletRepository(context.read()),
         ),
         RepositoryProvider<WalletCardRepository>(
           create: (context) => WalletCardRepositoryImpl(context.read()),

@@ -24,4 +24,7 @@ abstract class WalletDataSource {
   Future<TimelineAttribute> readTimelineAttributeById({required String timelineAttributeId, String? cardId});
 
   Stream<List<WalletCard>> observeCards();
+
+  /// Removes all in-memory data; both [WalletCard]s and [TimelineAttribute]s
+  void destroy();
 }

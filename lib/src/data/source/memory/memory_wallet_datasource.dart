@@ -101,4 +101,10 @@ class MemoryWalletDataSource implements WalletDataSource {
   List<TimelineAttribute> _getAllTimelineAttributes() {
     return timelineAttributes.value;
   }
+
+  @override
+  void destroy() {
+    walletCards.value.clear();
+    timelineAttributes.value.clear();
+  }
 }

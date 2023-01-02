@@ -1,9 +1,11 @@
 import 'package:rxdart/rxdart.dart';
 
 import '../../../wallet_constants.dart';
+import '../../source/wallet_datasource.dart';
 import 'wallet_repository.dart';
 
 class MockWalletRepository implements WalletRepository {
+  WalletDataSource dataSource;
   String? _pin;
 
   /// The amount of times the user incorrectly entered the pin, resets to 0 on a successful attempt.
@@ -11,7 +13,7 @@ class MockWalletRepository implements WalletRepository {
   final BehaviorSubject<bool> _locked = BehaviorSubject<bool>.seeded(true);
   final BehaviorSubject<bool> _isInitialized = BehaviorSubject<bool>.seeded(false);
 
-  MockWalletRepository();
+  MockWalletRepository(this.dataSource);
 
   @override
   void lockWallet() => _locked.add(true);
@@ -58,6 +60,7 @@ class MockWalletRepository implements WalletRepository {
   @override
   Future<void> destroyWallet() async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
+    dataSource.destroy();
     _pin = null;
     _isInitialized.add(false);
     _locked.add(true);

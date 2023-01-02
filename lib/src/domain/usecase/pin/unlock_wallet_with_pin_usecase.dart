@@ -1,6 +1,6 @@
 import '../../../data/repository/wallet/wallet_repository.dart';
 import '../../../wallet_constants.dart';
-import 'base_check_pin_usecase.dart';
+import 'check_pin_usecase.dart';
 
 class UnlockWalletWithPinUseCase extends CheckPinUseCase {
   final WalletRepository walletRepository;
