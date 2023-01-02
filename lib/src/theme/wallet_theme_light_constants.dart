@@ -39,6 +39,8 @@ class WalletThemeConstants {
   static const bottomNavigationBarThemeData = BottomNavigationBarThemeData(
     backgroundColor: Colors.white,
     elevation: 4.0,
+    selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, fontFamily: fontFamily),
+    unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
   );
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
@@ -106,6 +108,7 @@ class WalletThemeConstants {
   ).apply(
     bodyColor: const Color(0xFF152A62),
     displayColor: const Color(0xFF152A62),
+    fontFamily: fontFamily,
   );
 
   // Button theme
