@@ -23,7 +23,7 @@ class LogCardSigningUseCase {
       document: document,
       dateTime: DateTime.now(),
       organization: organization,
-      dataAttributes: status == SigningStatus.success ? resolvedAttributes : [],
+      dataAttributes: resolvedAttributes,
     );
     await timelineAttributeRepository.create(interaction);
   }

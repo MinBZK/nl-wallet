@@ -61,7 +61,9 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
     final TimelineAttribute timelineAttribute = state.timelineAttribute;
-    final bool showTimelineTypeRow = _showTimelineTypeRow(timelineAttribute);
+    final bool showTimelineStatusRow = _showTimelineStatusRow(timelineAttribute);
+    final bool showDataAttributesSection = _showDataAttributesSection(timelineAttribute);
+    final bool showContractSection = _showContractSection(timelineAttribute);
     final List<Widget> slivers = [];
 
     // Header
@@ -76,7 +78,7 @@ class HistoryDetailScreen extends StatelessWidget {
     ]);
 
     // Interaction/operation type
-    if (showTimelineTypeRow) {
+    if (showTimelineStatusRow) {
       slivers.addAll([
         SliverToBoxAdapter(child: HistoryDetailTimelineAttributeRow(attribute: timelineAttribute)),
         const SliverToBoxAdapter(child: Divider(height: 1)),
@@ -84,16 +86,13 @@ class HistoryDetailScreen extends StatelessWidget {
     }
 
     // Data attributes
-    final List<DataAttribute> dataAttributes = timelineAttribute.dataAttributes;
-    if (dataAttributes.isNotEmpty) {
+    if (showDataAttributesSection) {
       // Section title
       slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, timelineAttribute)));
 
       // Signed contract (optional)
-      bool showContract = (state.timelineAttribute is SigningTimelineAttribute) &&
-          (state.timelineAttribute as SigningTimelineAttribute).status == SigningStatus.success;
-      if (showContract) {
-        final signingAttribute = (state.timelineAttribute as SigningTimelineAttribute);
+      if (showContractSection) {
+        final signingAttribute = (timelineAttribute as SigningTimelineAttribute);
         slivers.addAll([
           SliverToBoxAdapter(
             child: DocumentSection(
@@ -107,7 +106,7 @@ class HistoryDetailScreen extends StatelessWidget {
       }
 
       // Data attributes
-      for (DataAttribute dataAttribute in dataAttributes) {
+      for (DataAttribute dataAttribute in timelineAttribute.dataAttributes) {
         slivers.add(SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -144,13 +143,26 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  bool _showTimelineTypeRow(TimelineAttribute attribute) {
+  bool _showTimelineStatusRow(TimelineAttribute attribute) {
     if (attribute is InteractionTimelineAttribute) {
       return attribute.status != InteractionStatus.success;
     } else if (attribute is SigningTimelineAttribute) {
       return attribute.status != SigningStatus.success;
     }
     return true;
+  }
+
+  bool _showDataAttributesSection(TimelineAttribute attribute) {
+    if (attribute is InteractionTimelineAttribute) {
+      return attribute.status == InteractionStatus.success;
+    } else if (attribute is SigningTimelineAttribute) {
+      return attribute.status == SigningStatus.success;
+    }
+    return true;
+  }
+
+  bool _showContractSection(TimelineAttribute timelineAttribute) {
+    return (timelineAttribute is SigningTimelineAttribute) && timelineAttribute.status == SigningStatus.success;
   }
 
   Policy? _getPolicyToDisplay(TimelineAttribute timelineAttribute) {

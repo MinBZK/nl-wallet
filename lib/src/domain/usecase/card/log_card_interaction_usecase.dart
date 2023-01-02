@@ -20,7 +20,7 @@ class LogCardInteractionUseCase {
       policy: policy,
       dateTime: DateTime.now(),
       organization: organization,
-      dataAttributes: status == InteractionStatus.success ? resolvedAttributes : [],
+      dataAttributes: resolvedAttributes,
     );
     await timelineAttributeRepository.create(interaction);
   }
