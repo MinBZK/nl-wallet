@@ -6,6 +6,7 @@ class WalletThemeConstants {
   // Color scheme
   static const colorScheme = ColorScheme.light(
     primary: Color(0xFF2065E0),
+    secondary: Color(0x332065E0),
     error: Color(0xFFCA005D),
     background: Color(0xFFFCFCFC),
     secondaryContainer: Color(0xFFF3F4F7),
