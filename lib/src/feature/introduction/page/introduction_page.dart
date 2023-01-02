@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
-const _kCoverHeaderImageHeight = 400.0;
+const _kCoverHeaderImageDesiredHeight = 400.0;
+const _kCoverHeaderImageMaxFraction = 0.5;
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
 
 class IntroductionPage extends StatelessWidget {
@@ -29,11 +32,13 @@ class IntroductionPage extends StatelessWidget {
 
   Widget _buildHeaderImages(BuildContext context) {
     final textScaleFactor = MediaQuery.of(context).textScaleFactor;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final maxFractionHeight = screenHeight * _kCoverHeaderImageMaxFraction;
     return Stack(
       children: [
         SizedBox(
           width: double.infinity,
-          height: _kCoverHeaderImageHeight / textScaleFactor,
+          height: min(_kCoverHeaderImageDesiredHeight, maxFractionHeight) / textScaleFactor,
           child: Image(image: image, fit: BoxFit.cover),
         ),
         Align(
