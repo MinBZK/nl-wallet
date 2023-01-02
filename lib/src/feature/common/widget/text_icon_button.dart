@@ -24,7 +24,7 @@ class TextIconButton extends StatelessWidget {
       if (centerChild) const SizedBox(width: 20),
       child,
       const SizedBox(width: 8),
-      Icon(icon, size: 12),
+      Icon(icon, size: 16),
     ];
     return TextButton(
       onPressed: onPressed,

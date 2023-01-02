@@ -31,7 +31,7 @@ class LinkButton extends StatelessWidget {
         children: [
           child,
           const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward, size: 12),
+          const Icon(Icons.arrow_forward, size: 16),
         ],
       ),
     );
