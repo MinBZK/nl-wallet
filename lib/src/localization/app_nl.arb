@@ -25,7 +25,7 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
-  "approveOrganizationPageSignWithTitle": "{organization} vraagt of je wil ondertekenen. Klopt dat?",
+  "approveOrganizationPageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
   "@approveOrganizationPageSignWithTitle": {
     "placeholders": {
       "organization": {
@@ -454,7 +454,7 @@
   "signScreenCancelSheetDescription": "Als je stopt worden de afspraken niet ondertekend.",
   "signScreenCancelSheetNegativeCta": "Nee",
   "signScreenCancelSheetPositiveCta": "Ja, stoppen",
-  "signScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
+  "signScreenCancelSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "signScreenTitle": "Ondertekenen",
   "signStoppedPageCloseCta": "Sluiten",
   "signStoppedPageDescription": "Door te stoppen heb je de afspraken niet ondertekend.",
@@ -518,7 +518,7 @@
   },
   "verificationScreenCancelSheetNegativeCta": "Nee",
   "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
-  "verificationScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
+  "verificationScreenCancelSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "verificationScreenTitle": "Gegevens delen",
   "verificationStoppedPageCloseCta": "Sluiten",
   "verificationStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
@@ -604,11 +604,11 @@
   "walletPersonalizeScreenSkipSheetNegativeCta": "Nee",
   "walletPersonalizeScreenSkipSheetPositiveCta": "Ja, stoppen",
   "walletPersonalizeScreenSkipSheetSubtitle": "Als je overslaat loop je handige gegevens mis.",
-  "walletPersonalizeScreenSkipSheetTitle": "Weet je zeker dat je wil overslaan?",
+  "walletPersonalizeScreenSkipSheetTitle": "Weet je zeker dat je wilt overslaan?",
   "walletPersonalizeScreenTitle": "Wallet aanmaken",
   "walletPersonalizeSelectCardsPageAddCta": "Toevoegen",
   "walletPersonalizeSelectCardsPageDataIncorrectCta": "Klopt er iets niet?",
-  "walletPersonalizeSelectCardsPageDescription": "Je gegevens staan in kaarten. Kies welke kaarten je wil toevoegen.",
+  "walletPersonalizeSelectCardsPageDescription": "Je gegevens staan in kaarten. Kies welke kaarten je wilt toevoegen.",
   "walletPersonalizeSelectCardsPageSkipCta": "Overslaan",
   "walletPersonalizeSelectCardsPageTitle": "De volgende gegevens zijn opgehaald",
   "walletPersonalizeSuccessPageContinueCta": "Naar mijn Wallet",

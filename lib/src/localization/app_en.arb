@@ -604,7 +604,7 @@
   "walletPersonalizeScreenSkipSheetNegativeCta": "Nee",
   "walletPersonalizeScreenSkipSheetPositiveCta": "Ja, stoppen",
   "walletPersonalizeScreenSkipSheetSubtitle": "Als je overslaat loop je handige gegevens mis.",
-  "walletPersonalizeScreenSkipSheetTitle": "Weet je zeker dat je wil overslaan?",
+  "walletPersonalizeScreenSkipSheetTitle": "Are you sure you want to skip?",
   "walletPersonalizeScreenTitle": "Create wallet",
   "walletPersonalizeSelectCardsPageAddCta": "Add",
   "walletPersonalizeSelectCardsPageDataIncorrectCta": "Something not right?",
