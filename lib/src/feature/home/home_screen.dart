@@ -14,7 +14,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _buildBody(),
+      body: WillPopScope(
+        child: _buildBody(),
+        onWillPop: () async {
+          return false; // Back gesture disabled for demo purposes
+        },
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }

@@ -16,12 +16,7 @@ class CardOverviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(context),
-      body: WillPopScope(
-        child: _buildBody(context),
-        onWillPop: () async {
-          return false; // Back gesture disabled for demo purposes
-        },
-      ),
+      body: _buildBody(context),
     );
   }
 
