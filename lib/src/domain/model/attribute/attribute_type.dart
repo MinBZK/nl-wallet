@@ -11,6 +11,7 @@ enum AttributeType {
   documentNr,
   issuanceDate,
   expiryDate,
+  healthInsuranceExpiryDate,
   height,
   university,
   education,

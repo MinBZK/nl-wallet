@@ -128,7 +128,7 @@ const _kFirstAidRequestedAttributes = [
   ),
   RequestedAttribute(
     name: 'Verloopdatum',
-    type: AttributeType.expiryDate,
+    type: AttributeType.healthInsuranceExpiryDate,
     valueType: AttributeValueType.text,
   ),
 ];

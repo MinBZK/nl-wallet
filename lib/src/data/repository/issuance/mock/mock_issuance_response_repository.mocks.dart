@@ -398,7 +398,7 @@ const _kMockHealthInsuranceDataAttributes = [
     valueType: AttributeValueType.text,
     label: 'Verloopdatum',
     value: '1 januari 2024',
-    type: AttributeType.expiryDate,
+    type: AttributeType.healthInsuranceExpiryDate,
     sourceCardId: _kHealthInsuranceId,
   ),
 ];
