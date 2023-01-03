@@ -73,7 +73,7 @@ class WalletThemeConstants {
   static final textButtonTheme = TextButtonThemeData(
     style: TextButton.styleFrom(
       minimumSize: const Size(0.0, _buttonMinHeight),
-      textStyle: _buttonTextStyle,
+      textStyle: _buttonTextStyle.copyWith(letterSpacing: 1.15),
       foregroundColor: const Color(0xFF2065E0),
     ),
   );
@@ -120,46 +120,57 @@ class WalletThemeConstants {
   static const _headline1TextStyle = TextStyle(
     fontSize: _headline1FontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _headline2TextStyle = TextStyle(
     fontSize: _headline2FontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _headline3TextStyle = TextStyle(
     fontSize: _headline3FontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _headline4TextStyle = TextStyle(
     fontSize: _headline4FontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _subtitle1TextStyle = TextStyle(
     fontSize: _subtitle1FontSize,
     fontWeight: FontWeight.bold,
     height: 1.4,
+    fontFamily: fontFamily,
   );
   static const _subtitle2TextStyle = TextStyle(
     fontSize: _subtitle2FontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _body1TextStyle = TextStyle(
     fontSize: _body1FontSize,
     height: 1.5,
+    fontFamily: fontFamily,
   );
   static const _body2TextStyle = TextStyle(
     fontSize: _body2FontSize,
     height: 1.4,
+    fontFamily: fontFamily,
   );
   static const _buttonTextStyle = TextStyle(
     fontSize: _buttonFontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
   static const _captionTextStyle = TextStyle(
     fontSize: _captionFontSize,
+    fontFamily: fontFamily,
   );
   static const _overlineTextStyle = TextStyle(
     fontSize: _overlineFontSize,
     fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
   );
 
   // Font sizes
