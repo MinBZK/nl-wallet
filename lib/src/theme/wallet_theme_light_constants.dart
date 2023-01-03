@@ -38,7 +38,7 @@ class WalletThemeConstants {
 
   // Bottom navigation bar theme
   static const bottomNavigationBarThemeData = BottomNavigationBarThemeData(
-    backgroundColor: Colors.white,
+    backgroundColor: Color(0xFFFCFCFC),
     elevation: 4.0,
     selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, fontFamily: fontFamily),
     unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
