@@ -125,7 +125,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
     return ApproveOrganizationPage(
-      onDecline: () => context.bloc.add(const IssuanceOrganizationDeclined()),
+      onDecline: () => _stopIssuance(context),
       onAccept: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,

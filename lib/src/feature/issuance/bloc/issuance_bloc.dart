@@ -25,6 +25,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final LogCardInteractionUseCase logCardInteractionUseCase;
 
+  bool _userSharedData = false;
+
   IssuanceBloc(
     this.getIssuanceResponseUseCase,
     this.walletAddIssuedCardsUseCase,
@@ -33,7 +35,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   ) : super(const IssuanceInitial(false)) {
     on<IssuanceLoadTriggered>(_onIssuanceLoadTriggered);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
-    on<IssuanceOrganizationDeclined>(_onIssuanceOrganizationDeclined);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
     on<IssuanceShareRequestedAttributesApproved>(_onIssuanceShareRequestedAttributesApproved);
@@ -94,10 +95,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  void _onIssuanceOrganizationDeclined(event, emit) async {
-    emit(IssuanceStopped(state.isRefreshFlow));
-  }
-
   void _onIssuanceOrganizationApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckOrganization) throw UnsupportedError('Incorrect state to $state');
@@ -117,6 +114,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuancePinConfirmed(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
+    _userSharedData = true;
     if (state.flow.cards.length > 1) {
       emit(
         IssuanceSelectCards(
@@ -140,8 +138,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
 
   void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
     if (event.flow != null) {
-      bool userAlreadySharedData = state is IssuanceCheckDataOffering;
-      _logCardInteraction(event.flow!, userAlreadySharedData ? InteractionStatus.success : InteractionStatus.rejected);
+      _logCardInteraction(event.flow!, _userSharedData ? InteractionStatus.success : InteractionStatus.rejected);
     }
     emit(IssuanceStopped(state.isRefreshFlow));
   }

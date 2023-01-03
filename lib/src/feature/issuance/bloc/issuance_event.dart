@@ -28,13 +28,6 @@ class IssuanceBackPressed extends IssuanceEvent {
   List<Object?> get props => [];
 }
 
-class IssuanceOrganizationDeclined extends IssuanceEvent {
-  const IssuanceOrganizationDeclined();
-
-  @override
-  List<Object?> get props => [];
-}
-
 class IssuanceShareRequestedAttributesApproved extends IssuanceEvent {
   const IssuanceShareRequestedAttributesApproved();
 
