@@ -5,6 +5,7 @@ class Policy extends Equatable {
   final String? dataPurpose;
   final bool dataIsShared;
   final bool dataIsSignature;
+  final bool dataContainsSingleViewProfilePhoto;
   final bool deletionCanBeRequested;
   final String? privacyPolicyUrl;
 
@@ -13,6 +14,7 @@ class Policy extends Equatable {
     required this.dataPurpose,
     required this.dataIsShared,
     required this.dataIsSignature,
+    required this.dataContainsSingleViewProfilePhoto,
     required this.deletionCanBeRequested,
     required this.privacyPolicyUrl,
   });
@@ -23,6 +25,7 @@ class Policy extends Equatable {
         dataPurpose,
         dataIsShared,
         dataIsSignature,
+        dataContainsSingleViewProfilePhoto,
         deletionCanBeRequested,
         privacyPolicyUrl,
       ];

@@ -441,6 +441,7 @@ const _kMockIssuancePolicy = Policy(
   dataPurpose: 'Kaart uitgifte',
   dataIsShared: false,
   dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,
   privacyPolicyUrl: 'https://www.example.org',
 );

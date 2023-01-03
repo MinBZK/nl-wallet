@@ -142,6 +142,7 @@ const _kEmployerPolicy = Policy(
   dataPurpose: 'Gegevens controle',
   dataIsShared: false,
   dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,
   privacyPolicyUrl: 'https://www.example.org',
 );
@@ -151,6 +152,7 @@ const _kMockMarketPlacePolicy = Policy(
   dataPurpose: 'Registreren',
   dataIsShared: false,
   dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,
   privacyPolicyUrl: 'https://www.example.org',
 );
@@ -160,7 +162,8 @@ const _kMockBarPolicy = Policy(
   dataPurpose: 'Leeftijd controle',
   dataIsShared: false,
   dataIsSignature: false,
-  deletionCanBeRequested: true,
+  dataContainsSingleViewProfilePhoto: true,
+  deletionCanBeRequested: false,
   privacyPolicyUrl: 'https://www.example.org',
 );
 
@@ -169,6 +172,7 @@ const _kMockCarRentalPolicy = Policy(
   dataPurpose: 'Rijvaardigheid',
   dataIsShared: false,
   dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,
   privacyPolicyUrl: 'https://www.example.org',
 );
@@ -178,6 +182,7 @@ const _kMockFirstAidPolicy = Policy(
   dataPurpose: 'Zorgverlening',
   dataIsShared: false,
   dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,
   privacyPolicyUrl: 'https://www.example.org',
 );

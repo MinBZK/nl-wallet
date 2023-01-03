@@ -17,26 +17,37 @@ class PolicySection extends StatelessWidget {
     final storageDuration = policy.storageDuration;
     return Column(
       children: [
+        if (policy.dataContainsSingleViewProfilePhoto)
+          PolicyRow(
+            icon: Icons.remove_red_eye_outlined,
+            title: locale.generalPolicyDataSingleViewData,
+          ),
+        if (policy.dataContainsSingleViewProfilePhoto)
+          PolicyRow(
+            icon: Icons.account_box_outlined,
+            title: locale.generalPolicyDataSingleViewProfilePhoto,
+          ),
         if (storageDuration != null)
           PolicyRow(
             icon: Icons.access_time_outlined,
-            title: locale.generaPolicyDataRetentionDuration(storageDuration.inDays),
+            title: locale.generalPolicyDataRetentionDuration(storageDuration.inDays),
           ),
-        PolicyRow(
-          icon: Icons.share_outlined,
-          title: policy.dataIsShared ? locale.generaPolicyDataWillBeShared : locale.generaPolicyDataWillNotBeShared,
-        ),
+        if (!policy.dataContainsSingleViewProfilePhoto)
+          PolicyRow(
+            icon: Icons.share_outlined,
+            title: policy.dataIsShared ? locale.generalPolicyDataWillBeShared : locale.generalPolicyDataWillNotBeShared,
+          ),
         if (policy.dataIsSignature)
           PolicyRow(
             icon: Icons.security_outlined,
-            title: locale.generaPolicyDataIsSignature,
+            title: locale.generalPolicyDataIsSignature,
           ),
         if (storageDuration != null && storageDuration.inDays > 0)
           PolicyRow(
             icon: Icons.delete_outline,
             title: policy.deletionCanBeRequested
-                ? locale.generaPolicyDataCanBeDeleted
-                : locale.generaPolicyDataCanNotBeDeleted,
+                ? locale.generalPolicyDataCanBeDeleted
+                : locale.generalPolicyDataCanNotBeDeleted,
           ),
         Align(
           alignment: AlignmentDirectional.centerStart,
@@ -44,7 +55,7 @@ class PolicySection extends StatelessWidget {
             onPressed: () => Navigator.pushNamed(context, WalletRoutes.policyRoute, arguments: policy),
             child: Padding(
               padding: const EdgeInsets.only(left: 8.0),
-              child: Text(locale.generaPolicyAllTermsCta),
+              child: Text(locale.generalPolicyAllTermsCta),
             ),
           ),
         ),

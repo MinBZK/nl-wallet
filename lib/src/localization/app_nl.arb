@@ -148,22 +148,6 @@
     },
     "description": "Hours"
   },
-  "generaPolicyAllTermsCta": "Alle voorwaarden",
-  "generaPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-  "generaPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-  "generaPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-  "generaPolicyDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-  "@generaPolicyDataRetentionDuration": {
-    "placeholders": {
-      "days": {
-        "example": "30",
-        "type": "int"
-      }
-    },
-    "description": "Duration that data will be stored by the verifier"
-  },
-  "generaPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
-  "generaPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalMinutes": "{minutes, plural, =1 {{minutes} minuut} other {{minutes} minuten}}",
   "@generalMinutes": {
     "placeholders": {
@@ -175,6 +159,24 @@
     "description": "Minutes"
   },
   "generalOnDate": "Op",
+  "generalPolicyAllTermsCta": "Alle voorwaarden",
+  "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "generalPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+  "generalPolicyDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "@generalPolicyDataRetentionDuration": {
+    "placeholders": {
+      "days": {
+        "example": "30",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
+  "generalPolicyDataSingleViewData": "Je gegevens worden één keer bekeken",
+  "generalPolicyDataSingleViewProfilePhoto": "Je pasfoto wordt gebruikt om te controleren of jij het echt bent",
+  "generalPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "generalPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalRetry": "Probeer opnieuw",
   "generalTimeAgo": "geleden",
   "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
@@ -196,10 +198,10 @@
   "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
   "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
   "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
-  "historyDetailScreenSigningAttributesTitle": "Ondertekend",
   "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
   "historyDetailScreenOperationStatusIssuedDescription": "Kaart aangemaakt",
   "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
+  "historyDetailScreenSigningAttributesTitle": "Ondertekend",
   "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Gebruiksgeschiedenis",

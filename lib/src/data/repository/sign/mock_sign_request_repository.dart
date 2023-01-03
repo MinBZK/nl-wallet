@@ -57,6 +57,7 @@ const _kMockSignPolicy = Policy(
   dataPurpose: null,
   dataIsShared: false,
   dataIsSignature: true,
+  dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: false,
   privacyPolicyUrl: null,
 );
