@@ -70,7 +70,7 @@ const _kBarOrganization = Organization(
   id: 'bar',
   name: 'Cafe de Dobbelaar',
   shortName: 'Cafe de Dobbelaar',
-  description: 'Poolcafe in Delft.',
+  description: 'Familiecafe sinds 1984.',
   logoUrl: 'assets/non-free/images/logo_bar.png',
 );
 
