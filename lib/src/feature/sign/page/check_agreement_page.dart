@@ -27,6 +27,7 @@ class CheckAgreementPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
+        controller: ScrollController(),
         slivers: <Widget>[
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),

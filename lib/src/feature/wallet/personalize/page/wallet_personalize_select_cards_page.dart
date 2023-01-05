@@ -31,6 +31,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
+        controller: ScrollController(),
         slivers: [
           const SliverSizedBox(height: 24),
           SliverToBoxAdapter(child: _buildHeader(context)),

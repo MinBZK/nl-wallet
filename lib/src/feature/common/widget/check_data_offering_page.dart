@@ -34,19 +34,23 @@ class CheckDataOfferingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scrollbar(
       thumbVisibility: true,
-      child: CustomScrollView(restorationId: 'check_data_offering_scrollview', slivers: <Widget>[
-        const SliverSizedBox(height: 32),
-        SliverToBoxAdapter(child: _buildHeaderSection(context)),
-        SliverToBoxAdapter(child: _buildCardFront()),
-        SliverSizedBox(height: showHeaderAttributesDivider ? 24 : 12),
-        if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
-        const SliverSizedBox(height: 12),
-        SliverList(delegate: _getDataAttributesDelegate()),
-        const SliverSizedBox(height: 16),
-        SliverToBoxAdapter(child: _buildFooterSection(context)),
-        const SliverToBoxAdapter(child: Divider(height: 24)),
-        SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
-      ]),
+      child: CustomScrollView(
+        controller: ScrollController(),
+        restorationId: 'check_data_offering_scrollview',
+        slivers: <Widget>[
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          SliverToBoxAdapter(child: _buildCardFront()),
+          SliverSizedBox(height: showHeaderAttributesDivider ? 24 : 12),
+          if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverSizedBox(height: 12),
+          SliverList(delegate: _getDataAttributesDelegate()),
+          const SliverSizedBox(height: 16),
+          SliverToBoxAdapter(child: _buildFooterSection(context)),
+          const SliverToBoxAdapter(child: Divider(height: 24)),
+          SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
+        ],
+      ),
     );
   }
 

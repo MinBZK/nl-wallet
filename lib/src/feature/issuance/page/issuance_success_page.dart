@@ -23,6 +23,7 @@ class IssuanceSuccessPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
+        controller: ScrollController(),
         restorationId: 'issuance_success_page',
         slivers: <Widget>[
           const SliverSizedBox(height: 48.0),

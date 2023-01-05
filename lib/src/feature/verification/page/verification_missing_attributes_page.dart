@@ -22,6 +22,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
+        controller: ScrollController(),
         restorationId: 'missing_data_attributes_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 32),

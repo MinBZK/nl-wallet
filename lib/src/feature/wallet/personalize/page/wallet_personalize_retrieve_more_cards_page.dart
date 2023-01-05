@@ -23,6 +23,7 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
+        controller: ScrollController(),
         restorationId: 'check_data_offering_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 24),
