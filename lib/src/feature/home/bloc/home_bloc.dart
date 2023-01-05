@@ -7,11 +7,16 @@ part 'home_event.dart';
 part 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  HomeBloc() : super(const HomeScreenSelect(0)) {
+  HomeBloc() : super(const HomeScreenSelect(HomeScreenTab.cards)) {
     on<HomeTabPressed>(_onHomeTabPressedEvent);
   }
 
   FutureOr<void> _onHomeTabPressedEvent(HomeTabPressed event, emit) {
-    emit(HomeScreenSelect(event.index, timestamp: DateTime.now().millisecondsSinceEpoch));
+    emit(
+      HomeScreenSelect(
+        event.tab,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
   }
 }

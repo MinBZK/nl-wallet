@@ -17,6 +17,9 @@ class HomeScreen extends StatelessWidget {
       body: WillPopScope(
         child: _buildBody(),
         onWillPop: () async {
+          if ((context.read<HomeBloc>().state.tab) == HomeScreenTab.menu) {
+            context.read<MenuBloc>().add(MenuHomePressed());
+          }
           return false; // Back gesture disabled for demo purposes
         },
       ),
@@ -26,24 +29,18 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildBody() {
     return BlocConsumer<HomeBloc, HomeState>(
-      listenWhen: (prev, current) => prev.screenIndex == current.screenIndex,
+      listenWhen: (prev, current) => prev.tab == current.tab,
       listener: (context, state) {
-        switch (state.screenIndex) {
-          case 2:
-            context.read<MenuBloc>().add(MenuHomePressed());
-            break;
-        }
+        if (state.tab == HomeScreenTab.menu) context.read<MenuBloc>().add(MenuHomePressed());
       },
       builder: (context, state) {
-        switch (state.screenIndex) {
-          case 0:
+        switch (state.tab) {
+          case HomeScreenTab.cards:
             return const CardOverviewScreen();
-          case 1:
+          case HomeScreenTab.qr:
             return const QrScreen();
-          case 2:
+          case HomeScreenTab.menu:
             return const MenuScreen();
-          default:
-            throw UnsupportedError('Unhandled screenIndex: ${state.screenIndex}');
         }
       },
     );
@@ -60,16 +57,11 @@ class HomeScreen extends StatelessWidget {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
         return BottomNavigationBar(
-          currentIndex: _resolveBottomNavigationBarCurrentIndex(state),
+          currentIndex: state.tab.tabIndex,
           onTap: (value) => context.read<HomeBloc>().add(HomeTabPressed(value)),
           items: items,
         );
       },
     );
-  }
-
-  int _resolveBottomNavigationBarCurrentIndex(HomeState state) {
-    if (state is HomeScreenSelect) return state.screenIndex;
-    return 0;
   }
 }
