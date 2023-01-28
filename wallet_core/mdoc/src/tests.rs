@@ -210,7 +210,7 @@ pub fn new_certificate(
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
-/// but with byte sequences (which can take a lot of vertical space) with
+/// but with byte sequences (which can take a lot of vertical space) replaced with
 /// a CBOR diagnostic-like notation.
 ///
 /// Example output:
