@@ -2,6 +2,7 @@ use crate::cose::ClonePayload;
 use crate::crypto::dh_hmac_key;
 use crate::iso::*;
 use crate::issuer::IssuanceDeviceResponse;
+use crate::verifier::X509Subject;
 
 use anyhow::{bail, Result};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
@@ -186,5 +187,43 @@ impl DeviceSigned {
             name_spaces: IndexMap::new().into(),
             device_auth: DeviceAuth::DeviceMac(cose.into()),
         })
+    }
+}
+
+impl DeviceRequest {
+    /// Verify reader authentication, if present.
+    /// Note that since each DocRequest carries its own reader authentication, the spec allows the
+    /// the DocRequests to be signed by distinct readers. TODO maybe support this.
+    /// For now, this function requires either none of the DocRequests to be signed, or all of them
+    /// by the same reader.
+    #[allow(dead_code)] // TODO use in client
+    pub(crate) fn verify(
+        &self,
+        ca_cert: &X509Certificate,
+        reader_authentication_bts: &Vec<u8>,
+    ) -> Result<Option<X509Subject>> {
+        if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
+            return Ok(None);
+        }
+        if self.doc_requests.iter().any(|d| d.reader_auth.is_none()) {
+            bail!("readerAuth not present for all documents")
+        }
+
+        let mut reader: Option<X509Subject> = None;
+        for doc_request in &self.doc_requests {
+            let (_, found) = doc_request
+                .reader_auth
+                .as_ref()
+                .unwrap()
+                .clone_with_payload(reader_authentication_bts.clone())
+                .verify_against_cert(ca_cert)?;
+            if reader.is_none() {
+                reader.replace(found);
+            } else if *reader.as_ref().unwrap() != found {
+                bail!("document requests were signed by different readers")
+            }
+        }
+
+        Ok(reader)
     }
 }
