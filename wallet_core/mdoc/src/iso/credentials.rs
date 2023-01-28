@@ -125,6 +125,11 @@ pub type IssuerNameSpaces = IndexMap<NameSpace, Attributes>;
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attributes(pub(crate) Vec<IssuerSignedItemBytes>);
+impl From<Vec<IssuerSignedItemBytes>> for Attributes {
+    fn from(val: Vec<IssuerSignedItemBytes>) -> Self {
+        Attributes(val)
+    }
+}
 impl TryFrom<IndexMap<String, Value>> for Attributes {
     type Error = anyhow::Error;
     fn try_from(val: IndexMap<String, Value>) -> Result<Self> {

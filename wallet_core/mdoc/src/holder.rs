@@ -102,23 +102,10 @@ impl Credential {
             .unwrap()
             .iter()
             .filter(|&(namespace, _)| items_request.name_spaces.contains_key(namespace))
-            .map(|(namespace, issuer_signed)| {
+            .map(|(namespace, attributes)| {
                 (
                     namespace.clone(),
-                    Attributes(
-                        issuer_signed
-                            .0
-                            .clone()
-                            .into_iter()
-                            .filter(|i| {
-                                items_request
-                                    .name_spaces
-                                    .get(namespace)
-                                    .unwrap()
-                                    .contains_key(&i.0.element_identifier)
-                            })
-                            .collect(),
-                    ),
+                    attributes.filter(items_request.name_spaces.get(namespace).unwrap()),
                 )
             })
             .collect();
@@ -132,6 +119,18 @@ impl Credential {
             device_signed: DeviceSigned::new_signature(&self.private_key, challenge),
             errors: None,
         })
+    }
+}
+
+impl Attributes {
+    /// Return a copy that contains only the items requested in `items_request`.
+    fn filter(&self, requested: &DataElements) -> Attributes {
+        self.0
+            .clone()
+            .into_iter()
+            .filter(|attr| requested.contains_key(&attr.0.element_identifier))
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 
