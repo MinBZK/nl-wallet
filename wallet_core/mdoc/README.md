@@ -1,4 +1,4 @@
-# mdoc
+# nl-wallet-mdoc
 
 A partial, work-in-progress Rust implementation of mdoc (ISO standards 18013-5, 23220-3, 23220-4).
 
