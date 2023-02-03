@@ -1,0 +1,47 @@
+stages:
+  - analyze
+  - test
+  - build
+
+analyze-app:
+  stage: analyze
+  only:
+    refs:
+      - merge_requests
+      - main
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:91cf8fcaa0ddd2dd3a46bf06da97a4f9b103f7643f775e2eb452eabdceca7950"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - flutter analyze
+    
+test-app:
+  stage: test
+  only:
+    refs:
+      - merge_requests
+      - main
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:91cf8fcaa0ddd2dd3a46bf06da97a4f9b103f7643f775e2eb452eabdceca7950"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - flutter test
+
+# TODO: Use fastlane for building
+build-app:
+  stage: build
+  only:
+    refs:
+      - main
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter@sha256:b2479842d4186a925fbc6a8b36c99c0773c7838102124441249f40abe5839cfd"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - flutter pub get
+    - flutter build apk
+  artifacts:
+    paths:
+      - "build/app/outputs/apk/release/app-release.apk"
