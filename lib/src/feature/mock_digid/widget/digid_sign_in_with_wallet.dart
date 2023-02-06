@@ -14,7 +14,7 @@ class DigidSignInWithWallet extends StatelessWidget {
         const WalletLogo(size: 80),
         const SizedBox(height: 8),
         Text(AppLocalizations.of(context).appTitle,
-            style: Theme.of(context).textTheme.headline2?.copyWith(fontWeight: FontWeight.bold)),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(fontWeight: FontWeight.bold)),
       ],
     );
   }

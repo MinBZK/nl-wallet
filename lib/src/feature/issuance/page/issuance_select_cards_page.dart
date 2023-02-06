@@ -59,13 +59,13 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         children: [
           Text(
             locale.issuanceSelectCardsPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             locale.issuanceSelectCardsPageDescription,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -128,7 +128,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildNoSelectionRow(BuildContext context) {
-    final errorColor = Theme.of(context).errorColor;
+    final errorColor = Theme.of(context).colorScheme.error;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -142,7 +142,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
           Expanded(
             child: Text(
               AppLocalizations.of(context).issuanceSelectCardsPageNoSelectionError,
-              style: Theme.of(context).textTheme.bodyText2?.copyWith(color: errorColor),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: errorColor),
             ),
           )
         ],

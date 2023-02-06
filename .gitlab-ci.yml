@@ -10,12 +10,12 @@ analyze-app:
       - merge_requests
       - main
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:91cf8fcaa0ddd2dd3a46bf06da97a4f9b103f7643f775e2eb452eabdceca7950"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9d378696afdfd3d5d35b73d644de6abbf9871fe2d0d69cc44d5ba84c6d5f1c52"
   script:
     - set -euxo pipefail
     - flutter --version
     - flutter analyze
-    
+
 test-app:
   stage: test
   only:
@@ -23,7 +23,7 @@ test-app:
       - merge_requests
       - main
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:91cf8fcaa0ddd2dd3a46bf06da97a4f9b103f7643f775e2eb452eabdceca7950"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9d378696afdfd3d5d35b73d644de6abbf9871fe2d0d69cc44d5ba84c6d5f1c52"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -36,7 +36,7 @@ build-app:
     refs:
       - main
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter@sha256:b2479842d4186a925fbc6a8b36c99c0773c7838102124441249f40abe5839cfd"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter@sha256:14a22d8126603be0b1930ddd536f2c094040711c0f44d57c2536bd994a295a1e"
   script:
     - set -euxo pipefail
     - flutter --version

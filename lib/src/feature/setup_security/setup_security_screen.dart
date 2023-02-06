@@ -82,7 +82,7 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kSelectPinKey,
       content: Text(
         AppLocalizations.of(context).setupSecuritySelectPinPageTitle,
-        style: Theme.of(context).textTheme.headline3,
+        style: Theme.of(context).textTheme.displaySmall,
         textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
@@ -98,11 +98,11 @@ class SetupSecurityScreen extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context).setupSecuritySelectPinErrorPageTitle,
-            style: Theme.of(context).textTheme.headline3?.copyWith(color: Theme.of(context).errorColor),
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
           ),
           Text(
             AppLocalizations.of(context).setupSecuritySelectPinErrorPageDescription,
-            style: Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
           ),
         ],
       ),
@@ -117,7 +117,7 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kConfirmPinKey,
       content: Text(
         AppLocalizations.of(context).setupSecurityConfirmationPageTitle,
-        style: Theme.of(context).textTheme.headline3,
+        style: Theme.of(context).textTheme.displaySmall,
         textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
@@ -128,8 +128,8 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildPinConfirmationErrorPage(BuildContext context, SetupSecurityPinConfirmationFailed state) {
     final locale = AppLocalizations.of(context);
-    final titleStyle = Theme.of(context).textTheme.headline3?.copyWith(color: Theme.of(context).errorColor);
-    final descriptionStyle = Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor);
+    final titleStyle = Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error);
+    final descriptionStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error);
     Widget content;
     if (state.retryAllowed) {
       content = Column(

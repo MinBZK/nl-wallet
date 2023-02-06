@@ -34,7 +34,7 @@ class PlaceholderScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             _informTitle(context),
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ),

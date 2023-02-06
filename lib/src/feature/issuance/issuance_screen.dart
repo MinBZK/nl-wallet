@@ -150,14 +150,15 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
     return IssuanceCheckDataOfferingPage(
       onDecline: () async {
+        final bloc = context.bloc;
         final result = await DataIncorrectScreen.show(context);
         if (result == null) return;
         switch (result) {
           case DataIncorrectResult.declineCard:
-            context.bloc.add(IssuanceStopRequested(state.flow));
+            bloc.add(IssuanceStopRequested(state.flow));
             break;
           case DataIncorrectResult.acceptCard:
-            context.bloc.add(const IssuanceCheckDataOfferingApproved());
+            bloc.add(const IssuanceCheckDataOfferingApproved());
             break;
         }
       },
@@ -207,7 +208,7 @@ class IssuanceScreen extends StatelessWidget {
         description: locale.issuanceStopSheetDescription(organizationName),
         cancelButtonText: locale.issuanceStopSheetNegativeCta,
         confirmButtonText: locale.issuanceStopSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).errorColor,
+        confirmButtonColor: Theme.of(context).colorScheme.error,
       );
       if (stopped) bloc.add(IssuanceStopRequested(bloc.state.flow));
     } else {
@@ -232,14 +233,15 @@ class IssuanceScreen extends StatelessWidget {
       card: state.cardToCheck,
       onAccept: () => context.bloc.add(IssuanceCardApproved(state.cardToCheck)),
       onDecline: () async {
+        final bloc = context.bloc;
         final result = await DataIncorrectScreen.show(context);
         if (result == null) return; //Screen dismissed without explicit action.
         switch (result) {
           case DataIncorrectResult.declineCard:
-            context.bloc.add(IssuanceCardDeclined(state.cardToCheck));
+            bloc.add(IssuanceCardDeclined(state.cardToCheck));
             break;
           case DataIncorrectResult.acceptCard:
-            context.bloc.add(IssuanceCardApproved(state.cardToCheck));
+            bloc.add(IssuanceCardApproved(state.cardToCheck));
             break;
         }
       },

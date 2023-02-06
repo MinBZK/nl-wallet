@@ -30,7 +30,7 @@ class MenuAboutPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 locale.menuAboutPageTitle,
-                style: Theme.of(context).textTheme.bodyText1?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 8),
@@ -63,7 +63,7 @@ class MenuAboutPage extends StatelessWidget {
 
   Widget _buildDescription(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    final textStyle = Theme.of(context).textTheme.bodyText1;
+    final textStyle = Theme.of(context).textTheme.bodyLarge;
     final fullText = locale.menuAboutPageDescription;
     final url = locale.menuAboutPageUrl;
 

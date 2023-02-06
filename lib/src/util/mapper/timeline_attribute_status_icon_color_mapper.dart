@@ -24,7 +24,7 @@ class InteractionStatusColorMapper {
       case InteractionStatus.rejected:
         return _kNeutralDarkBlueColor;
       case InteractionStatus.failed:
-        return themeData.errorColor;
+        return themeData.colorScheme.error;
     }
   }
 }

@@ -75,12 +75,12 @@ class IssuanceProofIdentityPage extends StatelessWidget {
         children: [
           Text(
             locale.issuanceProofIdentityPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
           ),
           const SizedBox(height: 8),
           Text(
             issuanceProofIdentityPageSubtitle,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),

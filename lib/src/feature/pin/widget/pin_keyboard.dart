@@ -21,7 +21,7 @@ class PinKeyboard extends StatelessWidget {
     return SizedBox(
       height: min(maxHeight, _preferredKeyboardHeight),
       child: DefaultTextStyle(
-        style: Theme.of(context).textTheme.headline2!,
+        style: Theme.of(context).textTheme.displayMedium!,
         child: Column(
           children: [
             KeyboardRow(

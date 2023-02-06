@@ -39,7 +39,7 @@ class ConfirmActionSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.headline2,
+                style: Theme.of(context).textTheme.displayMedium,
                 textAlign: TextAlign.start,
               ),
             ),
@@ -48,7 +48,7 @@ class ConfirmActionSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 description,
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
             const SizedBox(height: 16),

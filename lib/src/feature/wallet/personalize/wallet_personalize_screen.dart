@@ -112,13 +112,13 @@ class WalletPersonalizeScreen extends StatelessWidget {
       children: [
         Text(
           locale.walletPersonalizeScreenLoadingTitle,
-          style: Theme.of(context).textTheme.headline4,
+          style: Theme.of(context).textTheme.headlineMedium,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
           locale.walletPersonalizeScreenLoadingSubtitle,
-          style: Theme.of(context).textTheme.bodyText1,
+          style: Theme.of(context).textTheme.bodyLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -135,9 +135,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   void _loginWithDigid(BuildContext context) async {
+    final bloc = context.bloc;
     await MockDigidScreen.show(context);
     await Future.delayed(kDefaultMockDelay);
-    context.bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+    bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
   }
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
@@ -154,7 +155,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         onPressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
         icon: Icon(
           Icons.error,
-          color: Theme.of(context).errorColor,
+          color: Theme.of(context).colorScheme.error,
         ),
       ),
     );
@@ -202,14 +203,15 @@ class WalletPersonalizeScreen extends StatelessWidget {
       card: state.cardToCheck,
       onAccept: () => context.bloc.add(WalletPersonalizeDataOnCardConfirmed()),
       onDecline: () async {
+        final bloc = context.bloc;
         final result = await DataIncorrectScreen.show(context);
         if (result == null) return; //Screen dismissed without explicit action.
         switch (result) {
           case DataIncorrectResult.declineCard:
-            context.bloc.add(WalletPersonalizeDataOnCardDeclined());
+            bloc.add(WalletPersonalizeDataOnCardDeclined());
             break;
           case DataIncorrectResult.acceptCard:
-            context.bloc.add(WalletPersonalizeDataOnCardConfirmed());
+            bloc.add(WalletPersonalizeDataOnCardConfirmed());
             break;
         }
       },
@@ -226,7 +228,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       description: locale.walletPersonalizeScreenSkipSheetSubtitle,
       cancelButtonText: locale.walletPersonalizeScreenSkipSheetNegativeCta,
       confirmButtonText: locale.walletPersonalizeScreenSkipSheetPositiveCta,
-      confirmButtonColor: Theme.of(context).errorColor,
+      confirmButtonColor: Theme.of(context).colorScheme.error,
     );
     if (skipped) onSkip();
   }
@@ -240,7 +242,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       description: locale.walletPersonalizeScreenExitSheetDescription,
       cancelButtonText: locale.walletPersonalizeScreenExitSheetCancelCta,
       confirmButtonText: locale.walletPersonalizeScreenExitSheetConfirmCta,
-      confirmButtonColor: Theme.of(context).errorColor,
+      confirmButtonColor: Theme.of(context).colorScheme.error,
     );
   }
 

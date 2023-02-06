@@ -58,13 +58,13 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
         children: [
           Text(
             locale.walletPersonalizeSelectCardsPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             locale.walletPersonalizeSelectCardsPageDescription,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -132,7 +132,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildNoSelectionRow(BuildContext context) {
-    final errorColor = Theme.of(context).errorColor;
+    final errorColor = Theme.of(context).colorScheme.error;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Row(
@@ -143,7 +143,7 @@ class WalletPersonalizeSelectCardsPage extends StatelessWidget {
           Expanded(
             child: Text(
               AppLocalizations.of(context).walletPersonalizationSelectCardsPageNoSelectionError,
-              style: Theme.of(context).textTheme.bodyText2?.copyWith(color: errorColor),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: errorColor),
             ),
           )
         ],

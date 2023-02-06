@@ -31,19 +31,19 @@ class ThemeScreen extends StatelessWidget {
               child: Scrollbar(
                 thumbVisibility: true,
                 child: ListView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
                   children: [
-                    Text('Headline 1', style: Theme.of(context).textTheme.headline1),
-                    Text('Headline 2', style: Theme.of(context).textTheme.headline2),
-                    Text('Headline 3', style: Theme.of(context).textTheme.headline3),
-                    Text('Headline 4', style: Theme.of(context).textTheme.headline4),
-                    Text('Subtitle 1', style: Theme.of(context).textTheme.subtitle1),
-                    Text('Subtitle 2', style: Theme.of(context).textTheme.subtitle2),
-                    Text('Body 1', style: Theme.of(context).textTheme.bodyText1),
-                    Text('Body 2', style: Theme.of(context).textTheme.bodyText2),
-                    Text('Button', style: Theme.of(context).textTheme.button),
-                    Text('Caption', style: Theme.of(context).textTheme.caption),
-                    Text('Overline', style: Theme.of(context).textTheme.overline),
+                    Text('Headline 1 -> displayLarge', style: Theme.of(context).textTheme.displayLarge),
+                    Text('Headline 2 -> displayMedium', style: Theme.of(context).textTheme.displayMedium),
+                    Text('Headline 3 -> displaySmall', style: Theme.of(context).textTheme.displaySmall),
+                    Text('Headline 4 -> headlineMedium', style: Theme.of(context).textTheme.headlineMedium),
+                    Text('Subtitle 1 -> titleMedium', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Subtitle 2 -> titleSmall', style: Theme.of(context).textTheme.titleSmall),
+                    Text('Body 1 -> bodyLarge', style: Theme.of(context).textTheme.bodyLarge),
+                    Text('Body 2 -> bodyMedium', style: Theme.of(context).textTheme.bodyMedium),
+                    Text('Button -> labelLarge', style: Theme.of(context).textTheme.labelLarge),
+                    Text('Caption -> bodySmall', style: Theme.of(context).textTheme.bodySmall),
+                    Text('Overline -> labelSmall', style: Theme.of(context).textTheme.labelSmall),
                     const Divider(height: 32),
                     ElevatedButton(
                       onPressed: () => {},
@@ -95,7 +95,19 @@ class ThemeScreen extends StatelessWidget {
                         )
                       },
                       child: const Text('Confirm Action Sheet'),
-                    )
+                    ),
+                    const Divider(height: 32),
+                    Icon(
+                      Icons.warning,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    Center(
+                      child: Text('Error color',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Theme.of(context).colorScheme.error)),
+                    ),
                   ],
                 ),
               ),

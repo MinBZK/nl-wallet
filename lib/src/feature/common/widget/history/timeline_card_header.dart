@@ -36,7 +36,7 @@ class TimelineCardHeader extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 cardFront.title,
-                style: Theme.of(context).textTheme.headline2,
+                style: Theme.of(context).textTheme.displayMedium,
               ),
             ],
           ),

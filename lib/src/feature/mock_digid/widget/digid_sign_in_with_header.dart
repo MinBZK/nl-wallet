@@ -14,12 +14,12 @@ class DigidSignInWithHeader extends StatelessWidget {
         children: [
           Text(
             locale.mockDigidScreenHeaderTitle,
-            style: Theme.of(context).textTheme.headline2?.copyWith(color: Theme.of(context).primaryColor),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Theme.of(context).primaryColor),
           ),
           const SizedBox(height: 8),
           Text(
             locale.mockDigidScreenHeaderSubtitle,
-            style: Theme.of(context).textTheme.bodyText2?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ],
       ),

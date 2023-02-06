@@ -15,11 +15,11 @@ class DataAttributeRowText extends StatelessWidget {
       children: [
         Text(
           attribute.label,
-          style: Theme.of(context).textTheme.caption,
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         Text(
           attribute.value,
-          style: Theme.of(context).textTheme.subtitle1,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
       ],
     );

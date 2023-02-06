@@ -82,12 +82,12 @@ class DataIncorrectScreen extends StatelessWidget {
         children: [
           Text(
             locale.dataIncorrectScreenHeaderTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
           ),
           const SizedBox(height: 16),
           Text(
             locale.dataIncorrectScreenHeaderDescription,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),

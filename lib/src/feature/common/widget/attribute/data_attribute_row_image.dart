@@ -23,7 +23,7 @@ class DataAttributeRowImage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text(
               label ?? '',
-              style: Theme.of(context).textTheme.caption,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
         ),

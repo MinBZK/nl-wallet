@@ -16,14 +16,14 @@ class WalletPersonalizeLoadingPhotoPage extends StatelessWidget {
         children: [
           Text(
             locale.walletPersonalizeLoadingPhotoPageTitle,
-            style: Theme.of(context).textTheme.headline4,
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 24),
           _buildProgressIndicator(),
           const SizedBox(height: 24),
           Text(
             locale.walletPersonalizeLoadingPhotoPageSubtitle,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),

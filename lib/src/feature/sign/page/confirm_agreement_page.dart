@@ -72,7 +72,7 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SizedBox(height: 32),
           Text(
             AppLocalizations.of(context).confirmAgreementPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
         ],
@@ -113,7 +113,7 @@ class ConfirmAgreementPage extends StatelessWidget {
           Expanded(
             child: Text(
               AppLocalizations.of(context).confirmAgreementPageSignProvider(flow.trustProvider.name),
-              style: Theme.of(context).textTheme.bodyText1,
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           )
         ],

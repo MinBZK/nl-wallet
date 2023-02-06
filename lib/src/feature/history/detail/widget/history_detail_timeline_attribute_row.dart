@@ -27,12 +27,12 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
         children: [
           Text(
             titleText,
-            style: Theme.of(context).textTheme.subtitle1,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 2),
           Text(
             descriptionText,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),

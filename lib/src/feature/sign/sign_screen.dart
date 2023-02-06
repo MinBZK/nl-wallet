@@ -148,7 +148,7 @@ class SignScreen extends StatelessWidget {
         description: locale.signScreenCancelSheetDescription,
         cancelButtonText: locale.signScreenCancelSheetNegativeCta,
         confirmButtonText: locale.signScreenCancelSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).errorColor,
+        confirmButtonColor: Theme.of(context).colorScheme.error,
       );
       if (stopped) bloc.add(const SignStopRequested());
     } else {

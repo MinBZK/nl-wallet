@@ -11,7 +11,6 @@ class WalletTheme {
     indicatorColor: WalletThemeConstants.indicatorColor,
     primaryColor: WalletThemeConstants.colorScheme.primary,
     primaryColorDark: WalletThemeConstants.primaryColorDark,
-    errorColor: WalletThemeConstants.colorScheme.error,
     dividerColor: WalletThemeConstants.dividerColor,
     scaffoldBackgroundColor: WalletThemeConstants.scaffoldBackgroundColor,
     appBarTheme: WalletThemeConstants.appBarTheme,

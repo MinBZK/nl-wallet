@@ -68,13 +68,13 @@ class WalletCardFront extends StatelessWidget {
                                     Text(
                                       cardFront.title,
                                       maxLines: _kTitleMaxLines,
-                                      style: Theme.of(context).textTheme.subtitle1,
+                                      style: Theme.of(context).textTheme.titleMedium,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
                                       cardFront.subtitle ?? '',
                                       maxLines: _kSubtitleMaxLines,
-                                      style: Theme.of(context).textTheme.bodyText2,
+                                      style: Theme.of(context).textTheme.bodyMedium,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
@@ -94,7 +94,7 @@ class WalletCardFront extends StatelessWidget {
                           Text(
                             cardFront.info ?? '',
                             maxLines: _kInfoMaxLines,
-                            style: Theme.of(context).textTheme.bodyText2,
+                            style: Theme.of(context).textTheme.bodyMedium,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],

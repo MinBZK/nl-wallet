@@ -36,13 +36,13 @@ class PolicyEntryRow extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 24),
                   child: DefaultTextStyle(
-                    style: Theme.of(context).textTheme.subtitle1!,
+                    style: Theme.of(context).textTheme.titleMedium!,
                     child: title,
                   ),
                 ),
                 const SizedBox(height: 8),
                 DefaultTextStyle(
-                  style: Theme.of(context).textTheme.bodyText1!,
+                  style: Theme.of(context).textTheme.bodyLarge!,
                   child: description,
                 ),
               ],

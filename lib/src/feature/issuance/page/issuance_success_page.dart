@@ -67,7 +67,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             locale.issuanceSuccessPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ),
@@ -76,7 +76,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
         ),

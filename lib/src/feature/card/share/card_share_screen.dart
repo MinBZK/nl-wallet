@@ -38,7 +38,7 @@ class CardShareScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              child: Text(locale.cardShareScreenSubtitle, style: theme.textTheme.bodyText1),
+              child: Text(locale.cardShareScreenSubtitle, style: theme.textTheme.bodyLarge),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

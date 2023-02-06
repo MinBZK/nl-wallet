@@ -28,7 +28,7 @@ class MenuMainPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
             child: Text(
               locale.menuMainPageGreeting(name),
-              style: Theme.of(context).textTheme.headline2,
+              style: Theme.of(context).textTheme.displayMedium,
             ),
           ),
           const Divider(height: 1),

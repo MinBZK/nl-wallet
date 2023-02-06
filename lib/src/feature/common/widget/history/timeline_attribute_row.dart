@@ -59,15 +59,15 @@ class TimelineAttributeRow extends StatelessWidget {
                     children: [
                       Visibility(
                         visible: titleText.isNotEmpty,
-                        child: Text(titleText, style: Theme.of(context).textTheme.subtitle1),
+                        child: Text(titleText, style: Theme.of(context).textTheme.titleMedium),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         typeText,
-                        style: Theme.of(context).textTheme.bodyText1?.copyWith(color: typeTextColor),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: typeTextColor),
                       ),
                       const SizedBox(height: 2),
-                      Text(timeAgoText, style: Theme.of(context).textTheme.caption),
+                      Text(timeAgoText, style: Theme.of(context).textTheme.bodySmall),
                     ],
                   ),
                 ),

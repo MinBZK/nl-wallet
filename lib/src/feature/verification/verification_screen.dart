@@ -162,7 +162,7 @@ class VerificationScreen extends StatelessWidget {
         description: locale.verificationScreenCancelSheetDescription(organizationName),
         cancelButtonText: locale.verificationScreenCancelSheetNegativeCta,
         confirmButtonText: locale.verificationScreenCancelSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).errorColor,
+        confirmButtonColor: Theme.of(context).colorScheme.error,
       );
       if (stopped) bloc.add(VerificationStopRequested(bloc.state.flow));
     } else {
