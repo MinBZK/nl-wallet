@@ -22,19 +22,19 @@ class PinHeader extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final textColor = hasError ? Theme.of(context).errorColor : null;
+    final textColor = hasError ? Theme.of(context).colorScheme.error : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.headline2?.copyWith(color: textColor),
+          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: textColor),
         ),
         const SizedBox(height: 8),
         Text(
           description,
-          style: Theme.of(context).textTheme.bodyText1?.copyWith(color: textColor),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: textColor),
         ),
       ],
     );

@@ -50,13 +50,13 @@ class VerificationMissingAttributesPage extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context).verificationMissingAttributesPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).verificationMissingAttributesPageDescription(flow.organization.name),
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],

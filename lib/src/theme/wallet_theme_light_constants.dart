@@ -33,7 +33,7 @@ class WalletThemeConstants {
     shape: const Border(bottom: BorderSide(color: Color(0xFFE8EAEF))),
     foregroundColor: const Color(0xDE000000),
     iconTheme: const IconThemeData(color: Color(0xFF152A62)),
-    titleTextStyle: textTheme.subtitle1,
+    titleTextStyle: textTheme.titleMedium,
   );
 
   // Bottom navigation bar theme
@@ -95,17 +95,17 @@ class WalletThemeConstants {
 
   // Text theme
   static final textTheme = const TextTheme(
-    headline1: _headline1TextStyle,
-    headline2: _headline2TextStyle,
-    headline3: _headline3TextStyle,
-    headline4: _headline4TextStyle,
-    subtitle1: _subtitle1TextStyle,
-    subtitle2: _subtitle2TextStyle,
-    bodyText1: _body1TextStyle,
-    bodyText2: _body2TextStyle,
-    button: _buttonTextStyle,
-    caption: _captionTextStyle,
-    overline: _overlineTextStyle,
+    displayLarge: _headline1TextStyle,
+    displayMedium: _headline2TextStyle,
+    displaySmall: _headline3TextStyle,
+    headlineMedium: _headline4TextStyle,
+    titleMedium: _subtitle1TextStyle,
+    titleSmall: _subtitle2TextStyle,
+    bodyLarge: _body1TextStyle,
+    bodyMedium: _body2TextStyle,
+    labelLarge: _buttonTextStyle,
+    bodySmall: _captionTextStyle,
+    labelSmall: _overlineTextStyle,
   ).apply(
     bodyColor: const Color(0xFF152A62),
     displayColor: const Color(0xFF152A62),

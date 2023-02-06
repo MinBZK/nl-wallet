@@ -15,7 +15,7 @@ class DataAttributeRowMissing extends StatelessWidget {
         const SizedBox(width: 16),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyText1,
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
       ],
     );

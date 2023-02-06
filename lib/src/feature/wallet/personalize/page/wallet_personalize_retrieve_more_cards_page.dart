@@ -58,13 +58,13 @@ class WalletPersonalizeRetrieveMoreCardsPage extends StatelessWidget {
         children: [
           Text(
             locale.walletPersonalizeRetrieveMoreCardsPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             locale.walletPersonalizeRetrieveMoreCardsPageDescription,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 16),

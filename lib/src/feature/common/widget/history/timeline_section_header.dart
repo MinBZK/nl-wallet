@@ -21,7 +21,7 @@ class TimelineSectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
             child: Text(
               DateFormat(DateFormat.YEAR_MONTH, locale.localeName).format(dateTime).capitalize(),
-              style: Theme.of(context).textTheme.overline,
+              style: Theme.of(context).textTheme.labelSmall,
             ),
           ),
           const Divider(height: 1),

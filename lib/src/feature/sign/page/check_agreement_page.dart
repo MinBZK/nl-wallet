@@ -76,13 +76,13 @@ class CheckAgreementPage extends StatelessWidget {
           const SizedBox(height: 32),
           Text(
             AppLocalizations.of(context).checkAgreementPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).checkAgreementPageSubtitle,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -116,7 +116,7 @@ class CheckAgreementPage extends StatelessWidget {
                 flow.organization.shortName,
                 flow.trustProvider.name,
               ),
-              style: Theme.of(context).textTheme.bodyText1,
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           )
         ],

@@ -85,7 +85,7 @@ class QrScanTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: Theme.of(context).errorColor),
+            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),

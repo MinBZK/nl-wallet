@@ -35,11 +35,11 @@ class HistoryDetailHeader extends StatelessWidget {
               children: [
                 Text(
                   organization.shortName,
-                  style: Theme.of(context).textTheme.subtitle1,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 Text(
                   TimeAgoFormatter.format(AppLocalizations.of(context), dateTime),
-                  style: Theme.of(context).textTheme.bodyText1,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
             ),

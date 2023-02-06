@@ -49,13 +49,13 @@ class _WalletPersonalizeScanIdPageState extends State<WalletPersonalizeScanIdPag
         children: [
           Text(
             locale.walletPersonalizeScanIdPageTitle,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
             locale.walletPersonalizeScanIdPageDescription,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 32),

@@ -187,14 +187,14 @@ class CardSummaryScreen extends StatelessWidget {
                     children: [
                       Text(
                         AppLocalizations.of(context).cardSummaryScreenDataAttributesTitle,
-                        style: Theme.of(context).textTheme.subtitle1,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8.0),
                       Text(
                         highlight.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyText1,
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       Visibility(
                         visible: highlight.subtitle?.isNotEmpty ?? false,
@@ -236,14 +236,14 @@ class CardSummaryScreen extends StatelessWidget {
               children: [
                 Text(
                   AppLocalizations.of(context).cardSummaryScreenShareHistoryTitle,
-                  style: Theme.of(context).textTheme.subtitle1,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8.0),
                 Text(
                   _createInteractionText(context, attribute),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyText1,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
             ),

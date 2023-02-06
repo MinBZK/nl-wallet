@@ -77,19 +77,19 @@ class CheckDataOfferingPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Text(
                 overline,
-                style: Theme.of(context).textTheme.overline?.copyWith(color: Theme.of(context).primaryColor),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).primaryColor),
               ),
             ),
           Text(
             title,
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
           ),
           if (subtitle != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodyText1,
+                style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
             )

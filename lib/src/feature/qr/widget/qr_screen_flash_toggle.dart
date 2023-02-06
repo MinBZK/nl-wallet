@@ -13,7 +13,7 @@ class QrScreenFlashToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: ReverseAnimation(DefaultTabController.of(context)!.animation!),
+      opacity: ReverseAnimation(DefaultTabController.of(context).animation!),
       child: BlocBuilder<FlashlightCubit, FlashlightState>(
         builder: (context, state) {
           if (state is FlashlightInitial) return const SizedBox.shrink();

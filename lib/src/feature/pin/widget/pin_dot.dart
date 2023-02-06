@@ -20,7 +20,7 @@ class PinDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: checked ? color : Colors.transparent,
-        border: Border.all(color: color, width: 2, strokeAlign: StrokeAlign.inside),
+        border: Border.all(color: color, width: 2, strokeAlign: BorderSide.strokeAlignInside),
       ),
     );
   }

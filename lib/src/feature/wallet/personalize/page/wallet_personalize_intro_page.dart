@@ -29,13 +29,13 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
           Text(
             locale.walletPersonalizeIntroPageTitle,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headline3,
+            style: Theme.of(context).textTheme.displaySmall,
           ),
           const SizedBox(height: 8),
           Text(
             locale.walletPersonalizeIntroPageDescription,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
           const Spacer(),
           Image.asset(_kIllustrationPath),

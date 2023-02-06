@@ -28,17 +28,17 @@ class DocumentSection extends StatelessWidget {
         children: [
           Text(
             document.title,
-            style: Theme.of(context).textTheme.subtitle1,
+            style: Theme.of(context).textTheme.titleMedium,
             textAlign: TextAlign.start,
           ),
           Text(
             organization.name,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           Text(
             document.fileName,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),

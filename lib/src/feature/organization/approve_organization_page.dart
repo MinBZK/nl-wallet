@@ -77,7 +77,7 @@ class ApproveOrganizationPage extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             _headerTitleText(context),
-            style: Theme.of(context).textTheme.headline2,
+            style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ],
@@ -105,13 +105,13 @@ class ApproveOrganizationPage extends StatelessWidget {
         children: [
           Text(
             organization.shortName,
-            style: Theme.of(context).textTheme.subtitle1,
+            style: Theme.of(context).textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             organization.description,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
         ],

@@ -14,7 +14,7 @@ class VersionText extends StatelessWidget {
           final data = snapshot.data!;
           return Text(
             AppLocalizations.of(context).generalVersionText(data.version, data.buildNumber),
-            style: Theme.of(context).textTheme.bodyText2,
+            style: Theme.of(context).textTheme.bodyMedium,
           );
         } else {
           return const SizedBox.shrink();

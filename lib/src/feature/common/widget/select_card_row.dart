@@ -36,10 +36,10 @@ class SelectCardRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(card.front.title, style: Theme.of(context).textTheme.subtitle1),
+                      Text(card.front.title, style: Theme.of(context).textTheme.titleMedium),
                       Text(
                         card.front.subtitle ?? card.front.info ?? '',
-                        style: Theme.of(context).textTheme.bodyText1,
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ],
                   ),
@@ -47,7 +47,7 @@ class SelectCardRow extends StatelessWidget {
                 Checkbox(
                   value: isSelected,
                   onChanged: (checked) => onCardSelectionToggled(card),
-                  fillColor: showError ? MaterialStatePropertyAll(Theme.of(context).errorColor) : null,
+                  fillColor: showError ? MaterialStatePropertyAll(Theme.of(context).colorScheme.error) : null,
                 ),
                 const SizedBox(width: 8),
               ],

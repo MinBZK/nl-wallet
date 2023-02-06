@@ -60,7 +60,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Text(
         AppLocalizations.of(context).verificationConfirmDataAttributesPageShareDataTitle,
-        style: Theme.of(context).textTheme.headline2,
+        style: Theme.of(context).textTheme.displayMedium,
         textAlign: TextAlign.start,
       ),
     );

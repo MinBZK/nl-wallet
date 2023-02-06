@@ -44,7 +44,7 @@ class DigidSplashPage extends StatelessWidget {
                     children: [
                       Text(
                         locale.mockDigidScreenTitle,
-                        style: Theme.of(context).textTheme.headline2?.copyWith(color: Colors.black),
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.black),
                       ),
                     ],
                   ),

@@ -83,12 +83,12 @@ class PinPage extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context).pinScreenHeader,
-            style: Theme.of(context).textTheme.headline3,
+            style: Theme.of(context).textTheme.displaySmall,
             textAlign: TextAlign.center,
           ),
           Text(
             '' /* makes sure the UI doesn't jump around */,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       );
@@ -98,12 +98,12 @@ class PinPage extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context).pinScreenErrorHeader,
-            style: Theme.of(context).textTheme.headline3?.copyWith(color: Theme.of(context).errorColor),
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
             textAlign: TextAlign.center,
           ),
           Text(
             AppLocalizations.of(context).pinScreenAttemptsCount(attempts),
-            style: Theme.of(context).textTheme.bodyText1?.copyWith(color: Theme.of(context).errorColor),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
             textAlign: TextAlign.center,
           ),
         ],
