@@ -6,7 +6,9 @@ import 'theme/wallet_theme.dart';
 import 'wallet_routes.dart';
 
 class WalletApp extends StatelessWidget {
-  const WalletApp({super.key});
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  const WalletApp({required this.navigatorKey, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,7 @@ class WalletApp extends StatelessWidget {
         Locale('en', ''), // English, no country code
         Locale('nl', ''), // Dutch, no country code
       ],
+      navigatorKey: navigatorKey,
       onGenerateTitle: (BuildContext context) => AppLocalizations.of(context).appTitle,
       theme: WalletTheme.light,
       onGenerateInitialRoutes: WalletRoutes.initialRoutes,

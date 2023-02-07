@@ -11,6 +11,7 @@ import 'feature/card/overview/bloc/card_overview_bloc.dart';
 import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
+import 'feature/common/widget/do_on_init.dart';
 import 'feature/history/detail/argument/history_detail_screen_argument.dart';
 import 'feature/history/detail/bloc/history_detail_bloc.dart';
 import 'feature/history/detail/history_detail_screen.dart';
@@ -23,6 +24,7 @@ import 'feature/issuance/argument/issuance_screen_argument.dart';
 import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
 import 'feature/menu/bloc/menu_bloc.dart';
+import 'feature/navigation/deeplink_service.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_prompt.dart';
@@ -154,7 +156,10 @@ Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
           create: (BuildContext context) => MenuBloc(context.read(), context.read()),
         ),
       ],
-      child: const HomeScreen(),
+      child: DoOnInit(
+        child: const HomeScreen(),
+        onInit: (context) => context.read<DeeplinkService>().processQueue(),
+      ),
     );
 
 WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {

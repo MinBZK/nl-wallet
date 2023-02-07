@@ -6,10 +6,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'src/di/wallet_datasource_provider.dart';
 import 'src/di/wallet_repository_provider.dart';
+import 'src/di/wallet_service_provider.dart';
 import 'src/di/wallet_usecase_provider.dart';
 import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
+
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +27,16 @@ void main() async {
   }
 
   runApp(
-    const WalletDataSourceProvider(
+    WalletDataSourceProvider(
       child: WalletRepositoryProvider(
         child: WalletUseCaseProvider(
-          child: AutoLockObserver(
-            child: WalletApp(),
+          child: WalletServiceProvider(
+            navigatorKey: _navigatorKey,
+            child: AutoLockObserver(
+              child: WalletApp(
+                navigatorKey: _navigatorKey,
+              ),
+            ),
           ),
         ),
       ),
