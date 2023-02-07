@@ -15,6 +15,7 @@ import '../domain/usecase/card/log_card_signing_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_card_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
@@ -30,6 +31,7 @@ import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_name_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
+import '../domain/usecase/wallet/is_wallet_initialized_with_pid.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
@@ -144,6 +146,12 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetWalletCardUpdateIssuanceRequestIdUseCase>(
           create: (context) => GetWalletCardUpdateIssuanceRequestIdUseCase(context.read()),
+        ),
+        RepositoryProvider<DecodeDeeplinkUseCase>(
+          create: (context) => DecodeDeeplinkUseCase(),
+        ),
+        RepositoryProvider<IsWalletInitializedWithPid>(
+          create: (context) => IsWalletInitializedWithPid(context.read(), context.read()),
         ),
       ],
       child: child,

@@ -32,6 +32,7 @@ dependencies:
   screen_brightness: ^0.2.2
   package_info_plus: ^3.0.2
   nfc_manager: ^3.2.0
+  uni_links: ^0.5.1
 
 dev_dependencies:
   flutter_test:
