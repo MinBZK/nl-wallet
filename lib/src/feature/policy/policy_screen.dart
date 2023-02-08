@@ -36,7 +36,7 @@ class PolicyScreen extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     final urlTheme = Theme.of(context).textTheme.bodyLarge!.copyWith(
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).colorScheme.primary,
           decoration: TextDecoration.underline,
         );
     final policyBuilder = PolicyEntriesBuilder(AppLocalizations.of(context), urlTheme);

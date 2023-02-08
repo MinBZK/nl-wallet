@@ -1,26 +1,47 @@
 import 'package:flutter/material.dart';
 
-import 'wallet_theme_light_constants.dart';
+import 'base_wallet_theme.dart';
+import 'dark_wallet_theme.dart';
+import 'light_wallet_theme.dart';
 
 class WalletTheme {
   const WalletTheme._();
 
-  static ThemeData light = ThemeData(
-    colorScheme: WalletThemeConstants.colorScheme,
-    fontFamily: WalletThemeConstants.fontFamily,
-    indicatorColor: WalletThemeConstants.indicatorColor,
-    primaryColor: WalletThemeConstants.colorScheme.primary,
-    primaryColorDark: WalletThemeConstants.primaryColorDark,
-    dividerColor: WalletThemeConstants.dividerColor,
-    scaffoldBackgroundColor: WalletThemeConstants.scaffoldBackgroundColor,
-    appBarTheme: WalletThemeConstants.appBarTheme,
-    bottomNavigationBarTheme: WalletThemeConstants.bottomNavigationBarThemeData,
-    elevatedButtonTheme: WalletThemeConstants.elevatedButtonTheme,
-    floatingActionButtonTheme: WalletThemeConstants.floatingActionButtonTheme,
-    outlinedButtonTheme: WalletThemeConstants.outlinedButtonTheme,
-    textButtonTheme: WalletThemeConstants.textButtonTheme,
-    tabBarTheme: WalletThemeConstants.tabBarTheme,
-    textTheme: WalletThemeConstants.textTheme,
-    scrollbarTheme: WalletThemeConstants.scrollbarTheme,
+  static final ThemeData _baseTheme = ThemeData(
+    useMaterial3: true,
+    fontFamily: BaseWalletTheme.fontFamily,
+    floatingActionButtonTheme: BaseWalletTheme.floatingActionButtonTheme,
+  );
+
+  static ThemeData light = _baseTheme.copyWith(
+    colorScheme: LightWalletTheme.colorScheme,
+    primaryColorDark: LightWalletTheme.primaryColorDark,
+    dividerTheme: LightWalletTheme.dividerTheme,
+    appBarTheme: LightWalletTheme.appBarTheme,
+    bottomNavigationBarTheme: LightWalletTheme.bottomNavigationBarTheme,
+    elevatedButtonTheme: LightWalletTheme.elevatedButtonTheme,
+    outlinedButtonTheme: LightWalletTheme.outlinedButtonTHeme,
+    textButtonTheme: LightWalletTheme.textButtonTheme,
+    tabBarTheme: LightWalletTheme.tabBarTheme,
+    textTheme: LightWalletTheme.textTheme,
+    scrollbarTheme: LightWalletTheme.scrollBarTheme,
+    bottomSheetTheme: LightWalletTheme.bottomSheetTheme,
+    scaffoldBackgroundColor: LightWalletTheme.colorScheme.background,
+  );
+
+  static ThemeData dark = _baseTheme.copyWith(
+    colorScheme: DarkWalletTheme.colorScheme,
+    primaryColorDark: DarkWalletTheme.primaryColorDark,
+    dividerTheme: DarkWalletTheme.dividerTheme,
+    appBarTheme: DarkWalletTheme.appBarTheme,
+    bottomNavigationBarTheme: DarkWalletTheme.bottomNavigationBarTheme,
+    elevatedButtonTheme: DarkWalletTheme.elevatedButtonTheme,
+    outlinedButtonTheme: DarkWalletTheme.outlinedButtonTHeme,
+    textButtonTheme: DarkWalletTheme.textButtonTheme,
+    tabBarTheme: DarkWalletTheme.tabBarTheme,
+    textTheme: DarkWalletTheme.textTheme,
+    scrollbarTheme: DarkWalletTheme.scrollBarTheme,
+    bottomSheetTheme: DarkWalletTheme.bottomSheetTheme,
+    scaffoldBackgroundColor: DarkWalletTheme.colorScheme.background,
   );
 }

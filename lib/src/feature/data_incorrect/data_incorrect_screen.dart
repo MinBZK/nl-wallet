@@ -58,7 +58,7 @@ class DataIncorrectScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(width: 0.5, color: Theme.of(context).dividerColor),
+            top: BorderSide(width: 0.5, color: Theme.of(context).colorScheme.outlineVariant),
           ),
         ),
         height: 72,
