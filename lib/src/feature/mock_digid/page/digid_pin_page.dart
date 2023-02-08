@@ -68,7 +68,7 @@ class DigidPinPage extends StatelessWidget {
               child: Text(
                 AppLocalizations.of(context).mockDigidScreenForgotPinCta,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,
                     ),

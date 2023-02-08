@@ -14,7 +14,7 @@ class DigidSignInWithHeader extends StatelessWidget {
         children: [
           Text(
             locale.mockDigidScreenHeaderTitle,
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Theme.of(context).primaryColor),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(height: 8),
           Text(

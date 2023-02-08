@@ -20,7 +20,7 @@ class InteractionStatusColorMapper {
   static Color map(ThemeData themeData, InteractionStatus status) {
     switch (status) {
       case InteractionStatus.success:
-        return themeData.primaryColor;
+        return themeData.colorScheme.primary;
       case InteractionStatus.rejected:
         return _kNeutralDarkBlueColor;
       case InteractionStatus.failed:
@@ -33,7 +33,7 @@ class SigningStatusColorMapper {
   static Color map(ThemeData themeData, SigningStatus status) {
     switch (status) {
       case SigningStatus.success:
-        return themeData.primaryColor;
+        return themeData.colorScheme.primary;
       case SigningStatus.rejected:
         return _kNeutralDarkBlueColor;
     }

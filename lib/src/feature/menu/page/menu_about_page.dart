@@ -80,9 +80,9 @@ class MenuAboutPage extends StatelessWidget {
           TextSpan(
             text: url,
             style: textStyle?.copyWith(
-              color: Theme.of(context).primaryColor,
+              color: Theme.of(context).colorScheme.primary,
               decoration: TextDecoration.underline,
-              decorationColor: Theme.of(context).primaryColor,
+              decorationColor: Theme.of(context).colorScheme.primary,
             ),
             recognizer: TapGestureRecognizer()
               ..onTap = () => launchUrlString(_kAboutUrl, mode: LaunchMode.externalApplication),

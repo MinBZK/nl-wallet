@@ -63,7 +63,8 @@ class IntroductionProgressStepper extends StatelessWidget {
       height: max(_stepHeight, _selectedStepHeight * size),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: ColorTween(begin: Theme.of(context).primaryColorDark, end: Theme.of(context).primaryColor).lerp(size),
+          color: ColorTween(begin: Theme.of(context).primaryColorDark, end: Theme.of(context).colorScheme.primary)
+              .lerp(size),
           shape: BoxShape.rectangle,
           borderRadius: BorderRadius.circular(_stepHeight),
         ),

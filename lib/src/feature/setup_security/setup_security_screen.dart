@@ -129,7 +129,8 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildPinConfirmationErrorPage(BuildContext context, SetupSecurityPinConfirmationFailed state) {
     final locale = AppLocalizations.of(context);
     final titleStyle = Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error);
-    final descriptionStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error);
+    final descriptionStyle =
+        Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error);
     Widget content;
     if (state.retryAllowed) {
       content = Column(

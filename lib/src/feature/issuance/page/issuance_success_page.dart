@@ -59,7 +59,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: StatusIcon(
             icon: Icons.check,
-            color: Theme.of(context).primaryColor,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(height: 32.0),

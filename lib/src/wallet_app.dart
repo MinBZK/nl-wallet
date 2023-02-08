@@ -23,6 +23,8 @@ class WalletApp extends StatelessWidget {
       ],
       onGenerateTitle: (BuildContext context) => AppLocalizations.of(context).appTitle,
       theme: WalletTheme.light,
+      darkTheme: WalletTheme.dark,
+      themeMode: ThemeMode.light,
       onGenerateInitialRoutes: WalletRoutes.initialRoutes,
       onGenerateRoute: WalletRoutes.routeFactory,
     );

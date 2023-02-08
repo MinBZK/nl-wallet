@@ -19,7 +19,7 @@ class DigidSplashPage extends StatelessWidget {
           SafeArea(child: _buildBody(context)),
         ],
       ),
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: Theme.of(context).colorScheme.primary,
     );
   }
 

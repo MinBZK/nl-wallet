@@ -77,7 +77,7 @@ class CheckDataOfferingPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Text(
                 overline,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).primaryColor),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
               ),
             ),
           Text(
