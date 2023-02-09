@@ -1,47 +1,70 @@
 stages:
-  - analyze
   - test
   - build
 
 analyze-app:
-  stage: analyze
+  stage: test
   only:
-    refs:
-      - merge_requests
-      - main
+    - merge_requests
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9d378696afdfd3d5d35b73d644de6abbf9871fe2d0d69cc44d5ba84c6d5f1c52"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:a4ee5bd0eaeb3511548790cdf752a28373579c13a755091d27077da7e81c50f1"
   script:
     - set -euxo pipefail
     - flutter --version
     - flutter analyze
-
+    
 test-app:
   stage: test
   only:
-    refs:
-      - merge_requests
-      - main
+    - merge_requests
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9d378696afdfd3d5d35b73d644de6abbf9871fe2d0d69cc44d5ba84c6d5f1c52"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:a4ee5bd0eaeb3511548790cdf752a28373579c13a755091d27077da7e81c50f1"
   script:
     - set -euxo pipefail
     - flutter --version
     - flutter test
 
-# TODO: Use fastlane for building
-build-app:
+build-android-app:
   stage: build
   only:
-    refs:
-      - main
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter@sha256:14a22d8126603be0b1930ddd536f2c094040711c0f44d57c2536bd994a295a1e"
-  script:
-    - set -euxo pipefail
-    - flutter --version
-    - flutter pub get
-    - flutter build apk
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter@sha256:43ddccf2cc4f68e147c249f4c8942d594460c872771e7fd64b9aa3d4a9cb6285"
   artifacts:
+    name: "wallet-android"
     paths:
-      - "build/app/outputs/apk/release/app-release.apk"
+      - "*.apk"
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane disable_flutter_analytics
+    - bundle exec fastlane android ci_build
+    - mv build/app/outputs/apk/release/*.apk .
+
+build-ios-app:
+  stage: build
+  only:
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  when: manual
+  tags:
+    - macos
+  artifacts:
+    name: "wallet-ios"
+    paths:
+      - "*.ipa"
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane disable_flutter_analytics
+    - bundle exec fastlane ios ci_build
+    - mv build/ios/ipa/*.ipa .
