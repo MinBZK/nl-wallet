@@ -57,7 +57,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => CreateWalletUseCase(context.read()),
         ),
         RepositoryProvider<CheckIsValidPinUseCase>(
-          create: (context) => CheckIsValidPinUseCase(),
+          create: (context) => CheckIsValidPinUseCase(context.read()),
         ),
         RepositoryProvider<ConfirmTransactionUseCase>(
           create: (context) => ConfirmTransactionUseCase(context.read()),

@@ -55,7 +55,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   Future<void> _onSelectPinDigitEvent(event, emit) async {
     _newPin += event.digit.toString();
     if (_newPin.length == kPinDigits) {
-      if (checkIsValidPinUseCase.invoke(_newPin)) {
+      if (await checkIsValidPinUseCase.invoke(_newPin)) {
         emit(const SetupSecurityPinConfirmationInProgress(0));
       } else {
         _newPin = '';
