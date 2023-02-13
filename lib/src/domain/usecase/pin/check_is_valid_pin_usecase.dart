@@ -1,14 +1,9 @@
-import 'package:flutter/widgets.dart';
-
-import '../../../wallet_constants.dart';
+import '../../../rust_core.dart';
 
 class CheckIsValidPinUseCase {
-  CheckIsValidPinUseCase();
+  final RustCore _rustCore;
 
-  bool invoke(String pin) {
-    if (pin.characters.toSet().length <= 1) return false;
-    if (pin == '123456') return false;
-    if (pin == '654321') return false;
-    return pin.length == kPinDigits;
-  }
+  CheckIsValidPinUseCase(this._rustCore);
+
+  Future<bool> invoke(String pin) async => _rustCore.isValidPin(pin: pin);
 }
