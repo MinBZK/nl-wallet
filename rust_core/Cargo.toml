@@ -9,6 +9,17 @@ crate-type = ["staticlib","cdylib"]
 
 [dependencies]
 flutter_rust_bridge = "1"
+anyhow = "1.0.66"
+p256 = { version = "0.11.1", features = ["pkcs8", "pem", "serde"] }
+ring = "0.16.20"
+sha2 = "0.10.6"
+serde = { version = "1.0.147", features = ["serde_derive"] }
+serde_json = { version = "1.0.92", features = ["raw_value"] }
+base64 = "0.21.0"
+rand = "0.8.5"
+jsonwebtoken = "8.2.0"
+der = { version = "0.6.1", features = ["alloc"] }
+once_cell = "1.17.0"
 
 [build-dependencies]
 flutter_rust_bridge_codegen = "1"
