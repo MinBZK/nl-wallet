@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../data/repository/wallet/wallet_repository.dart';
 import '../../../rust_core.dart';
 
