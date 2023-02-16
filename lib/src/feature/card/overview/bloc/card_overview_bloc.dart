@@ -37,6 +37,6 @@ class CardOverviewBloc extends Bloc<CardOverviewEvent, CardOverviewState> {
   }
 
   void _onCardOverviewLockWalletPressed(event, emit) async {
-    lockWalletUseCase.lock();
+    lockWalletUseCase.invoke();
   }
 }

@@ -60,6 +60,6 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
   }
 
   void _onLockWalletPressed(event, emit) async {
-    lockWalletUseCase.lock();
+    lockWalletUseCase.invoke();
   }
 }

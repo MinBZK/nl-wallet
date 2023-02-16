@@ -17,7 +17,7 @@ class CardSummaryBloc extends Bloc<CardSummaryEvent, CardSummaryState> {
   void _onCardSummaryLoadTriggered(CardSummaryLoadTriggered event, emit) async {
     emit(const CardSummaryLoadInProgress());
     try {
-      WalletCardSummary summary = await getWalletCardSummaryUseCase.getSummary(event.cardId);
+      WalletCardSummary summary = await getWalletCardSummaryUseCase.invoke(event.cardId);
       emit(CardSummaryLoadSuccess(summary));
     } catch (error) {
       emit(CardSummaryLoadFailure(event.cardId));
