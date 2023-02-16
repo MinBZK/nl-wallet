@@ -37,6 +37,8 @@ dependencies:
   freezed_annotation: ^2.2.0
   uni_links: ^0.5.1
   meta: ^1.8.0
+  core_domain:
+    path: ./pub/core_domain
 
 dev_dependencies:
   flutter_test:
