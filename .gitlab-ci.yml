@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - deploy
 
 analyze-app:
   stage: test
@@ -74,10 +75,35 @@ build-ios-app:
     name: "wallet-ios"
     paths:
       - "*.ipa"
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
-    - mv build/ios/ipa/*.ipa .
+
+deploy-ios-app:
+  stage: deploy
+  only:
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  needs:
+    - build-ios-app
+  dependencies:
+    - build-ios-app
+  tags:
+    - macos
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane disable_flutter_analytics
+    - bundle exec fastlane ios ci_deploy
