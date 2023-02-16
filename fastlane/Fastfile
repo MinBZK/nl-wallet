@@ -1,11 +1,18 @@
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
+INTERNAL_APP_IDENTIFIER = "nl.ictu.edi.wallet"
+BRANCH_IDENTIFER_MAP = { "main" => "latest" }
+APP_NAME = "NL Wallet"
 
 # opt out of analytics
 opt_out_usage
 
 # do not generate README.md
 skip_docs
+
+private_lane :get_app_identifier do
+  CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+end
 
 private_lane :get_local_version_and_build do
   Dir.chdir("..") do
@@ -21,17 +28,32 @@ private_lane :ci_get_build do
 end
 
 private_lane :ci_get_app_identifier_and_version do
-  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-  UI.user_error!("No app_identifier set") unless app_identifier
+  UI.user_error!("No app_identifier set") unless get_app_identifier
 
   ref_name = ENV["CI_COMMIT_REF_NAME"]
   UI.user_error!("No CI_COMMIT_REF_NAME environment variable set") unless ref_name
 
   release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
 
-  app_identifier = "#{app_identifier}.#{release}" unless release == "release"
+  app_identifier = "#{INTERNAL_APP_IDENTIFIER}.#{BRANCH_IDENTIFER_MAP[release] || release}" unless release == "release"
 
   [app_identifier, version]
+end
+
+private_lane :ci_get_basic_auth do
+  registry_user = ENV["CI_REGISTRY_USER"]
+  UI.user_error!("No CI_REGISTRY_USER environment variable set") unless registry_user
+
+  job_token = ENV["CI_JOB_TOKEN"]
+  UI.user_error!("No CI_JOB_TOKEN environment variable set") unless job_token
+
+  Base64.strict_encode64("#{registry_user}:#{job_token}")
+end
+
+private_lane :ci_get_k8s_secrets do |options|
+  secrets = sh("kubectl", "get", "secret", options[:name], "-o" ,"jsonpath=\"{.data}\"", log: false)
+
+  JSON.parse(secrets[1...-1]).map { |key, value| [key, Base64.strict_decode64(value)] }.to_h
 end
 
 lane :disable_flutter_analytics do 
@@ -50,7 +72,7 @@ platform :android do
 
   desc "Build Android app without signing"
   lane :build do |options|
-    package_name = options[:package_name] || CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    package_name = options[:package_name] || get_app_identifier
     UI.user_error!("No app_identifier or package_name option set") unless package_name
 
     local_version, local_build = get_local_version_and_build
@@ -73,43 +95,72 @@ platform :ios do
   lane :ci_build do
     build = ci_get_build
     app_identifier, version = ci_get_app_identifier_and_version
+    match_basic_auth = ci_get_basic_auth
 
-    build(bundle_id: app_identifier, build: build, version: version)
+    ENV["MATCH_PASSWORD"] = ci_get_k8s_secrets(name: "nl-wallet-fastlane-match")["password"]
+
+    build(
+      bundle_id: app_identifier,
+      build: build,
+      version: version,
+      match_basic_auth: match_basic_auth,
+      keychain_password: "admin" # hardcoded for now
+    )
   end
 
-  desc "Build iOS app without signing"
+  desc "Deploy iOS app from GitLab CI"
+  lane :ci_deploy do
+    app_identifier, version = ci_get_app_identifier_and_version
+
+    api_key_secrets = ci_get_k8s_secrets(name: "nl-wallet-app-store-api-key")
+    api_key = app_store_connect_api_key(
+      key_id: api_key_secrets["key_id"],
+      issuer_id: api_key_secrets["issuer_id"],
+      key_content: api_key_secrets["private_key"]
+    )
+
+    deploy(bundle_id: app_identifier)
+  end
+
+  desc "Build iOS app"
   lane :build do |options|
-    bundle_id = options[:bundle_id] || CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    bundle_id = options[:bundle_id] || get_app_identifier
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = options[:version] || local_version
+    name_suffix = options[:name_suffix]
 
     Dir.chdir("..") do
       sh("flutter", "pub", "get")
-      # TODO: implement changing the app name as well, see android section above
+
       sh("flutter", "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
+      if name_suffix
+        sh("flutter", "pub", "run", "rename", "--target", "ios", "--appname", "#{APP_NAME} (#{name_suffix})")
+      end
+
       sh("flutter", "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign")
     end
 
-    convert_archive_to_unsigned_ipa
-
-    Dir.chdir("..") do
-      sh("mv", "build/ios/ipa/wallet-unsigned.zip", "build/ios/ipa/#{bundle_id}-#{version}.ipa")
-    end
+    match(
+      type: "appstore",
+      readonly: true,
+      git_basic_authorization: options[:match_basic_auth],
+      keychain_password: options[:keychain_password]
+    )
+    build_app(
+      skip_build_archive: true,
+      archive_path: "build/ios/archive/Runner.xcarchive",
+      output_name: "#{bundle_id}-#{version}.ipa"
+    )
   end
 
-  # Apple does not let us create an unsigned .ipa, so we have to do it manually
-  private_lane :convert_archive_to_unsigned_ipa do
-    Dir.chdir("..") do
-      sh("mv", "build/ios/archive/Runner.xcarchive/Products/Applications", "build/ios/archive/Runner.xcarchive/Products/Payload")
-    end
-    
-    zip(path: "build/ios/archive/Runner.xcarchive/Products/Payload", output_path: "build/ios/ipa/wallet-unsigned.zip")
+  desc "Deploy iOS app"
+  lane :deploy do |options|
+    bundle_id = options[:bundle_id] || get_app_identifier
+    UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
-    Dir.chdir("..") do
-      sh("mv", "build/ios/archive/Runner.xcarchive/Products/Payload", "build/ios/archive/Runner.xcarchive/Products/Applications")
-    end
+    upload_to_testflight(skip_submission: true, app_identifier: bundle_id)
   end
 end

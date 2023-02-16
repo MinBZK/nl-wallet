@@ -44,6 +44,10 @@ app.*.map.json
 /android/app/release
 /android/app/src/main/jniLibs
 
+# iOS builds
+/*.ipa
+/*.dSYM.zip
+
 # Ruby gems
 /vendor/
 
@@ -52,3 +56,4 @@ app.*.map.json
 **/fastlane/Preview.html
 **/fastlane/screenshots
 **/fastlane/test_output
+/.env*
