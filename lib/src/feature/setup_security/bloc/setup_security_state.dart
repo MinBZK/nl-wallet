@@ -20,7 +20,13 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
 
   final bool afterBackPressed;
 
-  const SetupSecuritySelectPinInProgress(this.enteredDigits, {this.afterBackPressed = false});
+  final bool afterBackspacePressed;
+
+  const SetupSecuritySelectPinInProgress(
+    this.enteredDigits, {
+    this.afterBackPressed = false,
+    this.afterBackspacePressed = false,
+  });
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -40,7 +46,9 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
 class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
   final int enteredDigits;
 
-  const SetupSecurityPinConfirmationInProgress(this.enteredDigits);
+  final bool afterBackspacePressed;
+
+  const SetupSecurityPinConfirmationInProgress(this.enteredDigits, {this.afterBackspacePressed = false});
 
   @override
   bool get canGoBack => true;

@@ -363,6 +363,8 @@
   "mockDigidScreenHeaderSubtitle": "You are logging in at:",
   "mockDigidScreenHeaderTitle": "Login",
   "mockDigidScreenTitle": "Securely login with DigiD",
+  "pinKeyboardWCAGBackspaceLabel": "backspace",
+  "pinKeyboardWCAGDigitKeyTapHint": "select",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {
@@ -434,6 +436,22 @@
   "setupSecurityConfirmationErrorPageTitle": "This code is different",
   "setupSecurityConfirmationPageTitle": "Repeat your code",
   "setupSecurityScreenTitle": "Setup security",
+  "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} of {totalDigits} digits supplied",
+  "@setupSecurityScreenWCAGEnteredDigitsAnnouncement": {
+    "placeholders": {
+      "enteredDigits": {
+        "example": "3",
+        "type": "int"
+      },
+      "totalDigits": {
+        "example": "6",
+        "type": "int"
+      }
+    }
+  },
+  "setupSecurityScreenWCAGPinChosenAnnouncement": "Pin chosen. Repeat to confirm.",
+  "setupSecurityScreenWCAGPinConfirmationFailedAnnouncement": "Confirmation pin doesn't match, try again",
+  "setupSecurityScreenWCAGPinTooSimpleAnnouncement": "Chosen pin too simple. Try again.",
   "setupSecuritySelectPinErrorPageDescription": "Choose another code",
   "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
   "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",

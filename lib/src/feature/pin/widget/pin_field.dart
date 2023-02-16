@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'pin_dot.dart';
 
@@ -14,14 +15,18 @@ class PinField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(
-        digits,
-        (index) => PinDot(
-          checked: index < enteredDigits,
-          key: ValueKey(index),
-          color: Theme.of(context).colorScheme.onBackground,
+    final locale = AppLocalizations.of(context);
+    return Semantics(
+      label: locale.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, digits),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          digits,
+          (index) => PinDot(
+            checked: index < enteredDigits,
+            key: ValueKey(index),
+            color: Theme.of(context).colorScheme.onBackground,
+          ),
         ),
       ),
     );

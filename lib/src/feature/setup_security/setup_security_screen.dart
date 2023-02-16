@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
@@ -43,14 +45,43 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+    return ExcludeSemantics(
+      child: BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      ),
     );
   }
 
   Widget _buildPage() {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+    return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
+      listener: (context, state) async {
+        if (!MediaQuery.of(context).accessibleNavigation) return;
+        final locale = AppLocalizations.of(context);
+        if (state is SetupSecuritySelectPinInProgress) {
+          if (state.afterBackspacePressed) {
+            announceEnteredDigits(context, state.enteredDigits);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            announceEnteredDigits(context, state.enteredDigits);
+          }
+        }
+        if (state is SetupSecurityPinConfirmationInProgress) {
+          if (state.afterBackspacePressed) {
+            announceEnteredDigits(context, state.enteredDigits);
+          } else if (state.enteredDigits == 0) {
+            await Future.delayed(const Duration(seconds: 1));
+            SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            announceEnteredDigits(context, state.enteredDigits);
+          }
+        }
+        if (state is SetupSecuritySelectPinFailed) {
+          SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
+        }
+        if (state is SetupSecurityPinConfirmationFailed) {
+          SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
+        }
+      },
       builder: (context, state) {
         Widget? result;
         if (state is SetupSecuritySelectPinInProgress) result = _buildSelectPinPage(context, state);
@@ -187,6 +218,14 @@ class SetupSecurityScreen extends StatelessWidget {
           )
         ],
       ),
+    );
+  }
+
+  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+    var locale = AppLocalizations.of(context);
+    SemanticsService.announce(
+      locale.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      TextDirection.ltr,
     );
   }
 }
