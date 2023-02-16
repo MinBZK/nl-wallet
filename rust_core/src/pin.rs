@@ -1,18 +1,11 @@
+use flutter_data_types::PinError;
+
 // The expected length of the pin code
 const EXACT_LENGTH: usize = 6;
 // The minimum number of unique digits
 const MIN_UNIQUE_DIGITS: usize = 2;
 // The radix used to parse a digit, 10 for decimal (16 for hexadecimal)
 const RADIX: usize = 10;
-
-#[derive(Debug, PartialEq)]
-pub enum PinError {
-    NonDigits,
-    InvalidLength,
-    TooLittleUniqueDigits,
-    AscendingDigits,
-    DescendingDigits,
-}
 
 /// This function will check whether the pin has a valid length.
 fn pin_length_should_be_correct(pin: &str) -> Result<(), PinError> {
