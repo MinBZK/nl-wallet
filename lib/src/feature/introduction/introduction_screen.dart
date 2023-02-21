@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -69,7 +70,11 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             _buildAppSecurityPage(context),
           ],
         ),
-        _buildBackButton(),
+        Semantics(
+          sortKey: const OrdinalSortKey(-1),
+          explicitChildNodes: true,
+          child: _buildBackButton(),
+        ),
         Align(
           alignment: Alignment.bottomCenter,
           child: Column(
@@ -128,31 +133,39 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       return _buildPrivacyPolicyCta(context, opacity.toDouble());
     }
     // Empty button, to make sure content above the 'secondary' button doesn't move around.
-    return const TextButton(onPressed: null, child: Text(''));
+    return const ExcludeSemantics(child: TextButton(onPressed: null, child: Text('')));
   }
 
   Widget _buildLanguageButton(double opacity) {
     final Widget result;
+    var languageButton = TextIconButton(
+      icon: Icons.language,
+      iconPosition: IconPosition.start,
+      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      centerChild: false,
+      child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
+    );
     if (kDebugMode) {
-      result = TextIconButton(
-        icon: Icons.skip_next,
-        iconPosition: IconPosition.start,
-        onPressed: () async {
-          final navigator = Navigator.of(context);
-          await context.read<SetupMockedWalletUseCase>().invoke();
-          navigator.pushReplacementNamed(WalletRoutes.homeRoute);
-        },
-        centerChild: false,
-        child: const Text('SKIP INTRO (DEV ONLY)'),
+      result = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          languageButton,
+          const SizedBox(width: 16),
+          TextIconButton(
+            icon: Icons.skip_next,
+            iconPosition: IconPosition.start,
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await context.read<SetupMockedWalletUseCase>().invoke();
+              navigator.pushReplacementNamed(WalletRoutes.homeRoute);
+            },
+            centerChild: false,
+            child: const Text('SKIP (DEV)'),
+          ),
+        ],
       );
     } else {
-      result = TextIconButton(
-        icon: Icons.language,
-        iconPosition: IconPosition.start,
-        onPressed: () => PlaceholderScreen.show(context, secured: false),
-        centerChild: false,
-        child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
-      );
+      result = languageButton;
     }
     return Opacity(opacity: opacity, child: result);
   }
@@ -199,24 +212,39 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildBackButton() {
-    final backButton = SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.hardEdge,
+    /// Slightly awkward Widget Setup to make sure tap target is 48px (accessibility requirement)
+    final backButton = SizedBox(
+      width: 48,
+      height: 48,
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Semantics(
+          excludeSemantics: _currentPage < 1.0,
+          button: true,
+          tooltip: AppLocalizations.of(context).generalWCAGBack,
           child: InkWell(
             onTap: () => _onBackPressed(context),
-            child: Ink(
-              width: 32,
-              height: 32,
-              child: const Icon(Icons.arrow_back),
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Theme.of(context).colorScheme.background,
+              ),
+              child: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
             ),
           ),
         ),
       ),
     );
-    return Opacity(opacity: (_currentPage).clamp(0.0, 1.0), child: backButton);
+    return Opacity(
+      opacity: (_currentPage).clamp(0.0, 1.0),
+      child: SafeArea(child: backButton),
+    );
   }
 }
