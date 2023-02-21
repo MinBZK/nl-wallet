@@ -56,6 +56,7 @@ class IntroductionPage extends StatelessWidget {
         title,
         style: Theme.of(context).textTheme.displayLarge,
         textAlign: TextAlign.center,
+        textScaleFactor: 1,
       ),
     );
   }
