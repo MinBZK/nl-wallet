@@ -65,6 +65,26 @@ impl JwtClaims for RegistrationChallengeClaims {
     }
 }
 
+pub trait AccountServerClient {
+    fn registration_challenge(&self) -> Result<Vec<u8>>;
+    fn register(
+        &self,
+        registration_message: WalletSigned<Registration>,
+    ) -> Result<WalletCertificate>;
+}
+
+impl AccountServerClient for AccountServer {
+    fn registration_challenge(&self) -> Result<Vec<u8>> {
+        AccountServer::registration_challenge(&self)
+    }
+    fn register(
+        &self,
+        registration_message: WalletSigned<Registration>,
+    ) -> Result<WalletCertificate> {
+        AccountServer::register(&self, registration_message)
+    }
+}
+
 impl AccountServer {
     pub fn new(privkey: Vec<u8>, pin_hash_salt: Vec<u8>, name: String) -> Result<AccountServer> {
         let pubkey = SigningKey::from_pkcs8_der(&privkey)

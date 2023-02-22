@@ -16,7 +16,7 @@ impl HWBoundSigningKey for SigningKey {
     }
 }
 
-const WALLET: Lazy<Mutex<Wallet<SigningKey>>> = Lazy::new(|| {
+const WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
     let account_server_privkey = SigningKey::random(&mut OsRng);
     let account_server_pubkey = account_server_privkey
         .verifying_key()

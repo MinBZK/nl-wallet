@@ -2,7 +2,7 @@ pub mod pin;
 pub mod pin_key;
 pub mod signed;
 
-use crate::wp::{instructions, AccountServer, WalletCertificate};
+use crate::wp::{instructions, AccountServerClient, WalletCertificate};
 
 use anyhow::Result;
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
@@ -14,27 +14,21 @@ pub trait HWBoundSigningKey: Signer<Signature> {
     fn verifying_key(&self) -> VerifyingKey;
 }
 
-pub struct Wallet<T>
-where
-    T: HWBoundSigningKey,
-{
-    account_server: AccountServer,
+pub struct Wallet<T, S> {
+    account_server: T,
     account_server_pubkey: Vec<u8>,
     registration_cert: Option<WalletCertificate>,
 
     pin_salt: Vec<u8>,
-    hw_privkey: T,
+    hw_privkey: S,
 }
 
-impl<T> Wallet<T>
+impl<T, S> Wallet<T, S>
 where
-    T: HWBoundSigningKey,
+    T: AccountServerClient,
+    S: HWBoundSigningKey,
 {
-    pub fn new(
-        account_server: AccountServer,
-        account_server_pubkey: Vec<u8>,
-        hw_privkey: T,
-    ) -> Wallet<T> {
+    pub fn new(account_server: T, account_server_pubkey: Vec<u8>, hw_privkey: S) -> Wallet<T, S> {
         Wallet {
             account_server,
             account_server_pubkey,
