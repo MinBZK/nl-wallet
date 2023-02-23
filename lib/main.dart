@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'environment.dart';
 import 'src/di/wallet_bloc_provider.dart';
 import 'src/di/wallet_datasource_provider.dart';
 import 'src/di/wallet_repository_provider.dart';
@@ -26,6 +27,7 @@ void main() async {
   runApp(
     WalletDataSourceProvider(
       child: WalletRepositoryProvider(
+        provideMocks: Environment.mockRepositories,
         child: WalletUseCaseProvider(
           child: WalletServiceProvider(
             navigatorKey: _navigatorKey,
