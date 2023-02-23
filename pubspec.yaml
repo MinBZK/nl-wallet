@@ -39,6 +39,7 @@ dependencies:
   meta: ^1.8.0
   core_domain:
     path: ./pub/core_domain
+  shared_preferences: ^2.0.17
 
 dev_dependencies:
   flutter_test:
