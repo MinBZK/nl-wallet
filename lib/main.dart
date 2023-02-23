@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'src/di/wallet_bloc_provider.dart';
 import 'src/di/wallet_datasource_provider.dart';
 import 'src/di/wallet_repository_provider.dart';
 import 'src/di/wallet_service_provider.dart';
@@ -32,9 +33,11 @@ void main() async {
         child: WalletUseCaseProvider(
           child: WalletServiceProvider(
             navigatorKey: _navigatorKey,
-            child: AutoLockObserver(
-              child: WalletApp(
-                navigatorKey: _navigatorKey,
+            child: WalletBlocProvider(
+              child: AutoLockObserver(
+                child: WalletApp(
+                  navigatorKey: _navigatorKey,
+                ),
               ),
             ),
           ),

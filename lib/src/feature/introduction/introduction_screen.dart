@@ -141,7 +141,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     var languageButton = TextIconButton(
       icon: Icons.language,
       iconPosition: IconPosition.start,
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
       centerChild: false,
       child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
     );

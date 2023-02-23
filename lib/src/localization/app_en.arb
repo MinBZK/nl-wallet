@@ -215,6 +215,7 @@
   "introductionAppSecurityPageTitle": "Only you can access your data",
   "introductionLanguageSelectCta": "English",
   "introductionNextPageCta": "Next",
+  "changeLanguageScreenTitle": "Select a language",
   "introductionPrivacyPolicyCta": "Privacy policy",
   "issuanceCheckCardPageConfirmCta": "Yes, next",
   "issuanceCheckCardPageOverline": "Card {current} of {total}",

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/data_highlight_repository.dart';
@@ -11,6 +12,8 @@ import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
+import '../data/repository/language/impl/language_repository_impl.dart';
+import '../data/repository/language/language_repository.dart';
 import '../data/repository/qr/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/sign/mock_sign_request_repository.dart';
@@ -57,6 +60,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<SignRequestRepository>(
           create: (context) => MockSignRequestRepository(context.read()),
+        ),
+        RepositoryProvider<LanguageRepository>(
+          create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
         ),
       ],
       child: child,
