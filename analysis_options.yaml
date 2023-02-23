@@ -28,6 +28,7 @@ linter:
   rules:
     prefer_single_quotes: true
     prefer_relative_imports: true
+    depend_on_referenced_packages: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

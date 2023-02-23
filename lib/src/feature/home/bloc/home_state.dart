@@ -1,44 +1,32 @@
 part of 'home_bloc.dart';
 
 abstract class HomeState extends Equatable {
-  final HomeScreenTab tab;
+  final HomeTab tab;
 
   const HomeState(this.tab);
 }
 
 class HomeScreenSelect extends HomeState {
-  // Used to distinguish between repeated presses
-  final int timestamp;
+  // Used to distinguish between repeated presses (a.k.a. force state refresh)
+  final bool stateToggle;
 
-  const HomeScreenSelect(super.tab, {this.timestamp = 0});
+  const HomeScreenSelect(super.tab, {this.stateToggle = false});
 
   @override
-  List<Object> get props => [tab, timestamp];
+  List<Object?> get props => [tab, stateToggle];
 }
 
-enum HomeScreenTab { cards, qr, menu }
+enum HomeTab { cards, qr, menu }
 
-extension HomeScreenTabExtension on HomeScreenTab {
+extension HomeTabExtension on HomeTab {
   int get tabIndex {
     switch (this) {
-      case HomeScreenTab.cards:
+      case HomeTab.cards:
         return 0;
-      case HomeScreenTab.qr:
+      case HomeTab.qr:
         return 1;
-      case HomeScreenTab.menu:
+      case HomeTab.menu:
         return 2;
     }
-  }
-
-  static HomeScreenTab from(int tabIndex) {
-    switch (tabIndex) {
-      case 0:
-        return HomeScreenTab.cards;
-      case 1:
-        return HomeScreenTab.qr;
-      case 2:
-        return HomeScreenTab.menu;
-    }
-    throw UnsupportedError('Unknown HomeScreenTab index: $tabIndex');
   }
 }
