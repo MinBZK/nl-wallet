@@ -39,6 +39,10 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
 }
 
 class SetupSecuritySelectPinFailed extends SetupSecurityState {
+  final PinValidationError? reason;
+
+  const SetupSecuritySelectPinFailed({required this.reason});
+
   @override
   double get stepperProgress => 1 / _kTotalSteps;
 }

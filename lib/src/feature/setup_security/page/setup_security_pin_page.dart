@@ -37,7 +37,7 @@ class SetupSecurityPinPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 48),
                 if (fitsLogoAndText) const WalletLogo(size: 80),
-                const SizedBox(height: 24),
+                if (fitsLogoAndText) const SizedBox(height: 24),
                 Expanded(flex: 2, child: content),
                 if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
                 if (showInput) const Spacer(),

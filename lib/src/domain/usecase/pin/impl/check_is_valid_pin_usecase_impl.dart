@@ -1,21 +1,26 @@
-import 'package:core_domain/core_domain.dart';
 import 'package:fimber/fimber.dart';
 
-import '../../../../rust_core.dart';
+import '../../../../data/repository/wallet/wallet_repository.dart';
+import '../../../model/pin/pin_validation_error.dart';
 import '../check_is_valid_pin_usecase.dart';
 
-class CheckIsValidPinUseCaseImpl implements CheckIsValidPinUseCase {
-  final RustCore _rustCore;
+class CheckIsValidPinUseCaseImpl extends CheckIsValidPinUseCase {
+  final WalletRepository _walletRepository;
 
-  CheckIsValidPinUseCaseImpl(this._rustCore);
+  CheckIsValidPinUseCaseImpl(this._walletRepository);
 
   @override
-  Future<bool> invoke(String pin) async {
-    final bytes = await _rustCore.isValidPin(pin: pin);
-    final result = PinResult.bincodeDeserialize(bytes);
-    if (result is PinResultErrItem) {
-      Fimber.d('Pin considered too simple. Reason: ${result.value}');
+  Future<void> invoke(String pin) async {
+    try {
+      await _walletRepository.validatePin(pin);
+    } catch (error) {
+      // Guarantee ONLY [PinValidationError]s are thrown
+      if (error is PinValidationError) {
+        rethrow;
+      } else {
+        Fimber.e('Something other than pin validation failed.', ex: error);
+        throw PinValidationError.other;
+      }
     }
-    return result is PinResultOkItem;
   }
 }
