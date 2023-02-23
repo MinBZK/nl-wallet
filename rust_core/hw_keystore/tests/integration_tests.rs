@@ -1,5 +1,6 @@
 extern crate hw_keystore;
 
+#[cfg(feature = "hardware")]
 #[test]
 #[should_panic]
 fn test_hardware_panic_without_init() {

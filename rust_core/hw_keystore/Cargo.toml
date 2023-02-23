@@ -3,17 +3,25 @@ name = "hw_keystore"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["hardware"]
+hardware = ["dep:uniffi", "dep:lazy_static"]
+software = ["dep:p256", "dep:rand_core"]
+uniffi-bindgen = ["dep:uniffi", "uniffi?/cli"]
+
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]
 
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+required-features = ["uniffi-bindgen"]
+
 [dependencies]
-uniffi = "0.23.0"
-lazy_static = "1.4.0"
+uniffi = { version = "0.23.0", optional = true }
+lazy_static = { version = "1.4.0", optional = true }
 p256 = { version = "0.12.0", optional = true }
 rand_core = { version = "0.6.4", optional = true }
 
 [build-dependencies]
-uniffi = { version = "0.23.0", features = ["build"] }
-
-[features]
-software = ["dep:p256", "dep:rand_core"]
+uniffi = { version = "0.23.0", features = ["build"], optional = true }

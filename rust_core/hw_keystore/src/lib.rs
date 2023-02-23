@@ -1,3 +1,4 @@
+#[cfg(feature = "hardware")]
 pub mod hardware;
 
 #[cfg(feature = "software")]
