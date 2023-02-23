@@ -11,7 +11,10 @@ opt_out_usage
 skip_docs
 
 private_lane :get_app_identifier do
-  CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  UI.user_error!("No app_identifier set") unless app_identifier
+
+  app_identifier
 end
 
 private_lane :get_local_version_and_build do
@@ -27,17 +30,16 @@ private_lane :ci_get_build do
   pipeline_id.to_i + BUILD_OFFSET
 end
 
-private_lane :ci_get_app_identifier_and_version do
-  UI.user_error!("No app_identifier set") unless get_app_identifier
-
+private_lane :ci_get_app_identifier_version_and_suffix do
   ref_name = ENV["CI_COMMIT_REF_NAME"]
   UI.user_error!("No CI_COMMIT_REF_NAME environment variable set") unless ref_name
 
   release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
 
-  app_identifier = "#{INTERNAL_APP_IDENTIFIER}.#{BRANCH_IDENTIFER_MAP[release] || release}" unless release == "release"
+  suffix = BRANCH_IDENTIFER_MAP[release] || release unless release == "release"
+  app_identifier = "#{INTERNAL_APP_IDENTIFIER}.#{suffix}" unless suffix.nil?
 
-  [app_identifier, version]
+  [app_identifier, version, suffix]
 end
 
 private_lane :ci_get_basic_auth do
@@ -56,6 +58,14 @@ private_lane :ci_get_k8s_secrets do |options|
   JSON.parse(secrets[1...-1]).map { |key, value| [key, Base64.strict_decode64(value)] }.to_h
 end
 
+private_lane :ci_get_k8s_secret_file do |options|
+  secrets = sh("kubectl", "get", "secret", options[:name], "-o" ,"jsonpath=\"{.data.#{options[:key]}}\"", log: false)
+
+  Dir.chdir("..") do
+    File.write(options[:path], Base64.strict_decode64(secrets[1...-1]))
+  end
+end
+
 lane :disable_flutter_analytics do 
   sh("dart", "--disable-analytics")
   sh("flutter", "config", "--no-analytics")
@@ -65,10 +75,27 @@ platform :android do
   desc "Build Android app from GitLab CI"
   lane :ci_build do
     build = ci_get_build
-    app_identifier, version = ci_get_app_identifier_and_version
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
 
-    build(package_name: app_identifier, build: build, version: version)
-  end 
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "android/upload-keystore.jks")
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "android/key.properties")
+
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix)
+  end
+
+  desc "Deploy Android app from GitLab CI"
+  lane :ci_deploy do |options|
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: "play-store-key.json")
+
+    upload_to_play_store(
+      package_name: app_identifier,
+      release_status: "draft",
+      track: "internal",
+      json_key: "play-store-key.json"
+    )
+  end
 
   desc "Build Android app without signing"
   lane :build do |options|
@@ -78,14 +105,16 @@ platform :android do
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = options[:version] || local_version
+    name_suffix = options[:name_suffix]
 
     Dir.chdir("..") do
       sh("flutter", "pub", "get")
-      # TODO: implement changing the app name as well, once the following bug is fixed:
-      #       https://github.com/onatcipli/rename/issues/43
+
       sh("flutter", "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
-      sh("flutter", "build", "apk", "--build-number", build.to_s, "--build-name", version.to_s)
-      sh("mv", "build/app/outputs/apk/release/app-release.apk", "build/app/outputs/apk/release/#{package_name}-#{version}.apk")
+      sh("flutter", "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
+
+      sh("flutter", "build", "appbundle", "--build-number", build.to_s, "--build-name", version.to_s)
+      sh("mv", "build/app/outputs/bundle/release/app-release.aab", "#{package_name}-#{version}.aab")
     end
   end
 end
@@ -94,7 +123,7 @@ platform :ios do
   desc "Build iOS app from GitLab CI"
   lane :ci_build do
     build = ci_get_build
-    app_identifier, version = ci_get_app_identifier_and_version
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
     match_basic_auth = ci_get_basic_auth
 
     ENV["MATCH_PASSWORD"] = ci_get_k8s_secrets(name: "nl-wallet-fastlane-match")["password"]
@@ -103,6 +132,8 @@ platform :ios do
       bundle_id: app_identifier,
       build: build,
       version: version,
+      name_suffix: suffix,
+      app_store: true,
       match_basic_auth: match_basic_auth,
       keychain_password: "admin" # hardcoded for now
     )
@@ -110,7 +141,7 @@ platform :ios do
 
   desc "Deploy iOS app from GitLab CI"
   lane :ci_deploy do
-    app_identifier, version = ci_get_app_identifier_and_version
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
 
     api_key_secrets = ci_get_k8s_secrets(name: "nl-wallet-app-store-api-key")
     api_key = app_store_connect_api_key(
@@ -136,15 +167,13 @@ platform :ios do
       sh("flutter", "pub", "get")
 
       sh("flutter", "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
-      if name_suffix
-        sh("flutter", "pub", "run", "rename", "--target", "ios", "--appname", "#{APP_NAME} (#{name_suffix})")
-      end
+      sh("flutter", "pub", "run", "rename", "--target", "ios", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
       sh("flutter", "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign")
     end
 
     match(
-      type: "appstore",
+      type: options[:app_store] ? "appstore" : "adhoc",
       readonly: true,
       git_basic_authorization: options[:match_basic_auth],
       keychain_password: options[:keychain_password]
