@@ -4,12 +4,10 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
-use std::sync::Arc;
-
 pub trait KeyStore {
     type KeyType: AsymmetricKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Arc<Self::KeyType>;
+    fn get_or_create_key(&mut self, identifier: &str) -> Self::KeyType;
 }
 
 pub trait AsymmetricKey {

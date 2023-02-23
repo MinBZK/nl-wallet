@@ -7,11 +7,11 @@ use p256::{
 };
 use rand_core::OsRng;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Default)]
 pub struct InMemoryKeyStore {
-    keys: HashMap<String, Arc<SoftwareKey>>,
+    keys: HashMap<String, Rc<SecretKey>>,
 }
 
 impl InMemoryKeyStore {
@@ -23,24 +23,24 @@ impl InMemoryKeyStore {
 impl KeyStore for InMemoryKeyStore {
     type KeyType = SoftwareKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Arc<SoftwareKey> {
+    fn get_or_create_key(&mut self, identifier: &str) -> SoftwareKey {
         let key = self
             .keys
             .entry(identifier.to_string())
-            .or_insert_with(|| Arc::new(SoftwareKey::new()));
+            .or_insert_with(|| Rc::new(SecretKey::random(&mut OsRng)));
 
-        Arc::clone(key)
+        SoftwareKey::new(key)
     }
 }
 
 pub struct SoftwareKey {
-    key: SecretKey,
+    key: Rc<SecretKey>,
 }
 
 impl SoftwareKey {
-    fn new() -> Self {
+    fn new(key: &Rc<SecretKey>) -> Self {
         SoftwareKey {
-            key: SecretKey::random(&mut OsRng),
+            key: Rc::clone(key)
         }
     }
 }
@@ -51,7 +51,7 @@ impl AsymmetricKey for SoftwareKey {
     }
 
     fn sign(&self, payload: &[u8]) -> [u8; 64] {
-        let signature: Signature = SigningKey::from(&self.key).sign(payload);
+        let signature: Signature = SigningKey::from(self.key.as_ref()).sign(payload);
 
         signature.to_bytes().into()
     }

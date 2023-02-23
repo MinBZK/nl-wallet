@@ -21,17 +21,14 @@ fn sign_and_verify_signature(
         pkcs8::DecodePublicKey,
         PublicKey,
     };
-    use std::sync::Arc;
 
-    let key = keystore.get_or_create_key(key_identifier);
+    let key1 = keystore.get_or_create_key(key_identifier);
     let key2 = keystore.get_or_create_key(key_identifier);
 
-    assert!(Arc::ptr_eq(&key, &key2));
-
-    let public_key_bytes = key.public_key();
+    let public_key_bytes = key1.public_key();
     let public_key = PublicKey::from_public_key_der(&public_key_bytes).expect("Invalid public key");
 
-    let signature_bytes = key.sign(payload);
+    let signature_bytes = key2.sign(payload);
     let signature = Signature::from_scalars(
         <[u8; 32]>::try_from(&signature_bytes[..32]).unwrap(),
         <[u8; 32]>::try_from(&signature_bytes[32..]).unwrap(),

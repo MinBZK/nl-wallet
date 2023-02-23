@@ -29,10 +29,10 @@ impl Default for HardwareKeyStore {
 impl KeyStore for HardwareKeyStore {
     type KeyType = HardwareAsymmetricKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Arc<HardwareAsymmetricKey> {
+    fn get_or_create_key(&mut self, identifier: &str) -> HardwareAsymmetricKey {
         let bridge = self.bridge.get_or_create_key(identifier.to_string());
 
-        Arc::new(HardwareAsymmetricKey::new(bridge))
+        HardwareAsymmetricKey::new(bridge)
     }
 }
 
