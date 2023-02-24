@@ -4,6 +4,9 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
+#[cfg(feature = "integration-test")]
+pub mod integration_test;
+
 pub trait KeyStore {
     type KeyType: AsymmetricKey;
 

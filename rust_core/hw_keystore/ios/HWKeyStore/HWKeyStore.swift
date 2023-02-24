@@ -5,8 +5,8 @@
 //  Created by Wallet Developer on 24/02/2023.
 //
 
-final class HWKeyStore {
-    static let shared = HWKeyStore()
+public final class HWKeyStore {
+    public static let shared = HWKeyStore()
 
     private let keystore: KeyStore
 

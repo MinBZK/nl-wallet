@@ -15,6 +15,7 @@
 		6150E5F429A8BA540036E736 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F329A8BA540036E736 /* SecureEnclaveKey.swift */; };
 		61D577BA29A8FD7C00030578 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577B929A8FD7C00030578 /* AppDelegate.swift */; };
 		61D577BE29A8FD7C00030578 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577BD29A8FD7C00030578 /* ViewController.swift */; };
+		61D577CE29A92A8800030578 /* HWKeyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577CD29A92A8800030578 /* HWKeyStoreTests.swift */; };
 		61F5336229A8AB4100624E46 /* HWKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F5336129A8AB4100624E46 /* HWKeyStore.swift */; };
 /* End PBXBuildFile section */
 
@@ -79,6 +80,9 @@
 		61D577B929A8FD7C00030578 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		61D577BD29A8FD7C00030578 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		61D577C729A8FD7C00030578 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		61D577CD29A92A8800030578 /* HWKeyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWKeyStoreTests.swift; sourceTree = "<group>"; };
+		61D7711E29A933F7000CDF5E /* HWKeyStore-Integration-Tests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "HWKeyStore-Integration-Tests-Bridging-Header.h"; sourceTree = "<group>"; };
+		61D7711F29A93456000CDF5E /* hw_keystore_integration_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hw_keystore_integration_tests.h; sourceTree = "<group>"; };
 		61F5335E29A8AB4100624E46 /* libHWKeyStore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libHWKeyStore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		61F5336129A8AB4100624E46 /* HWKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWKeyStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -120,6 +124,9 @@
 		6133004329A8E350004D9CC7 /* HWKeyStore Integration Tests */ = {
 			isa = PBXGroup;
 			children = (
+				61D7711F29A93456000CDF5E /* hw_keystore_integration_tests.h */,
+				61D7711E29A933F7000CDF5E /* HWKeyStore-Integration-Tests-Bridging-Header.h */,
+				61D577CD29A92A8800030578 /* HWKeyStoreTests.swift */,
 				6133004C29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift */,
 			);
 			path = "HWKeyStore Integration Tests";
@@ -201,6 +208,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6133004929A8E350004D9CC7 /* Build configuration list for PBXNativeTarget "HWKeyStore Integration Tests" */;
 			buildPhases = (
+				61D577CF29A92C3800030578 /* Compile Rust Crate */,
 				6133003E29A8E350004D9CC7 /* Sources */,
 				6133003F29A8E350004D9CC7 /* Frameworks */,
 				6133004029A8E350004D9CC7 /* Resources */,
@@ -310,11 +318,34 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		61D577CF29A92C3800030578 /* Compile Rust Crate */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Compile Rust Crate";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\nCARGO_FLAGS=\"--target ${CARGO_TARGET}\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"--release ${CARGO_FLAGS}\"\nfi\n\n\"$HOME/.cargo/bin/cargo\" build --manifest-path \"$PROJECT_DIR/../Cargo.toml\" --features integration-test --lib ${CARGO_FLAGS}\n\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		6133003E29A8E350004D9CC7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				61D577CE29A92A8800030578 /* HWKeyStoreTests.swift in Sources */,
 				6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -359,17 +390,24 @@
 		6133004A29A8E350004D9CC7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CARGO_BUILD_MODE = debug;
+				CARGO_TARGET = "";
+				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGET[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../target/aarch64-apple-ios/debug/libhw_keystore.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../target/aarch64-apple-ios-sim/debug/libhw_keystore.a";
 				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.hw-keystore.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "HWKeyStore Integration Tests/HWKeyStore-Integration-Tests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HWKeyStore Integration Tests Hosts App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HWKeyStore Integration Tests Hosts App";
@@ -379,17 +417,24 @@
 		6133004B29A8E350004D9CC7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CARGO_BUILD_MODE = release;
+				CARGO_TARGET = "";
+				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGET[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../target/aarch64-apple-ios/release/libhw_keystore.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../target/aarch64-apple-ios-sim/release/libhw_keystore.a";
 				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.hw-keystore.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "HWKeyStore Integration Tests/HWKeyStore-Integration-Tests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HWKeyStore Integration Tests Hosts App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HWKeyStore Integration Tests Hosts App";

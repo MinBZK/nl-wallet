@@ -8,6 +8,7 @@ default = ["hardware"]
 hardware = ["dep:uniffi", "dep:lazy_static"]
 software = ["dep:p256", "dep:rand_core"]
 uniffi-bindgen = ["dep:uniffi", "uniffi?/cli"]
+integration-test = ["dep:p256"]
 
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]

@@ -40,7 +40,7 @@ pub struct SoftwareKey {
 impl SoftwareKey {
     fn new(key: &Rc<SecretKey>) -> Self {
         SoftwareKey {
-            key: Rc::clone(key)
+            key: Rc::clone(key),
         }
     }
 }
