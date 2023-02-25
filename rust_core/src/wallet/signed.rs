@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use anyhow::{bail, Context, Ok, Result};
+use anyhow::{bail, Ok, Result};
 use p256::ecdsa::{
     signature::{Signer, Verifier},
     Signature, VerifyingKey,
@@ -8,71 +8,135 @@ use p256::ecdsa::{
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::serialization::{Base64Bytes, DerSignature};
-
-use super::pin_key::PinKey;
-
-/// A payload signed by the wallet, both with its PIN key and its hardware-bound key.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WalletSignedMessage<T> {
-    pub hw_signed: T,
-    pub hw_signature: DerSignature,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WalletSignedInner<T> {
-    pub pin_signed: T,
-    pub pin_signature: DerSignature,
-}
+use crate::{
+    serialization::{Base64Bytes, DerSignature},
+    wallet::pin_key::PinKey,
+};
 
 #[derive(Debug)]
-pub struct WalletSigned<T>(pub String, PhantomData<T>);
-impl<T> From<String> for WalletSigned<T> {
-    fn from(val: String) -> Self {
-        WalletSigned(val, PhantomData)
-    }
+pub struct SignedDouble<T>(pub String, PhantomData<T>);
+#[derive(Debug)]
+pub struct Signed<T>(pub String, PhantomData<T>);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SignedMessage<T> {
+    pub signed: T,
+    pub signature: DerSignature,
+    #[serde(rename = "type")]
+    pub typ: SignedType,
 }
 
-/// Signed data within a [`WalletSigned<T>`].
 #[derive(Serialize, Deserialize, Debug)]
-pub struct WalletSignedPayload<T> {
+pub struct SignedPayload<T> {
     pub payload: T,
     pub challenge: Base64Bytes,
     pub serial_number: u64,
 }
 
-impl<'de, T> WalletSigned<T>
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SignedType {
+    Pin,
+    HW,
+}
+
+fn verify_signed(
+    signed: &str,
+    challenge: &[u8],
+    typ: SignedType,
+    pubkey: &VerifyingKey,
+) -> Result<()> {
+    let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
+    let json = msg.signed.get().as_bytes();
+    pubkey.verify(json, &msg.signature.0)?;
+
+    if msg.typ != typ {
+        bail!("incorrect type")
+    }
+
+    let signed: SignedPayload<&RawValue> = serde_json::from_slice(json)?;
+    if challenge != &signed.challenge.0 {
+        bail!("incorrect challenge")
+    }
+
+    Ok(())
+}
+
+fn sign<T: Serialize>(
+    payload: T,
+    challenge: &[u8],
+    serial_number: u64,
+    typ: SignedType,
+    privkey: &impl Signer<Signature>,
+) -> Result<Signed<T>> {
+    let signed = serde_json::to_string(&SignedPayload {
+        payload: &payload,
+        challenge: challenge.to_vec().into(),
+        serial_number,
+    })?;
+    let signature = privkey.try_sign(signed.as_bytes())?.into();
+    Ok(serde_json::to_string(&SignedMessage {
+        signed: &RawValue::from_string(signed)?,
+        signature,
+        typ,
+    })?
+    .into())
+}
+
+impl<'de, T> Signed<T>
 where
     T: Serialize + Deserialize<'de>,
 {
-    pub fn verify(
+    /// Value of the `typ` field of [`SignedMessage<T>`].
+    const TYP: SignedType = SignedType::HW;
+
+    fn verify(&self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<()> {
+        verify_signed(&self.0, challenge, Signed::<T>::TYP, pubkey)
+    }
+
+    fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
+        Ok(serde_json::from_str::<SignedMessage<SignedPayload<T>>>(&self.0)?.signed)
+    }
+
+    pub fn parse_and_verify(
+        &'de self,
+        challenge: &[u8],
+        pubkey: &VerifyingKey,
+    ) -> Result<SignedPayload<T>> {
+        self.verify(challenge, pubkey)?;
+        self.dangerous_parse_unverified()
+    }
+
+    pub fn sign(
+        payload: T,
+        challenge: &[u8],
+        serial_number: u64,
+        privkey: &impl Signer<Signature>,
+    ) -> Result<Signed<T>> {
+        sign(payload, challenge, serial_number, Signed::<T>::TYP, privkey)
+    }
+}
+
+impl<'de, T> SignedDouble<T>
+where
+    T: Serialize + Deserialize<'de>,
+{
+    fn verify(
         &self,
         challenge: &[u8],
         hw_pubkey: &VerifyingKey,
         pin_pubkey: &VerifyingKey,
-    ) -> Result<WalletSignedPayload<&RawValue>> {
-        let outer: WalletSignedMessage<&RawValue> = serde_json::from_str(&self.0)?;
-        hw_pubkey.verify(outer.hw_signed.get().as_bytes(), &outer.hw_signature.0)?;
-
-        let inner: WalletSignedInner<&RawValue> = serde_json::from_str(outer.hw_signed.get())?;
-        pin_pubkey.verify(inner.pin_signed.get().as_bytes(), &inner.pin_signature.0)?;
-
-        let signed: WalletSignedPayload<&RawValue> =
-            serde_json::from_slice(inner.pin_signed.get().as_bytes())?;
-        if challenge != &signed.challenge.0 {
-            bail!("incorrect challenge")
-        }
-
-        Ok(signed)
+    ) -> Result<()> {
+        let outer: SignedMessage<&RawValue> = serde_json::from_str(&self.0)?;
+        hw_pubkey.verify(outer.signed.get().as_bytes(), &outer.signature.0)?;
+        verify_signed(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
     }
 
-    pub fn dangerous_parse_unverified(&'de self) -> Result<WalletSignedPayload<T>> {
+    pub fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
         Ok(
-            serde_json::from_str::<WalletSignedMessage<WalletSignedInner<WalletSignedPayload<T>>>>(
-                &self.0,
-            )?
-            .hw_signed
-            .pin_signed,
+            serde_json::from_str::<SignedMessage<SignedMessage<SignedPayload<T>>>>(&self.0)?
+                .signed
+                .signed,
         )
     }
 
@@ -81,14 +145,9 @@ where
         challenge: &[u8],
         hw_pubkey: &VerifyingKey,
         pin_pubkey: &VerifyingKey,
-    ) -> Result<WalletSignedPayload<T>> {
-        let signed = self.verify(challenge, hw_pubkey, pin_pubkey)?;
-        Ok(WalletSignedPayload {
-            payload: serde_json::from_str(signed.payload.get())
-                .context("payload deserialization failed")?,
-            challenge: signed.challenge,
-            serial_number: signed.serial_number,
-        })
+    ) -> Result<SignedPayload<T>> {
+        self.verify(challenge, hw_pubkey, pin_pubkey)?;
+        self.dangerous_parse_unverified()
     }
 
     pub fn sign(
@@ -98,26 +157,33 @@ where
         hw_privkey: &impl Signer<Signature>,
         pin: &str,
         salt: &[u8],
-    ) -> Result<WalletSigned<T>> {
-        let pin_signed = serde_json::to_string(&WalletSignedPayload {
-            payload: &payload,
-            challenge: challenge.to_vec().into(),
+    ) -> Result<SignedDouble<T>> {
+        let inner = sign(
+            payload,
+            challenge,
             serial_number,
-        })?;
-        let pin_signature = PinKey { pin, salt }.try_sign(pin_signed.as_bytes())?;
-
-        // Create inner (pin) signature
-        let hw_signed = WalletSignedInner {
-            pin_signed: &RawValue::from_string(pin_signed)?,
-            pin_signature: pin_signature.into(),
-        };
-        let hw_signature = hw_privkey.try_sign(&serde_json::to_vec(&hw_signed)?)?;
-
-        Ok(serde_json::to_string(&WalletSignedMessage {
-            hw_signed,
-            hw_signature: hw_signature.into(),
+            SignedType::Pin,
+            &PinKey { pin, salt },
+        )?
+        .0;
+        let signature = hw_privkey.try_sign(inner.as_bytes())?;
+        Ok(serde_json::to_string(&SignedMessage {
+            signed: RawValue::from_string(inner)?,
+            signature: signature.into(),
+            typ: SignedType::HW,
         })?
         .into())
+    }
+}
+
+impl<T, S: Into<String>> From<S> for SignedDouble<T> {
+    fn from(val: S) -> Self {
+        SignedDouble(val.into(), PhantomData)
+    }
+}
+impl<T, S: Into<String>> From<S> for Signed<T> {
+    fn from(val: S) -> Self {
+        Signed(val.into(), PhantomData)
     }
 }
 
@@ -126,25 +192,48 @@ mod tests {
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use serde::{Deserialize, Serialize};
 
-    use crate::wallet::{pin_key::PinKey, signed::WalletSigned, HWBoundSigningKey};
+    use crate::wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey};
+
+    use super::Signed;
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct ToyMessage {
+        number: u8,
+        string: String,
+    }
+    impl Default for ToyMessage {
+        fn default() -> Self {
+            Self {
+                number: 42,
+                string: "Hello, world!".to_string(),
+            }
+        }
+    }
 
     #[test]
-    fn it_works() {
-        #[derive(Serialize, Deserialize, Debug)]
-        struct Message {
-            number: u8,
-            string: String,
-        }
+    fn hw_signed() {
+        let challenge = b"challenge";
+        let hw_privkey = SigningKey::random(&mut OsRng);
+
+        let signed = Signed::sign(ToyMessage::default(), challenge, 1337, &hw_privkey).unwrap();
+        println!("{}", signed.0);
+
+        let verified = signed
+            .parse_and_verify(challenge, &hw_privkey.verifying_key())
+            .unwrap();
+
+        dbg!(verified);
+    }
+
+    #[test]
+    fn double_signed() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin = "123456";
         let salt = &[1, 2, 3, 4][..];
 
-        let signed = WalletSigned::sign(
-            Message {
-                number: 42,
-                string: "Hello, world!".to_string(),
-            },
+        let signed = SignedDouble::sign(
+            ToyMessage::default(),
             challenge,
             1337,
             &hw_privkey,
@@ -152,7 +241,6 @@ mod tests {
             salt,
         )
         .unwrap();
-
         println!("{}", signed.0);
 
         let verified = signed

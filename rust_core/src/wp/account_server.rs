@@ -10,7 +10,7 @@ use crate::{
     jwt::{Jwt, JwtClaims},
     serialization::{Base64Bytes, DerVerifyingKey},
     utils::random_string,
-    wallet::signed::WalletSigned,
+    wallet::signed::SignedDouble,
 };
 
 use super::instructions::Registration;
@@ -69,7 +69,7 @@ pub trait AccountServerClient {
     fn registration_challenge(&self) -> Result<Vec<u8>>;
     fn register(
         &self,
-        registration_message: WalletSigned<Registration>,
+        registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate>;
 }
 
@@ -79,7 +79,7 @@ impl AccountServerClient for AccountServer {
     }
     fn register(
         &self,
-        registration_message: WalletSigned<Registration>,
+        registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate> {
         AccountServer::register(&self, registration_message)
     }
@@ -129,7 +129,7 @@ impl AccountServer {
 
     pub fn register(
         &self,
-        registration_message: WalletSigned<Registration>,
+        registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate> {
         // We don't have the public keys yet against which to verify the message, as those are contained within the
         // message (like in X509 certificate requests). So first parse it to grab the public keys from it.
@@ -140,7 +140,7 @@ impl AccountServer {
 
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
-        let signed = registration_message.verify(&challenge, &hw_pubkey, &pin_pubkey)?;
+        let signed = registration_message.parse_and_verify(&challenge, &hw_pubkey, &pin_pubkey)?;
 
         if signed.serial_number != 0 {
             return Err(anyhow!(

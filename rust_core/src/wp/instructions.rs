@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     serialization::DerVerifyingKey,
-    wallet::{pin_key::PinKey, signed::WalletSigned, HWBoundSigningKey},
+    wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey},
 };
 
 use super::WalletCertificate;
 
 struct Instruction<T: IsInstruction> {
-    instruction: WalletSigned<T>,
+    instruction: SignedDouble<T>,
     certificate: WalletCertificate,
 }
 
@@ -34,9 +34,9 @@ impl Registration {
         salt: &[u8],
         pin: &str,
         challenge: &[u8],
-    ) -> Result<WalletSigned<Registration>> {
+    ) -> Result<SignedDouble<Registration>> {
         let pin_pubkey = PinKey { salt, pin }.verifying_key();
-        Ok(WalletSigned::sign(
+        Ok(SignedDouble::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_key_handle.verifying_key().into(),

@@ -5,7 +5,7 @@ use p256::{
 };
 use serde::{de, ser, Deserialize, Serialize};
 
-use crate::wallet::signed::WalletSigned;
+use crate::wallet::signed::{Signed, SignedDouble};
 
 /// Bytes that (de)serialize to base64.
 #[derive(Debug, Clone)]
@@ -86,7 +86,7 @@ impl<'de> Deserialize<'de> for DerVerifyingKey {
     }
 }
 
-impl<T> Serialize for WalletSigned<T> {
+impl<T> Serialize for SignedDouble<T> {
     fn serialize<S: serde::Serializer>(
         &self,
         serializer: S,
@@ -94,10 +94,26 @@ impl<T> Serialize for WalletSigned<T> {
         String::serialize(&self.0, serializer)
     }
 }
-impl<'de, T> Deserialize<'de> for WalletSigned<T> {
+impl<'de, T> Deserialize<'de> for SignedDouble<T> {
     fn deserialize<D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
-        String::deserialize(deserializer).map(WalletSigned::from)
+        String::deserialize(deserializer).map(SignedDouble::from)
+    }
+}
+
+impl<T> Serialize for Signed<T> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        String::serialize(&self.0, serializer)
+    }
+}
+impl<'de, T> Deserialize<'de> for Signed<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Signed::from)
     }
 }
