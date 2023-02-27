@@ -1,8 +1,18 @@
-use crate::{AsymmetricKey, KeyStore};
+use crate::{AsymmetricKey, KeyStore, KeyStoreError};
 
 use lazy_static::lazy_static;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
+
+uniffi::include_scaffolding!("hw_keystore");
+
+impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
+    fn from(error: uniffi::UnexpectedUniFFICallbackError) -> Self {
+        Self::InternalError {
+            message: error.reason,
+        }
+    }
+}
 
 pub struct HardwareKeyStore {
     bridge: Arc<dyn KeyStoreBridge>,
@@ -29,10 +39,13 @@ impl Default for HardwareKeyStore {
 impl KeyStore for HardwareKeyStore {
     type KeyType = HardwareAsymmetricKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> HardwareAsymmetricKey {
-        let bridge = self.bridge.get_or_create_key(identifier.to_string());
+    fn get_or_create_key(
+        &mut self,
+        identifier: &str,
+    ) -> Result<HardwareAsymmetricKey, KeyStoreError> {
+        let bridge = self.bridge.get_or_create_key(identifier.to_string())?;
 
-        HardwareAsymmetricKey::new(bridge)
+        Ok(HardwareAsymmetricKey::new(bridge))
     }
 }
 
@@ -47,24 +60,29 @@ impl HardwareAsymmetricKey {
 }
 
 impl AsymmetricKey for HardwareAsymmetricKey {
-    fn public_key(&self) -> Vec<u8> {
-        self.bridge.public_key()
+    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError> {
+        let public_key = self.bridge.public_key()?;
+
+        Ok(public_key)
     }
 
-    fn sign(&self, payload: &[u8]) -> Vec<u8> {
-        self.bridge.sign(payload.to_vec())
+    fn sign(&self, payload: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
+        let signature = self.bridge.sign(payload.to_vec())?;
+
+        Ok(signature)
     }
 }
 
-uniffi::include_scaffolding!("hw_keystore");
-
-pub trait KeyStoreBridge: Send + Sync + Debug {
-    fn get_or_create_key(&self, identifier: String) -> Box<dyn AsymmetricKeyBridge>;
+trait KeyStoreBridge: Send + Sync + Debug {
+    fn get_or_create_key(
+        &self,
+        identifier: String,
+    ) -> Result<Box<dyn AsymmetricKeyBridge>, KeyStoreError>;
 }
 
-pub trait AsymmetricKeyBridge: Send + Sync + Debug {
-    fn public_key(&self) -> Vec<u8>;
-    fn sign(&self, payload: Vec<u8>) -> Vec<u8>;
+trait AsymmetricKeyBridge: Send + Sync + Debug {
+    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError>;
+    fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
 }
 
 lazy_static! {

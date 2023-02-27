@@ -26,17 +26,17 @@ final class SecureEnclaveKey {
         return identifier.data(using: .utf8)!
     }
 
-    private static func throwFatalError(from unmanagedError: Unmanaged<CFError>?, message: String) -> Never {
+    private static func errorMessage(for unmanagedError: Unmanaged<CFError>?) -> String? {
         guard let unmanagedError else {
-            fatalError(message)
+            return nil
         }
 
-        let error = unmanagedError.takeRetainedValue() as Error
+        let error = unmanagedError.takeRetainedValue()
 
-        fatalError("\(message): \(error)")
+        return error.localizedDescription
     }
 
-    private static func fetchKey(with identifier: String) -> SecKey? {
+    private static func fetchKey(with identifier: String) throws -> SecKey? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
@@ -54,18 +54,22 @@ final class SecureEnclaveKey {
         case errSecItemNotFound:
             return nil
         default:
-            guard #available(iOS 11.3, *),
-                  let errorMessage = SecCopyErrorMessageString(status, nil) else {
-                fatalError("Error while retrieving key with tag \"\(identifier)\"")
-            }
+            let errorMessage: String? = {
+                guard #available(iOS 11.3, *),
+                      let errorMessage = SecCopyErrorMessageString(status, nil) else {
+                    return nil
+                }
 
-            fatalError("Error while retrieving key with tag \"\(identifier)\": \(errorMessage)")
+                return errorMessage as String
+            }()
+
+            throw SecureEnclaveKeyError.keychainError(message: errorMessage)
         }
 
         return (item as! SecKey)
     }
 
-    private static func createKey(with identifier: String) -> SecKey {
+    private static func createKey(with identifier: String) throws -> SecKey {
         var error: Unmanaged<CFError>?
 
         guard let access = SecAccessControlCreateWithFlags(
@@ -74,7 +78,7 @@ final class SecureEnclaveKey {
             .privateKeyUsage,
             &error
         ) else {
-            self.throwFatalError(from: error, message: "Error while creating key access control")
+            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
         }
 
         let keyAttributes: [String: Any] = [
@@ -90,32 +94,32 @@ final class SecureEnclaveKey {
         ]
 
         guard let key = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-            self.throwFatalError(from: error, message: "Error while creating private key")
+            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
         }
 
         return key
     }
 
-    private static func derivePublicKey(from privateKey: SecKey) -> Data {
+    private static func derivePublicKey(from privateKey: SecKey) throws -> Data {
         guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
             fatalError("Error while deriving public key")
         }
 
         var error: Unmanaged<CFError>?
         guard let keyData = SecKeyCopyExternalRepresentation(publicKey, &error) else {
-            self.throwFatalError(from: error, message: "Error while encoding public key")
+            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
         }
 
         return self.secp256r1Header + (keyData as Data)
     }
 
-    private static func sign(payload: Data, with privateKey: SecKey) -> Data {
+    private static func sign(payload: Data, with privateKey: SecKey) throws -> Data {
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(privateKey,
                                                     .ecdsaSignatureMessageX962SHA256,
                                                     payload as CFData,
                                                     &error) else {
-            self.throwFatalError(from: error, message: "Error while signing data")
+            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
         }
 
         return signature as Data
@@ -124,18 +128,18 @@ final class SecureEnclaveKey {
     // MARK: - Instance properties
 
     let identifier: String
-    private let privateKey: SecKey
 
-    private(set) lazy var publicKey = Self.derivePublicKey(from: self.privateKey)
+    private let privateKey: SecKey
+    private var _publicKey: Data?
 
     // MARK: - Initializer
 
-    init(identifier: String) {
+    init(identifier: String) throws {
         self.identifier = identifier
 
-        self.privateKey = {
-            guard let privateKey = Self.fetchKey(with: identifier) else {
-                return Self.createKey(with: identifier)
+        self.privateKey = try {
+            guard let privateKey = try Self.fetchKey(with: identifier) else {
+                return try Self.createKey(with: identifier)
             }
 
             return privateKey
@@ -144,7 +148,18 @@ final class SecureEnclaveKey {
 
     // MARK: - Instance methods
 
-    func sign(payload: Data) -> Data {
-        return Self.sign(payload: payload, with: self.privateKey)
+    func publicKey() throws -> Data {
+        guard let publicKey = self._publicKey else {
+            let publicKey = try Self.derivePublicKey(from: self.privateKey)
+            self._publicKey = publicKey
+
+            return publicKey
+        }
+
+        return publicKey
+    }
+
+    func sign(payload: Data) throws -> Data {
+        return try Self.sign(payload: payload, with: self.privateKey)
     }
 }

@@ -16,13 +16,19 @@ final class AsymmetricKey {
 }
 
 extension AsymmetricKey: AsymmetricKeyBridge {
-    func publicKey() -> [UInt8] {
-        return Array(self.key.publicKey)
+    func publicKey() throws -> [UInt8] {
+        do {
+            return Array(try self.key.publicKey())
+        } catch let error as SecureEnclaveKeyError {
+            throw KeyStoreError.from(error)
+        }
     }
 
-    func sign(payload: [UInt8]) -> [UInt8] {
-        let signature = self.key.sign(payload: Data(payload))
-
-        return Array(signature)
+    func sign(payload: [UInt8]) throws -> [UInt8] {
+        do {
+            return Array(try self.key.sign(payload: Data(payload)))
+        } catch let error as SecureEnclaveKeyError {
+            throw KeyStoreError.from(error)
+        }
     }
 }
