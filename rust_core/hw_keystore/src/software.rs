@@ -1,7 +1,10 @@
 use crate::{AsymmetricKey, KeyStore};
 
 use p256::{
-    ecdsa::{signature::Signer, Signature, SigningKey},
+    ecdsa::{
+        signature::{SignatureEncoding, Signer},
+        Signature, SigningKey,
+    },
     pkcs8::EncodePublicKey,
     SecretKey,
 };
@@ -50,9 +53,9 @@ impl AsymmetricKey for SoftwareKey {
         self.key.public_key().to_public_key_der().unwrap().to_vec()
     }
 
-    fn sign(&self, payload: &[u8]) -> [u8; 64] {
+    fn sign(&self, payload: &[u8]) -> Vec<u8> {
         let signature: Signature = SigningKey::from(self.key.as_ref()).sign(payload);
 
-        signature.to_bytes().into()
+        signature.to_der().to_vec()
     }
 }

@@ -112,7 +112,7 @@ final class SecureEnclaveKey {
     private static func sign(payload: Data, with privateKey: SecKey) -> Data {
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(privateKey,
-                                                    .ecdsaSignatureRFC4754,
+                                                    .ecdsaSignatureMessageX962SHA256,
                                                     payload as CFData,
                                                     &error) else {
             self.throwFatalError(from: error, message: "Error while signing data")

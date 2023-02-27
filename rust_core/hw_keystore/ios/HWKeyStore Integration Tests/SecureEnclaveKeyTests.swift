@@ -58,10 +58,6 @@ final class SecureEnclaveKeyTests: XCTestCase {
         let signature2 = key2.sign(payload: message)
 
         XCTAssertGreaterThan(emptySignature.count, 0, "An emtpy payload should produce a signature")
-        XCTAssertEqual(signature1.count, 64, "Signature should be exactly 64 bytes")
-        XCTAssertEqual(signature1Repeat.count, 64, "Signature should be exactly 64 bytes")
-        XCTAssertEqual(signature1Again.count, 64, "Signature should be exactly 64 bytes")
-        XCTAssertEqual(signature2.count, 64, "Signature should be exactly 64 bytes")
         XCTAssertNotEqual(signature1, signature1Repeat, "Signatures signed with the same key instance should differ")
         XCTAssertNotEqual(signature1, signature1Again, "Signatures signed with the same key should differ")
         XCTAssertNotEqual(signature1, signature2, "Signatures signed with a different key should differ")

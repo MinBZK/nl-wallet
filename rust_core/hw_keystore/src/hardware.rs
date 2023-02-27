@@ -51,11 +51,8 @@ impl AsymmetricKey for HardwareAsymmetricKey {
         self.bridge.public_key()
     }
 
-    fn sign(&self, payload: &[u8]) -> [u8; 64] {
-        self.bridge
-            .sign(payload.to_vec())
-            .try_into()
-            .expect("Invalid signature length received from bridge")
+    fn sign(&self, payload: &[u8]) -> Vec<u8> {
+        self.bridge.sign(payload.to_vec())
     }
 }
 

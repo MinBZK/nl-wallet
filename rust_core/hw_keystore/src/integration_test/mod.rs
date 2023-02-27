@@ -20,11 +20,7 @@ pub fn sign_and_verify_signature(
     let public_key = PublicKey::from_public_key_der(&public_key_bytes).expect("Invalid public key");
 
     let signature_bytes = key2.sign(payload);
-    let signature = Signature::from_scalars(
-        <[u8; 32]>::try_from(&signature_bytes[..32]).unwrap(),
-        <[u8; 32]>::try_from(&signature_bytes[32..]).unwrap(),
-    )
-    .expect("Invalid signature");
+    let signature = Signature::from_der(&signature_bytes).expect("Invalid signature");
 
     VerifyingKey::from(public_key)
         .verify(payload, &signature)

@@ -15,5 +15,5 @@ pub trait KeyStore {
 
 pub trait AsymmetricKey {
     fn public_key(&self) -> Vec<u8>;
-    fn sign(&self, payload: &[u8]) -> [u8; 64];
+    fn sign(&self, payload: &[u8]) -> Vec<u8>;
 }
