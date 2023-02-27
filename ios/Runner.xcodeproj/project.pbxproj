@@ -9,12 +9,44 @@
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		61A374A129ACDE4F00CFCAC1 /* libHWKeyStore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61D8FE9529ACB89C00718402 /* libHWKeyStore.a */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 862C9931D126E4BFA4F24595 /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		61A374A229ACDE6600CFCAC1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 61F5335D29A8AB4100624E46;
+			remoteInfo = HWKeyStore;
+		};
+		61D8FE9429ACB89C00718402 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 61F5335E29A8AB4100624E46;
+			remoteInfo = HWKeyStore;
+		};
+		61D8FE9629ACB89C00718402 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 6133004229A8E350004D9CC7;
+			remoteInfo = "HWKeyStore Integration Tests";
+		};
+		61D8FE9829ACB89C00718402 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 61D577B729A8FD7C00030578;
+			remoteInfo = "HWKeyStore Integration Tests Hosts App";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
@@ -34,6 +66,7 @@
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		6117501E299543F800ABDA02 /* bridge_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge_generated.h; sourceTree = "<group>"; };
+		61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = HWKeyStore.xcodeproj; path = ../rust_core/hw_keystore/ios/HWKeyStore.xcodeproj; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
@@ -56,6 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				61A374A129ACDE4F00CFCAC1 /* libHWKeyStore.a in Frameworks */,
 				891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -63,6 +97,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		61D8FE8D29ACB88000718402 /* Subprojects */ = {
+			isa = PBXGroup;
+			children = (
+				61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */,
+			);
+			name = Subprojects;
+			sourceTree = "<group>";
+		};
+		61D8FE8F29ACB89C00718402 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				61D8FE9529ACB89C00718402 /* libHWKeyStore.a */,
+				61D8FE9729ACB89C00718402 /* HWKeyStore Integration Tests.xctest */,
+				61D8FE9929ACB89C00718402 /* HWKeyStore Integration Tests Hosts App.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		6F17A9080C9DF456F943229B /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -87,6 +139,7 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
+				61D8FE8D29ACB88000718402 /* Subprojects */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
@@ -151,6 +204,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				61A374A329ACDE6600CFCAC1 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -183,12 +237,42 @@
 			mainGroup = 97C146E51CF9000F007C117D;
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 61D8FE8F29ACB89C00718402 /* Products */;
+					ProjectRef = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		61D8FE9529ACB89C00718402 /* libHWKeyStore.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libHWKeyStore.a;
+			remoteRef = 61D8FE9429ACB89C00718402 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		61D8FE9729ACB89C00718402 /* HWKeyStore Integration Tests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = "HWKeyStore Integration Tests.xctest";
+			remoteRef = 61D8FE9629ACB89C00718402 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		61D8FE9929ACB89C00718402 /* HWKeyStore Integration Tests Hosts App.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = "HWKeyStore Integration Tests Hosts App.app";
+			remoteRef = 61D8FE9829ACB89C00718402 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		97C146EC1CF9000F007C117D /* Resources */ = {
@@ -254,7 +338,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\nCARGO_FLAGS=\"--target ${CARGO_TARGET}\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"--release ${CARGO_FLAGS}\"\nfi\n\n\"$HOME/.cargo/bin/cargo\" build --manifest-path \"$PROJECT_DIR/../rust_core/Cargo.toml\" --lib ${CARGO_FLAGS}\n";
+			shellScript = "if [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"--release\"\nelse\n    CARGO_FLAGS=\"\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\n\"$HOME/.cargo/bin/cargo\" build --manifest-path \"$PROJECT_DIR/../rust_core/Cargo.toml\" --lib ${CARGO_FLAGS}\n";
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -324,6 +408,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		61A374A329ACDE6600CFCAC1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = HWKeyStore;
+			targetProxy = 61A374A229ACDE6600CFCAC1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
@@ -401,8 +493,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CARGO_BUILD_MODE = release;
-				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
-				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
@@ -419,7 +512,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios-sim/release/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a",
 				);
@@ -547,8 +644,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CARGO_BUILD_MODE = debug;
-				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
-				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
@@ -565,7 +663,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/debug/librust_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios-sim/debug/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/debug/librust_core.a",
 				);
@@ -587,8 +689,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CARGO_BUILD_MODE = release;
-				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
-				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
@@ -605,7 +708,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios-sim/release/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a",
 				);
