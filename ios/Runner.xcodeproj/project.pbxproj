@@ -407,15 +407,20 @@
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
-				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a";
-				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -548,15 +553,20 @@
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
-				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/debug/librust_core.a";
-				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/debug/librust_core.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/debug/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/debug/librust_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -583,15 +593,20 @@
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
-				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a";
-				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
