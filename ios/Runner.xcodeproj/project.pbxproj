@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		61F75DA2299552FC00FCBBA5 /* librust_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61F75DA1299552FC00FCBBA5 /* librust_core.a */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 862C9931D126E4BFA4F24595 /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -35,7 +34,6 @@
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		6117501E299543F800ABDA02 /* bridge_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge_generated.h; sourceTree = "<group>"; };
-		61F75DA1299552FC00FCBBA5 /* librust_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = librust_core.a; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
@@ -58,7 +56,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				61F75DA2299552FC00FCBBA5 /* librust_core.a in Frameworks */,
 				891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -126,7 +123,6 @@
 		B28C702157D025B197FCC2D4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				61F75DA1299552FC00FCBBA5 /* librust_core.a */,
 				862C9931D126E4BFA4F24595 /* Pods_Runner.framework */,
 			);
 			name = Frameworks;
@@ -402,17 +398,28 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CARGO_BUILD_MODE = release;
+				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
+				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a";
+				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a";
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
 				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -536,32 +543,24 @@
 				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
+				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"\"${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}\"",
-					/usr/lib/swift,
-					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)/",
-					"$(SDKROOT)/usr/lib/swift",
-					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/debug",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"\"${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}\"",
-					/usr/lib/swift,
-					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)/",
-					"$(SDKROOT)/usr/lib/swift",
-					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/debug",
-				);
+				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/debug/librust_core.a";
+				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/debug/librust_core.a";
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
 				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -579,32 +578,24 @@
 				"CARGO_TARGET[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGET[sdk=iphonesimulator*]" = "x86_64-apple-ios";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
+				GENERATE_MASTER_OBJECT_FILE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"\"${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}\"",
-					/usr/lib/swift,
-					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)/",
-					"$(SDKROOT)/usr/lib/swift",
-					"$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release",
-				);
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = (
-					"$(inherited)",
-					"\"${DT_TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}\"",
-					/usr/lib/swift,
-					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)/",
-					"$(SDKROOT)/usr/lib/swift",
-					"$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release",
-				);
+				"PRELINK_LIBS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../rust_core/target/aarch64-apple-ios/release/librust_core.a";
+				"PRELINK_LIBS[sdk=iphonesimulator*]" = "$(PROJECT_DIR)/../rust_core/target/x86_64-apple-ios/release/librust_core.a";
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
 				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

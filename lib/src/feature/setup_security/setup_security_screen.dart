@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../domain/model/pin/pin_validation_error.dart';
+import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/animated_visibility_back_button.dart';
@@ -43,14 +46,43 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+    return ExcludeSemantics(
+      child: BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      ),
     );
   }
 
   Widget _buildPage() {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+    return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
+      listener: (context, state) async {
+        if (!MediaQuery.of(context).accessibleNavigation) return;
+        final locale = AppLocalizations.of(context);
+        if (state is SetupSecuritySelectPinInProgress) {
+          if (state.afterBackspacePressed) {
+            announceEnteredDigits(context, state.enteredDigits);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            announceEnteredDigits(context, state.enteredDigits);
+          }
+        }
+        if (state is SetupSecurityPinConfirmationInProgress) {
+          if (state.afterBackspacePressed) {
+            announceEnteredDigits(context, state.enteredDigits);
+          } else if (state.enteredDigits == 0) {
+            await Future.delayed(const Duration(seconds: 1));
+            SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            announceEnteredDigits(context, state.enteredDigits);
+          }
+        }
+        if (state is SetupSecuritySelectPinFailed) {
+          SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
+        }
+        if (state is SetupSecurityPinConfirmationFailed) {
+          SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
+        }
+      },
       builder: (context, state) {
         Widget? result;
         if (state is SetupSecuritySelectPinInProgress) result = _buildSelectPinPage(context, state);
@@ -92,19 +124,37 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildSelectPinErrorPage(BuildContext context, SetupSecuritySelectPinFailed state) {
+    final locale = AppLocalizations.of(context);
+    String errorTitle = locale.setupSecuritySelectPinErrorPageTitle;
+    String errorDescription;
+    switch (state.reason) {
+      case PinValidationError.tooLittleUniqueDigits:
+        errorDescription = locale.setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError;
+        break;
+      case PinValidationError.sequentialDigits:
+        errorDescription = locale.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;
+        break;
+      default:
+        errorDescription = locale.setupSecuritySelectPinErrorPageDefaultError;
+    }
     return SetupSecurityPinPage(
       key: _kSelectPinKey,
-      content: Column(
-        children: [
-          Text(
-            AppLocalizations.of(context).setupSecuritySelectPinErrorPageTitle,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
-          ),
-          Text(
-            AppLocalizations.of(context).setupSecuritySelectPinErrorPageDescription,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
+      content: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Text(
+              errorTitle,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              errorDescription,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
       enteredDigits: 0,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
@@ -187,6 +237,14 @@ class SetupSecurityScreen extends StatelessWidget {
           )
         ],
       ),
+    );
+  }
+
+  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+    var locale = AppLocalizations.of(context);
+    SemanticsService.announce(
+      locale.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      TextDirection.ltr,
     );
   }
 }

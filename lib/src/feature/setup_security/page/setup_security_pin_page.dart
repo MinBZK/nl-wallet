@@ -5,7 +5,7 @@ import '../../common/widget/wallet_logo.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
-const _requiredHeightToShowLogo = 192.0;
+const _requiredHeightToShowLogo = 230.0;
 
 class SetupSecurityPinPage extends StatelessWidget {
   final Widget content;
@@ -30,29 +30,31 @@ class SetupSecurityPinPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Expanded(
-          flex: 3,
           child: LayoutBuilder(builder: (context, constraints) {
+            final mq = MediaQuery.of(context);
+            final fitsLogoAndText = constraints.maxHeight > (_requiredHeightToShowLogo * mq.textScaleFactor);
             return Column(
               children: [
                 const SizedBox(height: 48),
-                if (constraints.maxHeight > _requiredHeightToShowLogo) const WalletLogo(size: 80),
-                const SizedBox(height: 24),
-                Expanded(child: content),
+                if (fitsLogoAndText) const WalletLogo(size: 80),
+                if (fitsLogoAndText) const SizedBox(height: 24),
+                Expanded(flex: 2, child: content),
+                if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
+                if (showInput) const Spacer(),
               ],
             );
           }),
         ),
-        if (showInput)
-          PinField(
-            digits: kPinDigits,
-            enteredDigits: enteredDigits,
-          ),
-        const Spacer(),
-        if (showInput)
-          PinKeyboard(
+        Visibility(
+          visible: showInput,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: PinKeyboard(
             onKeyPressed: onKeyPressed,
             onBackspacePressed: onBackspacePressed,
           ),
+        ),
       ],
     );
   }

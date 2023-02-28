@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../wallet_routes.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../bloc/menu_bloc.dart';
 import '../widget/menu_row.dart';
@@ -35,7 +36,7 @@ class MenuSettingsPage extends StatelessWidget {
           MenuRow(
             label: locale.menuSettingsPageChangeLanguageCta,
             icon: Icons.translate,
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
           ),
           const Divider(height: 1),
           MenuRow(

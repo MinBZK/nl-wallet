@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - deploy
 
 analyze-app:
   stage: test
@@ -47,11 +48,15 @@ build-android-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a91e8cf1cd2f1e3b0ec9f00972180adfb4884f9faf49df8b2751f79865943543"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d33dde486a0876fb91a8ad3e57e2edf8285855a750fa66ece4f4c0dc609d71af"
   artifacts:
     name: "wallet-android"
     paths:
-      - "*.apk"
+      - "*.aab"
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -60,7 +65,29 @@ build-android-app:
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
-    - mv build/app/outputs/apk/release/*.apk .
+
+deploy-android-app:
+  stage: deploy
+  only:
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:436af2468f17e6723b99d61a402ad2e5d1af46631455a247129468147670c487"
+  needs:
+    - build-android-app
+  dependencies:
+    - build-android-app
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane android ci_deploy
 
 build-ios-app:
   stage: build
@@ -74,10 +101,35 @@ build-ios-app:
     name: "wallet-ios"
     paths:
       - "*.ipa"
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
-    - mv build/ios/ipa/*.ipa .
+
+deploy-ios-app:
+  stage: deploy
+  only:
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  needs:
+    - build-ios-app
+  dependencies:
+    - build-ios-app
+  tags:
+    - macos
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane disable_flutter_analytics
+    - bundle exec fastlane ios ci_deploy

@@ -1,12 +1,14 @@
-use std::sync::Mutex;
-
-use crate::{
-    wallet::{pin::validate_pin, HWBoundSigningKey, Wallet},
-    wp::AccountServer,
-};
+use flutter_data_types::PinResult;
 use once_cell::sync::Lazy;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
+use std::sync::Mutex;
+
+use crate::{
+    wallet::pin::validate_pin,
+    wallet::{HWBoundSigningKey, Wallet},
+    wp::AccountServer,
+};
 
 // TODO remove this when an actual hardware-backed implementation exists
 impl HWBoundSigningKey for SigningKey {
@@ -26,8 +28,9 @@ const WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
     ))
 });
 
-pub fn is_valid_pin(pin: String) -> bool {
-    validate_pin(&pin).is_ok()
+pub fn is_valid_pin(pin: String) -> Vec<u8> {
+    let pin_result = PinResult::from(validate_pin(&pin));
+    bincode::serialize(&pin_result).unwrap()
 }
 
 pub fn register(pin: String) {
@@ -43,13 +46,22 @@ pub fn register(pin: String) {
 mod tests {
     use super::*;
 
+    fn test_is_valid_pin(pin: &str) -> bool {
+        let serialized_pin_result = is_valid_pin(pin.to_owned());
+        let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
+        match pin_result {
+            PinResult::Ok => true,
+            PinResult::Err(_) => false,
+        }
+    }
+
     #[test]
     fn check_valid_pin() {
-        assert!(is_valid_pin("142032".to_owned()));
+        assert!(test_is_valid_pin("142032"));
     }
 
     #[test]
     fn check_invalid_pin() {
-        assert!(!is_valid_pin("sdfioj".to_owned()));
+        assert!(!test_is_valid_pin("sdfioj"));
     }
 }

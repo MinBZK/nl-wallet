@@ -1,9 +1,7 @@
-import '../../../rust_core.dart';
-
-class CheckIsValidPinUseCase {
-  final RustCore _rustCore;
-
-  CheckIsValidPinUseCase(this._rustCore);
-
-  Future<bool> invoke(String pin) async => _rustCore.isValidPin(pin: pin);
+abstract class CheckIsValidPinUseCase {
+  /// Validates the supplied [pin]
+  ///
+  /// Throws a [PinValidationError] if the pin does
+  /// not meet the required standards.
+  Future<void> invoke(String pin);
 }

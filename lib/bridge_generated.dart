@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'dart:ffi' as ffi;
 
 abstract class RustCore {
-  Future<bool> isValidPin({required String pin, dynamic hint});
+  Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
 
@@ -28,11 +28,11 @@ class RustCoreImpl implements RustCore {
   factory RustCoreImpl.wasm(FutureOr<WasmModule> module) =>
       RustCoreImpl(module as ExternalLibrary);
   RustCoreImpl.raw(this._platform);
-  Future<bool> isValidPin({required String pin, dynamic hint}) {
+  Future<Uint8List> isValidPin({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_is_valid_pin(port_, arg0),
-      parseSuccessData: _wire2api_bool,
+      parseSuccessData: _wire2api_uint_8_list,
       constMeta: kIsValidPinConstMeta,
       argValues: [pin],
       hint: hint,
@@ -67,8 +67,12 @@ class RustCoreImpl implements RustCore {
   }
 // Section: wire2api
 
-  bool _wire2api_bool(dynamic raw) {
-    return raw as bool;
+  int _wire2api_u8(dynamic raw) {
+    return raw as int;
+  }
+
+  Uint8List _wire2api_uint_8_list(dynamic raw) {
+    return raw as Uint8List;
   }
 
   void _wire2api_unit(dynamic raw) {

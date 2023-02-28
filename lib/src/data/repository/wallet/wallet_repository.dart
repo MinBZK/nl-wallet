@@ -3,7 +3,13 @@ abstract class WalletRepository {
 
   Stream<bool> get isLockedStream;
 
-  Future<bool> createWallet(String pin);
+  /// Validates the supplied [pin]
+  ///
+  /// Throws a [PinValidationError] if the pin does
+  /// not meet the required standards.
+  Future<void> validatePin(String pin);
+
+  Future<void> createWallet(String pin);
 
   Future<void> destroyWallet();
 

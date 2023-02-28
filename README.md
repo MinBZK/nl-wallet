@@ -55,6 +55,10 @@ public reference wallet at the end of 2023 and to make it available in phases fo
     * [Data Layer](#data-layer)
     * [Motivation](#motivation)
 - [Conventions](#conventions)
+    * [Git](#git)
+    * [Dart](#dart)
+    * [Naming](#naming)
+    * [Testing](#testing)
 - [Distribution](#distribution)
 - [Troubleshooting](#troubleshooting)
 
@@ -325,6 +329,16 @@ See [commit message](#commit-message).
 ## Naming
 
 * Folder naming is `singular` for folders below `src`; for example: `src/feature/wallet/widget/...`
+
+## Testing
+
+### Unit tests
+
+* Test file name follows the convention: `{class_name}_test.dart`
+* Test description follows the convention: `should {do something} when {some condition}`
+* Tests are grouped* by the method they are testing
+
+** Grouping tests by method is not required, but recommended when testing a specific method.
 
 # Distribution
 

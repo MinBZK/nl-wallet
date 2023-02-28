@@ -128,6 +128,7 @@
   "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
   "dataIncorrectScreenTitle": "Gegevens ophalen",
   "generalBottomBackCta": "Terug",
+  "generalWCAGBack": "Terug",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {
@@ -208,6 +209,7 @@
   "homeScreenBottomNavBarCardsCta": "Kaarten",
   "homeScreenBottomNavBarMenuCta": "Menu",
   "homeScreenBottomNavBarQrCta": "QR",
+  "changeLanguageScreenTitle": "Kies een taal",
   "introductionAppBenefitsPageTitle": "Jij bepaalt met wie je gegevens deelt",
   "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
   "introductionAppIntroPageTitle": "Jouw gegevens makkelijk op je mobiel",
@@ -363,6 +365,8 @@
   "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
   "mockDigidScreenHeaderTitle": "Inloggen",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+  "pinKeyboardWCAGBackspaceLabel": "backspace",
+  "pinKeyboardWCAGDigitKeyTapHint": "invoer",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {
@@ -434,8 +438,27 @@
   "setupSecurityConfirmationErrorPageTitle": "Deze toegangscode is anders",
   "setupSecurityConfirmationPageTitle": "Herhaal je toegangscode",
   "setupSecurityScreenTitle": "Beveiliging instellen",
+  "setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError": "Een rij getallen is niet veilig. Kies daarom een andere toegangscode.",
+  "setupSecuritySelectPinErrorPageDefaultError": "Kies een andere toegangscode",
+  "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} van {totalDigits} ingevoerd",
+  "@setupSecurityScreenWCAGEnteredDigitsAnnouncement": {
+    "placeholders": {
+      "enteredDigits": {
+        "example": "3",
+        "type": "int"
+      },
+      "totalDigits": {
+        "example": "6",
+        "type": "int"
+      }
+    }
+  },
+  "setupSecurityScreenWCAGPinChosenAnnouncement": "Pin gekozen. Herhaal pincode om te bevestigen.",
+  "setupSecurityScreenWCAGPinConfirmationFailedAnnouncement": "Gekozen pin komt niet overeen. Probeer opnieuw.",
+  "setupSecurityScreenWCAGPinTooSimpleAnnouncement": "Gekozen pin te simpel. Probeer opnieuw.",
   "setupSecuritySelectPinErrorPageDescription": "Kies een andere toegangscode",
   "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
+  "setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError": "Kies een toegangscode met minstens 2 verschillende getallen",
   "setupSecuritySelectPinPageTitle": "Kies een 6 cijferige toegangscode",
   "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
   "signConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
