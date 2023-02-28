@@ -192,7 +192,7 @@ mod tests {
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use serde::{Deserialize, Serialize};
 
-    use crate::wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey};
+    use crate::wallet::{pin_key::PinKey, signed::SignedDouble};
 
     use super::Signed;
 

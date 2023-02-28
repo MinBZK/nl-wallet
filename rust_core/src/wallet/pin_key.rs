@@ -30,8 +30,6 @@ use ring::hkdf;
 
 use crate::utils::random_bytes;
 
-use super::HWBoundSigningKey;
-
 /// All PIN data needed to compute signatures. Implements [`HWBoundSigningKey`] such that the ECDSA private key is
 /// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
 pub struct PinKey<'a> {
@@ -47,8 +45,8 @@ impl<'a> Signer<Signature> for PinKey<'a> {
     }
 }
 
-impl<'a> HWBoundSigningKey for PinKey<'a> {
-    fn verifying_key(&self) -> VerifyingKey {
+impl<'a> PinKey<'a> {
+    pub fn verifying_key(&self) -> VerifyingKey {
         pin_private_key(&self.salt, &self.pin)
             .expect("pin private key computation failed")
             .verifying_key()
