@@ -7,21 +7,24 @@ pub mod software;
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
 
+use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+
 #[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("KeyError")]
-    KeyError { message: Option<String> },
-    #[error("InternalError")]
-    InternalError { message: String },
+pub enum Error {
+    #[cfg(feature = "hardware")]
+    #[error(transparent)]
+    KeyStoreError(#[from] hardware::KeyStoreError),
+    #[cfg(feature = "hardware")]
+    #[error(transparent)]
+    PKCS8Error(#[from] p256::pkcs8::spki::Error),
 }
 
 pub trait KeyStore {
-    type KeyType: AsymmetricKey;
+    type SigningKeyType: SigningKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Result<Self::KeyType, KeyStoreError>;
+    fn get_or_create_key(&mut self, identifier: &str) -> Result<Self::SigningKeyType, Error>;
 }
 
-pub trait AsymmetricKey {
-    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError>;
-    fn sign(&self, payload: &[u8]) -> Result<Vec<u8>, KeyStoreError>;
+pub trait SigningKey: Signer<Signature> {
+    fn verifying_key(&self) -> Result<VerifyingKey, Error>;
 }

@@ -1,5 +1,5 @@
 //
-//  AsymmetricKey.swift
+//  SigningKey.swift
 //  HWKeyStore
 //
 //  Created by Wallet Developer on 24/02/2023.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class AsymmetricKey {
+final class SigningKey {
     let key: SecureEnclaveKey
 
     init(key: SecureEnclaveKey) {
@@ -15,7 +15,7 @@ final class AsymmetricKey {
     }
 }
 
-extension AsymmetricKey: AsymmetricKeyBridge {
+extension SigningKey: SigningKeyBridge {
     func publicKey() throws -> [UInt8] {
         do {
             return Array(try self.key.publicKey())

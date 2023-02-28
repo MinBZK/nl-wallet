@@ -1,15 +1,28 @@
-use crate::{AsymmetricKey, KeyStore, KeyStoreError};
-
 use lazy_static::lazy_static;
+use p256::ecdsa::{
+    signature::{Error as SignerError, Signer},
+    Signature, VerifyingKey,
+};
+use p256::pkcs8::DecodePublicKey;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
+use crate::{Error, KeyStore, SigningKey};
+
 uniffi::include_scaffolding!("hw_keystore");
 
+#[derive(Debug, thiserror::Error)]
+pub enum KeyStoreError {
+    #[error("Key error: {message:?}")]
+    KeyError { message: Option<String> },
+    #[error("Internal error: {reason:?}")]
+    InternalError { reason: String },
+}
+
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
-    fn from(error: uniffi::UnexpectedUniFFICallbackError) -> Self {
+    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
         Self::InternalError {
-            message: error.reason,
+            reason: value.reason,
         }
     }
 }
@@ -37,39 +50,45 @@ impl Default for HardwareKeyStore {
 }
 
 impl KeyStore for HardwareKeyStore {
-    type KeyType = HardwareAsymmetricKey;
+    type SigningKeyType = HardwareSigningKey;
 
-    fn get_or_create_key(
-        &mut self,
-        identifier: &str,
-    ) -> Result<HardwareAsymmetricKey, KeyStoreError> {
+    fn get_or_create_key(&mut self, identifier: &str) -> Result<HardwareSigningKey, Error> {
         let bridge = self.bridge.get_or_create_key(identifier.to_string())?;
 
-        Ok(HardwareAsymmetricKey::new(bridge))
+        Ok(HardwareSigningKey::new(bridge))
     }
 }
 
-pub struct HardwareAsymmetricKey {
-    bridge: Box<dyn AsymmetricKeyBridge>,
+pub struct HardwareSigningKey {
+    bridge: Box<dyn SigningKeyBridge>,
 }
 
-impl HardwareAsymmetricKey {
-    fn new(bridge: Box<dyn AsymmetricKeyBridge>) -> Self {
-        HardwareAsymmetricKey { bridge }
+impl HardwareSigningKey {
+    fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
+        HardwareSigningKey { bridge }
     }
 }
 
-impl AsymmetricKey for HardwareAsymmetricKey {
-    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError> {
-        let public_key = self.bridge.public_key()?;
+impl SigningKey for HardwareSigningKey {
+    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+        let public_key_bytes = self.bridge.public_key()?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
         Ok(public_key)
     }
+}
 
-    fn sign(&self, payload: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
-        let signature = self.bridge.sign(payload.to_vec())?;
+impl From<KeyStoreError> for SignerError {
+    fn from(value: KeyStoreError) -> Self {
+        SignerError::from_source(value)
+    }
+}
 
-        Ok(signature)
+impl Signer<Signature> for HardwareSigningKey {
+    fn try_sign(&self, msg: &[u8]) -> Result<Signature, SignerError> {
+        let signature_bytes = self.bridge.sign(msg.to_vec())?;
+
+        Signature::from_der(&signature_bytes)
     }
 }
 
@@ -77,10 +96,10 @@ trait KeyStoreBridge: Send + Sync + Debug {
     fn get_or_create_key(
         &self,
         identifier: String,
-    ) -> Result<Box<dyn AsymmetricKeyBridge>, KeyStoreError>;
+    ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
 }
 
-trait AsymmetricKeyBridge: Send + Sync + Debug {
+trait SigningKeyBridge: Send + Sync + Debug {
     fn public_key(&self) -> Result<Vec<u8>, KeyStoreError>;
     fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
 }

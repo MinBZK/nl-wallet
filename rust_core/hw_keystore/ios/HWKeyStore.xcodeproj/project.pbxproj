@@ -11,7 +11,7 @@
 		6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6133004C29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift */; };
 		6133004F29A8E940004D9CC7 /* hw_keystore.udl in Sources */ = {isa = PBXBuildFile; fileRef = 6133003C29A8E2DE004D9CC7 /* hw_keystore.udl */; };
 		6150E5EF29A8B7980036E736 /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5EE29A8B7980036E736 /* KeyStore.swift */; };
-		6150E5F129A8B7E60036E736 /* AsymmetricKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F029A8B7E60036E736 /* AsymmetricKey.swift */; };
+		6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F029A8B7E60036E736 /* SigningKey.swift */; };
 		6150E5F429A8BA540036E736 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F329A8BA540036E736 /* SecureEnclaveKey.swift */; };
 		6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */; };
 		6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */; };
@@ -76,7 +76,7 @@
 		6133005829A8EC35004D9CC7 /* hw_keystoreFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = hw_keystoreFFI.h; path = ../../swift/hw_keystoreFFI.h; sourceTree = "<group>"; };
 		6150E5E829A8B0140036E736 /* HWKeyStore-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "HWKeyStore-Bridging-Header.h"; sourceTree = "<group>"; };
 		6150E5EE29A8B7980036E736 /* KeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyStore.swift; sourceTree = "<group>"; };
-		6150E5F029A8B7E60036E736 /* AsymmetricKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsymmetricKey.swift; sourceTree = "<group>"; };
+		6150E5F029A8B7E60036E736 /* SigningKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningKey.swift; sourceTree = "<group>"; };
 		6150E5F329A8BA540036E736 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
 		6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKeyError.swift; sourceTree = "<group>"; };
 		6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyStoreError+From.swift"; sourceTree = "<group>"; };
@@ -148,9 +148,9 @@
 		6150E5ED29A8B7870036E736 /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
-				6150E5F029A8B7E60036E736 /* AsymmetricKey.swift */,
 				6150E5EE29A8B7980036E736 /* KeyStore.swift */,
 				6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */,
+				6150E5F029A8B7E60036E736 /* SigningKey.swift */,
 			);
 			path = Bridge;
 			sourceTree = "<group>";
@@ -370,7 +370,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6133004F29A8E940004D9CC7 /* hw_keystore.udl in Sources */,
-				6150E5F129A8B7E60036E736 /* AsymmetricKey.swift in Sources */,
+				6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */,
 				6150E5EF29A8B7980036E736 /* KeyStore.swift in Sources */,
 				61F5336229A8AB4100624E46 /* HWKeyStore.swift in Sources */,
 				6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */,

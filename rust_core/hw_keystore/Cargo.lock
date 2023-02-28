@@ -381,6 +381,7 @@ dependencies = [
  "lazy_static",
  "p256",
  "rand_core",
+ "spki",
  "thiserror",
  "uniffi",
 ]

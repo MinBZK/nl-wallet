@@ -10,9 +10,9 @@ import Foundation
 final class KeyStore {}
 
 extension KeyStore: KeyStoreBridge {
-    func getOrCreateKey(identifier: String) throws -> AsymmetricKeyBridge {
+    func getOrCreateKey(identifier: String) throws -> SigningKeyBridge {
         do {
-            return AsymmetricKey(key: try SecureEnclaveKey(identifier: identifier))
+            return SigningKey(key: try SecureEnclaveKey(identifier: identifier))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }

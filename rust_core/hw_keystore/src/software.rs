@@ -1,20 +1,12 @@
-use crate::{AsymmetricKey, KeyStore, KeyStoreError};
-
-use p256::{
-    ecdsa::{
-        signature::{SignatureEncoding, Signer},
-        Signature, SigningKey,
-    },
-    pkcs8::EncodePublicKey,
-    SecretKey,
-};
+use p256::ecdsa::{SigningKey as ECDSASigningKey, VerifyingKey};
 use rand_core::OsRng;
 use std::collections::HashMap;
-use std::rc::Rc;
+
+use crate::{Error, KeyStore, SigningKey};
 
 #[derive(Default)]
 pub struct InMemoryKeyStore {
-    keys: HashMap<String, Rc<SecretKey>>,
+    keys: HashMap<String, p256::ecdsa::SigningKey>,
 }
 
 impl InMemoryKeyStore {
@@ -24,38 +16,20 @@ impl InMemoryKeyStore {
 }
 
 impl KeyStore for InMemoryKeyStore {
-    type KeyType = SoftwareKey;
+    type SigningKeyType = ECDSASigningKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Result<SoftwareKey, KeyStoreError> {
+    fn get_or_create_key(&mut self, identifier: &str) -> Result<ECDSASigningKey, Error> {
         let key = self
             .keys
             .entry(identifier.to_string())
-            .or_insert_with(|| Rc::new(SecretKey::random(&mut OsRng)));
+            .or_insert_with(|| ECDSASigningKey::random(&mut OsRng));
 
-        Ok(SoftwareKey::new(key))
+        Ok(key.clone())
     }
 }
 
-pub struct SoftwareKey {
-    key: Rc<SecretKey>,
-}
-
-impl SoftwareKey {
-    fn new(key: &Rc<SecretKey>) -> Self {
-        SoftwareKey {
-            key: Rc::clone(key),
-        }
-    }
-}
-
-impl AsymmetricKey for SoftwareKey {
-    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError> {
-        Ok(self.key.public_key().to_public_key_der().unwrap().to_vec())
-    }
-
-    fn sign(&self, payload: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
-        let signature: Signature = SigningKey::from(self.key.as_ref()).sign(payload);
-
-        Ok(signature.to_der().to_vec())
+impl SigningKey for ECDSASigningKey {
+    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+        Ok(self.verifying_key().clone())
     }
 }
