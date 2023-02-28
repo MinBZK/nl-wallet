@@ -39,7 +39,6 @@ pub struct User {
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
     wallet_id: String,
-    sub: String,
     exp: u64,
 }
 
@@ -96,7 +95,6 @@ impl AccountServer {
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
-                sub: RegistrationChallengeClaims::SUB.to_owned(),
             },
             &self.privkey,
         )?
@@ -163,7 +161,6 @@ impl AccountServer {
             version: WALLET_CERTIFICATE_VERSION,
 
             iss: self.name.clone(),
-            sub: WalletCertificateClaims::SUB.to_owned(),
             iat: jsonwebtoken::get_current_timestamp(),
         };
 

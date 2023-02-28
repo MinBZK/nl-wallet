@@ -21,7 +21,6 @@ pub struct WalletCertificateClaims {
     pub version: u32,
 
     pub iss: String,
-    pub sub: String,
     pub iat: u64,
 }
 
