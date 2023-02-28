@@ -44,6 +44,9 @@ app.*.map.json
 /android/app/release
 /android/app/src/main/jniLibs
 
+# Android builds
+/*.aab
+
 # iOS builds
 /*.ipa
 /*.dSYM.zip

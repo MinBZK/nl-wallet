@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -17,7 +18,7 @@ class HomeScreen extends StatelessWidget {
       body: WillPopScope(
         child: _buildBody(),
         onWillPop: () async {
-          if ((context.read<HomeBloc>().state.tab) == HomeScreenTab.menu) {
+          if ((context.read<HomeBloc>().state.tab) == HomeTab.menu) {
             context.read<MenuBloc>().add(MenuHomePressed());
           }
           return false; // Back gesture disabled for demo purposes
@@ -31,15 +32,15 @@ class HomeScreen extends StatelessWidget {
     return BlocConsumer<HomeBloc, HomeState>(
       listenWhen: (prev, current) => prev.tab == current.tab,
       listener: (context, state) {
-        if (state.tab == HomeScreenTab.menu) context.read<MenuBloc>().add(MenuHomePressed());
+        if (state.tab == HomeTab.menu) context.read<MenuBloc>().add(MenuHomePressed());
       },
       builder: (context, state) {
         switch (state.tab) {
-          case HomeScreenTab.cards:
+          case HomeTab.cards:
             return const CardOverviewScreen();
-          case HomeScreenTab.qr:
+          case HomeTab.qr:
             return const QrScreen();
-          case HomeScreenTab.menu:
+          case HomeTab.menu:
             return const MenuScreen();
         }
       },
@@ -58,7 +59,13 @@ class HomeScreen extends StatelessWidget {
       builder: (context, state) {
         return BottomNavigationBar(
           currentIndex: state.tab.tabIndex,
-          onTap: (value) => context.read<HomeBloc>().add(HomeTabPressed(value)),
+          onTap: (value) {
+            final homeTab = HomeTab.values.firstWhereOrNull((element) => element.tabIndex == value);
+            final forceStateRefresh = state.tab == HomeTab.menu;
+            if (homeTab != null) {
+              context.read<HomeBloc>().add(HomeTabPressed(homeTab, forceStateRefresh: forceStateRefresh));
+            }
+          },
           items: items,
         );
       },

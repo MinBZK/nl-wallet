@@ -4,9 +4,11 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../../../domain/usecase/wallet/create_wallet_usecase.dart';
+import '../../../util/cast_util.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
@@ -55,11 +57,12 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   Future<void> _onSelectPinDigitEvent(event, emit) async {
     _newPin += event.digit.toString();
     if (_newPin.length == kPinDigits) {
-      if (await checkIsValidPinUseCase.invoke(_newPin)) {
+      try {
+        await checkIsValidPinUseCase.invoke(_newPin);
         emit(const SetupSecurityPinConfirmationInProgress(0));
-      } else {
+      } catch (error) {
         _newPin = '';
-        emit(SetupSecuritySelectPinFailed());
+        emit(SetupSecuritySelectPinFailed(reason: tryCast<PinValidationError>(error)));
       }
     } else {
       emit(SetupSecuritySelectPinInProgress(_newPin.length));

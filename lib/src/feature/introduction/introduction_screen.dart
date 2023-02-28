@@ -77,13 +77,20 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         ),
         Align(
           alignment: Alignment.bottomCenter,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              _buildProgressStepper(_currentPage),
-              const SizedBox(height: 24),
-              _buildSecondaryCta(context),
-              _buildNextButton(context),
+              if (MediaQuery.of(context).orientation == Orientation.landscape) const Spacer(),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildProgressStepper(_currentPage),
+                    const SizedBox(height: 24),
+                    _buildSecondaryCta(context),
+                    _buildNextButton(context),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -141,7 +148,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     var languageButton = TextIconButton(
       icon: Icons.language,
       iconPosition: IconPosition.start,
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
       centerChild: false,
       child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
     );

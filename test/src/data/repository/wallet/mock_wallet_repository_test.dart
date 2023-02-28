@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/data/repository/wallet/mock_wallet_repository.dart';
+import 'package:wallet/src/data/repository/wallet/mock/mock_wallet_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/source/memory/memory_wallet_datasource.dart';
 import 'package:wallet/src/wallet_constants.dart';

@@ -31,7 +31,14 @@ void main() {
       expect(find.byIcon(Icons.backspace), findsOneWidget);
     });
 
-    testWidgets('when a key is pressed the callback with that keys number is triggered', (WidgetTester tester) async {
+    testWidgets('should meet text contrast guidelines', (WidgetTester tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(const WalletAppTestWidget(PinKeyboard()));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      handle.dispose();
+    });
+
+    testWidgets('should trigger `onKeyPressed` callback when a key is pressed', (WidgetTester tester) async {
       int lastPressedKey = -1;
       final pinKeyboard = PinKeyboard(
         onKeyPressed: (key) => lastPressedKey = key,
@@ -45,7 +52,8 @@ void main() {
       }
     });
 
-    testWidgets('when the backspace key is pressed the callback is triggered', (WidgetTester tester) async {
+    testWidgets('should trigger `onBackspacePressed` callback when the backspace key is pressed',
+        (WidgetTester tester) async {
       bool onBackspaceWasPressed = false;
       final pinKeyboard = PinKeyboard(
         onBackspacePressed: () => onBackspaceWasPressed = true,
@@ -56,13 +64,6 @@ void main() {
       await tester.tap(widgetFinder);
 
       expect(onBackspaceWasPressed, isTrue);
-    });
-
-    testWidgets('verify text contrast', (WidgetTester tester) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(const WalletAppTestWidget(PinKeyboard()));
-      await expectLater(tester, meetsGuideline(textContrastGuideline));
-      handle.dispose();
     });
   });
 }

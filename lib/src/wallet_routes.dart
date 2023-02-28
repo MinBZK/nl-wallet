@@ -11,6 +11,8 @@ import 'feature/card/overview/bloc/card_overview_bloc.dart';
 import 'feature/card/share/card_share_screen.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
+import 'feature/change_language/bloc/change_language_bloc.dart';
+import 'feature/change_language/change_language_screen.dart';
 import 'feature/common/widget/do_on_init.dart';
 import 'feature/history/detail/argument/history_detail_screen_argument.dart';
 import 'feature/history/detail/bloc/history_detail_bloc.dart';
@@ -49,7 +51,14 @@ class WalletRoutes {
 
   /// Routes in this list will be shown WITHOUT pin (wallet unlock) requirement
   @visibleForTesting
-  static const publicRoutes = [splashRoute, introductionRoute, setupSecurityRoute, pinRoute, themeRoute];
+  static const publicRoutes = [
+    splashRoute,
+    introductionRoute,
+    setupSecurityRoute,
+    pinRoute,
+    themeRoute,
+    changeLanguageRoute
+  ];
 
   static const splashRoute = '/';
   static const introductionRoute = '/introduction';
@@ -69,6 +78,7 @@ class WalletRoutes {
   static const signRoute = '/sign';
   static const policyRoute = '/policy';
   static const historyDetailRoute = '/history';
+  static const changeLanguageRoute = '/language';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -117,6 +127,8 @@ class WalletRoutes {
         return _createHistoryOverviewScreenBuilder;
       case WalletRoutes.historyDetailRoute:
         return _createHistoryDetailScreenBuilder(settings);
+      case WalletRoutes.changeLanguageRoute:
+        return _createChangeLanguageScreenBuilder(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -271,6 +283,15 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
           cardId: argument.cardId,
         )),
       child: const HistoryDetailScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createChangeLanguageScreenBuilder(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<ChangeLanguageBloc>(
+      create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
+      child: const ChangeLanguageScreen(),
     );
   };
 }

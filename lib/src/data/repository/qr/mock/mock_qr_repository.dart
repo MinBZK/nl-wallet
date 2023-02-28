@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import '../../../domain/model/qr/edi_qr_code.dart';
-import '../../../domain/model/qr/qr_request.dart';
-import 'qr_repository.dart';
+import '../../../../domain/model/qr/edi_qr_code.dart';
+import '../../../../domain/model/qr/qr_request.dart';
+import '../qr_repository.dart';
 
 class MockQrRepository implements QrRepository {
   MockQrRepository();

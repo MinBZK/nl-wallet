@@ -1,9 +1,10 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'environment.dart';
+import 'src/di/wallet_bloc_provider.dart';
 import 'src/di/wallet_datasource_provider.dart';
 import 'src/di/wallet_repository_provider.dart';
 import 'src/di/wallet_service_provider.dart';
@@ -17,9 +18,6 @@ final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Disable screen orientation
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
   // Debug specific setup
   if (kDebugMode) {
     Fimber.plantTree(DebugTree());
@@ -29,12 +27,15 @@ void main() async {
   runApp(
     WalletDataSourceProvider(
       child: WalletRepositoryProvider(
+        provideMocks: Environment.mockRepositories,
         child: WalletUseCaseProvider(
           child: WalletServiceProvider(
             navigatorKey: _navigatorKey,
-            child: AutoLockObserver(
-              child: WalletApp(
-                navigatorKey: _navigatorKey,
+            child: WalletBlocProvider(
+              child: AutoLockObserver(
+                child: WalletApp(
+                  navigatorKey: _navigatorKey,
+                ),
               ),
             ),
           ),

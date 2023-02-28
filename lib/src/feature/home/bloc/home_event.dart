@@ -5,12 +5,11 @@ abstract class HomeEvent extends Equatable {
 }
 
 class HomeTabPressed extends HomeEvent {
-  final int tabIndex;
+  final HomeTab tab;
+  final bool forceStateRefresh;
 
-  const HomeTabPressed(this.tabIndex);
-
-  HomeScreenTab get tab => HomeScreenTabExtension.from(tabIndex);
+  const HomeTabPressed(this.tab, {this.forceStateRefresh = false});
 
   @override
-  List<Object?> get props => [tabIndex];
+  List<Object?> get props => [tab, forceStateRefresh];
 }

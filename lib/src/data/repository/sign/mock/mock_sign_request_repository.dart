@@ -1,11 +1,11 @@
-import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/requested_attribute.dart';
-import '../../../domain/model/document.dart';
-import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/sign_request.dart';
-import '../../../domain/model/trust_provider.dart';
-import '../../source/organization_datasource.dart';
-import 'sign_request_repository.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
+import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/document.dart';
+import '../../../../domain/model/policy/policy.dart';
+import '../../../../domain/model/sign_request.dart';
+import '../../../../domain/model/trust_provider.dart';
+import '../../../source/organization_datasource.dart';
+import '../sign_request_repository.dart';
 
 class MockSignRequestRepository implements SignRequestRepository {
   final OrganizationDataSource organizationDataSource;

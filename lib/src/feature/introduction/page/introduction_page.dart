@@ -18,19 +18,64 @@ class IntroductionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return OrientationBuilder(builder: (context, orientation) {
+      if (orientation == Orientation.portrait) {
+        return _buildPortrait(context);
+      } else {
+        return _buildLandscape(context);
+      }
+    });
+  }
+
+  Widget _buildPortrait(BuildContext context) {
+    return Column(
       children: [
-        Column(
-          children: [
-            _buildHeaderImages(context),
-            _buildTextHeadline(context),
-          ],
+        _buildPortraitImage(context),
+        _buildTextHeadline(context),
+      ],
+    );
+  }
+
+  Widget _buildLandscape(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildLandscapeImage(),
+        ),
+        Expanded(
+          child: SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: _buildTextHeadline(context),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildHeaderImages(BuildContext context) {
+  Widget _buildLandscapeImage() {
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned.fill(
+          child: Image(
+            image: image,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: Image.asset(
+            _kCoverHeaderLabelImage,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortraitImage(BuildContext context) {
     final textScaleFactor = MediaQuery.of(context).textScaleFactor;
     final screenHeight = MediaQuery.of(context).size.height;
     final maxFractionHeight = screenHeight * _kCoverHeaderImageMaxFraction;

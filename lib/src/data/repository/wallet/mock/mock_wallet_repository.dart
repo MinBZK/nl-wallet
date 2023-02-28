@@ -1,8 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../wallet_constants.dart';
-import '../../source/wallet_datasource.dart';
-import 'wallet_repository.dart';
+import '../../../../domain/model/pin/pin_validation_error.dart';
+import '../../../../wallet_constants.dart';
+import '../../../source/wallet_datasource.dart';
+import '../wallet_repository.dart';
 
 class MockWalletRepository implements WalletRepository {
   WalletDataSource dataSource;
@@ -78,4 +80,11 @@ class MockWalletRepository implements WalletRepository {
 
   @override
   int get leftoverPinAttempts => _isInitialized.value ? kMaxUnlockAttempts - _invalidPinAttempts : -1;
+
+  @override
+  Future<void> validatePin(String pin) async {
+    if (pin.length != kPinDigits) throw PinValidationError.other;
+    if (pin.characters.toSet().length <= 1) throw PinValidationError.tooLittleUniqueDigits;
+    if (pin == '123456') throw PinValidationError.sequentialDigits;
+  }
 }

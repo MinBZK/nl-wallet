@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../domain/model/pin/pin_validation_error.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
@@ -123,19 +124,37 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildSelectPinErrorPage(BuildContext context, SetupSecuritySelectPinFailed state) {
+    final locale = AppLocalizations.of(context);
+    String errorTitle = locale.setupSecuritySelectPinErrorPageTitle;
+    String errorDescription;
+    switch (state.reason) {
+      case PinValidationError.tooLittleUniqueDigits:
+        errorDescription = locale.setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError;
+        break;
+      case PinValidationError.sequentialDigits:
+        errorDescription = locale.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;
+        break;
+      default:
+        errorDescription = locale.setupSecuritySelectPinErrorPageDefaultError;
+    }
     return SetupSecurityPinPage(
       key: _kSelectPinKey,
-      content: Column(
-        children: [
-          Text(
-            AppLocalizations.of(context).setupSecuritySelectPinErrorPageTitle,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
-          ),
-          Text(
-            AppLocalizations.of(context).setupSecuritySelectPinErrorPageDescription,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
+      content: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Text(
+              errorTitle,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              errorDescription,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
       enteredDigits: 0,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
