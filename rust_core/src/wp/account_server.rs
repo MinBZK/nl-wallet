@@ -1,14 +1,15 @@
 use anyhow::{anyhow, Result};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
-    pkcs8::{DecodePrivateKey, EncodePublicKey},
+    pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey},
 };
+use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use crate::{
     jwt::{Jwt, JwtClaims},
-    utils::random_string,
+    utils::{random_bytes, random_string},
     wallet::signed::SignedDouble,
     wp::{
         instructions::Registration, AccountServerClient, WalletCertificate, WalletCertificateClaims,
@@ -22,7 +23,7 @@ pub struct AccountServer {
     pin_hash_salt: Vec<u8>,
     name: String,
 
-    pubkey: Vec<u8>,
+    pub pubkey: Vec<u8>,
 }
 
 pub struct User {
@@ -71,6 +72,20 @@ impl AccountServer {
             name,
             pubkey,
         })
+    }
+
+    pub fn new_stub() -> AccountServer {
+        let account_server_privkey = SigningKey::random(&mut OsRng);
+        AccountServer::new(
+            account_server_privkey
+                .to_pkcs8_der()
+                .unwrap()
+                .as_bytes()
+                .to_vec(),
+            random_bytes(32),
+            "stub_account_server".into(),
+        )
+        .unwrap()
     }
 
     // Only used for registration. When a registered user sends an instruction, we should store

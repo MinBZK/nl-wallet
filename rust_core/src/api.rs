@@ -1,12 +1,11 @@
 use std::sync::Mutex;
 
 use crate::{
-    utils::random_bytes,
     wallet::{pin::validate_pin, HWBoundSigningKey, Wallet},
     wp::AccountServer,
 };
 use once_cell::sync::Lazy;
-use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 
 // TODO remove this when an actual hardware-backed implementation exists
@@ -17,26 +16,12 @@ impl HWBoundSigningKey for SigningKey {
 }
 
 const WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
-    let account_server_privkey = SigningKey::random(&mut OsRng);
-    let account_server_pubkey = account_server_privkey
-        .verifying_key()
-        .to_encoded_point(false)
-        .as_bytes()
-        .to_vec();
-    let account_server = AccountServer::new(
-        account_server_privkey
-            .to_pkcs8_der()
-            .unwrap()
-            .as_bytes()
-            .to_vec(),
-        random_bytes(32),
-        "stub_account_server".into(),
-    )
-    .unwrap();
+    let account_server = AccountServer::new_stub(); // TODO
+    let pubkey = account_server.pubkey.clone();
 
     Mutex::new(Wallet::new(
         account_server,
-        account_server_pubkey,
+        pubkey,
         SigningKey::random(&mut OsRng),
     ))
 });
