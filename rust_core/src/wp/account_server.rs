@@ -44,9 +44,7 @@ struct RegistrationChallengeClaims {
 }
 
 impl JwtClaims for RegistrationChallengeClaims {
-    fn sub() -> String {
-        "registration_challenge".to_owned()
-    }
+    const SUB: &'static str = "registration_challenge";
 }
 
 impl AccountServerClient for AccountServer {
@@ -98,7 +96,7 @@ impl AccountServer {
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
-                sub: RegistrationChallengeClaims::sub(),
+                sub: RegistrationChallengeClaims::SUB.to_owned(),
             },
             &self.privkey,
         )?
@@ -165,7 +163,7 @@ impl AccountServer {
             version: WALLET_CERTIFICATE_VERSION,
 
             iss: self.name.clone(),
-            sub: WalletCertificateClaims::sub(),
+            sub: WalletCertificateClaims::SUB.to_owned(),
             iat: jsonwebtoken::get_current_timestamp(),
         };
 

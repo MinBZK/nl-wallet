@@ -15,7 +15,7 @@ impl<T> From<String> for Jwt<T> {
 }
 
 pub trait JwtClaims {
-    fn sub() -> String;
+    const SUB: &'static str;
 }
 
 impl<T> Jwt<T>
@@ -25,7 +25,7 @@ where
     pub fn parse_and_verify(&self, pubkey: &[u8]) -> Result<T> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
-        validation_options.sub = T::sub().into();
+        validation_options.sub = T::SUB.to_owned().into();
 
         Ok(jsonwebtoken::decode::<T>(
             &self.0,

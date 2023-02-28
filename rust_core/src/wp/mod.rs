@@ -26,9 +26,7 @@ pub struct WalletCertificateClaims {
 }
 
 impl JwtClaims for WalletCertificateClaims {
-    fn sub() -> String {
-        "wallet_certificate".to_owned()
-    }
+    const SUB: &'static str = "wallet_certificate";
 }
 
 pub type WalletCertificate = Jwt<WalletCertificateClaims>;
