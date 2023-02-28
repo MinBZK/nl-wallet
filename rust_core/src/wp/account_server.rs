@@ -1,3 +1,6 @@
+//! A temporary rust implementation of the account server, for use in tests and stubs before the Kotlin implementation
+//! is fully functional.
+
 use anyhow::{anyhow, Result};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
