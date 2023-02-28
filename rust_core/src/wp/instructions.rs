@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     serialization::DerVerifyingKey,
     wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey},
+    wp::WalletCertificate,
 };
-
-use super::WalletCertificate;
 
 struct Instruction<T: IsInstruction> {
     instruction: SignedDouble<T>,

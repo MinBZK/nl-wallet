@@ -8,12 +8,12 @@ use sha2::Digest;
 
 use crate::{
     jwt::{Jwt, JwtClaims},
-    serialization::{Base64Bytes, DerVerifyingKey},
     utils::random_string,
     wallet::signed::SignedDouble,
+    wp::{
+        instructions::Registration, AccountServerClient, WalletCertificate, WalletCertificateClaims,
+    },
 };
-
-use super::instructions::Registration;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -24,26 +24,6 @@ pub struct AccountServer {
 
     pubkey: Vec<u8>,
 }
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WalletCertificateClaims {
-    pub wallet_id: String,
-    pub hw_pubkey: DerVerifyingKey,
-    pub pin_pubkey_hash: Base64Bytes,
-    pub version: u32,
-
-    pub iss: String,
-    pub sub: String,
-    pub iat: u64,
-}
-
-impl JwtClaims for WalletCertificateClaims {
-    fn sub() -> String {
-        "wallet_certificate".to_owned()
-    }
-}
-
-pub type WalletCertificate = Jwt<WalletCertificateClaims>;
 
 pub struct User {
     cert: String,
@@ -63,14 +43,6 @@ impl JwtClaims for RegistrationChallengeClaims {
     fn sub() -> String {
         "registration_challenge".to_owned()
     }
-}
-
-pub trait AccountServerClient {
-    fn registration_challenge(&self) -> Result<Vec<u8>>;
-    fn register(
-        &self,
-        registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate>;
 }
 
 impl AccountServerClient for AccountServer {
