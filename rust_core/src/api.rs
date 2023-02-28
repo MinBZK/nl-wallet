@@ -1,3 +1,4 @@
+use anyhow::Result;
 use flutter_data_types::PinResult;
 use once_cell::sync::Lazy;
 use p256::ecdsa::SigningKey;
@@ -33,13 +34,9 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
     bincode::serialize(&pin_result).unwrap()
 }
 
-pub fn register(pin: String) {
-    // TODO return error instead of panicking
-    WALLET
-        .lock()
-        .expect("wallet lock failed")
-        .register(pin)
-        .expect("register() failed");
+pub fn register(pin: String) -> Result<()> {
+    // TODO return differentiated errors?
+    WALLET.lock().expect("wallet lock failed").register(pin)
 }
 
 #[cfg(test)]
