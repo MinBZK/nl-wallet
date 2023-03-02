@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/attribute/data_attribute.dart';
@@ -35,8 +34,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeOfferingVerified>(_onOfferingVerified);
-    on<WalletPersonalizeScanInitiated>(_onScanInitiated);
-    on<WalletPersonalizeScanEvent>(_onScanEvent);
     on<WalletPersonalizePhotoApproved>(_onPhotoApproved);
     on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
     on<WalletPersonalizeOnBackPressed>(_onBackPressed);
@@ -55,7 +52,14 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onLoginWithDigidSucceeded(event, emit) async {
-    emit(const WalletPersonalizeScanIdIntro());
+    try {
+      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
+      final card = issuanceResponse.cards.first;
+      emit(WalletPersonalizeCheckData(availableAttributes: card.attributes.toList()));
+    } catch (ex, stack) {
+      Fimber.e('Failed to get PID', ex: ex, stacktrace: stack);
+      emit(WalletPersonalizeFailure());
+    }
   }
 
   void _onOfferingVerified(WalletPersonalizeOfferingVerified event, emit) async {
@@ -66,25 +70,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       emit(WalletPersonalizeRetrieveMoreCards());
     } catch (ex, stack) {
       Fimber.e('Failed create PID card', ex: ex, stacktrace: stack);
-      emit(WalletPersonalizeFailure());
-    }
-  }
-
-  void _onScanInitiated(event, emit) async {
-    emit(WalletPersonalizeScanId());
-  }
-
-  void _onScanEvent(event, emit) async {
-    const mockDelay = kDebugMode ? kDefaultMockDelay : Duration(seconds: 3);
-    emit(const WalletPersonalizeLoadingPhoto(mockDelay));
-    await Future.delayed(mockDelay);
-
-    try {
-      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-      final card = issuanceResponse.cards.first;
-      emit(WalletPersonalizeCheckData(availableAttributes: card.attributes.toList()));
-    } catch (ex, stack) {
-      Fimber.e('Failed to get PID', ex: ex, stacktrace: stack);
       emit(WalletPersonalizeFailure());
     }
   }
@@ -108,9 +93,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
-      if (state is WalletPersonalizeScanId) {
-        emit(const WalletPersonalizeScanIdIntro(afterBackPressed: true));
-      }
       if (state is WalletPersonalizeCheckCards) {
         if (!state.multipleCardsFlow.isAtFirstCard) {
           emit(state.copyForPreviousCard());
@@ -131,7 +113,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onRetrieveMoreCardsPressed(event, emit) async {
-    emit(const WalletPersonalizeLoadInProgress(9.5));
+    emit(const WalletPersonalizeLoadInProgress(5));
     await Future.delayed(kDefaultMockDelay);
 
     final issuanceResponses = await getDemoWalletCardsIssuanceResponsesUseCase.invoke();
@@ -194,7 +176,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   Future<void> _onPinConfirmed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
-      emit(const WalletPersonalizeLoadInProgress(12.5));
+      emit(const WalletPersonalizeLoadInProgress(10));
       await Future.delayed(kDefaultMockDelay);
       try {
         for (final card in state.multipleCardsFlow.selectedCards) {

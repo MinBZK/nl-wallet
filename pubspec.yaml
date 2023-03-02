@@ -31,7 +31,6 @@ dependencies:
   qr_flutter: ^4.0.0
   screen_brightness: ^0.2.2
   package_info_plus: ^3.0.2
-  nfc_manager: ^3.2.0
   flutter_rust_bridge: ^1.61.1
   ffi: ^2.0.1
   freezed_annotation: ^2.2.0
