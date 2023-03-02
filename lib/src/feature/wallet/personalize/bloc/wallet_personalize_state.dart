@@ -1,6 +1,6 @@
 part of 'wallet_personalize_bloc.dart';
 
-const _kNrOfPages = 13;
+const _kNrOfPages = 11;
 
 abstract class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
@@ -31,39 +31,10 @@ class WalletPersonalizeCheckData extends WalletPersonalizeState {
   const WalletPersonalizeCheckData({required this.availableAttributes});
 
   @override
-  double get stepperProgress => 7 / _kNrOfPages;
+  double get stepperProgress => 3 / _kNrOfPages;
 
   @override
   List<Object?> get props => [availableAttributes, ...super.props];
-}
-
-class WalletPersonalizeScanIdIntro extends WalletPersonalizeState {
-  final bool afterBackPressed;
-
-  const WalletPersonalizeScanIdIntro({this.afterBackPressed = false});
-
-  @override
-  double get stepperProgress => 4 / _kNrOfPages;
-
-  @override
-  bool get didGoBack => afterBackPressed;
-}
-
-class WalletPersonalizeScanId extends WalletPersonalizeState {
-  @override
-  double get stepperProgress => 5 / _kNrOfPages;
-
-  @override
-  bool get canGoBack => true;
-}
-
-class WalletPersonalizeLoadingPhoto extends WalletPersonalizeState {
-  final Duration mockedScanDuration;
-
-  const WalletPersonalizeLoadingPhoto(this.mockedScanDuration);
-
-  @override
-  double get stepperProgress => 6 / _kNrOfPages;
 }
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {
@@ -87,7 +58,7 @@ class WalletPersonalizeFailure extends WalletPersonalizeState {
 
 class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 8 / _kNrOfPages;
+  double get stepperProgress => 4 / _kNrOfPages;
 }
 
 class WalletPersonalizeSelectCards extends WalletPersonalizeState {
@@ -108,7 +79,7 @@ class WalletPersonalizeSelectCards extends WalletPersonalizeState {
   });
 
   @override
-  double get stepperProgress => 9 / _kNrOfPages;
+  double get stepperProgress => 6 / _kNrOfPages;
 
   @override
   List<Object?> get props => [multipleCardsFlow, showNoSelectionError, ...super.props];
@@ -152,11 +123,13 @@ class WalletPersonalizeCheckCards extends WalletPersonalizeState {
     return WalletPersonalizeCheckCards(multipleCardsFlow: multipleCardsFlow.previous(), didGoBack: true);
   }
 
+  final _kOrderInFlow = 7;
+
   @override
   double get stepperProgress {
-    if (totalNrOfCardsToCheck <= 1) return 10 / _kNrOfPages;
+    if (totalNrOfCardsToCheck <= 1) return _kOrderInFlow / _kNrOfPages;
     final checkCardsProgress = (multipleCardsFlow.activeIndex / (totalNrOfCardsToCheck - 1));
-    return (10 + checkCardsProgress) / _kNrOfPages;
+    return (_kOrderInFlow + checkCardsProgress) / _kNrOfPages;
   }
 
   @override
@@ -178,7 +151,7 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
   });
 
   @override
-  double get stepperProgress => 12 / _kNrOfPages;
+  double get stepperProgress => 9 / _kNrOfPages;
 
   @override
   bool get canGoBack => true;

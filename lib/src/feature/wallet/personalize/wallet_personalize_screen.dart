@@ -17,10 +17,7 @@ import 'page/wallet_personalize_check_card_page.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
-import 'page/wallet_personalize_loading_photo_page.dart';
 import 'page/wallet_personalize_retrieve_more_cards_page.dart';
-import 'page/wallet_personalize_scan_id_intro_page.dart';
-import 'page/wallet_personalize_scan_id_page.dart';
 import 'page/wallet_personalize_select_cards_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
@@ -82,12 +79,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
         if (state is WalletPersonalizeLoadingPid) result = _buildLoading(context);
         if (state is WalletPersonalizeLoadInProgress) result = _buildLoading(context);
         if (state is WalletPersonalizeCheckData) result = _buildCheckDataOfferingPage(context, state);
-        if (state is WalletPersonalizeScanIdIntro) result = _buildScanIdIntroPage(context, state);
         if (state is WalletPersonalizeRetrieveMoreCards) result = _buildRetrieveMoreCardsPage(context);
         if (state is WalletPersonalizeSelectCards) result = _buildSelectCardsPage(context, state);
         if (state is WalletPersonalizeCheckCards) result = _buildCheckCardPage(context, state);
-        if (state is WalletPersonalizeScanId) result = _buildScanIdPage(context, state);
-        if (state is WalletPersonalizeLoadingPhoto) result = _buildLoadingPhotoPage(context, state);
         if (state is WalletPersonalizeConfirmPin) result = _buildConfirmPinPage(context, state);
         if (state is WalletPersonalizeSuccess) result = _buildSuccessPage(context, state);
         if (state is WalletPersonalizeFailure) result = _buildErrorPage(context);
@@ -159,22 +153,6 @@ class WalletPersonalizeScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildScanIdIntroPage(BuildContext context, WalletPersonalizeScanIdIntro state) {
-    return WalletPersonalizeScanIdIntroPage(
-      onStartScanPressed: () => context.bloc.add(WalletPersonalizeScanInitiated()),
-    );
-  }
-
-  Widget _buildScanIdPage(BuildContext context, WalletPersonalizeScanId state) {
-    return WalletPersonalizeScanIdPage(
-      onNfcDetected: () => context.bloc.add(WalletPersonalizeScanEvent()),
-    );
-  }
-
-  Widget _buildLoadingPhotoPage(BuildContext context, WalletPersonalizeLoadingPhoto state) {
-    return WalletPersonalizeLoadingPhotoPage(mockDelay: state.mockedScanDuration);
   }
 
   Widget _buildRetrieveMoreCardsPage(BuildContext context) {
