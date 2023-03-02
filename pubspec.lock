@@ -652,14 +652,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  nfc_manager:
-    dependency: "direct main"
-    description:
-      name: nfc_manager
-      sha256: cff1e59e316388f4508b4ba0cea4430e4ba39f8a68ecfb3e1256be25c13b0f4a
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
   node_preamble:
     dependency: transitive
     description:
