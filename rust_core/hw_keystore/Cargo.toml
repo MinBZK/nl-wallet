@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["software"]
+default = ["hardware"]
 hardware = ["dep:uniffi", "dep:lazy_static", "spki/std"]
 software = ["dep:rand_core"]
 uniffi-bindgen = ["dep:uniffi", "uniffi?/cli"]
