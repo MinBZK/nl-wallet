@@ -1,3 +1,4 @@
+// this is the starting point for integration test performed from Android / iOS.
 #[no_mangle]
 fn test_hardware_signature() -> bool {
     use crate::hardware::HardwareKeyStore;

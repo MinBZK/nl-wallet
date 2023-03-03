@@ -6,6 +6,9 @@ pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 
 use crate::{Error, KeyStore, SigningKey};
 
+// Software implemenation of KeyStore, just clone SigningKey entities from a hash map.
+// Note that unlike the hardware implementation, keys with a same identifier from different
+// InMemoryKeyStore entities will actually relate to different private keys.
 #[derive(Default)]
 pub struct InMemoryKeyStore {
     keys: HashMap<String, p256::ecdsa::SigningKey>,
@@ -30,6 +33,8 @@ impl KeyStore for InMemoryKeyStore {
     }
 }
 
+// SigningKey from p256::ecdsa conforms to the SigningKey trait
+// if we provide an implementation for our verifying_key method.
 impl SigningKey for SoftwareSigningKey {
     fn verifying_key(&self) -> Result<VerifyingKey, Error> {
         Ok(self.verifying_key().clone())

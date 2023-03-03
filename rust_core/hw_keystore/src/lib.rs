@@ -27,4 +27,5 @@ pub trait KeyStore {
 
 pub trait SigningKey: Signer<Signature> {
     fn verifying_key(&self) -> Result<VerifyingKey, Error>;
+    // from Signer: try_sign() and sign() methods
 }
