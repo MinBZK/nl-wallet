@@ -47,7 +47,7 @@ impl<'a> Signer<Signature> for PinKey<'a> {
 
 impl<'a> PinKey<'a> {
     pub fn verifying_key(&self) -> VerifyingKey {
-        pin_private_key(self.salt, self.pin)
+        *pin_private_key(self.salt, self.pin)
             .expect("pin private key computation failed")
             .verifying_key()
     }
@@ -64,7 +64,7 @@ pub fn new_pin_salt() -> Vec<u8> {
 
 /// Given a salt and a PIN, derive an ECDSA private key and return the corresponding public key.
 fn pin_public_key(salt: &[u8], pin: &str) -> Result<VerifyingKey> {
-    Ok(pin_private_key(salt, pin)?.verifying_key())
+    Ok(*pin_private_key(salt, pin)?.verifying_key())
 }
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
@@ -140,7 +140,10 @@ mod tests {
     };
     use anyhow::Result;
     use p256::{
-        ecdsa::signature::{Signer, Verifier},
+        ecdsa::{
+            signature::{Signer, Verifier},
+            Signature,
+        },
         elliptic_curve::{
             bigint::{ArrayEncoding, NonZero, Random, RandomMod, Wrapping},
             rand_core::OsRng,
@@ -193,7 +196,7 @@ mod tests {
         let challenge = b"challenge";
 
         let public_key = pin_public_key(salt.as_slice(), pin)?;
-        let response = pin_private_key(salt.as_slice(), pin)?.try_sign(challenge)?;
+        let response: Signature = pin_private_key(salt.as_slice(), pin)?.try_sign(challenge)?;
 
         public_key.verify(challenge, &response)?;
 

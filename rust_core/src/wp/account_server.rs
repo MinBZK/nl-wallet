@@ -220,6 +220,6 @@ pub mod tests {
         let cert_data = cert.parse_and_verify(&account_server_pubkey).unwrap();
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(cert_data.hw_pubkey.0, hw_privkey.verifying_key());
+        assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
     }
 }

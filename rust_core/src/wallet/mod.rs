@@ -11,7 +11,7 @@ use self::pin_key::new_pin_salt;
 
 /// Handle to a hardware-bound ECDSA private key.
 pub trait HWBoundSigningKey: Signer<Signature> {
-    fn verifying_key(&self) -> VerifyingKey;
+    fn verifying_key(&self) -> &VerifyingKey;
 }
 
 pub struct Wallet<T, S> {

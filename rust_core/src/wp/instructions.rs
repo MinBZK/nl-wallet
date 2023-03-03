@@ -38,7 +38,7 @@ impl Registration {
         SignedDouble::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
-                hw_pubkey: hw_key_handle.verifying_key().into(),
+                hw_pubkey: (*hw_key_handle.verifying_key()).into(),
             },
             challenge,
             0,
