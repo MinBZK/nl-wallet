@@ -14,7 +14,7 @@ use crate::{
 // TODO remove this when an actual hardware-backed implementation exists
 impl HWBoundSigningKey for SigningKey {
     fn verifying_key(&self) -> p256::ecdsa::VerifyingKey {
-        SigningKey::verifying_key(&self)
+        SigningKey::verifying_key(self)
     }
 }
 

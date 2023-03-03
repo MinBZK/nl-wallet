@@ -35,7 +35,7 @@ impl Registration {
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
         let pin_pubkey = PinKey { salt, pin }.verifying_key();
-        Ok(SignedDouble::sign(
+        SignedDouble::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_key_handle.verifying_key().into(),
@@ -45,7 +45,7 @@ impl Registration {
             hw_key_handle,
             pin,
             salt,
-        )?)
+        )
     }
 }
 

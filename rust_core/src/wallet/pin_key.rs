@@ -39,7 +39,7 @@ pub struct PinKey<'a> {
 
 impl<'a> Signer<Signature> for PinKey<'a> {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-        Ok(pin_private_key(&self.salt, &self.pin)
+        Ok(pin_private_key(self.salt, self.pin)
             .map_err(p256::ecdsa::Error::from_source)?
             .sign(msg))
     }
@@ -47,7 +47,7 @@ impl<'a> Signer<Signature> for PinKey<'a> {
 
 impl<'a> PinKey<'a> {
     pub fn verifying_key(&self) -> VerifyingKey {
-        pin_private_key(&self.salt, &self.pin)
+        pin_private_key(self.salt, self.pin)
             .expect("pin private key computation failed")
             .verifying_key()
     }

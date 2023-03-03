@@ -55,7 +55,7 @@ fn verify_signed(
     }
 
     let signed: SignedPayload<&RawValue> = serde_json::from_slice(json)?;
-    if challenge != &signed.challenge.0 {
+    if challenge != signed.challenge.0 {
         bail!("incorrect challenge")
     }
 

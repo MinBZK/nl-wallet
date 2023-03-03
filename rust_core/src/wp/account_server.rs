@@ -48,13 +48,13 @@ impl JwtClaims for RegistrationChallengeClaims {
 
 impl AccountServerClient for AccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
-        AccountServer::registration_challenge(&self)
+        AccountServer::registration_challenge(self)
     }
     fn register(
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate> {
-        AccountServer::register(&self, registration_message)
+        AccountServer::register(self, registration_message)
     }
 }
 
@@ -126,7 +126,7 @@ impl AccountServer {
 
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
-        let signed = registration_message.parse_and_verify(&challenge, &hw_pubkey, &pin_pubkey)?;
+        let signed = registration_message.parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)?;
 
         if signed.serial_number != 0 {
             return Err(anyhow!(
