@@ -18,7 +18,7 @@ impl HWBoundSigningKey for SigningKey {
     }
 }
 
-const WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
+static WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
     let account_server = AccountServer::new_stub(); // TODO
     let pubkey = account_server.pubkey.clone();
 
