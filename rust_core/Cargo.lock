@@ -434,7 +434,6 @@ dependencies = [
  "der",
  "elliptic-curve",
  "rfc6979",
- "serdect",
  "signature",
 ]
 
@@ -461,7 +460,6 @@ dependencies = [
  "pkcs8",
  "rand_core",
  "sec1",
- "serdect",
  "subtle",
  "zeroize",
 ]
@@ -908,7 +906,6 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
- "serdect",
  "sha2",
 ]
 
@@ -1216,7 +1213,6 @@ dependencies = [
  "der",
  "generic-array",
  "pkcs8",
- "serdect",
  "subtle",
  "zeroize",
 ]
@@ -1311,16 +1307,6 @@ dependencies = [
  "ryu",
  "serde",
  "yaml-rust",
-]
-
-[[package]]
-name = "serdect"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "038fce1bf4d74b9b30ea7dcd59df75ba8ec669a5dcb3cc64fbfcef7334ced32c"
-dependencies = [
- "base16ct",
- "serde",
 ]
 
 [[package]]
