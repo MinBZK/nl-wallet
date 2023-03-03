@@ -7,16 +7,10 @@ edition = "2021"
 default = ["hardware"]
 hardware = ["dep:uniffi", "dep:lazy_static", "spki/std"]
 software = ["dep:rand_core"]
-uniffi-bindgen = ["dep:uniffi", "uniffi?/cli"]
 integration-test = []
 
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]
-
-[[bin]]
-name = "uniffi-bindgen"
-path = "uniffi-bindgen.rs"
-required-features = ["uniffi-bindgen"]
 
 [dependencies]
 thiserror = "1.0.38"
