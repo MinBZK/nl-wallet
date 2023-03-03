@@ -12,7 +12,7 @@ final class KeyStore {}
 extension KeyStore: KeyStoreBridge {
     func getOrCreateKey(identifier: String) throws -> SigningKeyBridge {
         do {
-            return SigningKey(key: try SecureEnclaveKey(identifier: identifier))
+            return try SigningKey(key: SecureEnclaveKey(identifier: identifier))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }

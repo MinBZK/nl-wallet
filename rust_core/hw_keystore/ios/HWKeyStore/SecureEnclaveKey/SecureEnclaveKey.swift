@@ -26,14 +26,14 @@ final class SecureEnclaveKey {
         return identifier.data(using: .utf8)!
     }
 
-    private static func errorMessage(for unmanagedError: Unmanaged<CFError>?) -> String? {
+    private static func error(for unmanagedError: Unmanaged<CFError>?) -> Error? {
         guard let unmanagedError else {
             return nil
         }
 
         let error = unmanagedError.takeRetainedValue()
 
-        return error.localizedDescription
+        return error
     }
 
     private static func fetchKey(with identifier: String) throws -> SecKey? {
@@ -63,7 +63,7 @@ final class SecureEnclaveKey {
                 return errorMessage as String
             }()
 
-            throw SecureEnclaveKeyError.keychainError(message: errorMessage)
+            throw SecureEnclaveKeyError.fetch(errorMessage: errorMessage)
         }
 
         return (item as! SecKey)
@@ -78,7 +78,7 @@ final class SecureEnclaveKey {
             .privateKeyUsage,
             &error
         ) else {
-            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
+            throw SecureEnclaveKeyError.create(keyChainError: self.error(for: error))
         }
 
         let keyAttributes: [String: Any] = [
@@ -94,7 +94,7 @@ final class SecureEnclaveKey {
         ]
 
         guard let key = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
+            throw SecureEnclaveKeyError.create(keyChainError: self.error(for: error))
         }
 
         return key
@@ -107,7 +107,7 @@ final class SecureEnclaveKey {
 
         var error: Unmanaged<CFError>?
         guard let keyData = SecKeyCopyExternalRepresentation(publicKey, &error) else {
-            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
+            throw SecureEnclaveKeyError.derivePublicKey(keyChainError: self.error(for: error))
         }
 
         return self.secp256r1Header + (keyData as Data)
@@ -119,7 +119,7 @@ final class SecureEnclaveKey {
                                                     .ecdsaSignatureMessageX962SHA256,
                                                     payload as CFData,
                                                     &error) else {
-            throw SecureEnclaveKeyError.keychainError(message: self.errorMessage(for: error))
+            throw SecureEnclaveKeyError.sign(keyChainError: self.error(for: error))
         }
 
         return signature as Data

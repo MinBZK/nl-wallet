@@ -14,7 +14,7 @@ uniffi::include_scaffolding!("hw_keystore");
 #[derive(Debug, thiserror::Error)]
 pub enum KeyStoreError {
     #[error("Key error: {message:?}")]
-    KeyError { message: Option<String> },
+    KeyError { message: String },
     #[error("Internal error: {reason:?}")]
     InternalError { reason: String },
 }
