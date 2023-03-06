@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 default = ["hardware"]
 hardware = ["dep:uniffi", "dep:once_cell", "spki/std"]
-software = ["dep:rand_core"]
+software = ["dep:once_cell", "dep:rand_core"]
 integration-test = []
 
 [lib]

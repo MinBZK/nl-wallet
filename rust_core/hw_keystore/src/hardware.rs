@@ -1,11 +1,16 @@
 use once_cell::sync::OnceCell;
-use p256::ecdsa::{
-    signature::{Error as SignerError, Signer},
-    Signature, VerifyingKey,
+use p256::{
+    ecdsa::{
+        signature::{Error as SignerError, Signer},
+        Signature, VerifyingKey,
+    },
+    pkcs8::DecodePublicKey,
 };
-use p256::pkcs8::DecodePublicKey;
-use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    sync::{Arc, RwLock},
+};
 
 use crate::{Error, KeyStore, SigningKey};
 
@@ -45,38 +50,46 @@ trait SigningKeyBridge: Send + Sync + Debug {
 
 // HardwareKeyStore implements KeyStore by wrapping KeyStoreBridge from native code
 pub struct HardwareKeyStore {
-    bridge: Arc<dyn KeyStoreBridge>,
+    bridge: Box<dyn KeyStoreBridge>,
+    signing_keys: HashMap<String, HardwareSigningKey>,
 }
 
 impl HardwareKeyStore {
-    pub fn new() -> Self {
-        Self::default()
+    fn new(bridge: Box<dyn KeyStoreBridge>) -> Self {
+        HardwareKeyStore {
+            bridge,
+            signing_keys: HashMap::new(),
+        }
     }
-}
 
-impl Default for HardwareKeyStore {
-    fn default() -> Self {
-        // always wrap the same instance stored in the lazy static (see below):
-        // 1. obtaining a read lock
-        // 2. cloning the Arc
-        // 3. unwrapping the optional, crashing if it is still None
-        let bridge = KEY_STORE_BRIDGE
-            .read()
-            .expect("Could not acquire read lock to KEY_STORE_BRIDGE")
-            .clone()
-            .expect("KEY_STORE_BRIDGE used before init_hw_keystore() was called");
-
-        HardwareKeyStore { bridge }
+    pub fn key_store() -> Arc<RwLock<Self>> {
+        // crash if KEY_STORE is not yet set
+        Arc::clone(
+            KEY_STORE
+                .get()
+                .expect("KEY_STORE used before init_hw_keystore() was called"),
+        )
     }
 }
 
 impl KeyStore for HardwareKeyStore {
     type SigningKeyType = HardwareSigningKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Result<HardwareSigningKey, Error> {
-        let bridge = self.bridge.get_or_create_key(identifier.to_string())?;
+    fn create_key(&mut self, identifier: &str) -> Result<&mut HardwareSigningKey, Error> {
+        let key = match self.signing_keys.entry(identifier.to_string()) {
+            std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                let bridge = self.bridge.get_or_create_key(identifier.to_string())?;
 
-        Ok(HardwareSigningKey::new(bridge))
+                entry.insert(HardwareSigningKey::new(bridge))
+            }
+        };
+
+        Ok(key)
+    }
+
+    fn get_key(&self, identifier: &str) -> Option<&HardwareSigningKey> {
+        self.signing_keys.get(identifier)
     }
 }
 
@@ -126,20 +139,13 @@ impl Signer<Signature> for HardwareSigningKey {
     }
 }
 
-// static reference to a singleton KeyStoreBridge on the native side
-static KEY_STORE_BRIDGE: RwLock<Option<Arc<dyn KeyStoreBridge>>> = RwLock::new(None);
+static KEY_STORE: OnceCell<Arc<RwLock<HardwareKeyStore>>> = OnceCell::new();
 
 fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
-    // first obtain write lock
-    let mut static_bridge = KEY_STORE_BRIDGE
-        .write()
-        .expect("Could not acquire write lock to KEY_STORE_BRIDGE");
-    // then check if the static is actually None, crash otherwise
+    let key_store = Arc::new(RwLock::new(HardwareKeyStore::new(bridge)));
+    // crash if KEY_STORE was already set
     assert!(
-        static_bridge.is_none(),
+        KEY_STORE.set(key_store).is_ok(),
         "Cannot call init_hw_keystore() more than once"
-    );
-
-    // finally replace the value of the option in the static
-    static_bridge.replace(Arc::from(bridge));
+    )
 }

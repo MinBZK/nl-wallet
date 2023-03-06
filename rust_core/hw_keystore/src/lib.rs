@@ -22,7 +22,8 @@ pub enum Error {
 pub trait KeyStore {
     type SigningKeyType: SigningKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Result<Self::SigningKeyType, Error>;
+    fn create_key(&mut self, identifier: &str) -> Result<&mut Self::SigningKeyType, Error>;
+    fn get_key(&self, identifier: &str) -> Option<&Self::SigningKeyType>;
 }
 
 pub trait SigningKey: Signer<Signature> {

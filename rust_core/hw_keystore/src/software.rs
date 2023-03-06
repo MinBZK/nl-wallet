@@ -1,35 +1,50 @@
+use once_cell::sync::Lazy;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 
 use crate::{Error, KeyStore, SigningKey};
 
-// Software implemenation of KeyStore, just clone SigningKey entities from a hash map.
-// Note that unlike the hardware implementation, keys with a same identifier from different
-// InMemoryKeyStore entities will actually relate to different private keys.
-#[derive(Default)]
+static KEY_STORE: Lazy<Arc<RwLock<InMemoryKeyStore>>> =
+    Lazy::new(|| Arc::new(RwLock::new(InMemoryKeyStore::new())));
+
+// Software implemenation of KeyStore, just stores SigningKey entities in a hash map.
 pub struct InMemoryKeyStore {
-    keys: HashMap<String, p256::ecdsa::SigningKey>,
+    signing_keys: HashMap<String, p256::ecdsa::SigningKey>,
 }
 
 impl InMemoryKeyStore {
-    pub fn new() -> Self {
-        Self::default()
+    fn new() -> Self {
+        InMemoryKeyStore {
+            signing_keys: HashMap::new(),
+        }
+    }
+
+    // this mirrors the static in the hardware implementation
+    pub fn key_store() -> Arc<RwLock<Self>> {
+        Arc::clone(Lazy::force(&KEY_STORE))
     }
 }
 
 impl KeyStore for InMemoryKeyStore {
     type SigningKeyType = SoftwareSigningKey;
 
-    fn get_or_create_key(&mut self, identifier: &str) -> Result<SoftwareSigningKey, Error> {
+    fn create_key(&mut self, identifier: &str) -> Result<&mut SoftwareSigningKey, Error> {
         let key = self
-            .keys
+            .signing_keys
             .entry(identifier.to_string())
             .or_insert_with(|| SoftwareSigningKey::random(&mut OsRng));
 
-        Ok(key.clone())
+        Ok(key)
+    }
+
+    fn get_key(&self, identifier: &str) -> Option<&SoftwareSigningKey> {
+        self.signing_keys.get(identifier)
     }
 }
 
