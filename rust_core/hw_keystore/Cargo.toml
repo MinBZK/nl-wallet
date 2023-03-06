@@ -14,7 +14,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 thiserror = "1.0.38"
-p256 = "0.12.0"
+p256 = "0.13.0"
 spki = "*"
 uniffi = { version = "0.23.0", optional = true }
 once_cell = { version = "1.17.1", optional = true }
