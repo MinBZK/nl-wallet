@@ -1,4 +1,3 @@
-use lazy_static::lazy_static;
 use once_cell::sync::OnceCell;
 use p256::ecdsa::{
     signature::{Error as SignerError, Signer},
@@ -128,9 +127,7 @@ impl Signer<Signature> for HardwareSigningKey {
 }
 
 // static reference to a singleton KeyStoreBridge on the native side
-lazy_static! {
-    static ref KEY_STORE_BRIDGE: RwLock<Option<Arc<dyn KeyStoreBridge>>> = RwLock::new(None);
-}
+static KEY_STORE_BRIDGE: RwLock<Option<Arc<dyn KeyStoreBridge>>> = RwLock::new(None);
 
 fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
     // first obtain write lock
