@@ -94,15 +94,16 @@ impl KeyStore for HardwareKeyStore {
 }
 
 // HardwareSigningKey similary wraps SigningKeyBridge from native
+#[derive(Clone)]
 pub struct HardwareSigningKey {
-    bridge: Box<dyn SigningKeyBridge>,
+    bridge: Arc<dyn SigningKeyBridge>,
     verifying_key: OnceCell<VerifyingKey>,
 }
 
 impl HardwareSigningKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
         HardwareSigningKey {
-            bridge,
+            bridge: bridge.into(),
             verifying_key: OnceCell::new(),
         }
     }

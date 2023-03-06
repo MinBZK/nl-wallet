@@ -16,21 +16,21 @@ pub fn sign_and_verify_signature(
     payload: &[u8],
     key_identifier: &str,
 ) -> bool {
-    // Create key for key identifier in separate context
-    {
+    // Create first key for key identifier in separate context
+    let key1 = {
         let mut keystore = keystore
             .write()
             .expect("Could not get write lock on KeyStore");
         keystore
             .create_key(key_identifier)
             .expect("Could not create key")
+            .clone()
     };
 
-    // Get two keys from the same key store, should use the same private key
+    // Get the key with the same identifier again, should use the same private key
     let keystore = keystore
         .read()
         .expect("Could not get read lock on KeyStore");
-    let key1 = keystore.get_key(key_identifier).expect("Could not get key");
     let key2 = keystore.get_key(key_identifier).expect("Could not get key");
 
     // Get the public key from the first key

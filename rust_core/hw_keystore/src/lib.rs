@@ -26,7 +26,7 @@ pub trait KeyStore {
     fn get_key(&self, identifier: &str) -> Option<&Self::SigningKeyType>;
 }
 
-pub trait SigningKey: Signer<Signature> {
+pub trait SigningKey: Signer<Signature> + Clone {
     fn verifying_key(&self) -> Result<&VerifyingKey, Error>;
     // from Signer: try_sign() and sign() methods
 }
