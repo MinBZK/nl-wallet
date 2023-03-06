@@ -18,14 +18,14 @@ uniffi::include_scaffolding!("hw_keystore");
 pub enum KeyStoreError {
     #[error("Key error: {message:?}")]
     KeyError { message: String },
-    #[error("Internal error: {reason:?}")]
-    InternalError { reason: String },
+    #[error("Bridging error: {reason:?}")]
+    BridgingError { reason: String },
 }
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
     fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
-        Self::InternalError {
+        Self::BridgingError {
             reason: value.reason,
         }
     }
