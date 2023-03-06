@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use p256::ecdsa::{
     signature::{Error as SignerError, Signer},
     Signature, VerifyingKey,
@@ -83,21 +84,29 @@ impl KeyStore for HardwareKeyStore {
 // HardwareSigningKey similary wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
     bridge: Box<dyn SigningKeyBridge>,
+    verifying_key: OnceCell<VerifyingKey>,
 }
 
 impl HardwareSigningKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
-        HardwareSigningKey { bridge }
+        HardwareSigningKey {
+            bridge,
+            verifying_key: OnceCell::new(),
+        }
     }
 }
 
 impl SigningKey for HardwareSigningKey {
-    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
-        let public_key_bytes = self.bridge.public_key()?;
-        // decode the DER encoded public key received from native
-        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+    fn verifying_key(&self) -> Result<&VerifyingKey, Error> {
+        let verifying_key = self.verifying_key.get_or_try_init(|| {
+            let public_key_bytes = self.bridge.public_key()?;
+            // decode the DER encoded public key received from native
+            let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
-        Ok(public_key)
+            Ok::<_, Error>(public_key)
+        })?;
+
+        Ok(verifying_key)
     }
 }
 

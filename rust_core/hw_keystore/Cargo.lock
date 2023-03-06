@@ -302,6 +302,7 @@ name = "hw_keystore"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+ "once_cell",
  "p256",
  "rand_core",
  "spki",

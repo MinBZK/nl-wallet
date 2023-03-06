@@ -36,7 +36,7 @@ impl KeyStore for InMemoryKeyStore {
 // SigningKey from p256::ecdsa conforms to the SigningKey trait
 // if we provide an implementation for our verifying_key method.
 impl SigningKey for SoftwareSigningKey {
-    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
-        Ok(self.verifying_key().clone())
+    fn verifying_key(&self) -> Result<&VerifyingKey, Error> {
+        Ok(self.verifying_key())
     }
 }
