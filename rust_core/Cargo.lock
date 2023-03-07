@@ -775,18 +775,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hw_keystore"
-version = "0.1.0"
-dependencies = [
- "once_cell",
- "p256",
- "rand_core",
- "spki",
- "thiserror",
- "uniffi",
-]
-
-[[package]]
 name = "iana-time-zone"
 version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1132,6 +1120,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
+name = "platform_support"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "p256",
+ "rand_core",
+ "spki",
+ "thiserror",
+ "uniffi",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1268,7 +1268,7 @@ dependencies = [
  "flutter-data-types",
  "flutter_rust_bridge",
  "flutter_rust_bridge_codegen",
- "hw_keystore",
+ "platform_support",
 ]
 
 [[package]]

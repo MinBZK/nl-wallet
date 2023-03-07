@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		61A374A129ACDE4F00CFCAC1 /* libHWKeyStore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61D8FE9529ACB89C00718402 /* libHWKeyStore.a */; };
+		61C0D53729B789C400085A54 /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61C0D53029B789B100085A54 /* libPlatformSupport.a */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 862C9931D126E4BFA4F24595 /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -18,33 +18,33 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		61A374A229ACDE6600CFCAC1 /* PBXContainerItemProxy */ = {
+		61C0D52F29B789B100085A54 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 61F5335D29A8AB4100624E46;
-			remoteInfo = HWKeyStore;
-		};
-		61D8FE9429ACB89C00718402 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 61F5335E29A8AB4100624E46;
-			remoteInfo = HWKeyStore;
+			remoteInfo = PlatformSupport;
 		};
-		61D8FE9629ACB89C00718402 /* PBXContainerItemProxy */ = {
+		61C0D53129B789B100085A54 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 6133004229A8E350004D9CC7;
-			remoteInfo = "HWKeyStore Integration Tests";
+			remoteInfo = "Integration Tests";
 		};
-		61D8FE9829ACB89C00718402 /* PBXContainerItemProxy */ = {
+		61C0D53329B789B100085A54 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 61D577B729A8FD7C00030578;
-			remoteInfo = "HWKeyStore Integration Tests Hosts App";
+			remoteInfo = "Integration Tests Host App";
+		};
+		61C0D53529B789BE00085A54 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 61F5335D29A8AB4100624E46;
+			remoteInfo = PlatformSupport;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -66,7 +66,7 @@
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		6117501E299543F800ABDA02 /* bridge_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge_generated.h; sourceTree = "<group>"; };
-		61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = HWKeyStore.xcodeproj; path = ../rust_core/hw_keystore/ios/HWKeyStore.xcodeproj; sourceTree = "<group>"; };
+		61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PlatformSupport.xcodeproj; path = ../rust_core/platform_support/ios/PlatformSupport.xcodeproj; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
@@ -89,7 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				61A374A129ACDE4F00CFCAC1 /* libHWKeyStore.a in Frameworks */,
+				61C0D53729B789C400085A54 /* libPlatformSupport.a in Frameworks */,
 				891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -97,22 +97,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		61C0D52A29B789B100085A54 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				61C0D53029B789B100085A54 /* libPlatformSupport.a */,
+				61C0D53229B789B100085A54 /* Integration Tests.xctest */,
+				61C0D53429B789B100085A54 /* Integration Tests Host App.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		61D8FE8D29ACB88000718402 /* Subprojects */ = {
 			isa = PBXGroup;
 			children = (
-				61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */,
+				61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */,
 			);
 			name = Subprojects;
-			sourceTree = "<group>";
-		};
-		61D8FE8F29ACB89C00718402 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				61D8FE9529ACB89C00718402 /* libHWKeyStore.a */,
-				61D8FE9729ACB89C00718402 /* HWKeyStore Integration Tests.xctest */,
-				61D8FE9929ACB89C00718402 /* HWKeyStore Integration Tests Hosts App.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		6F17A9080C9DF456F943229B /* Pods */ = {
@@ -204,7 +204,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				61A374A329ACDE6600CFCAC1 /* PBXTargetDependency */,
+				61C0D53629B789BE00085A54 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -239,8 +239,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 61D8FE8F29ACB89C00718402 /* Products */;
-					ProjectRef = 61D8FE8E29ACB89C00718402 /* HWKeyStore.xcodeproj */;
+					ProductGroup = 61C0D52A29B789B100085A54 /* Products */;
+					ProjectRef = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -251,25 +251,25 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		61D8FE9529ACB89C00718402 /* libHWKeyStore.a */ = {
+		61C0D53029B789B100085A54 /* libPlatformSupport.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
-			path = libHWKeyStore.a;
-			remoteRef = 61D8FE9429ACB89C00718402 /* PBXContainerItemProxy */;
+			path = libPlatformSupport.a;
+			remoteRef = 61C0D52F29B789B100085A54 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		61D8FE9729ACB89C00718402 /* HWKeyStore Integration Tests.xctest */ = {
+		61C0D53229B789B100085A54 /* Integration Tests.xctest */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
-			path = "HWKeyStore Integration Tests.xctest";
-			remoteRef = 61D8FE9629ACB89C00718402 /* PBXContainerItemProxy */;
+			path = "Integration Tests.xctest";
+			remoteRef = 61C0D53129B789B100085A54 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		61D8FE9929ACB89C00718402 /* HWKeyStore Integration Tests Hosts App.app */ = {
+		61C0D53429B789B100085A54 /* Integration Tests Host App.app */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.application;
-			path = "HWKeyStore Integration Tests Hosts App.app";
-			remoteRef = 61D8FE9829ACB89C00718402 /* PBXContainerItemProxy */;
+			path = "Integration Tests Host App.app";
+			remoteRef = 61C0D53329B789B100085A54 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -410,10 +410,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		61A374A329ACDE6600CFCAC1 /* PBXTargetDependency */ = {
+		61C0D53629B789BE00085A54 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = HWKeyStore;
-			targetProxy = 61A374A229ACDE6600CFCAC1 /* PBXContainerItemProxy */;
+			name = PlatformSupport;
+			targetProxy = 61C0D53529B789BE00085A54 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

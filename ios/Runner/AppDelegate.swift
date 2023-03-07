@@ -1,5 +1,5 @@
 import UIKit
-import HWKeyStore
+import PlatformSupport
 import Flutter
 
 @UIApplicationMain
