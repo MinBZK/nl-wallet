@@ -6,6 +6,8 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 // TODO implement keyring and use kid header item for key rollover
 
+// JWT type, using `<T>` and `Phantomdata<T>` in the same way and for the same reason as `SignedDouble<T>`; see the
+// comment there.
 #[derive(Debug)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T> From<String> for Jwt<T> {
