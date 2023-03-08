@@ -39,19 +39,58 @@ class PinPage extends StatelessWidget {
           );
         }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (headerBuilder == null) const Spacer(),
-          _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-          const Spacer(),
-          _buildPinField(),
-          const SizedBox(height: 18),
-          _buildForgotCodeButton(),
-          const Spacer(),
-          _buildPinKeyboard(),
-        ],
+      child: OrientationBuilder(
+        builder: (context, orientation) {
+          switch (orientation) {
+            case Orientation.portrait:
+              return _buildPortrait();
+            case Orientation.landscape:
+              return _buildLandscape();
+          }
+        },
       ),
+    );
+  }
+
+  Widget _buildPortrait() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (headerBuilder == null) const Spacer(),
+        _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
+        const Spacer(),
+        _buildPinField(),
+        const SizedBox(height: 18),
+        _buildForgotCodeButton(),
+        const Spacer(),
+        _buildPinKeyboard(),
+      ],
+    );
+  }
+
+  Widget _buildLandscape() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildHeader(headerBuilder ?? _buildTextHeader),
+              const SizedBox(height: 24),
+              _buildPinField(),
+              const SizedBox(height: 18),
+              _buildForgotCodeButton(),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: _buildPinKeyboard(),
+          ),
+        ),
+      ],
     );
   }
 

@@ -185,15 +185,31 @@ class SetupSecurityScreen extends StatelessWidget {
     if (state.retryAllowed) {
       content = Column(
         children: [
-          Text(locale.setupSecurityConfirmationErrorPageTitle, style: titleStyle),
-          Text(locale.setupSecurityConfirmationErrorPageDescription, style: descriptionStyle),
+          Text(
+            locale.setupSecurityConfirmationErrorPageTitle,
+            style: titleStyle,
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            locale.setupSecurityConfirmationErrorPageDescription,
+            style: descriptionStyle,
+            textAlign: TextAlign.center,
+          ),
         ],
       );
     } else {
       content = Column(
         children: [
-          Text(locale.setupSecurityConfirmationErrorPageFatalTitle, style: titleStyle),
-          Text(locale.setupSecurityConfirmationErrorPageFatalDescription, style: descriptionStyle),
+          Text(
+            locale.setupSecurityConfirmationErrorPageFatalTitle,
+            style: titleStyle,
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            locale.setupSecurityConfirmationErrorPageFatalDescription,
+            style: descriptionStyle,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 24),
           TextIconButton(
             child: Text(locale.setupSecurityConfirmationErrorPageFatalCta),
