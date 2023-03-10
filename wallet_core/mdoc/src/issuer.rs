@@ -26,13 +26,13 @@ impl Issuer {
         doc_type: DocType,
         attributes: IssuerNameSpaces,
     ) -> Result<Issuer> {
-        return Ok(Issuer {
+        Ok(Issuer {
             cert_bts,
             private_key,
             doc_type,
             attributes,
             challenge: random_bytes(32)?,
-        });
+        })
     }
 }
 

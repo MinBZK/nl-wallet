@@ -104,12 +104,12 @@ fn ecdsa_privkey(d: &str) -> Result<ecdsa::SigningKey<NistP256>> {
     )?)
 }
 fn ecdsa_pubkey(x: &str, y: &str) -> Result<ecdsa::VerifyingKey<NistP256>> {
-    Ok(ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
+    ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
         &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
             hex::decode(x)?.as_slice().into(),
             hex::decode(y)?.as_slice().into(),
             false,
         ),
     )
-    .context("failed to instantiate public key")?)
+    .context("failed to instantiate public key")
 }

@@ -62,7 +62,7 @@ fn iso_examples_disclosure() -> Result<()> {
 
     let static_device_key = Examples::static_device_key();
     let cred = Credential::new(
-        static_device_key.clone(),
+        static_device_key,
         device_response.documents.as_ref().unwrap()[0]
             .issuer_signed
             .clone(),
@@ -98,7 +98,7 @@ fn iso_examples_custom_disclosure() -> Result<()> {
     println!("My Request: {:#?}", DebugCollapseBts(&request));
 
     let cred = Credential::new(
-        static_device_key.clone(),
+        static_device_key,
         device_response.documents.as_ref().unwrap()[0]
             .issuer_signed
             .clone(),

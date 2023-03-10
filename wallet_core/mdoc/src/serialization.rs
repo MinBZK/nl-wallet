@@ -65,9 +65,7 @@ fn serialize_as_cbor_value<T: Clone + AsCborValue, S: Serializer>(
 fn deserialize_as_cbor_value<'de, T: AsCborValue, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<T, D::Error> {
-    Ok(T::from_cbor_value(Value::deserialize(deserializer)?)
-        .map_err(de::Error::custom)?
-        .into())
+    T::from_cbor_value(Value::deserialize(deserializer)?).map_err(de::Error::custom)
 }
 
 impl Serialize for CoseKey {
@@ -217,18 +215,16 @@ impl Serialize for Handover {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             Handover::QRHandover => Value::Null.serialize(serializer),
-            Handover::NFCHandover(handover) => {
-                let foo = match &handover.handover_request_message {
-                    None => vec![handover.handover_select_message.clone()],
-                    Some(_) => {
-                        vec![
-                            handover.handover_select_message.clone(),
-                            handover.handover_request_message.clone().unwrap(),
-                        ]
-                    }
-                };
-                foo.serialize(serializer)
+            Handover::NFCHandover(handover) => match &handover.handover_request_message {
+                None => vec![handover.handover_select_message.clone()],
+                Some(_) => {
+                    vec![
+                        handover.handover_select_message.clone(),
+                        handover.handover_request_message.clone().unwrap(),
+                    ]
+                }
             }
+            .serialize(serializer),
         }
     }
 }
@@ -238,20 +234,14 @@ impl<'de> Deserialize<'de> for Handover {
         match Option::<Vec<ByteBuf>>::deserialize(deserializer)? {
             None => Ok(Handover::QRHandover),
             Some(bts_vec) => match bts_vec.len() {
-                1 => Ok(Handover::NFCHandover(
-                    NFCHandover {
-                        handover_select_message: bts_vec[0].clone(),
-                        handover_request_message: None,
-                    }
-                    .into(),
-                )),
-                2 => Ok(Handover::NFCHandover(
-                    NFCHandover {
-                        handover_select_message: bts_vec[0].clone(),
-                        handover_request_message: Some(bts_vec[1].clone()),
-                    }
-                    .into(),
-                )),
+                1 => Ok(Handover::NFCHandover(NFCHandover {
+                    handover_select_message: bts_vec[0].clone(),
+                    handover_request_message: None,
+                })),
+                2 => Ok(Handover::NFCHandover(NFCHandover {
+                    handover_select_message: bts_vec[0].clone(),
+                    handover_request_message: Some(bts_vec[1].clone()),
+                })),
                 _ => Err(de::Error::custom(
                     "unexpected amount of byte sequences found",
                 )),

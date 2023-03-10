@@ -66,8 +66,14 @@ impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
     type Error = anyhow::Error;
     fn try_from(key: &ecdsa::VerifyingKey<NistP256>) -> std::result::Result<Self, Self::Error> {
         let encoded_point = key.to_encoded_point(false);
-        let x = encoded_point.x().ok_or(anyhow!("missing x"))?.to_vec();
-        let y = encoded_point.y().ok_or(anyhow!("missing y"))?.to_vec();
+        let x = encoded_point
+            .x()
+            .ok_or_else(|| anyhow!("missing x"))?
+            .to_vec();
+        let y = encoded_point
+            .y()
+            .ok_or_else(|| anyhow!("missing y"))?
+            .to_vec();
 
         Ok(CoseKey(
             CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y).build(),
@@ -86,16 +92,24 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
             .0
             .params
             .get(0)
-            .ok_or(anyhow!("missing keyid parameter"))?;
+            .ok_or_else(|| anyhow!("missing keyid parameter"))?;
         if *keyid != (Label::Int(-1), Value::Integer(1.into())) {
             bail!("wrong keyid")
         }
 
-        let x = key.0.params.get(1).ok_or(anyhow!("missing x parameter"))?;
+        let x = key
+            .0
+            .params
+            .get(1)
+            .ok_or_else(|| anyhow!("missing x parameter"))?;
         if x.0 != Label::Int(-2) {
             bail!("unexpected label")
         }
-        let y = key.0.params.get(2).ok_or(anyhow!("missing y parameter"))?;
+        let y = key
+            .0
+            .params
+            .get(2)
+            .ok_or_else(|| anyhow!("missing y parameter"))?;
         if y.0 != Label::Int(-3) {
             bail!("unexpected label")
         }
@@ -103,11 +117,11 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
         ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
             &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
                 x.1.as_bytes()
-                    .ok_or(anyhow!("failed to parse x parameter as bytes"))?
+                    .ok_or_else(|| anyhow!("failed to parse x parameter as bytes"))?
                     .as_bytes()
                     .into(),
                 y.1.as_bytes()
-                    .ok_or(anyhow!("failed to parse y parameter as bytes"))?
+                    .ok_or_else(|| anyhow!("failed to parse y parameter as bytes"))?
                     .as_bytes()
                     .into(),
                 false,

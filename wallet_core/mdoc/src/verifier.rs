@@ -78,11 +78,11 @@ impl IssuerSigned {
                         .value_digests
                         .0
                         .get(namespace)
-                        .ok_or(anyhow!("namespace {namespace} not found in mso"))?;
+                        .ok_or_else(|| anyhow!("namespace {namespace} not found in mso"))?;
                     let digest = digest_ids
                         .0
                         .get(&digest_id)
-                        .ok_or(anyhow!("digest ID {digest_id} not found in mso"))?;
+                        .ok_or_else(|| anyhow!("digest ID {digest_id} not found in mso"))?;
                     if *digest != cbor_digest(item)? {
                         bail!("attribute verification failed")
                     }
@@ -103,7 +103,7 @@ impl Document {
         &self,
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication: &DeviceAuthenticationBytes,
-        device_authentication_bts: &Vec<u8>,
+        device_authentication_bts: &[u8],
         ca_cert: &X509Certificate,
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
         let (attrs, mso) = self.issuer_signed.verify(ca_cert)?;
@@ -111,21 +111,21 @@ impl Document {
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
-                sig.clone_with_payload(device_authentication_bts.clone())
+                sig.clone_with_payload(device_authentication_bts.to_vec())
                     .verify(&device_key)
                     .context("mdoc validation failed")?;
             }
             DeviceAuth::DeviceMac(mac) => {
                 let mac_key = dh_hmac_key(
-                    eph_reader_key.ok_or(anyhow!(
-                        "DeviceAuth::DeviceMac found but no ephemeral reader key specified"
-                    ))?,
+                    eph_reader_key.ok_or_else(|| {
+                        anyhow!("DeviceAuth::DeviceMac found but no ephemeral reader key specified")
+                    })?,
                     &device_key,
-                    &device_authentication.0.session_transcript_bts()?.as_bytes(),
+                    device_authentication.0.session_transcript_bts()?.as_bytes(),
                     "EMacKey",
                     32,
                 )?;
-                mac.clone_with_payload(device_authentication_bts.clone())
+                mac.clone_with_payload(device_authentication_bts.to_vec())
                     .verify(&mac_key)
                     .context("mdoc validation failed")?;
             }

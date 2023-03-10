@@ -72,7 +72,7 @@ where
             self.0
                 .payload()
                 .as_ref()
-                .ok_or(anyhow!("can't parse: no cose payload"))?
+                .ok_or_else(|| anyhow!("can't parse: no cose payload"))?
                 .as_slice(),
         )?)
     }
@@ -96,7 +96,7 @@ where
             .rest
             .iter()
             .find(|(l, _)| l == label)
-            .ok_or(anyhow!("item not found in cose header"))?
+            .ok_or_else(|| anyhow!("item not found in cose header"))?
             .1)
     }
 }
@@ -138,7 +138,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let issuer_cert_bts = self
             .unprotected_header_item(&Label::Int(33))?
             .as_bytes()
-            .ok_or(anyhow!("signing certificate header did not contain bytes"))?;
+            .ok_or_else(|| anyhow!("signing certificate header did not contain bytes"))?;
         let issuer_cert = X509Certificate::from_der(issuer_cert_bts)?.1;
 
         // Verify the certificate against the CA

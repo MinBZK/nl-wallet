@@ -57,7 +57,7 @@ impl Credentials {
             }
 
             let cred = self.0.get(&items_request.doc_type).unwrap();
-            docs.push(cred.disclose_document(&items_request, challenge)?);
+            docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
         Ok(DeviceResponse {
@@ -66,6 +66,12 @@ impl Credentials {
             document_errors: None,
             status: 0,
         })
+    }
+}
+
+impl Default for Credentials {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -82,7 +88,7 @@ impl Credential {
         issuer_signed: IssuerSigned,
         ca_cert: &X509Certificate,
     ) -> Result<Credential> {
-        let (_, mso) = issuer_signed.verify(&ca_cert)?;
+        let (_, mso) = issuer_signed.verify(ca_cert)?;
         Ok(Credential {
             private_key,
             issuer_signed,
@@ -199,7 +205,7 @@ impl DeviceRequest {
     pub(crate) fn verify(
         &self,
         ca_cert: &X509Certificate,
-        reader_authentication_bts: &Vec<u8>,
+        reader_authentication_bts: &[u8],
     ) -> Result<Option<X509Subject>> {
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -214,7 +220,7 @@ impl DeviceRequest {
                 .reader_auth
                 .as_ref()
                 .unwrap()
-                .clone_with_payload(reader_authentication_bts.clone())
+                .clone_with_payload(reader_authentication_bts.to_vec())
                 .verify_against_cert(ca_cert)?;
             if reader.is_none() {
                 reader.replace(found);
