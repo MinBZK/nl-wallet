@@ -10,6 +10,7 @@ use coset::AsCborValue;
 use indexmap::IndexMap;
 use serde::{de, de::Deserializer, ser, ser::Serializer, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use std::borrow::Cow;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
@@ -257,9 +258,15 @@ impl<'de> Deserialize<'de> for Handover {
 #[derive(Debug, Clone)]
 pub struct RequiredValue<T: RequiredValueTrait>(T::Type);
 
+impl<T: RequiredValueTrait> Default for RequiredValue<T> {
+    fn default() -> Self {
+        Self(T::REQUIRED_VALUE)
+    }
+}
+
 pub trait RequiredValueTrait {
     type Type;
-    fn required_value() -> Self::Type;
+    const REQUIRED_VALUE: Self::Type;
 }
 
 impl<'de, T> Deserialize<'de> for RequiredValue<T>
@@ -268,14 +275,14 @@ where
     T::Type: Debug + Deserialize<'de> + PartialEq,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        let required = T::required_value();
         let found = T::Type::deserialize(deserializer)?;
-        if found == required {
-            Ok(RequiredValue::<T>(T::required_value()))
+        if found == T::REQUIRED_VALUE {
+            Ok(RequiredValue::<T>(T::REQUIRED_VALUE))
         } else {
             Err(de::Error::custom(format!(
                 "value was {:?}, expected {:?}",
-                found, required
+                found,
+                T::REQUIRED_VALUE
             )))
         }
     }
@@ -286,7 +293,7 @@ where
     T::Type: Serialize,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        T::required_value().serialize(serializer)
+        T::REQUIRED_VALUE.serialize(serializer)
     }
 }
 
@@ -294,27 +301,24 @@ where
 pub struct NullCborValue;
 impl RequiredValueTrait for NullCborValue {
     type Type = Value;
-    fn required_value() -> Value {
-        Value::Null
-    }
+    const REQUIRED_VALUE: Value = Value::Null;
 }
 
 #[derive(Debug, Clone)]
 pub struct DeviceAuthenticationString;
 impl RequiredValueTrait for DeviceAuthenticationString {
-    type Type = String;
-    fn required_value() -> String {
-        "DeviceAuthentication".to_string()
-    }
+    // We can't use &'static str directly here, because then the deserialization implementation of
+    // RequiredValue<DeviceAuthenticationString> would have to be able to deserialize into &'static str which is impossible.
+    // Also can't use String because those can't be constructed compiletime. So we use Cow which sits in between.
+    type Type = Cow<'static, str>;
+    const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("DeviceAuthentication");
 }
 
 #[derive(Debug, Clone)]
 pub struct ReaderAuthenticationString;
 impl RequiredValueTrait for ReaderAuthenticationString {
-    type Type = String;
-    fn required_value() -> String {
-        "ReaderAuthentication".to_string()
-    }
+    type Type = Cow<'static, str>;
+    const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
 }
 
 #[cfg(test)]
