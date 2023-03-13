@@ -50,8 +50,10 @@ android {
     }
 
     sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-        main.kotlin.srcDirs += "${buildDir}/generated/source/uniffi"
+        main {
+            jniLibs.srcDirs += 'src/main/jniLibs'                   // Include native libraries
+            kotlin.srcDirs += "${buildDir}/generated/source/uniffi" // UniFFI generated bindings
+        }
     }
 
     defaultConfig {
