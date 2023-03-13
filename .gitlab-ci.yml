@@ -59,8 +59,23 @@ test-rust:
   script:
     - set -euxo pipefail
     - cd rust_core
-    - cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
     - cargo test
+
+test-codegen:
+  stage: test
+  only:
+    - merge_requests
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:72e92321ab70fd23910efa74677e5d087933430ac314f9aca42bc1f055b17340"
+  script:
+    - set -euxo pipefail
+    - flutter pub get
+    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
+    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
+    - git diff --stat
+    - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
 build-android-app:
   stage: build
@@ -82,8 +97,6 @@ build-android-app:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
-    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
@@ -130,8 +143,6 @@ build-ios-app:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
-    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
