@@ -25,7 +25,6 @@ def overrideFlutterMinSdkVersion = 23
 def overrideFlutterTargetSdkVersion = 33
 def overrideFlutterCompileSdkVersion = 33
 
-
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
@@ -51,8 +50,8 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs += 'src/main/jniLibs'                   // Include native libraries
-            kotlin.srcDirs += "${buildDir}/generated/source/uniffi" // UniFFI generated bindings
+            // Include native libraries
+            jniLibs.srcDirs += 'src/main/jniLibs'
         }
     }
 
@@ -93,8 +92,7 @@ flutter {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    // Java Native Access
-    implementation "net.java.dev.jna:jna:5.7.0@aar"
+    implementation project(path: ':platform_support')
 }
 [
         Debug  : null,
