@@ -10,13 +10,12 @@ part 'splash_state.dart';
 class SplashBloc extends Bloc<SplashEvent, SplashState> {
   final CheckIsAppInitializedUseCase checkIsAppInitializedUseCase;
 
-  SplashBloc(this.checkIsAppInitializedUseCase) : super(SplashInitial()) {
+  SplashBloc(this.checkIsAppInitializedUseCase, {initOnCreate = true}) : super(SplashInitial()) {
     on<InitSplashEvent>((event, emit) async {
       await Future.delayed(kDefaultMockDelay);
       emit(SplashLoaded(await checkIsAppInitializedUseCase.isInitialized()));
     });
 
-    //Initialize immediately when bloc is created.
-    add(const InitSplashEvent());
+    if (initOnCreate) add(const InitSplashEvent());
   }
 }

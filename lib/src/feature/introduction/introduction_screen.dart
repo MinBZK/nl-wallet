@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../util/extension/num_extensions.dart';
 import '../../wallet_constants.dart';
@@ -152,7 +153,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       centerChild: false,
       child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
     );
-    if (kDebugMode) {
+    //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
+    //FIXME: setup that allows us to configure the app with (custom) mock data.
+    if (kDebugMode && !Environment.isTest) {
       result = Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
