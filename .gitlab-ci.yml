@@ -83,6 +83,7 @@ build-android-app:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
+    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
@@ -130,6 +131,7 @@ build-ios-app:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
+    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
