@@ -9,7 +9,7 @@ crate-type = ["staticlib","cdylib"]
 
 [dependencies]
 bincode = "1.3.3"
-flutter_rust_bridge = "1"
+flutter_rust_bridge = "1.69.0"
 anyhow = "1.0.66"
 p256 = { version = "0.12.0", features = ["pem"] }
 ring = "0.16.20"
@@ -22,6 +22,3 @@ jsonwebtoken = "8.2.0"
 der = { version = "0.6.1", features = ["alloc"] }
 once_cell = "1.17.0"
 flutter-data-types = { path = "flutter-data-types" }
-
-[build-dependencies]
-flutter_rust_bridge_codegen = "1"

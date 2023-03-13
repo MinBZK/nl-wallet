@@ -59,6 +59,7 @@ test-rust:
   script:
     - set -euxo pipefail
     - cd rust_core
+    - cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
     - cargo test
 
 build-android-app:
@@ -81,6 +82,7 @@ build-android-app:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
+    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
@@ -127,6 +129,7 @@ build-ios-app:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
+    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build

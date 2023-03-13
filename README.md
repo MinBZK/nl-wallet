@@ -155,10 +155,6 @@ to add the following targets:
 - For
   Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
-And install the flutter_rust_bridge_codegen to generate the bridge using:
-
-`cargo install flutter_rust_bridge_codegen`
-
 #### Android
 
 To build for android you need to have the Android SDK and NDK installed on your system. Likely the
@@ -201,14 +197,11 @@ All `Rust` code goes in the `rust_core/` directory and their appropriate sub-dir
 
 ### Flutter <-> Rust Bridge
 Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/rust_core/src/api.rs` and generation is done with the following command:
+
 ```
-flutter_rust_bridge_codegen \
-    --rust-input rust_core/src/api.rs \
-    --dart-output lib/bridge_generated.dart \
-    --c-output ios/Runner/bridge_generated.h \
-    --rust-output rust_core/src/bridge_generated/bridge.rs \
-    --skip-add-mod-to-lib
+cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
 ```
+
 The generated code is currently checked in, so that generation only has to be performed when the API changes.
 
 ## Assets
