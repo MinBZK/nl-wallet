@@ -52,6 +52,9 @@ android {
         main {
             // Include native libraries
             jniLibs.srcDirs += 'src/main/jniLibs'
+
+            // UniFFI generated bindings
+            kotlin.srcDirs += "../../rust_core/platform_support/kotlin"
         }
     }
 
@@ -90,6 +93,7 @@ flutter {
 }
 
 dependencies {
+    implementation "net.java.dev.jna:jna:5.7.0@aar" // Java Native Access
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     implementation project(path: ':platform_support')
@@ -105,10 +109,20 @@ dependencies {
     def profileMode = it.value
     tasks.whenTaskAdded { task ->
         if (task.name == "javaPreCompile$taskPostfix") {
-            task.dependsOn "cargoBuild$taskPostfix"
+            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
+            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
-    tasks.register("cargoBuild$taskPostfix", Exec) {
+    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
+        workingDir "../../rust_core/platform_support"
+
+        // Generate Kotlin <> Rust bindings
+        commandLine 'sh',
+                'generate_native_bindings.sh',
+                'hw_keystore', // Module name
+                'kotlin' // Language
+    }
+    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../rust_core"
 
         // Build the Rust code
