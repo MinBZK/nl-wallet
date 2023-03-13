@@ -10,7 +10,13 @@ As there are slight differences between Android and iOS, they are described sepa
 
 ## Android
 
-TBD
+### Bindings
+
+Generate Kotlin bindings:
+```bash
+sh rust_core/platform_support/generate_native_bindings.sh hw_keystore kotlin
+```
+
 
 ## iOS
 
