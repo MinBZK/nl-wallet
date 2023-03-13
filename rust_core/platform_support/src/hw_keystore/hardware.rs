@@ -20,8 +20,8 @@ uniffi::include_scaffolding!("hw_keystore");
 // implementation of KeyStoreError from UDL
 #[derive(Debug, thiserror::Error)]
 pub enum KeyStoreError {
-    #[error("Key error: {message:?}")]
-    KeyError { message: String },
+    #[error("Key error: {reason:?}")]
+    KeyError { reason: String },
     #[error("Bridging error: {reason:?}")]
     BridgingError { reason: String },
 }
