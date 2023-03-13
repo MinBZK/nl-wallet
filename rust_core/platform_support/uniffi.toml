@@ -1,3 +1,3 @@
 [bindings.kotlin]
-cdylib_name = "rust_core"
+cdylib_name = "platform_support"
 omit_argument_labels = true
