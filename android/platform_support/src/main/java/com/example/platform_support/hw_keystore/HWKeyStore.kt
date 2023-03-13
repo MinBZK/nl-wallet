@@ -1,7 +1,6 @@
-package com.example.platform_support.hwkeystore
+package com.example.platform_support.hw_keystore
 
-import android.util.Log
-import com.example.platform_support.hwkeystore.bridge.PlatformKeyStore
+import com.example.platform_support.hw_keystore.bridge.PlatformKeyStore
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.initHwKeystore
 
@@ -13,10 +12,6 @@ class HWKeyStore {
 
         init {
             initHwKeystore(bridge = keyStore)
-
-            //TESTING
-            val key = keyStore.getOrCreateKey("first_key_id")
-            Log.d(">>> HWKeyStore", ">>> SigningKey: $key")
         }
     }
 }
