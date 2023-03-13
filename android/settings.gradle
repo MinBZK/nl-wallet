@@ -1,5 +1,7 @@
 include ':app'
+
 include ':platform_support'
+project(':platform_support').projectDir = new File('../rust_core/platform_support/android/platform_support')
 
 def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
 def properties = new Properties()

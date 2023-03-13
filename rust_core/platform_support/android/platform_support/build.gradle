@@ -33,7 +33,7 @@ android {
     sourceSets {
         main {
             // UniFFI generated bindings
-            kotlin.srcDirs += "../../rust_core/platform_support/kotlin"
+            kotlin.srcDirs += "../../kotlin"
         }
     }
 }
@@ -63,20 +63,13 @@ dependencies {
         }
     }
     tasks.register("cargoBuild$taskPostfix", Exec) {
-        workingDir "../../rust_core/platform_support"
+        workingDir "../../"
 
         // Generate Kotlin <> Rust bindings
-        commandLine 'sh', 'generate_native_bindings.sh',
+        commandLine 'sh',
+                'generate_native_bindings.sh',
                 'hw_keystore', // Module name
                 'kotlin' // Language
-
-        // Build the Rust code
-        commandLine 'cargo', 'ndk',
-                '-t', 'armeabi-v7a',
-                '-t', 'arm64-v8a',
-                '-t', 'x86_64',
-                '-o', '../../android/platform_support/src/main/jniLibs',
-                'build'
 
         if (profileMode != null) {
             args profileMode
