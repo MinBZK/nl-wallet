@@ -12,6 +12,7 @@ use sha2::Digest;
 
 use crate::{
     jwt::{Jwt, JwtClaims},
+    serialization::Base64Bytes,
     utils::{random_bytes, random_string},
     wallet::signed::SignedDouble,
     wp::{
@@ -36,10 +37,14 @@ pub struct User {
     // TODO user key material
 }
 
+/// Used as the challenge in the challenge-response protocol during wallet registration.
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
     wallet_id: String,
     exp: u64,
+
+    /// Random bytes to serve as the actual challenge for the wallet to sign.
+    random: Base64Bytes,
 }
 
 impl JwtClaims for RegistrationChallengeClaims {
@@ -94,6 +99,7 @@ impl AccountServer {
         Ok(Jwt::sign(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
+                random: random_bytes(32).into(),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
             &self.privkey,
