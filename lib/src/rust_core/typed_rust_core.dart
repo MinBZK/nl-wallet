@@ -14,4 +14,8 @@ class TypedRustCore {
     final bytes = await _rustCore.isValidPin(pin: pin);
     return PinResult.bincodeDeserialize(bytes);
   }
+
+  Future<void> register(String pin) async {
+    await _rustCore.register(pin: pin);
+  }
 }

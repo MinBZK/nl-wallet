@@ -49,14 +49,13 @@ class MockWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<bool> createWallet(String pin) async {
+  Future<void> createWallet(String pin) async {
     if (pin.length != kPinDigits) throw UnsupportedError('Invalid pin. Length should be $kPinDigits');
     if (isInitialized) throw UnsupportedError('Wallet is already initialized');
     await Future.delayed(kDefaultMockDelay);
     _pin = pin;
     _isInitialized.add(true);
     _invalidPinAttempts = 0;
-    return _isInitialized.value;
   }
 
   @override

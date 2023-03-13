@@ -1,3 +1,3 @@
 abstract class CreateWalletUseCase {
-  Future<bool> invoke(String pin);
+  Future<void> invoke(String pin);
 }
