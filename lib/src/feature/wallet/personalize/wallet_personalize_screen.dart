@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
@@ -10,15 +11,13 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../data_incorrect/data_incorrect_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
-import 'page/wallet_personalize_check_card_page.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
+import 'page/wallet_personalize_digid_error_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
-import 'page/wallet_personalize_retrieve_more_cards_page.dart';
-import 'page/wallet_personalize_select_cards_page.dart';
+import 'page/wallet_personalize_no_digid_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
@@ -79,12 +78,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
         if (state is WalletPersonalizeLoadingPid) result = _buildLoading(context);
         if (state is WalletPersonalizeLoadInProgress) result = _buildLoading(context);
         if (state is WalletPersonalizeCheckData) result = _buildCheckDataOfferingPage(context, state);
-        if (state is WalletPersonalizeRetrieveMoreCards) result = _buildRetrieveMoreCardsPage(context);
-        if (state is WalletPersonalizeSelectCards) result = _buildSelectCardsPage(context, state);
-        if (state is WalletPersonalizeCheckCards) result = _buildCheckCardPage(context, state);
         if (state is WalletPersonalizeConfirmPin) result = _buildConfirmPinPage(context, state);
         if (state is WalletPersonalizeSuccess) result = _buildSuccessPage(context, state);
         if (state is WalletPersonalizeFailure) result = _buildErrorPage(context);
+        if (state is WalletPersonalizeDigidFailure) result = _buildDigidErrorPage(context);
         if (result == null) throw UnsupportedError('Unknown state: $state');
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -94,7 +91,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     return WalletPersonalizeCheckDataOfferingPage(
       onAccept: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
-      attributes: state.availableAttributes,
+      attributes: PidAttributeMapper.map(state.availableAttributes),
     );
   }
 
@@ -124,15 +121,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildWalletIntroPage(BuildContext context) {
     return WalletPersonalizeIntroPage(
       onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onNoDigidPressed: () => PlaceholderScreen.show(context),
+      onNoDigidPressed: () => WalletPersonalizeNoDigidPage.show(context),
     );
   }
 
   void _loginWithDigid(BuildContext context) async {
     final bloc = context.bloc;
-    await MockDigidScreen.show(context);
+    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
     await Future.delayed(kDefaultMockDelay);
-    bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+    if (loginSucceeded) {
+      bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+    } else {
+      bloc.add(WalletPersonalizeLoginWithDigidFailed());
+    }
   }
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
@@ -155,60 +156,11 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRetrieveMoreCardsPage(BuildContext context) {
-    return WalletPersonalizeRetrieveMoreCardsPage(
-      onContinuePressed: () => context.bloc.add(WalletPersonalizeRetrieveMoreCardsPressed()),
-      onSkipPressed: () {
-        _showSkipSheet(context, () => context.bloc.add(WalletPersonalizeSkipRetrieveMoreCardsPressed()));
-      },
+  Widget _buildDigidErrorPage(BuildContext context) {
+    return WalletPersonalizeDigidErrorPage(
+      onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+      onHelpPressed: () => PlaceholderScreen.show(context),
     );
-  }
-
-  Widget _buildSelectCardsPage(BuildContext context, WalletPersonalizeSelectCards state) {
-    return WalletPersonalizeSelectCardsPage(
-      onSkipPressed: () => _showSkipSheet(context, () => context.bloc.add(WalletPersonalizeSkipAddMoreCardsPressed())),
-      cards: state.availableCards,
-      selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),
-      onCardSelectionToggled: (card) => context.bloc.add(WalletPersonalizeSelectedCardToggled(card)),
-      onAddSelectedPressed: () => context.bloc.add(WalletPersonalizeAddSelectedCardsPressed()),
-      showNoSelectionError: state.showNoSelectionError,
-    );
-  }
-
-  Widget _buildCheckCardPage(BuildContext context, WalletPersonalizeCheckCards state) {
-    return WalletPersonalizeCheckCardPage(
-      key: ValueKey(state.cardToCheck.id),
-      card: state.cardToCheck,
-      onAccept: () => context.bloc.add(WalletPersonalizeDataOnCardConfirmed()),
-      onDecline: () async {
-        final bloc = context.bloc;
-        final result = await DataIncorrectScreen.show(context);
-        if (result == null) return; //Screen dismissed without explicit action.
-        switch (result) {
-          case DataIncorrectResult.declineCard:
-            bloc.add(WalletPersonalizeDataOnCardDeclined());
-            break;
-          case DataIncorrectResult.acceptCard:
-            bloc.add(WalletPersonalizeDataOnCardConfirmed());
-            break;
-        }
-      },
-      totalNrOfCards: state.totalNrOfCardsToCheck,
-      currentCardIndex: state.multipleCardsFlow.activeIndex,
-    );
-  }
-
-  Future<void> _showSkipSheet(BuildContext context, VoidCallback onSkip) async {
-    final locale = AppLocalizations.of(context);
-    final skipped = await ConfirmActionSheet.show(
-      context,
-      title: locale.walletPersonalizeScreenSkipSheetTitle,
-      description: locale.walletPersonalizeScreenSkipSheetSubtitle,
-      cancelButtonText: locale.walletPersonalizeScreenSkipSheetNegativeCta,
-      confirmButtonText: locale.walletPersonalizeScreenSkipSheetPositiveCta,
-      confirmButtonColor: Theme.of(context).colorScheme.error,
-    );
-    if (skipped) onSkip();
   }
 
   ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.

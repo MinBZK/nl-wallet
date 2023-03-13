@@ -36,3 +36,8 @@ class MockDigidLoggedIn extends MockDigidState {
   @override
   List<Object> get props => [];
 }
+
+class MockDigidRejected extends MockDigidState {
+  @override
+  List<Object> get props => [];
+}
