@@ -32,21 +32,18 @@ android {
 
     sourceSets {
         main {
-            //jniLibs.srcDirs += 'src/main/jniLibs'                   // Include native libraries
-            //kotlin.srcDirs += "${buildDir}/generated/source/uniffi" // UniFFI generated bindings
-            kotlin.srcDirs += "../../rust_core/platform_support/kotlin" // UniFFI generated bindings
+            // UniFFI generated bindings
+            kotlin.srcDirs += "../../rust_core/platform_support/kotlin"
         }
     }
 }
 
 dependencies {
 
-    // Java Native Access
-    implementation "net.java.dev.jna:jna:5.7.0@aar"
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation "net.java.dev.jna:jna:5.7.0@aar" // Java Native Access
 
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
+    // Test dependencies
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -69,10 +66,9 @@ dependencies {
         workingDir "../../rust_core/platform_support"
 
         // Generate Kotlin <> Rust bindings
-        commandLine 'sh',
-                'generate_native_bindings.sh',
-                'hw_keystore',
-                'kotlin'
+        commandLine 'sh', 'generate_native_bindings.sh',
+                'hw_keystore', // Module name
+                'kotlin' // Language
 
         // Build the Rust code
         commandLine 'cargo', 'ndk',
