@@ -9,6 +9,6 @@ import Foundation
 
 extension KeyStoreError {
     static func from(_ error: SecureEnclaveKeyError) -> Self {
-        return .KeyError(message: error.localizedDescription)
+        return .KeyError(reason: error.localizedDescription)
     }
 }
