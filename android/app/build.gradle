@@ -51,6 +51,7 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        main.kotlin.srcDirs += "${buildDir}/generated/source/uniffi"
     }
 
     defaultConfig {
