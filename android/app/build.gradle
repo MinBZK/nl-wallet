@@ -90,6 +90,9 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    // Java Native Access
+    implementation "net.java.dev.jna:jna:5.7.0@aar"
 }
 [
         Debug  : null,
