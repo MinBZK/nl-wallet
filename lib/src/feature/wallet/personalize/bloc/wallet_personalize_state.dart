@@ -1,6 +1,6 @@
 part of 'wallet_personalize_bloc.dart';
 
-const _kNrOfPages = 11;
+const _kNrOfPages = 6;
 
 abstract class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
@@ -27,14 +27,29 @@ class WalletPersonalizeLoadingPid extends WalletPersonalizeState {
 
 class WalletPersonalizeCheckData extends WalletPersonalizeState {
   final List<DataAttribute> availableAttributes;
+  @override
+  final bool didGoBack;
 
-  const WalletPersonalizeCheckData({required this.availableAttributes});
+  const WalletPersonalizeCheckData({required this.availableAttributes, this.didGoBack = false});
 
   @override
   double get stepperProgress => 3 / _kNrOfPages;
 
   @override
   List<Object?> get props => [availableAttributes, ...super.props];
+}
+
+class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
+  const WalletPersonalizeConfirmPin();
+
+  @override
+  double get stepperProgress => 4 / _kNrOfPages;
+
+  @override
+  bool get canGoBack => true;
+
+  @override
+  List<Object?> get props => [...super.props];
 }
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {
@@ -56,108 +71,9 @@ class WalletPersonalizeFailure extends WalletPersonalizeState {
   double get stepperProgress => 0;
 }
 
-class WalletPersonalizeRetrieveMoreCards extends WalletPersonalizeState {
+class WalletPersonalizeDigidFailure extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 4 / _kNrOfPages;
-}
-
-class WalletPersonalizeSelectCards extends WalletPersonalizeState {
-  final MultipleCardsFlow multipleCardsFlow;
-  final bool showNoSelectionError;
-
-  @override
-  final bool didGoBack;
-
-  List<WalletCard> get availableCards => multipleCardsFlow.availableCards;
-
-  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
-
-  const WalletPersonalizeSelectCards({
-    required this.multipleCardsFlow,
-    this.didGoBack = false,
-    this.showNoSelectionError = false,
-  });
-
-  @override
-  double get stepperProgress => 6 / _kNrOfPages;
-
-  @override
-  List<Object?> get props => [multipleCardsFlow, showNoSelectionError, ...super.props];
-
-  WalletPersonalizeSelectCards toggleCard(String cardId) {
-    final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);
-    return WalletPersonalizeSelectCards(
-      multipleCardsFlow: multipleCardsFlow.copyWith(selectedCardIds: selection..toggle(cardId)),
-    );
-  }
-}
-
-class WalletPersonalizeCheckCards extends WalletPersonalizeState {
-  final MultipleCardsFlow multipleCardsFlow;
-
-  @override
-  final bool didGoBack;
-
-  List<WalletCard> get availableCards => multipleCardsFlow.cardToOrganizations.keys.toList();
-
-  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
-
-  WalletCard get cardToCheck => multipleCardsFlow.activeCard;
-
-  int get totalNrOfCardsToCheck => multipleCardsFlow.selectedCardIds.length;
-
-  bool get hasMoreCards => multipleCardsFlow.hasMoreCards;
-
-  const WalletPersonalizeCheckCards({
-    required this.multipleCardsFlow,
-    this.didGoBack = false,
-  });
-
-  WalletPersonalizeCheckCards copyForNextCard() {
-    if (!multipleCardsFlow.hasMoreCards) throw UnsupportedError('There is no next card to check!');
-    return WalletPersonalizeCheckCards(multipleCardsFlow: multipleCardsFlow.next());
-  }
-
-  WalletPersonalizeCheckCards copyForPreviousCard() {
-    if (multipleCardsFlow.isAtFirstCard) throw UnsupportedError('There is no previous card to check!');
-    return WalletPersonalizeCheckCards(multipleCardsFlow: multipleCardsFlow.previous(), didGoBack: true);
-  }
-
-  final _kOrderInFlow = 7;
-
-  @override
-  double get stepperProgress {
-    if (totalNrOfCardsToCheck <= 1) return _kOrderInFlow / _kNrOfPages;
-    final checkCardsProgress = (multipleCardsFlow.activeIndex / (totalNrOfCardsToCheck - 1));
-    return (_kOrderInFlow + checkCardsProgress) / _kNrOfPages;
-  }
-
-  @override
-  List<Object?> get props => [multipleCardsFlow, ...super.props];
-
-  @override
-  bool get canGoBack => true;
-}
-
-class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
-  final MultipleCardsFlow multipleCardsFlow;
-
-  List<WalletCard> get availableCards => multipleCardsFlow.availableCards;
-
-  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
-
-  const WalletPersonalizeConfirmPin({
-    required this.multipleCardsFlow,
-  });
-
-  @override
-  double get stepperProgress => 9 / _kNrOfPages;
-
-  @override
-  bool get canGoBack => true;
-
-  @override
-  List<Object?> get props => [multipleCardsFlow, ...super.props];
+  double get stepperProgress => 1;
 }
 
 class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {

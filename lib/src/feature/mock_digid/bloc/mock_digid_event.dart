@@ -23,3 +23,8 @@ class MockDigidConfirmPressed extends MockDigidEvent {
   @override
   List<Object?> get props => [];
 }
+
+class MockDigidDeclinePressed extends MockDigidEvent {
+  @override
+  List<Object?> get props => [];
+}

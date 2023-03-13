@@ -1,6 +1,7 @@
 enum AttributeType {
   firstNames,
   lastName,
+  birthName,
   fullName,
   gender,
   profilePhoto,
@@ -8,6 +9,7 @@ enum AttributeType {
   birthPlace,
   birthCountry,
   citizenshipNumber,
+  nationality,
   documentNr,
   issuanceDate,
   expiryDate,
@@ -20,6 +22,7 @@ enum AttributeType {
   phone,
   email,
   postalCode,
+  street,
   city,
   olderThan18,
   healthIssuerId,

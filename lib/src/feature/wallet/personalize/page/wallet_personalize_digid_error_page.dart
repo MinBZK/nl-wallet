@@ -3,16 +3,15 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../common/widget/text_icon_button.dart';
 
-const _kIllustrationPath = 'assets/images/personalize_wallet_intro_illustration.png';
 const _kDigidLogoPath = 'assets/images/digid_logo.png';
 
-class WalletPersonalizeIntroPage extends StatelessWidget {
-  final VoidCallback onLoginWithDigidPressed;
-  final VoidCallback onNoDigidPressed;
+class WalletPersonalizeDigidErrorPage extends StatelessWidget {
+  final VoidCallback onRetryPressed;
+  final VoidCallback onHelpPressed;
 
-  const WalletPersonalizeIntroPage({
-    required this.onLoginWithDigidPressed,
-    required this.onNoDigidPressed,
+  const WalletPersonalizeDigidErrorPage({
+    required this.onRetryPressed,
+    required this.onHelpPressed,
     Key? key,
   }) : super(key: key);
 
@@ -26,36 +25,48 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
+          SizedBox(
+            height: 105,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Text('Placeholder image'),
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
-            locale.walletPersonalizeIntroPageTitle,
+            locale.walletPersonalizeDigidErrorPageTitle,
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.displaySmall,
           ),
           const SizedBox(height: 8),
           Text(
-            locale.walletPersonalizeIntroPageDescription,
+            locale.walletPersonalizeDigidErrorPageDescription,
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const Spacer(),
-          Image.asset(_kIllustrationPath),
-          const Spacer(flex: 3),
           ElevatedButton(
-            onPressed: onLoginWithDigidPressed,
+            onPressed: onRetryPressed,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(_kDigidLogoPath),
                 const SizedBox(width: 12),
-                Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
+                Text(locale.walletPersonalizeDigidErrorPageLoginWithDigidCta),
               ],
             ),
           ),
           const SizedBox(height: 8),
           Center(
             child: TextIconButton(
-              onPressed: onNoDigidPressed,
-              child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+              onPressed: onHelpPressed,
+              child: Text(
+                locale.walletPersonalizeDigidErrorPageNoDigidCta,
+              ),
             ),
           ),
         ],

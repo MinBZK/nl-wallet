@@ -28,7 +28,8 @@ class MockDigidScreen extends StatelessWidget {
       ),
       child: BlocConsumer<MockDigidBloc, MockDigidState>(
         listener: (context, state) {
-          if (state is MockDigidLoggedIn) Navigator.pop(context);
+          if (state is MockDigidLoggedIn) Navigator.pop(context, true);
+          if (state is MockDigidRejected) Navigator.pop(context, false);
         },
         builder: (context, state) {
           Widget? result;
@@ -37,6 +38,7 @@ class MockDigidScreen extends StatelessWidget {
           if (state is MockDigidConfirmApp) result = _buildConfirmAppPage(context);
           if (state is MockDigidLoadInProgress) result = DigidLoadingPage(mockDelay: state.mockDelay);
           if (state is MockDigidLoggedIn) result = const DigidLoadingPage(mockDelay: Duration.zero);
+          if (state is MockDigidRejected) result = const DigidLoadingPage(mockDelay: Duration.zero);
           if (result == null) throw UnsupportedError('Unknown state: $state');
           return AnimatedSwitcher(duration: kDefaultAnimationDuration, child: result);
         },
@@ -53,9 +55,14 @@ class MockDigidScreen extends StatelessWidget {
   }
 
   Widget _buildConfirmAppPage(BuildContext context) {
-    return DigidConfirmAppPage(onConfirmClicked: () {
-      context.read<MockDigidBloc>().add(MockDigidConfirmPressed());
-    });
+    return DigidConfirmAppPage(
+      onConfirmPressed: () {
+        context.read<MockDigidBloc>().add(MockDigidConfirmPressed());
+      },
+      onDeclinePressed: () {
+        context.read<MockDigidBloc>().add(MockDigidDeclinePressed());
+      },
+    );
   }
 
   OutlinedButtonThemeData outlinedButtonTheme(BuildContext context) {
@@ -79,7 +86,7 @@ class MockDigidScreen extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context) {
+  static Future<bool?> mockLogin(BuildContext context) {
     return Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (context) => BlocProvider(

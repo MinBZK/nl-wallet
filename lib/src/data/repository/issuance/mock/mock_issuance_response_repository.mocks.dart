@@ -123,13 +123,6 @@ const _kMockVOGCardFront = CardFront(
 // region DataAttributes
 const _kMockPidDataAttributes = [
   DataAttribute(
-    valueType: AttributeValueType.image,
-    label: 'Pasfoto',
-    value: 'assets/non-free/images/person_x.png',
-    type: AttributeType.profilePhoto,
-    sourceCardId: _kPidId,
-  ),
-  DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Voornamen',
     value: _kMockFirstNames,
@@ -145,8 +138,9 @@ const _kMockPidDataAttributes = [
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
-    label: 'Geslachtsnaam',
+    label: 'Geboortenaam',
     value: 'Molenaar',
+    type: AttributeType.birthName,
     sourceCardId: _kPidId,
   ),
   DataAttribute(
@@ -203,6 +197,20 @@ const _kMockPidDataAttributes = [
     label: 'Postcode',
     value: '2511 DP',
     type: AttributeType.postalCode,
+    sourceCardId: _kPidId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Straatnaam',
+    value: 'Turfmarkt 147',
+    type: AttributeType.street,
+    sourceCardId: _kPidId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Nationaliteit',
+    value: 'Nederlands',
+    type: AttributeType.nationality,
     sourceCardId: _kPidId,
   ),
 ];
