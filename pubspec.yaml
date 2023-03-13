@@ -39,6 +39,7 @@ dependencies:
   core_domain:
     path: ./pub/core_domain
   shared_preferences: ^2.0.17
+  golden_toolkit: ^0.15.0
 
 dev_dependencies:
   flutter_lints: ^2.0.0

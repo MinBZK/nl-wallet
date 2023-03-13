@@ -17,7 +17,7 @@ import '../../../../wallet_app_test_widget.dart';
 void main() {
   group('PinKeyboard', () {
     testWidgets('should display all numeric keys', (WidgetTester tester) async {
-      await tester.pumpWidget(const WalletAppTestWidget(PinKeyboard()));
+      await tester.pumpWidget(const WalletAppTestWidget(child: PinKeyboard()));
 
       // Verify all pin options [1..9] are displayed
       for (int i = 0; i < 10; i++) {
@@ -26,14 +26,14 @@ void main() {
     });
 
     testWidgets('should display a backspace key', (WidgetTester tester) async {
-      await tester.pumpWidget(const WalletAppTestWidget(PinKeyboard()));
+      await tester.pumpWidget(const WalletAppTestWidget(child: PinKeyboard()));
 
       expect(find.byIcon(Icons.backspace), findsOneWidget);
     });
 
     testWidgets('should meet text contrast guidelines', (WidgetTester tester) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(const WalletAppTestWidget(PinKeyboard()));
+      await tester.pumpWidget(const WalletAppTestWidget(child: PinKeyboard()));
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       handle.dispose();
     });
@@ -44,7 +44,7 @@ void main() {
         onKeyPressed: (key) => lastPressedKey = key,
       );
 
-      await tester.pumpWidget(WalletAppTestWidget(pinKeyboard));
+      await tester.pumpWidget(WalletAppTestWidget(child: pinKeyboard));
       for (int i = 0; i < 10; i++) {
         final widgetFinder = find.text(i.toString());
         await tester.tap(widgetFinder);
@@ -59,7 +59,7 @@ void main() {
         onBackspacePressed: () => onBackspaceWasPressed = true,
       );
 
-      await tester.pumpWidget(WalletAppTestWidget(pinKeyboard));
+      await tester.pumpWidget(WalletAppTestWidget(child: pinKeyboard));
       final widgetFinder = find.byIcon(Icons.backspace);
       await tester.tap(widgetFinder);
 
