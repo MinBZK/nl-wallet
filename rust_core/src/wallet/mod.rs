@@ -60,14 +60,22 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
 
+    use crate::wp::RemoteAccountServer;
+
     use super::Wallet;
 
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
+        // let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
+
+        // let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUWwta1ybkzhRlnkVzIwDm/90alpzi6uEPXKu4vsiyOFiYNz1Ei1GVL0mNMKVUYxAjuFlYlxOf6JGkiC95RSQrA==";
+        let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEouA9ULF8VKuBdHQZoaIBMIFKjo+kOAu6nDDWc9b9gw8Hf4USfFNXZUgJi37KZA6ZCTng/GBBGMzgc2T+OxXjnw==";
+        let url = "http://localhost:9000".to_owned();
+        // let url = "https://SSSS".to_owned();
+
         let mut wallet = Wallet::new(
-            account_server,
-            account_server_pubkey,
+            RemoteAccountServer::new(url),
+            pubkey.as_bytes().to_vec(),
             SigningKey::random(&mut OsRng),
         );
 

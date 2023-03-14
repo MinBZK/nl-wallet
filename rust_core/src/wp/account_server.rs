@@ -51,6 +51,54 @@ impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
+pub struct RemoteAccountServer {
+    url: String,
+    client: reqwest::blocking::Client,
+}
+
+impl RemoteAccountServer {
+    pub fn new(url: String) -> RemoteAccountServer {
+        RemoteAccountServer {
+            url,
+            client: reqwest::blocking::Client::new(),
+        }
+    }
+}
+
+impl AccountServerClient for RemoteAccountServer {
+    fn registration_challenge(&self) -> Result<Vec<u8>> {
+        Ok(self
+            .client
+            .post(format!("{}/api/v1/enroll", self.url))
+            .body("")
+            .send()?
+            .json::<serde_json::Value>()?
+            .get("challenge")
+            .ok_or_else(|| anyhow!("missing challenge"))?
+            .as_str()
+            .ok_or_else(|| anyhow!("challenge was not a string"))?
+            .into())
+    }
+
+    fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate> {
+        dbg!(serde_json::to_string(&registration_message)?);
+        Ok(dbg!(self
+            .client
+            .post(format!("{}/api/v1/createwallet", self.url))
+            .json(&registration_message)
+            .send()?
+            .json::<serde_json::Value>()?)
+        .get("registration")
+        .ok_or_else(|| anyhow!("missing registration"))?
+        .as_str()
+        .ok_or_else(|| anyhow!("registration was not a string"))?
+        .into())
+    }
+}
+
 impl AccountServerClient for AccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
         AccountServer::registration_challenge(self)
@@ -186,8 +234,10 @@ pub mod tests {
 
     use crate::{
         utils::random_bytes,
-        wp::{instructions, AccountServer},
+        wp::{instructions, AccountServer, RemoteAccountServer},
     };
+
+    use super::AccountServerClient;
 
     pub fn new_account_server() -> (AccountServer, Vec<u8>) {
         let as_privkey = SigningKey::random(&mut OsRng);
@@ -227,5 +277,17 @@ pub mod tests {
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
+    }
+
+    #[test]
+    fn reqwest() {
+        dbg!(String::from_utf8(
+            RemoteAccountServer::new(
+                "https://SSSS".to_owned(),
+            )
+            .registration_challenge()
+            .unwrap()
+        )
+        .unwrap());
     }
 }
