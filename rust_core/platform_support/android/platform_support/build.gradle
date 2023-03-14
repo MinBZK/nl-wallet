@@ -66,16 +66,23 @@ dependencies {
     tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
         workingDir "../../"
 
-        // Generate Kotlin <> Rust bindings
-        commandLine 'sh',
-                'generate_native_bindings.sh',
-                'hw_keystore', // Module name
-                'kotlin' // Language
+        fileTree("$workingDir").matching {
+            include "**/*.udl"
+        }.each {
+            // Use file name as module name
+            String moduleName = it.name.take(it.name.lastIndexOf('.'))
+
+            // Generate Kotlin <> Rust bindings
+            commandLine 'sh',
+                    'generate_native_bindings.sh',
+                    "$moduleName",
+                    'kotlin'
+        }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../"
 
-        // Build the Rust code
+        // Build the Rust code (platform_support)
         commandLine 'cargo', 'ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
