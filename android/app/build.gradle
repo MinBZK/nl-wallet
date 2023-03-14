@@ -109,23 +109,13 @@ dependencies {
     def profileMode = it.value
     tasks.whenTaskAdded { task ->
         if (task.name == "javaPreCompile$taskPostfix") {
-            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
-    }
-    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
-        workingDir "../../rust_core/platform_support"
-
-        // Generate Kotlin <> Rust bindings
-        commandLine 'sh',
-                'generate_native_bindings.sh',
-                'hw_keystore', // Module name
-                'kotlin' // Language
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../rust_core"
 
-        // Build the Rust code
+        // Build the Rust code (rust_core)
         commandLine 'cargo', 'ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
