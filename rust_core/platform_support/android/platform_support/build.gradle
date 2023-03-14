@@ -32,6 +32,9 @@ android {
 
     sourceSets {
         main {
+            // Include native libraries
+            jniLibs.srcDirs += 'src/main/jniLibs'
+
             // UniFFI generated bindings
             kotlin.srcDirs += "../../kotlin"
         }
