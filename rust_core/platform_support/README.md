@@ -10,13 +10,10 @@ As there are slight differences between Android and iOS, they are described sepa
 
 ## Android
 
-### Bindings
-
-Generate Kotlin bindings:
-```bash
-sh rust_core/platform_support/generate_native_bindings.sh hw_keystore kotlin
-```
-
+TODO:
+[] Write documentation here
+[] Add bindings generation for multiple UDL files
+[] Remove `app` module from `platform_support/android` project
 
 ## iOS
 
