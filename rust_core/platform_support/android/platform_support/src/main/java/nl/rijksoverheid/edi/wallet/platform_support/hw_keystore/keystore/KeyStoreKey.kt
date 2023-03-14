@@ -1,4 +1,4 @@
-package com.example.platform_support.hw_keystore.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties

@@ -1,7 +1,7 @@
-package com.example.platform_support.hw_keystore.bridge
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.bridge
 
 import android.util.Log
-import com.example.platform_support.hw_keystore.keystore.KeyStoreKey
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.KeyStoreKey
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.SigningKeyBridge
 

@@ -1,6 +1,6 @@
-package com.example.platform_support.hw_keystore
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
 
-import com.example.platform_support.hw_keystore.bridge.PlatformKeyStore
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.bridge.PlatformKeyStore
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.initHwKeystore
 
