@@ -10,9 +10,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 // comment there.
 #[derive(Debug)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
-impl<T> From<String> for Jwt<T> {
-    fn from(val: String) -> Self {
-        Jwt(val, PhantomData)
+impl<T, S: Into<String>> From<S> for Jwt<T> {
+    fn from(val: S) -> Self {
+        Jwt(val.into(), PhantomData)
     }
 }
 

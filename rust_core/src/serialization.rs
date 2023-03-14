@@ -4,6 +4,7 @@ use p256::{
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 use serde::{de, ser, Deserialize, Serialize};
+use serde_json::value::RawValue;
 
 use crate::wallet::signed::{Signed, SignedDouble};
 
@@ -91,14 +92,14 @@ impl<T> Serialize for SignedDouble<T> {
         &self,
         serializer: S,
     ) -> std::result::Result<S::Ok, S::Error> {
-        String::serialize(&self.0, serializer)
+        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for SignedDouble<T> {
     fn deserialize<D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
-        String::deserialize(deserializer).map(SignedDouble::from)
+        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
 }
 
@@ -107,13 +108,13 @@ impl<T> Serialize for Signed<T> {
         &self,
         serializer: S,
     ) -> std::result::Result<S::Ok, S::Error> {
-        String::serialize(&self.0, serializer)
+        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for Signed<T> {
     fn deserialize<D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
-        String::deserialize(deserializer).map(Signed::from)
+        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
 }
