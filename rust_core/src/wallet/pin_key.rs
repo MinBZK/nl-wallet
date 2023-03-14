@@ -70,6 +70,18 @@ fn pin_public_key(salt: &[u8], pin: &str) -> Result<VerifyingKey> {
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
 fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey> {
     // The `salt` parameter is really the IKM (input key material) of the HKDF, see the comment in `new_pin_salt()`.
+    // The reason for length 256 / 8 + 8 is as follows. The private key must be a random number between 1 and q - 1,
+    // where q is the (prime) order of the ECDSA elliptic curve (its amount of elements). But hkdf() takes bytes not
+    // bits as the output length parameter, so we can't specify the upper bound sufficiently granularly; the output may
+    // be too large. Just reducing mod q would result in the so-called modulo bias
+    // (see e.g. https://research.kudelskisecurity.com/2020/07/28/the-definitive-guide-to-modulo-bias-and-how-to-avoid-it/):
+    // the numbers above the upper bound are mapped onto the lower numbers, which therefore are slightly more likely to
+    // be chosen.
+    // This is often solved by repeatedly rejecting too large values until one obtains a number below the upper bound,
+    // but this makes the execution time of the algorithm random, which might lead to time-based side channel
+    // vulnerabilities. Instead, we use the following constant-time algorithm: we just reduce the severity of the modulo
+    // bias effect to negligibility by making the output of hkdf() sufficienfly larger.
+    // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
     let hkdf = hkdf(salt, b"", pin, 256 / 8 + 8)?;
     let scalar = bytes_to_ecdsa_scalar(hkdf);
     Ok(SecretKey::new(Scalar::from_uint_reduced(scalar).into()).into())
