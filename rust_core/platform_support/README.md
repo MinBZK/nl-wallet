@@ -10,10 +10,21 @@ As there are slight differences between Android and iOS, they are described sepa
 
 ## Android
 
-TODO:
-[] Write documentation here
-[] Add bindings generation for multiple UDL files
-[] Remove `app` module from `platform_support/android` project
+The Kotlin implementation is contained within a small Android project `PlatformSupport`. This project contains a single module `platform_support` which produces:
+* A shared library (i.e. a `.so` file) that contains the native code.
+* Kotlin (binding) code, generated from the UDL files included in the crate through `uniffi-bindgen`.
+
+Singleton classes wrap the initializers that need to be called on app startup (e.g. `initHwKeystore()`), which lets Rust know how to call the native code.
+When compiling the main Android project of the app, the `platform_support` module is included as a dependency.
+
+The final process can be visualised as follows:
+
+```
+Wallet Android Project --> rust_core --> platform_support
+            |                               ^
+            |                               | (uniffi)
+            \----->  PlatformSupport  -----/
+```
 
 ## iOS
 
