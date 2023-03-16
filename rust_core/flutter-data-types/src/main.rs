@@ -1,22 +1,29 @@
+use anyhow::Result;
+use const_format::formatcp;
 use flutter_data_types::{PinError, PinResult};
 use serde_reflection::{Registry, Tracer, TracerConfig};
-use std::{concat, env, path::PathBuf};
+use std::{env, path::PathBuf};
 
-const DART_OUTPUT_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../pub/core_domain");
+const MODULE_NAME: &str = "core_domain";
+const DART_OUTPUT_PATH: &str =
+    formatcp!("{}/../../pub/{}", env!("CARGO_MANIFEST_DIR"), MODULE_NAME);
 
-fn main() {
+fn main() -> Result<()> {
     let mut tracer = Tracer::new(TracerConfig::default());
     tracer.trace_simple_type::<PinResult>().unwrap();
     tracer.trace_simple_type::<PinError>().unwrap();
     let registry = tracer.registry().unwrap();
-    generate_dart(&registry);
+
+    generate_dart(&registry)
 }
 
 // Create Dart class definitions.
-fn generate_dart(registry: &Registry) {
-    let config = serde_generate::CodeGeneratorConfig::new("core_domain".to_string())
+fn generate_dart(registry: &Registry) -> Result<()> {
+    let config = serde_generate::CodeGeneratorConfig::new(MODULE_NAME.to_owned())
         .with_encodings(vec![serde_generate::Encoding::Bincode])
         .with_c_style_enums(true);
     let generator = serde_generate::dart::CodeGenerator::new(&config);
-    let _result = generator.output(PathBuf::from(DART_OUTPUT_PATH), &registry);
+    let result = generator.output(PathBuf::from(DART_OUTPUT_PATH), &registry)?;
+
+    Ok(result)
 }

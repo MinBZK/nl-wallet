@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.69"
+const_format = "0.2.30"
 bincode = "1.3.3"
 serde = "1.0.152"
 serde-generate = "0.24.0"
