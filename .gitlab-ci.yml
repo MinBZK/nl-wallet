@@ -73,7 +73,7 @@ test-codegen:
     - set -euxo pipefail
     - flutter pub get
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
-    - cargo run --manifest-path rust_core/flutter-data-types/Cargo.toml
+    - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
     - git diff --stat
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 

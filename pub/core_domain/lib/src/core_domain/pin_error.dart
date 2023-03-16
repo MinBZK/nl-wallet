@@ -3,7 +3,7 @@ part of core_domain_types;
 enum PinError {
   nonDigits,
   invalidLength,
-  tooLittleUniqueDigits,
+  tooFewUniqueDigits,
   ascendingDigits,
   descendingDigits,
 }
@@ -14,7 +14,7 @@ extension PinErrorExtension on PinError {
     switch (index) {
       case 0: return PinError.nonDigits;
       case 1: return PinError.invalidLength;
-      case 2: return PinError.tooLittleUniqueDigits;
+      case 2: return PinError.tooFewUniqueDigits;
       case 3: return PinError.ascendingDigits;
       case 4: return PinError.descendingDigits;
       default: throw Exception("Unknown variant index for PinError: " + index.toString());
@@ -25,7 +25,7 @@ extension PinErrorExtension on PinError {
     switch (this) {
       case PinError.nonDigits: return serializer.serializeVariantIndex(0);
       case PinError.invalidLength: return serializer.serializeVariantIndex(1);
-      case PinError.tooLittleUniqueDigits: return serializer.serializeVariantIndex(2);
+      case PinError.tooFewUniqueDigits: return serializer.serializeVariantIndex(2);
       case PinError.ascendingDigits: return serializer.serializeVariantIndex(3);
       case PinError.descendingDigits: return serializer.serializeVariantIndex(4);
     }

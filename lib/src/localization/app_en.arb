@@ -458,7 +458,7 @@
   "setupSecuritySelectPinErrorPageDefaultError": "Choose another code",
   "setupSecuritySelectPinErrorPageDescription": "Choose another code",
   "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
-  "setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError": "Select a code with at least two different digits.",
+  "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Select a code with at least two different digits.",
   "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",
   "signConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
   "signConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",

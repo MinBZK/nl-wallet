@@ -1,4 +1,19 @@
-use flutter_data_types::PinError;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Error, Debug, Deserialize, Serialize)]
+pub enum PinError {
+    #[error("PIN contains characters that are not digits")]
+    NonDigits,
+    #[error("PIN does not have the required length")]
+    InvalidLength,
+    #[error("PIN has too few unique digits")]
+    TooFewUniqueDigits,
+    #[error("PIN digits in ascending order")]
+    AscendingDigits,
+    #[error("PIN digits are in descending order")]
+    DescendingDigits,
+}
 
 // The expected length of the pin code
 const EXACT_LENGTH: usize = 6;
@@ -43,7 +58,7 @@ fn pin_should_contain_enough_unique_digits(digits: &[u8]) -> Result<(), PinError
     };
     let unique_digits = count.into_iter().filter(|&d| d > 0).count();
     if unique_digits < MIN_UNIQUE_DIGITS {
-        Err(PinError::TooLittleUniqueDigits)
+        Err(PinError::TooFewUniqueDigits)
     } else {
         Ok(())
     }
@@ -90,39 +105,63 @@ mod tests {
 
     #[test]
     fn valid_pin() {
-        assert_eq!(validate_pin("024791"), Ok(()));
-        assert_eq!(validate_pin("010101"), Ok(()));
-        assert_eq!(validate_pin("000001"), Ok(()));
-        assert_eq!(validate_pin("100000"), Ok(()));
+        assert!(matches!(validate_pin("024791"), Ok(())));
+        assert!(matches!(validate_pin("010101"), Ok(())));
+        assert!(matches!(validate_pin("000001"), Ok(())));
+        assert!(matches!(validate_pin("100000"), Ok(())));
     }
 
     #[test]
     fn pin_should_have_length_6() {
-        assert_eq!(validate_pin("02479"), Err(PinError::InvalidLength));
-        assert_eq!(validate_pin("0247913"), Err(PinError::InvalidLength));
+        assert!(matches!(
+            validate_pin("02479"),
+            Err(PinError::InvalidLength)
+        ));
+        assert!(matches!(
+            validate_pin("0247913"),
+            Err(PinError::InvalidLength)
+        ));
     }
 
     #[test]
     fn pin_should_contain_only_digits() {
-        assert_eq!(validate_pin("abcdef"), Err(PinError::NonDigits));
-        assert_eq!(validate_pin("02479a"), Err(PinError::NonDigits));
+        assert!(matches!(validate_pin("abcdef"), Err(PinError::NonDigits)));
+        assert!(matches!(validate_pin("02479a"), Err(PinError::NonDigits)));
     }
 
     #[test]
     fn pin_should_contain_at_least_2_unique_digits() {
-        assert_eq!(validate_pin("000000"), Err(PinError::TooLittleUniqueDigits));
-        assert_eq!(validate_pin("999999"), Err(PinError::TooLittleUniqueDigits));
+        assert!(matches!(
+            validate_pin("000000"),
+            Err(PinError::TooFewUniqueDigits)
+        ));
+        assert!(matches!(
+            validate_pin("999999"),
+            Err(PinError::TooFewUniqueDigits)
+        ));
     }
 
     #[test]
     fn pin_should_not_contain_ascending_digits() {
-        assert_eq!(validate_pin("012345"), Err(PinError::AscendingDigits));
-        assert_eq!(validate_pin("456789"), Err(PinError::AscendingDigits));
+        assert!(matches!(
+            validate_pin("012345"),
+            Err(PinError::AscendingDigits)
+        ));
+        assert!(matches!(
+            validate_pin("456789"),
+            Err(PinError::AscendingDigits)
+        ));
     }
 
     #[test]
     fn pin_should_not_contain_descending_digits() {
-        assert_eq!(validate_pin("543210"), Err(PinError::DescendingDigits));
-        assert_eq!(validate_pin("987654"), Err(PinError::DescendingDigits));
+        assert!(matches!(
+            validate_pin("543210"),
+            Err(PinError::DescendingDigits)
+        ));
+        assert!(matches!(
+            validate_pin("987654"),
+            Err(PinError::DescendingDigits)
+        ));
     }
 }

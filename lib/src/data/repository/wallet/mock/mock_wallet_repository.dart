@@ -83,7 +83,7 @@ class MockWalletRepository implements WalletRepository {
   @override
   Future<void> validatePin(String pin) async {
     if (pin.length != kPinDigits) throw PinValidationError.other;
-    if (pin.characters.toSet().length <= 1) throw PinValidationError.tooLittleUniqueDigits;
+    if (pin.characters.toSet().length <= 1) throw PinValidationError.tooFewUniqueDigits;
     if (pin == '123456') throw PinValidationError.sequentialDigits;
   }
 }

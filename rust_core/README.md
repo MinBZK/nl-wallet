@@ -11,7 +11,7 @@ cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
 To regenerate the data types, run the following command from `rust_core`:
 
 ```sh
-cargo run --manifest-path flutter-data-types/Cargo.toml
+cargo run --bin serde_reflection_codegen --features serde_reflection_codegen
 ```
 
 This will generate dart code in `$PROJECT_ROOT/pub/core_domain`.
@@ -19,5 +19,5 @@ After which the classes are available in the Flutter app by importing `import 'p
 
 # Project structure
 
-- `rust_core`: Contains the `api.rs` for `flutter_rust_bridge`, and implementations.
-- `rust_core/flutter-data-types`: Contains a generator for the data types.
+- `wallet`: Contains the wallet business logic
+- `flutter_api`: Contains the `api.rs` for `flutter_rust_bridge` and the data types for the API

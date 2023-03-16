@@ -1,13 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub enum PinError {
-    NonDigits,
-    InvalidLength,
-    TooLittleUniqueDigits,
-    AscendingDigits,
-    DescendingDigits,
-}
+pub use wallet::PinError;
 
 impl From<Result<(), PinError>> for PinResult {
     fn from(source: Result<(), PinError>) -> Self {
@@ -18,7 +10,7 @@ impl From<Result<(), PinError>> for PinResult {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum PinResult {
     Ok,
     Err(PinError),

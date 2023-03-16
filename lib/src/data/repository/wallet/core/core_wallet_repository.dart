@@ -15,7 +15,7 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<void> validatePin(String pin) async {
     final result = await _rustCore.isValidPin(pin);
-    if (result is PinResultErrItem) throw _pinValidationErrorMapper.map(result.value);
+    if (result is PinResultErr) throw _pinValidationErrorMapper.map(result.value);
   }
 
   @override

@@ -10,8 +10,8 @@ class PinValidationErrorMapper extends Mapper<PinError, PinValidationError> {
       case PinError.nonDigits:
       case PinError.invalidLength:
         return PinValidationError.other;
-      case PinError.tooLittleUniqueDigits:
-        return PinValidationError.tooLittleUniqueDigits;
+      case PinError.tooFewUniqueDigits:
+        return PinValidationError.tooFewUniqueDigits;
       case PinError.ascendingDigits:
       case PinError.descendingDigits:
         return PinValidationError.sequentialDigits;

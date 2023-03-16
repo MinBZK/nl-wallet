@@ -1,33 +1,8 @@
 use anyhow::Result;
-use flutter_data_types::PinResult;
-use once_cell::sync::Lazy;
-use p256::ecdsa::SigningKey;
-use rand::rngs::OsRng;
-use std::sync::Mutex;
 
-use crate::{
-    wallet::pin::validate_pin,
-    wallet::{HWBoundSigningKey, Wallet},
-    wp::AccountServer,
-};
+use wallet::{validate_pin, WALLET};
 
-// TODO remove this when an actual hardware-backed implementation exists
-impl HWBoundSigningKey for SigningKey {
-    fn verifying_key(&self) -> &p256::ecdsa::VerifyingKey {
-        SigningKey::verifying_key(self)
-    }
-}
-
-static WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
-    let account_server = AccountServer::new_stub(); // TODO
-    let pubkey = account_server.pubkey.clone();
-
-    Mutex::new(Wallet::new(
-        account_server,
-        pubkey,
-        SigningKey::random(&mut OsRng),
-    ))
-});
+use crate::models::pin::PinResult;
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinResult::from(validate_pin(&pin));

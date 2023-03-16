@@ -1,8 +1,11 @@
+mod models;
+
 use anyhow::Result;
 use const_format::formatcp;
-use flutter_data_types::{PinError, PinResult};
 use serde_reflection::{Registry, Tracer, TracerConfig};
 use std::{env, path::PathBuf};
+
+use crate::models::pin::{PinError, PinResult};
 
 const MODULE_NAME: &str = "core_domain";
 const DART_OUTPUT_PATH: &str =
@@ -19,7 +22,7 @@ fn main() -> Result<()> {
 
 // Create Dart class definitions.
 fn generate_dart(registry: &Registry) -> Result<()> {
-    let config = serde_generate::CodeGeneratorConfig::new(MODULE_NAME.to_owned())
+    let config = serde_generate::CodeGeneratorConfig::new(MODULE_NAME.to_string())
         .with_encodings(vec![serde_generate::Encoding::Bincode])
         .with_c_style_enums(true);
     let generator = serde_generate::dart::CodeGenerator::new(&config);

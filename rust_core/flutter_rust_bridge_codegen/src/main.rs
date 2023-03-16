@@ -4,13 +4,22 @@ use lib_flutter_rust_bridge_codegen::{
 use std::{concat, env};
 
 /// Path of input Rust code
-const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/api.rs");
+const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api/src/api.rs");
 /// Path of output generated Dart code
-const DART_OUTPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../lib/bridge_generated.dart");
+const DART_OUTPUT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../lib/bridge_generated.dart"
+);
 /// Path of output generated C code
-const C_OUTPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ios/Runner/bridge_generated.h");
+const C_OUTPUT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../ios/Runner/bridge_generated.h"
+);
 /// Path of output generated Rust code
-const RUST_OUTPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/bridge_generated/bridge.rs");
+const RUST_OUTPUT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../flutter_api/src/bridge_generated/bridge.rs"
+);
 
 fn main() {
     // Options for frb_codegen
@@ -18,6 +27,7 @@ fn main() {
         rust_input: vec![RUST_INPUT.to_string()],
         dart_output: vec![DART_OUTPUT.to_string()],
         dart_format_line_length: 120,
+        class_name: Some(vec!["RustCore".to_string()]),
         c_output: Some(vec![C_OUTPUT.to_string()]),
         rust_output: Some(vec![RUST_OUTPUT.to_string()]),
         skip_add_mod_to_lib: true,

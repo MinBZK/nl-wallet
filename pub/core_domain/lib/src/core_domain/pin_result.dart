@@ -8,8 +8,8 @@ abstract class PinResult {
   static PinResult deserialize(BinaryDeserializer deserializer) {
     int index = deserializer.deserializeVariantIndex();
     switch (index) {
-      case 0: return PinResultOkItem.load(deserializer);
-      case 1: return PinResultErrItem.load(deserializer);
+      case 0: return PinResultOk.load(deserializer);
+      case 1: return PinResultErr.load(deserializer);
       default: throw Exception("Unknown variant index for PinResult: " + index.toString());
     }
   }
@@ -32,11 +32,11 @@ abstract class PinResult {
 
 
 @immutable
-class PinResultOkItem extends PinResult {
-  const PinResultOkItem(
+class PinResultOk extends PinResult {
+  const PinResultOk(
   ) : super();
 
-  PinResultOkItem.load(BinaryDeserializer deserializer);
+  PinResultOk.load(BinaryDeserializer deserializer);
 
   void serialize(BinarySerializer serializer) {
     serializer.serializeVariantIndex(0);
@@ -47,8 +47,8 @@ class PinResultOkItem extends PinResult {
     if (identical(this, other)) return true;
     if (other.runtimeType != runtimeType) return false;
 
-    return other is PinResultOkItem
-    ;}
+    return other is PinResultOk;
+  }
 
   @override
   String toString() {
@@ -60,21 +60,28 @@ class PinResultOkItem extends PinResult {
       return true;
     }());
 
-    return fullString ?? 'PinResultOkItem';
+    return fullString ?? 'PinResultOk';
   }
 }
 
 @immutable
-class PinResultErrItem extends PinResult {
-  const PinResultErrItem({
+class PinResultErr extends PinResult {
+  const PinResultErr({
     required this.value,
   }) : super();
 
-  PinResultErrItem.load(BinaryDeserializer deserializer) :
+  PinResultErr.load(BinaryDeserializer deserializer) :
     value = PinErrorExtension.deserialize(deserializer);
 
   final PinError value;
 
+  PinResultErr copyWith({
+    PinError? value,
+  }) {
+    return PinResultErr(
+      value: value ?? this.value,
+    );
+  }
 
   void serialize(BinarySerializer serializer) {
     serializer.serializeVariantIndex(1);
@@ -86,9 +93,9 @@ class PinResultErrItem extends PinResult {
     if (identical(this, other)) return true;
     if (other.runtimeType != runtimeType) return false;
 
-    return other is PinResultErrItem
-    &&  value == other.value
-    ;}
+    return other is PinResultErr
+      && value == other.value;
+  }
 
   @override
   int get hashCode => value.hashCode;
@@ -104,6 +111,6 @@ class PinResultErrItem extends PinResult {
       return true;
     }());
 
-    return fullString ?? 'PinResultErrItem';
+    return fullString ?? 'PinResultErr';
   }
 }
