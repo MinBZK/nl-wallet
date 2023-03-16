@@ -4,6 +4,7 @@ use p256::{
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 use serde::{de, ser, Deserialize, Serialize};
+use serde_json::value::RawValue;
 
 use crate::wallet::signed::{Signed, SignedDouble};
 
@@ -23,10 +24,10 @@ impl Serialize for Base64Bytes {
 }
 impl<'de> Deserialize<'de> for Base64Bytes {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(STANDARD_NO_PAD
+        let bts = STANDARD_NO_PAD
             .decode(String::deserialize(deserializer)?.as_bytes())
-            .map_err(serde::de::Error::custom)?
-            .into())
+            .map_err(serde::de::Error::custom)?;
+        Ok(bts.into())
     }
 }
 
@@ -46,11 +47,9 @@ impl Serialize for DerSignature {
 }
 impl<'de> Deserialize<'de> for DerSignature {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(
-            Signature::from_der(&Base64Bytes::deserialize(deserializer)?.0)
-                .map_err(de::Error::custom)?
-                .into(),
-        )
+        let sig = Signature::from_der(&Base64Bytes::deserialize(deserializer)?.0)
+            .map_err(de::Error::custom)?;
+        Ok(sig.into())
     }
 }
 
@@ -78,11 +77,9 @@ impl Serialize for DerVerifyingKey {
 }
 impl<'de> Deserialize<'de> for DerVerifyingKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(
-            VerifyingKey::from_public_key_der(&Base64Bytes::deserialize(deserializer)?.0)
-                .map_err(de::Error::custom)?
-                .into(),
-        )
+        let key = VerifyingKey::from_public_key_der(&Base64Bytes::deserialize(deserializer)?.0)
+            .map_err(de::Error::custom)?;
+        Ok(key.into())
     }
 }
 
@@ -91,14 +88,14 @@ impl<T> Serialize for SignedDouble<T> {
         &self,
         serializer: S,
     ) -> std::result::Result<S::Ok, S::Error> {
-        String::serialize(&self.0, serializer)
+        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for SignedDouble<T> {
     fn deserialize<D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
-        String::deserialize(deserializer).map(SignedDouble::from)
+        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
 }
 
@@ -107,13 +104,13 @@ impl<T> Serialize for Signed<T> {
         &self,
         serializer: S,
     ) -> std::result::Result<S::Ok, S::Error> {
-        String::serialize(&self.0, serializer)
+        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for Signed<T> {
     fn deserialize<D: serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
-        String::deserialize(deserializer).map(Signed::from)
+        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
 }

@@ -82,12 +82,12 @@ fn sign<T: Serialize>(
         serial_number,
     })?;
     let signature = privkey.try_sign(signed.as_bytes())?.into();
-    Ok(serde_json::to_string(&SignedMessage {
+    let signed_message = serde_json::to_string(&SignedMessage {
         signed: &RawValue::from_string(signed)?,
         signature,
         typ,
-    })?
-    .into())
+    })?;
+    Ok(signed_message.into())
 }
 
 impl<'de, T> Signed<T>
@@ -140,11 +140,11 @@ where
     }
 
     pub fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
-        Ok(
+        let payload =
             serde_json::from_str::<SignedMessage<SignedMessage<SignedPayload<T>>>>(&self.0)?
                 .signed
-                .signed,
-        )
+                .signed;
+        Ok(payload)
     }
 
     pub fn parse_and_verify(
@@ -174,12 +174,12 @@ where
         )?
         .0;
         let signature = hw_privkey.try_sign(inner.as_bytes())?;
-        Ok(serde_json::to_string(&SignedMessage {
+        let signed_message = serde_json::to_string(&SignedMessage {
             signed: RawValue::from_string(inner)?,
             signature: signature.into(),
             typ: SignedType::HW,
-        })?
-        .into())
+        })?;
+        Ok(signed_message.into())
     }
 }
 

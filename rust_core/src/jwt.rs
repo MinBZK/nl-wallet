@@ -10,9 +10,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 // comment there.
 #[derive(Debug)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
-impl<T> From<String> for Jwt<T> {
-    fn from(val: String) -> Self {
-        Jwt(val, PhantomData)
+impl<T, S: Into<String>> From<S> for Jwt<T> {
+    fn from(val: S) -> Self {
+        Jwt(val.into(), PhantomData)
     }
 }
 
@@ -29,14 +29,15 @@ where
         validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
         validation_options.sub = T::SUB.to_owned().into();
 
-        Ok(jsonwebtoken::decode::<JwtPayload<T>>(
+        let payload = jsonwebtoken::decode::<JwtPayload<T>>(
             &self.0,
             &DecodingKey::from_ec_der(pubkey),
             &validation_options,
         )
         .context("Wallet certificate JWT validation failed")?
         .claims
-        .payload)
+        .payload;
+        Ok(payload)
     }
 
     pub fn sign(payload: &T, privkey: &[u8]) -> Result<Jwt<T>> {

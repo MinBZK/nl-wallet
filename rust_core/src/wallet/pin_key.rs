@@ -39,9 +39,10 @@ pub struct PinKey<'a> {
 
 impl<'a> Signer<Signature> for PinKey<'a> {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-        Ok(pin_private_key(self.salt, self.pin)
+        let signature = pin_private_key(self.salt, self.pin)
             .map_err(p256::ecdsa::Error::from_source)?
-            .sign(msg))
+            .sign(msg);
+        Ok(signature)
     }
 }
 

@@ -96,7 +96,7 @@ impl AccountServer {
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
     pub fn registration_challenge(&self) -> Result<Vec<u8>> {
-        Ok(Jwt::sign(
+        let challenge = Jwt::sign(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
                 random: random_bytes(32).into(),
@@ -106,7 +106,8 @@ impl AccountServer {
         )?
         .0
         .as_bytes()
-        .to_vec())
+        .to_vec();
+        Ok(challenge)
     }
 
     fn verify_registration_challenge(
