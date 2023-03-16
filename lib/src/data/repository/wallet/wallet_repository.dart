@@ -9,7 +9,7 @@ abstract class WalletRepository {
   /// not meet the required standards.
   Future<void> validatePin(String pin);
 
-  Future<bool> createWallet(String pin);
+  Future<void> createWallet(String pin);
 
   Future<void> destroyWallet();
 

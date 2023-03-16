@@ -1,3 +1,16 @@
-mod bridge_generated;
+// Prevent dead code warnings since the lower 4 modules are not exposed in the `api` module yet.
+// TODO: remove this when these modules are used.
+#![allow(dead_code)]
+
+/// Functions callable by Flutter.
 mod api;
-mod pin;
+
+/// Generated code for the Flutter bridge using `flutter_rust_bridge_codegen`.
+mod bridge_generated;
+
+mod jwt;
+mod serialization;
+mod utils;
+
+mod wallet;
+mod wp;
