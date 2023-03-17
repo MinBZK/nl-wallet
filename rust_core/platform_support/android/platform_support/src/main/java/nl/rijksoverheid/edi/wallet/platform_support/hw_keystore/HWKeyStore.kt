@@ -1,17 +1,25 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
 
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.bridge.PlatformKeyStore
+import android.content.Context
+import androidx.annotation.VisibleForTesting
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa.ECDSAKeyStore
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.initHwKeystore
 
-class HWKeyStore {
-    companion object {
-        val shared = HWKeyStore()
+/**
+ * This class is automatically initialized on app start through
+ * the [HWKeystoreInitializer] class.
+ */
+class HWKeyStore(context: Context) {
 
-        private val keyStore: KeyStoreBridge = PlatformKeyStore()
-
-        init {
-            initHwKeystore(bridge = keyStore)
-        }
+    init {
+        bridge = ECDSAKeyStore(context)
+        initHwKeystore(bridge)
     }
+
+    companion object {
+        @VisibleForTesting
+        lateinit var bridge: KeyStoreBridge
+    }
+
 }
