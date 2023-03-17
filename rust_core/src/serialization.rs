@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::{DecodePublicKey, EncodePublicKey},
@@ -19,12 +19,12 @@ impl From<Vec<u8>> for Base64Bytes {
 
 impl Serialize for Base64Bytes {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        String::serialize(&STANDARD_NO_PAD.encode(&self.0), serializer)
+        String::serialize(&STANDARD.encode(&self.0), serializer)
     }
 }
 impl<'de> Deserialize<'de> for Base64Bytes {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(STANDARD_NO_PAD
+        Ok(STANDARD
             .decode(String::deserialize(deserializer)?.as_bytes())
             .map_err(serde::de::Error::custom)?
             .into())
