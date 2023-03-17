@@ -2,6 +2,7 @@
 //! is fully functional.
 
 use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey},
@@ -67,17 +68,18 @@ impl RemoteAccountServer {
 
 impl AccountServerClient for RemoteAccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
-        Ok(self
-            .client
-            .post(format!("{}/api/v1/enroll", self.url))
-            .body("")
-            .send()?
-            .json::<serde_json::Value>()?
-            .get("challenge")
-            .ok_or_else(|| anyhow!("missing challenge"))?
-            .as_str()
-            .ok_or_else(|| anyhow!("challenge was not a string"))?
-            .into())
+        Ok(STANDARD.decode::<Vec<u8>>(
+            self.client
+                .post(format!("{}/api/v1/enroll", self.url))
+                .body("")
+                .send()?
+                .json::<serde_json::Value>()?
+                .get("challenge")
+                .ok_or_else(|| anyhow!("missing challenge"))?
+                .as_str()
+                .ok_or_else(|| anyhow!("challenge was not a string"))?
+                .into(),
+        )?)
     }
 
     fn register(
