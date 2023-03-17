@@ -2,7 +2,7 @@
 //! is fully functional.
 
 use anyhow::{anyhow, Result};
-use base64::{engine::general_purpose::STANDARD, Engine};
+// use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey},
@@ -68,36 +68,39 @@ impl RemoteAccountServer {
 
 impl AccountServerClient for RemoteAccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
-        Ok(STANDARD.decode::<Vec<u8>>(
-            self.client
-                .post(format!("{}/api/v1/enroll", self.url))
-                .body("")
-                .send()?
-                .json::<serde_json::Value>()?
-                .get("challenge")
-                .ok_or_else(|| anyhow!("missing challenge"))?
-                .as_str()
-                .ok_or_else(|| anyhow!("challenge was not a string"))?
-                .into(),
-        )?)
+        #[derive(Deserialize)]
+        struct Challenge {
+            challenge: Base64Bytes,
+        }
+
+        let challenge = self
+            .client
+            .post(format!("{}/api/v1/enroll", self.url))
+            .body("")
+            .send()?
+            .json::<Challenge>()?
+            .challenge
+            .0;
+        Ok(challenge)
     }
 
     fn register(
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate> {
-        dbg!(serde_json::to_string(&registration_message)?);
-        Ok(dbg!(self
+        #[derive(Deserialize)]
+        struct Certificate {
+            certificate: WalletCertificate,
+        }
+
+        let cert = self
             .client
             .post(format!("{}/api/v1/createwallet", self.url))
             .json(&registration_message)
             .send()?
-            .json::<serde_json::Value>()?)
-        .get("certificate")
-        .ok_or_else(|| anyhow!("missing registration"))?
-        .as_str()
-        .ok_or_else(|| anyhow!("registration was not a string"))?
-        .into())
+            .json::<Certificate>()?
+            .certificate;
+        Ok(cert)
     }
 }
 
