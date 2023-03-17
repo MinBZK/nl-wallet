@@ -19,14 +19,9 @@ pub enum Error {
     PKCS8Error(#[from] p256::pkcs8::spki::Error),
 }
 
-pub trait KeyStore {
-    type SigningKeyType: SigningKey;
+pub trait SigningKey: Signer<Signature> + Clone {
+    fn signing_key(identifier: &str) -> Result<Self, Error>;
 
-    fn create_key(&mut self, identifier: &str) -> Result<&mut Self::SigningKeyType, Error>;
-    fn get_key(&self, identifier: &str) -> Option<&Self::SigningKeyType>;
-}
-
-pub trait SigningKey: Signer<Signature> + Clone + Send + Sync {
     fn verifying_key(&self) -> Result<&VerifyingKey, Error>;
     // from Signer: try_sign() and sign() methods
 }

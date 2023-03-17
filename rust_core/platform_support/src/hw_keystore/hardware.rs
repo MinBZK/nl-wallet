@@ -7,12 +7,11 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 use std::{
-    collections::HashMap,
     fmt::Debug,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex},
 };
 
-use crate::hw_keystore::{Error, KeyStore, SigningKey};
+use crate::hw_keystore::{Error, SigningKey};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
@@ -48,52 +47,7 @@ trait SigningKeyBridge: Send + Sync + Debug {
     fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
 }
 
-// HardwareKeyStore implements KeyStore by wrapping KeyStoreBridge from native code
-pub struct HardwareKeyStore {
-    bridge: Box<dyn KeyStoreBridge>,
-    signing_keys: HashMap<String, HardwareSigningKey>,
-}
-
-impl HardwareKeyStore {
-    fn new(bridge: Box<dyn KeyStoreBridge>) -> Self {
-        HardwareKeyStore {
-            bridge,
-            signing_keys: HashMap::new(),
-        }
-    }
-
-    pub fn key_store() -> Arc<RwLock<Self>> {
-        // crash if KEY_STORE is not yet set
-        Arc::clone(
-            KEY_STORE
-                .get()
-                .expect("KEY_STORE used before init_hw_keystore() was called"),
-        )
-    }
-}
-
-impl KeyStore for HardwareKeyStore {
-    type SigningKeyType = HardwareSigningKey;
-
-    fn create_key(&mut self, identifier: &str) -> Result<&mut HardwareSigningKey, Error> {
-        let key = match self.signing_keys.entry(identifier.to_string()) {
-            std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                let bridge = self.bridge.get_or_create_key(identifier.to_string())?;
-
-                entry.insert(HardwareSigningKey::new(bridge))
-            }
-        };
-
-        Ok(key)
-    }
-
-    fn get_key(&self, identifier: &str) -> Option<&HardwareSigningKey> {
-        self.signing_keys.get(identifier)
-    }
-}
-
-// HardwareSigningKey similary wraps SigningKeyBridge from native
+// HardwareSigningKey wraps SigningKeyBridge from native
 #[derive(Clone)]
 pub struct HardwareSigningKey {
     bridge: Arc<dyn SigningKeyBridge>,
@@ -110,6 +64,19 @@ impl HardwareSigningKey {
 }
 
 impl SigningKey for HardwareSigningKey {
+    fn signing_key(identifier: &str) -> Result<Self, Error> {
+        // crash if KEY_STORE is not yet set, then wait for key store mutex lock
+        let key_store = KEY_STORE
+            .get()
+            .expect("KEY_STORE used before init_hw_keystore() was called")
+            .lock()
+            .expect("Could not get lock on KEY_STORE");
+        let bridge = key_store.get_or_create_key(identifier.to_string())?;
+        let key = HardwareSigningKey::new(bridge);
+
+        Ok(key)
+    }
+
     fn verifying_key(&self) -> Result<&VerifyingKey, Error> {
         let verifying_key = self.verifying_key.get_or_try_init(|| {
             let public_key_bytes = self.bridge.public_key()?;
@@ -140,10 +107,11 @@ impl Signer<Signature> for HardwareSigningKey {
     }
 }
 
-static KEY_STORE: OnceCell<Arc<RwLock<HardwareKeyStore>>> = OnceCell::new();
+// protect key store with mutex, so creating or fetching keys is done atomically
+static KEY_STORE: OnceCell<Mutex<Box<dyn KeyStoreBridge>>> = OnceCell::new();
 
 fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
-    let key_store = Arc::new(RwLock::new(HardwareKeyStore::new(bridge)));
+    let key_store = Mutex::new(bridge);
     // crash if KEY_STORE was already set
     assert!(
         KEY_STORE.set(key_store).is_ok(),

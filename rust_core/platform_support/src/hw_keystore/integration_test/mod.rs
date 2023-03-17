@@ -1,37 +1,17 @@
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
-use p256::ecdsa::{
-    signature::{Signer, Verifier},
-    VerifyingKey,
-};
-use std::sync::{Arc, RwLock};
+use p256::ecdsa::{signature::Verifier, VerifyingKey};
 
-use crate::hw_keystore::{KeyStore, SigningKey};
+use crate::hw_keystore::SigningKey;
 
 // This utility function is used both by the Rust integration test for the "software" feature
 // and by integration test performed from Android / iOS for the "hardware" feature.
-pub fn sign_and_verify_signature(
-    keystore: &Arc<RwLock<impl KeyStore>>,
-    payload: &[u8],
-    key_identifier: &str,
-) -> bool {
-    // Create first key for key identifier in separate context
-    let key1 = {
-        let mut keystore = keystore
-            .write()
-            .expect("Could not get write lock on KeyStore");
-        keystore
-            .create_key(key_identifier)
-            .expect("Could not create key")
-            .clone()
-    };
-
-    // Get the key with the same identifier again, should use the same private key
-    let keystore = keystore
-        .read()
-        .expect("Could not get read lock on KeyStore");
-    let key2 = keystore.get_key(key_identifier).expect("Could not get key");
+pub fn sign_and_verify_signature<K: SigningKey>(payload: &[u8], key_identifier: &str) -> bool {
+    // Create a signing key for the identifier
+    let key1 = K::signing_key(key_identifier).expect("Could not create signing key");
+    // Create another signing key with the same identifier, should use the same private key
+    let key2 = K::signing_key(key_identifier).expect("Could not create signing key");
 
     // Get the public key from the first key
     let public_key = key1.verifying_key().expect("Could not get public key");
