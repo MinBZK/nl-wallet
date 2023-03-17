@@ -19,7 +19,6 @@ class WalletAppTestWidget extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: WalletTheme.light,
       darkTheme: WalletTheme.dark,
-      themeMode: ThemeMode.light,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
