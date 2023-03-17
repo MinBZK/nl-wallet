@@ -1,9 +1,7 @@
 package nl.rijksoverheid.edi.wallet
 
 import android.os.Bundle
-import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.HWKeyStore
 
 class MainActivity : FlutterActivity() {
 
