@@ -44,7 +44,7 @@ app.*.map.json
 /android/app/release
 
 # Android shared libraries
-**/jniLibs/
+jniLibs/
 
 # Android builds
 /*.aab
