@@ -79,7 +79,7 @@ Note that the `integration-test` feature is necessary so that some helper code i
 
 ### Android
 
-TBD
+To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/rust_core/platform_support/android` directory.
 
 ### iOS
 
