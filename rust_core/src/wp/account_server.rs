@@ -93,7 +93,7 @@ impl AccountServerClient for RemoteAccountServer {
             .json(&registration_message)
             .send()?
             .json::<serde_json::Value>()?)
-        .get("registration")
+        .get("certificate")
         .ok_or_else(|| anyhow!("missing registration"))?
         .as_str()
         .ok_or_else(|| anyhow!("registration was not a string"))?
