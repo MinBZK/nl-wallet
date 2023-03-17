@@ -339,7 +339,7 @@ See [commit message](#commit-message).
 * UI Tests are grouped in `Golden Tests`
 
 Even though they run headless, UI tests are slower to run. The main goal of these tests are to:
-- Verify correct behaviour on different configurations (orientation/display scaling/font scaling)
+- Verify correct accessibility behaviour on different configurations (orientation/display scaling/font scaling/theming)
 - Detect unexpected UI changes
 
 As such we aim to keep the UI tests minimal, focusing on testing the most important states for a
@@ -348,7 +348,7 @@ screen. This can be done by providing a mocked bloc with the state manually conf
 Note that the UI renders slightly differ per platform, causing small diffs (and failing tests) when
 verifying on a different host platform (e.g. mac vs linux). To circumvent this issue, we opted to
 only run UI tests on mac hosts for now. Because of this it is vital to only generate
-new goldens on a mac host. This can be done with `flutter test --update-goldens --tags=golden`.
+new goldens on a mac host. This can be done with `flutter test --update-goldens --tags=golden <optional_path_to_single_test_file>`.
 
 - To only verify goldens use `flutter test --tags=golden`
 - To only verify other tests use `flutter test --exclude-tags=golden`
