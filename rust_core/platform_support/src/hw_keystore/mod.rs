@@ -15,8 +15,8 @@ pub enum Error {
     #[error(transparent)]
     KeyStoreError(#[from] hardware::KeyStoreError),
     #[cfg(feature = "hardware")]
-    #[error(transparent)]
-    PKCS8Error(#[from] p256::pkcs8::spki::Error),
+    #[error("Error decoding public key from hardware: {0:?}")]
+    PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
 
 pub trait SigningKey: Signer<Signature> + Clone {
