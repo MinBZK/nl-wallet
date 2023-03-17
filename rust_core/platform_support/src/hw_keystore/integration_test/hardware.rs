@@ -16,7 +16,6 @@ fn hw_keystore_test_hardware_signature() -> bool {
     sign_and_verify_signature(&keystore, payload, identifier)
 }
 
-#[doc(hidden)]
 #[no_mangle]
 pub unsafe extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_hw_1keystore_HWKeyStoreInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
     _env: JNIEnv,
