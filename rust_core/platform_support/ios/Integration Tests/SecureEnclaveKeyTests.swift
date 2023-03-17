@@ -61,7 +61,7 @@ final class SecureEnclaveKeyTests: XCTestCase {
         let signature1Again = try! key1Again.sign(payload: message)
         let signature2 = try! key2.sign(payload: message)
 
-        XCTAssertGreaterThan(emptySignature.count, 0, "An emtpy payload should produce a signature")
+        XCTAssertGreaterThan(emptySignature.count, 0, "An empty payload should produce a signature")
         XCTAssertNotEqual(signature1, signature1Repeat, "Signatures signed with the same key instance should differ")
         XCTAssertNotEqual(signature1, signature1Again, "Signatures signed with the same key should differ")
         XCTAssertNotEqual(signature1, signature2, "Signatures signed with a different key should differ")
