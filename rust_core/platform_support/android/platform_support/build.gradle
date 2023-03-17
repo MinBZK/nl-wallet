@@ -45,6 +45,7 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation "net.java.dev.jna:jna:5.7.0@aar" // Java Native Access
+    implementation "androidx.startup:startup-runtime:1.1.1" // Auto initialization
 
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
@@ -84,17 +85,25 @@ dependencies {
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../"
-
-        // Build the Rust code (platform_support)
-        commandLine 'cargo', 'ndk',
+        executable = 'cargo'
+        args = ['ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
                 '-o', 'android/platform_support/src/main/jniLibs',
                 'build'
-
-        if (profileMode != null) {
-            args profileMode
+        ]
+        if(profileMode != null) {
+            args += ['--release']
+        } else {
+            args += ['--features', 'integration-test']
         }
     }
+}
+
+clean.doFirst {
+    println "Cleaning ${rootDir}/../rust_core/platform_support/kotlin/uniffi/hw_keystore"
+    delete "${rootDir}/../rust_core/platform_support/kotlin/uniffi/hw_keystore"
+    println "Cleaning ${rootDir}/platform_support/src/main/jniLibs"
+    delete "${rootDir}/platform_support/src/main/jniLibs"
 }

@@ -127,3 +127,8 @@ dependencies {
         }
     }
 }
+
+clean.doFirst {
+    println "Cleaning ${rootDir}/app/src/main/jniLibs"
+    delete "${rootDir}/app/src/main/jniLibs"
+}

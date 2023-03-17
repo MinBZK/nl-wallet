@@ -1,18 +1,32 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.HWKeyStore
-
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-import org.junit.Assert.assertNotNull
-
 @RunWith(AndroidJUnit4::class)
 class HWKeyStoreInstrumentedTest {
+
+    @Before
+    fun setUp() {
+        System.loadLibrary("platform_support")
+    }
+
     @Test
     fun hwKeyStore_isInitialised() {
-        val hwKeyStore = HWKeyStore.shared
-        assertNotNull(hwKeyStore)
+        assertNotNull(HWKeyStore.bridge)
+    }
+
+    @Test
+    fun hwKeyStore_testSignature() {
+        assertTrue(hw_keystore_test_hardware_signature())
+    }
+
+    companion object {
+        @JvmStatic
+        external fun hw_keystore_test_hardware_signature(): Boolean
     }
 }
