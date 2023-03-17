@@ -24,19 +24,41 @@ class PinHeader extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     final textColor = hasError ? Theme.of(context).colorScheme.error : null;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: _resolveCrossAxisAlignment(context),
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           title,
           style: Theme.of(context).textTheme.displayMedium?.copyWith(color: textColor),
+          textAlign: _resolveTextAlignment(context),
         ),
         const SizedBox(height: 8),
         Text(
           description,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: textColor),
+          textAlign: _resolveTextAlignment(context),
         ),
       ],
     );
+  }
+
+  CrossAxisAlignment _resolveCrossAxisAlignment(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    switch (orientation) {
+      case Orientation.portrait:
+        return CrossAxisAlignment.start;
+      case Orientation.landscape:
+        return CrossAxisAlignment.center;
+    }
+  }
+
+  TextAlign _resolveTextAlignment(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    switch (orientation) {
+      case Orientation.portrait:
+        return TextAlign.start;
+      case Orientation.landscape:
+        return TextAlign.center;
+    }
   }
 }

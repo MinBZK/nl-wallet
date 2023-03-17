@@ -8,9 +8,9 @@ class LightWalletTheme {
   // ColorScheme
   static const colorScheme = ColorScheme.light(
     brightness: Brightness.light,
-    primary: Color(0xFF2065E0),
+    primary: Color(0xFF383EDE),
     secondary: Color(0x332065E0),
-    error: Color(0xFFCA005D),
+    error: Color(0xFFAB0065),
     background: Color(0xFFFCFCFC),
     secondaryContainer: Color(0xFFF3F4F7),
     onPrimary: Color(0xFFFCFCFC),
@@ -23,6 +23,7 @@ class LightWalletTheme {
   static const primaryColorDark = Color(0xFF152A62);
   static const sheetBackgroundColor = Color(0xFFFFFFFF);
   static const textColor = primaryColorDark;
+  static const bottomNavigationUnselectedColor = Color(0xFF445581);
 
   // TextTheme
   static final textTheme = BaseWalletTheme.baseTextTheme.apply(
@@ -44,6 +45,7 @@ class LightWalletTheme {
 
   static final bottomNavigationBarTheme = BaseWalletTheme.baseBottomNavigationBarThemeData.copyWith(
     backgroundColor: colorScheme.background,
+    unselectedItemColor: bottomNavigationUnselectedColor,
   );
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(

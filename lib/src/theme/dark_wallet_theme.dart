@@ -8,21 +8,22 @@ class DarkWalletTheme {
   // ColorScheme
   static const colorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
-    primary: Color(0xFFB1C5FF),
+    primary: Color(0xFFA2B7FF),
     onPrimary: Color(0xFF002C71),
     secondary: Color(0xFFA5C8FF),
     secondaryContainer: Color(0xFF004785),
-    error: Color(0xFFFFB4AB),
-    background: Color(0xFF001F25),
+    error: Color(0xFFFF8989),
+    background: Color(0xFF1C1E25),
     onBackground: primaryColorDark,
     onSurface: Color(0xFFA6EEFF),
     outlineVariant: Color(0xFF44464F),
   );
 
   // Other Colors
-  static const primaryColorDark = Color(0xFFead59d);
+  static const primaryColorDark = Color(0xFFFFFFFF);
   static const sheetBackgroundColor = Color(0xFF03282F);
   static const textColor = primaryColorDark;
+  static const bottomNavigationUnselectedColor = Color(0xFFAAACB3);
 
   // TextTheme
   static final textTheme = BaseWalletTheme.baseTextTheme.apply(
@@ -44,6 +45,7 @@ class DarkWalletTheme {
 
   static final bottomNavigationBarTheme = BaseWalletTheme.baseBottomNavigationBarThemeData.copyWith(
     backgroundColor: colorScheme.background,
+    unselectedItemColor: bottomNavigationUnselectedColor,
   );
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(

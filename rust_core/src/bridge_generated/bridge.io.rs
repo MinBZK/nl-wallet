@@ -6,6 +6,11 @@ pub extern "C" fn wire_is_valid_pin(port_: i64, pin: *mut wire_uint_8_list) {
     wire_is_valid_pin_impl(port_, pin)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_register(port_: i64, pin: *mut wire_uint_8_list) {
+    wire_register_impl(port_, pin)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

@@ -10,6 +10,17 @@ crate-type = ["staticlib","cdylib"]
 [dependencies]
 bincode = "1.3.3"
 flutter_rust_bridge = "1"
+anyhow = "1.0.66"
+p256 = { version = "0.12.0", features = ["pem"] }
+ring = "0.16.20"
+sha2 = "0.10.6"
+serde = { version = "1.0.147", features = ["serde_derive"] }
+serde_json = { version = "1.0.92", features = ["raw_value"] }
+base64 = "0.21.0"
+rand = "0.8.5"
+jsonwebtoken = "8.2.0"
+der = { version = "0.6.1", features = ["alloc"] }
+once_cell = "1.17.0"
 flutter-data-types = { path = "flutter-data-types" }
 platform_support = { path = "platform_support" }
 

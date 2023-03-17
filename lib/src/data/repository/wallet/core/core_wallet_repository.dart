@@ -19,9 +19,8 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<bool> createWallet(String pin) {
-    // TODO: implement createWallet
-    throw UnimplementedError();
+  Future<void> createWallet(String pin) async {
+    _rustCore.register(pin);
   }
 
   @override

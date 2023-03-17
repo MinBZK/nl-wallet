@@ -5,9 +5,14 @@ import '../widget/digid_sign_in_with_header.dart';
 import '../widget/digid_sign_in_with_wallet.dart';
 
 class DigidConfirmAppPage extends StatelessWidget {
-  final VoidCallback onConfirmClicked;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onConfirmPressed;
 
-  const DigidConfirmAppPage({required this.onConfirmClicked, Key? key}) : super(key: key);
+  const DigidConfirmAppPage({
+    required this.onConfirmPressed,
+    required this.onDeclinePressed,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,10 @@ class DigidConfirmAppPage extends StatelessWidget {
             const Spacer(),
             const Center(child: DigidSignInWithWallet()),
             const Spacer(),
-            DigidConfirmButtons(onAccept: onConfirmClicked),
+            DigidConfirmButtons(
+              onAccept: onConfirmPressed,
+              onDecline: onDeclinePressed,
+            ),
           ],
         ),
       ),

@@ -7,5 +7,5 @@ class CreateWalletUseCaseImpl implements CreateWalletUseCase {
   CreateWalletUseCaseImpl(this.walletRepository);
 
   @override
-  Future<bool> invoke(String pin) => walletRepository.createWallet(pin);
+  Future<void> invoke(String pin) => walletRepository.createWallet(pin);
 }

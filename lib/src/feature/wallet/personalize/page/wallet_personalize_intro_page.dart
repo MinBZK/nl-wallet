@@ -23,18 +23,18 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
         mainAxisSize: MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
           Text(
             locale.walletPersonalizeIntroPageTitle,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.displaySmall,
           ),
           const SizedBox(height: 8),
           Text(
             locale.walletPersonalizeIntroPageDescription,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const Spacer(),
@@ -52,9 +52,11 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          TextIconButton(
-            onPressed: onNoDigidPressed,
-            child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+          Center(
+            child: TextIconButton(
+              onPressed: onNoDigidPressed,
+              child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+            ),
           ),
         ],
       ),

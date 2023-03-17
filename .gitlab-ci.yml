@@ -27,7 +27,26 @@ test-flutter:
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter test
+    - flutter test --exclude-tags=golden
+
+test-flutter-ui:
+  stage: test
+  only:
+    - merge_requests
+    - main
+    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  when: manual
+  tags:
+    - macos
+  artifacts:
+    name: "ui-test-failures"
+    when: on_failure
+    paths:
+      - "**/failures/*.png"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - flutter test --tags=golden
 
 test-rust:
   stage: test

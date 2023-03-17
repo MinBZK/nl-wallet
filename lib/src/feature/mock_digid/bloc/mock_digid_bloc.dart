@@ -14,6 +14,7 @@ class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
     on<MockDigidPinKeyPressed>(_onPinKeyPressed);
     on<MockDigidPinBackspacePressed>(_onPinBackspacePressed);
     on<MockDigidConfirmPressed>(_onConfirmPressed);
+    on<MockDigidDeclinePressed>(_onDeclinePressed);
 
     //Dismiss digid splash after 2 seconds.
     Future.delayed(kDefaultDigidMockDelay).then((_) => add(MockDigidSplashDismissed()));
@@ -45,5 +46,9 @@ class MockDigidBloc extends Bloc<MockDigidEvent, MockDigidState> {
     emit(const MockDigidLoadInProgress(kDefaultDigidMockDelay));
     await Future.delayed(kDefaultDigidMockDelay);
     emit(MockDigidLoggedIn());
+  }
+
+  FutureOr<void> _onDeclinePressed(event, emit) async {
+    emit(MockDigidRejected());
   }
 }

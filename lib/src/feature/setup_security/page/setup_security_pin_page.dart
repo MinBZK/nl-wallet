@@ -25,6 +25,17 @@ class SetupSecurityPinPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return OrientationBuilder(builder: (context, orientation) {
+      switch (orientation) {
+        case Orientation.portrait:
+          return _buildPortrait();
+        case Orientation.landscape:
+          return _buildLandscape();
+      }
+    });
+  }
+
+  Widget _buildPortrait() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.end,
@@ -38,7 +49,13 @@ class SetupSecurityPinPage extends StatelessWidget {
                 const SizedBox(height: 48),
                 if (fitsLogoAndText) const WalletLogo(size: 80),
                 if (fitsLogoAndText) const SizedBox(height: 24),
-                Expanded(flex: 2, child: content),
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: content,
+                  ),
+                ),
                 if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
                 if (showInput) const Spacer(),
               ],
@@ -55,6 +72,36 @@ class SetupSecurityPinPage extends StatelessWidget {
             onBackspacePressed: onBackspacePressed,
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildLandscape() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: content,
+              ),
+              if (showInput) const SizedBox(height: 16),
+              if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
+            ],
+          ),
+        ),
+        if (showInput)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: PinKeyboard(
+                onKeyPressed: onKeyPressed,
+                onBackspacePressed: onBackspacePressed,
+              ),
+            ),
+          ),
       ],
     );
   }
