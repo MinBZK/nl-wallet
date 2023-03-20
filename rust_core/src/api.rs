@@ -10,16 +10,16 @@ use crate::{
 };
 
 #[cfg(any(target_os = "android", target_os = "ios"))]
-type SigningKey = platform_support::hw_keystore::hardware::HardwareSigningKey;
+type PlatformSigningKeyImpl = platform_support::hw_keystore::hardware::HardwareSigningKey;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
-type SigningKey = platform_support::hw_keystore::software::SoftwareSigningKey;
+type PlatformSigningKeyImpl = platform_support::hw_keystore::software::SoftwareSigningKey;
 
 const WALLET_KEY_ID: &str = "wallet";
 
-static WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
-    let hw_privkey =
-        SigningKey::signing_key(WALLET_KEY_ID).expect("Could not fetch or generate wallet key");
+static WALLET: Lazy<Mutex<Wallet<AccountServer, PlatformSigningKeyImpl>>> = Lazy::new(|| {
+    let hw_privkey = PlatformSigningKeyImpl::signing_key(WALLET_KEY_ID)
+        .expect("Could not fetch or generate wallet key");
 
     let account_server = AccountServer::new_stub(); // TODO
     let pubkey = account_server.pubkey.clone();
