@@ -41,7 +41,7 @@ pub fn new_pin_salt() -> Vec<u8> {
 #[derive(Debug, thiserror::Error)]
 pub enum PinKeyError {
     #[error("HKDF key derivation error")]
-    HKDF(#[from] UnspecifiedRingError),
+    Hkdf(#[from] UnspecifiedRingError),
 }
 
 impl From<PinKeyError> for p256::ecdsa::Error {
@@ -73,7 +73,7 @@ impl<'a> PinKey<'a> {
 impl<'a> Signer<Signature> for PinKey<'a> {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
         let signature = pin_private_key(self.salt, self.pin)
-            .map_err(|e| PinKeyError::from(e))?
+            .map_err(PinKeyError::from)?
             .sign(msg);
 
         Ok(signature)

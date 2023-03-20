@@ -48,7 +48,7 @@ pub struct HardwareSigningKey {
 impl HardwareSigningKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
         HardwareSigningKey {
-            bridge: bridge,
+            bridge,
             verifying_key: OnceCell::new(),
         }
     }
