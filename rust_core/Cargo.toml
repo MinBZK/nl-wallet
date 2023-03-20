@@ -1,6 +1,6 @@
 [workspace]
 members = ["wallet", "flutter_api"]
-exclude = ["flutter_rust_bridge_codegen"]
+exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 
 [workspace.package]
 version = "0.1.0"
