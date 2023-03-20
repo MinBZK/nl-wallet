@@ -19,7 +19,7 @@ pub enum Error {
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
 
-pub trait SigningKey: Signer<Signature> + Clone {
+pub trait PlatformSigningKey: Signer<Signature> + Clone {
     fn signing_key(identifier: &str) -> Result<Self, Error>;
 
     fn verifying_key(&self) -> Result<&VerifyingKey, Error>;

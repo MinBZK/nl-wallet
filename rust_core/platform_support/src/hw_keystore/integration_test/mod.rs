@@ -3,11 +3,14 @@ pub mod hardware;
 
 use p256::ecdsa::{signature::Verifier, VerifyingKey};
 
-use crate::hw_keystore::SigningKey;
+use crate::hw_keystore::PlatformSigningKey;
 
 // This utility function is used both by the Rust integration test for the "software" feature
 // and by integration test performed from Android / iOS for the "hardware" feature.
-pub fn sign_and_verify_signature<K: SigningKey>(payload: &[u8], key_identifier: &str) -> bool {
+pub fn sign_and_verify_signature<K: PlatformSigningKey>(
+    payload: &[u8],
+    key_identifier: &str,
+) -> bool {
     // Create a signing key for the identifier
     let key1 = K::signing_key(key_identifier).expect("Could not create signing key");
     // Create another signing key with the same identifier, should use the same private key

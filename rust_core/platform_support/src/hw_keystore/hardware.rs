@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::hw_keystore::{Error, SigningKey};
+use crate::hw_keystore::{Error, PlatformSigningKey};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
@@ -63,7 +63,7 @@ impl HardwareSigningKey {
     }
 }
 
-impl SigningKey for HardwareSigningKey {
+impl PlatformSigningKey for HardwareSigningKey {
     fn signing_key(identifier: &str) -> Result<Self, Error> {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock
         let key_store = KEY_STORE
