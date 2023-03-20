@@ -18,9 +18,10 @@ pub enum Error {
     #[error("Error decoding public key from hardware: {0:?}")]
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
-
-pub trait PlatformSigningKey: Signer<Signature> + Clone {
-    fn signing_key(identifier: &str) -> Result<Self, Error>;
+pub trait PlatformSigningKey: Signer<Signature> {
+    fn signing_key(identifier: &str) -> Result<Self, Error>
+    where
+        Self: Sized;
 
     fn verifying_key(&self) -> Result<&VerifyingKey, Error>;
     // from Signer: try_sign() and sign() methods

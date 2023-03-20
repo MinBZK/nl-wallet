@@ -6,10 +6,7 @@ use p256::{
     },
     pkcs8::DecodePublicKey,
 };
-use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+use std::{fmt::Debug, sync::Mutex};
 
 use crate::hw_keystore::{Error, PlatformSigningKey};
 
@@ -48,16 +45,15 @@ trait SigningKeyBridge: Send + Sync + Debug {
 }
 
 // HardwareSigningKey wraps SigningKeyBridge from native
-#[derive(Clone)]
 pub struct HardwareSigningKey {
-    bridge: Arc<dyn SigningKeyBridge>,
+    bridge: Box<dyn SigningKeyBridge>,
     verifying_key: OnceCell<VerifyingKey>,
 }
 
 impl HardwareSigningKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
         HardwareSigningKey {
-            bridge: bridge.into(),
+            bridge: bridge,
             verifying_key: OnceCell::new(),
         }
     }
