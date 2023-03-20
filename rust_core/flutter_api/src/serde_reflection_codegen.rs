@@ -8,8 +8,7 @@ use std::{env, path::PathBuf};
 use crate::models::pin::PinResult;
 
 const MODULE_NAME: &str = "core_domain";
-const DART_OUTPUT_PATH: &str =
-    formatcp!("{}/../../pub/{}", env!("CARGO_MANIFEST_DIR"), MODULE_NAME);
+const DART_OUTPUT_PATH: &str = formatcp!("{}/../../pub/{}", env!("CARGO_MANIFEST_DIR"), MODULE_NAME);
 
 fn main() -> Result<()> {
     let mut tracer = Tracer::new(TracerConfig::default());

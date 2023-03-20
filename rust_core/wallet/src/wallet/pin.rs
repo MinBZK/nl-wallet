@@ -37,10 +37,7 @@ fn parse_pin_to_digits(pin: &str) -> Result<Vec<u8>, PinError> {
     if digit_options.iter().any(|c| c.is_none()) {
         Err(PinError::NonDigits)
     } else {
-        let digits: Vec<u8> = digit_options
-            .into_iter()
-            .map(|c| c.unwrap() as u8)
-            .collect();
+        let digits: Vec<u8> = digit_options.into_iter().map(|c| c.unwrap() as u8).collect();
         Ok(digits)
     }
 }
@@ -112,14 +109,8 @@ mod tests {
 
     #[test]
     fn pin_should_have_length_6() {
-        assert!(matches!(
-            validate_pin("02479"),
-            Err(PinError::InvalidLength)
-        ));
-        assert!(matches!(
-            validate_pin("0247913"),
-            Err(PinError::InvalidLength)
-        ));
+        assert!(matches!(validate_pin("02479"), Err(PinError::InvalidLength)));
+        assert!(matches!(validate_pin("0247913"), Err(PinError::InvalidLength)));
     }
 
     #[test]
@@ -130,37 +121,19 @@ mod tests {
 
     #[test]
     fn pin_should_contain_at_least_2_unique_digits() {
-        assert!(matches!(
-            validate_pin("000000"),
-            Err(PinError::TooFewUniqueDigits)
-        ));
-        assert!(matches!(
-            validate_pin("999999"),
-            Err(PinError::TooFewUniqueDigits)
-        ));
+        assert!(matches!(validate_pin("000000"), Err(PinError::TooFewUniqueDigits)));
+        assert!(matches!(validate_pin("999999"), Err(PinError::TooFewUniqueDigits)));
     }
 
     #[test]
     fn pin_should_not_contain_ascending_digits() {
-        assert!(matches!(
-            validate_pin("012345"),
-            Err(PinError::AscendingDigits)
-        ));
-        assert!(matches!(
-            validate_pin("456789"),
-            Err(PinError::AscendingDigits)
-        ));
+        assert!(matches!(validate_pin("012345"), Err(PinError::AscendingDigits)));
+        assert!(matches!(validate_pin("456789"), Err(PinError::AscendingDigits)));
     }
 
     #[test]
     fn pin_should_not_contain_descending_digits() {
-        assert!(matches!(
-            validate_pin("543210"),
-            Err(PinError::DescendingDigits)
-        ));
-        assert!(matches!(
-            validate_pin("987654"),
-            Err(PinError::DescendingDigits)
-        ));
+        assert!(matches!(validate_pin("543210"), Err(PinError::DescendingDigits)));
+        assert!(matches!(validate_pin("987654"), Err(PinError::DescendingDigits)));
     }
 }

@@ -48,12 +48,7 @@ pub enum SignedType {
     HW,
 }
 
-fn verify_signed(
-    signed: &str,
-    challenge: &[u8],
-    typ: SignedType,
-    pubkey: &VerifyingKey,
-) -> Result<()> {
+fn verify_signed(signed: &str, challenge: &[u8], typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
     let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
     let json = msg.signed.get().as_bytes();
     pubkey.verify(json, &msg.signature.0)?;
@@ -106,11 +101,7 @@ where
         Ok(serde_json::from_str::<SignedMessage<SignedPayload<T>>>(&self.0)?.signed)
     }
 
-    pub fn parse_and_verify(
-        &'de self,
-        challenge: &[u8],
-        pubkey: &VerifyingKey,
-    ) -> Result<SignedPayload<T>> {
+    pub fn parse_and_verify(&'de self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<SignedPayload<T>> {
         self.verify(challenge, pubkey)?;
         self.dangerous_parse_unverified()
     }
@@ -129,22 +120,16 @@ impl<'de, T> SignedDouble<T>
 where
     T: Serialize + Deserialize<'de>,
 {
-    fn verify(
-        &self,
-        challenge: &[u8],
-        hw_pubkey: &VerifyingKey,
-        pin_pubkey: &VerifyingKey,
-    ) -> Result<()> {
+    fn verify(&self, challenge: &[u8], hw_pubkey: &VerifyingKey, pin_pubkey: &VerifyingKey) -> Result<()> {
         let outer: SignedMessage<&RawValue> = serde_json::from_str(&self.0)?;
         hw_pubkey.verify(outer.signed.get().as_bytes(), &outer.signature.0)?;
         verify_signed(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
     }
 
     pub fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
-        let payload =
-            serde_json::from_str::<SignedMessage<SignedMessage<SignedPayload<T>>>>(&self.0)?
-                .signed
-                .signed;
+        let payload = serde_json::from_str::<SignedMessage<SignedMessage<SignedPayload<T>>>>(&self.0)?
+            .signed
+            .signed;
         Ok(payload)
     }
 
@@ -165,14 +150,7 @@ where
         hw_privkey: &impl PlatformSigningKey,
         pin_privkey: &impl EphemeralSigner,
     ) -> Result<SignedDouble<T>> {
-        let inner = sign(
-            payload,
-            challenge,
-            serial_number,
-            SignedType::Pin,
-            pin_privkey,
-        )?
-        .0;
+        let inner = sign(payload, challenge, serial_number, SignedType::Pin, pin_privkey)?.0;
         let signature = hw_privkey.try_sign(inner.as_bytes())?;
         let signed_message = serde_json::to_string(&SignedMessage {
             signed: RawValue::from_string(inner)?,
@@ -222,9 +200,7 @@ mod tests {
         let signed = Signed::sign(ToyMessage::default(), challenge, 1337, &hw_privkey).unwrap();
         println!("{}", signed.0);
 
-        let verified = signed
-            .parse_and_verify(challenge, hw_privkey.verifying_key())
-            .unwrap();
+        let verified = signed.parse_and_verify(challenge, hw_privkey.verifying_key()).unwrap();
 
         dbg!(verified);
     }
@@ -235,22 +211,11 @@ mod tests {
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = SignedDouble::sign(
-            ToyMessage::default(),
-            challenge,
-            1337,
-            &hw_privkey,
-            &pin_privkey,
-        )
-        .unwrap();
+        let signed = SignedDouble::sign(ToyMessage::default(), challenge, 1337, &hw_privkey, &pin_privkey).unwrap();
         println!("{}", signed.0);
 
         let verified = signed
-            .parse_and_verify(
-                challenge,
-                hw_privkey.verifying_key(),
-                &pin_privkey.verifying_key(),
-            )
+            .parse_and_verify(challenge, hw_privkey.verifying_key(), &pin_privkey.verifying_key())
             .unwrap();
 
         dbg!(verified);

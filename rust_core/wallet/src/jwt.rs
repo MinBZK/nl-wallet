@@ -29,14 +29,11 @@ where
         validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
         validation_options.sub = T::SUB.to_owned().into();
 
-        let payload = jsonwebtoken::decode::<JwtPayload<T>>(
-            &self.0,
-            &DecodingKey::from_ec_der(pubkey),
-            &validation_options,
-        )
-        .context("Wallet certificate JWT validation failed")?
-        .claims
-        .payload;
+        let payload =
+            jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &DecodingKey::from_ec_der(pubkey), &validation_options)
+                .context("Wallet certificate JWT validation failed")?
+                .claims
+                .payload;
         Ok(payload)
     }
 
@@ -66,17 +63,12 @@ struct JwtPayload<T> {
 }
 
 impl<T> Serialize for Jwt<T> {
-    fn serialize<S: serde::Serializer>(
-        &self,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         String::serialize(&self.0, serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for Jwt<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> std::result::Result<Self, D::Error> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         String::deserialize(deserializer).map(Jwt::from)
     }
 }

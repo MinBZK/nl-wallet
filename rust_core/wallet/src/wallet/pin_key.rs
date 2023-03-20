@@ -123,12 +123,7 @@ fn bytes_to_ecdsa_scalar(mut bts: Vec<u8>) -> U256 {
 }
 
 /// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
-fn hkdf(
-    input_key_material: &[u8],
-    salt: &[u8],
-    info: &str,
-    len: usize,
-) -> Result<Vec<u8>, UnspecifiedRingError> {
+fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<Vec<u8>, UnspecifiedRingError> {
     struct HkdfLen(usize);
     impl hkdf::KeyType for HkdfLen {
         fn len(&self) -> usize {
@@ -175,10 +170,7 @@ mod tests {
     fn test_conversion() {
         let x = U256::random(&mut OsRng);
         assert_eq!(x, u384_to_u256(&u256_to_u384(&x)));
-        assert_eq!(
-            NistP256::ORDER,
-            u384_to_u256(&u256_to_u384(&NistP256::ORDER))
-        );
+        assert_eq!(NistP256::ORDER, u384_to_u256(&u256_to_u384(&NistP256::ORDER)));
     }
 
     #[test]

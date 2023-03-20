@@ -37,12 +37,8 @@ where
     pub fn register(&mut self, pin: String) -> Result<()> {
         let challenge = self.account_server.registration_challenge()?;
 
-        let registration_message = instructions::Registration::new_signed(
-            &self.hw_privkey,
-            &self.pin_salt,
-            &pin,
-            &challenge,
-        )?;
+        let registration_message =
+            instructions::Registration::new_signed(&self.hw_privkey, &self.pin_salt, &pin, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
         self.registration_cert = Some(cert);
@@ -61,11 +57,7 @@ mod tests {
     #[test]
     fn it_works() {
         let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
-        let mut wallet = Wallet::new(
-            account_server,
-            account_server_pubkey,
-            SigningKey::random(&mut OsRng),
-        );
+        let mut wallet = Wallet::new(account_server, account_server_pubkey, SigningKey::random(&mut OsRng));
 
         wallet.register("123456".to_owned()).unwrap();
 

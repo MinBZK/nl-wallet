@@ -1,20 +1,12 @@
-use lib_flutter_rust_bridge_codegen::{
-    config_parse, frb_codegen, get_symbols_if_no_duplicates, RawOpts,
-};
+use lib_flutter_rust_bridge_codegen::{config_parse, frb_codegen, get_symbols_if_no_duplicates, RawOpts};
 use std::{concat, env};
 
 /// Path of input Rust code
 const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api/src/api.rs");
 /// Path of output generated Dart code
-const DART_OUTPUT: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../lib/bridge_generated.dart"
-);
+const DART_OUTPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../lib/bridge_generated.dart");
 /// Path of output generated C code
-const C_OUTPUT: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../ios/Runner/bridge_generated.h"
-);
+const C_OUTPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ios/Runner/bridge_generated.h");
 /// Path of output generated Rust code
 const RUST_OUTPUT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
