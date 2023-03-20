@@ -1,11 +1,17 @@
 use serde::{Deserialize, Serialize};
-pub use wallet::PinError;
+use wallet::PinError;
 
 impl From<Result<(), PinError>> for PinResult {
     fn from(source: Result<(), PinError>) -> Self {
         match source {
             Ok(()) => PinResult::Ok,
-            Err(err) => PinResult::Err(err),
+            Err(err) => match err {
+                PinError::NonDigits => PinResult::OtherError,
+                PinError::InvalidLength => PinResult::OtherError,
+                PinError::TooFewUniqueDigits => PinResult::TooFewUniqueDigitsError,
+                PinError::AscendingDigits => PinResult::SequentialDigitsError,
+                PinError::DescendingDigits => PinResult::SequentialDigitsError,
+            },
         }
     }
 }
@@ -13,5 +19,7 @@ impl From<Result<(), PinError>> for PinResult {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum PinResult {
     Ok,
-    Err(PinError),
+    TooFewUniqueDigitsError,
+    SequentialDigitsError,
+    OtherError,
 }

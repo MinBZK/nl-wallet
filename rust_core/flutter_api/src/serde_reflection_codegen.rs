@@ -5,7 +5,7 @@ use const_format::formatcp;
 use serde_reflection::{Registry, Tracer, TracerConfig};
 use std::{env, path::PathBuf};
 
-use crate::models::pin::{PinError, PinResult};
+use crate::models::pin::PinResult;
 
 const MODULE_NAME: &str = "core_domain";
 const DART_OUTPUT_PATH: &str =
@@ -14,7 +14,6 @@ const DART_OUTPUT_PATH: &str =
 fn main() -> Result<()> {
     let mut tracer = Tracer::new(TracerConfig::default());
     tracer.trace_simple_type::<PinResult>().unwrap();
-    tracer.trace_simple_type::<PinError>().unwrap();
     let registry = tracer.registry().unwrap();
 
     generate_dart(&registry)

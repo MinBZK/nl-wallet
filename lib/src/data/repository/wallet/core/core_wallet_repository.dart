@@ -8,14 +8,18 @@ import '../wallet_repository.dart';
 
 class CoreWalletRepository implements WalletRepository {
   final TypedRustCore _rustCore;
-  final Mapper<PinError, PinValidationError> _pinValidationErrorMapper;
+  final Mapper<PinResult, PinValidationError?> _pinValidationErrorMapper;
 
   CoreWalletRepository(this._rustCore, this._pinValidationErrorMapper);
 
   @override
   Future<void> validatePin(String pin) async {
     final result = await _rustCore.isValidPin(pin);
-    if (result is PinResultErr) throw _pinValidationErrorMapper.map(result.value);
+    final error = _pinValidationErrorMapper.map(result);
+
+    if (error != null) {
+      throw error;
+    }
   }
 
   @override

@@ -23,7 +23,7 @@ mod tests {
         let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
         match pin_result {
             PinResult::Ok => true,
-            PinResult::Err(_) => false,
+            _ => false,
         }
     }
 

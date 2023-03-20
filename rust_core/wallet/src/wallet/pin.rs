@@ -1,7 +1,6 @@
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Error, Debug, Deserialize, Serialize)]
+#[derive(Error, Debug)]
 pub enum PinError {
     #[error("PIN contains characters that are not digits")]
     NonDigits,

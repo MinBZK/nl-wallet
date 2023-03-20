@@ -12,7 +12,7 @@ class TypedRustCore {
 
   Future<PinResult> isValidPin(String pin) async {
     final bytes = await _rustCore.isValidPin(pin: pin);
-    return PinResult.bincodeDeserialize(bytes);
+    return PinResultExtension.bincodeDeserialize(bytes);
   }
 
   Future<void> register(String pin) async {

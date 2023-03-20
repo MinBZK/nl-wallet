@@ -1,16 +1,30 @@
 part of core_domain_types;
 
-abstract class PinResult {
-  const PinResult();
+enum PinResult {
+  ok,
+  tooFewUniqueDigitsError,
+  sequentialDigitsError,
+  otherError,
+}
 
-  void serialize(BinarySerializer serializer);
-
+extension PinResultExtension on PinResult {
   static PinResult deserialize(BinaryDeserializer deserializer) {
-    int index = deserializer.deserializeVariantIndex();
+    final index = deserializer.deserializeVariantIndex();
     switch (index) {
-      case 0: return PinResultOk.load(deserializer);
-      case 1: return PinResultErr.load(deserializer);
+      case 0: return PinResult.ok;
+      case 1: return PinResult.tooFewUniqueDigitsError;
+      case 2: return PinResult.sequentialDigitsError;
+      case 3: return PinResult.otherError;
       default: throw Exception("Unknown variant index for PinResult: " + index.toString());
+    }
+  }
+
+  void serialize(BinarySerializer serializer) {
+    switch (this) {
+      case PinResult.ok: return serializer.serializeVariantIndex(0);
+      case PinResult.tooFewUniqueDigitsError: return serializer.serializeVariantIndex(1);
+      case PinResult.sequentialDigitsError: return serializer.serializeVariantIndex(2);
+      case PinResult.otherError: return serializer.serializeVariantIndex(3);
     }
   }
 
@@ -22,7 +36,7 @@ abstract class PinResult {
 
   static PinResult bincodeDeserialize(Uint8List input) {
     final deserializer = BincodeDeserializer(input);
-    final value = PinResult.deserialize(deserializer);
+    final value = PinResultExtension.deserialize(deserializer);
     if (deserializer.offset < input.length) {
       throw Exception('Some input bytes were not read');
     }
@@ -30,87 +44,3 @@ abstract class PinResult {
   }
 }
 
-
-@immutable
-class PinResultOk extends PinResult {
-  const PinResultOk(
-  ) : super();
-
-  PinResultOk.load(BinaryDeserializer deserializer);
-
-  void serialize(BinarySerializer serializer) {
-    serializer.serializeVariantIndex(0);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-
-    return other is PinResultOk;
-  }
-
-  @override
-  String toString() {
-    String? fullString;
-
-    assert(() {
-      fullString = '$runtimeType('
-        ')';
-      return true;
-    }());
-
-    return fullString ?? 'PinResultOk';
-  }
-}
-
-@immutable
-class PinResultErr extends PinResult {
-  const PinResultErr({
-    required this.value,
-  }) : super();
-
-  PinResultErr.load(BinaryDeserializer deserializer) :
-    value = PinErrorExtension.deserialize(deserializer);
-
-  final PinError value;
-
-  PinResultErr copyWith({
-    PinError? value,
-  }) {
-    return PinResultErr(
-      value: value ?? this.value,
-    );
-  }
-
-  void serialize(BinarySerializer serializer) {
-    serializer.serializeVariantIndex(1);
-    value.serialize(serializer);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-
-    return other is PinResultErr
-      && value == other.value;
-  }
-
-  @override
-  int get hashCode => value.hashCode;
-
-  @override
-  String toString() {
-    String? fullString;
-
-    assert(() {
-      fullString = '$runtimeType('
-        'value: $value'
-        ')';
-      return true;
-    }());
-
-    return fullString ?? 'PinResultErr';
-  }
-}
