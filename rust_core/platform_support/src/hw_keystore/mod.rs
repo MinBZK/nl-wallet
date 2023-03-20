@@ -18,6 +18,7 @@ pub enum Error {
     #[error("Error decoding public key from hardware: {0:?}")]
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
+
 pub trait PlatformSigningKey: Signer<Signature> {
     fn signing_key(identifier: &str) -> Result<Self, Error>
     where

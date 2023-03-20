@@ -1,6 +1,7 @@
 pub mod pin;
 pub mod pin_key;
 pub mod signed;
+pub mod signer;
 
 use crate::wp::{instructions, AccountServerClient, WalletCertificate};
 
