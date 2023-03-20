@@ -14,5 +14,3 @@ mod utils;
 
 mod wallet;
 mod wp;
-
-use platform_support;

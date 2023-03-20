@@ -1,32 +1,30 @@
 use anyhow::Result;
 use flutter_data_types::PinResult;
 use once_cell::sync::Lazy;
-use p256::ecdsa::SigningKey;
-use rand::rngs::OsRng;
+use platform_support::hw_keystore::PlatformSigningKey;
 use std::sync::Mutex;
 
 use crate::{
-    wallet::pin::validate_pin,
-    wallet::{HWBoundSigningKey, Wallet},
+    wallet::{pin::validate_pin, Wallet},
     wp::AccountServer,
 };
 
-// TODO remove this when an actual hardware-backed implementation exists
-impl HWBoundSigningKey for SigningKey {
-    fn verifying_key(&self) -> &p256::ecdsa::VerifyingKey {
-        SigningKey::verifying_key(self)
-    }
-}
+#[cfg(any(target_os = "android", target_os = "ios"))]
+type SigningKey = platform_support::hw_keystore::hardware::HardwareSigningKey;
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+type SigningKey = platform_support::hw_keystore::software::SoftwareSigningKey;
+
+const WALLET_KEY_ID: &str = "wallet";
 
 static WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
+    let hw_privkey =
+        SigningKey::signing_key(WALLET_KEY_ID).expect("Could not fetch or generate wallet key");
+
     let account_server = AccountServer::new_stub(); // TODO
     let pubkey = account_server.pubkey.clone();
 
-    Mutex::new(Wallet::new(
-        account_server,
-        pubkey,
-        SigningKey::random(&mut OsRng),
-    ))
+    Mutex::new(Wallet::new(account_server, pubkey, hw_privkey))
 });
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {

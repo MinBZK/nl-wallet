@@ -5,14 +5,9 @@ pub mod signed;
 use crate::wp::{instructions, AccountServerClient, WalletCertificate};
 
 use anyhow::Result;
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use platform_support::hw_keystore::PlatformSigningKey;
 
 use self::pin_key::new_pin_salt;
-
-/// Handle to a hardware-bound ECDSA private key.
-pub trait HWBoundSigningKey: Signer<Signature> {
-    fn verifying_key(&self) -> &VerifyingKey;
-}
 
 pub struct Wallet<T, S> {
     account_server: T,
@@ -26,7 +21,7 @@ pub struct Wallet<T, S> {
 impl<T, S> Wallet<T, S>
 where
     T: AccountServerClient,
-    S: HWBoundSigningKey,
+    S: PlatformSigningKey,
 {
     pub fn new(account_server: T, account_server_pubkey: Vec<u8>, hw_privkey: S) -> Wallet<T, S> {
         Wallet {
