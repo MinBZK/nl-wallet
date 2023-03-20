@@ -5,12 +5,13 @@ use p256::ecdsa::{
     signature::{Signer, Verifier},
     Signature, VerifyingKey,
 };
+use platform_support::hw_keystore::PlatformSigningKey;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use crate::{
     serialization::{Base64Bytes, DerSignature},
-    wallet::pin_key::PinKey,
+    wallet::signer::EphemeralSigner,
 };
 
 // Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.
@@ -161,16 +162,15 @@ where
         payload: T,
         challenge: &[u8],
         serial_number: u64,
-        hw_privkey: &impl Signer<Signature>,
-        pin: &str,
-        salt: &[u8],
+        hw_privkey: &impl PlatformSigningKey,
+        pin_privkey: &impl EphemeralSigner,
     ) -> Result<SignedDouble<T>> {
         let inner = sign(
             payload,
             challenge,
             serial_number,
             SignedType::Pin,
-            &PinKey { pin, salt },
+            pin_privkey,
         )?
         .0;
         let signature = hw_privkey.try_sign(inner.as_bytes())?;
@@ -196,12 +196,9 @@ impl<T, S: Into<String>> From<S> for Signed<T> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
-    use serde::{Deserialize, Serialize};
-
-    use crate::wallet::{pin_key::PinKey, signed::SignedDouble};
-
-    use super::Signed;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct ToyMessage {
@@ -236,16 +233,14 @@ mod tests {
     fn double_signed() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
-        let pin = "123456";
-        let salt = &[1, 2, 3, 4][..];
+        let pin_privkey = SigningKey::random(&mut OsRng);
 
         let signed = SignedDouble::sign(
             ToyMessage::default(),
             challenge,
             1337,
             &hw_privkey,
-            pin,
-            salt,
+            &pin_privkey,
         )
         .unwrap();
         println!("{}", signed.0);
@@ -254,7 +249,7 @@ mod tests {
             .parse_and_verify(
                 challenge,
                 hw_privkey.verifying_key(),
-                &PinKey { salt, pin }.verifying_key(),
+                &pin_privkey.verifying_key(),
             )
             .unwrap();
 

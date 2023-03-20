@@ -1,0 +1,4 @@
+--swiftversion 5.7
+--ranges no-space
+--self insert
+--disable trailingCommas,wrapMultilineStatementBraces,redundantReturn,sortedImports

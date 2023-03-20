@@ -1,9 +1,10 @@
 use anyhow::Result;
+use platform_support::hw_keystore::PlatformSigningKey;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     serialization::DerVerifyingKey,
-    wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey},
+    wallet::{pin_key::PinKey, signed::SignedDouble},
     wp::WalletCertificate,
 };
 
@@ -29,22 +30,24 @@ pub struct Registration {
 
 impl Registration {
     pub fn new_signed(
-        hw_key_handle: &impl HWBoundSigningKey,
+        hw_key_handle: &impl PlatformSigningKey,
         salt: &[u8],
         pin: &str,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = PinKey { salt, pin }.verifying_key();
+        let pin_key = PinKey { salt, pin };
+        let pin_pubkey = pin_key.verifying_key()?;
+        let hw_pubkey = *hw_key_handle.verifying_key()?;
+
         SignedDouble::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
-                hw_pubkey: (*hw_key_handle.verifying_key()).into(),
+                hw_pubkey: hw_pubkey.into(),
             },
             challenge,
             0,
             hw_key_handle,
-            pin,
-            salt,
+            &pin_key,
         )
     }
 }
