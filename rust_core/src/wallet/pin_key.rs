@@ -16,7 +16,6 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
-use anyhow::{anyhow, Result};
 use p256::{
     ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
     elliptic_curve::{
@@ -26,33 +25,9 @@ use p256::{
     },
     NistP256, Scalar, SecretKey, U256,
 };
-use ring::hkdf;
+use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
 use crate::utils::random_bytes;
-
-/// All PIN data needed to compute signatures. Implements [`HWBoundSigningKey`] such that the ECDSA private key is
-/// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
-pub struct PinKey<'a> {
-    pub pin: &'a str,
-    pub salt: &'a [u8],
-}
-
-impl<'a> Signer<Signature> for PinKey<'a> {
-    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-        let signature = pin_private_key(self.salt, self.pin)
-            .map_err(p256::ecdsa::Error::from_source)?
-            .sign(msg);
-        Ok(signature)
-    }
-}
-
-impl<'a> PinKey<'a> {
-    pub fn verifying_key(&self) -> VerifyingKey {
-        *pin_private_key(self.salt, self.pin)
-            .expect("pin private key computation failed")
-            .verifying_key()
-    }
-}
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
@@ -63,13 +38,50 @@ pub fn new_pin_salt() -> Vec<u8> {
     random_bytes(32)
 }
 
-/// Given a salt and a PIN, derive an ECDSA private key and return the corresponding public key.
-fn pin_public_key(salt: &[u8], pin: &str) -> Result<VerifyingKey> {
-    Ok(*pin_private_key(salt, pin)?.verifying_key())
+#[derive(Debug, thiserror::Error)]
+pub enum PinKeyError {
+    #[error("HKDF key derivation error")]
+    HKDF(#[from] UnspecifiedRingError),
+}
+
+impl From<PinKeyError> for p256::ecdsa::Error {
+    fn from(value: PinKeyError) -> Self {
+        Self::from_source(value)
+    }
+}
+
+/// All PIN data needed to compute signatures. Implements [`HWBoundSigningKey`] such that the ECDSA private key is
+/// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
+pub struct PinKey<'a> {
+    pub pin: &'a str,
+    pub salt: &'a [u8],
+}
+
+impl<'a> PinKey<'a> {
+    pub fn new(pin: &'a str, salt: &'a [u8]) -> Self {
+        PinKey { pin, salt }
+    }
+
+    pub fn verifying_key(&self) -> Result<VerifyingKey, PinKeyError> {
+        let signing_key = pin_private_key(self.salt, self.pin)?;
+        let verifying_key = *signing_key.verifying_key();
+
+        Ok(verifying_key)
+    }
+}
+
+impl<'a> Signer<Signature> for PinKey<'a> {
+    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
+        let signature = pin_private_key(self.salt, self.pin)
+            .map_err(|e| PinKeyError::from(e))?
+            .sign(msg);
+
+        Ok(signature)
+    }
 }
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
-fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey> {
+fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRingError> {
     // The `salt` parameter is really the IKM (input key material) of the HKDF, see the comment in `new_pin_salt()`.
     // The reason for length 256 / 8 + 8 is as follows. The private key must be a random number between 1 and q - 1,
     // where q is the (prime) order of the ECDSA elliptic curve (its amount of elements). But hkdf() takes bytes not
@@ -111,7 +123,12 @@ fn bytes_to_ecdsa_scalar(mut bts: Vec<u8>) -> U256 {
 }
 
 /// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
-fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<Vec<u8>> {
+fn hkdf(
+    input_key_material: &[u8],
+    salt: &[u8],
+    info: &str,
+    len: usize,
+) -> Result<Vec<u8>, UnspecifiedRingError> {
     struct HkdfLen(usize);
     impl hkdf::KeyType for HkdfLen {
         fn len(&self) -> usize {
@@ -123,10 +140,8 @@ fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Resul
     let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, salt);
 
     salt.extract(input_key_material)
-        .expand(&[info.as_bytes()], HkdfLen(len))
-        .map_err(|e| anyhow!("hkdf expand failed: {e}"))?
-        .fill(bts.as_mut_slice())
-        .map_err(|e| anyhow!("hkdf fill failed: {e}"))?;
+        .expand(&[info.as_bytes()], HkdfLen(len))?
+        .fill(bts.as_mut_slice())?;
 
     Ok(bts)
 }
@@ -138,31 +153,22 @@ fn u256_to_u384(x: &U256) -> U384 {
     limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BIT_SIZE]);
     U384::new(limbs.try_into().unwrap())
 }
+
 fn u384_to_u256(x: &U384) -> U256 {
     U256::new(x.limbs()[..256 / Limb::BIT_SIZE].try_into().unwrap())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        utils::random_bytes,
-        wallet::pin_key::{
-            bytes_to_ecdsa_scalar, new_pin_salt, pin_private_key, pin_public_key, u256_to_u384,
-            u384_to_u256,
-        },
-    };
+    use super::*;
+
     use anyhow::Result;
     use p256::{
-        ecdsa::{
-            signature::{Signer, Verifier},
-            Signature,
-        },
+        ecdsa::signature::Verifier,
         elliptic_curve::{
             bigint::{ArrayEncoding, NonZero, Random, RandomMod, Wrapping},
             rand_core::OsRng,
-            Curve,
         },
-        NistP256, U256,
     };
 
     #[test]
@@ -208,8 +214,9 @@ mod tests {
         let salt = new_pin_salt();
         let challenge = b"challenge";
 
-        let public_key = pin_public_key(salt.as_slice(), pin)?;
-        let response: Signature = pin_private_key(salt.as_slice(), pin)?.try_sign(challenge)?;
+        let pin_key = PinKey::new(pin, &salt);
+        let public_key = pin_key.verifying_key()?;
+        let response = pin_key.try_sign(challenge)?;
 
         public_key.verify(challenge, &response)?;
 
