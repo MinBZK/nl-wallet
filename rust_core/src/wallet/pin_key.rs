@@ -50,7 +50,7 @@ impl From<PinKeyError> for p256::ecdsa::Error {
     }
 }
 
-/// All PIN data needed to compute signatures. Implements [`HWBoundSigningKey`] such that the ECDSA private key is
+/// All PIN data needed to compute signatures. Implements [`Signer<Signature>`] such that the ECDSA private key is
 /// guaranteed to be dropped from memory when [`PinKey::try_sign()`] returns.
 pub struct PinKey<'a> {
     pub pin: &'a str,
