@@ -1,7 +1,7 @@
 use anyhow::Result;
 use flutter_data_types::PinResult;
 use once_cell::sync::Lazy;
-use platform_support::hw_keystore::PlatformSigningKey;
+use platform_support::hw_keystore::{PlatformSigningKey, PreferredPlatformSigningKey};
 use std::sync::Mutex;
 
 use crate::{
@@ -9,16 +9,10 @@ use crate::{
     wp::AccountServer,
 };
 
-#[cfg(any(target_os = "android", target_os = "ios"))]
-type PlatformSigningKeyImpl = platform_support::hw_keystore::hardware::HardwareSigningKey;
-
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-type PlatformSigningKeyImpl = platform_support::hw_keystore::software::SoftwareSigningKey;
-
 const WALLET_KEY_ID: &str = "wallet";
 
-static WALLET: Lazy<Mutex<Wallet<AccountServer, PlatformSigningKeyImpl>>> = Lazy::new(|| {
-    let hw_privkey = PlatformSigningKeyImpl::signing_key(WALLET_KEY_ID)
+static WALLET: Lazy<Mutex<Wallet<AccountServer, PreferredPlatformSigningKey>>> = Lazy::new(|| {
+    let hw_privkey = PreferredPlatformSigningKey::signing_key(WALLET_KEY_ID)
         .expect("Could not fetch or generate wallet key");
 
     let account_server = AccountServer::new_stub(); // TODO

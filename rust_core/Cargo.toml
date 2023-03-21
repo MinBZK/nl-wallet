@@ -3,7 +3,6 @@ name = "rust_core"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 crate-type = ["staticlib","cdylib"]
 
@@ -28,5 +27,7 @@ platform_support = { path = "platform_support" }
 [build-dependencies]
 flutter_rust_bridge_codegen = "1"
 
+# disable the "hardware" feature and enable "software" for platform_support
+# when not building for either Android or iOS
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 platform_support = { path = "platform_support", default-features = false, features = ["software"] }
