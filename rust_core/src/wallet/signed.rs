@@ -5,13 +5,12 @@ use p256::ecdsa::{
     signature::{Signer, Verifier},
     Signature, VerifyingKey,
 };
-use platform_support::hw_keystore::PlatformSigningKey;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use crate::{
     serialization::{Base64Bytes, DerSignature},
-    wallet::signer::EphemeralSigner,
+    wallet::signing_key::{EphemeralSigningKey, SecureSigningKey},
 };
 
 // Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.
@@ -162,8 +161,8 @@ where
         payload: T,
         challenge: &[u8],
         serial_number: u64,
-        hw_privkey: &impl PlatformSigningKey,
-        pin_privkey: &impl EphemeralSigner,
+        hw_privkey: &impl SecureSigningKey,
+        pin_privkey: &impl EphemeralSigningKey,
     ) -> Result<SignedDouble<T>> {
         let inner = sign(
             payload,

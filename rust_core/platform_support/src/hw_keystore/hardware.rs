@@ -47,15 +47,11 @@ trait SigningKeyBridge: Send + Sync + Debug {
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
     bridge: Box<dyn SigningKeyBridge>,
-    verifying_key: OnceCell<VerifyingKey>,
 }
 
 impl HardwareSigningKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
-        HardwareSigningKey {
-            bridge: bridge,
-            verifying_key: OnceCell::new(),
-        }
+        HardwareSigningKey { bridge }
     }
 }
 
@@ -73,16 +69,11 @@ impl PlatformSigningKey for HardwareSigningKey {
         Ok(key)
     }
 
-    fn verifying_key(&self) -> Result<&VerifyingKey, Error> {
-        let verifying_key = self.verifying_key.get_or_try_init(|| {
-            let public_key_bytes = self.bridge.public_key()?;
-            // decode the DER encoded public key received from native
-            let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+        let public_key_bytes = self.bridge.public_key()?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
-            Ok::<_, Error>(public_key)
-        })?;
-
-        Ok(verifying_key)
+        Ok(public_key)
     }
 }
 

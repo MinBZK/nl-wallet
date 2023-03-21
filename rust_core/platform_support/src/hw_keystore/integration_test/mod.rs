@@ -23,7 +23,7 @@ pub fn sign_and_verify_signature<K: PlatformSigningKey>(
     let signature = key2.try_sign(payload).expect("Could not sign payload");
 
     // Then verify the signature, which should work if they indeed use the same private key
-    VerifyingKey::from(*public_key)
+    VerifyingKey::from(public_key)
         .verify(payload, &signature)
         .is_ok()
 }

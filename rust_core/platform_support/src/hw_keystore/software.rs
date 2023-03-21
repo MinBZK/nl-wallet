@@ -29,7 +29,9 @@ impl PlatformSigningKey for SoftwareSigningKey {
         Ok(key.clone())
     }
 
-    fn verifying_key(&self) -> Result<&VerifyingKey, Error> {
-        Ok(self.verifying_key())
+    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+        let verifying_key = *self.verifying_key();
+
+        Ok(verifying_key)
     }
 }

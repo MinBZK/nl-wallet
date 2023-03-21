@@ -24,6 +24,6 @@ pub trait PlatformSigningKey: Signer<Signature> {
     where
         Self: Sized;
 
-    fn verifying_key(&self) -> Result<&VerifyingKey, Error>;
+    fn verifying_key(&self) -> Result<VerifyingKey, Error>;
     // from Signer: try_sign() and sign() methods
 }
