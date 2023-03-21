@@ -1,4 +1,4 @@
-#[cfg(feature = "hardware")]
+#[cfg(all(feature = "hardware-integration-test"))]
 pub mod hardware;
 
 use p256::ecdsa::{signature::Verifier, VerifyingKey};
@@ -7,6 +7,8 @@ use crate::hw_keystore::PlatformSigningKey;
 
 // This utility function is used both by the Rust integration test for the "software" feature
 // and by integration test performed from Android / iOS for the "hardware" feature.
+// This would normally fall under dev-dependencies, however we need it in the main binary
+// for the "hardware" integration test.
 pub fn sign_and_verify_signature<K: PlatformSigningKey>(
     payload: &[u8],
     key_identifier: &str,

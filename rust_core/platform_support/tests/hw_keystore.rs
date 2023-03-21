@@ -1,5 +1,3 @@
-extern crate platform_support;
-
 #[cfg(all(feature = "software", feature = "integration-test"))]
 #[test]
 fn test_software_signature() {

@@ -67,15 +67,15 @@ The module contains the following features:
 
 * `hardware` (enabled by default): This compiles the hardware backed implementations, which uses `uniffi` to bridge to either Android or iOS native code.
 * `software`: This compiles a software fallback implementation, which can be used during both testing and local development.
-* `integration-test`: This should only be enabled when running integration tests (see below).
+* `integration-test`: This feature is automatically enabled when running integration tests, it contains some helper code.
+* `hardware-integration-test`: This should only be enabled when running integration tests from either Android or iOS (see below).
 
 ## Integration tests
 
 ### Software fallback
 
-The crate contains an integration test for the software fallback, which can be run using `cargo test --features software,integration-test`.
+The crate contains an integration test for the software fallback, which can be run using `cargo test --features software`.
 This test simply uses the crate to create a new private key, get its public key, sign a payload and then verify the returned signature using the public key.
-Note that the `integration-test` feature is necessary so that some helper code is included in the build.
 
 ### Android
 
