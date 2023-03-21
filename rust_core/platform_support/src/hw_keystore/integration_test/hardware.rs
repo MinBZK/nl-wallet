@@ -1,6 +1,4 @@
-extern crate jni;
-use jni::objects::JClass;
-use jni::JNIEnv;
+use jni::{objects::JClass, JNIEnv};
 
 // this is the starting point for integration test performed from Android / iOS.
 #[no_mangle]

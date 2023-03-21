@@ -24,6 +24,18 @@ pub trait PlatformSigningKey: Signer<Signature> {
     where
         Self: Sized;
 
-    fn verifying_key(&self) -> Result<&VerifyingKey, Error>;
+    fn verifying_key(&self) -> Result<VerifyingKey, Error>;
     // from Signer: try_sign() and sign() methods
 }
+
+// if the hardware feature is enabled, prefer HardwareSigningKey
+#[cfg(feature = "hardware")]
+pub type PreferredPlatformSigningKey = crate::hw_keystore::hardware::HardwareSigningKey;
+
+// otherwise if the software feature is enabled, prefer SoftwareSigningKey
+#[cfg(all(not(feature = "hardware"), feature = "software"))]
+pub type PreferredPlatformSigningKey = crate::hw_keystore::software::SoftwareSigningKey;
+
+// otherwise just just alias the Never type
+#[cfg(not(any(feature = "hardware", feature = "software")))]
+pub type PreferredPlatformSigningKey = never::Never;

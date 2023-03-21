@@ -130,6 +130,7 @@ final class SecureEnclaveKey {
     let identifier: String
 
     private let privateKey: SecKey
+    private var _publicKey: Data?
 
     // MARK: - Initializer
 
@@ -148,7 +149,14 @@ final class SecureEnclaveKey {
     // MARK: - Instance methods
 
     func publicKey() throws -> Data {
-        return try Self.derivePublicKey(from: self.privateKey)
+        guard let publicKey = self._publicKey else {
+            let publicKey = try Self.derivePublicKey(from: self.privateKey)
+            self._publicKey = publicKey
+
+            return publicKey
+        }
+
+        return publicKey
     }
 
     func sign(payload: Data) throws -> Data {

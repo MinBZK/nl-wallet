@@ -18,5 +18,7 @@ serde_json = { version = "1.0.92", features = ["raw_value"] }
 sha2 = "0.10.6"
 thiserror = "1.0.39"
 
+# disable the "hardware" feature and enable "software" for platform_support
+# when not building for either Android or iOS
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 platform_support = { path = "../platform_support", default-features = false, features = ["software"] }

@@ -10,24 +10,18 @@ mod wallet;
 mod wp;
 
 use once_cell::sync::Lazy;
-use platform_support::hw_keystore::PlatformSigningKey;
+use platform_support::hw_keystore::{PlatformSigningKey, PreferredPlatformSigningKey};
 use std::sync::Mutex;
 
 use crate::{wallet::Wallet, wp::AccountServer};
 
 pub use crate::wallet::pin::{validate_pin, PinError};
 
-#[cfg(any(target_os = "android", target_os = "ios"))]
-type PlatformSigningKeyImpl = platform_support::hw_keystore::hardware::HardwareSigningKey;
-
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-type PlatformSigningKeyImpl = platform_support::hw_keystore::software::SoftwareSigningKey;
-
 const WALLET_KEY_ID: &str = "wallet";
 
-pub static WALLET: Lazy<Mutex<Wallet<AccountServer, PlatformSigningKeyImpl>>> = Lazy::new(|| {
+pub static WALLET: Lazy<Mutex<Wallet<AccountServer, PreferredPlatformSigningKey>>> = Lazy::new(|| {
     let hw_privkey =
-        PlatformSigningKeyImpl::signing_key(WALLET_KEY_ID).expect("Could not fetch or generate wallet key");
+        PreferredPlatformSigningKey::signing_key(WALLET_KEY_ID).expect("Could not fetch or generate wallet key");
 
     let account_server = AccountServer::new_stub(); // TODO
     let pubkey = account_server.pubkey.clone();
