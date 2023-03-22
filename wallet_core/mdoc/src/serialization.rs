@@ -115,7 +115,7 @@ impl<T> From<T> for CborSeq<T> {
 /// Used to be able to refer by name instead of by an integer to refer to the contents of the
 /// data structure.
 #[derive(Debug, Clone)]
-pub struct CborIntMap<T>(pub(crate) T);
+pub struct CborIntMap<T, const STRING: bool = false>(pub(crate) T);
 impl<T> From<T> for CborIntMap<T> {
     fn from(val: T) -> Self {
         CborIntMap(val)
@@ -157,7 +157,7 @@ where
     }
 }
 
-impl<'de, T> Serialize for CborIntMap<T>
+impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
 where
     T: Serialize + Deserialize<'de> + FieldNames,
 {
@@ -165,20 +165,29 @@ where
         let field_name_indices: IndexMap<String, Value> = T::field_names()
             .iter()
             .enumerate()
-            .map(|(index, field_name)| (field_name.clone(), Value::Integer(index.into())))
+            .map(|(index, field_name)| {
+                (
+                    field_name.clone(),
+                    if !STRING {
+                        Value::Integer(index.into())
+                    } else {
+                        Value::Text(format!("{}", index))
+                    },
+                )
+            })
             .collect();
 
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
             Value::Map(map) => Value::Map(
                 map.iter()
-                    .filter(|entry| !entry.1.is_null())
-                    .map(|entry| {
+                    .filter(|(_, val)| !val.is_null())
+                    .map(|(key, val)| {
                         (
                             field_name_indices
-                                .get(entry.0.as_text().unwrap())
+                                .get(key.as_text().unwrap())
                                 .unwrap()
                                 .clone(),
-                            entry.1.clone(),
+                            val.clone(),
                         )
                     })
                     .collect(),
@@ -188,7 +197,7 @@ where
         }
     }
 }
-impl<'de, T> Deserialize<'de> for CborIntMap<T>
+impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
 where
     T: Serialize + Deserialize<'de> + FieldNames,
 {
