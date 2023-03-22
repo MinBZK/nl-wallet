@@ -60,9 +60,9 @@ impl DeviceResponse {
 pub type X509Subject = IndexMap<String, String>;
 
 impl IssuerSigned {
-    pub(crate) fn verify<'a>(
+    pub(crate) fn verify(
         &self,
-        ca_cert: &X509Certificate<'a>,
+        ca_cert: &X509Certificate<'_>,
     ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
         let (mso, _) = self.issuer_auth.verify_against_cert(ca_cert)?;
 
