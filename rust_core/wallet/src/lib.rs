@@ -2,20 +2,16 @@
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
 
+mod account;
 pub mod pin;
-
-mod jwt;
-mod serialization;
 mod utils;
-
 mod wallet;
-mod wp;
 
 use once_cell::sync::Lazy;
 use platform_support::hw_keystore::{PlatformSigningKey, PreferredPlatformSigningKey};
 use std::sync::Mutex;
 
-use crate::{wallet::Wallet, wp::AccountServer};
+use crate::{account::client::server::AccountServer, wallet::Wallet};
 
 const WALLET_KEY_ID: &str = "wallet";
 

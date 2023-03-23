@@ -8,9 +8,9 @@ use p256::ecdsa::{
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::{
-    serialization::{Base64Bytes, DerSignature},
-    wallet::signing_key::{EphemeralSigningKey, SecureSigningKey},
+use crate::account::{
+    client::serialization::{Base64Bytes, DerSignature},
+    signing_key::{EphemeralSigningKey, SecureSigningKey},
 };
 
 // Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.

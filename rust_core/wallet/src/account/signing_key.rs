@@ -2,7 +2,7 @@ use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 use platform_support::hw_keystore::{Error as PlatformSigningKeyError, PlatformSigningKey};
 use std::error::Error;
 
-use crate::wallet::pin_key::{PinKey, PinKeyError};
+use crate::account::pin_key::{PinKey, PinKeyError};
 
 pub trait SigningKey: Signer<Signature> {
     type Error: Error + Send + Sync + 'static;

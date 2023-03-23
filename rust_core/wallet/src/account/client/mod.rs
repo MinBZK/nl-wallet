@@ -1,16 +1,17 @@
 pub mod instructions;
-
-mod account_server;
-pub use account_server::*;
+mod jwt;
+mod serialization;
+pub mod server;
+mod signed;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::{
+use crate::account::client::{
+    instructions::Registration,
     jwt::{Jwt, JwtClaims},
     serialization::{Base64Bytes, DerVerifyingKey},
-    wallet::signed::SignedDouble,
-    wp::instructions::Registration,
+    signed::SignedDouble,
 };
 
 #[derive(Serialize, Deserialize, Debug)]

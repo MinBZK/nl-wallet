@@ -1,13 +1,9 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    serialization::DerVerifyingKey,
-    wallet::{
-        signed::SignedDouble,
-        signing_key::{EphemeralSigningKey, SecureSigningKey},
-    },
-    wp::WalletCertificate,
+use crate::account::{
+    client::{serialization::DerVerifyingKey, signed::SignedDouble, WalletCertificate},
+    signing_key::{EphemeralSigningKey, SecureSigningKey},
 };
 
 struct Instruction<T: IsInstruction> {
@@ -54,10 +50,9 @@ impl Registration {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::{Ok, Result};
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use super::*;
 
-    use super::Registration;
+    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
     #[test]
     fn registration() -> Result<()> {

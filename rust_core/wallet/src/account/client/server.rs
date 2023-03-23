@@ -11,11 +11,14 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use crate::{
-    jwt::{Jwt, JwtClaims},
-    serialization::Base64Bytes,
+    account::client::{
+        instructions::Registration,
+        jwt::{Jwt, JwtClaims},
+        serialization::Base64Bytes,
+        signed::SignedDouble,
+        AccountServerClient, WalletCertificate, WalletCertificateClaims,
+    },
     utils::{random_bytes, random_string},
-    wallet::signed::SignedDouble,
-    wp::{instructions::Registration, AccountServerClient, WalletCertificate, WalletCertificateClaims},
 };
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
@@ -162,12 +165,7 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(test)]
 pub mod tests {
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, pkcs8::EncodePrivateKey};
-
-    use crate::{
-        utils::random_bytes,
-        wp::{instructions, AccountServer},
-    };
+    use super::*;
 
     pub fn new_account_server() -> (AccountServer, Vec<u8>) {
         let as_privkey = SigningKey::random(&mut OsRng);
@@ -193,8 +191,7 @@ pub mod tests {
 
         // Register
         let challenge = account_server.registration_challenge().unwrap();
-        let registration_message =
-            instructions::Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).unwrap();
+        let registration_message = Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).unwrap();
         let cert = account_server.register(registration_message).unwrap();
 
         // Verify the certificate

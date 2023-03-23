@@ -1,16 +1,13 @@
-pub mod pin_key;
-pub mod signed;
-pub mod signing_key;
-
-use crate::{
-    pin::validate_pin,
-    wp::{instructions, AccountServerClient, WalletCertificate},
-};
-
 use anyhow::Result;
 use platform_support::hw_keystore::PlatformSigningKey;
 
-use self::pin_key::{new_pin_salt, PinKey};
+use crate::{
+    account::{
+        client::{instructions::Registration, AccountServerClient, WalletCertificate},
+        pin_key::{new_pin_salt, PinKey},
+    },
+    pin::validate_pin,
+};
 
 pub struct Wallet<T, S> {
     account_server: T,
@@ -42,7 +39,7 @@ where
         let challenge = self.account_server.registration_challenge()?;
         let pin_key = PinKey::new(&pin, &self.pin_salt);
 
-        let registration_message = instructions::Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
+        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
         self.registration_cert = Some(cert);
@@ -53,14 +50,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
 
-    use super::Wallet;
-
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
+        let (account_server, account_server_pubkey) = crate::account::client::server::tests::new_account_server();
         let mut wallet = Wallet::new(account_server, account_server_pubkey, SigningKey::random(&mut OsRng));
 
         assert!(wallet.register("123456".to_owned()).is_err());
