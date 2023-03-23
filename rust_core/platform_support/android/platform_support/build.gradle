@@ -17,7 +17,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -50,7 +50,13 @@ dependencies {
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+// Target directory for the Rust library files & bindings
+def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
+def moduleWorkingDir = "${project.projectDir}/../../"
+def bindingsTargetDir = "${project.projectDir}/../../kotlin"
 
 // Register a task to build the Rust code and copy the resulting library files
 [
@@ -67,7 +73,7 @@ dependencies {
         }
     }
     tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
-        workingDir "../../"
+        workingDir moduleWorkingDir
 
         fileTree("$workingDir").matching {
             include "**/*.udl"
@@ -83,13 +89,13 @@ dependencies {
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-        workingDir "../../"
+        workingDir moduleWorkingDir
         executable = 'cargo'
         args = ['ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
-                '-o', 'android/platform_support/src/main/jniLibs',
+                '-o', jniTargetDir,
                 'build'
         ]
         if(profileMode != null) {
@@ -101,8 +107,9 @@ dependencies {
 }
 
 clean.doFirst {
-    println "Cleaning ${rootDir}/../rust_core/platform_support/kotlin/uniffi/hw_keystore"
-    delete "${rootDir}/../rust_core/platform_support/kotlin/uniffi/hw_keystore"
-    println "Cleaning ${rootDir}/platform_support/src/main/jniLibs"
-    delete "${rootDir}/platform_support/src/main/jniLibs"
+    println "Cleaning $jniTargetDir"
+    delete jniTargetDir
+
+    println "Cleaning $bindingsTargetDir"
+    delete bindingsTargetDir
 }
