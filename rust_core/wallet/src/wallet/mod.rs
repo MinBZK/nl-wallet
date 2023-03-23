@@ -3,7 +3,10 @@ pub mod pin_key;
 pub mod signed;
 pub mod signing_key;
 
-use crate::wp::{instructions, AccountServerClient, WalletCertificate};
+use crate::{
+    validate_pin,
+    wp::{instructions, AccountServerClient, WalletCertificate},
+};
 
 use anyhow::Result;
 use platform_support::hw_keystore::PlatformSigningKey;
@@ -35,6 +38,8 @@ where
     }
 
     pub fn register(&mut self, pin: String) -> Result<()> {
+        validate_pin(&pin)?;
+
         let challenge = self.account_server.registration_challenge()?;
         let pin_key = PinKey::new(&pin, &self.pin_salt);
 
@@ -59,7 +64,9 @@ mod tests {
         let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
         let mut wallet = Wallet::new(account_server, account_server_pubkey, SigningKey::random(&mut OsRng));
 
-        wallet.register("123456".to_owned()).unwrap();
+        assert!(wallet.register("123456".to_owned()).is_err());
+
+        wallet.register("112233".to_owned()).unwrap();
 
         assert!(wallet.registration_cert.is_some());
         dbg!(wallet.registration_cert.unwrap().0);
