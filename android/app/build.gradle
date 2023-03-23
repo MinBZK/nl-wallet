@@ -110,7 +110,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
     def taskPostfix = it.key
     def profileMode = it.value
     tasks.whenTaskAdded { task ->
-        if (task.name == "javaPreCompile$taskPostfix") {
+        if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
