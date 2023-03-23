@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
 use crate::{
-    jwt::{Jwt, JwtClaims},
+    jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
     serialization::Base64Bytes,
     utils::{random_bytes, random_string},
     wallet::signed::SignedDouble,
@@ -168,7 +168,7 @@ impl AccountServer {
     ) -> Result<RegistrationChallengeClaims> {
         Jwt::parse_and_verify(
             &String::from_utf8(challenge.to_owned())?.into(),
-            &self.pubkey,
+            EcdsaDecodingKey::from_pkix(&self.pubkey)?,
         )
     }
 
@@ -235,9 +235,14 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(test)]
 pub mod tests {
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, pkcs8::EncodePrivateKey};
+    use p256::{
+        ecdsa::SigningKey,
+        elliptic_curve::rand_core::OsRng,
+        pkcs8::{EncodePrivateKey, EncodePublicKey},
+    };
 
     use crate::{
+        jwt::EcdsaDecodingKey,
         utils::random_bytes,
         wp::{instructions, AccountServer, RemoteAccountServer},
     };
@@ -255,7 +260,8 @@ pub mod tests {
             .unwrap(),
             as_privkey
                 .verifying_key()
-                .to_encoded_point(false)
+                .to_public_key_der()
+                .unwrap()
                 .as_bytes()
                 .to_vec(),
         )
@@ -278,7 +284,9 @@ pub mod tests {
         let cert = account_server.register(registration_message).unwrap();
 
         // Verify the certificate
-        let cert_data = cert.parse_and_verify(&account_server_pubkey).unwrap();
+        let cert_data = cert
+            .parse_and_verify(EcdsaDecodingKey::from_pkix(&account_server_pubkey).unwrap())
+            .unwrap();
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
