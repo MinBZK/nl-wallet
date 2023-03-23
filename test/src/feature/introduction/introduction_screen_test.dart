@@ -7,44 +7,54 @@ import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
 
 void main() {
-  group('Golden Tests', () {
-    testGoldens(
-      'Accessibility Test',
-      (tester) async {
-        final deviceBuilder = DeviceUtils.accessibilityDeviceBuilder;
-        deviceBuilder.addScenario(
-          widget: const IntroductionScreen(),
-          name: 'page_1',
-        );
-        deviceBuilder.addScenario(
-          widget: const IntroductionScreen(),
-          name: 'page_2',
-          onCreate: (scenarioWidgetKey) async {
-            await _skipPage(scenarioWidgetKey, tester);
-          },
-        );
-        deviceBuilder.addScenario(
-          widget: const IntroductionScreen(),
-          name: 'page_3',
-          onCreate: (scenarioWidgetKey) async {
-            await _skipPage(scenarioWidgetKey, tester);
-            await _skipPage(scenarioWidgetKey, tester);
-          },
-        );
-        deviceBuilder.addScenario(
-          widget: const IntroductionScreen(),
-          name: 'page_4',
-          onCreate: (scenarioWidgetKey) async {
-            await _skipPage(scenarioWidgetKey, tester);
-            await _skipPage(scenarioWidgetKey, tester);
-            await _skipPage(scenarioWidgetKey, tester);
-          },
-        );
+  DeviceBuilder deviceBuilder(WidgetTester tester) {
+    return DeviceUtils.accessibilityDeviceBuilder
+      ..addScenario(
+        widget: const IntroductionScreen(),
+        name: 'page_1',
+      )
+      ..addScenario(
+        widget: const IntroductionScreen(),
+        name: 'page_2',
+        onCreate: (scenarioWidgetKey) async {
+          await _skipPage(scenarioWidgetKey, tester);
+        },
+      )
+      ..addScenario(
+        widget: const IntroductionScreen(),
+        name: 'page_3',
+        onCreate: (scenarioWidgetKey) async {
+          await _skipPage(scenarioWidgetKey, tester);
+          await _skipPage(scenarioWidgetKey, tester);
+        },
+      )
+      ..addScenario(
+        widget: const IntroductionScreen(),
+        name: 'page_4',
+        onCreate: (scenarioWidgetKey) async {
+          await _skipPage(scenarioWidgetKey, tester);
+          await _skipPage(scenarioWidgetKey, tester);
+          await _skipPage(scenarioWidgetKey, tester);
+        },
+      );
+  }
 
-        await tester.pumpDeviceBuilder(deviceBuilder, wrapper: walletAppWrapper());
-        await screenMatchesGolden(tester, 'accessibility_scaling');
-      },
-    );
+  group('Golden Tests', () {
+    testGoldens('Accessibility Light Test', (tester) async {
+      await tester.pumpDeviceBuilder(
+        deviceBuilder(tester),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'accessibility_light');
+    });
+
+    testGoldens('Accessibility Dark Test', (tester) async {
+      await tester.pumpDeviceBuilder(
+        deviceBuilder(tester),
+        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      );
+      await screenMatchesGolden(tester, 'accessibility_dark');
+    });
   });
 }
 
