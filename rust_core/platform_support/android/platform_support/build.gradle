@@ -69,6 +69,7 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
     tasks.whenTaskAdded { task ->
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeBindings$taskPostfix"
+        } else if (task.name == "connected${taskPostfix}AndroidTest") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
