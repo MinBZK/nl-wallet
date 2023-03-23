@@ -10,15 +10,19 @@ import 'package:wallet/src/theme/wallet_theme.dart';
 /// Makes sure the theme, translations and MediaQuery is provided.
 class WalletAppTestWidget extends StatelessWidget {
   final Widget child;
+  final Brightness brightness;
 
-  const WalletAppTestWidget({required this.child, Key? key}) : super(key: key);
+  const WalletAppTestWidget({
+    required this.child,
+    this.brightness = Brightness.light,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
       debugShowCheckedModeBanner: false,
-      theme: WalletTheme.light,
-      darkTheme: WalletTheme.dark,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -34,12 +38,12 @@ class WalletAppTestWidget extends StatelessWidget {
   }
 }
 
-WidgetWrapper walletAppWrapper({List<BlocProvider>? providers}) {
+WidgetWrapper walletAppWrapper({Brightness brightness = Brightness.light, List<BlocProvider>? providers}) {
   return (child) {
-    if (providers == null) return WalletAppTestWidget(child: child);
+    if (providers == null) return WalletAppTestWidget(brightness: brightness, child: child);
     return MultiBlocProvider(
       providers: providers,
-      child: WalletAppTestWidget(child: child),
+      child: WalletAppTestWidget(brightness: brightness, child: child),
     );
   };
 }

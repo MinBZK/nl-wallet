@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +15,8 @@ class MockSplashBloc extends MockBloc<SplashEvent, SplashState> implements Splas
 void main() {
   final SplashBloc splashBloc = MockSplashBloc();
 
+  final deviceBuilder = DeviceUtils.accessibilityDeviceBuilder..addScenario(widget: const SplashScreen());
+
   setUp(() {
     whenListen(
       splashBloc,
@@ -22,20 +26,25 @@ void main() {
   });
 
   group('Golden Tests', () {
-    testGoldens(
-      'Accessibility Test',
-      (tester) async {
-        final deviceBuilder = DeviceUtils.accessibilityDeviceBuilder;
-        deviceBuilder.addScenario(widget: const SplashScreen());
+    testGoldens('Accessibility Light Test', (tester) async {
+      await tester.pumpDeviceBuilder(
+        deviceBuilder,
+        wrapper: walletAppWrapper(
+          providers: [BlocProvider<SplashBloc>(create: (c) => splashBloc)],
+        ),
+      );
+      await screenMatchesGolden(tester, 'accessibility_light');
+    });
 
-        await tester.pumpDeviceBuilder(
-          deviceBuilder,
-          wrapper: walletAppWrapper(
-            providers: [BlocProvider<SplashBloc>(create: (c) => splashBloc)],
-          ),
-        );
-        await screenMatchesGolden(tester, 'accessibility_scaling');
-      },
-    );
+    testGoldens('Accessibility Dark Test', (tester) async {
+      await tester.pumpDeviceBuilder(
+        deviceBuilder,
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [BlocProvider<SplashBloc>(create: (c) => splashBloc)],
+        ),
+      );
+      await screenMatchesGolden(tester, 'accessibility_dark');
+    });
   });
 }

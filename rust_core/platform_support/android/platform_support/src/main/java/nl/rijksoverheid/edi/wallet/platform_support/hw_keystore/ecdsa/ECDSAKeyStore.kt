@@ -1,4 +1,4 @@
-// Inspired by IRMAMobile: https://github.com/privacybydesign/irmamobile/blob/master/android/app/src/main/java/foundation/privacybydesign/irmamobile/irma_mobile_bridge/ECDSA.java
+// Inspired by IRMAMobile: https://github.com/privacybydesign/irmamobile/blob/v6.4.1/android/app/src/main/java/foundation/privacybydesign/irmamobile/irma_mobile_bridge/ECDSA.java
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa
 
 import android.app.KeyguardManager
@@ -8,6 +8,8 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log
+import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.SigningKeyBridge
 import java.security.KeyPairGenerator
@@ -33,9 +35,18 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
             return myKM?.isKeyguardLocked == true
         }
 
+    @Throws(uniffi.hw_keystore.KeyStoreException::class)
     override fun getOrCreateKey(identifier: String): SigningKeyBridge {
-        if (!keyExists(identifier)) generateKey(identifier)
-        return ECDSAKey(identifier)
+        try {
+            if (!keyExists(identifier)) generateKey(identifier)
+            val key = ECDSAKey(identifier)
+            val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
+            if (!key.isHardwareBacked && !allowSoftwareBackedKeys) throw ECDSAErrors.MISSING_HARDWARE.asKeyException()
+            return key
+        } catch (ex: Exception) {
+            if (ex is uniffi.hw_keystore.KeyStoreException) throw ex
+            throw ECDSAErrors.CREATE.asKeyException()
+        }
     }
 
     @Throws(KeyStoreException::class)
@@ -46,7 +57,7 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
         NoSuchAlgorithmException::class,
         IllegalStateException::class
     )
-    private fun generateKey(keyAlias: String): ByteArray {
+    private fun generateKey(keyAlias: String) {
         if (isDeviceLocked) {
             throw IllegalStateException("Key generation not allowed while device is locked")
         }
@@ -62,10 +73,9 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             spec.setIsStrongBoxBacked(true)
         }
-        val keyPairGenerator =
-            KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, keyStoreProvider)
-        keyPairGenerator.initialize(spec.build())
-        val kp = keyPairGenerator.generateKeyPair()
-        return kp.public.encoded
+        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, keyStoreProvider).apply {
+            initialize(spec.build())
+            generateKeyPair()
+        }
     }
 }

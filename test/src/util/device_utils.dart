@@ -14,7 +14,7 @@ class DeviceUtils {
   static const pixel2LandscapeLarge =
       Device(size: Size(566, 346), name: 'pixel2_landscape_large', textScale: 1.3, devicePixelRatio: 3.125);
 
-  static const accessibilityScalingTestDevices = [
+  static final _accessibilityDevices = [
     pixel2Portrait,
     pixel2PortraitLarge,
     pixel2Landscape,
@@ -22,5 +22,5 @@ class DeviceUtils {
   ];
 
   static DeviceBuilder get accessibilityDeviceBuilder =>
-      DeviceBuilder()..overrideDevicesForAllScenarios(devices: accessibilityScalingTestDevices);
+      DeviceBuilder()..overrideDevicesForAllScenarios(devices: _accessibilityDevices);
 }
