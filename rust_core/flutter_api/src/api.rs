@@ -1,11 +1,11 @@
 use anyhow::Result;
 
-use wallet::{validate_pin, WALLET};
+use wallet::{pin::validate_pin, WALLET};
 
-use crate::models::pin::PinResult;
+use crate::models::pin::PinValidationResult;
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
-    let pin_result = PinResult::from(validate_pin(&pin));
+    let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()
 }
 
@@ -22,7 +22,7 @@ mod tests {
         let serialized_pin_result = is_valid_pin(pin.to_owned());
         let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
         match pin_result {
-            PinResult::Ok => true,
+            PinValidationResult::Ok => true,
             _ => false,
         }
     }

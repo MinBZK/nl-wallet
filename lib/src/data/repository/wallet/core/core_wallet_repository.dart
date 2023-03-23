@@ -8,7 +8,7 @@ import '../wallet_repository.dart';
 
 class CoreWalletRepository implements WalletRepository {
   final TypedRustCore _rustCore;
-  final Mapper<PinResult, PinValidationError?> _pinValidationErrorMapper;
+  final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
   CoreWalletRepository(this._rustCore, this._pinValidationErrorMapper);
 

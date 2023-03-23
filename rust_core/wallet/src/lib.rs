@@ -1,6 +1,8 @@
-// Prevent dead code warnings since the lower 4 modules are not exposed in the `api` module yet.
+// Prevent dead code warnings since the lower 4 modules are not exposed publically yet.
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
+
+pub mod pin;
 
 mod jwt;
 mod serialization;
@@ -14,8 +16,6 @@ use platform_support::hw_keystore::{PlatformSigningKey, PreferredPlatformSigning
 use std::sync::Mutex;
 
 use crate::{wallet::Wallet, wp::AccountServer};
-
-pub use crate::wallet::pin::{validate_pin, PinError};
 
 const WALLET_KEY_ID: &str = "wallet";
 

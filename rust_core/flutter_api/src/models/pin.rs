@@ -1,23 +1,23 @@
 use serde::{Deserialize, Serialize};
-use wallet::PinError;
+use wallet::pin::PinValidationError;
 
-impl From<Result<(), PinError>> for PinResult {
-    fn from(source: Result<(), PinError>) -> Self {
+impl From<Result<(), PinValidationError>> for PinValidationResult {
+    fn from(source: Result<(), PinValidationError>) -> Self {
         match source {
-            Ok(()) => PinResult::Ok,
+            Ok(()) => PinValidationResult::Ok,
             Err(err) => match err {
-                PinError::NonDigits => PinResult::OtherError,
-                PinError::InvalidLength => PinResult::OtherError,
-                PinError::TooFewUniqueDigits => PinResult::TooFewUniqueDigitsError,
-                PinError::AscendingDigits => PinResult::SequentialDigitsError,
-                PinError::DescendingDigits => PinResult::SequentialDigitsError,
+                PinValidationError::NonDigits => PinValidationResult::OtherError,
+                PinValidationError::InvalidLength => PinValidationResult::OtherError,
+                PinValidationError::TooFewUniqueDigits => PinValidationResult::TooFewUniqueDigitsError,
+                PinValidationError::AscendingDigits => PinValidationResult::SequentialDigitsError,
+                PinValidationError::DescendingDigits => PinValidationResult::SequentialDigitsError,
             },
         }
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum PinResult {
+pub enum PinValidationResult {
     Ok,
     TooFewUniqueDigitsError,
     SequentialDigitsError,

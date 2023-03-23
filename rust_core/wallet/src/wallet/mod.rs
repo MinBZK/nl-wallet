@@ -1,10 +1,9 @@
-pub mod pin;
 pub mod pin_key;
 pub mod signed;
 pub mod signing_key;
 
 use crate::{
-    validate_pin,
+    pin::validate_pin,
     wp::{instructions, AccountServerClient, WalletCertificate},
 };
 

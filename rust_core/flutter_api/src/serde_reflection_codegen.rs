@@ -5,14 +5,14 @@ use const_format::formatcp;
 use serde_reflection::{Registry, Tracer, TracerConfig};
 use std::{env, path::PathBuf};
 
-use crate::models::pin::PinResult;
+use crate::models::pin::PinValidationResult;
 
 const MODULE_NAME: &str = "core_domain";
 const DART_OUTPUT_PATH: &str = formatcp!("{}/../../pub/{}", env!("CARGO_MANIFEST_DIR"), MODULE_NAME);
 
 fn main() -> Result<()> {
     let mut tracer = Tracer::new(TracerConfig::default());
-    tracer.trace_simple_type::<PinResult>().unwrap();
+    tracer.trace_simple_type::<PinValidationResult>().unwrap();
     let registry = tracer.registry().unwrap();
 
     generate_dart(&registry)
