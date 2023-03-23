@@ -82,5 +82,7 @@ class LightWalletTheme {
     backgroundColor: sheetBackgroundColor,
   );
 
+  static final iconTheme = IconThemeData(color: colorScheme.onBackground);
+
 //endregion Modified (colored) BaseThemes
 }
