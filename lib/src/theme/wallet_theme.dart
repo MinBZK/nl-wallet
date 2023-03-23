@@ -14,6 +14,7 @@ class WalletTheme {
   );
 
   static ThemeData light = _baseTheme.copyWith(
+    brightness: Brightness.light,
     colorScheme: LightWalletTheme.colorScheme,
     primaryColorDark: LightWalletTheme.primaryColorDark,
     dividerTheme: LightWalletTheme.dividerTheme,
@@ -27,9 +28,11 @@ class WalletTheme {
     scrollbarTheme: LightWalletTheme.scrollBarTheme,
     bottomSheetTheme: LightWalletTheme.bottomSheetTheme,
     scaffoldBackgroundColor: LightWalletTheme.colorScheme.background,
+    iconTheme: LightWalletTheme.iconTheme,
   );
 
   static ThemeData dark = _baseTheme.copyWith(
+    brightness: Brightness.dark,
     colorScheme: DarkWalletTheme.colorScheme,
     primaryColorDark: DarkWalletTheme.primaryColorDark,
     dividerTheme: DarkWalletTheme.dividerTheme,
@@ -43,5 +46,6 @@ class WalletTheme {
     scrollbarTheme: DarkWalletTheme.scrollBarTheme,
     bottomSheetTheme: DarkWalletTheme.bottomSheetTheme,
     scaffoldBackgroundColor: DarkWalletTheme.colorScheme.background,
+    iconTheme: DarkWalletTheme.iconTheme,
   );
 }
