@@ -79,7 +79,7 @@ This test simply uses the crate to create a new private key, get its public key,
 
 ### Android
 
-To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/rust_core/platform_support/android` directory.
+To run the Android integration tests: execute `./gradlew platform_support:connectedAndroidTest` from the `/rust_core/platform_support/android` directory.
 
 ### iOS
 
