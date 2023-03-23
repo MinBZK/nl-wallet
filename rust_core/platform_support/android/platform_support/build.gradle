@@ -67,14 +67,13 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
     def taskPostfix = it.key
     def profileMode = it.value
     tasks.whenTaskAdded { task ->
-        if (task.name == "javaPreCompile$taskPostfix") {
+        if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeBindings$taskPostfix"
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
     tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
         workingDir moduleWorkingDir
-
         fileTree("$workingDir").matching {
             include "**/*.udl"
         }.each {
