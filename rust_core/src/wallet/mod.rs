@@ -2,9 +2,12 @@ pub mod pin;
 pub mod pin_key;
 pub mod signed;
 
-use crate::wp::{instructions, AccountServerClient, WalletCertificate};
+use crate::{
+    jwt::EcdsaDecodingKey,
+    wp::{instructions, AccountServerClient, WalletCertificate},
+};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
 use self::pin_key::new_pin_salt;
@@ -47,7 +50,14 @@ where
             &pin,
             &challenge,
         )?;
+
         let cert = self.account_server.register(registration_message)?;
+
+        let cert_claims =
+            cert.parse_and_verify(EcdsaDecodingKey::from_pkix(&self.account_server_pubkey)?)?;
+        if cert_claims.hw_pubkey.0 != *self.hw_privkey.verifying_key() {
+            return Err(anyhow!("hardware pubkey did not match"));
+        }
 
         self.registration_cert = Some(cert);
 
@@ -60,7 +70,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
 
-    use crate::wp::RemoteAccountServer;
+    use crate::{jwt::EcdsaDecodingKey, wp::RemoteAccountServer};
 
     use super::Wallet;
 
@@ -68,20 +78,30 @@ mod tests {
     fn it_works() {
         // let (account_server, account_server_pubkey) = crate::wp::tests::new_account_server();
 
-        // let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUWwta1ybkzhRlnkVzIwDm/90alpzi6uEPXKu4vsiyOFiYNz1Ei1GVL0mNMKVUYxAjuFlYlxOf6JGkiC95RSQrA==";
-        let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEouA9ULF8VKuBdHQZoaIBMIFKjo+kOAu6nDDWc9b9gw8Hf4USfFNXZUgJi37KZA6ZCTng/GBBGMzgc2T+OxXjnw==";
-        let url = "http://localhost:9000".to_owned();
+        // let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUWwta1ybkzhRlnkVzIwDm/90alpzi6uEPXKu4vsiyOFiYNz1Ei1GVL0mNMKVUYxAjuFlYlxOf6JGkiC95RSQrA==".as_bytes().to_vec();
         // let url = "https://SSSS".to_owned();
+
+        let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEouA9ULF8VKuBdHQZoaIBMIFKjo+kOAu6nDDWc9b9gw8Hf4USfFNXZUgJi37KZA6ZCTng/GBBGMzgc2T+OxXjnw==".as_bytes().to_vec();
+        let url = "http://localhost:9000".to_owned();
+
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        let pubkey = STANDARD.decode(pubkey).unwrap();
 
         let mut wallet = Wallet::new(
             RemoteAccountServer::new(url),
-            pubkey.as_bytes().to_vec(),
+            pubkey.clone(),
             SigningKey::random(&mut OsRng),
         );
 
         wallet.register("123456".to_owned()).unwrap();
 
         assert!(wallet.registration_cert.is_some());
-        dbg!(wallet.registration_cert.unwrap().0);
+        dbg!(&wallet.registration_cert.as_ref().unwrap().0);
+        dbg!(wallet
+            .registration_cert
+            .as_ref()
+            .unwrap()
+            .parse_and_verify(EcdsaDecodingKey::from_pkix(&pubkey).unwrap())
+            .unwrap());
     }
 }
