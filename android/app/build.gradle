@@ -55,6 +55,12 @@ android {
         }
     }
 
+    packagingOptions {
+        // Exclude the platform_support.so files that are added by the
+        // platform_support module, as this code is also in librust_core.so
+        exclude 'lib/**/libplatform_support.so'
+    }
+
     defaultConfig {
         applicationId "nl.rijksoverheid.edi.wallet"
         // You can update the following values to match your application needs.
