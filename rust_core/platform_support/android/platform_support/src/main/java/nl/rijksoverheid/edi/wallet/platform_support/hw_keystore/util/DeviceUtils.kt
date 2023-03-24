@@ -3,6 +3,10 @@ package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util
 import android.os.Build
 
 object DeviceUtils {
+    /**
+     * Returns {@code true} if the app is likely running on an emulator.
+     * WARNING: This could easily be spoofed on a rooted device.
+     */
     val isRunningOnEmulator: Boolean
         get() = (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
                 || Build.FINGERPRINT.startsWith("generic")
