@@ -248,7 +248,7 @@ mod tests {
             .parse_and_verify(
                 challenge,
                 hw_privkey.verifying_key(),
-                &pin_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
             )
             .unwrap();
 

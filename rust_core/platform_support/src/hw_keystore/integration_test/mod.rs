@@ -1,7 +1,7 @@
 #[cfg(all(feature = "hardware-integration-test"))]
 pub mod hardware;
 
-use p256::ecdsa::{signature::Verifier, VerifyingKey};
+use p256::ecdsa::signature::Verifier;
 
 use crate::hw_keystore::PlatformSigningKey;
 
@@ -25,7 +25,5 @@ pub fn sign_and_verify_signature<K: PlatformSigningKey>(
     let signature = key2.try_sign(payload).expect("Could not sign payload");
 
     // Then verify the signature, which should work if they indeed use the same private key
-    VerifyingKey::from(public_key)
-        .verify(payload, &signature)
-        .is_ok()
+    public_key.verify(payload, &signature).is_ok()
 }
