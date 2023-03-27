@@ -15,12 +15,16 @@ private const val libraryOverridePropertyKey = "uniffi.component.hw_keystore.lib
 
 class HWKeystoreInitializer : Initializer<HWKeyStore> {
     override fun create(context: Context): HWKeyStore {
-        val appInfo = context.packageManager.getApplicationInfoCompat(
-            context.packageName,
-            PackageManager.GET_META_DATA
-        )
-        appInfo.metaData.getString(libraryOverrideManifestKey)?.let { libraryOverride ->
-            System.setProperty(libraryOverridePropertyKey, libraryOverride)
+        // Catch exception because metadata (manifest) is not available during tests.
+        // Consumed because a more descriptive error is thrown if the property is not set.
+        runCatching {
+            val appInfo = context.packageManager.getApplicationInfoCompat(
+                context.packageName,
+                PackageManager.GET_META_DATA
+            )
+            appInfo.metaData.getString(libraryOverrideManifestKey)?.let { libraryOverride ->
+                System.setProperty(libraryOverridePropertyKey, libraryOverride)
+            }
         }
         return HWKeyStore(context)
     }
