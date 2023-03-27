@@ -14,6 +14,46 @@ import XCTest
 final class SecureEnclaveKeyTests: XCTestCase {
     static let identifiers = ["key_identifier1", "key_identifier2"]
 
+    private static func errorMessage(for unmanagedError: Unmanaged<CFError>?) -> String {
+        guard let unmanagedError else {
+            return "Unknown error"
+        }
+
+        let error = unmanagedError.takeRetainedValue()
+
+        return error.localizedDescription
+    }
+
+    private static func publicKey(for key: SecureEnclaveKey) -> SecKey {
+        var error: Unmanaged<CFError>?
+        let publicKeyAttributes: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeEC,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPublic
+        ]
+
+        let der = try! key.publicKey()[26...]
+        let publicKey = SecKeyCreateWithData(der as CFData, publicKeyAttributes as CFDictionary, &error)
+
+        guard let publicKey else {
+            preconditionFailure("Could not decode public key: \(Self.errorMessage(for: error))")
+        }
+
+        return publicKey
+    }
+
+    private static func isValid(signature: Data, for payload: Data, with key: SecureEnclaveKey) -> Bool {
+        var error: Unmanaged<CFError>?
+        let publicKey = self.publicKey(for: key)
+
+        let isValid = SecKeyVerifySignature(publicKey, .ecdsaSignatureMessageX962SHA256, payload as CFData, signature as CFData, &error)
+
+        if let error, CFErrorGetCode(error.takeRetainedValue()) != errSecVerifyFailed {
+            preconditionFailure("Could not verify signature: \(Self.errorMessage(for: error))")
+        }
+
+        return isValid
+    }
+
     override func tearDown() {
         for identifier in Self.identifiers {
             let query: [String: Any] = [
@@ -41,11 +81,17 @@ final class SecureEnclaveKeyTests: XCTestCase {
 
         XCTAssertGreaterThan(try! key1.publicKey().count, 0)
         XCTAssertEqual(try! key1.publicKey(),
+                       try! key1.publicKey(),
+                       "Public keys from the same source should be equal")
+        XCTAssertEqual(try! key1.publicKey(),
                        try! key1Again.publicKey(),
                        "Public keys for the same identifier should be equal")
         XCTAssertNotEqual(try! key1.publicKey(),
                           try! key2.publicKey(),
                           "Public keys for different identifiers should differ")
+
+        let _ = Self.publicKey(for: key1)
+        let _ = Self.publicKey(for: key2)
     }
 
     func testSign() {
@@ -65,5 +111,10 @@ final class SecureEnclaveKeyTests: XCTestCase {
         XCTAssertNotEqual(signature1, signature1Repeat, "Signatures signed with the same key instance should differ")
         XCTAssertNotEqual(signature1, signature1Again, "Signatures signed with the same key should differ")
         XCTAssertNotEqual(signature1, signature2, "Signatures signed with a different key should differ")
+
+        XCTAssertTrue(Self.isValid(signature: signature1, for: message, with: key1), "Signature should be valid")
+        XCTAssertTrue(Self.isValid(signature: signature1Repeat, for: message, with: key1), "Signature should be valid")
+        XCTAssertTrue(Self.isValid(signature: signature1Again, for: message, with: key1), "Signature should be valid")
+        XCTAssertTrue(Self.isValid(signature: signature2, for: message, with: key2), "Signature should be valid")
     }
 }
