@@ -55,6 +55,12 @@ android {
         }
     }
 
+    packagingOptions {
+        // Exclude the platform_support.so files that are added by the
+        // platform_support module, as this code is also in librust_core.so
+        exclude 'lib/**/libplatform_support.so'
+    }
+
     defaultConfig {
         applicationId "nl.rijksoverheid.edi.wallet"
         // You can update the following values to match your application needs.
@@ -112,7 +118,16 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
     tasks.whenTaskAdded { task ->
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
+        } else if (task.name == "connected${taskPostfix}AndroidTest") {
+            // In case of Android (instrumented) tests, we need to reset the
+            // config override used when building the Flutter Android app
+            // coming from gradle.properties, to test the `platform_support`
+            // module in isolation.
+            task.dependsOn "cargoBuildNativeBindingsResetConfigOverride$taskPostfix"
         }
+    }
+    tasks.register("cargoBuildNativeBindingsResetConfigOverride$taskPostfix") {
+        System.setProperty("uniffi.config.file", "")
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../rust_core"

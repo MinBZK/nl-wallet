@@ -5,6 +5,7 @@ import android.os.Build
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import android.util.Log
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa.KeyStoreKeyError.*
 import uniffi.hw_keystore.SigningKeyBridge
 import java.security.KeyFactory
 import java.security.KeyStore
@@ -27,8 +28,8 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     override fun publicKey(): List<UByte> {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.map { it.toUByte() }
-        } catch (e: Exception) {
-            throw ECDSAErrors.DERIVE.asKeyException()
+        } catch (ex: Exception) {
+            throw DeriveKeyError(ex).keyException
         }
     }
 
@@ -44,9 +45,9 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
             when (ex) {
                 is UnrecoverableKeyException,
                 is NoSuchAlgorithmException,
-                is KeyStoreException -> throw ECDSAErrors.FETCH.asKeyException()
+                is KeyStoreException -> throw FetchKeyError(ex).keyException
             }
-            throw ECDSAErrors.SIGN.asKeyException()
+            throw SignKeyError(ex).keyException
         }
     }
 
