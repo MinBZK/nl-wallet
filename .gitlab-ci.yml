@@ -94,8 +94,8 @@ test-rust-analyze:
     - find rust_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
     - git diff --stat
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
-    - cargo clippy --manifest-path rust_core/Cargo.toml -- -Dwarnings
-    - grep ^exclude rust_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path rust_core/{}/Cargo.toml -- -Dwarnings
+    - cargo clippy --manifest-path rust_core/Cargo.toml --all-features --tests -- -Dwarnings
+    - grep ^exclude rust_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path rust_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
 
 test-codegen:
   stage: test
