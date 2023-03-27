@@ -214,7 +214,7 @@ mod tests {
         println!("{}", signed.0);
 
         let verified = signed
-            .parse_and_verify(challenge, hw_privkey.verifying_key(), &pin_privkey.verifying_key())
+            .parse_and_verify(challenge, hw_privkey.verifying_key(), pin_privkey.verifying_key())
             .unwrap();
 
         dbg!(verified);
