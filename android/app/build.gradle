@@ -32,7 +32,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
-   keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -58,7 +58,9 @@ android {
     packagingOptions {
         // Exclude the platform_support.so files that are added by the
         // platform_support module, as this code is also in librust_core.so
-        exclude 'lib/**/libplatform_support.so'
+        jniLibs {
+            excludes += "**/libplatform_support.so"
+        }
     }
 
     defaultConfig {
@@ -72,12 +74,12 @@ android {
     }
 
     signingConfigs {
-       release {
-           keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProperties['keyPassword']
-           storeFile keystoreProperties['storeFile'] ? file('../' + keystoreProperties['storeFile']) : null
-           storePassword keystoreProperties['storePassword']
-       }
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file('../' + keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
     }
 
     buildTypes {
