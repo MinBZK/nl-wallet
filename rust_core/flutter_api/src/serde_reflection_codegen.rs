@@ -24,7 +24,7 @@ fn generate_dart(registry: &Registry) -> Result<()> {
         .with_encodings(vec![serde_generate::Encoding::Bincode])
         .with_c_style_enums(true);
     let generator = serde_generate::dart::CodeGenerator::new(&config);
-    let result = generator.output(PathBuf::from(DART_OUTPUT_PATH), &registry)?;
+    generator.output(PathBuf::from(DART_OUTPUT_PATH), registry)?;
 
-    Ok(result)
+    Ok(())
 }

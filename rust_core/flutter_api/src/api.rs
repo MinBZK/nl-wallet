@@ -21,10 +21,7 @@ mod tests {
     fn test_is_valid_pin(pin: &str) -> bool {
         let serialized_pin_result = is_valid_pin(pin.to_owned());
         let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
-        match pin_result {
-            PinValidationResult::Ok => true,
-            _ => false,
-        }
+        matches!(pin_result, PinValidationResult::Ok)
     }
 
     #[test]
