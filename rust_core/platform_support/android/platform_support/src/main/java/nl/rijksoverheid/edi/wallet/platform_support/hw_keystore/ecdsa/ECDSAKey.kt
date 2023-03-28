@@ -5,7 +5,10 @@ import android.os.Build
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa.KeyStoreKeyError.*
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toUByteList
 import uniffi.hw_keystore.SigningKeyBridge
 import java.security.KeyFactory
 import java.security.KeyStore
@@ -17,6 +20,9 @@ import java.security.UnrecoverableKeyException
 
 private const val keyStoreProvider = "AndroidKeyStore"
 
+@VisibleForTesting
+const val signatureAlgorithm = "SHA256withECDSA"
+
 class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     private val keyStore: KeyStore = KeyStore.getInstance(keyStoreProvider)
 
@@ -27,7 +33,7 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     @Throws(uniffi.hw_keystore.KeyStoreException.KeyException::class)
     override fun publicKey(): List<UByte> {
         try {
-            return keyStore.getCertificate(keyAlias).publicKey.encoded.map { it.toUByte() }
+            return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
         } catch (ex: Exception) {
             throw DeriveKeyError(ex).keyException
         }
@@ -36,11 +42,11 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     @Throws(uniffi.hw_keystore.KeyStoreException.KeyException::class)
     override fun sign(payload: List<UByte>): List<UByte> {
         try {
-            val signature = Signature.getInstance("SHA256withECDSA")
+            val signature = Signature.getInstance(signatureAlgorithm)
             val privateKey = keyStore.getKey(keyAlias, null) as PrivateKey
             signature.initSign(privateKey)
-            signature.update(payload.map { it.toByte() }.toByteArray())
-            return signature.sign().map { it.toUByte() }
+            signature.update(payload.toByteArray())
+            return signature.sign().toUByteList()
         } catch (ex: Exception) {
             when (ex) {
                 is UnrecoverableKeyException,
