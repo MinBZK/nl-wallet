@@ -170,7 +170,7 @@ class ECDSAKeyInstrumentedTest {
         val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
         val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
         val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
-        val signature = Signature.getInstance(signatureAlgorithm)
+        val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
         signature.initVerify(publicKey)
         signature.update(payload)
         return signature.verify(signatureBytes)

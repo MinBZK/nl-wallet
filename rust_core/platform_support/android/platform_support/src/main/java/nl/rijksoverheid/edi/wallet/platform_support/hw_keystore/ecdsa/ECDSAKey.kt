@@ -18,13 +18,14 @@ import java.security.PrivateKey
 import java.security.Signature
 import java.security.UnrecoverableKeyException
 
-private const val keyStoreProvider = "AndroidKeyStore"
+private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
+private const val SECURITY_LEVEL_UNSUPPORTED = -999
 
 @VisibleForTesting
-const val signatureAlgorithm = "SHA256withECDSA"
+const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
 class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
-    private val keyStore: KeyStore = KeyStore.getInstance(keyStoreProvider)
+    private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
 
     init {
         keyStore.load(null)
@@ -42,7 +43,7 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     @Throws(uniffi.hw_keystore.KeyStoreException.KeyException::class)
     override fun sign(payload: List<UByte>): List<UByte> {
         try {
-            val signature = Signature.getInstance(signatureAlgorithm)
+            val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
             val privateKey = keyStore.getKey(keyAlias, null) as PrivateKey
             signature.initSign(privateKey)
             signature.update(payload.toByteArray())
@@ -60,10 +61,7 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
     val isHardwareBacked: Boolean
         get() {
             try {
-                val privateKey = keyStore.getKey(keyAlias, null)
-                val keyFactory: KeyFactory =
-                    KeyFactory.getInstance(privateKey.algorithm, keyStoreProvider)
-                val keyInfo: KeyInfo = keyFactory.getKeySpec(privateKey, KeyInfo::class.java)
+                val keyInfo = this.keyInfo
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     if (keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT) return true
                     if (keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX) return true
@@ -78,4 +76,28 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
             }
         }
 
+    /**
+     * Returns the securityLevel of this key, falls back to providing
+     * our own [SECURITY_LEVEL_UNSUPPORTED] on devices with API level < 31.
+     */
+    val securityLevelCompat: Int
+        get() {
+            try {
+                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    keyInfo.securityLevel
+                } else {
+                    return SECURITY_LEVEL_UNSUPPORTED
+                }
+            } catch (ex: Exception) {
+                return SECURITY_LEVEL_UNSUPPORTED
+            }
+        }
+
+    private val keyInfo: KeyInfo
+        get() {
+            val privateKey = keyStore.getKey(keyAlias, null)
+            val keyFactory: KeyFactory =
+                KeyFactory.getInstance(privateKey.algorithm, KEYSTORE_PROVIDER)
+            return keyFactory.getKeySpec(privateKey, KeyInfo::class.java)
+        }
 }

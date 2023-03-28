@@ -42,8 +42,11 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
             if (!keyExists(identifier)) generateKey(identifier)
             val key = ECDSAKey(identifier)
             val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
-            if (!key.isHardwareBacked && !allowSoftwareBackedKeys) throw KeyStoreKeyError.MissingHardwareError().keyException
-            return key
+            return when {
+                key.isHardwareBacked -> key
+                allowSoftwareBackedKeys -> key
+                else -> throw KeyStoreKeyError.MissingHardwareError(key.securityLevelCompat).keyException
+            }
         } catch (ex: Exception) {
             if (ex is uniffi.hw_keystore.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
