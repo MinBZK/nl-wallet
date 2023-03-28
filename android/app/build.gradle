@@ -120,16 +120,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
     tasks.whenTaskAdded { task ->
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-        } else if (task.name == "connected${taskPostfix}AndroidTest") {
-            // In case of Android (instrumented) tests, we need to reset the
-            // config override used when building the Flutter Android app
-            // coming from gradle.properties, to test the `platform_support`
-            // module in isolation.
-            task.dependsOn "cargoBuildNativeBindingsResetConfigOverride$taskPostfix"
         }
-    }
-    tasks.register("cargoBuildNativeBindingsResetConfigOverride$taskPostfix") {
-        System.setProperty("uniffi.config.file", "")
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../rust_core"

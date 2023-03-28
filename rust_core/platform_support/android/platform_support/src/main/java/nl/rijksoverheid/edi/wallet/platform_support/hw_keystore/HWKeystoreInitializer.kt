@@ -7,20 +7,24 @@ import android.os.Build
 import androidx.startup.Initializer
 
 // Any app consuming this library can (optionally) use this key to override which .so should be loaded
-private const val libraryOverrideManifestKey =
+private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
     "nl.rijksoverheid.edi.wallet.platform_support.libraryOverride"
 
 // The key used by the generated code [hw_keystore.kt] to check which .so should be loaded
-private const val libraryOverridePropertyKey = "uniffi.component.hw_keystore.libraryOverride"
+private const val LIBRARY_OVERRIDE_PROPERTY_KEY = "uniffi.component.hw_keystore.libraryOverride"
 
 class HWKeystoreInitializer : Initializer<HWKeyStore> {
     override fun create(context: Context): HWKeyStore {
-        val appInfo = context.packageManager.getApplicationInfoCompat(
-            context.packageName,
-            PackageManager.GET_META_DATA
-        )
-        appInfo.metaData.getString(libraryOverrideManifestKey)?.let { libraryOverride ->
-            System.setProperty(libraryOverridePropertyKey, libraryOverride)
+        // Catch exception because metadata (manifest) is not available during tests.
+        // Consumed because a more descriptive error is thrown if the property is not set.
+        runCatching {
+            val appInfo = context.packageManager.getApplicationInfoCompat(
+                context.packageName,
+                PackageManager.GET_META_DATA
+            )
+            appInfo.metaData.getString(LIBRARY_OVERRIDE_MANIFEST_KEY)?.let { libraryOverride ->
+                System.setProperty(LIBRARY_OVERRIDE_PROPERTY_KEY, libraryOverride)
+            }
         }
         return HWKeyStore(context)
     }

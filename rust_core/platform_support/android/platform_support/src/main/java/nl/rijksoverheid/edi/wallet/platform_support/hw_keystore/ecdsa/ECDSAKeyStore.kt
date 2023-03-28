@@ -8,6 +8,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
 import uniffi.hw_keystore.KeyStoreBridge
@@ -41,13 +42,21 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
             if (!keyExists(identifier)) generateKey(identifier)
             val key = ECDSAKey(identifier)
             val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
-            if (!key.isHardwareBacked && !allowSoftwareBackedKeys) throw KeyStoreKeyError.MissingHardwareError().keyException
-            return key
+            return when {
+                key.isHardwareBacked -> key
+                allowSoftwareBackedKeys -> key
+                else -> throw KeyStoreKeyError.MissingHardwareError(key.securityLevelCompat).keyException
+            }
         } catch (ex: Exception) {
             if (ex is uniffi.hw_keystore.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
         }
     }
+
+    @VisibleForTesting
+    fun clean() = keyStore.aliases().asSequence().forEach(::deleteEntry)
+
+    private fun deleteEntry(identifier: String) = keyStore.deleteEntry(identifier)
 
     @Throws(KeyStoreException::class)
     private fun keyExists(keyAlias: String): Boolean = keyStore.containsAlias(keyAlias)

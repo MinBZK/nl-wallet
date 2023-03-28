@@ -11,7 +11,8 @@ sealed class KeyStoreKeyError(private val ex: Exception) {
     class SignKeyError(ex: Exception) : KeyStoreKeyError(ex)
     class CreateKeyError(ex: Exception) : KeyStoreKeyError(ex)
     class FetchKeyError(ex: Exception) : KeyStoreKeyError(ex)
-    class MissingHardwareError : KeyStoreKeyError(Exception("No keystore hardware"))
+    class MissingHardwareError(keySecurityLevel: Int?) :
+        KeyStoreKeyError(Exception("Key security level: $keySecurityLevel"))
 
     val keyException: KeyException
         get() {
