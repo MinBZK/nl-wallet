@@ -22,8 +22,8 @@ import kotlin.text.Charsets.US_ASCII
 class ECDSAKeyInstrumentedTest {
 
     companion object {
-        private const val key1Identifier = "key1"
-        private const val key2Identifier = "key2"
+        private const val KEY_1_IDENTIFIER = "key1"
+        private const val KEY_2_IDENTIFIER = "key2"
     }
 
 
@@ -42,8 +42,8 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_init() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(key1Identifier)
-        val key1again = ecdsaKeyStore.getOrCreateKey(key1Identifier)
+        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER)
+        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER)
         assertNotEquals(
             "Keys with same identifier are wrapped in different objects",
             key1,
@@ -53,9 +53,9 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_pub_key() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
-        val key1again = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(key2Identifier) as ECDSAKey
+        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
         assertEquals(
             "Keys with the same identifier should be equal",
             key1.publicKey(),
@@ -70,9 +70,9 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_sign() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
-        val key1again = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(key2Identifier) as ECDSAKey
+        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
 
 
         val message = "This is a message that will be signed."
@@ -105,7 +105,7 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_verify_signature() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
+        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
 
         val signature1 = key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
@@ -132,8 +132,8 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_signature_mismatch() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(key1Identifier) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(key2Identifier) as ECDSAKey
+        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
         val otherMessage = "Some other message"
         assertNotEquals(
