@@ -82,18 +82,12 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
             // Use file name as module name
             String moduleName = it.name.take(it.name.lastIndexOf('.'))
 
-            // UniFFI configuration override
-            String uniffiConfigFile = System.getProperty("uniffi.config.file")
-
             // Generate Kotlin <> Rust bindings
             executable = 'sh'
             args = ['generate_native_bindings.sh',
                     "$moduleName",
                     'kotlin'
             ]
-            if (uniffiConfigFile != null) {
-                args += [uniffiConfigFile]
-            }
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
