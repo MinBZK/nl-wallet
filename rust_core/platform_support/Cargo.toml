@@ -1,0 +1,30 @@
+[package]
+name = "platform_support"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["hardware"]
+hardware = ["dep:uniffi", "dep:once_cell", "spki/std"]
+software = ["dep:once_cell", "dep:rand_core"]
+integration-test = []
+hardware-integration-test = ["hardware", "integration-test", "dep:jni"]
+
+[lib]
+crate-type = ["staticlib", "cdylib", "lib"]
+
+[dependencies]
+thiserror = "1.0.38"
+p256 = "0.12.0"
+spki = "0.6.0"
+never = "0.1.0"
+uniffi = { version = "0.23.0", optional = true }
+once_cell = { version = "1.17.1", optional = true }
+rand_core = { version = "0.6.4", optional = true }
+jni = { version = "0.21.1", optional = true }
+
+[build-dependencies]
+uniffi = { version = "0.23.0", features = ["build"], optional = true }
+
+[dev-dependencies]
+platform_support = { path = ".", features = ["integration-test"] }

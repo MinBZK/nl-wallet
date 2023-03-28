@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     serialization::DerVerifyingKey,
-    wallet::{pin_key::PinKey, signed::SignedDouble, HWBoundSigningKey},
+    wallet::{
+        signed::SignedDouble,
+        signing_key::{EphemeralSigningKey, SecureSigningKey},
+    },
     wp::WalletCertificate,
 };
 
@@ -29,22 +32,22 @@ pub struct Registration {
 
 impl Registration {
     pub fn new_signed(
-        hw_key_handle: &impl HWBoundSigningKey,
-        salt: &[u8],
-        pin: &str,
+        hw_privkey: &impl SecureSigningKey,
+        pin_privkey: &impl EphemeralSigningKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = PinKey { salt, pin }.verifying_key();
+        let pin_pubkey = pin_privkey.verifying_key()?;
+        let hw_pubkey = hw_privkey.verifying_key()?;
+
         SignedDouble::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
-                hw_pubkey: (*hw_key_handle.verifying_key()).into(),
+                hw_pubkey: hw_pubkey.into(),
             },
             challenge,
             0,
-            hw_key_handle,
-            pin,
-            salt,
+            hw_privkey,
+            pin_privkey,
         )
     }
 }
@@ -54,21 +57,18 @@ mod tests {
     use anyhow::{Ok, Result};
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
-    use crate::wallet::pin_key;
-
     use super::Registration;
 
     #[test]
     fn registration() -> Result<()> {
-        let salt = pin_key::new_pin_salt();
-        let pin = "123456";
         let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
 
         // wallet provider generates a challenge
         let challenge = b"challenge";
 
         // wallet calculates wallet provider registration message
-        let msg = Registration::new_signed(&hw_privkey, &salt, pin, challenge)?;
+        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge)?;
         println!("{}", &msg.0);
 
         let unverified = msg.dangerous_parse_unverified()?;

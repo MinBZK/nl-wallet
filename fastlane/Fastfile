@@ -152,6 +152,15 @@ platform :ios do
     deploy(bundle_id: app_identifier)
   end
 
+  desc "Test iOS app"
+  lane :test do
+    run_tests(
+      project: "rust_core/platform_support/ios/PlatformSupport.xcodeproj",
+      scheme: "PlatformSupport",
+      device: "iPhone SE (3rd generation)"
+    )
+  end
+
   desc "Build iOS app"
   lane :build do |options|
     bundle_id = options[:bundle_id] || get_app_identifier

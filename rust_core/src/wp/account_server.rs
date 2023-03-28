@@ -213,14 +213,13 @@ pub mod tests {
         let (account_server, account_server_pubkey) = new_account_server();
 
         // Setup wallet
-        let salt = crate::wallet::pin_key::new_pin_salt();
-        let pin = "123456";
         let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
 
         // Register
         let challenge = account_server.registration_challenge().unwrap();
         let registration_message =
-            instructions::Registration::new_signed(&hw_privkey, &salt, pin, &challenge).unwrap();
+            instructions::Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).unwrap();
         let cert = account_server.register(registration_message).unwrap();
 
         // Verify the certificate

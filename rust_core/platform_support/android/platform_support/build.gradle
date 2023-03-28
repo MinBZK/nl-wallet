@@ -1,0 +1,117 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'nl.rijksoverheid.edi.wallet.platform_support'
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 23
+        targetSdk 33
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main {
+            // Include native libraries
+            jniLibs.srcDirs += 'src/main/jniLibs'
+
+            // UniFFI generated bindings
+            kotlin.srcDirs += "../../kotlin"
+        }
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation "net.java.dev.jna:jna:5.7.0@aar" // Java Native Access
+    implementation "androidx.startup:startup-runtime:1.1.1" // Auto initialization
+
+    // Test dependencies
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+// Target directory for the Rust library files & bindings
+def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
+def moduleWorkingDir = "${project.projectDir}/../../"
+def bindingsTargetDir = "${project.projectDir}/../../kotlin"
+
+// Register a task to build the Rust code and copy the resulting library files
+[
+        Debug  : null,
+        Profile: '--release',
+        Release: '--release'
+].each {
+    def taskPostfix = it.key
+    def profileMode = it.value
+    tasks.whenTaskAdded { task ->
+        if (task.name == "pre${taskPostfix}Build") {
+            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
+        } else if (task.name == "connected${taskPostfix}AndroidTest") {
+            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
+        }
+    }
+    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
+        workingDir moduleWorkingDir
+        fileTree("$workingDir").matching {
+            include "**/*.udl"
+        }.each {
+
+            // Use file name as module name
+            String moduleName = it.name.take(it.name.lastIndexOf('.'))
+
+            // Generate Kotlin <> Rust bindings
+            executable = 'sh'
+            args = ['generate_native_bindings.sh',
+                    "$moduleName",
+                    'kotlin'
+            ]
+        }
+    }
+    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
+        workingDir moduleWorkingDir
+        executable = 'cargo'
+        args = ['ndk',
+                '-t', 'armeabi-v7a',
+                '-t', 'arm64-v8a',
+                '-t', 'x86_64',
+                '-o', jniTargetDir,
+                'build'
+        ]
+        if(profileMode != null) {
+            args += ['--release']
+        } else {
+            args += ['--features', 'hardware-integration-test']
+        }
+    }
+}
+
+clean.doFirst {
+    println "Cleaning $jniTargetDir"
+    delete jniTargetDir
+
+    println "Cleaning $bindingsTargetDir"
+    delete bindingsTargetDir
+}

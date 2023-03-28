@@ -1,18 +1,14 @@
 pub mod pin;
 pub mod pin_key;
 pub mod signed;
+pub mod signing_key;
 
 use crate::wp::{instructions, AccountServerClient, WalletCertificate};
 
 use anyhow::Result;
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use platform_support::hw_keystore::PlatformSigningKey;
 
-use self::pin_key::new_pin_salt;
-
-/// Handle to a hardware-bound ECDSA private key.
-pub trait HWBoundSigningKey: Signer<Signature> {
-    fn verifying_key(&self) -> &VerifyingKey;
-}
+use self::pin_key::{new_pin_salt, PinKey};
 
 pub struct Wallet<T, S> {
     account_server: T,
@@ -26,7 +22,7 @@ pub struct Wallet<T, S> {
 impl<T, S> Wallet<T, S>
 where
     T: AccountServerClient,
-    S: HWBoundSigningKey,
+    S: PlatformSigningKey,
 {
     pub fn new(account_server: T, account_server_pubkey: Vec<u8>, hw_privkey: S) -> Wallet<T, S> {
         Wallet {
@@ -40,13 +36,10 @@ where
 
     pub fn register(&mut self, pin: String) -> Result<()> {
         let challenge = self.account_server.registration_challenge()?;
+        let pin_key = PinKey::new(&pin, &self.pin_salt);
 
-        let registration_message = instructions::Registration::new_signed(
-            &self.hw_privkey,
-            &self.pin_salt,
-            &pin,
-            &challenge,
-        )?;
+        let registration_message =
+            instructions::Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
         self.registration_cert = Some(cert);

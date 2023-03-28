@@ -25,7 +25,6 @@ def overrideFlutterMinSdkVersion = 23
 def overrideFlutterTargetSdkVersion = 33
 def overrideFlutterCompileSdkVersion = 33
 
-
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
@@ -33,7 +32,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
-   keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -50,7 +49,18 @@ android {
     }
 
     sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
+        main {
+            // Include native libraries
+            jniLibs.srcDirs += 'src/main/jniLibs'
+        }
+    }
+
+    packagingOptions {
+        // Exclude the platform_support.so files that are added by the
+        // platform_support module, as this code is also in librust_core.so
+        jniLibs {
+            excludes += "**/libplatform_support.so"
+        }
     }
 
     defaultConfig {
@@ -64,17 +74,19 @@ android {
     }
 
     signingConfigs {
-       release {
-           keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProperties['keyPassword']
-           storeFile keystoreProperties['storeFile'] ? file('../' + keystoreProperties['storeFile']) : null
-           storePassword keystoreProperties['storePassword']
-       }
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file('../' + keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
             ndk {
                 abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
@@ -88,8 +100,16 @@ flutter {
 }
 
 dependencies {
+    implementation "net.java.dev.jna:jna:5.7.0@aar" // Java Native Access
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation project(path: ':platform_support')
 }
+
+// Target directory for the Rust library files
+def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
+
+// Register tasks to build the Rust code and copy the resulting library files
 [
         Debug  : null,
         Profile: '--release',
@@ -98,19 +118,27 @@ dependencies {
     def taskPostfix = it.key
     def profileMode = it.value
     tasks.whenTaskAdded { task ->
-        if (task.name == "javaPreCompile$taskPostfix") {
-            task.dependsOn "cargoBuild$taskPostfix"
+        if (task.name == "pre${taskPostfix}Build") {
+            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
-    tasks.register("cargoBuild$taskPostfix", Exec) {
+    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../rust_core"
+
+        // Build the Rust code (rust_core)
         commandLine 'cargo', 'ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
-                '-o', '../android/app/src/main/jniLibs', 'build'
+                '-o', jniTargetDir,
+                'build'
         if (profileMode != null) {
             args profileMode
         }
     }
+}
+
+clean.doFirst {
+    println "Cleaning $jniTargetDir"
+    delete jniTargetDir
 }
