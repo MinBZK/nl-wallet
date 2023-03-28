@@ -19,7 +19,6 @@ import java.security.Signature
 import java.security.UnrecoverableKeyException
 
 private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
-private const val SECURITY_LEVEL_UNSUPPORTED = -999
 
 @VisibleForTesting
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
@@ -78,20 +77,16 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
 
     /**
      * Returns the securityLevel of this key, falls back to providing
-     * our own [SECURITY_LEVEL_UNSUPPORTED] on devices with API level < 31.
+     * null on devices with API level < 31.
      */
-    val securityLevelCompat: Int
-        get() {
-            try {
-                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    keyInfo.securityLevel
-                } else {
-                    return SECURITY_LEVEL_UNSUPPORTED
-                }
-            } catch (ex: Exception) {
-                return SECURITY_LEVEL_UNSUPPORTED
+    val securityLevelCompat: Int?
+        get() = runCatching<Int> {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                keyInfo.securityLevel
+            } else {
+                null
             }
-        }
+        }.getOrNull()
 
     private val keyInfo: KeyInfo
         get() {
