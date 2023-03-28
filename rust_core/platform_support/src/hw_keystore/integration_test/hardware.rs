@@ -11,9 +11,6 @@ fn hw_keystore_test_hardware_signature() -> bool {
     sign_and_verify_signature::<HardwareSigningKey>(payload, identifier)
 }
 
-/// # Safety
-///
-/// Should only be called by Android integration test
 #[no_mangle]
 extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_hw_1keystore_HWKeyStoreInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
     _env: JNIEnv,
