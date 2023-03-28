@@ -1,5 +1,5 @@
 [workspace]
-members = ["wallet", "flutter_api"]
+members = ["wallet", "flutter_api", "platform_support"]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 
 [workspace.package]
