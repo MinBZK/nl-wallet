@@ -2,6 +2,7 @@ package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -25,6 +26,11 @@ class ECDSAKeyInstrumentedTest {
     fun setup() {
         val instrumentationContext = InstrumentationRegistry.getInstrumentation().context
         ecdsaKeyStore = ECDSAKeyStore(instrumentationContext)
+    }
+
+    @After
+    fun cleanup() {
+        ecdsaKeyStore.clean()
     }
 
     @Test
