@@ -24,3 +24,6 @@ thiserror = "1.0.39"
 platform_support = { path = "../platform_support", default-features = false, features = [
     "software",
 ] }
+
+[dev-dependencies]
+platform_support = { path = "../platform_support", features = ["software"] }
