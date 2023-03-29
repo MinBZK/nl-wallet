@@ -8,12 +8,14 @@ class PinValidationErrorMapper extends Mapper<PinValidationResult, PinValidation
   PinValidationError? map(PinValidationResult input) {
     switch (input) {
       case PinValidationResult.ok:
-        return null;
+          return null;
       case PinValidationResult.tooFewUniqueDigitsError:
         return PinValidationError.tooFewUniqueDigits;
-      case PinValidationResult.sequentialDigitsError:
+      case PinValidationResult.ascendingDigitsError:
+      case PinValidationResult.descendingDigitsError:
         return PinValidationError.sequentialDigits;
-      case PinValidationResult.otherError:
+      case PinValidationResult.nonDigitsError:
+      case PinValidationResult.invalidLengthError:
         return PinValidationError.other;
     }
   }

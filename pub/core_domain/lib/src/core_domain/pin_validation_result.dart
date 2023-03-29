@@ -2,9 +2,11 @@ part of core_domain_types;
 
 enum PinValidationResult {
   ok,
+  nonDigitsError,
+  invalidLengthError,
   tooFewUniqueDigitsError,
-  sequentialDigitsError,
-  otherError,
+  ascendingDigitsError,
+  descendingDigitsError,
 }
 
 extension PinValidationResultExtension on PinValidationResult {
@@ -12,9 +14,11 @@ extension PinValidationResultExtension on PinValidationResult {
     final index = deserializer.deserializeVariantIndex();
     switch (index) {
       case 0: return PinValidationResult.ok;
-      case 1: return PinValidationResult.tooFewUniqueDigitsError;
-      case 2: return PinValidationResult.sequentialDigitsError;
-      case 3: return PinValidationResult.otherError;
+      case 1: return PinValidationResult.nonDigitsError;
+      case 2: return PinValidationResult.invalidLengthError;
+      case 3: return PinValidationResult.tooFewUniqueDigitsError;
+      case 4: return PinValidationResult.ascendingDigitsError;
+      case 5: return PinValidationResult.descendingDigitsError;
       default: throw Exception("Unknown variant index for PinValidationResult: " + index.toString());
     }
   }
@@ -22,9 +26,11 @@ extension PinValidationResultExtension on PinValidationResult {
   void serialize(BinarySerializer serializer) {
     switch (this) {
       case PinValidationResult.ok: return serializer.serializeVariantIndex(0);
-      case PinValidationResult.tooFewUniqueDigitsError: return serializer.serializeVariantIndex(1);
-      case PinValidationResult.sequentialDigitsError: return serializer.serializeVariantIndex(2);
-      case PinValidationResult.otherError: return serializer.serializeVariantIndex(3);
+      case PinValidationResult.nonDigitsError: return serializer.serializeVariantIndex(1);
+      case PinValidationResult.invalidLengthError: return serializer.serializeVariantIndex(2);
+      case PinValidationResult.tooFewUniqueDigitsError: return serializer.serializeVariantIndex(3);
+      case PinValidationResult.ascendingDigitsError: return serializer.serializeVariantIndex(4);
+      case PinValidationResult.descendingDigitsError: return serializer.serializeVariantIndex(5);
     }
   }
 

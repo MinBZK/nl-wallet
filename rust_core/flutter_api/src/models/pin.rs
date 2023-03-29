@@ -6,11 +6,11 @@ impl From<Result<(), PinValidationError>> for PinValidationResult {
         match source {
             Ok(()) => PinValidationResult::Ok,
             Err(err) => match err {
-                PinValidationError::NonDigits => PinValidationResult::OtherError,
-                PinValidationError::InvalidLength => PinValidationResult::OtherError,
+                PinValidationError::NonDigits => PinValidationResult::NonDigitsError,
+                PinValidationError::InvalidLength => PinValidationResult::InvalidLengthError,
                 PinValidationError::TooFewUniqueDigits => PinValidationResult::TooFewUniqueDigitsError,
-                PinValidationError::AscendingDigits => PinValidationResult::SequentialDigitsError,
-                PinValidationError::DescendingDigits => PinValidationResult::SequentialDigitsError,
+                PinValidationError::AscendingDigits => PinValidationResult::AscendingDigitsError,
+                PinValidationError::DescendingDigits => PinValidationResult::DescendingDigitsError,
             },
         }
     }
@@ -19,7 +19,9 @@ impl From<Result<(), PinValidationError>> for PinValidationResult {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum PinValidationResult {
     Ok,
+    NonDigitsError,
+    InvalidLengthError,
     TooFewUniqueDigitsError,
-    SequentialDigitsError,
-    OtherError,
+    AscendingDigitsError,
+    DescendingDigitsError,
 }
