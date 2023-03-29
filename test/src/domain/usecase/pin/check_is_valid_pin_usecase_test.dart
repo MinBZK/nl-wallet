@@ -40,11 +40,11 @@ void main() {
     }
   });
 
-  test('should throw a PinValidationError.tooLittleUniqueDigits error when 555555 is provided as a pin', () async {
+  test('should throw a PinValidationError.tooFewUniqueDigits error when 555555 is provided as a pin', () async {
     try {
       await useCase.invoke('555555');
     } catch (error) {
-      expect(error, PinValidationError.tooLittleUniqueDigits);
+      expect(error, PinValidationError.tooFewUniqueDigits);
     }
   });
 }
