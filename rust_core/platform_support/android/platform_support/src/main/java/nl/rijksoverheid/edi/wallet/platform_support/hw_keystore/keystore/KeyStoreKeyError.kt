@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import uniffi.hw_keystore.KeyStoreException.*
 

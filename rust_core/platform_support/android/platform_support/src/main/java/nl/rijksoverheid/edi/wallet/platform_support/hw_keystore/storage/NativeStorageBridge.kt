@@ -1,7 +1,7 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.storage
 
 import android.content.Context
-import androidx.annotation.VisibleForTesting
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
 import uniffi.hw_keystore.StorageBridge
 import uniffi.hw_keystore.initStorage
 
@@ -9,24 +9,15 @@ import uniffi.hw_keystore.initStorage
  * This class is automatically initialized on app start through
  * the [PlatformSupportInitializer] class.
  */
-class Storage(context: Context) {
+class NativeStorageBridge(private val context: Context) : StorageBridge {
 
     init {
-        bridge = AndroidStorageBridge(context)
-        initStorage(bridge)
+        initStorage(this)
     }
 
-    companion object {
-        @VisibleForTesting
-        lateinit var bridge: StorageBridge
-    }
-}
-
-class AndroidStorageBridge(private val context: Context) : StorageBridge {
     override fun getStoragePath(): String {
         //The returned path may change over time if the calling app is moved to an
         //adopted storage device, so only relative paths should be persisted.
         return context.filesDir.absolutePath
     }
-
 }

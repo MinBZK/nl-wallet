@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.security.keystore.KeyProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,23 +27,22 @@ class ECDSAKeyInstrumentedTest {
     }
 
 
-    private lateinit var ecdsaKeyStore: ECDSAKeyStore
+    private lateinit var hwKeyStoreBridge: HwKeyStoreBridge
 
     @Before
     fun setup() {
-        val instrumentationContext = InstrumentationRegistry.getInstrumentation().context
-        ecdsaKeyStore = ECDSAKeyStore(instrumentationContext)
+        hwKeyStoreBridge = HwKeyStoreBridge.bridge as HwKeyStoreBridge
     }
 
     @After
     fun cleanup() {
-        ecdsaKeyStore.clean()
+        hwKeyStoreBridge.clean()
     }
 
     @Test
     fun test_init() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER)
-        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER)
+        val key1 = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER)
+        val key1again = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER)
         assertNotEquals(
             "Keys with same identifier are wrapped in different objects",
             key1,
@@ -53,9 +52,9 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_pub_key() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
+        val key1 = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key1again = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = hwKeyStoreBridge.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
         assertEquals(
             "Keys with the same identifier should be equal",
             key1.publicKey(),
@@ -70,9 +69,9 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_sign() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key1again = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
+        val key1 = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key1again = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = hwKeyStoreBridge.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
 
 
         val message = "This is a message that will be signed."
@@ -105,7 +104,7 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_verify_signature() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key1 = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
 
         val signature1 = key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
@@ -132,8 +131,8 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_signature_mismatch() {
-        val key1 = ecdsaKeyStore.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = ecdsaKeyStore.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
+        val key1 = hwKeyStoreBridge.getOrCreateKey(KEY_1_IDENTIFIER) as ECDSAKey
+        val key2 = hwKeyStoreBridge.getOrCreateKey(KEY_2_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
         val otherMessage = "Some other message"
         assertNotEquals(

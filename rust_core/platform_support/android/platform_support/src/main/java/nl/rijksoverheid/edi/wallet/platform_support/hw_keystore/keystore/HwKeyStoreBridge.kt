@@ -1,5 +1,5 @@
 // Inspired by IRMAMobile: https://github.com/privacybydesign/irmamobile/blob/v6.4.1/android/app/src/main/java/foundation/privacybydesign/irmamobile/irma_mobile_bridge/ECDSA.java
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.ecdsa
+package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.app.KeyguardManager
 import android.content.Context
@@ -11,10 +11,12 @@ import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.security.crypto.MasterKeys
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
 import uniffi.hw_keystore.EncryptionKeyBridge
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.SigningKeyBridge
+import uniffi.hw_keystore.initHwKeystore
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.KeyStoreException
@@ -22,14 +24,25 @@ import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
 import java.security.spec.ECGenParameterSpec
 
-private const val keyStoreProvider = "AndroidKeyStore"
+private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
 
-class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
-    private val keyStore: KeyStore = KeyStore.getInstance(keyStoreProvider)
+/**
+ * This class is automatically initialized on app start through
+ * the [PlatformSupportInitializer] class.
+ */
+class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
+    companion object {
+        @VisibleForTesting
+        lateinit var bridge: KeyStoreBridge
+    }
+
+    private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
 
     init {
         keyStore.load(null)
         Log.d("ECDSAKeyStore", "Keystore Initialized")
+        bridge = this
+        initHwKeystore(this)
     }
 
     private val isDeviceLocked: Boolean
@@ -98,7 +111,9 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             spec.setIsStrongBoxBacked(true)
         }
-        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, keyStoreProvider).apply {
+        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC,
+            KEYSTORE_PROVIDER
+        ).apply {
             initialize(spec.build())
             generateKeyPair()
         }

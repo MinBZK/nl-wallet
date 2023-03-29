@@ -1,6 +1,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.HwKeyStoreBridge
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -17,7 +18,7 @@ class HWKeyStoreInstrumentedTest {
 
     @Test
     fun hwKeyStore_isInitialised() {
-        assertNotNull(HWKeyStore.bridge)
+        assertNotNull(HwKeyStoreBridge.bridge)
     }
 
     @Test
