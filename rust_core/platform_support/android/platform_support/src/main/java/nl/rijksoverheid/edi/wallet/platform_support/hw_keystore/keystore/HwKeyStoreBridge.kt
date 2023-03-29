@@ -70,16 +70,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
 
     override fun getOrCreateSymmetricKey(): EncryptionKeyBridge {
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        return object : EncryptionKeyBridge {
-            override fun encrypt(payload: List<UByte>): List<UByte> {
-                TODO("Not yet implemented")
-            }
-
-            override fun decrypt(payload: List<UByte>): List<UByte> {
-                TODO("Not yet implemented")
-            }
-
-        }
+        return SymmetricKey(context, masterKeyAlias)
     }
 
     @VisibleForTesting
@@ -111,7 +102,8 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             spec.setIsStrongBoxBacked(true)
         }
-        KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC,
+        KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_EC,
             KEYSTORE_PROVIDER
         ).apply {
             initialize(spec.build())
