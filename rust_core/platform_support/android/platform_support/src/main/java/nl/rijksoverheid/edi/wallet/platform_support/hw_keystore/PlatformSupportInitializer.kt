@@ -13,8 +13,8 @@ private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
 // The key used by the generated code [hw_keystore.kt] to check which .so should be loaded
 private const val LIBRARY_OVERRIDE_PROPERTY_KEY = "uniffi.component.hw_keystore.libraryOverride"
 
-class HWKeystoreInitializer : Initializer<HWKeyStore> {
-    override fun create(context: Context): HWKeyStore {
+class PlatformSupportInitializer : Initializer<PlatformSupport> {
+    override fun create(context: Context): PlatformSupport {
         // Catch exception because metadata (manifest) is not available during tests.
         // Consumed because a more descriptive error is thrown if the property is not set.
         runCatching {
@@ -26,10 +26,20 @@ class HWKeystoreInitializer : Initializer<HWKeyStore> {
                 System.setProperty(LIBRARY_OVERRIDE_PROPERTY_KEY, libraryOverride)
             }
         }
-        return HWKeyStore(context)
+        return PlatformSupport(context)
     }
 
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
+}
+
+data class PlatformSupport(val context: Context) {
+    private val hwKeyStore: HWKeyStore
+    private val storage: Storage
+
+    init {
+        hwKeyStore = HWKeyStore(context)
+        storage = Storage(context)
+    }
 }
 
 private fun PackageManager.getApplicationInfoCompat(

@@ -9,8 +9,10 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.security.crypto.MasterKeys
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
+import uniffi.hw_keystore.EncryptionKeyBridge
 import uniffi.hw_keystore.KeyStoreBridge
 import uniffi.hw_keystore.SigningKeyBridge
 import java.security.KeyPairGenerator
@@ -50,6 +52,20 @@ class ECDSAKeyStore(private val context: Context) : KeyStoreBridge {
         } catch (ex: Exception) {
             if (ex is uniffi.hw_keystore.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
+        }
+    }
+
+    override fun getOrCreateSymmetricKey(): EncryptionKeyBridge {
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        return object : EncryptionKeyBridge {
+            override fun encrypt(payload: List<UByte>): List<UByte> {
+                TODO("Not yet implemented")
+            }
+
+            override fun decrypt(payload: List<UByte>): List<UByte> {
+                TODO("Not yet implemented")
+            }
+
         }
     }
 

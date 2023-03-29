@@ -8,7 +8,7 @@ import uniffi.hw_keystore.initHwKeystore
 
 /**
  * This class is automatically initialized on app start through
- * the [HWKeystoreInitializer] class.
+ * the [PlatformSupportInitializer] class.
  */
 class HWKeyStore(context: Context) {
 

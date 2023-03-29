@@ -37,11 +37,24 @@ trait KeyStoreBridge: Send + Sync + Debug {
         &self,
         identifier: String,
     ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
+
+    fn get_or_create_symmetric_key(
+        &self,
+    ) -> Result<Box<dyn EncryptionKeyBridge>, KeyStoreError>;
 }
 
 trait SigningKeyBridge: Send + Sync + Debug {
     fn public_key(&self) -> Result<Vec<u8>, KeyStoreError>;
     fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
+}
+
+trait EncryptionKeyBridge: Send + Sync + Debug {
+    fn encrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
+    fn decrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
+}
+
+trait StorageBridge: Send + Sync + Debug {
+    fn get_storage_path(&self) -> Result<String, KeyStoreError>;
 }
 
 // HardwareSigningKey wraps SigningKeyBridge from native
@@ -97,11 +110,23 @@ impl Signer<Signature> for HardwareSigningKey {
 // protect key store with mutex, so creating or fetching keys is done atomically
 static KEY_STORE: OnceCell<Mutex<Box<dyn KeyStoreBridge>>> = OnceCell::new();
 
+// protect storage with mutex
+static STORAGE: OnceCell<Mutex<Box<dyn StorageBridge>>> = OnceCell::new();
+
 fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
     let key_store = Mutex::new(bridge);
     // crash if KEY_STORE was already set
     assert!(
         KEY_STORE.set(key_store).is_ok(),
         "Cannot call init_hw_keystore() more than once"
+    )
+}
+
+fn init_storage(bridge: Box<dyn StorageBridge>) {
+    let storage = Mutex::new(bridge);
+    // crash if STORAGE was already set
+    assert!(
+        STORAGE.set(storage).is_ok(),
+        "Cannot call init_storage() more than once"
     )
 }
