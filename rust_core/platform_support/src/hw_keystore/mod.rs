@@ -10,7 +10,7 @@ pub mod integration_test;
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum HardwareKeyStoreError {
     #[cfg(feature = "hardware")]
     #[error(transparent)]
     KeyStoreError(#[from] hardware::KeyStoreError),
@@ -20,11 +20,11 @@ pub enum Error {
 }
 
 pub trait PlatformSigningKey: Signer<Signature> {
-    fn signing_key(identifier: &str) -> Result<Self, Error>
+    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Error>;
+    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError>;
     // from Signer: try_sign() and sign() methods
 }
 

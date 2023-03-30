@@ -8,7 +8,7 @@ use p256::{
 };
 use std::{fmt::Debug, sync::Mutex};
 
-use crate::hw_keystore::{Error, PlatformSigningKey};
+use crate::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
@@ -51,7 +51,7 @@ impl HardwareSigningKey {
 }
 
 impl PlatformSigningKey for HardwareSigningKey {
-    fn signing_key(identifier: &str) -> Result<Self, Error> {
+    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock
         let key_store = KEY_STORE
             .get()
@@ -64,7 +64,7 @@ impl PlatformSigningKey for HardwareSigningKey {
         Ok(key)
     }
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
         let public_key_bytes = self.bridge.public_key()?;
         let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
