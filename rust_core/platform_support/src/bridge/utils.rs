@@ -1,12 +1,7 @@
 use once_cell::sync::OnceCell;
 use std::{fmt::Debug, sync::Mutex};
 
-// implementation of UtilitiesError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum UtilitiesError {
-    #[error("Bridging error: {reason:?}")]
-    BridgingError { reason: String },
-}
+use crate::utils::error::UtilitiesError;
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for UtilitiesError {

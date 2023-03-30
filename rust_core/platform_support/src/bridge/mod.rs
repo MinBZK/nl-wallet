@@ -3,9 +3,9 @@ pub mod utils;
 
 use self::{
     hw_keystore::{init_hw_keystore, EncryptionKeyBridge, KeyStoreBridge, SigningKeyBridge},
-    utils::{init_utilities, UtilitiesBridge, UtilitiesError},
+    utils::{init_utilities, UtilitiesBridge},
 };
-use crate::hw_keystore::error::KeyStoreError;
+use crate::{hw_keystore::error::KeyStoreError, utils::error::UtilitiesError};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("platform_support");

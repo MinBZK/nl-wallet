@@ -1,4 +1,5 @@
 pub mod hw_keystore;
+pub mod utils;
 
 #[cfg(feature = "hardware")]
 mod bridge;
