@@ -24,11 +24,11 @@ pub trait PlatformSigningKey: Signer<Signature> {
 
 // if the hardware feature is enabled, prefer HardwareSigningKey
 #[cfg(feature = "hardware")]
-pub type PreferredPlatformSigningKey = crate::hw_keystore::hardware::HardwareSigningKey;
+pub type PreferredPlatformSigningKey = self::hardware::HardwareSigningKey;
 
 // otherwise if the software feature is enabled, prefer SoftwareSigningKey
 #[cfg(all(not(feature = "hardware"), feature = "software"))]
-pub type PreferredPlatformSigningKey = crate::hw_keystore::software::SoftwareSigningKey;
+pub type PreferredPlatformSigningKey = self::software::SoftwareSigningKey;
 
 // otherwise just just alias the Never type
 #[cfg(not(any(feature = "hardware", feature = "software")))]
