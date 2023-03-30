@@ -23,10 +23,7 @@ fn parse_pin_to_digits(pin: &str) -> Result<Vec<u8>, PinError> {
     if digit_options.iter().any(|c| c.is_none()) {
         Err(PinError::NonDigits)
     } else {
-        let digits: Vec<u8> = digit_options
-            .into_iter()
-            .map(|c| c.unwrap() as u8)
-            .collect();
+        let digits: Vec<u8> = digit_options.into_iter().map(|c| c.unwrap() as u8).collect();
         Ok(digits)
     }
 }

@@ -31,11 +31,9 @@ impl EcdsaDecodingKey {
     pub fn from_pkix(key: &[u8]) -> Result<Self> {
         // `from_ec_der()` accepts exclusively a bare SEC1 encoded key (which is in fact a custom encoding and not DER at all).
         // But `from_ec_pem()` also accepts ASN.1 DER-encoded PKIX keys.
-        Ok(
-            DecodingKey::from_ec_pem(der_to_pem(key, "PUBLIC KEY")?.as_bytes())
-                .map_err(anyhow::Error::msg)?
-                .into(),
-        )
+        Ok(DecodingKey::from_ec_pem(der_to_pem(key, "PUBLIC KEY")?.as_bytes())
+            .map_err(anyhow::Error::msg)?
+            .into())
     }
 
     pub fn from_sec1(key: &[u8]) -> Result<Self> {
@@ -87,17 +85,12 @@ struct JwtPayload<T> {
 }
 
 impl<T> Serialize for Jwt<T> {
-    fn serialize<S: serde::Serializer>(
-        &self,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         String::serialize(&self.0, serializer)
     }
 }
 impl<'de, T> Deserialize<'de> for Jwt<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> std::result::Result<Self, D::Error> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         String::deserialize(deserializer).map(Jwt::from)
     }
 }

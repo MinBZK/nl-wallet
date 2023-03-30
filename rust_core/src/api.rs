@@ -22,11 +22,7 @@ static WALLET: Lazy<Mutex<Wallet<AccountServer, SigningKey>>> = Lazy::new(|| {
     let account_server = AccountServer::new_stub(); // TODO
     let pubkey = account_server.pubkey.clone();
 
-    Mutex::new(Wallet::new(
-        account_server,
-        pubkey,
-        SigningKey::random(&mut OsRng),
-    ))
+    Mutex::new(Wallet::new(account_server, pubkey, SigningKey::random(&mut OsRng)))
 });
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {

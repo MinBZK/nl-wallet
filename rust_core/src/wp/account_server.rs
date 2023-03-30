@@ -16,9 +16,7 @@ use crate::{
     serialization::Base64Bytes,
     utils::{random_bytes, random_string},
     wallet::signed::SignedDouble,
-    wp::{
-        instructions::Registration, AccountServerClient, WalletCertificate, WalletCertificateClaims,
-    },
+    wp::{instructions::Registration, AccountServerClient, WalletCertificate, WalletCertificateClaims},
 };
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
@@ -84,10 +82,7 @@ impl AccountServerClient for RemoteAccountServer {
         Ok(challenge)
     }
 
-    fn register(
-        &self,
-        registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate> {
+    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
         #[derive(Deserialize)]
         struct Certificate {
             certificate: WalletCertificate,
@@ -108,10 +103,7 @@ impl AccountServerClient for AccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
         AccountServer::registration_challenge(self)
     }
-    fn register(
-        &self,
-        registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate> {
+    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
         AccountServer::register(self, registration_message)
     }
 }
@@ -135,11 +127,7 @@ impl AccountServer {
     pub fn new_stub() -> AccountServer {
         let account_server_privkey = SigningKey::random(&mut OsRng);
         AccountServer::new(
-            account_server_privkey
-                .to_pkcs8_der()
-                .unwrap()
-                .as_bytes()
-                .to_vec(),
+            account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
             random_bytes(32),
             "stub_account_server".into(),
         )
@@ -162,20 +150,14 @@ impl AccountServer {
         .to_vec())
     }
 
-    fn verify_registration_challenge(
-        &self,
-        challenge: &[u8],
-    ) -> Result<RegistrationChallengeClaims> {
+    fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
         Jwt::parse_and_verify(
             &String::from_utf8(challenge.to_owned())?.into(),
             EcdsaDecodingKey::from_pkix(&self.pubkey)?,
         )
     }
 
-    pub fn register(
-        &self,
-        registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate> {
+    pub fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
         // We don't have the public keys yet against which to verify the message, as those are contained within the
         // message (like in X509 certificate requests). So first parse it to grab the public keys from it.
         let unverified = registration_message.dangerous_parse_unverified()?;
@@ -188,10 +170,7 @@ impl AccountServer {
         let signed = registration_message.parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)?;
 
         if signed.serial_number != 0 {
-            return Err(anyhow!(
-                "serial_number was {}, expected 0",
-                signed.serial_number
-            ));
+            return Err(anyhow!("serial_number was {}, expected 0", signed.serial_number));
         }
 
         self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)
@@ -279,8 +258,7 @@ pub mod tests {
 
         // Register
         let challenge = account_server.registration_challenge().unwrap();
-        let registration_message =
-            instructions::Registration::new_signed(&hw_privkey, &salt, pin, &challenge).unwrap();
+        let registration_message = instructions::Registration::new_signed(&hw_privkey, &salt, pin, &challenge).unwrap();
         let cert = account_server.register(registration_message).unwrap();
 
         // Verify the certificate
@@ -295,11 +273,9 @@ pub mod tests {
     #[test]
     fn reqwest() {
         dbg!(String::from_utf8(
-            RemoteAccountServer::new(
-                "https://SSSS".to_owned(),
-            )
-            .registration_challenge()
-            .unwrap()
+            RemoteAccountServer::new("https://SSSS".to_owned(),)
+                .registration_challenge()
+                .unwrap()
         )
         .unwrap());
     }

@@ -32,8 +32,5 @@ pub type WalletCertificate = Jwt<WalletCertificateClaims>;
 
 pub trait AccountServerClient {
     fn registration_challenge(&self) -> Result<Vec<u8>>;
-    fn register(
-        &self,
-        registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate>;
+    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
 }

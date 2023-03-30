@@ -146,8 +146,7 @@ mod tests {
     use crate::{
         utils::random_bytes,
         wallet::pin_key::{
-            bytes_to_ecdsa_scalar, new_pin_salt, pin_private_key, pin_public_key, u256_to_u384,
-            u384_to_u256,
+            bytes_to_ecdsa_scalar, new_pin_salt, pin_private_key, pin_public_key, u256_to_u384, u384_to_u256,
         },
     };
     use anyhow::Result;
@@ -168,10 +167,7 @@ mod tests {
     fn test_conversion() {
         let x = U256::random(&mut OsRng);
         assert_eq!(x, u384_to_u256(&u256_to_u384(&x)));
-        assert_eq!(
-            NistP256::ORDER,
-            u384_to_u256(&u256_to_u384(&NistP256::ORDER))
-        );
+        assert_eq!(NistP256::ORDER, u384_to_u256(&u256_to_u384(&NistP256::ORDER)));
     }
 
     #[test]

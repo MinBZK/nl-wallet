@@ -44,17 +44,12 @@ where
     pub fn register(&mut self, pin: String) -> Result<()> {
         let challenge = self.account_server.registration_challenge()?;
 
-        let registration_message = instructions::Registration::new_signed(
-            &self.hw_privkey,
-            &self.pin_salt,
-            &pin,
-            &challenge,
-        )?;
+        let registration_message =
+            instructions::Registration::new_signed(&self.hw_privkey, &self.pin_salt, &pin, &challenge)?;
 
         let cert = self.account_server.register(registration_message)?;
 
-        let cert_claims =
-            cert.parse_and_verify(EcdsaDecodingKey::from_pkix(&self.account_server_pubkey)?)?;
+        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_pkix(&self.account_server_pubkey)?)?;
         if cert_claims.hw_pubkey.0 != *self.hw_privkey.verifying_key() {
             return Err(anyhow!("hardware pubkey did not match"));
         }
