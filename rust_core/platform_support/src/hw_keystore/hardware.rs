@@ -6,8 +6,11 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use super::{Error, PlatformSigningKey};
-use crate::bridge::hw_keystore::{KeyStoreError, SigningKeyBridge, KEY_STORE};
+use super::{
+    error::{HardwareKeyStoreError, KeyStoreError},
+    PlatformSigningKey,
+};
+use crate::bridge::hw_keystore::{SigningKeyBridge, KEY_STORE};
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
@@ -21,7 +24,7 @@ impl HardwareSigningKey {
 }
 
 impl PlatformSigningKey for HardwareSigningKey {
-    fn signing_key(identifier: &str) -> Result<Self, Error> {
+    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock
         let key_store = KEY_STORE
             .get()
@@ -34,7 +37,7 @@ impl PlatformSigningKey for HardwareSigningKey {
         Ok(key)
     }
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
         let public_key_bytes = self.bridge.public_key()?;
         let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 

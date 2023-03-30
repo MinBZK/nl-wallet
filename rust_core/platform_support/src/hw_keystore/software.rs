@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Mutex};
 
 pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 
-use super::{Error, PlatformSigningKey};
+use super::{HardwareKeyStoreError, PlatformSigningKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, p256::ecdsa::SigningKey>>> =
@@ -14,7 +14,7 @@ static SIGNING_KEYS: Lazy<Mutex<HashMap<String, p256::ecdsa::SigningKey>>> =
 // SigningKey from p256::ecdsa conforms to the SigningKey trait
 // if we provide an implementation for the signing_key and verifying_key methods.
 impl PlatformSigningKey for SoftwareSigningKey {
-    fn signing_key(identifier: &str) -> Result<Self, Error> {
+    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
         // obtain lock on SIGNING_KEYS static hashmap
         let mut signing_keys = SIGNING_KEYS
             .lock()
@@ -29,7 +29,7 @@ impl PlatformSigningKey for SoftwareSigningKey {
         Ok(key.clone())
     }
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Error> {
+    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
         let verifying_key = *self.verifying_key();
 
         Ok(verifying_key)

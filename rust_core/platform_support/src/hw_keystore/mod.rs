@@ -1,3 +1,5 @@
+pub mod error;
+
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
@@ -9,22 +11,14 @@ pub mod integration_test;
 
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[cfg(feature = "hardware")]
-    #[error(transparent)]
-    KeyStoreError(#[from] crate::bridge::hw_keystore::KeyStoreError),
-    #[cfg(feature = "hardware")]
-    #[error("Error decoding public key from hardware: {0:?}")]
-    PublicKeyError(#[from] p256::pkcs8::spki::Error),
-}
+use self::error::HardwareKeyStoreError;
 
 pub trait PlatformSigningKey: Signer<Signature> {
-    fn signing_key(identifier: &str) -> Result<Self, Error>
+    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Error>;
+    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError>;
     // from Signer: try_sign() and sign() methods
 }
 

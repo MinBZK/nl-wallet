@@ -1,14 +1,7 @@
 use once_cell::sync::OnceCell;
 use std::{fmt::Debug, sync::Mutex};
 
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("Key error: {reason:?}")]
-    KeyError { reason: String },
-    #[error("Bridging error: {reason:?}")]
-    BridgingError { reason: String },
-}
+use crate::hw_keystore::error::KeyStoreError;
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
