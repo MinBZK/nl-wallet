@@ -10,11 +10,16 @@ import Foundation
 final class KeyStore {}
 
 extension KeyStore: KeyStoreBridge {
-    func getOrCreateKey(identifier: String) throws -> SigningKeyBridge {
+    func getOrCreateSigningKey(identifier: String) throws -> SigningKeyBridge {
         do {
             return try SigningKey(key: SecureEnclaveKey(identifier: identifier))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }
+    }
+    
+    func getOrCreateEncryptionKey(identifier: String) throws -> EncryptionKeyBridge {
+        //TODO: Implement getOrCreateEncryptionKey
+        fatalError("Not yet implemented")
     }
 }

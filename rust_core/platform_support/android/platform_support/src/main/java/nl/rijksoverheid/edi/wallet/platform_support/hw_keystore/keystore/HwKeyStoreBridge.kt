@@ -52,10 +52,11 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         }
 
     @Throws(uniffi.hw_keystore.KeyStoreException::class)
-    override fun getOrCreateKey(identifier: String): SigningKeyBridge {
+    override fun getOrCreateSigningKey(identifier: String): SigningKeyBridge {
+        val id = "ecdsa_$identifier"
         try {
-            if (!keyExists(identifier)) generateKey(identifier)
-            val key = ECDSAKey(identifier)
+            if (!keyExists(id)) generateKey(id)
+            val key = ECDSAKey(id)
             val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
             return when {
                 key.isHardwareBacked -> key
@@ -68,7 +69,9 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         }
     }
 
-    override fun getOrCreateSymmetricKey(): EncryptionKeyBridge {
+    override fun getOrCreateEncryptionKey(identifier: String): EncryptionKeyBridge {
+        //TODO: Create key manually
+        val id = "aes_$identifier"
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         return SymmetricKey(context, masterKeyAlias)
     }

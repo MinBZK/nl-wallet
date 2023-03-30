@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.startup.Initializer
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.HwKeyStoreBridge
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.storage.NativeStorageBridge
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.utilities.NativeUtilitiesBridge
 
 // Any app consuming this library can (optionally) use this key to override which .so should be loaded
 private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
@@ -37,7 +37,7 @@ class PlatformSupportInitializer : Initializer<PlatformSupport> {
 data class PlatformSupport(val context: Context) {
     init {
         HwKeyStoreBridge(context)
-        NativeStorageBridge(context)
+        NativeUtilitiesBridge(context)
     }
 }
 

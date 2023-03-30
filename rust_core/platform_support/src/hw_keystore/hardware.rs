@@ -22,6 +22,13 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
+// implementation of UtilitiesError from UDL
+#[derive(Debug, thiserror::Error)]
+pub enum UtilitiesError {
+    #[error("Bridging error: {reason:?}")]
+    BridgingError { reason: String },
+}
+
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
     fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
@@ -31,15 +38,25 @@ impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
     }
 }
 
+// this is required to catch UnexpectedUniFFICallbackError
+impl From<uniffi::UnexpectedUniFFICallbackError> for UtilitiesError {
+    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
+        Self::BridgingError {
+            reason: value.reason,
+        }
+    }
+}
+
 // the callback traits defined in the UDL, which we have write out here ourselves
 trait KeyStoreBridge: Send + Sync + Debug {
-    fn get_or_create_key(
+    fn get_or_create_signing_key(
         &self,
         identifier: String,
     ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
 
-    fn get_or_create_symmetric_key(
+    fn get_or_create_encryption_key(
         &self,
+        identifier: String,
     ) -> Result<Box<dyn EncryptionKeyBridge>, KeyStoreError>;
 }
 
@@ -53,8 +70,8 @@ trait EncryptionKeyBridge: Send + Sync + Debug {
     fn decrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
 }
 
-trait StorageBridge: Send + Sync + Debug {
-    fn get_storage_path(&self) -> Result<String, KeyStoreError>;
+trait UtilitiesBridge: Send + Sync + Debug {
+    fn get_storage_path(&self) -> Result<String, UtilitiesError>;
 }
 
 // HardwareSigningKey wraps SigningKeyBridge from native
@@ -76,7 +93,7 @@ impl PlatformSigningKey for HardwareSigningKey {
             .expect("KEY_STORE used before init_hw_keystore() was called")
             .lock()
             .expect("Could not get lock on KEY_STORE");
-        let bridge = key_store.get_or_create_key(identifier.to_string())?;
+        let bridge = key_store.get_or_create_signing_key(identifier.to_string())?;
         let key = HardwareSigningKey::new(bridge);
 
         Ok(key)
@@ -110,8 +127,8 @@ impl Signer<Signature> for HardwareSigningKey {
 // protect key store with mutex, so creating or fetching keys is done atomically
 static KEY_STORE: OnceCell<Mutex<Box<dyn KeyStoreBridge>>> = OnceCell::new();
 
-// protect storage with mutex
-static STORAGE: OnceCell<Mutex<Box<dyn StorageBridge>>> = OnceCell::new();
+// protect utilities with mutex
+static UTILITIES: OnceCell<Mutex<Box<dyn UtilitiesBridge>>> = OnceCell::new();
 
 fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
     let key_store = Mutex::new(bridge);
@@ -122,11 +139,11 @@ fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
     )
 }
 
-fn init_storage(bridge: Box<dyn StorageBridge>) {
-    let storage = Mutex::new(bridge);
+fn init_utilities(bridge: Box<dyn UtilitiesBridge>) {
+    let utilities = Mutex::new(bridge);
     // crash if STORAGE was already set
     assert!(
-        STORAGE.set(storage).is_ok(),
-        "Cannot call init_storage() more than once"
+        UTILITIES.set(utilities).is_ok(),
+        "Cannot call init_utilities() more than once"
     )
 }
