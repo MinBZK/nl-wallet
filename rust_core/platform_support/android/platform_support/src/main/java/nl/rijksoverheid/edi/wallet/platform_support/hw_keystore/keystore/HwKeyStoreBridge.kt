@@ -13,10 +13,10 @@ import androidx.security.crypto.MasterKeys
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
-import uniffi.hw_keystore.EncryptionKeyBridge
-import uniffi.hw_keystore.KeyStoreBridge
-import uniffi.hw_keystore.SigningKeyBridge
-import uniffi.hw_keystore.initHwKeystore
+import uniffi.platform_support.EncryptionKeyBridge
+import uniffi.platform_support.KeyStoreBridge
+import uniffi.platform_support.SigningKeyBridge
+import uniffi.platform_support.initHwKeystore
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.KeyStoreException
@@ -51,7 +51,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
             return myKM?.isKeyguardLocked == true
         }
 
-    @Throws(uniffi.hw_keystore.KeyStoreException::class)
+    @Throws(uniffi.platform_support.KeyStoreException::class)
     override fun getOrCreateSigningKey(identifier: String): SigningKeyBridge {
         val id = "ecdsa_$identifier"
         try {
@@ -64,7 +64,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
                 else -> throw KeyStoreKeyError.MissingHardwareError(key.securityLevelCompat).keyException
             }
         } catch (ex: Exception) {
-            if (ex is uniffi.hw_keystore.KeyStoreException) throw ex
+            if (ex is uniffi.platform_support.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
         }
     }

@@ -9,7 +9,7 @@ import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.KeyStoreKeyError.*
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toUByteList
-import uniffi.hw_keystore.SigningKeyBridge
+import uniffi.platform_support.SigningKeyBridge
 import java.security.KeyFactory
 import java.security.KeyStore
 import java.security.KeyStoreException
@@ -30,7 +30,7 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
         keyStore.load(null)
     }
 
-    @Throws(uniffi.hw_keystore.KeyStoreException.KeyException::class)
+    @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
     override fun publicKey(): List<UByte> {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
@@ -39,7 +39,7 @@ class ECDSAKey(private val keyAlias: String) : SigningKeyBridge {
         }
     }
 
-    @Throws(uniffi.hw_keystore.KeyStoreException.KeyException::class)
+    @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
     override fun sign(payload: List<UByte>): List<UByte> {
         try {
             val signature = Signature.getInstance(SIGNATURE_ALGORITHM)

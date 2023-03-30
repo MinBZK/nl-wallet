@@ -13,7 +13,7 @@ use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 pub enum Error {
     #[cfg(feature = "hardware")]
     #[error(transparent)]
-    KeyStoreError(#[from] hardware::KeyStoreError),
+    KeyStoreError(#[from] crate::bridge::hw_keystore::KeyStoreError),
     #[cfg(feature = "hardware")]
     #[error("Error decoding public key from hardware: {0:?}")]
     PublicKeyError(#[from] p256::pkcs8::spki::Error),

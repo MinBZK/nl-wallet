@@ -2,7 +2,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.content.Context
-import uniffi.hw_keystore.EncryptionKeyBridge
+import uniffi.platform_support.EncryptionKeyBridge
 import java.security.KeyStore
 
 private const val KEYSTORE_PROVIDER = "AndroidKeyStore"

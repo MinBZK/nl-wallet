@@ -1,4 +1,3 @@
-use once_cell::sync::OnceCell;
 use p256::{
     ecdsa::{
         signature::{Error as SignerError, Signer},
@@ -6,73 +5,9 @@ use p256::{
     },
     pkcs8::DecodePublicKey,
 };
-use std::{fmt::Debug, sync::Mutex};
 
-use crate::hw_keystore::{Error, PlatformSigningKey};
-
-// import generated Rust bindings
-uniffi::include_scaffolding!("hw_keystore");
-
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("Key error: {reason:?}")]
-    KeyError { reason: String },
-    #[error("Bridging error: {reason:?}")]
-    BridgingError { reason: String },
-}
-
-// implementation of UtilitiesError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum UtilitiesError {
-    #[error("Bridging error: {reason:?}")]
-    BridgingError { reason: String },
-}
-
-// this is required to catch UnexpectedUniFFICallbackError
-impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
-    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
-        Self::BridgingError {
-            reason: value.reason,
-        }
-    }
-}
-
-// this is required to catch UnexpectedUniFFICallbackError
-impl From<uniffi::UnexpectedUniFFICallbackError> for UtilitiesError {
-    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
-        Self::BridgingError {
-            reason: value.reason,
-        }
-    }
-}
-
-// the callback traits defined in the UDL, which we have write out here ourselves
-trait KeyStoreBridge: Send + Sync + Debug {
-    fn get_or_create_signing_key(
-        &self,
-        identifier: String,
-    ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
-
-    fn get_or_create_encryption_key(
-        &self,
-        identifier: String,
-    ) -> Result<Box<dyn EncryptionKeyBridge>, KeyStoreError>;
-}
-
-trait SigningKeyBridge: Send + Sync + Debug {
-    fn public_key(&self) -> Result<Vec<u8>, KeyStoreError>;
-    fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
-}
-
-trait EncryptionKeyBridge: Send + Sync + Debug {
-    fn encrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
-    fn decrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
-}
-
-trait UtilitiesBridge: Send + Sync + Debug {
-    fn get_storage_path(&self) -> Result<String, UtilitiesError>;
-}
+use super::{Error, PlatformSigningKey};
+use crate::bridge::hw_keystore::{KeyStoreError, SigningKeyBridge, KEY_STORE};
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
@@ -122,28 +57,4 @@ impl Signer<Signature> for HardwareSigningKey {
         // decode the DER encoded signature
         Signature::from_der(&signature_bytes)
     }
-}
-
-// protect key store with mutex, so creating or fetching keys is done atomically
-static KEY_STORE: OnceCell<Mutex<Box<dyn KeyStoreBridge>>> = OnceCell::new();
-
-// protect utilities with mutex
-static UTILITIES: OnceCell<Mutex<Box<dyn UtilitiesBridge>>> = OnceCell::new();
-
-fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
-    let key_store = Mutex::new(bridge);
-    // crash if KEY_STORE was already set
-    assert!(
-        KEY_STORE.set(key_store).is_ok(),
-        "Cannot call init_hw_keystore() more than once"
-    )
-}
-
-fn init_utilities(bridge: Box<dyn UtilitiesBridge>) {
-    let utilities = Mutex::new(bridge);
-    // crash if STORAGE was already set
-    assert!(
-        UTILITIES.set(utilities).is_ok(),
-        "Cannot call init_utilities() more than once"
-    )
 }

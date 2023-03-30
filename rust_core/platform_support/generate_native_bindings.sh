@@ -5,7 +5,6 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-
 MODULE_NAME=$1
 NATIVE_LANGUAGE=$2
 CONFIG_FILE="uniffi.toml"

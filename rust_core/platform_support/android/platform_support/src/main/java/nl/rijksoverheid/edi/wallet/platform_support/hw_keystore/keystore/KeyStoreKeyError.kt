@@ -1,6 +1,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
-import uniffi.hw_keystore.KeyStoreException.*
+import uniffi.platform_support.KeyStoreException.*
 
 /**
  * Wrapper for the errors that can occur when manipulating keys in

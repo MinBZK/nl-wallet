@@ -2,8 +2,8 @@ package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.utilities
 
 import android.content.Context
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
-import uniffi.hw_keystore.UtilitiesBridge
-import uniffi.hw_keystore.initUtilities
+import uniffi.platform_support.UtilitiesBridge
+import uniffi.platform_support.initUtilities
 
 /**
  * This class is automatically initialized on app start through
