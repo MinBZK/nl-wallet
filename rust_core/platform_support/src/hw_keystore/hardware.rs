@@ -8,19 +8,13 @@ use p256::{
 };
 use std::{fmt::Debug, sync::Mutex};
 
-use crate::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
+use super::{
+    error::{HardwareKeyStoreError, KeyStoreError},
+    PlatformSigningKey,
+};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
-
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("Key error: {reason:?}")]
-    KeyError { reason: String },
-    #[error("Bridging error: {reason:?}")]
-    BridgingError { reason: String },
-}
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {

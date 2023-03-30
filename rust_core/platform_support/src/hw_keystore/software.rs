@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Mutex};
 
 pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 
-use crate::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
+use super::{HardwareKeyStoreError, PlatformSigningKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, p256::ecdsa::SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));

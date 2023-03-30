@@ -1,5 +1,5 @@
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
-use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
+use platform_support::hw_keystore::{error::HardwareKeyStoreError, PlatformSigningKey};
 use std::error::Error;
 
 use crate::account::pin_key::{PinKey, PinKeyError};
