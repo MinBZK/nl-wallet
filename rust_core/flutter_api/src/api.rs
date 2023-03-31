@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use wallet::{pin::validate_pin, WALLET};
+use wallet::{pin::validation::validate_pin, WALLET};
 
 use crate::models::pin::PinValidationResult;
 
