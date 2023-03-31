@@ -15,6 +15,10 @@ class SymmetricKeyInstrumentedTest {
 
     private lateinit var hwKeyStoreBridge: HwKeyStoreBridge
 
+    companion object {
+        const val KEY_ID = "key1"
+    }
+
     @Before
     fun setup() {
         hwKeyStoreBridge = HwKeyStoreBridge.bridge as HwKeyStoreBridge
@@ -22,23 +26,44 @@ class SymmetricKeyInstrumentedTest {
 
     @After
     fun cleanup() {
-        //FIXME: Currently cleaning the keystore causes any recurring test to fail, likely due to some
-        //FIXME: magic in the EncryptedFile implementation (which ideally we replace alltogether)
-//        hwKeyStoreBridge.clean()
+        hwKeyStoreBridge.clean()
     }
 
     @Test
     fun test_init() {
-        hwKeyStoreBridge.getOrCreateSymmetricKey()
+        hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
     }
 
     @Test
     fun test_encrypt_decrypt() {
-        val key = hwKeyStoreBridge.getOrCreateSymmetricKey()
-        val originalMessage = "Hi there!".toByteArray()
-        val encryptedMessage = key.encrypt(originalMessage.toUByteList())
-        assertNotEquals("Encrypted message should not match the original", originalMessage, encryptedMessage)
-        val decryptedMessage = key.decrypt(encryptedMessage)
-        assertEquals("Decrypted message should match the original", String(originalMessage), String(decryptedMessage.toByteArray()))
+        val key = hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
+        val originalMessage = "Hello World!".toByteArray()
+        val encryptedMessage = key.encrypt(originalMessage.toUByteList()).toByteArray()
+        assertNotEquals(
+            "Encrypted message should not match the original",
+            originalMessage,
+            encryptedMessage
+        )
+        val decryptedMessage = key.decrypt(encryptedMessage.toUByteList())
+        assertEquals(
+            "Decrypted message should match the original", String(originalMessage),
+            String(decryptedMessage.toByteArray())
+        )
+    }
+    @Test
+    fun test_long_encrypt_decrypt() {
+        val key = hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
+        val originalMessage = "Hello World, Repeated!".repeat(1024).toByteArray()
+        val encryptedMessage = key.encrypt(originalMessage.toUByteList()).toByteArray()
+        assertNotEquals(
+            "Encrypted message should not match the original",
+            originalMessage,
+            encryptedMessage
+        )
+        val decryptedMessage = key.decrypt(encryptedMessage.toUByteList())
+        assertEquals(
+            "Decrypted message should match the original", String(originalMessage),
+            String(decryptedMessage.toByteArray())
+        )
     }
 }
