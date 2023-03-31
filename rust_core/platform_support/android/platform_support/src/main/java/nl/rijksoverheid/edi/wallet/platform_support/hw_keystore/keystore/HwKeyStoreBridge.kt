@@ -2,7 +2,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.content.Context
-import android.util.Log
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
@@ -30,7 +29,6 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
 
     init {
         keyStore.load(null)
-        Log.d("ECDSAKeyStore", "Keystore Initialized")
         bridge = this
         initHwKeystore(this)
     }
@@ -40,13 +38,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         val alias = "ecdsa_$identifier"
         try {
             if (!keyExists(alias)) ECDSAKey.createKey(context, alias)
-            val key = ECDSAKey(alias)
-            val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
-            return when {
-                key.isHardwareBacked -> key
-                allowSoftwareBackedKeys -> key
-                else -> throw KeyStoreKeyError.MissingHardwareError(key.securityLevelCompat).keyException
-            }
+            return ECDSAKey(alias).takeIf { it.isConsideredValid }!!
         } catch (ex: Exception) {
             if (ex is uniffi.platform_support.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
@@ -57,13 +49,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         val alias = "aes_$identifier"
         try {
             if (!keyExists(alias)) AESKey.createKey(context, alias)
-            val key = AESKey(alias)
-            val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
-            return when {
-                key.isHardwareBacked -> key
-                allowSoftwareBackedKeys -> key
-                else -> throw KeyStoreKeyError.MissingHardwareError(key.securityLevelCompat).keyException
-            }
+            return AESKey(alias).takeIf { it.isConsideredValid }!!
         } catch (ex: Exception) {
             if (ex is uniffi.platform_support.KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
@@ -78,3 +64,14 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
     @Throws(KeyStoreException::class)
     private fun keyExists(keyAlias: String): Boolean = keyStore.containsAlias(keyAlias)
 }
+
+private val KeyStoreKey.isConsideredValid: Boolean
+    @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
+    get() {
+        val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
+        return when {
+            this.isHardwareBacked -> true
+            allowSoftwareBackedKeys -> true
+            else -> throw KeyStoreKeyError.MissingHardwareError(this.securityLevelCompat).keyException
+        }
+    }
