@@ -1,13 +1,20 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../../domain/model/wallet_card.dart';
 import '../../../wallet_routes.dart';
+import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/wallet_card_front.dart';
 import 'bloc/card_overview_bloc.dart';
+
+/// Defines the width required to render a card,
+/// used to calculate the crossAxisCount.
+const _kCardBreakPointWidth = 300.0;
 
 class CardOverviewScreen extends StatelessWidget {
   const CardOverviewScreen({Key? key}) : super(key: key);
@@ -53,20 +60,20 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildCards(BuildContext context, List<WalletCard> cards) {
-    return Scrollbar(
-      thumbVisibility: true,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 24.0),
-        itemCount: cards.length + 1,
-        itemBuilder: (context, index) {
-          if (index < cards.length) {
-            return _buildCardListItem(context, cards[index]);
-          } else {
-            return _buildFooterButton(context);
-          }
-        },
-        separatorBuilder: (context, index) => const SizedBox(height: 16.0),
-      ),
+    final crossAxisCount = max(1, (MediaQuery.of(context).size.width / _kCardBreakPointWidth).floor());
+    return MasonryGridView.count(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      crossAxisCount: crossAxisCount,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      itemCount: cards.length + 1,
+      itemBuilder: (context, index) {
+        if (index < cards.length) {
+          return _buildCardListItem(context, cards[index]);
+        } else {
+          return _buildFooterButton(context);
+        }
+      },
     );
   }
 
@@ -84,8 +91,8 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildCardListItem(BuildContext context, WalletCard walletCard) {
-    return WalletCardFront(
-      cardFront: walletCard.front,
+    return WalletCardItem.fromCardFront(
+      front: walletCard.front,
       onPressed: () => _onCardPressed(context, walletCard.id),
     );
   }

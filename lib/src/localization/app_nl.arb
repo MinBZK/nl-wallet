@@ -460,6 +460,7 @@
   "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
   "setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError": "Kies een toegangscode met minstens 2 verschillende getallen",
   "setupSecuritySelectPinPageTitle": "Kies een 6 cijferige toegangscode",
+  "showDetailsCta": "Bekijk details",
   "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
   "signConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
   "@signConfirmPinPageErrorDescription": {

@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import 'attribute/data_attribute_row.dart';
+import 'card/wallet_card_item.dart';
 import 'link_button.dart';
 import 'placeholder_screen.dart';
 import 'sliver_sized_box.dart';
-import 'wallet_card_front.dart';
 
 /// Generic Page that displays the attributes so the user can check them.
 /// Consumer needs to provide the [bottomSection] to handle any user actions.
@@ -59,7 +59,7 @@ class CheckDataOfferingPage extends StatelessWidget {
     if (cardFront == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: WalletCardFront(cardFront: cardFront),
+      child: WalletCardItem.fromCardFront(front: cardFront),
     );
   }
 
