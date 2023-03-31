@@ -11,7 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class SymmetricKeyInstrumentedTest {
+class AESKeyInstrumentedTest {
 
     private lateinit var hwKeyStoreBridge: HwKeyStoreBridge
 
@@ -50,6 +50,7 @@ class SymmetricKeyInstrumentedTest {
             String(decryptedMessage.toByteArray())
         )
     }
+
     @Test
     fun test_long_encrypt_decrypt() {
         val key = hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)

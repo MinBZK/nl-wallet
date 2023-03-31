@@ -1,39 +1,69 @@
 // Inspired by AndroidCrypto: https://github.com/philipplackner/AndroidCrypto/issues/2#issuecomment-1267021656
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
+import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
-import android.util.Log
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.isDeviceLocked
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toUByteList
 import uniffi.platform_support.EncryptionKeyBridge
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.security.KeyFactory
 import java.security.KeyStore
+import java.security.NoSuchAlgorithmException
+import java.security.NoSuchProviderException
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 
-private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
-
-class SymmetricKey(private val keyAlias: String) :
-    EncryptionKeyBridge {
-
-    private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
+class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKeyBridge {
 
     companion object {
-        const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
-        const val CHUNK_SIZE = 1024 // bytes
-        const val KEY_SIZE = 16 // bytes
-        const val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC
-        const val PADDING = KeyProperties.ENCRYPTION_PADDING_PKCS7
-        const val TRANSFORMATION = "$ALGORITHM/$BLOCK_MODE/$PADDING"
-    }
+        private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
+        private const val CHUNK_SIZE = 1024 // bytes
+        private const val KEY_SIZE = 16 // bytes
+        private const val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC
+        private const val PADDING = KeyProperties.ENCRYPTION_PADDING_PKCS7
+        private const val TRANSFORMATION = "$ALGORITHM/$BLOCK_MODE/$PADDING"
 
-    init {
-        keyStore.load(null)
+        @Throws(
+            NoSuchProviderException::class,
+            NoSuchAlgorithmException::class,
+            IllegalStateException::class
+        )
+        fun createKey(context: Context, alias: String) {
+            if (context.isDeviceLocked()) {
+                throw IllegalStateException("Key generation not allowed while device is locked")
+            }
+
+            val spec = KeyGenParameterSpec.Builder(
+                alias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            ).setBlockModes(BLOCK_MODE)
+                .setEncryptionPaddings(PADDING)
+                .setKeySize(KEY_SIZE * 8 /* in bits */)
+                .setUserAuthenticationRequired(false)
+                .setRandomizedEncryptionRequired(true)
+
+            // setUnlockedDeviceRequired (when Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) which should work
+            // throws exceptions on some devices, hence we use isDeviceLocked() for the time being
+            // Issue tracker: https://issuetracker.google.com/u/1/issues/191391068
+            // spec.setUnlockedDeviceRequired(true);
+            val pm = context.packageManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
+                spec.setIsStrongBoxBacked(true)
+            }
+            KeyGenerator.getInstance(ALGORITHM, KEYSTORE_PROVIDER).apply {
+                init(spec.build())
+                generateKey()
+            }
+        }
     }
 
     override fun encrypt(payload: List<UByte>): List<UByte> {
@@ -87,57 +117,29 @@ class SymmetricKey(private val keyAlias: String) :
         }
     }
 
+    override val keyInfo: KeyInfo
+        get() {
+            val secretKeyFactory: SecretKeyFactory =
+                SecretKeyFactory.getInstance(secretKey.algorithm, KEYSTORE_PROVIDER)
+            return secretKeyFactory.getKeySpec(
+                secretKey,
+                KeyInfo::class.java
+            ) as KeyInfo
+        }
+
+    private val secretKey: SecretKey
+        get() = (keyStore.getEntry(keyAlias, null) as KeyStore.SecretKeyEntry).secretKey
+
+
     private val encryptCipher
         get() = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, getKey())
+            init(Cipher.ENCRYPT_MODE, secretKey)
         }
 
     private fun getDecryptCipherForIv(initVector: ByteArray): Cipher {
         return Cipher.getInstance(TRANSFORMATION).apply {
             val ivSpec = IvParameterSpec(initVector)
-            init(Cipher.DECRYPT_MODE, getKey(), ivSpec)
+            init(Cipher.DECRYPT_MODE, secretKey, ivSpec)
         }
     }
-
-    private fun getKey(): SecretKey =
-        (keyStore.getEntry(keyAlias, null) as KeyStore.SecretKeyEntry).secretKey
-
-    val isHardwareBacked: Boolean
-        get() {
-            try {
-                val keyInfo = this.keyInfo
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT) return true
-                    if (keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX) return true
-                    return false
-                } else {
-                    @Suppress("DEPRECATION")
-                    return keyInfo.isInsideSecureHardware
-                }
-            } catch (e: Exception) {
-                Log.e("SymmetricKey", Log.getStackTraceString(e))
-                return false
-            }
-        }
-
-    /**
-     * Returns the securityLevel of this key, falls back to providing
-     * null on devices with API level < 31.
-     */
-    val securityLevelCompat: Int?
-        get() = runCatching<Int> {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                keyInfo.securityLevel
-            } else {
-                null
-            }
-        }.getOrNull()
-
-    private val keyInfo: KeyInfo
-        get() {
-            val privateKey = keyStore.getKey(keyAlias, null)
-            val keyFactory: KeyFactory =
-                KeyFactory.getInstance(privateKey.algorithm, KEYSTORE_PROVIDER)
-            return keyFactory.getKeySpec(privateKey, KeyInfo::class.java)
-        }
 }
