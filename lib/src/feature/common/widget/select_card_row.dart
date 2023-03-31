@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/wallet_card.dart';
-import 'wallet_card_front.dart';
+import 'card/wallet_card_item.dart';
+
+const _kCardRenderSize = Size(328, 192);
+const _kCardDisplaySize = Size(40, 66);
 
 class SelectCardRow extends StatelessWidget {
   final Function(WalletCard) onCardSelectionToggled;
@@ -60,14 +63,13 @@ class SelectCardRow extends StatelessWidget {
   }
 
   Widget _buildSizedCardFront(CardFront front) {
-    return SizedBox(
-      width: 40,
-      height: 66,
+    return SizedBox.fromSize(
+      size: _kCardDisplaySize,
       child: FittedBox(
         alignment: Alignment.center,
-        child: SizedBox(
-          height: kWalletCardHeight,
-          child: WalletCardFront(cardFront: front, onPressed: null),
+        child: SizedBox.fromSize(
+          size: _kCardRenderSize,
+          child: WalletCardItem.fromCardFront(front: front),
         ),
       ),
     );
