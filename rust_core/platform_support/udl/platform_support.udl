@@ -40,6 +40,7 @@ callback interface EncryptionKeyBridge {
 
 [Error]
 interface UtilitiesError {
+    PlatformError(string reason); // All exceptions in native code are represented by this error
     BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
 };
 
