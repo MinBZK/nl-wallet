@@ -12,12 +12,12 @@ import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/attribute/data_attribute_row_image.dart';
+import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/text_icon_button.dart';
-import '../../common/widget/wallet_card_front.dart';
 import '../../issuance/argument/issuance_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 
@@ -164,7 +164,7 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildCardFront(WalletCard walletCard) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: WalletCardFront(cardFront: walletCard.front, onPressed: null),
+      child: WalletCardItem.fromCardFront(front: walletCard.front),
     );
   }
 
