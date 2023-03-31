@@ -3,7 +3,7 @@ class CardFront {
   final String? subtitle;
   final String? info;
   final String? logoImage;
-  final String? backgroundImage;
+  final String backgroundImage;
   final CardFrontTheme theme;
 
   const CardFront({
@@ -11,7 +11,7 @@ class CardFront {
     this.subtitle,
     this.info,
     this.logoImage,
-    this.backgroundImage,
+    required this.backgroundImage,
     required this.theme,
   });
 }

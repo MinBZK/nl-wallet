@@ -10,7 +10,7 @@ analyze-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:a4ee5bd0eaeb3511548790cdf752a28373579c13a755091d27077da7e81c50f1"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:47e228a7e9d9ef8eda9f5d1bec2e5b434e32e31dcfa7ddd948f630fd35542e58"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -23,7 +23,7 @@ test-flutter:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:a4ee5bd0eaeb3511548790cdf752a28373579c13a755091d27077da7e81c50f1"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:47e228a7e9d9ef8eda9f5d1bec2e5b434e32e31dcfa7ddd948f630fd35542e58"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -92,7 +92,7 @@ test-rust-analyze:
   script:
     - set -euxo pipefail
     - find rust_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
-    - git diff --stat
+    - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
     - cargo clippy --manifest-path rust_core/Cargo.toml --all-features --tests -- -Dwarnings
     - grep ^exclude rust_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path rust_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
@@ -104,13 +104,13 @@ test-codegen:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:72e92321ab70fd23910efa74677e5d087933430ac314f9aca42bc1f055b17340"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:8e774099dedb3f288b3e9aa471456f5e2399cc81c900768f0be5b988e274549e"
   script:
     - set -euxo pipefail
     - flutter pub get
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
-    - git diff --stat
+    - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
 build-android-app:
@@ -119,7 +119,7 @@ build-android-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d33dde486a0876fb91a8ad3e57e2edf8285855a750fa66ece4f4c0dc609d71af"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:96036d360562c565adfd9d3c3f67871bb40b598bed1ecfecb623ab5556cb754e"
   artifacts:
     name: "wallet-android"
     paths:

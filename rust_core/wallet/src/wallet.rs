@@ -3,11 +3,11 @@ use once_cell::sync::OnceCell;
 use platform_support::hw_keystore::{error::HardwareKeyStoreError, PlatformSigningKey};
 
 use crate::{
-    account::{
-        client::{instructions::Registration, AccountServerClient, WalletCertificate},
-        pin_key::{new_pin_salt, PinKey},
+    account::client::{instructions::Registration, AccountServerClient, WalletCertificate},
+    pin::{
+        key::{new_pin_salt, PinKey},
+        validation::validate_pin,
     },
-    pin::validate_pin,
 };
 
 const WALLET_KEY_ID: &str = "wallet";

@@ -9,16 +9,21 @@ crate-type = ["staticlib", "cdylib"]
 
 [[bin]]
 name = "serde_reflection_codegen"
-path = "src/serde_reflection_codegen.rs"
 required-features = ["serde_reflection_codegen"]
 
 [features]
-serde_reflection_codegen = ["dep:const_format", "dep:serde-generate", "dep:serde-reflection"]
+serde_reflection_codegen = [
+    "dep:const_format",
+    "dep:serde-generate",
+    "dep:serde-reflection",
+]
 
 [dependencies]
+platform_support = { path = "../platform_support" }
 wallet = { path = "../wallet" }
 anyhow = "1.0.69"
 flutter_rust_bridge = "1.70.0"
+once_cell = "1.17.0"
 serde = { version = "1.0.156", features = ["derive"] }
 bincode = "1.3.3"
 const_format = { version = "0.2.30", optional = true }

@@ -131,7 +131,8 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
                 '-o', jniTargetDir,
-                'build'
+                'build',
+                '-p', 'flutter_api'
         if (profileMode != null) {
             args profileMode
         }

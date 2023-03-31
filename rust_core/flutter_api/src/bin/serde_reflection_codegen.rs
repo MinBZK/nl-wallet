@@ -1,3 +1,4 @@
+#[path = "../models/mod.rs"]
 mod models;
 
 use anyhow::Result;
@@ -5,7 +6,7 @@ use const_format::formatcp;
 use serde_reflection::{Registry, Tracer, TracerConfig};
 use std::{env, path::PathBuf};
 
-use crate::models::pin::PinValidationResult;
+use self::models::pin::PinValidationResult;
 
 const MODULE_NAME: &str = "core_domain";
 const DART_OUTPUT_PATH: &str = formatcp!("{}/../../pub/{}", env!("CARGO_MANIFEST_DIR"), MODULE_NAME);

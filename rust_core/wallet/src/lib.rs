@@ -2,22 +2,7 @@
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
 
-mod account;
+pub mod account;
 pub mod pin;
 mod utils;
-mod wallet;
-
-use once_cell::sync::Lazy;
-use platform_support::hw_keystore::PreferredPlatformSigningKey;
-use std::sync::Mutex;
-
-use crate::{account::client::server::AccountServer, wallet::Wallet};
-
-const WALLET_KEY_ID: &str = "wallet";
-
-pub static WALLET: Lazy<Mutex<Wallet<AccountServer, PreferredPlatformSigningKey>>> = Lazy::new(|| {
-    let account_server = AccountServer::new_stub(); // TODO
-    let pubkey = account_server.pubkey.clone();
-
-    Mutex::new(Wallet::new(account_server, pubkey))
-});
+pub mod wallet;
