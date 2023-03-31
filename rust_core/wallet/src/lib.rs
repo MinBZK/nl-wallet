@@ -6,3 +6,5 @@ pub mod account;
 pub mod pin;
 mod utils;
 pub mod wallet;
+
+pub use crate::wallet::Wallet;

@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use platform_support::hw_keystore::{PlatformSigningKey, PreferredPlatformSigningKey};
 use std::sync::Mutex;
-use wallet::{account::client::server::AccountServer, wallet::Wallet};
+use wallet::{account::client::server::AccountServer, Wallet};
 
 const WALLET_KEY_ID: &str = "wallet";
 
