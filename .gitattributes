@@ -1,2 +1,8 @@
 *.lock -merge
 *.pbxproj -merge
+
+# generated files
+/rust_core/flutter_api/src/bridge_generated/* -merge
+/lib/bridge_generated.dart -merge
+/ios/Runner/bridge_generated.h -merge
+/pub/core_domain/lib/src/core_domain/* -merge

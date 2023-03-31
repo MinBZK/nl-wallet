@@ -3,9 +3,7 @@ use jni::{objects::JClass, JNIEnv};
 // this is the starting point for integration test performed from Android / iOS.
 #[no_mangle]
 fn hw_keystore_test_hardware_signature() -> bool {
-    use crate::hw_keystore::{
-        hardware::HardwareSigningKey, integration_test::sign_and_verify_signature,
-    };
+    use crate::hw_keystore::{hardware::HardwareSigningKey, integration_test::sign_and_verify_signature};
 
     let payload = b"This is a message that will be signed.";
     let identifier = "key";

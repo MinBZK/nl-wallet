@@ -25,18 +25,13 @@ pub enum KeyStoreError {
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
     fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
-        Self::BridgingError {
-            reason: value.reason,
-        }
+        Self::BridgingError { reason: value.reason }
     }
 }
 
 // the callback traits defined in the UDL, which we have write out here ourselves
 trait KeyStoreBridge: Send + Sync + Debug {
-    fn get_or_create_key(
-        &self,
-        identifier: String,
-    ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
+    fn get_or_create_key(&self, identifier: String) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
 }
 
 trait SigningKeyBridge: Send + Sync + Debug {
