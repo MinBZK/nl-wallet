@@ -2,7 +2,19 @@
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
 
-pub mod account;
+mod account;
 pub mod pin;
 mod utils;
 pub mod wallet;
+
+use account::client::server::AccountServer;
+use platform_support::hw_keystore::PreferredPlatformSigningKey;
+
+pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformSigningKey>;
+
+pub fn init_wallet() -> Wallet {
+    let account_server = AccountServer::new_stub(); // TODO
+    let pubkey = account_server.pubkey.clone();
+
+    Wallet::new(account_server, pubkey)
+}
