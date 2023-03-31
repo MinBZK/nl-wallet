@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-use wallet::{pin::validation::validate_pin, WALLET};
+use wallet::pin::validation::validate_pin;
 
-use crate::models::pin::PinValidationResult;
+use crate::{models::pin::PinValidationResult, wallet::WALLET};
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
