@@ -92,7 +92,7 @@ test-rust-analyze:
   script:
     - set -euxo pipefail
     - find rust_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
-    - git diff --stat
+    - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
     - cargo clippy --manifest-path rust_core/Cargo.toml --all-features --tests -- -Dwarnings
     - grep ^exclude rust_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path rust_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
@@ -110,7 +110,7 @@ test-codegen:
     - flutter pub get
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
-    - git diff --stat
+    - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
 build-android-app:
