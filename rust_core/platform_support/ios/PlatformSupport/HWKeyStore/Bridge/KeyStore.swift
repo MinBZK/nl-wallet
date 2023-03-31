@@ -17,9 +17,9 @@ extension KeyStore: KeyStoreBridge {
             throw KeyStoreError.from(error)
         }
     }
-    
-    func getOrCreateEncryptionKey(identifier: String) throws -> EncryptionKeyBridge {
-        //TODO: Implement getOrCreateEncryptionKey
+
+    func getOrCreateEncryptionKey(identifier _: String) throws -> EncryptionKeyBridge {
+        // TODO: Implement getOrCreateEncryptionKey
         fatalError("Not yet implemented")
     }
 }
