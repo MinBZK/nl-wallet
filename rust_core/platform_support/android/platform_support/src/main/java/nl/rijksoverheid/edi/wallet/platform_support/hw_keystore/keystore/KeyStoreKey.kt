@@ -1,6 +1,9 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
+import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
@@ -41,4 +44,19 @@ abstract class KeyStoreKey(private val keyAlias: String) {
                 null
             }
         }.getOrNull()
+}
+
+/**
+ * Enable strongbox when this feature is available, otherwise
+ * this call is simply ignored.
+ */
+fun KeyGenParameterSpec.Builder.setStrongBoxBackedCompat(
+    context: Context,
+    enable: Boolean
+): KeyGenParameterSpec.Builder {
+    val pm = context.packageManager
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
+        this.setIsStrongBoxBacked(enable)
+    }
+    return this
 }

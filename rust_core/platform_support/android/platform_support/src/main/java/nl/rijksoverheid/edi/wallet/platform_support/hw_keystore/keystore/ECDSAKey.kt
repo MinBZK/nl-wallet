@@ -9,7 +9,6 @@ import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.KeyStoreKeyError.*
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.isDeviceLocked
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toUByteList
 import uniffi.platform_support.SigningKeyBridge
@@ -36,21 +35,11 @@ class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias), SigningKey
             IllegalStateException::class
         )
         fun createKey(context: Context, alias: String) {
-            if (context.isDeviceLocked()) {
-                throw IllegalStateException("Key generation not allowed while device is locked")
-            }
             val spec = KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN)
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
+                .setStrongBoxBackedCompat(context, true)
 
-            // setUnlockedDeviceRequired (when Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) which should work
-            // throws exceptions on some devices, hence we use isDeviceLocked() for the time being
-            // Issue tracker: https://issuetracker.google.com/u/1/issues/191391068
-            // spec.setUnlockedDeviceRequired(true);
-            val pm = context.packageManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
-                spec.setIsStrongBoxBacked(true)
-            }
             KeyPairGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_EC,
                 KEYSTORE_PROVIDER

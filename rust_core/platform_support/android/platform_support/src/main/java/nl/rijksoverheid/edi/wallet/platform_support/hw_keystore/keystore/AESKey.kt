@@ -38,10 +38,6 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
             IllegalStateException::class
         )
         fun createKey(context: Context, alias: String) {
-            if (context.isDeviceLocked()) {
-                throw IllegalStateException("Key generation not allowed while device is locked")
-            }
-
             val spec = KeyGenParameterSpec.Builder(
                 alias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
@@ -50,15 +46,8 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
                 .setKeySize(KEY_SIZE * 8 /* in bits */)
                 .setUserAuthenticationRequired(false)
                 .setRandomizedEncryptionRequired(true)
+                .setStrongBoxBackedCompat(context, true)
 
-            // setUnlockedDeviceRequired (when Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) which should work
-            // throws exceptions on some devices, hence we use isDeviceLocked() for the time being
-            // Issue tracker: https://issuetracker.google.com/u/1/issues/191391068
-            // spec.setUnlockedDeviceRequired(true);
-            val pm = context.packageManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && pm.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
-                spec.setIsStrongBoxBacked(true)
-            }
             KeyGenerator.getInstance(ALGORITHM, KEYSTORE_PROVIDER).apply {
                 init(spec.build())
                 generateKey()

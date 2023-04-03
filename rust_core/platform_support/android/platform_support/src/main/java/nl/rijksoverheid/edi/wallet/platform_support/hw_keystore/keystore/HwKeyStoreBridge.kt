@@ -2,10 +2,12 @@
 package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
 
 import android.content.Context
+import android.security.keystore.KeyGenParameterSpec
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
+import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.isDeviceLocked
 import uniffi.platform_support.EncryptionKeyBridge
 import uniffi.platform_support.KeyStoreBridge
 import uniffi.platform_support.SigningKeyBridge
@@ -37,6 +39,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
     override fun getOrCreateSigningKey(identifier: String): SigningKeyBridge {
         val alias = "ecdsa_$identifier"
         try {
+            verifyDeviceUnlocked()
             if (!keyExists(alias)) ECDSAKey.createKey(context, alias)
             return ECDSAKey(alias).takeIf { it.isConsideredValid }!!
         } catch (ex: Exception) {
@@ -48,6 +51,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
     override fun getOrCreateEncryptionKey(identifier: String): EncryptionKeyBridge {
         val alias = "aes_$identifier"
         try {
+            verifyDeviceUnlocked()
             if (!keyExists(alias)) AESKey.createKey(context, alias)
             return AESKey(alias).takeIf { it.isConsideredValid }!!
         } catch (ex: Exception) {
@@ -63,6 +67,22 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
 
     @Throws(KeyStoreException::class)
     private fun keyExists(keyAlias: String): Boolean = keyStore.containsAlias(keyAlias)
+
+    /**
+     * Verifies that the device currently unlocked. Something we require
+     * before creating or fetching a key.
+     *
+     * Note: Ideally we configure the [KeyGenParameterSpec.Builder]
+     * with setUnlockedDeviceRequired(true), but this is throws in some
+     * cases, see: Issue tracker: https://issuetracker.google.com/u/1/issues/191391068
+     * As such, validating it manually.
+     */
+    @Throws(IllegalStateException::class)
+    private fun verifyDeviceUnlocked() {
+        if (context.isDeviceLocked()) {
+            throw IllegalStateException("Key interaction not allowed while device is locked")
+        }
+    }
 }
 
 private val KeyStoreKey.isConsideredValid: Boolean
