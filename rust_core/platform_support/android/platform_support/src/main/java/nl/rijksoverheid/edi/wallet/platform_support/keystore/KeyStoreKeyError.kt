@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import uniffi.platform_support.KeyStoreException.*
 

@@ -1,7 +1,6 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore.HwKeyStoreBridge
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -9,7 +8,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class HWKeyStoreInstrumentedTest {
+class HWKeyStoreBridgeInstrumentedTest {
 
     @Before
     fun setUp() {

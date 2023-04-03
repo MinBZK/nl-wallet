@@ -1,13 +1,13 @@
 // Inspired by IRMAMobile: https://github.com/privacybydesign/irmamobile/blob/v6.4.1/android/app/src/main/java/foundation/privacybydesign/irmamobile/irma_mobile_bridge/ECDSA.java
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.DeviceUtils.isRunningOnEmulator
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.isDeviceLocked
+import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
+import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
+import nl.rijksoverheid.edi.wallet.platform_support.util.isDeviceLocked
 import uniffi.platform_support.EncryptionKeyBridge
 import uniffi.platform_support.KeyStoreBridge
 import uniffi.platform_support.SigningKeyBridge

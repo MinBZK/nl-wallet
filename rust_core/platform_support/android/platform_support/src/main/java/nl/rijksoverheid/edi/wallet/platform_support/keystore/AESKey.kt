@@ -1,15 +1,12 @@
 // Inspired by AndroidCrypto: https://github.com/philipplackner/AndroidCrypto/issues/2#issuecomment-1267021656
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.isDeviceLocked
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toByteArray
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.EncryptionKeyBridge
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

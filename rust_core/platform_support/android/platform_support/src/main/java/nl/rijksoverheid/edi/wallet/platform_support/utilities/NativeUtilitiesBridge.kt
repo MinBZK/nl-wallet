@@ -1,7 +1,7 @@
-package nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.utilities
+package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
 import android.content.Context
-import nl.rijksoverheid.edi.wallet.platform_support.hw_keystore.PlatformSupportInitializer
+import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import uniffi.platform_support.UtilitiesBridge
 import uniffi.platform_support.initUtilities
 
