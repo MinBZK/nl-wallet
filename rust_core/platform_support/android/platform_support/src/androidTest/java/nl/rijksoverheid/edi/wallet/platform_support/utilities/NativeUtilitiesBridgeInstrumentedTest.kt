@@ -16,12 +16,12 @@ class NativeUtilitiesBridgeInstrumentedTest {
     }
 
     @Test
-    fun nativeUtilities_isInitialised() {
+    fun bridge_is_initialized() {
         assertNotNull(NativeUtilitiesBridge.bridge)
     }
 
     @Test
-    fun nativeUtilities_testStoragePath() {
+    fun bridge_test_storage_path() {
         assertTrue(utilities_test_storage_path())
     }
 

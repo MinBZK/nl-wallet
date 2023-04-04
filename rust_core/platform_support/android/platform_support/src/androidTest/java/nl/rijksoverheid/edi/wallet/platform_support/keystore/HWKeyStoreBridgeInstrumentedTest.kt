@@ -16,12 +16,12 @@ class HWKeyStoreBridgeInstrumentedTest {
     }
 
     @Test
-    fun hwKeyStore_isInitialised() {
+    fun bridge_is_initialized() {
         assertNotNull(HwKeyStoreBridge.bridge)
     }
 
     @Test
-    fun hwKeyStore_testSignature() {
+    fun bridge_test_signature() {
         assertTrue(hw_keystore_test_hardware_signature())
     }
 
