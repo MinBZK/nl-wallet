@@ -101,6 +101,7 @@
 		61D7711F29A93456000CDF5E /* hw_keystore_integration_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hw_keystore_integration_tests.h; sourceTree = "<group>"; };
 		61F5335E29A8AB4100624E46 /* libPlatformSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPlatformSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		61F5336129A8AB4100624E46 /* HWKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWKeyStore.swift; sourceTree = "<group>"; };
+		CB64449529DC405400030A80 /* utils_integration_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils_integration_tests.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -188,6 +189,7 @@
 		6173AF8D29D73137009C715F /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				CB64449529DC405400030A80 /* utils_integration_tests.h */,
 				6173AF8E29D73164009C715F /* PlatformUtilityTests.swift */,
 				6173AF9029D7326F009C715F /* UtilsTests.swift */,
 			);

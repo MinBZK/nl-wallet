@@ -18,7 +18,6 @@ final class UtilsTests: XCTestCase {
     }
 
     func testAllUtilities() {
-        // TODO: implement integration tests
-        XCTAssert(true)
+        XCTAssert(utils_test_get_storage_path())
     }
 }
