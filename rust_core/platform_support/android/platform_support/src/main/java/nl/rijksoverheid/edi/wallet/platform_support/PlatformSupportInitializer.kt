@@ -14,7 +14,7 @@ private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
     "nl.rijksoverheid.edi.wallet.platform_support.libraryOverride"
 
 // The key used by the generated code [hw_keystore.kt] to check which .so should be loaded
-private const val LIBRARY_OVERRIDE_PROPERTY_KEY = "uniffi.component.hw_keystore.libraryOverride"
+private const val LIBRARY_OVERRIDE_PROPERTY_KEY = "uniffi.component.platform_support.libraryOverride"
 
 class PlatformSupportInitializer : Initializer<PlatformSupport> {
     override fun create(context: Context): PlatformSupport {

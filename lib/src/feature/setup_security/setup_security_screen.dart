@@ -128,8 +128,8 @@ class SetupSecurityScreen extends StatelessWidget {
     String errorTitle = locale.setupSecuritySelectPinErrorPageTitle;
     String errorDescription;
     switch (state.reason) {
-      case PinValidationError.tooLittleUniqueDigits:
-        errorDescription = locale.setupSecuritySelectPinErrorPageTooLittleUniqueDigitsError;
+      case PinValidationError.tooFewUniqueDigits:
+        errorDescription = locale.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError;
         break;
       case PinValidationError.sequentialDigits:
         errorDescription = locale.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;

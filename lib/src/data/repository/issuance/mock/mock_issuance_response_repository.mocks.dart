@@ -66,7 +66,7 @@ const _kMockPidCardFront = CardFront(
   title: 'Persoonsgegevens',
   subtitle: 'Willeke',
   logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  backgroundImage: 'assets/images/bg_pid.png',
+  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
   theme: CardFrontTheme.dark,
 );
 
@@ -88,7 +88,7 @@ const _kMockMasterDiplomaCardFront = CardFront(
 
 const _kMockDrivingLicenseCardFront = CardFront(
   title: 'Rijbewijs',
-  info: 'Categorie AM, B, BE',
+  subtitle: 'Categorie AM, B, BE',
   logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
   backgroundImage: 'assets/images/bg_nl_driving_license.png',
   theme: CardFrontTheme.light,
@@ -96,7 +96,7 @@ const _kMockDrivingLicenseCardFront = CardFront(
 
 const _kMockDrivingLicenseRenewedCardFront = CardFront(
   title: 'Rijbewijs',
-  info: 'Categorie AM, B, C1, BE',
+  subtitle: 'Categorie AM, B, C1, BE',
   logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
   backgroundImage: 'assets/images/bg_nl_driving_license.png',
   theme: CardFrontTheme.light,
