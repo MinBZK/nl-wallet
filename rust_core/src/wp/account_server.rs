@@ -36,6 +36,16 @@ pub struct User {
     // TODO user key material
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Challenge {
+    pub challenge: Base64Bytes,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Certificate {
+    pub certificate: WalletCertificate,
+}
+
 /// Used as the challenge in the challenge-response protocol during wallet registration.
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
@@ -66,11 +76,6 @@ impl RemoteAccountServer {
 
 impl AccountServerClient for RemoteAccountServer {
     fn registration_challenge(&self) -> Result<Vec<u8>> {
-        #[derive(Deserialize)]
-        struct Challenge {
-            challenge: Base64Bytes,
-        }
-
         let challenge = self
             .client
             .post(format!("{}/api/v1/enroll", self.url))
@@ -82,12 +87,10 @@ impl AccountServerClient for RemoteAccountServer {
         Ok(challenge)
     }
 
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
-        #[derive(Deserialize)]
-        struct Certificate {
-            certificate: WalletCertificate,
-        }
-
+    fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate> {
         let cert = self
             .client
             .post(format!("{}/api/v1/createwallet", self.url))
@@ -153,7 +156,7 @@ impl AccountServer {
     fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
         Jwt::parse_and_verify(
             &String::from_utf8(challenge.to_owned())?.into(),
-            EcdsaDecodingKey::from_pkix(&self.pubkey)?,
+            EcdsaDecodingKey::from_sec1(&self.pubkey)?,
         )
     }
 
@@ -273,9 +276,11 @@ pub mod tests {
     #[test]
     fn reqwest() {
         dbg!(String::from_utf8(
-            RemoteAccountServer::new("https://SSSS".to_owned(),)
-                .registration_challenge()
-                .unwrap()
+            RemoteAccountServer::new(
+                "http://localhost:3000".to_owned(),
+            )
+            .registration_challenge()
+            .unwrap()
         )
         .unwrap());
     }

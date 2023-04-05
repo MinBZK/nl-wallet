@@ -60,3 +60,6 @@ app.*.map.json
 **/fastlane/screenshots
 **/fastlane/test_output
 /.env*
+
+# Rust artifacts
+target

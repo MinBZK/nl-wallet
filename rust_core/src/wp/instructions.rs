@@ -26,8 +26,8 @@ pub struct Registration {
     pub pin_pubkey: DerVerifyingKey,
     pub hw_pubkey: DerVerifyingKey,
 }
-
 impl Registration {
+
     pub fn new_signed(
         hw_key_handle: &impl HWBoundSigningKey,
         salt: &[u8],

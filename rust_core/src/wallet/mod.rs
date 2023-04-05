@@ -49,7 +49,7 @@ where
 
         let cert = self.account_server.register(registration_message)?;
 
-        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_pkix(&self.account_server_pubkey)?)?;
+        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_sec1(&self.account_server_pubkey)?)?;
         if cert_claims.hw_pubkey.0 != *self.hw_privkey.verifying_key() {
             return Err(anyhow!("hardware pubkey did not match"));
         }
@@ -76,8 +76,8 @@ mod tests {
         // let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUWwta1ybkzhRlnkVzIwDm/90alpzi6uEPXKu4vsiyOFiYNz1Ei1GVL0mNMKVUYxAjuFlYlxOf6JGkiC95RSQrA==".as_bytes().to_vec();
         // let url = "https://SSSS".to_owned();
 
-        let pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEouA9ULF8VKuBdHQZoaIBMIFKjo+kOAu6nDDWc9b9gw8Hf4USfFNXZUgJi37KZA6ZCTng/GBBGMzgc2T+OxXjnw==".as_bytes().to_vec();
-        let url = "http://localhost:9000".to_owned();
+        let pubkey = "BAJXSbbTOGMvUAWhLaWp9acM3/xHdvfg7EEPyqxYDSV8gGcJ+/KUfyL9bSAlwklXu0TV6U5B8ngW4p19oNy5YrU=".as_bytes().to_vec();
+        let url = "http://localhost:3000".to_owned();
 
         use base64::{engine::general_purpose::STANDARD, Engine};
         let pubkey = STANDARD.decode(pubkey).unwrap();
@@ -96,7 +96,7 @@ mod tests {
             .registration_cert
             .as_ref()
             .unwrap()
-            .parse_and_verify(EcdsaDecodingKey::from_pkix(&pubkey).unwrap())
+            .parse_and_verify(EcdsaDecodingKey::from_sec1(&pubkey).unwrap())
             .unwrap());
     }
 }

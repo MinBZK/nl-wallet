@@ -10,7 +10,7 @@ mod bridge_generated;
 
 mod jwt;
 mod serialization;
-mod utils;
+pub mod utils;
 
-mod wallet;
-mod wp;
+pub mod wallet;
+pub mod wp;
