@@ -18,8 +18,11 @@ extension KeyStore: KeyStoreBridge {
         }
     }
 
-    func getOrCreateEncryptionKey(identifier _: String) throws -> EncryptionKeyBridge {
-        // TODO: Implement getOrCreateEncryptionKey
-        fatalError("Not yet implemented")
+    func getOrCreateEncryptionKey(identifier: String) throws -> EncryptionKeyBridge {
+        do {
+            return try EncryptionKey(key: SecureEnclaveKey(identifier: identifier))
+        } catch let error as SecureEnclaveKeyError {
+            throw KeyStoreError.from(error)
+        }
     }
 }
