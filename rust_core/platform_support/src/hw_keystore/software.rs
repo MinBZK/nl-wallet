@@ -2,10 +2,9 @@ use once_cell::sync::Lazy;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use std::{collections::HashMap, sync::Mutex};
-use std::io::Read;
 
-pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 use crate::hw_keystore::PlatformEncryptionKey;
+pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
 
 use super::{HardwareKeyStoreError, PlatformSigningKey};
 
@@ -49,18 +48,19 @@ pub struct SoftwareEncryptionKey {
 }
 
 impl PlatformEncryptionKey for SoftwareEncryptionKey {
-    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> where Self: Sized {
+    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
+    where
+        Self: Sized,
+    {
         // obtain lock on ENCRYPTION_KEYS static hashmap
         let mut encryption_keys = ENCRYPTION_KEYS.lock().expect("Could not get lock on ENCRYPTION_KEYS");
 
         // insert new random signing key, if the key is not present
-        let key = encryption_keys
-            .entry(identifier.to_string())
-            .or_insert_with(|| {
-                let key = Aes256Gcm::generate_key(&mut OsRng);
-                let cipher = Aes256Gcm::new(&key);
-                SoftwareEncryptionKey { cipher }
-            });
+        let key = encryption_keys.entry(identifier.to_string()).or_insert_with(|| {
+            let key = Aes256Gcm::generate_key(&mut OsRng);
+            let cipher = Aes256Gcm::new(&key);
+            SoftwareEncryptionKey { cipher }
+        });
 
         // make a clone of the (mutable) signing key so we can
         // return (non-mutable) ownership to the caller

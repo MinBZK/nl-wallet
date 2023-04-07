@@ -1,6 +1,6 @@
-use jni::{objects::JClass, JNIEnv};
-use crate::utils::hardware::HardwareUtilities;
 use super::get_and_verify_storage_path;
+use crate::utils::hardware::HardwareUtilities;
+use jni::{objects::JClass, JNIEnv};
 
 // this is the starting point for integration test performed from Android / iOS.
 #[no_mangle]

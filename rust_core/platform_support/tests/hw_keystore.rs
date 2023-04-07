@@ -12,10 +12,14 @@ fn test_software_signature() {
 #[cfg(all(feature = "software", feature = "integration-test"))]
 #[test]
 fn test_software_encryption() {
-    use platform_support::hw_keystore::{integration_test::encrypt_and_decrypt_message, software::SoftwareEncryptionKey};
+    use platform_support::hw_keystore::{
+        integration_test::encrypt_and_decrypt_message, software::SoftwareEncryptionKey,
+    };
 
     let payload = b"This message will be encrypted.";
     let identifier = "key";
 
-    assert!(encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier));
+    assert!(encrypt_and_decrypt_message::<SoftwareEncryptionKey>(
+        payload, identifier
+    ));
 }

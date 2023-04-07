@@ -6,7 +6,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use crate::bridge::hw_keystore::{EncryptionKeyBridge, KEY_STORE, SigningKeyBridge};
+use crate::bridge::hw_keystore::{EncryptionKeyBridge, SigningKeyBridge, KEY_STORE};
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEncryptionKey, PlatformSigningKey};
 
@@ -73,8 +73,8 @@ impl HardwareEncryptionKey {
 
 impl PlatformEncryptionKey for HardwareEncryptionKey {
     fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock
         let key_store = KEY_STORE
