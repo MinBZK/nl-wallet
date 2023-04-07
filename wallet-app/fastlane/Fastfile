@@ -155,7 +155,7 @@ platform :ios do
   desc "Test iOS app"
   lane :test do
     run_tests(
-      project: "rust_core/platform_support/ios/PlatformSupport.xcodeproj",
+      project: "../rust_core/platform_support/ios/PlatformSupport.xcodeproj",
       scheme: "PlatformSupport",
       device: "iPhone SE (3rd generation)"
     )
