@@ -31,4 +31,8 @@ final class HWKeyStoreTests: XCTestCase {
     func testHardwareSignature() {
         XCTAssert(hw_keystore_test_hardware_signature())
     }
+
+    func testHardwareEncryption() {
+        XCTAssert(hw_keystore_test_symmetric_encryption())
+    }
 }
