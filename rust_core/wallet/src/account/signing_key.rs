@@ -1,5 +1,5 @@
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
-use platform_support::hw_keystore::{Error as PlatformSigningKeyError, PlatformSigningKey};
+use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
 use std::error::Error;
 
 use crate::pin::key::{PinKey, PinKeyError};
@@ -25,7 +25,7 @@ impl<'a> SigningKey for PinKey<'a> {
 impl<'a> EphemeralSigningKey for PinKey<'a> {}
 
 impl<K: PlatformSigningKey> SigningKey for K {
-    type Error = PlatformSigningKeyError;
+    type Error = HardwareKeyStoreError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         self.verifying_key()
