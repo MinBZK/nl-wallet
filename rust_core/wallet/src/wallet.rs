@@ -1,6 +1,6 @@
 use anyhow::Result;
 use once_cell::sync::OnceCell;
-use platform_support::hw_keystore::{error::HardwareKeyStoreError, PlatformSigningKey};
+use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
 
 use crate::{
     account::client::{instructions::Registration, AccountServerClient, WalletCertificate},

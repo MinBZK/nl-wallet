@@ -8,10 +8,7 @@ use p256::{
 };
 use std::{fmt::Debug, sync::Mutex};
 
-use super::{
-    error::{HardwareKeyStoreError, KeyStoreError},
-    PlatformSigningKey,
-};
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformSigningKey};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
