@@ -9,8 +9,9 @@ use p256::{
 use super::{
     error::{HardwareKeyStoreError, KeyStoreError},
     PlatformSigningKey,
+    PlatformEncryptionKey
 };
-use crate::bridge::hw_keystore::{SigningKeyBridge, KEY_STORE};
+use crate::bridge::hw_keystore::{SigningKeyBridge, KEY_STORE, EncryptionKeyBridge};
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
@@ -59,5 +60,30 @@ impl Signer<Signature> for HardwareSigningKey {
 
         // decode the DER encoded signature
         Signature::from_der(&signature_bytes)
+    }
+}
+
+// HardwareSigningKey wraps SigningKeyBridge from native
+pub struct HardwareEncryptionKey {
+    bridge: Box<dyn EncryptionKeyBridge>,
+}
+
+impl HardwareEncryptionKey {
+    fn new(bridge: Box<dyn EncryptionKeyBridge>) -> Self {
+        HardwareEncryptionKey { bridge }
+    }
+}
+
+impl PlatformEncryptionKey for HardwareEncryptionKey {
+    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> where Self: Sized {
+        todo!()
+    }
+
+    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+        todo!()
+    }
+
+    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+        todo!()
     }
 }

@@ -4,6 +4,7 @@ use rand_core::OsRng;
 use std::{collections::HashMap, sync::Mutex};
 
 pub use p256::ecdsa::SigningKey as SoftwareSigningKey;
+use crate::hw_keystore::PlatformEncryptionKey;
 
 use super::{HardwareKeyStoreError, PlatformSigningKey};
 
@@ -30,5 +31,19 @@ impl PlatformSigningKey for SoftwareSigningKey {
         let verifying_key = *self.verifying_key();
 
         Ok(verifying_key)
+    }
+}
+
+impl PlatformEncryptionKey for SoftwareEncryptionKey {
+    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> where Self: Sized {
+        todo!()
+    }
+
+    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+        todo!()
+    }
+
+    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+        todo!()
     }
 }

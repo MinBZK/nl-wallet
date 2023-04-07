@@ -15,8 +15,8 @@ use self::error::HardwareKeyStoreError;
 
 pub trait PlatformSigningKey: Signer<Signature> {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 
     fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError>;
     // from Signer: try_sign() and sign() methods
@@ -33,3 +33,13 @@ pub type PreferredPlatformSigningKey = self::software::SoftwareSigningKey;
 // otherwise just just alias the Never type
 #[cfg(not(any(feature = "hardware", feature = "software")))]
 pub type PreferredPlatformSigningKey = never::Never;
+
+pub trait PlatformEncryptionKey {
+    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
+        where
+            Self: Sized;
+
+    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
+
+    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
+}
