@@ -54,7 +54,7 @@ jniLibs/
 /*.dSYM.zip
 
 # Ruby gems
-/vendor/
+vendor/
 
 # fastlane
 **/fastlane/report.xml
