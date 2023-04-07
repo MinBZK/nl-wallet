@@ -19,7 +19,6 @@ serde_reflection_codegen = [
 ]
 
 [dependencies]
-platform_support = { path = "../platform_support" }
 wallet = { path = "../wallet" }
 anyhow = "1.0.69"
 flutter_rust_bridge = "1.70.0"

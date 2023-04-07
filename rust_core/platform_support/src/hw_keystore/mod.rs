@@ -1,5 +1,3 @@
-pub mod error;
-
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
@@ -10,13 +8,29 @@ pub mod software;
 pub mod integration_test;
 
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use thiserror::Error;
 
-use self::error::HardwareKeyStoreError;
+#[derive(Debug, Error)]
+pub enum HardwareKeyStoreError {
+    #[error(transparent)]
+    KeyStoreError(#[from] KeyStoreError),
+    #[error("Error decoding public key from hardware: {0}")]
+    PublicKeyError(#[from] p256::pkcs8::spki::Error),
+}
+
+// implementation of KeyStoreError from UDL
+#[derive(Debug, Error)]
+pub enum KeyStoreError {
+    #[error("Key error: {reason}")]
+    KeyError { reason: String },
+    #[error("Bridging error: {reason}")]
+    BridgingError { reason: String },
+}
 
 pub trait PlatformSigningKey: Signer<Signature> {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 
     fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError>;
     // from Signer: try_sign() and sign() methods
@@ -36,8 +50,8 @@ pub type PreferredPlatformSigningKey = never::Never;
 
 pub trait PlatformEncryptionKey {
     fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
 

@@ -6,12 +6,8 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use super::{
-    error::{HardwareKeyStoreError, KeyStoreError},
-    PlatformSigningKey,
-    PlatformEncryptionKey
-};
-use crate::bridge::hw_keystore::{SigningKeyBridge, KEY_STORE, EncryptionKeyBridge};
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformEncryptionKey, PlatformSigningKey};
+use crate::bridge::hw_keystore::{EncryptionKeyBridge, SigningKeyBridge, KEY_STORE};
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
@@ -75,7 +71,10 @@ impl HardwareEncryptionKey {
 }
 
 impl PlatformEncryptionKey for HardwareEncryptionKey {
-    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> where Self: Sized {
+    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
+    where
+        Self: Sized,
+    {
         todo!()
     }
 

@@ -1,28 +1,20 @@
 use once_cell::sync::OnceCell;
 use std::{fmt::Debug, sync::Mutex};
 
-use crate::hw_keystore::error::KeyStoreError;
+use crate::hw_keystore::KeyStoreError;
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
     fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
-        Self::BridgingError {
-            reason: value.reason,
-        }
+        Self::BridgingError { reason: value.reason }
     }
 }
 
 // the callback traits defined in the UDL, which we have write out here ourselves
 pub trait KeyStoreBridge: Send + Sync + Debug {
-    fn get_or_create_signing_key(
-        &self,
-        identifier: String,
-    ) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
+    fn get_or_create_signing_key(&self, identifier: String) -> Result<Box<dyn SigningKeyBridge>, KeyStoreError>;
 
-    fn get_or_create_encryption_key(
-        &self,
-        identifier: String,
-    ) -> Result<Box<dyn EncryptionKeyBridge>, KeyStoreError>;
+    fn get_or_create_encryption_key(&self, identifier: String) -> Result<Box<dyn EncryptionKeyBridge>, KeyStoreError>;
 }
 
 pub trait SigningKeyBridge: Send + Sync + Debug {
