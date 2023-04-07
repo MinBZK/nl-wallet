@@ -6,8 +6,9 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
+use crate::bridge::hw_keystore::{EncryptionKeyBridge, KEY_STORE, SigningKeyBridge};
+
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEncryptionKey, PlatformSigningKey};
-use crate::bridge::hw_keystore::{EncryptionKeyBridge, SigningKeyBridge, KEY_STORE};
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareSigningKey {
@@ -72,17 +73,28 @@ impl HardwareEncryptionKey {
 
 impl PlatformEncryptionKey for HardwareEncryptionKey {
     fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
-        todo!()
+        // crash if KEY_STORE is not yet set, then wait for key store mutex lock
+        let key_store = KEY_STORE
+            .get()
+            .expect("KEY_STORE used before init_hw_keystore() was called")
+            .lock()
+            .expect("Could not get lock on KEY_STORE");
+        let bridge = key_store.get_or_create_encryption_key(identifier.to_string())?;
+        let key = HardwareEncryptionKey::new(bridge);
+
+        Ok(key)
     }
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        todo!()
+        let result = self.bridge.encrypt(msg.to_vec())?;
+        Ok(result)
     }
 
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        todo!()
+        let result = self.bridge.decrypt(msg.to_vec())?;
+        Ok(result)
     }
 }
