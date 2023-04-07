@@ -26,14 +26,6 @@ where
     T: AccountServerClient,
     S: PlatformSigningKey,
 {
-    fn hw_privkey(&self) -> std::result::Result<&S, HardwareKeyStoreError> {
-        self.hw_privkey.get_or_try_init(|| {
-            let signing_key = S::signing_key(WALLET_KEY_ID)?;
-
-            Ok::<_, HardwareKeyStoreError>(signing_key)
-        })
-    }
-
     pub fn new(account_server: T, account_server_pubkey: Vec<u8>) -> Wallet<T, S> {
         Wallet {
             account_server,
@@ -42,6 +34,14 @@ where
             pin_salt: new_pin_salt(), // TODO look up in storage
             hw_privkey: OnceCell::new(),
         }
+    }
+
+    fn hw_privkey(&self) -> std::result::Result<&S, HardwareKeyStoreError> {
+        self.hw_privkey.get_or_try_init(|| {
+            let signing_key = S::signing_key(WALLET_KEY_ID)?;
+
+            Ok::<_, HardwareKeyStoreError>(signing_key)
+        })
     }
 
     pub fn register(&mut self, pin: String) -> Result<()> {
