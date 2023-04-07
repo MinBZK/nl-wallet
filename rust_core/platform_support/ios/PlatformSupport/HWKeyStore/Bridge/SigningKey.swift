@@ -18,7 +18,7 @@ final class SigningKey {
 extension SigningKey: SigningKeyBridge {
     func publicKey() throws -> [UInt8] {
         do {
-            return try Array(self.key.publicKey())
+            return try Array(self.key.encodePublicKey())
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }

@@ -22,6 +22,8 @@ final class SecureEnclaveKey {
         0x42, 0x00
     ])
 
+    private static let encryptionAlgorithm: SecKeyAlgorithm = .eciesEncryptionCofactorVariableIVX963SHA256AESGCM
+
     // MARK: - Static methods
 
     private static func tag(from identifier: String) -> Data {
@@ -102,11 +104,7 @@ final class SecureEnclaveKey {
         return key
     }
 
-    private static func derivePublicKey(from privateKey: SecKey) throws -> Data {
-        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
-            fatalError("Error while deriving public key")
-        }
-
+    private static func encode(publicKey: SecKey) throws -> Data {
         var error: Unmanaged<CFError>?
         guard let keyData = SecKeyCopyExternalRepresentation(publicKey, &error) else {
             throw SecureEnclaveKeyError.derivePublicKey(keyChainError: self.error(for: error))
@@ -115,24 +113,20 @@ final class SecureEnclaveKey {
         return self.secp256r1Header + (keyData as Data)
     }
 
-    private static func sign(payload: Data, with privateKey: SecKey) throws -> Data {
-        var error: Unmanaged<CFError>?
-        guard let signature = SecKeyCreateSignature(privateKey,
-                                                    .ecdsaSignatureMessageX962SHA256,
-                                                    payload as CFData,
-                                                    &error) else {
-            throw SecureEnclaveKeyError.sign(keyChainError: self.error(for: error))
-        }
-
-        return signature as Data
-    }
-
     // MARK: - Instance properties
 
     let identifier: String
 
     private let privateKey: SecKey
-    private var _publicKey: Data?
+    private var _encodedPublicKey: Data?
+
+    private var publicKey: SecKey {
+        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
+            fatalError("Error while deriving public key")
+        }
+
+        return publicKey
+    }
 
     // MARK: - Initializer
 
@@ -150,18 +144,50 @@ final class SecureEnclaveKey {
 
     // MARK: - Instance methods
 
-    func publicKey() throws -> Data {
-        guard let publicKey = self._publicKey else {
-            let publicKey = try Self.derivePublicKey(from: self.privateKey)
-            self._publicKey = publicKey
+    func encodePublicKey() throws -> Data {
+        guard let encodedPublicKey = self._encodedPublicKey else {
+            let encodedPublicKey = try Self.encode(publicKey: self.publicKey)
+            self._encodedPublicKey = encodedPublicKey
 
-            return publicKey
+            return encodedPublicKey
         }
 
-        return publicKey
+        return encodedPublicKey
     }
 
     func sign(payload: Data) throws -> Data {
-        return try Self.sign(payload: payload, with: self.privateKey)
+        var error: Unmanaged<CFError>?
+        guard let signature = SecKeyCreateSignature(self.privateKey,
+                                                    .ecdsaSignatureMessageX962SHA256,
+                                                    payload as CFData,
+                                                    &error) else {
+            throw SecureEnclaveKeyError.sign(keyChainError: Self.error(for: error))
+        }
+
+        return signature as Data
+    }
+
+    func encrypt(payload: Data) throws -> Data {
+        var error: Unmanaged<CFError>?
+        guard let encrypted = SecKeyCreateEncryptedData(self.publicKey,
+                                                        Self.encryptionAlgorithm,
+                                                        payload as CFData,
+                                                        &error) else {
+            throw SecureEnclaveKeyError.encrypt(keyChainError: Self.error(for: error))
+        }
+
+        return encrypted as Data
+    }
+
+    func decrypt(payload: Data) throws -> Data {
+        var error: Unmanaged<CFError>?
+        guard let decrypted = SecKeyCreateDecryptedData(self.privateKey,
+                                                        Self.encryptionAlgorithm,
+                                                        payload as CFData,
+                                                        &error) else {
+            throw SecureEnclaveKeyError.decrypt(keyChainError: Self.error(for: error))
+        }
+
+        return decrypted as Data
     }
 }

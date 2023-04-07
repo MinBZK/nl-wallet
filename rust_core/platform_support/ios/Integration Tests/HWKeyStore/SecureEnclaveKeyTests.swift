@@ -31,7 +31,7 @@ final class SecureEnclaveKeyTests: XCTestCase {
             kSecAttrKeyClass as String: kSecAttrKeyClassPublic
         ]
 
-        let der = try! key.publicKey()[26...]
+        let der = try! key.encodePublicKey()[26...]
         let publicKey = SecKeyCreateWithData(der as CFData, publicKeyAttributes as CFDictionary, &error)
 
         guard let publicKey else {
@@ -79,15 +79,15 @@ final class SecureEnclaveKeyTests: XCTestCase {
         let key1Again = try! SecureEnclaveKey(identifier: Self.identifiers[0])
         let key2 = try! SecureEnclaveKey(identifier: Self.identifiers[1])
 
-        XCTAssertGreaterThan(try! key1.publicKey().count, 0)
-        XCTAssertEqual(try! key1.publicKey(),
-                       try! key1.publicKey(),
+        XCTAssertGreaterThan(try! key1.encodePublicKey().count, 0)
+        XCTAssertEqual(try! key1.encodePublicKey(),
+                       try! key1.encodePublicKey(),
                        "Public keys from the same source should be equal")
-        XCTAssertEqual(try! key1.publicKey(),
-                       try! key1Again.publicKey(),
+        XCTAssertEqual(try! key1.encodePublicKey(),
+                       try! key1Again.encodePublicKey(),
                        "Public keys for the same identifier should be equal")
-        XCTAssertNotEqual(try! key1.publicKey(),
-                          try! key2.publicKey(),
+        XCTAssertNotEqual(try! key1.encodePublicKey(),
+                          try! key2.encodePublicKey(),
                           "Public keys for different identifiers should differ")
 
         let _ = Self.publicKey(for: key1)
@@ -116,5 +116,25 @@ final class SecureEnclaveKeyTests: XCTestCase {
         XCTAssertTrue(Self.isValid(signature: signature1Repeat, for: message, with: key1), "Signature should be valid")
         XCTAssertTrue(Self.isValid(signature: signature1Again, for: message, with: key1), "Signature should be valid")
         XCTAssertTrue(Self.isValid(signature: signature2, for: message, with: key2), "Signature should be valid")
+    }
+
+    func testEncrytAndDecrypt() {
+        let message = "This is a message that will be encrypted and then decrypted.".data(using: .ascii)!
+
+        let key1 = try! SecureEnclaveKey(identifier: Self.identifiers[0])
+        let key2 = try! SecureEnclaveKey(identifier: Self.identifiers[1])
+
+        let encrypted1 = try! key1.encrypt(payload: message)
+        let encrypted2 = try! key2.encrypt(payload: message)
+        let decrypted1 = try! key1.decrypt(payload: encrypted1)
+        let decrypted2 = try! key2.decrypt(payload: encrypted2)
+
+        XCTAssertGreaterThan(encrypted1.count, 0, "An encrypted payload should not be empty")
+        XCTAssertGreaterThan(encrypted2.count, 0, "An encrypted payload should not be empty")
+        XCTAssertNotEqual(encrypted1, message, "An encrypted payload should differ from its source")
+        XCTAssertNotEqual(encrypted2, message, "An encrypted payload should differ from its source")
+        XCTAssertNotEqual(encrypted1, encrypted2, "Payloads encrypted with different keys should differ")
+        XCTAssertEqual(decrypted1, message, "A decrypted payload should equal its source")
+        XCTAssertEqual(decrypted2, message, "A decrypted payload should equal its source")
     }
 }
