@@ -81,7 +81,7 @@ test-ios:
     name: "test_output"
     when: on_failure
     paths:
-      - "fastlane/test_output/*"
+      - "**/fastlane/test_output/*"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
