@@ -1,4 +1,3 @@
-use crate::bridge::utils::UTILITIES;
 use crate::utils::PlatformUtilities;
 
 #[cfg(all(feature = "hardware-integration-test"))]

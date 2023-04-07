@@ -3,7 +3,7 @@ pub mod hardware;
 
 use p256::ecdsa::signature::Verifier;
 
-use crate::hw_keystore::PlatformSigningKey;
+use crate::hw_keystore::{PlatformEncryptionKey, PlatformSigningKey};
 
 // This utility function is used both by the Rust integration test for the "software" feature
 // and by integration test performed from Android / iOS for the "hardware" feature.
@@ -23,4 +23,22 @@ pub fn sign_and_verify_signature<K: PlatformSigningKey>(payload: &[u8], key_iden
 
     // Then verify the signature, which should work if they indeed use the same private key
     public_key.verify(payload, &signature).is_ok()
+}
+
+pub fn encrypt_and_decrypt_message<K: PlatformEncryptionKey>(payload: &[u8], key_identifier: &str) -> bool {
+    // Create an encryption key for the identifier
+    let encryption_key = K::encryption_key(key_identifier).expect("Could not create encryption key");
+
+    // Encrypt the payload with the key
+    let encrypted_payload = encryption_key.encrypt(payload).expect("Could not encrypt message");
+
+    // Verify payload is indeed encrypted
+    assert_ne!(payload, encrypted_payload);
+
+    // Decrypt the encrypted message with the key
+    let decrypted_payload = encryption_key.decrypt(&encrypted_payload).expect("Could not decrypt message");
+
+    // Verify decrypted payload matches the original
+    assert_eq!(payload, decrypted_payload);
+    true
 }
