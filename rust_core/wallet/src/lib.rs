@@ -2,11 +2,11 @@
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
 
-mod account;
+mod account_server;
 pub mod pin;
 pub mod wallet;
 
-use account::server::AccountServer;
+use account_server::AccountServer;
 use platform_support::hw_keystore::PreferredPlatformSigningKey;
 
 pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformSigningKey>;

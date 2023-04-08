@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::account::server::tests::new_account_server();
+        let (account_server, account_server_pubkey) = crate::account_server::tests::new_account_server();
         let mut wallet: Wallet<_, SoftwareSigningKey> = Wallet::new(account_server, account_server_pubkey);
 
         assert!(wallet.register("123456".to_owned()).is_err());
