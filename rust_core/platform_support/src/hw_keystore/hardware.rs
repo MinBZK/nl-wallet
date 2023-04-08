@@ -45,7 +45,9 @@ impl wallet_shared::account::signing_key::SigningKey for HardwareSigningKey {
     type Error = HardwareKeyStoreError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        PlatformSigningKey::verifying_key(self)
+        let public_key_bytes = self.bridge.public_key()?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+        Ok(public_key)
     }
 }
 impl wallet_shared::account::signing_key::SecureSigningKey for HardwareSigningKey {}
@@ -62,13 +64,6 @@ impl PlatformSigningKey for HardwareSigningKey {
         let key = HardwareSigningKey::new(bridge);
 
         Ok(key)
-    }
-
-    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
-        let public_key_bytes = self.bridge.public_key()?;
-        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
-
-        Ok(public_key)
     }
 }
 

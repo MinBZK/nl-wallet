@@ -45,10 +45,4 @@ impl PlatformSigningKey for SoftwareSigningKey {
         // return (non-mutable) ownership to the caller
         Ok(key.clone().into())
     }
-
-    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
-        let verifying_key = self.0.verifying_key();
-
-        Ok(*verifying_key)
-    }
 }

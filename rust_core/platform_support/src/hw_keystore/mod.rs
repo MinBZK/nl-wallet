@@ -7,7 +7,6 @@ pub mod software;
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
 
-use p256::ecdsa::VerifyingKey;
 use thiserror::Error;
 use wallet_shared::account::signing_key::SecureSigningKey;
 
@@ -33,8 +32,7 @@ pub trait PlatformSigningKey: SecureSigningKey {
     where
         Self: Sized;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError>;
-    // from Signer: try_sign() and sign() methods
+    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
 // if the hardware feature is enabled, prefer HardwareSigningKey
