@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use crate::account::{
-    client::serialization::{Base64Bytes, DerSignature},
+    serialization::{Base64Bytes, DerSignature},
     signing_key::{EphemeralSigningKey, SecureSigningKey},
 };
 
@@ -203,6 +203,10 @@ mod tests {
 
         dbg!(verified);
     }
+
+    // make sure we can substitute a SigningKey instead in tests
+    impl EphemeralSigningKey for p256::ecdsa::SigningKey {}
+    impl SecureSigningKey for p256::ecdsa::SigningKey {}
 
     #[test]
     fn double_signed() {

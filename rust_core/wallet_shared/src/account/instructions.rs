@@ -2,10 +2,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::account::{
-    client::{serialization::DerVerifyingKey, signed::SignedDouble, WalletCertificate},
     signing_key::{EphemeralSigningKey, SecureSigningKey},
+    {serialization::DerVerifyingKey, signed::SignedDouble, WalletCertificate},
 };
 
+#[allow(unused)]
 struct Instruction<T: IsInstruction> {
     instruction: SignedDouble<T>,
     certificate: WalletCertificate,

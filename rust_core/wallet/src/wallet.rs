@@ -2,13 +2,11 @@ use anyhow::Result;
 use once_cell::sync::OnceCell;
 use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
 
-use crate::{
-    account::client::{instructions::Registration, AccountServerClient, WalletCertificate},
-    pin::{
-        key::{new_pin_salt, PinKey},
-        validation::validate_pin,
-    },
+use crate::pin::{
+    key::{new_pin_salt, PinKey},
+    validation::validate_pin,
 };
+use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
 
 const WALLET_KEY_ID: &str = "wallet";
 
@@ -64,12 +62,12 @@ where
 mod tests {
     use super::*;
 
-    use p256::ecdsa::SigningKey;
+    use platform_support::hw_keystore::software::SoftwareSigningKey;
 
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::account::client::server::tests::new_account_server();
-        let mut wallet: Wallet<_, SigningKey> = Wallet::new(account_server, account_server_pubkey);
+        let (account_server, account_server_pubkey) = crate::account::server::tests::new_account_server();
+        let mut wallet: Wallet<_, SoftwareSigningKey> = Wallet::new(account_server, account_server_pubkey);
 
         assert!(wallet.register("123456".to_owned()).is_err());
 

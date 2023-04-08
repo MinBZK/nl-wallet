@@ -10,8 +10,8 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-use crate::{
-    account::client::{
+use wallet_shared::{
+    account::{
         instructions::Registration,
         jwt::{Jwt, JwtClaims},
         serialization::Base64Bytes,
@@ -165,6 +165,10 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(test)]
 pub mod tests {
+    use platform_support::hw_keystore::{software::SoftwareSigningKey, PlatformSigningKey};
+
+    use crate::pin::key::PinKey;
+
     use super::*;
 
     pub fn new_account_server() -> (AccountServer, Vec<u8>) {
@@ -186,8 +190,8 @@ pub mod tests {
         let (account_server, account_server_pubkey) = new_account_server();
 
         // Setup wallet
-        let hw_privkey = SigningKey::random(&mut OsRng);
-        let pin_privkey = SigningKey::random(&mut OsRng);
+        let hw_privkey: SoftwareSigningKey = SigningKey::random(&mut OsRng).into();
+        let pin_privkey = PinKey::new("112233", b"salt");
 
         // Register
         let challenge = account_server.registration_challenge().unwrap();
@@ -198,6 +202,6 @@ pub mod tests {
         let cert_data = cert.parse_and_verify(&account_server_pubkey).unwrap();
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
+        assert_eq!(cert_data.hw_pubkey.0, hw_privkey.verifying_key().unwrap());
     }
 }

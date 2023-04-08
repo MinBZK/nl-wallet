@@ -931,6 +931,7 @@ dependencies = [
  "spki",
  "thiserror",
  "uniffi",
+ "wallet_shared",
 ]
 
 [[package]]
@@ -1549,6 +1550,24 @@ dependencies = [
  "once_cell",
  "p256",
  "platform_support",
+ "rand",
+ "ring",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "wallet_shared",
+]
+
+[[package]]
+name = "wallet_shared"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.21.0",
+ "der",
+ "jsonwebtoken",
+ "p256",
  "rand",
  "ring",
  "serde",

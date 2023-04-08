@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 platform_support = { path = "../platform_support" }
+wallet_shared = { path = "../wallet_shared" }
 anyhow = "1.0.66"
 base64 = "0.21.0"
 der = { version = "0.6.1", features = ["alloc"] }

@@ -14,6 +14,7 @@ hardware-integration-test = ["hardware", "integration-test", "dep:jni"]
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
+wallet_shared = { path = "../wallet_shared" }
 thiserror = "1.0.38"
 p256 = "0.12.0"
 spki = "0.6.0"

@@ -16,7 +16,7 @@ pub fn sign_and_verify_signature<K: PlatformSigningKey>(payload: &[u8], key_iden
     let key2 = K::signing_key(key_identifier).expect("Could not create signing key");
 
     // Get the public key from the first key
-    let public_key = key1.verifying_key().expect("Could not get public key");
+    let public_key = PlatformSigningKey::verifying_key(&key1).expect("Could not get public key");
 
     // Apply a signature to the payload using the second key
     let signature = key2.try_sign(payload).expect("Could not sign payload");

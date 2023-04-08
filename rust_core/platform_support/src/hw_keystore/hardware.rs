@@ -41,6 +41,15 @@ impl HardwareSigningKey {
     }
 }
 
+impl wallet_shared::account::signing_key::SigningKey for HardwareSigningKey {
+    type Error = HardwareKeyStoreError;
+
+    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        PlatformSigningKey::verifying_key(self)
+    }
+}
+impl wallet_shared::account::signing_key::SecureSigningKey for HardwareSigningKey {}
+
 impl PlatformSigningKey for HardwareSigningKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock

@@ -27,7 +27,7 @@ use p256::{
 };
 use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
-use crate::utils::random_bytes;
+use wallet_shared::utils::random_bytes;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {

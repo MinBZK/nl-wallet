@@ -7,8 +7,9 @@ pub mod software;
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
 
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use p256::ecdsa::VerifyingKey;
 use thiserror::Error;
+use wallet_shared::account::signing_key::SecureSigningKey;
 
 #[derive(Debug, Error)]
 pub enum HardwareKeyStoreError {
@@ -27,7 +28,7 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
-pub trait PlatformSigningKey: Signer<Signature> {
+pub trait PlatformSigningKey: SecureSigningKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized;

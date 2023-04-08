@@ -4,10 +4,9 @@
 
 mod account;
 pub mod pin;
-mod utils;
 pub mod wallet;
 
-use account::client::server::AccountServer;
+use account::server::AccountServer;
 use platform_support::hw_keystore::PreferredPlatformSigningKey;
 
 pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformSigningKey>;
