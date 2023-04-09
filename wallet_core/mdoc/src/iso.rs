@@ -14,6 +14,7 @@ pub mod credentials;
 pub mod device_authentication;
 pub mod device_retrieval;
 pub mod disclosure;
+pub mod issuance;
 
 pub use credentials::*;
 pub use device_authentication::*;
