@@ -75,10 +75,9 @@ pub struct SecurityKeyed {
 pub type DeviceRetrievalMethods = Vec<DeviceRetrievalMethod>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ServerRetrievalMethods {
-    #[serde(rename = "webApi")]
     pub(crate) web_api: WebApi,
-    #[serde(rename = "oidc")]
     pub(crate) oidc: Oidc,
 }
 

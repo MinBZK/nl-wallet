@@ -14,9 +14,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
     pub(crate) version: String,
-    #[serde(rename = "docRequests")]
     pub(crate) doc_requests: Vec<DocRequest>,
 }
 impl DeviceRequest {
@@ -35,10 +35,9 @@ impl DeviceRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DocRequest {
-    #[serde(rename = "itemsRequest")]
     pub(crate) items_request: ItemsRequestBytes,
-    #[serde(rename = "readerAuth")]
     pub(crate) reader_auth: Option<ReaderAuth>,
 }
 
@@ -56,12 +55,10 @@ pub struct ReaderAuthenticationKeyed {
 pub type ItemsRequestBytes = TaggedBytes<ItemsRequest>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ItemsRequest {
-    #[serde(rename = "docType")]
     pub(crate) doc_type: DocType,
-    #[serde(rename = "nameSpaces")]
     pub(crate) name_spaces: NameSpaces,
-    #[serde(rename = "requestInfo")]
     pub(crate) request_info: Option<IndexMap<String, Value>>,
 }
 

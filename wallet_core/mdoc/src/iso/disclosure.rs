@@ -16,10 +16,10 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
     pub(crate) version: String,
     pub(crate) documents: Option<Vec<Document>>,
-    #[serde(rename = "documentErrors")]
     pub(crate) document_errors: Option<Vec<DocumentError>>,
     pub(crate) status: u32,
 }
@@ -27,12 +27,10 @@ pub struct DeviceResponse {
 pub type DocumentError = IndexMap<DocType, ErrorCode>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Document {
-    #[serde(rename = "docType")]
     pub(crate) doc_type: DocType,
-    #[serde(rename = "issuerSigned")]
     pub(crate) issuer_signed: IssuerSigned,
-    #[serde(rename = "deviceSigned")]
     pub(crate) device_signed: DeviceSigned,
     pub(crate) errors: Option<Errors>,
 }
@@ -40,18 +38,16 @@ pub struct Document {
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes
 /// (i.e. [`IssuerSignedItem`]s) contained in the credential.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct IssuerSigned {
-    #[serde(rename = "nameSpaces")]
     pub(crate) name_spaces: Option<IssuerNameSpaces>,
-    #[serde(rename = "issuerAuth")]
     pub(crate) issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceSigned {
-    #[serde(rename = "nameSpaces")]
     pub(crate) name_spaces: DeviceNameSpacesBytes,
-    #[serde(rename = "deviceAuth")]
     pub(crate) device_auth: DeviceAuth,
 }
 
@@ -60,10 +56,9 @@ pub type DeviceNameSpaces = IndexMap<NameSpace, DeviceSignedItems>;
 pub type DeviceSignedItems = IndexMap<DataElementIdentifier, Value>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum DeviceAuth {
-    #[serde(rename = "deviceSignature")]
     DeviceSignature(MdocCose<CoseSign1, RequiredValue<NullCborValue>>),
-    #[serde(rename = "deviceMac")]
     DeviceMac(MdocCose<CoseMac0, RequiredValue<NullCborValue>>),
 }
 

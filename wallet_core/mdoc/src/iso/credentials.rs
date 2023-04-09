@@ -60,20 +60,17 @@ pub type DataElementsArray = Vec<DataElementIdentifier>;
 pub type DataElementIdentifier = String;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct KeyAuthorizations {
-    #[serde(rename = "nameSpaces")]
     pub(crate) name_spaces: Option<AuthorizedNameSpaces>,
-    #[serde(rename = "dataElements")]
     pub(crate) data_elements: Option<AuthorizedDataElements>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceKeyInfo {
-    #[serde(rename = "deviceKey")]
     pub(crate) device_key: DeviceKey,
-    #[serde(rename = "keyAuthorizations")]
     pub(crate) key_authorizations: Option<KeyAuthorizations>,
-    #[serde(rename = "KeyInfo")]
     pub(crate) key_info: Option<KeyInfo>,
 }
 
@@ -81,28 +78,22 @@ pub type DeviceKey = CoseKey;
 
 /// Data signed by the issuer, containing among others the digests of the attributes ([`ValueDigests`]).
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {
     pub(crate) version: String,
-    #[serde(rename = "digestAlgorithm")]
     pub(crate) digest_algorithm: String,
-    #[serde(rename = "valueDigests")]
     pub(crate) value_digests: ValueDigests,
-    #[serde(rename = "deviceKeyInfo")]
     pub(crate) device_key_info: DeviceKeyInfo,
-    #[serde(rename = "docType")]
     pub(crate) doc_type: String,
-    #[serde(rename = "validityInfo")]
     pub(crate) validity_info: ValidityInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
     pub(crate) signed: Tdate,
-    #[serde(rename = "validFrom")]
     pub(crate) valid_from: Tdate,
-    #[serde(rename = "validUntil")]
     pub(crate) valid_until: Tdate,
-    #[serde(rename = "expectedUpdate")]
     pub(crate) expected_update: Option<Tdate>,
 }
 
@@ -146,14 +137,13 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 
 /// An attribute.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct IssuerSignedItem {
     #[serde(rename = "digestID")]
     pub(crate) digest_id: u32,
     #[serde(with = "serde_bytes")]
     pub(crate) random: Vec<u8>,
-    #[serde(rename = "elementIdentifier")]
     pub(crate) element_identifier: String,
-    #[serde(rename = "elementValue")]
     pub(crate) element_value: Value,
 }
 
