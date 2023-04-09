@@ -7,6 +7,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 use std::{fmt::Debug, sync::Mutex};
+use wallet_shared::account::signing_key::SecureSigningKey;
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformSigningKey};
 
@@ -50,7 +51,7 @@ impl wallet_shared::account::signing_key::SigningKey for HardwareSigningKey {
         Ok(public_key)
     }
 }
-impl wallet_shared::account::signing_key::SecureSigningKey for HardwareSigningKey {}
+impl SecureSigningKey for HardwareSigningKey {}
 
 impl PlatformSigningKey for HardwareSigningKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {

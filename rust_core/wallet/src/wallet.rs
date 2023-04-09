@@ -34,12 +34,8 @@ where
         }
     }
 
-    fn hw_privkey(&self) -> std::result::Result<&S, HardwareKeyStoreError> {
-        self.hw_privkey.get_or_try_init(|| {
-            let signing_key = S::signing_key(WALLET_KEY_ID)?;
-
-            Ok::<_, HardwareKeyStoreError>(signing_key)
-        })
+    fn hw_privkey(&self) -> Result<&S, HardwareKeyStoreError> {
+        self.hw_privkey.get_or_try_init(|| S::signing_key(WALLET_KEY_ID))
     }
 
     pub fn register(&mut self, pin: String) -> Result<()> {

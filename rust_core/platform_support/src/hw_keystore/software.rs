@@ -1,7 +1,8 @@
 use once_cell::sync::Lazy;
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 use rand_core::OsRng;
 use std::{collections::HashMap, sync::Mutex};
+use wallet_shared::account::signing_key::SecureSigningKey;
 
 use super::{HardwareKeyStoreError, PlatformSigningKey};
 
@@ -10,8 +11,8 @@ static SIGNING_KEYS: Lazy<Mutex<HashMap<String, p256::ecdsa::SigningKey>>> = Laz
 
 pub struct SoftwareSigningKey(p256::ecdsa::SigningKey);
 
-impl From<SigningKey> for SoftwareSigningKey {
-    fn from(value: SigningKey) -> Self {
+impl From<p256::ecdsa::SigningKey> for SoftwareSigningKey {
+    fn from(value: p256::ecdsa::SigningKey) -> Self {
         SoftwareSigningKey(value)
     }
 }
@@ -28,7 +29,7 @@ impl wallet_shared::account::signing_key::SigningKey for SoftwareSigningKey {
     }
 }
 
-impl wallet_shared::account::signing_key::SecureSigningKey for SoftwareSigningKey {}
+impl SecureSigningKey for SoftwareSigningKey {}
 
 // SigningKey from p256::ecdsa conforms to the SigningKey trait
 // if we provide an implementation for the signing_key and verifying_key methods.
@@ -39,7 +40,7 @@ impl PlatformSigningKey for SoftwareSigningKey {
         // insert new random signing key, if the key is not present
         let key = signing_keys
             .entry(identifier.to_string())
-            .or_insert_with(|| SigningKey::random(&mut OsRng));
+            .or_insert_with(|| p256::ecdsa::SigningKey::random(&mut OsRng));
 
         // make a clone of the (mutable) signing key so we can
         // return (non-mutable) ownership to the caller
