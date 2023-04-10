@@ -5,7 +5,7 @@ use serde_bytes::ByteBuf;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE")]
-struct ServiceEngagement {
+pub struct ServiceEngagement {
     id: String,
     url: Option<ServerUrl>,
     pc: Option<ProvisioningCode>,
@@ -13,17 +13,17 @@ struct ServiceEngagement {
     opt: Option<Options>,
 }
 
-type ProvisioningCode = String;
-type ServerUrl = String;
-type Options = IndexMap<String, Value>; // TODO should allow only maps
+pub type ProvisioningCode = String;
+pub type ServerUrl = String;
+pub type Options = IndexMap<String, Value>; // TODO should allow only maps
 
-type SessionId = ByteBuf;
+pub type SessionId = ByteBuf;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "StartProvisioning")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
-struct StartProvisioningMessage {
+pub struct StartProvisioningMessage {
     provisioning_code: Option<String>,
 }
 
@@ -31,7 +31,7 @@ struct StartProvisioningMessage {
 #[serde(rename = "ReadyToProvision")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
-struct ReadyToProvisionMessage {
+pub struct ReadyToProvisionMessage {
     e_session_id: SessionId,
 }
 
@@ -41,15 +41,15 @@ struct ReadyToProvisionMessage {
 #[serde(rename = "RequestEndSession")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
-struct RequestEndSessionMessage {
+pub struct RequestEndSessionMessage {
     e_session_id: SessionId,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename = "EndSession")]
+#[serde(rename = "foo.bar.EndSession")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
-struct EndSessionMessage {
+pub struct EndSessionMessage {
     e_session_id: SessionId,
     reason: String, // "known values include success, failed, restart"
     delay: Option<u64>,

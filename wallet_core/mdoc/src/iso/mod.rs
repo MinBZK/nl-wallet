@@ -10,6 +10,7 @@
 //! - Some CBOR data structures contain other data structures not directly, but instead their CBOR-serialized bytes.
 //!   For this the [`TaggedBytes`](crate::TaggedBytes) wrapper is used.
 
+pub mod basic_sa_ext;
 pub mod credentials;
 pub mod device_authentication;
 pub mod device_retrieval;
@@ -20,3 +21,4 @@ pub use credentials::*;
 pub use device_authentication::*;
 pub use device_retrieval::*;
 pub use disclosure::*;
+pub use issuance::*;
