@@ -11,6 +11,10 @@ import 'package:uuid/uuid.dart';
 import 'dart:ffi' as ffi;
 
 abstract class RustCore {
+  Future<void> initAsync({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kInitAsyncConstMeta;
+
   Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
@@ -27,6 +31,21 @@ class RustCoreImpl implements RustCore {
   /// Only valid on web/WASM platforms.
   factory RustCoreImpl.wasm(FutureOr<WasmModule> module) => RustCoreImpl(module as ExternalLibrary);
   RustCoreImpl.raw(this._platform);
+  Future<void> initAsync({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_init_async(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kInitAsyncConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kInitAsyncConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "init_async",
+        argNames: [],
+      );
+
   Future<Uint8List> isValidPin({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
@@ -185,6 +204,17 @@ class RustCoreWire implements FlutterRustBridgeWireBase {
   late final _init_frb_dart_api_dlPtr =
       _lookup<ffi.NativeFunction<ffi.IntPtr Function(ffi.Pointer<ffi.Void>)>>('init_frb_dart_api_dl');
   late final _init_frb_dart_api_dl = _init_frb_dart_api_dlPtr.asFunction<int Function(ffi.Pointer<ffi.Void>)>();
+
+  void wire_init_async(
+    int port_,
+  ) {
+    return _wire_init_async(
+      port_,
+    );
+  }
+
+  late final _wire_init_asyncPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_init_async');
+  late final _wire_init_async = _wire_init_asyncPtr.asFunction<void Function(int)>();
 
   void wire_is_valid_pin(
     int port_,
