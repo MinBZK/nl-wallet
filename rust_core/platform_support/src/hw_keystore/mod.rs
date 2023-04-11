@@ -27,6 +27,9 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
+/// Contract for ECDSA private keys suitable for use in the wallet, as the authentication key for the WP.
+/// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
+/// Handles to private keys are requested through [`PlatformSigningKey::signing_key()`].
 pub trait PlatformSigningKey: SecureSigningKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
