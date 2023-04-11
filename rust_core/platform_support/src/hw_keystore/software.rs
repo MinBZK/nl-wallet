@@ -92,7 +92,9 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
 
         // Fetch the associated nonce from the [NONCE_MAP]
         let nonce_map = NONCE_MAP.lock().expect("Could not get lock on NONCE_MAP");
-        let nonce_bytes = nonce_map.get(&msg.to_vec()).expect("Could not find nonce for provided key");
+        let nonce_bytes = nonce_map
+            .get(&msg.to_vec())
+            .expect("Could not find nonce for provided key");
         let nonce = Nonce::from_slice(nonce_bytes); // 96-bits; unique per message
 
         // Decrypt the provided message with the retrieved nonce
