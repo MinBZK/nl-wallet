@@ -165,8 +165,8 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(test)]
 pub mod tests {
-    use platform_support::hw_keystore::software::SoftwareSigningKey;
-    use wallet_shared::account::signing_key::SigningKey;
+    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
+    use wallet_shared::account::signing_key::EcdsaKey;
 
     use crate::pin::key::PinKey;
 
@@ -191,7 +191,7 @@ pub mod tests {
         let (account_server, account_server_pubkey) = new_account_server();
 
         // Setup wallet
-        let hw_privkey: SoftwareSigningKey = p256::ecdsa::SigningKey::random(&mut OsRng).into();
+        let hw_privkey: SoftwareEcdsaKey = p256::ecdsa::SigningKey::random(&mut OsRng).into();
         let pin_privkey = PinKey::new("112233", b"salt");
 
         // Register

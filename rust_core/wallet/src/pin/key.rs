@@ -27,7 +27,7 @@ use p256::{
 };
 use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
-use wallet_shared::{account::signing_key::EphemeralSigningKey, utils::random_bytes};
+use wallet_shared::{account::signing_key::EphemeralEcdsaKey, utils::random_bytes};
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
@@ -80,7 +80,7 @@ impl<'a> Signer<Signature> for PinKey<'a> {
     }
 }
 
-impl<'a> wallet_shared::account::signing_key::SigningKey for PinKey<'a> {
+impl<'a> wallet_shared::account::signing_key::EcdsaKey for PinKey<'a> {
     type Error = PinKeyError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -88,7 +88,7 @@ impl<'a> wallet_shared::account::signing_key::SigningKey for PinKey<'a> {
     }
 }
 
-impl<'a> EphemeralSigningKey for PinKey<'a> {}
+impl<'a> EphemeralEcdsaKey for PinKey<'a> {}
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
 fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRingError> {

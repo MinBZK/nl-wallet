@@ -10,7 +10,7 @@ use serde_json::value::RawValue;
 
 use crate::account::{
     serialization::{Base64Bytes, DerSignature},
-    signing_key::{EphemeralSigningKey, SecureSigningKey},
+    signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 // Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.
@@ -146,8 +146,8 @@ where
         payload: T,
         challenge: &[u8],
         serial_number: u64,
-        hw_privkey: &impl SecureSigningKey,
-        pin_privkey: &impl EphemeralSigningKey,
+        hw_privkey: &impl SecureEcdsaKey,
+        pin_privkey: &impl EphemeralEcdsaKey,
     ) -> Result<SignedDouble<T>> {
         let inner = sign(payload, challenge, serial_number, SignedType::Pin, pin_privkey)?.0;
         let signature = hw_privkey.try_sign(inner.as_bytes())?;
@@ -205,8 +205,8 @@ mod tests {
     }
 
     // make sure we can substitute a SigningKey instead in tests
-    impl EphemeralSigningKey for p256::ecdsa::SigningKey {}
-    impl SecureSigningKey for p256::ecdsa::SigningKey {}
+    impl EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
+    impl SecureEcdsaKey for p256::ecdsa::SigningKey {}
 
     #[test]
     fn double_signed() {

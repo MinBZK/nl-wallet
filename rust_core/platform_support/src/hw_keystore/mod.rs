@@ -8,7 +8,7 @@ pub mod software;
 pub mod integration_test;
 
 use thiserror::Error;
-use wallet_shared::account::signing_key::SecureSigningKey;
+use wallet_shared::account::signing_key::SecureEcdsaKey;
 
 #[derive(Debug, Error)]
 pub enum HardwareKeyStoreError {
@@ -30,7 +30,7 @@ pub enum KeyStoreError {
 /// Contract for ECDSA private keys suitable for use in the wallet, as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`PlatformSigningKey::signing_key()`].
-pub trait PlatformSigningKey: SecureSigningKey {
+pub trait PlatformEcdsaKey: SecureEcdsaKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized;
@@ -40,12 +40,12 @@ pub trait PlatformSigningKey: SecureSigningKey {
 
 // if the hardware feature is enabled, prefer HardwareSigningKey
 #[cfg(feature = "hardware")]
-pub type PreferredPlatformSigningKey = crate::hw_keystore::hardware::HardwareSigningKey;
+pub type PreferredPlatformEcdsaKey = crate::hw_keystore::hardware::HardwareEcdsaKey;
 
 // otherwise if the software feature is enabled, prefer SoftwareSigningKey
 #[cfg(all(not(feature = "hardware"), feature = "software"))]
-pub type PreferredPlatformSigningKey = crate::hw_keystore::software::SoftwareSigningKey;
+pub type PreferredPlatformEcdsaKey = crate::hw_keystore::software::SoftwareEcdsaKey;
 
 // otherwise just just alias the Never type
 #[cfg(not(any(feature = "hardware", feature = "software")))]
-pub type PreferredPlatformSigningKey = never::Never;
+pub type PreferredPlatformEcdsaKey = never::Never;

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use once_cell::sync::OnceCell;
-use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
+use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformEcdsaKey};
 
 use crate::pin::{
     key::{new_pin_salt, PinKey},
@@ -22,7 +22,7 @@ pub struct Wallet<T, S> {
 impl<T, S> Wallet<T, S>
 where
     T: AccountServerClient,
-    S: PlatformSigningKey,
+    S: PlatformEcdsaKey,
 {
     pub fn new(account_server: T, account_server_pubkey: Vec<u8>) -> Wallet<T, S> {
         Wallet {
@@ -58,12 +58,12 @@ where
 mod tests {
     use super::*;
 
-    use platform_support::hw_keystore::software::SoftwareSigningKey;
+    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
 
     #[test]
     fn it_works() {
         let (account_server, account_server_pubkey) = crate::account_server::tests::new_account_server();
-        let mut wallet: Wallet<_, SoftwareSigningKey> = Wallet::new(account_server, account_server_pubkey);
+        let mut wallet: Wallet<_, SoftwareEcdsaKey> = Wallet::new(account_server, account_server_pubkey);
 
         assert!(wallet.register("123456".to_owned()).is_err());
 
