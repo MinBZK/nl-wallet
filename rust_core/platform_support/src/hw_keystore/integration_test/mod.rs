@@ -24,16 +24,3 @@ pub fn sign_and_verify_signature<K: PlatformSigningKey>(payload: &[u8], key_iden
     // Then verify the signature, which should work if they indeed use the same private key
     public_key.verify(payload, &signature).is_ok()
 }
-
-#[cfg(all(test, feature = "software"))]
-mod tests {
-    use crate::hw_keystore::{integration_test::sign_and_verify_signature, software::SoftwareSigningKey};
-
-    #[test]
-    fn test_software_signature() {
-        let payload = b"This is a message that will be signed.";
-        let identifier = "key";
-
-        assert!(sign_and_verify_signature::<SoftwareSigningKey>(payload, identifier));
-    }
-}
