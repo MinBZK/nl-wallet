@@ -1,0 +1,13 @@
+[package]
+name = "flutter_api_macros"
+version.workspace = true
+edition.workspace = true
+description = "Support macros for flutter_api."
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = [ "full" ] }
+quote = "1.0.26"
+proc-macro2 = "1.0.52"

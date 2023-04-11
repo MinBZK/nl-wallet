@@ -20,11 +20,13 @@ serde_reflection_codegen = [
 
 [dependencies]
 wallet = { path = "../wallet" }
+flutter_api_macros = { path = "../flutter_api_macros" }
 anyhow = "1.0.69"
 flutter_rust_bridge = "1.70.0"
-once_cell = "1.17.0"
+once_cell = "1.17.1"
 serde = { version = "1.0.156", features = ["derive"] }
 bincode = "1.3.3"
 const_format = { version = "0.2.30", optional = true }
 serde-generate = { version = "0.25.0", optional = true }
 serde-reflection = { version = "0.3.6", optional = true }
+tokio = { version = "1", features = [ "rt-multi-thread" ] }

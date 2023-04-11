@@ -8,7 +8,11 @@ import 'rust_core.dart';
 class TypedRustCore {
   final RustCore _rustCore;
 
-  TypedRustCore(this._rustCore);
+  TypedRustCore(this._rustCore) {
+    // Initialize the Asynchronous runtime of the Rust core module.
+    // This is required to be able to execute asynchronous Rust functions.
+    _rustCore.initAsync();
+  }
 
   Future<PinValidationResult> isValidPin(String pin) async {
     final bytes = await _rustCore.isValidPin(pin: pin);
