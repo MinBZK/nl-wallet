@@ -186,7 +186,7 @@ successfully:
 
 You should now be able to launch an Android Emulator or iOS Simulator and run the app
 following these steps:
-- `cd wallet-app`
+- `cd wallet_app`
 - `flutter pub get`
 - `flutter run`! 🎉
 
@@ -194,7 +194,7 @@ following these steps:
 
 ## Code
 
-All `Dart` code goes in the `wallet-app/lib/` directory and their appropriate sub-directories.
+All `Dart` code goes in the `wallet_app/lib/` directory and their appropriate sub-directories.
 
 All `Rust` code goes in the `rust_core/` directory and their appropriate sub-directories.
 
