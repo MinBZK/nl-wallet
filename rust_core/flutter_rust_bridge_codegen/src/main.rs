@@ -6,12 +6,12 @@ const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api/sr
 /// Path of output generated Dart code
 const DART_OUTPUT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../wallet-app/lib/bridge_generated.dart"
+    "/../../wallet_app/lib/bridge_generated.dart"
 );
 /// Path of output generated C code
 const C_OUTPUT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../wallet-app/ios/Runner/bridge_generated.h"
+    "/../../wallet_app/ios/Runner/bridge_generated.h"
 );
 /// Path of output generated Rust code
 const RUST_OUTPUT: &str = concat!(

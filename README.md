@@ -184,8 +184,7 @@ successfully:
 - Android toolchain
 - Xcode
 
-You should now be able to launch an Android Emulator or iOS Simulator and run the app
-following these steps:
+You should now be able to launch an Android Emulator or iOS Simulator and run the app by following these steps:
 - `cd wallet_app`
 - `flutter pub get`
 - `flutter run`! 🎉

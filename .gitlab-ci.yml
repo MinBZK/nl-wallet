@@ -1,5 +1,5 @@
 variables:
-  FLUTTER_APP_PROJECT_DIR: "wallet-app"
+  FLUTTER_APP_PROJECT_DIR: "wallet_app"
 
 stages:
   - test
