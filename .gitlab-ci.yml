@@ -6,7 +6,7 @@ stages:
   - build
   - deploy
 
-# Working directory is 'wallet-app' directory
+# Working directory is 'wallet_app' directory
 analyze-app:
   stage: test
   only:
