@@ -1007,7 +1007,6 @@ dependencies = [
  "never",
  "once_cell",
  "p256",
- "platform_support",
  "rand_core",
  "spki",
  "thiserror",

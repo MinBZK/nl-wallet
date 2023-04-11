@@ -1,4 +1,4 @@
-#[cfg(all(feature = "hardware-integration-test"))]
+#[cfg(feature = "hardware-integration-test")]
 pub mod hardware;
 
 use p256::ecdsa::signature::Verifier;

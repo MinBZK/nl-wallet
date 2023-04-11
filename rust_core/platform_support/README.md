@@ -74,7 +74,7 @@ The module contains the following features:
 
 ### Software fallback
 
-The crate contains an integration test for the software fallback, which can be run using `cargo test --features software`.
+The crate contains an integration test for the software fallback, which can be run using `cargo test --features software-integration-test`.
 This test simply uses the crate to create a new private key, get its public key, sign a payload and then verify the returned signature using the public key.
 
 ### Android
