@@ -4,6 +4,10 @@ use wallet::pin::validation::validate_pin;
 
 use crate::{models::pin::PinValidationResult, wallet::WALLET};
 
+pub fn init_async() {
+    crate::async_runtime::try_init_async().expect("CORE may only be initialized once.");
+}
+
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()

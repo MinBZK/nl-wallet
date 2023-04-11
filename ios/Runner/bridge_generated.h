@@ -26,6 +26,8 @@ uintptr_t new_dart_opaque(Dart_Handle handle);
 
 intptr_t init_frb_dart_api_dl(void *obj);
 
+void wire_init_async(int64_t port_);
+
 void wire_is_valid_pin(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_register(int64_t port_, struct wire_uint_8_list *pin);
@@ -36,6 +38,7 @@ void free_WireSyncReturn(WireSyncReturn ptr);
 
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
+    dummy_var ^= ((int64_t) (void*) wire_init_async);
     dummy_var ^= ((int64_t) (void*) wire_is_valid_pin);
     dummy_var ^= ((int64_t) (void*) wire_register);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
