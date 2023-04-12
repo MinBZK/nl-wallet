@@ -49,12 +49,17 @@ pub struct Entry {
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenerationResponseMessage {
     e_session_id: SessionId,
-    mdoc_public_keys: MdocPublicKeys,
     responses: Responses,
 }
 
 pub type MdocPublicKeys = IndexMap<DocType, Vec<CoseKey>>;
-pub type Responses = IndexMap<DocType, Vec<MdocCose<CoseSign1, ByteBuf>>>;
+pub type Responses = IndexMap<DocType, Vec<Response>>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Response {
+    key: CoseKey,
+    signature: MdocCose<CoseSign1, ByteBuf>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "nl.referencewallet.issuance.DataToIssue")]
