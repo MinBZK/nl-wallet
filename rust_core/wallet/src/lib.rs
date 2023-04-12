@@ -2,15 +2,14 @@
 // TODO: remove this when these modules are used.
 #![allow(dead_code)]
 
-mod account;
+mod account_server;
 pub mod pin;
-mod utils;
 pub mod wallet;
 
-use account::client::server::AccountServer;
-use platform_support::hw_keystore::PreferredPlatformSigningKey;
+use account_server::AccountServer;
+use platform_support::hw_keystore::PreferredPlatformEcdsaKey;
 
-pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformSigningKey>;
+pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformEcdsaKey>;
 
 pub fn init_wallet() -> Wallet {
     let account_server = AccountServer::new_stub(); // TODO

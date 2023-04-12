@@ -2,10 +2,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::account::{
-    client::{serialization::DerVerifyingKey, signed::SignedDouble, WalletCertificate},
-    signing_key::{EphemeralSigningKey, SecureSigningKey},
+    signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
+    {serialization::DerVerifyingKey, signed::SignedDouble, WalletCertificate},
 };
 
+#[allow(unused)]
 struct Instruction<T: IsInstruction> {
     instruction: SignedDouble<T>,
     certificate: WalletCertificate,
@@ -28,8 +29,8 @@ pub struct Registration {
 
 impl Registration {
     pub fn new_signed(
-        hw_privkey: &impl SecureSigningKey,
-        pin_privkey: &impl EphemeralSigningKey,
+        hw_privkey: &impl SecureEcdsaKey,
+        pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
         let pin_pubkey = pin_privkey.verifying_key()?;
