@@ -27,7 +27,7 @@ pub struct StartIssuingMessage {
 pub struct RequestKeyGenerationMessage {
     e_session_id: SessionId,
     challenge: ByteBuf,
-    to_be_issued: UnsignedMdocs,
+    unsigned_mdocs: UnsignedMdocs,
 }
 
 pub type UnsignedMdocs = IndexMap<DocType, UnsignedMdoc>;
