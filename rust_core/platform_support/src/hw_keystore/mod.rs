@@ -4,7 +4,7 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
-#[cfg(any(test, feature = "integration-test"))]
+#[cfg(feature = "integration-test")]
 pub mod integration_test;
 
 use thiserror::Error;
