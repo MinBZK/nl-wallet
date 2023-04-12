@@ -32,8 +32,7 @@ test-flutter:
   script:
     - set -euxo pipefail
     - flutter --version
-    - cd $FLUTTER_APP_PROJECT_DIR
-    - flutter test --exclude-tags=golden
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden)
 
 test-flutter-ui:
   stage: test
@@ -52,8 +51,7 @@ test-flutter-ui:
   script:
     - set -euxo pipefail
     - flutter --version
-    - cd $FLUTTER_APP_PROJECT_DIR
-    - flutter test --tags=golden
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
 test-rust:
   stage: test
