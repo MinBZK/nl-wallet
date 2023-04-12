@@ -5,7 +5,7 @@ edition.workspace = true
 
 [features]
 hardware = ["dep:once_cell", "dep:uniffi"]
-software = ["dep:once_cell", "dep:rand_core"]
+software = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
 integration-test = []
 hardware-integration-test = ["integration-test", "hardware", "dep:jni"]
 software-integration-test = ["integration-test", "software"]
@@ -14,7 +14,7 @@ software-integration-test = ["integration-test", "software"]
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
-aes-gcm = "0.10.1"
+aes-gcm = { version = "0.10.1", optional = true }
 jni = { version = "0.21.1", optional = true }
 never = "0.1.0"
 once_cell = { version = "1.17.1", optional = true }
