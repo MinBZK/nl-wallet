@@ -109,7 +109,7 @@ impl<C, T> From<C> for MdocCose<C, T> {
 
 impl<T> MdocCose<CoseSign1, T> {
     pub fn sign(
-        obj: T,
+        obj: &T,
         unprotected_header: coset::Header,
         private_key: &ecdsa::SigningKey<NistP256>,
     ) -> Result<MdocCose<CoseSign1, T>>
@@ -117,7 +117,7 @@ impl<T> MdocCose<CoseSign1, T> {
         T: Clone + Serialize,
     {
         Ok(CoseSign1Builder::new()
-            .payload(cbor_serialize(&obj)?)
+            .payload(cbor_serialize(obj)?)
             .protected(
                 HeaderBuilder::new()
                     .algorithm(iana::Algorithm::ES256)

@@ -63,7 +63,7 @@ impl Issuer {
             .value(33, Value::Bytes(self.cert_bts))
             .build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(mso.into(), headers, &self.private_key)?;
+            MdocCose::sign(&mso.into(), headers, &self.private_key)?;
 
         Ok(IssuerSigned {
             name_spaces: Some(self.attributes),
