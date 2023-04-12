@@ -32,15 +32,11 @@ pub fn encrypt_and_decrypt_message<K: PlatformEncryptionKey>(payload: &[u8], key
     // Encrypt the payload with the key
     let encrypted_payload = encryption_key.encrypt(payload).expect("Could not encrypt message");
 
-    // Verify payload is indeed encrypted
-    assert_ne!(payload, encrypted_payload);
-
     // Decrypt the encrypted message with the key
     let decrypted_payload = encryption_key
         .decrypt(&encrypted_payload)
         .expect("Could not decrypt message");
 
-    // Verify decrypted payload matches the original
-    assert_eq!(payload, decrypted_payload);
-    true
+    // Verify payload is indeed encrypted and decrypted payload matches the original
+    payload != encrypted_payload && payload == decrypted_payload
 }

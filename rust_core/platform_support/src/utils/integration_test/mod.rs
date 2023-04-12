@@ -35,9 +35,8 @@ pub fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
         .read_to_string(&mut contents)
         .expect("Could not read test.txt");
 
-    // Verify the file contents match the [original_message] and clean up
-    assert_eq!(contents, original_message);
+    // Clean up and verify the file contents match the [original_message]
     fs::remove_file(&path).expect("Could not delete test.txt");
 
-    true
+    contents == original_message
 }
