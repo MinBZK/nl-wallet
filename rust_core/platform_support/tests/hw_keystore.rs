@@ -1,4 +1,4 @@
-#[cfg(all(feature = "software", feature = "integration-test"))]
+#[cfg(feature = "software-integration-test")]
 #[test]
 fn test_software_signature() {
     use platform_support::hw_keystore::{integration_test::sign_and_verify_signature, software::SoftwareSigningKey};
@@ -9,7 +9,7 @@ fn test_software_signature() {
     assert!(sign_and_verify_signature::<SoftwareSigningKey>(payload, identifier));
 }
 
-#[cfg(all(feature = "software", feature = "integration-test"))]
+#[cfg(feature = "software-integration-test")]
 #[test]
 fn test_software_encryption() {
     use platform_support::hw_keystore::{
