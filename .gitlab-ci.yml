@@ -18,6 +18,7 @@ analyze-app:
   script:
     - set -euxo pipefail
     - flutter --version
+    - flutter pub get $FLUTTER_APP_PROJECT_DIR
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
     
 test-flutter:
@@ -32,7 +33,7 @@ test-flutter:
     - set -euxo pipefail
     - flutter --version
     - cd $FLUTTER_APP_PROJECT_DIR
-    - flutter test --exclude-tags=golden $FLUTTER_APP_PROJECT_DIR
+    - flutter test --exclude-tags=golden
 
 test-flutter-ui:
   stage: test
