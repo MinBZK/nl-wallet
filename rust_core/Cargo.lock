@@ -1572,7 +1572,6 @@ name = "wallet"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "base64 0.21.0",
  "der",
  "jsonwebtoken",
  "once_cell",
@@ -1581,7 +1580,6 @@ dependencies = [
  "rand",
  "ring",
  "serde",
- "serde_json",
  "sha2",
  "thiserror",
  "wallet_shared",
