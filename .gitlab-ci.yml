@@ -160,6 +160,28 @@ deploy-android-app:
     - bundle install
     - bundle exec fastlane android ci_deploy
 
+upload-browserstack-android-app:
+  stage: deploy
+  only:
+    - main
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:436af2468f17e6723b99d61a402ad2e5d1af46631455a247129468147670c487"
+  needs:
+    - build-android-app
+  dependencies:
+    - build-android-app
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane android ci_browserstack
+
 build-ios-app:
   stage: build
   only:
@@ -204,3 +226,25 @@ deploy-ios-app:
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_deploy
+
+upload-browserstack-ios-app:
+  stage: deploy
+  only:
+    - main
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:436af2468f17e6723b99d61a402ad2e5d1af46631455a247129468147670c487"
+  needs:
+    - build-ios-app
+  dependencies:
+    - build-ios-app
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane ios ci_browserstack
