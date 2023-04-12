@@ -66,6 +66,18 @@ private_lane :ci_get_k8s_secret_file do |options|
   end
 end
 
+private_lane :get_newest_file do |options|
+  Dir.chdir("..") do
+    Dir.glob("*.#{options[:extension]}").max_by {|f| File.mtime(f)}
+  end
+end
+
+private_lane :upload_to_browserstack do |options|
+  Dir.chdir("..") do
+    sh("curl", "-u", "#{options[:user]}:#{options[:key]}", "-X", "POST", "https://api-cloud.browserstack.com/app-automate/upload", "-F", "file=@#{options[:file]}", "-F", "custom_id=#{options[:custom_id]}", log: false)
+  end
+end
+
 lane :disable_flutter_analytics do 
   sh("dart", "--disable-analytics")
   sh("flutter", "config", "--no-analytics")
@@ -84,7 +96,7 @@ platform :android do
   end
 
   desc "Deploy Android app from GitLab CI"
-  lane :ci_deploy do |options|
+  lane :ci_deploy do
     app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
 
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: "play-store-key.json")
@@ -94,6 +106,14 @@ platform :android do
       track: "internal",
       json_key: "play-store-key.json"
     )
+  end
+
+  desc "Upload Android app to BrowserStack from GitLab CI"
+  lane :ci_browserstack do
+    aab_file = get_newest_file(extension: "aab")
+    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+
+    browserstack(aab_file: aab_file, user: credentials["user"], key: credentials["key"])
   end
 
   desc "Build Android app without signing"
@@ -115,6 +135,15 @@ platform :android do
       sh("flutter", "build", "appbundle", "--build-number", build.to_s, "--build-name", version.to_s)
       sh("mv", "build/app/outputs/bundle/release/app-release.aab", "#{package_name}-#{version}.aab")
     end
+  end
+
+  desc "Upload Android app to BrowserStack"
+  lane :browserstack do |options|
+    aab_file = options[:aab_file]
+    user = options[:user]
+    key = options[:key]
+
+    upload_to_browserstack(file: aab_file, user: user, key: key, custom_id: "NLWalletAndroid")
   end
 end
 
@@ -150,6 +179,14 @@ platform :ios do
     )
 
     deploy(bundle_id: app_identifier)
+  end
+
+  desc "Upload iOS app to BrowserStack from GitLab CI"
+  lane :ci_browserstack do
+    ipa_file = get_newest_file(extension: "ipa")
+    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+
+    browserstack(ipa_file: ipa_file, user: credentials["user"], key: credentials["key"])
   end
 
   desc "Test iOS app"
@@ -199,5 +236,14 @@ platform :ios do
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
     upload_to_testflight(skip_submission: true, app_identifier: bundle_id)
+  end
+
+  desc "Upload iOS app to BrowserStack"
+  lane :browserstack do |options|
+    ipa_file = options[:ipa_file]
+    user = options[:user]
+    key = options[:key]
+
+    upload_to_browserstack(file: ipa_file, user: user, key: key, custom_id: "NLWalletIos")
   end
 end
