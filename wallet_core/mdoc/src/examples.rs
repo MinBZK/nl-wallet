@@ -18,8 +18,7 @@ where
         hex::decode(Self::example_hex()).expect("hex decode failed")
     }
     fn example() -> T {
-        ciborium::de::from_reader(Self::example_bts().as_slice())
-            .expect("example deserialization failed")
+        ciborium::de::from_reader(Self::example_bts().as_slice()).expect("example deserialization failed")
     }
 }
 
@@ -99,17 +98,13 @@ fn ecdsa_keypair(x: &str, y: &str, d: &str) -> Result<ecdsa::SigningKey<NistP256
     Ok(sk)
 }
 fn ecdsa_privkey(d: &str) -> Result<ecdsa::SigningKey<NistP256>> {
-    Ok(ecdsa::SigningKey::<NistP256>::from_bytes(
-        hex::decode(d)?.as_slice(),
-    )?)
+    Ok(ecdsa::SigningKey::<NistP256>::from_bytes(hex::decode(d)?.as_slice())?)
 }
 fn ecdsa_pubkey(x: &str, y: &str) -> Result<ecdsa::VerifyingKey<NistP256>> {
-    ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
-        &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
-            hex::decode(x)?.as_slice().into(),
-            hex::decode(y)?.as_slice().into(),
-            false,
-        ),
-    )
+    ecdsa::VerifyingKey::<NistP256>::from_encoded_point(&ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
+        hex::decode(x)?.as_slice().into(),
+        hex::decode(y)?.as_slice().into(),
+        false,
+    ))
     .context("failed to instantiate public key")
 }

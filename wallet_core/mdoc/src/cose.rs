@@ -4,9 +4,7 @@ use crate::{serialization::cbor_serialize, verifier::X509Subject};
 
 use anyhow::{anyhow, Result};
 use ciborium::value::Value;
-use coset::{
-    iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label,
-};
+use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
 use ecdsa::{
     elliptic_curve::pkcs8::DecodePublicKey,
     signature::{Signature, Signer, Verifier},
@@ -118,11 +116,7 @@ impl<T> MdocCose<CoseSign1, T> {
     {
         Ok(CoseSign1Builder::new()
             .payload(cbor_serialize(obj)?)
-            .protected(
-                HeaderBuilder::new()
-                    .algorithm(iana::Algorithm::ES256)
-                    .build(),
-            )
+            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .unprotected(unprotected_header)
             .create_signature(&[], |data| private_key.sign(data).to_vec())
             .build()
@@ -155,11 +149,8 @@ impl<T> MdocCose<CoseSign1, T> {
             .iter_attributes()
             .map(|attr| {
                 (
-                    x509_parser::objects::oid2abbrev(
-                        attr.attr_type(),
-                        x509_parser::objects::oid_registry(),
-                    )
-                    .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
+                    x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
+                        .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
                     attr.as_str().unwrap().to_string(), // TODO handle non-stringable values?
                 )
             })

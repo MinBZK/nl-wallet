@@ -14,9 +14,7 @@ use std::borrow::Cow;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
-pub(crate) fn cbor_serialize<T: Serialize>(
-    o: &T,
-) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
+pub(crate) fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;
     Ok(bts)
@@ -53,19 +51,14 @@ where
     }
 }
 
-fn serialize_as_cbor_value<T: Clone + AsCborValue, S: Serializer>(
-    val: &T,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
+fn serialize_as_cbor_value<T: Clone + AsCborValue, S: Serializer>(val: &T, serializer: S) -> Result<S::Ok, S::Error> {
     val.clone()
         .to_cbor_value()
         .map_err(ser::Error::custom)?
         .serialize(serializer)
 }
 
-fn deserialize_as_cbor_value<'de, T: AsCborValue, D: Deserializer<'de>>(
-    deserializer: D,
-) -> Result<T, D::Error> {
+fn deserialize_as_cbor_value<'de, T: AsCborValue, D: Deserializer<'de>>(deserializer: D) -> Result<T, D::Error> {
     T::from_cbor_value(Value::deserialize(deserializer)?).map_err(de::Error::custom)
 }
 
@@ -183,10 +176,7 @@ where
                     .filter(|(_, val)| !val.is_null())
                     .map(|(key, val)| {
                         (
-                            field_name_indices
-                                .get(key.as_text().unwrap())
-                                .unwrap()
-                                .clone(),
+                            field_name_indices.get(key.as_text().unwrap()).unwrap().clone(),
                             val.clone(),
                         )
                     })
@@ -252,9 +242,7 @@ impl<'de> Deserialize<'de> for Handover {
                     handover_select_message: bts_vec[0].clone(),
                     handover_request_message: Some(bts_vec[1].clone()),
                 })),
-                _ => Err(de::Error::custom(
-                    "unexpected amount of byte sequences found",
-                )),
+                _ => Err(de::Error::custom("unexpected amount of byte sequences found")),
             },
         }
     }

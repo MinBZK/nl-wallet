@@ -86,10 +86,7 @@ impl IssuerSigned {
                     if *digest != cbor_digest(item)? {
                         bail!("attribute verification failed")
                     }
-                    namespace_attrs.insert(
-                        item.0.element_identifier.clone(),
-                        item.0.element_value.clone(),
-                    );
+                    namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
                 }
             }
         }
@@ -117,9 +114,8 @@ impl Document {
             }
             DeviceAuth::DeviceMac(mac) => {
                 let mac_key = dh_hmac_key(
-                    eph_reader_key.ok_or_else(|| {
-                        anyhow!("DeviceAuth::DeviceMac found but no ephemeral reader key specified")
-                    })?,
+                    eph_reader_key
+                        .ok_or_else(|| anyhow!("DeviceAuth::DeviceMac found but no ephemeral reader key specified"))?,
                     &device_key,
                     device_authentication.0.session_transcript_bts()?.as_bytes(),
                     "EMacKey",

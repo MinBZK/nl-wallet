@@ -46,10 +46,7 @@ fn iso_examples_disclosure() -> Result<()> {
         &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
         &ca_cert,
     )?;
-    println!(
-        "DisclosedAttributes: {:#?}",
-        DebugCollapseBts(disclosed_attributes)
-    );
+    println!("DisclosedAttributes: {:#?}", DebugCollapseBts(disclosed_attributes));
 
     let device_request = DeviceRequest::example();
     println!("DeviceRequest: {:#?}", DebugCollapseBts(&device_request));
@@ -63,9 +60,7 @@ fn iso_examples_disclosure() -> Result<()> {
     let static_device_key = Examples::static_device_key();
     let cred = Credential::new(
         static_device_key,
-        device_response.documents.as_ref().unwrap()[0]
-            .issuer_signed
-            .clone(),
+        device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )?;
 
@@ -99,9 +94,7 @@ fn iso_examples_custom_disclosure() -> Result<()> {
 
     let cred = Credential::new(
         static_device_key,
-        device_response.documents.as_ref().unwrap()[0]
-            .issuer_signed
-            .clone(),
+        device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )?;
 
@@ -140,12 +133,7 @@ fn issuance_and_disclosure() -> Result<()> {
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN)?;
     let ca_bts = ca.serialize_der()?;
     let ca_cert = X509Certificate::from_der(ca_bts.as_slice())?.1;
-    let issuer = Issuer::new(
-        privkey,
-        cert_bts,
-        ISSUANCE_DOC_TYPE.to_string(),
-        name_spaced_attributes,
-    )?;
+    let issuer = Issuer::new(privkey, cert_bts, ISSUANCE_DOC_TYPE.to_string(), name_spaced_attributes)?;
 
     // User data
     let mut wallet = Credentials::new();
@@ -162,10 +150,7 @@ fn issuance_and_disclosure() -> Result<()> {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
             ISSUANCE_NAME_SPACE.to_string(),
-            ISSUANCE_ATTRS
-                .iter()
-                .map(|(key, _)| (key.to_string(), false))
-                .collect(),
+            ISSUANCE_ATTRS.iter().map(|(key, _)| (key.to_string(), false)).collect(),
         )]),
         request_info: None,
     }]);
@@ -183,28 +168,20 @@ fn issuance_and_disclosure() -> Result<()> {
 pub fn new_ca(common_name: &str) -> Result<Certificate, rcgen::RcgenError> {
     let mut ca_params = CertificateParams::new(vec![]);
     ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-    ca_params
-        .distinguished_name
-        .push(DnType::CommonName, common_name);
+    ca_params.distinguished_name.push(DnType::CommonName, common_name);
     Certificate::from_params(ca_params)
 }
 
-pub fn new_certificate(
-    ca: &Certificate,
-    common_name: &str,
-) -> Result<(ecdsa::SigningKey<p256::NistP256>, Vec<u8>)> {
+pub fn new_certificate(ca: &Certificate, common_name: &str) -> Result<(ecdsa::SigningKey<p256::NistP256>, Vec<u8>)> {
     let mut cert_params = CertificateParams::new(vec![]);
     cert_params.is_ca = IsCa::NoCa;
-    cert_params
-        .distinguished_name
-        .push(DnType::CommonName, common_name);
+    cert_params.distinguished_name.push(DnType::CommonName, common_name);
     // TODO: X509v3 Extended Key Usage: critical / 1.0.18013.5.1.2
     let cert = Certificate::from_params(cert_params)?;
     let cert_bts = cert.serialize_der_with_signer(ca)?;
 
     let cert_privkey: ecdsa::SigningKey<p256::NistP256> =
-        ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
-            .map_err(|e| anyhow!(e))?;
+        ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der()).map_err(|e| anyhow!(e))?;
 
     Ok((cert_privkey, cert_bts))
 }
@@ -249,9 +226,9 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Match numbers within square brackets, e.g.: [1, 2, 3]
         let debugstr = format!("{:#?}", self.0);
-        let debugstr_collapsed = regex::Regex::new(r"\[\s*(\d,?\s*)+\]")
-            .unwrap()
-            .replace_all(debugstr.as_str(), |caps: &regex::Captures| {
+        let debugstr_collapsed = regex::Regex::new(r"\[\s*(\d,?\s*)+\]").unwrap().replace_all(
+            debugstr.as_str(),
+            |caps: &regex::Captures| {
                 let no_whitespace = remove_whitespace(&caps[0]);
                 let trimmed = no_whitespace[1..no_whitespace.len() - 2].to_string(); // Remove square brackets
                 if trimmed.split(',').any(|r| r.parse::<u8>().is_err()) {
@@ -269,7 +246,8 @@ where
                         .to_uppercase()
                     )
                 }
-            });
+            },
+        );
 
         write!(f, "{}", debugstr_collapsed)
     }

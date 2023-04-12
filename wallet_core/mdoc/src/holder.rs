@@ -40,11 +40,7 @@ impl Credentials {
         Ok((device_key, response))
     }
 
-    pub fn disclose(
-        &self,
-        device_request: &DeviceRequest,
-        challenge: &[u8],
-    ) -> Result<DeviceResponse> {
+    pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
         let mut docs: Vec<Document> = Vec::new();
 
         for doc_request in &device_request.doc_requests {
@@ -96,11 +92,7 @@ impl Credential {
         })
     }
 
-    pub fn disclose_document(
-        &self,
-        items_request: &ItemsRequest,
-        challenge: &[u8],
-    ) -> Result<Document> {
+    pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
             .name_spaces
@@ -141,17 +133,10 @@ impl Attributes {
 }
 
 impl DeviceSigned {
-    pub(crate) fn new_signature(
-        private_key: &ecdsa::SigningKey<p256::NistP256>,
-        challenge: &[u8],
-    ) -> DeviceSigned {
+    pub(crate) fn new_signature(private_key: &ecdsa::SigningKey<p256::NistP256>, challenge: &[u8]) -> DeviceSigned {
         let cose = CoseSign1Builder::new()
             .payload(Vec::from(challenge))
-            .protected(
-                HeaderBuilder::new()
-                    .algorithm(iana::Algorithm::ES256)
-                    .build(),
-            )
+            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .create_signature(&[], |data| private_key.sign(data).to_vec())
             .build()
             .clone_without_payload();
@@ -179,11 +164,7 @@ impl DeviceSigned {
 
         let cose = CoseMac0Builder::new()
             .payload(Vec::from(challenge))
-            .protected(
-                HeaderBuilder::new()
-                    .algorithm(iana::Algorithm::ES256)
-                    .build(),
-            )
+            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .create_tag(&[], |data| ring::hmac::sign(&key, data).as_ref().into())
             .build()
             .clone_without_payload();

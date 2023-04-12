@@ -101,9 +101,7 @@ pub struct ValidityInfo {
 pub struct Tdate(pub tag::Required<String, 0>);
 impl From<chrono::DateTime<Utc>> for Tdate {
     fn from(t: chrono::DateTime<Utc>) -> Self {
-        Tdate(tag::Required(
-            t.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-        ))
+        Tdate(tag::Required(t.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)))
     }
 }
 
@@ -148,11 +146,7 @@ pub struct IssuerSignedItem {
 }
 
 impl IssuerSignedItem {
-    pub fn new(
-        digest_id: u32,
-        element_identifier: String,
-        element_value: Value,
-    ) -> Result<IssuerSignedItem> {
+    pub fn new(digest_id: u32, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
         let random = random_bytes(32)?;
         Ok(IssuerSignedItem {
             digest_id,

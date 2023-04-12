@@ -59,9 +59,7 @@ impl Issuer {
             },
         };
 
-        let headers = HeaderBuilder::new()
-            .value(33, Value::Bytes(self.cert_bts))
-            .build();
+        let headers = HeaderBuilder::new().value(33, Value::Bytes(self.cert_bts)).build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso.into(), headers, &self.private_key)?;
 
@@ -83,10 +81,7 @@ pub struct IssuanceDeviceResponseContents {
 }
 
 impl IssuanceDeviceResponse {
-    pub(crate) fn sign(
-        challenge: &[u8],
-        device_key: &ecdsa::SigningKey<p256::NistP256>,
-    ) -> Result<Self> {
+    pub(crate) fn sign(challenge: &[u8], device_key: &ecdsa::SigningKey<p256::NistP256>) -> Result<Self> {
         let public_key_cbor = CoseKey::try_from(&ecdsa::VerifyingKey::from(device_key))?
             .0
             .to_cbor_value()
