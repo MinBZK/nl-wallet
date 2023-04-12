@@ -6,7 +6,7 @@ use p256::{
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::account::client::signed::{Signed, SignedDouble};
+use crate::account::signed::{Signed, SignedDouble};
 
 /// Bytes that (de)serialize to base64.
 #[derive(Debug, Clone)]

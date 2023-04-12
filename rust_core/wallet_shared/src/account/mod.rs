@@ -1,13 +1,13 @@
 pub mod instructions;
-mod jwt;
-mod serialization;
-pub mod server;
-mod signed;
+pub mod jwt;
+pub mod serialization;
+pub mod signed;
+pub mod signing_key;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::account::client::{
+use crate::account::{
     instructions::Registration,
     jwt::{Jwt, JwtClaims},
     serialization::{Base64Bytes, DerVerifyingKey},

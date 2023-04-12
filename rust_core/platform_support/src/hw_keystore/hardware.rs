@@ -7,8 +7,9 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 use std::{fmt::Debug, sync::Mutex};
+use wallet_shared::account::signing_key::SecureEcdsaKey;
 
-use super::{HardwareKeyStoreError, KeyStoreError, PlatformSigningKey};
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
 
 // import generated Rust bindings
 uniffi::include_scaffolding!("hw_keystore");
@@ -31,17 +32,28 @@ trait SigningKeyBridge: Send + Sync + Debug {
 }
 
 // HardwareSigningKey wraps SigningKeyBridge from native
-pub struct HardwareSigningKey {
+pub struct HardwareEcdsaKey {
     bridge: Box<dyn SigningKeyBridge>,
 }
 
-impl HardwareSigningKey {
+impl HardwareEcdsaKey {
     fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
-        HardwareSigningKey { bridge }
+        HardwareEcdsaKey { bridge }
     }
 }
 
-impl PlatformSigningKey for HardwareSigningKey {
+impl wallet_shared::account::signing_key::EcdsaKey for HardwareEcdsaKey {
+    type Error = HardwareKeyStoreError;
+
+    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        let public_key_bytes = self.bridge.public_key()?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+        Ok(public_key)
+    }
+}
+impl SecureEcdsaKey for HardwareEcdsaKey {}
+
+impl PlatformEcdsaKey for HardwareEcdsaKey {
     fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
         // crash if KEY_STORE is not yet set, then wait for key store mutex lock
         let key_store = KEY_STORE
@@ -50,16 +62,9 @@ impl PlatformSigningKey for HardwareSigningKey {
             .lock()
             .expect("Could not get lock on KEY_STORE");
         let bridge = key_store.get_or_create_key(identifier.to_string())?;
-        let key = HardwareSigningKey::new(bridge);
+        let key = HardwareEcdsaKey::new(bridge);
 
         Ok(key)
-    }
-
-    fn verifying_key(&self) -> Result<VerifyingKey, HardwareKeyStoreError> {
-        let public_key_bytes = self.bridge.public_key()?;
-        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
-
-        Ok(public_key)
     }
 }
 
@@ -71,7 +76,7 @@ impl From<KeyStoreError> for SignerError {
     }
 }
 
-impl Signer<Signature> for HardwareSigningKey {
+impl Signer<Signature> for HardwareEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, SignerError> {
         let signature_bytes = self.bridge.sign(msg.to_vec())?;
 
