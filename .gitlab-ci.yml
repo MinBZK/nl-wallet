@@ -17,9 +17,8 @@ analyze-app:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:47e228a7e9d9ef8eda9f5d1bec2e5b434e32e31dcfa7ddd948f630fd35542e58"
   script:
     - set -euxo pipefail
-    - cd $FLUTTER_APP_PROJECT_DIR
     - flutter --version
-    - flutter analyze
+    - flutter analyze $FLUTTER_APP_PROJECT_DIR
     
 test-flutter:
   stage: test
@@ -31,9 +30,9 @@ test-flutter:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:47e228a7e9d9ef8eda9f5d1bec2e5b434e32e31dcfa7ddd948f630fd35542e58"
   script:
     - set -euxo pipefail
-    - cd $FLUTTER_APP_PROJECT_DIR
     - flutter --version
-    - flutter test --exclude-tags=golden
+    - cd $FLUTTER_APP_PROJECT_DIR
+    - flutter test --exclude-tags=golden $FLUTTER_APP_PROJECT_DIR
 
 test-flutter-ui:
   stage: test
@@ -51,8 +50,8 @@ test-flutter-ui:
       - "**/failures/*.png"
   script:
     - set -euxo pipefail
-    - cd $FLUTTER_APP_PROJECT_DIR
     - flutter --version
+    - cd $FLUTTER_APP_PROJECT_DIR
     - flutter test --tags=golden
 
 test-rust:
@@ -84,7 +83,6 @@ test-ios:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cd $FLUTTER_APP_PROJECT_DIR
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios test
@@ -115,9 +113,7 @@ test-codegen:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:8e774099dedb3f288b3e9aa471456f5e2399cc81c900768f0be5b988e274549e"
   script:
     - set -euxo pipefail
-    - cd $FLUTTER_APP_PROJECT_DIR
-    - flutter pub get
-    - cd ..
+    - flutter pub get $FLUTTER_APP_PROJECT_DIR
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
     - git diff
@@ -143,7 +139,6 @@ build-android-app:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cd $FLUTTER_APP_PROJECT_DIR
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
@@ -168,7 +163,6 @@ deploy-android-app:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cd $FLUTTER_APP_PROJECT_DIR
     - bundle install
     - bundle exec fastlane android ci_deploy
 
@@ -213,7 +207,6 @@ build-ios-app:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cd $FLUTTER_APP_PROJECT_DIR
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
@@ -236,7 +229,6 @@ deploy-ios-app:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - cd $FLUTTER_APP_PROJECT_DIR
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_deploy

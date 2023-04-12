@@ -21,6 +21,9 @@ migrate_working_dir/
 # is commented out by default.
 .vscode/
 
+# Flutter leaves this file behind in the current working directory
+/build/.last_build_id
+
 # Android shared libraries
 jniLibs/
 
