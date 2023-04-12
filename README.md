@@ -184,14 +184,16 @@ successfully:
 - Android toolchain
 - Xcode
 
-You should now be able to launch an Android Emulator or iOS Simulator and run the app
-using `flutter pub get` followed by `flutter run`! 🎉
+You should now be able to launch an Android Emulator or iOS Simulator and run the app by following these steps:
+- `cd wallet_app`
+- `flutter pub get`
+- `flutter run`! 🎉
 
 # File structure
 
 ## Code
 
-All `Dart` code goes in the `lib/` directory and their appropriate sub-directories.
+All `Dart` code goes in the `wallet_app/lib/` directory and their appropriate sub-directories.
 
 All `Rust` code goes in the `rust_core/` directory and their appropriate sub-directories.
 

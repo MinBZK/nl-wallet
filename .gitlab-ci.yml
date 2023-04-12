@@ -1,8 +1,12 @@
+variables:
+  FLUTTER_APP_PROJECT_DIR: "wallet_app"
+
 stages:
   - test
   - build
   - deploy
 
+# Working directory is 'wallet_app' directory
 analyze-app:
   stage: test
   only:
@@ -14,7 +18,8 @@ analyze-app:
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter analyze
+    - flutter pub get $FLUTTER_APP_PROJECT_DIR
+    - flutter analyze $FLUTTER_APP_PROJECT_DIR
     
 test-flutter:
   stage: test
@@ -27,7 +32,7 @@ test-flutter:
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter test --exclude-tags=golden
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden)
 
 test-flutter-ui:
   stage: test
@@ -46,7 +51,7 @@ test-flutter-ui:
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter test --tags=golden
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
 test-rust:
   stage: test
@@ -73,7 +78,7 @@ test-ios:
     name: "test_output"
     when: on_failure
     paths:
-      - "fastlane/test_output/*"
+      - "**/fastlane/test_output/*"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
@@ -107,7 +112,7 @@ test-codegen:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:8e774099dedb3f288b3e9aa471456f5e2399cc81c900768f0be5b988e274549e"
   script:
     - set -euxo pipefail
-    - flutter pub get
+    - flutter pub get $FLUTTER_APP_PROJECT_DIR
     - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
     - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
     - git diff
