@@ -1,12 +1,13 @@
 use anyhow::Result;
 use once_cell::sync::OnceCell;
+
 use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformEcdsaKey};
+use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
 
 use crate::pin::{
     key::{new_pin_salt, PinKey},
     validation::validate_pin,
 };
-use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
 
 const WALLET_KEY_ID: &str = "wallet";
 
