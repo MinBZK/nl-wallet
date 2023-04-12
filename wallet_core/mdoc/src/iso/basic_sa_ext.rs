@@ -71,19 +71,19 @@ pub struct Response {
 pub struct DataToIssueMessage {
     pub(crate) e_session_id: SessionId,
     #[serde(rename = "mobileIDdocuments")]
-    pub(crate) mobiel_id_documents: MobileIDDocuments,
+    pub(crate) mobile_id_documents: MobileIDDocuments,
 }
 
-pub type MobileIDDocuments = IndexMap<DocType, IssuanceIssuerSigned>;
+pub type MobileIDDocuments = IndexMap<DocType, SparseIssuerSigned>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct IssuanceIssuerSigned {
+pub struct SparseIssuerSigned {
     pub(crate) randoms: IndexMap<NameSpace, Vec<ByteBuf>>,
-    pub(crate) issuance_issuer_auth: IssuanceIssuerAuth,
+    pub(crate) issuance_issuer_auth: SparseIssuerAuth,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct IssuanceIssuerAuth {
+pub struct SparseIssuerAuth {
     pub(crate) version: String,
     pub(crate) digest_algorithm: String,
     pub(crate) validity_info: ValidityInfo,
