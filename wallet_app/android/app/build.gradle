@@ -123,7 +123,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-        workingDir "../../rust_core"
+        workingDir "../../../rust_core"
 
         // Build the Rust code (rust_core)
         commandLine 'cargo', 'ndk',

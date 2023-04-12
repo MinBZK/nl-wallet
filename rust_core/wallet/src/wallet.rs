@@ -1,13 +1,12 @@
 use anyhow::Result;
 use once_cell::sync::OnceCell;
-use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformSigningKey};
 
-use crate::{
-    account::client::{instructions::Registration, AccountServerClient, WalletCertificate},
-    pin::{
-        key::{new_pin_salt, PinKey},
-        validation::validate_pin,
-    },
+use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformEcdsaKey};
+use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
+
+use crate::pin::{
+    key::{new_pin_salt, PinKey},
+    validation::validate_pin,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -24,7 +23,7 @@ pub struct Wallet<T, S> {
 impl<T, S> Wallet<T, S>
 where
     T: AccountServerClient,
-    S: PlatformSigningKey,
+    S: PlatformEcdsaKey,
 {
     pub fn new(account_server: T, account_server_pubkey: Vec<u8>) -> Wallet<T, S> {
         Wallet {
@@ -36,12 +35,8 @@ where
         }
     }
 
-    fn hw_privkey(&self) -> std::result::Result<&S, HardwareKeyStoreError> {
-        self.hw_privkey.get_or_try_init(|| {
-            let signing_key = S::signing_key(WALLET_KEY_ID)?;
-
-            Ok::<_, HardwareKeyStoreError>(signing_key)
-        })
+    fn hw_privkey(&self) -> Result<&S, HardwareKeyStoreError> {
+        self.hw_privkey.get_or_try_init(|| S::signing_key(WALLET_KEY_ID))
     }
 
     pub fn register(&mut self, pin: String) -> Result<()> {
@@ -64,12 +59,12 @@ where
 mod tests {
     use super::*;
 
-    use p256::ecdsa::SigningKey;
+    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
 
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::account::client::server::tests::new_account_server();
-        let mut wallet: Wallet<_, SigningKey> = Wallet::new(account_server, account_server_pubkey);
+        let (account_server, account_server_pubkey) = crate::account_server::tests::new_account_server();
+        let mut wallet: Wallet<_, SoftwareEcdsaKey> = Wallet::new(account_server, account_server_pubkey);
 
         assert!(wallet.register("123456".to_owned()).is_err());
 

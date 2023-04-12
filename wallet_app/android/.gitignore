@@ -11,3 +11,8 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Android Studio will place build artifacts here
+/app/debug
+/app/profile
+/app/release
