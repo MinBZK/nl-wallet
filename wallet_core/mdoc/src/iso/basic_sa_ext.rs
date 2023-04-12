@@ -37,7 +37,7 @@ pub type UnsignedMdocs = IndexMap<DocType, UnsignedMdoc>;
 pub struct UnsignedMdoc {
     pub(crate) count: u64,
     pub(crate) valid_until: Tdate,
-    pub(crate) attributes: IndexMap<NameSpace, Entry>,
+    pub(crate) attributes: IndexMap<NameSpace, Vec<Entry>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
