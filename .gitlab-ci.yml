@@ -13,7 +13,6 @@ analyze-app:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:47e228a7e9d9ef8eda9f5d1bec2e5b434e32e31dcfa7ddd948f630fd35542e58"
   script:
