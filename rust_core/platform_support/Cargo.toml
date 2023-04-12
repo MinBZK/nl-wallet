@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [features]
-hardware = ["dep:uniffi", "dep:once_cell"]
+hardware = ["dep:once_cell", "dep:uniffi"]
 software = ["dep:once_cell", "dep:rand_core"]
 integration-test = []
 hardware-integration-test = ["integration-test", "hardware", "dep:jni"]
@@ -14,15 +14,15 @@ software-integration-test = ["integration-test", "software"]
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
-thiserror = "1.0.38"
-p256 = "0.12.0"
-spki = { version = "0.6.0", features = ["std"] }
-never = "0.1.0"
 aes-gcm = "0.10.1"
-uniffi = { version = "0.23.0", optional = true }
-once_cell = { version = "1.17.1", optional = true }
-rand_core = { version = "0.6.4", optional = true }
 jni = { version = "0.21.1", optional = true }
+never = "0.1.0"
+once_cell = { version = "1.17.1", optional = true }
+p256 = "0.12.0"
+rand_core = { version = "0.6.4", optional = true }
+spki = { version = "0.6.0", features = ["std"] }
+thiserror = "1.0.38"
+uniffi = { version = "0.23.0", optional = true }
 
 [build-dependencies]
 uniffi = { version = "0.23.0", features = ["build"], optional = true }
