@@ -57,7 +57,7 @@ pub type Responses = IndexMap<DocType, Vec<Response>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
-    key: CoseKey,
+    public_key: CoseKey,
     signature: MdocCose<CoseSign1, ByteBuf>,
 }
 
