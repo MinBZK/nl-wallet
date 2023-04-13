@@ -1,10 +1,11 @@
-use crate::utils::PlatformUtilities;
+#[cfg(all(feature = "hardware-integration-test"))]
+pub mod hardware;
+
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 
-#[cfg(all(feature = "hardware-integration-test"))]
-pub mod hardware;
+use crate::utils::PlatformUtilities;
 
 pub fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     let original_message = "Hello, wallet!";
