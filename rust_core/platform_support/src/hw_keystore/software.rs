@@ -14,8 +14,6 @@ use super::{HardwareKeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 // static for storing identifier -> encryption key mapping, will only ever grow
 static ENCRYPTION_KEYS: Lazy<Mutex<HashMap<String, SoftwareEncryptionKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-// static for storing encrypted payload -> nonce mapping, will only ever grow
-static NONCE_MAP: Lazy<Mutex<HashMap<Vec<u8>, Vec<u8>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub struct SoftwareEcdsaKey(SigningKey);
 
@@ -91,25 +89,20 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
         // Encrypt the provided message
         let encrypted_msg = cipher.encrypt(nonce, msg).expect("Could not encrypt message");
 
-        // Store the nonce in the [NONCE_MAP] for decryption purposes
-        let mut nonces = NONCE_MAP.lock().expect("Could not get lock on NONCE_MAP");
-        nonces.insert(encrypted_msg.to_owned(), nonce.to_vec());
+        // concatenate nonce with encrypted payload
+        let result: Vec<_> = nonce_bytes.into_iter().chain(encrypted_msg).collect();
 
-        Ok(encrypted_msg)
+        Ok(result)
     }
 
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let cipher = &self.cipher;
 
-        // Fetch the associated nonce from the [NONCE_MAP]
-        let nonce_map = NONCE_MAP.lock().expect("Could not get lock on NONCE_MAP");
-        let nonce_bytes = nonce_map
-            .get(&msg.to_vec())
-            .expect("Could not find nonce for provided key");
-        let nonce = Nonce::from_slice(nonce_bytes); // 96-bits; unique per message
+        // Re-create the nonce from the first 12 bytes
+        let nonce = Nonce::from_slice(&msg[..12]);
 
         // Decrypt the provided message with the retrieved nonce
-        let decrypted_msg = cipher.decrypt(nonce, msg).expect("Could not decrypt message");
+        let decrypted_msg = cipher.decrypt(nonce, &msg[12..]).expect("Could not decrypt message");
 
         Ok(decrypted_msg)
     }
