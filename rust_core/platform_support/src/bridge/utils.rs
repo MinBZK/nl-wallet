@@ -1,7 +1,7 @@
 use once_cell::sync::OnceCell;
 use std::fmt::Debug;
 
-use crate::utils::error::UtilitiesError;
+pub use crate::utils::error::UtilitiesError;
 
 // this is required to catch UnexpectedUniFFICallbackError
 impl From<uniffi::UnexpectedUniFFICallbackError> for UtilitiesError {
