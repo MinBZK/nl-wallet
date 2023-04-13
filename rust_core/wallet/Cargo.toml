@@ -1,0 +1,37 @@
+[package]
+name = "wallet"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+wallet_shared = { path = "../wallet_shared" }
+anyhow = "1.0.66"
+der = { version = "0.6.1", features = ["alloc"] }
+jsonwebtoken = "8.2.0"
+once_cell = "1.17.0"
+p256 = { version = "0.12.0", features = ["pem"] }
+rand = "0.8.5"
+ring = "0.16.20"
+serde = { version = "1.0.156", features = ["derive"] }
+sha2 = "0.10.6"
+thiserror = "1.0.39"
+reqwest = { version = "0.11.16", features = ["serde_json", "json", "blocking"] }
+
+# TODO: find a proper way to talk to the wallet provider instead of this
+wallet_provider = { path = "../wallet_provider" }
+
+# enable the "hardware" feature for platform_support when building for either Android or iOS
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+platform_support = { path = "../platform_support", features = ["hardware"] }
+
+# enable the "software" feature for platform_support when NOT building for either Android or iOS
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+platform_support = { path = "../platform_support", features = ["software"] }
+
+# enable the "software-integration-test" feature for platform_support when running tests,
+# which includes the "software" feature
+[dev-dependencies]
+platform_support = { path = "../platform_support", features = [
+    "software-integration-test",
+] }
+base64 = "0.21.0"

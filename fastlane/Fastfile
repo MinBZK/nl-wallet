@@ -19,7 +19,7 @@ end
 
 private_lane :get_local_version_and_build do
   Dir.chdir("..") do
-    YAML.load_file("pubspec.yaml")["version"].split("+", 2)
+    YAML.load_file("wallet_app/pubspec.yaml")["version"].split("+", 2)
   end
 end
 
@@ -66,6 +66,18 @@ private_lane :ci_get_k8s_secret_file do |options|
   end
 end
 
+private_lane :get_newest_file do |options|
+  Dir.chdir("..") do
+    Dir.glob("*.#{options[:extension]}").max_by {|f| File.mtime(f)}
+  end
+end
+
+private_lane :upload_to_browserstack do |options|
+  Dir.chdir("..") do
+    sh("curl", "-u", "#{options[:user]}:#{options[:key]}", "-X", "POST", "https://api-cloud.browserstack.com/app-automate/upload", "-F", "file=@#{options[:file]}", "-F", "custom_id=#{options[:custom_id]}", log: false)
+  end
+end
+
 lane :disable_flutter_analytics do 
   sh("dart", "--disable-analytics")
   sh("flutter", "config", "--no-analytics")
@@ -77,23 +89,36 @@ platform :android do
     build = ci_get_build
     app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
 
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "android/upload-keystore.jks")
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "android/key.properties")
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "wallet_app/android/upload-keystore.jks")
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "wallet_app/android/key.properties")
 
     build(package_name: app_identifier, build: build, version: version, name_suffix: suffix)
   end
 
   desc "Deploy Android app from GitLab CI"
-  lane :ci_deploy do |options|
+  lane :ci_deploy do
+    key_file = "play-store-key.json"
     app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
 
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: "play-store-key.json")
+    ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: key_file)
 
     upload_to_play_store(
       package_name: app_identifier,
       track: "internal",
-      json_key: "play-store-key.json"
+      json_key: key_file
     )
+
+    Dir.chdir("..") do
+      sh("rm", key_file)
+    end
+  end
+
+  desc "Upload Android app to BrowserStack from GitLab CI"
+  lane :ci_browserstack do
+    aab_file = get_newest_file(extension: "aab")
+    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+
+    browserstack(aab_file: aab_file, user: credentials["user"], key: credentials["key"])
   end
 
   desc "Build Android app without signing"
@@ -106,15 +131,24 @@ platform :android do
     version = options[:version] || local_version
     name_suffix = options[:name_suffix]
 
-    Dir.chdir("..") do
+    Dir.chdir("../wallet_app") do
       sh("flutter", "pub", "get")
 
       sh("flutter", "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
       sh("flutter", "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
       sh("flutter", "build", "appbundle", "--build-number", build.to_s, "--build-name", version.to_s)
-      sh("mv", "build/app/outputs/bundle/release/app-release.aab", "#{package_name}-#{version}.aab")
+      sh("mv", "build/app/outputs/bundle/release/app-release.aab", "../#{package_name}-#{version}.aab")
     end
+  end
+
+  desc "Upload Android app to BrowserStack"
+  lane :browserstack do |options|
+    aab_file = options[:aab_file]
+    user = options[:user]
+    key = options[:key]
+
+    upload_to_browserstack(file: aab_file, user: user, key: key, custom_id: "NLWalletAndroid")
   end
 end
 
@@ -152,6 +186,23 @@ platform :ios do
     deploy(bundle_id: app_identifier)
   end
 
+  desc "Upload iOS app to BrowserStack from GitLab CI"
+  lane :ci_browserstack do
+    ipa_file = get_newest_file(extension: "ipa")
+    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+
+    browserstack(ipa_file: ipa_file, user: credentials["user"], key: credentials["key"])
+  end
+
+  desc "Test iOS app"
+  lane :test do
+    run_tests(
+      project: "rust_core/platform_support/ios/PlatformSupport.xcodeproj",
+      scheme: "PlatformSupport",
+      device: "iPhone SE (3rd generation)"
+    )
+  end
+
   desc "Build iOS app"
   lane :build do |options|
     bundle_id = options[:bundle_id] || get_app_identifier
@@ -162,7 +213,7 @@ platform :ios do
     version = options[:version] || local_version
     name_suffix = options[:name_suffix]
 
-    Dir.chdir("..") do
+    Dir.chdir("../wallet_app") do
       sh("flutter", "pub", "get")
 
       sh("flutter", "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
@@ -179,7 +230,7 @@ platform :ios do
     )
     build_app(
       skip_build_archive: true,
-      archive_path: "build/ios/archive/Runner.xcarchive",
+      archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
       output_name: "#{bundle_id}-#{version}.ipa"
     )
   end
@@ -190,5 +241,14 @@ platform :ios do
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
     upload_to_testflight(skip_submission: true, app_identifier: bundle_id)
+  end
+
+  desc "Upload iOS app to BrowserStack"
+  lane :browserstack do |options|
+    ipa_file = options[:ipa_file]
+    user = options[:user]
+    key = options[:key]
+
+    upload_to_browserstack(file: ipa_file, user: user, key: key, custom_id: "NLWalletIos")
   end
 end

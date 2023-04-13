@@ -155,10 +155,6 @@ to add the following targets:
 - For
   Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
-And install the flutter_rust_bridge_codegen to generate the bridge using:
-
-`cargo install flutter_rust_bridge_codegen`
-
 #### Android
 
 To build for android you need to have the Android SDK and NDK installed on your system. Likely the
@@ -188,27 +184,26 @@ successfully:
 - Android toolchain
 - Xcode
 
-You should now be able to launch an Android Emulator or iOS Simulator and run the app
-using `flutter pub get` followed by `flutter run`! 🎉
+You should now be able to launch an Android Emulator or iOS Simulator and run the app by following these steps:
+- `cd wallet_app`
+- `flutter pub get`
+- `flutter run`! 🎉
 
 # File structure
 
 ## Code
 
-All `Dart` code goes in the `lib/` directory and their appropriate sub-directories.
+All `Dart` code goes in the `wallet_app/lib/` directory and their appropriate sub-directories.
 
 All `Rust` code goes in the `rust_core/` directory and their appropriate sub-directories.
 
 ### Flutter <-> Rust Bridge
 Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/rust_core/src/api.rs` and generation is done with the following command:
+
 ```
-flutter_rust_bridge_codegen \
-    --rust-input rust_core/src/api.rs \
-    --dart-output lib/bridge_generated.dart \
-    --c-output ios/Runner/bridge_generated.h \
-    --rust-output rust_core/src/bridge_generated/bridge.rs \
-    --skip-add-mod-to-lib
+cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
 ```
+
 The generated code is currently checked in, so that generation only has to be performed when the API changes.
 
 ## Assets
@@ -339,6 +334,26 @@ See [commit message](#commit-message).
 * Tests are grouped* by the method they are testing
 
 ** Grouping tests by method is not required, but recommended when testing a specific method.
+
+### UI / Golden tests
+
+* UI Tests are part of the normal test files
+* UI Tests are grouped in `Golden Tests`
+
+Even though they run headless, UI tests are slower to run. The main goal of these tests are to:
+- Verify correct accessibility behaviour on different configurations (orientation/display scaling/font scaling/theming)
+- Detect unexpected UI changes
+
+As such we aim to keep the UI tests minimal, focusing on testing the most important states for a
+screen. This can be done by providing a mocked bloc with the state manually configured in the test.
+
+Note that the UI renders slightly differ per platform, causing small diffs (and failing tests) when
+verifying on a different host platform (e.g. mac vs linux). To circumvent this issue, we opted to
+only run UI tests on mac hosts for now. Because of this it is vital to only generate
+new goldens on a mac host. This can be done with `flutter test --update-goldens --tags=golden <optional_path_to_single_test_file>`.
+
+- To only verify goldens use `flutter test --tags=golden`
+- To only verify other tests use `flutter test --exclude-tags=golden`
 
 # Distribution
 

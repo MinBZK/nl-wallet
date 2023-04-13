@@ -1,0 +1,77 @@
+name: wallet
+description: EDI - NL Public Reference Wallet
+
+# Prevent accidental publishing to pub.dev.
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: '>=2.18.2 <3.0.0'
+
+dependencies:
+  equatable: ^2.0.5
+  collection: ^1.16.0
+  fimber: ^0.6.6
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.1
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.17.0
+  mobile_scanner: ^2.0.0
+  permission_handler: ^10.2.0
+  rxdart: ^0.27.5
+  flutter_sticky_header: ^0.6.4
+  url_launcher: ^6.1.6
+  vibration: ^1.7.6
+  json_serializable: ^6.5.4
+  json_annotation: ^4.7.0
+  arb_utils: ^0.4.1
+  qr_flutter: ^4.0.0
+  screen_brightness: ^0.2.2
+  package_info_plus: ^3.0.2
+  flutter_rust_bridge: ^1.61.1
+  ffi: ^2.0.1
+  freezed_annotation: ^2.2.0
+  uni_links: ^0.5.1
+  meta: ^1.8.0
+  core_domain:
+    path: ./pub/core_domain
+  shared_preferences: ^2.0.17
+  golden_toolkit: ^0.15.0
+  flutter_svg: ^2.0.4
+  foil: ^0.9.0+1
+  flutter_staggered_grid_view: ^0.6.2
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+
+  bloc_test: ^9.0.0
+  build_runner: ^2.3.2
+  ffigen: ^7.2.4
+  freezed: ^2.3.2
+  mockito: ^5.3.2
+  rename: ^2.1.1
+
+flutter:
+  uses-material-design: true
+
+  # Enable generation of localized Strings from arb files.
+  generate: true
+
+  assets:
+    # Add assets from the images directory to the application.
+    - assets/images/
+    - assets/svg/
+    - assets/non-free/images/
+
+  fonts:
+    - family: RijksoverheidSansWebText
+      fonts:
+        - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-regular.ttf
+          weight: 400
+        - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-bold.ttf
+          weight: 700
