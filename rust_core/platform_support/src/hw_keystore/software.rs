@@ -12,8 +12,8 @@ use super::{HardwareKeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-// static for storing identifier -> encryption key mapping, will only ever grow
-static ENCRYPTION_KEYS: Lazy<Mutex<HashMap<String, SoftwareEncryptionKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+// static for storing identifier -> aes cipher mapping, will only ever grow
+static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub struct SoftwareEcdsaKey(SigningKey);
 
@@ -54,32 +54,35 @@ impl PlatformEcdsaKey for SoftwareEcdsaKey {
 }
 
 #[derive(Clone)]
-pub struct SoftwareEncryptionKey {
-    cipher: Aes256Gcm,
-}
+pub struct SoftwareEncryptionKey(Aes256Gcm);
 
+impl From<Aes256Gcm> for SoftwareEncryptionKey {
+    fn from(value: Aes256Gcm) -> Self {
+        SoftwareEncryptionKey(value)
+    }
+}
 impl PlatformEncryptionKey for SoftwareEncryptionKey {
     fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized,
     {
         // obtain lock on ENCRYPTION_KEYS static hashmap
-        let mut encryption_keys = ENCRYPTION_KEYS.lock().expect("Could not get lock on ENCRYPTION_KEYS");
+        let mut encryption_ciphers = ENCRYPTION_CIPHERS
+            .lock()
+            .expect("Could not get lock on ENCRYPTION_CIPHERS");
 
-        // insert new random signing key, if the key is not present
-        let key = encryption_keys.entry(identifier.to_string()).or_insert_with(|| {
-            let key = Aes256Gcm::generate_key(&mut OsRng);
-            let cipher = Aes256Gcm::new(&key);
-            SoftwareEncryptionKey { cipher }
-        });
+        // insert new random encryption cipher, if the key is not present
+        let cipher = encryption_ciphers
+            .entry(identifier.to_string())
+            .or_insert_with(|| Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)));
 
-        // make a clone of the (mutable) signing key so we can
+        // make a clone of the (mutable) cipher so we can
         // return (non-mutable) ownership to the caller
-        Ok(key.clone())
+        Ok(cipher.clone().into())
     }
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let cipher = &self.cipher;
+        let cipher = &self.0;
 
         // Generate a random nonce
         let mut nonce_bytes = [0u8; 12];
@@ -96,7 +99,7 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
     }
 
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let cipher = &self.cipher;
+        let cipher = &self.0;
 
         // Re-create the nonce from the first 12 bytes
         let nonce = Nonce::from_slice(&msg[..12]);
