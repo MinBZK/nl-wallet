@@ -3,20 +3,24 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use once_cell::sync::Lazy;
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::{OsRng, RngCore};
 use std::{collections::HashMap, sync::Mutex};
-use wallet_shared::account::signing_key::SecureEcdsaKey;
+use wallet_shared::account::signing_key::{EcdsaKey, SecureEcdsaKey};
 
 use super::{HardwareKeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
-static SIGNING_KEYS: Lazy<Mutex<HashMap<String, p256::ecdsa::SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+// static for storing identifier -> encryption key mapping, will only ever grow
+static ENCRYPTION_KEYS: Lazy<Mutex<HashMap<String, SoftwareEncryptionKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+// static for storing encrypted payload -> nonce mapping, will only ever grow
+static NONCE_MAP: Lazy<Mutex<HashMap<Vec<u8>, Vec<u8>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub struct SoftwareEcdsaKey(p256::ecdsa::SigningKey);
+pub struct SoftwareEcdsaKey(SigningKey);
 
-impl From<p256::ecdsa::SigningKey> for SoftwareEcdsaKey {
-    fn from(value: p256::ecdsa::SigningKey) -> Self {
+impl From<SigningKey> for SoftwareEcdsaKey {
+    fn from(value: SigningKey) -> Self {
         SoftwareEcdsaKey(value)
     }
 }
@@ -25,14 +29,13 @@ impl Signer<Signature> for SoftwareEcdsaKey {
         Signer::try_sign(&self.0, msg)
     }
 }
-impl wallet_shared::account::signing_key::EcdsaKey for SoftwareEcdsaKey {
+impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         Ok(*self.0.verifying_key())
     }
 }
-
 impl SecureEcdsaKey for SoftwareEcdsaKey {}
 
 // SigningKey from p256::ecdsa conforms to the SigningKey trait
@@ -44,18 +47,13 @@ impl PlatformEcdsaKey for SoftwareEcdsaKey {
         // insert new random signing key, if the key is not present
         let key = signing_keys
             .entry(identifier.to_string())
-            .or_insert_with(|| p256::ecdsa::SigningKey::random(&mut OsRng));
+            .or_insert_with(|| SigningKey::random(&mut OsRng));
 
         // make a clone of the (mutable) signing key so we can
         // return (non-mutable) ownership to the caller
         Ok(key.clone().into())
     }
 }
-
-// static for storing identifier -> signing key mapping, will only ever grow
-static ENCRYPTION_KEYS: Lazy<Mutex<HashMap<String, SoftwareEncryptionKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-// static for storing encrypted payload -> nonce mapping, will only ever grow
-static NONCE_MAP: Lazy<Mutex<HashMap<Vec<u8>, Vec<u8>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Clone)]
 pub struct SoftwareEncryptionKey {

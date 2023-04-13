@@ -38,24 +38,23 @@ pub trait PlatformEcdsaKey: SecureEcdsaKey {
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
-// if the hardware feature is enabled, prefer HardwareSigningKey
-#[cfg(feature = "hardware")]
-pub type PreferredPlatformEcdsaKey = crate::hw_keystore::hardware::HardwareEcdsaKey;
-
-// otherwise if the software feature is enabled, prefer SoftwareSigningKey
-#[cfg(all(not(feature = "hardware"), feature = "software"))]
-pub type PreferredPlatformEcdsaKey = crate::hw_keystore::software::SoftwareEcdsaKey;
-
-// otherwise just just alias the Never type
-#[cfg(not(any(feature = "hardware", feature = "software")))]
-pub type PreferredPlatformEcdsaKey = never::Never;
-
 pub trait PlatformEncryptionKey {
     fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
     where
         Self: Sized;
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
-
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
 }
+
+// if the hardware feature is enabled, prefer HardwareEcdsaKey
+#[cfg(feature = "hardware")]
+pub type PreferredPlatformEcdsaKey = crate::hw_keystore::hardware::HardwareEcdsaKey;
+
+// otherwise if the software feature is enabled, prefer SoftwareEcdsaKey
+#[cfg(all(not(feature = "hardware"), feature = "software"))]
+pub type PreferredPlatformEcdsaKey = crate::hw_keystore::software::SoftwareEcdsaKey;
+
+// otherwise just just alias the Never type
+#[cfg(not(any(feature = "hardware", feature = "software")))]
+pub type PreferredPlatformEcdsaKey = never::Never;

@@ -3,7 +3,7 @@ use jni::{objects::JClass, JNIEnv};
 use super::get_and_verify_storage_path;
 use crate::utils::hardware::HardwareUtilities;
 
-// this is the starting point for integration test performed from Android / iOS.
+// this is the starting point for the integration test performed from Android / iOS.
 #[no_mangle]
 fn utils_test_get_storage_path() -> bool {
     get_and_verify_storage_path::<HardwareUtilities>()

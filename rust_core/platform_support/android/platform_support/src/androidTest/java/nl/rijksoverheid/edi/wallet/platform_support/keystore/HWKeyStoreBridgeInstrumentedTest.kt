@@ -26,7 +26,7 @@ class HWKeyStoreBridgeInstrumentedTest {
     }
     @Test
     fun bridge_test_symmetric_encryption() {
-        assertTrue(hw_keystore_test_symmetric_encryption())
+        assertTrue(hw_keystore_test_hardware_encryption())
     }
 
     companion object {
@@ -34,6 +34,6 @@ class HWKeyStoreBridgeInstrumentedTest {
         external fun hw_keystore_test_hardware_signature(): Boolean
 
         @JvmStatic
-        external fun hw_keystore_test_symmetric_encryption(): Boolean
+        external fun hw_keystore_test_hardware_encryption(): Boolean
     }
 }

@@ -9,6 +9,6 @@
 #define hw_keystore_integration_tests_h
 
 bool hw_keystore_test_hardware_signature();
-bool hw_keystore_test_symmetric_encryption();
+bool hw_keystore_test_hardware_encryption();
 
 #endif /* hw_keystore_integration_tests_h */
