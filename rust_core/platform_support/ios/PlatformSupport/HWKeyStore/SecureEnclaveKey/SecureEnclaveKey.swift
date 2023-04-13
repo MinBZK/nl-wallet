@@ -70,7 +70,7 @@ final class SecureEnclaveKey {
             throw SecureEnclaveKeyError.fetch(errorMessage: errorMessage)
         }
 
-        return (item as! SecKey)
+        return item as! SecKey
     }
 
     private static func createKey(with identifier: String) throws -> SecKey {
