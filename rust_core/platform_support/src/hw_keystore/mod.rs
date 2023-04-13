@@ -58,3 +58,15 @@ pub type PreferredPlatformEcdsaKey = crate::hw_keystore::software::SoftwareEcdsa
 // otherwise just just alias the Never type
 #[cfg(not(any(feature = "hardware", feature = "software")))]
 pub type PreferredPlatformEcdsaKey = never::Never;
+
+// if the hardware feature is enabled, prefer HardwareEncryptionKey
+#[cfg(feature = "hardware")]
+pub type PreferredEncryptionKey = crate::hw_keystore::hardware::HardwareEncryptionKey;
+
+// otherwise if the software feature is enabled, prefer SoftwareEncryptionKey
+#[cfg(all(not(feature = "hardware"), feature = "software"))]
+pub type PreferredEncryptionKey = crate::hw_keystore::software::SoftwareEncryptionKey;
+
+// otherwise just just alias the Never type
+#[cfg(not(any(feature = "hardware", feature = "software")))]
+pub type PreferredEncryptionKey = never::Never;
