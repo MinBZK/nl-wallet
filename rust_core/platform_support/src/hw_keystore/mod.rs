@@ -4,9 +4,6 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
-#[cfg(feature = "integration-test")]
-pub mod integration_test;
-
 use thiserror::Error;
 use wallet_shared::account::signing_key::SecureEcdsaKey;
 

@@ -1,7 +1,9 @@
 #[cfg(feature = "software-integration-test")]
 #[test]
 fn test_software_signature() {
-    use platform_support::hw_keystore::{integration_test::sign_and_verify_signature, software::SoftwareEcdsaKey};
+    use platform_support::{
+        hw_keystore::software::SoftwareEcdsaKey, integration_test::hw_keystore::sign_and_verify_signature,
+    };
 
     let payload = b"This is a message that will be signed.";
     let identifier = "key";
@@ -12,8 +14,8 @@ fn test_software_signature() {
 #[cfg(feature = "software-integration-test")]
 #[test]
 fn test_software_encryption() {
-    use platform_support::hw_keystore::{
-        integration_test::encrypt_and_decrypt_message, software::SoftwareEncryptionKey,
+    use platform_support::{
+        hw_keystore::software::SoftwareEncryptionKey, integration_test::hw_keystore::encrypt_and_decrypt_message,
     };
 
     let payload = b"This message will be encrypted.";

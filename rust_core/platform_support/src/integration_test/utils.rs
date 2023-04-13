@@ -1,6 +1,3 @@
-#[cfg(all(feature = "hardware-integration-test"))]
-pub mod hardware;
-
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -40,4 +37,26 @@ pub fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     fs::remove_file(&path).expect("Could not delete test.txt");
 
     contents == original_message
+}
+
+#[cfg(all(feature = "hardware-integration-test"))]
+mod hardware {
+    use jni::{objects::JClass, JNIEnv};
+
+    use super::get_and_verify_storage_path;
+    use crate::utils::hardware::HardwareUtilities;
+
+    // this is the starting point for the integration test performed from Android / iOS.
+    #[no_mangle]
+    fn utils_test_get_storage_path() -> bool {
+        get_and_verify_storage_path::<HardwareUtilities>()
+    }
+
+    #[no_mangle]
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_NativeUtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
+        _env: JNIEnv,
+        _: JClass,
+    ) -> bool {
+        utils_test_get_storage_path()
+    }
 }
