@@ -1,5 +1,3 @@
-pub mod error;
-
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
@@ -10,8 +8,16 @@ pub mod software;
 pub mod integration_test;
 
 use std::path::PathBuf;
+use thiserror::Error;
 
-use self::error::UtilitiesError;
+// implementation of UtilitiesError from UDL, only with "hardware" flag
+#[derive(Debug, Error)]
+pub enum UtilitiesError {
+    #[error("Platform error: {reason}")]
+    PlatformError { reason: String },
+    #[error("Bridging error: {reason}")]
+    BridgingError { reason: String },
+}
 
 pub trait PlatformUtilities {
     fn storage_path() -> Result<PathBuf, UtilitiesError>;

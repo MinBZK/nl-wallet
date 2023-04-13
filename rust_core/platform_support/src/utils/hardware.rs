@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{error::UtilitiesError, PlatformUtilities};
+use super::{PlatformUtilities, UtilitiesError};
 use crate::bridge::utils::{UtilitiesBridge, UTILITIES};
 
 pub struct HardwareUtilities;

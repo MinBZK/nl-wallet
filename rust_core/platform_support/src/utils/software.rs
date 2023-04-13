@@ -1,6 +1,6 @@
 use std::{env::temp_dir, path::PathBuf};
 
-use super::{error::UtilitiesError, PlatformUtilities};
+use super::{PlatformUtilities, UtilitiesError};
 
 pub struct SoftwareUtilities;
 
