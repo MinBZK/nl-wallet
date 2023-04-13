@@ -12,7 +12,7 @@ final class Utilities {}
 extension Utilities: UtilitiesBridge {
     func getStoragePath() throws -> String {
         do {
-            let url = try PlatformUtility.urlForAppSupportDirectory()
+            let url = try PlatformUtility.urlForAppStorageWithoutBackup()
 
             return url.path
         } catch {
