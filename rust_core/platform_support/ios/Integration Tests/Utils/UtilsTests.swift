@@ -11,10 +11,10 @@ import XCTest
 import PlatformSupport
 
 final class UtilsTests: XCTestCase {
-    private static var utils: Utils?
+    static var platformSupport: PlatformSupport?
 
     override class func setUp() {
-        self.utils = Utils.shared
+        self.platformSupport = PlatformSupport.shared
     }
 
     func testAllUtilities() {

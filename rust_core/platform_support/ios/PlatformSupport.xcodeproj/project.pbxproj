@@ -18,14 +18,13 @@
 		61775ACC29D5C12A00582FAE /* platform_support.udl in Sources */ = {isa = PBXBuildFile; fileRef = 61775AC829D5C00F00582FAE /* platform_support.udl */; };
 		6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */; };
 		6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */; };
-		61B7755D29D724A50076A7F5 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7755C29D724A50076A7F5 /* Utils.swift */; };
 		61B7756029D724C20076A7F5 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7755F29D724C20076A7F5 /* Utilities.swift */; };
 		61B7756329D725060076A7F5 /* PlatformUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7756229D725060076A7F5 /* PlatformUtility.swift */; };
+		61C878A429E86E5A000AEC24 /* PlatformSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C878A329E86E5A000AEC24 /* PlatformSupport.swift */; };
 		61D577BA29A8FD7C00030578 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577B929A8FD7C00030578 /* AppDelegate.swift */; };
 		61D577BE29A8FD7C00030578 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577BD29A8FD7C00030578 /* ViewController.swift */; };
 		61D577CE29A92A8800030578 /* HWKeyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D577CD29A92A8800030578 /* HWKeyStoreTests.swift */; };
 		61D972A129E068C200924F93 /* EncryptionKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D972A029E068C200924F93 /* EncryptionKey.swift */; };
-		61F5336229A8AB4100624E46 /* HWKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F5336129A8AB4100624E46 /* HWKeyStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -90,9 +89,9 @@
 		61775ACB29D5C0D200582FAE /* platform_support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = platform_support.swift; path = ../../swift/platform_support.swift; sourceTree = "<group>"; };
 		6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKeyError.swift; sourceTree = "<group>"; };
 		6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyStoreError+From.swift"; sourceTree = "<group>"; };
-		61B7755C29D724A50076A7F5 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		61B7755F29D724C20076A7F5 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		61B7756229D725060076A7F5 /* PlatformUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformUtility.swift; sourceTree = "<group>"; };
+		61C878A329E86E5A000AEC24 /* PlatformSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSupport.swift; sourceTree = "<group>"; };
 		61D577B729A8FD7C00030578 /* Integration Tests Host App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Integration Tests Host App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		61D577B929A8FD7C00030578 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		61D577BD29A8FD7C00030578 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -102,7 +101,6 @@
 		61D7711F29A93456000CDF5E /* hw_keystore_integration_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hw_keystore_integration_tests.h; sourceTree = "<group>"; };
 		61D972A029E068C200924F93 /* EncryptionKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionKey.swift; sourceTree = "<group>"; };
 		61F5335E29A8AB4100624E46 /* libPlatformSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPlatformSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		61F5336129A8AB4100624E46 /* HWKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWKeyStore.swift; sourceTree = "<group>"; };
 		CB64449529DC405400030A80 /* utils_integration_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils_integration_tests.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -204,7 +202,6 @@
 			children = (
 				61B7755E29D724B10076A7F5 /* Bridge */,
 				61B7756129D724C60076A7F5 /* PlatformUtility */,
-				61B7755C29D724A50076A7F5 /* Utils.swift */,
 			);
 			name = Utils;
 			sourceTree = "<group>";
@@ -230,7 +227,6 @@
 			isa = PBXGroup;
 			children = (
 				6150E5ED29A8B7870036E736 /* Bridge */,
-				61F5336129A8AB4100624E46 /* HWKeyStore.swift */,
 				6150E5F229A8BA450036E736 /* SecureEnclaveKey */,
 			);
 			path = HWKeyStore;
@@ -274,6 +270,7 @@
 				6150E5E829A8B0140036E736 /* PlatformSupport-Bridging-Header.h */,
 				6133005629A8EB6A004D9CC7 /* Rust Bindings */,
 				6133003B29A8E2CA004D9CC7 /* UDL */,
+				61C878A329E86E5A000AEC24 /* PlatformSupport.swift */,
 			);
 			path = PlatformSupport;
 			sourceTree = "<group>";
@@ -446,13 +443,12 @@
 				6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */,
 				61D972A129E068C200924F93 /* EncryptionKey.swift in Sources */,
 				6150E5EF29A8B7980036E736 /* KeyStore.swift in Sources */,
-				61F5336229A8AB4100624E46 /* HWKeyStore.swift in Sources */,
 				6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */,
 				6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */,
 				61B7756029D724C20076A7F5 /* Utilities.swift in Sources */,
 				6173AF8B29D72F64009C715F /* UtilitiesError+From.swift in Sources */,
+				61C878A429E86E5A000AEC24 /* PlatformSupport.swift in Sources */,
 				6150E5F429A8BA540036E736 /* SecureEnclaveKey.swift in Sources */,
-				61B7755D29D724A50076A7F5 /* Utils.swift in Sources */,
 				61B7756329D725060076A7F5 /* PlatformUtility.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

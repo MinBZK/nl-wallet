@@ -1,6 +1,6 @@
-use once_cell::sync::OnceCell;
 use std::fmt::Debug;
 
+use super::get_bridge_collection;
 pub use crate::utils::UtilitiesError;
 
 // this is required to catch UnexpectedUniFFICallbackError
@@ -15,11 +15,6 @@ pub trait UtilitiesBridge: Send + Sync + Debug {
     fn get_storage_path(&self) -> Result<String, UtilitiesError>;
 }
 
-pub static UTILITIES: OnceCell<Box<dyn UtilitiesBridge>> = OnceCell::new();
-
-pub fn init_utilities(bridge: Box<dyn UtilitiesBridge>) {
-    // crash if STORAGE was already set
-    UTILITIES
-        .set(bridge)
-        .expect("Cannot call init_utilities() more than once")
+pub fn get_utils() -> &'static dyn UtilitiesBridge {
+    get_bridge_collection().utils.as_ref()
 }

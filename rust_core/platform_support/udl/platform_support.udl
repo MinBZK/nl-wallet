@@ -50,11 +50,7 @@ callback interface UtilitiesBridge {
 };
 
 namespace platform_support {
-    // Initialization function, this MUST be called by native code before Rust is able
-    // to use the KeyStoreBridge callbacks
-    void init_hw_keystore(KeyStoreBridge bridge);
-
-    // Initialization function, this MUST be called by native code before Rust is able
-    // to use the UtilitiesBridge callbacks
-    void init_utilities(UtilitiesBridge bridge);
+    // Initialization function, this MUST be called by native code
+    // so that Rust is able to use the bridge callbacks
+    void init_platform_support(KeyStoreBridge key_store, UtilitiesBridge utils);
 };

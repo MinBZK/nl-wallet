@@ -1,6 +1,6 @@
-use once_cell::sync::OnceCell;
-use std::{fmt::Debug, sync::Mutex};
+use std::{fmt::Debug, sync::MutexGuard};
 
+use super::get_bridge_collection;
 pub use crate::hw_keystore::KeyStoreError;
 
 // this is required to catch UnexpectedUniFFICallbackError
@@ -26,14 +26,9 @@ pub trait EncryptionKeyBridge: Send + Sync + Debug {
     fn decrypt(&self, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
 }
 
-// protect key store with mutex, so creating or fetching keys is done atomically
-pub static KEY_STORE: OnceCell<Mutex<Box<dyn KeyStoreBridge>>> = OnceCell::new();
-
-pub fn init_hw_keystore(bridge: Box<dyn KeyStoreBridge>) {
-    let key_store = Mutex::new(bridge);
-    // crash if KEY_STORE was already set
-    assert!(
-        KEY_STORE.set(key_store).is_ok(),
-        "Cannot call init_hw_keystore() more than once"
-    )
+pub fn get_key_store() -> MutexGuard<'static, Box<dyn KeyStoreBridge>> {
+    get_bridge_collection()
+        .key_store
+        .lock()
+        .expect("Could not get lock on key store")
 }

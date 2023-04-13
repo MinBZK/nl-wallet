@@ -1,5 +1,3 @@
-use std::sync::MutexGuard;
-
 use p256::{
     ecdsa::{signature::Signer, Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
@@ -7,7 +5,7 @@ use p256::{
 use wallet_shared::account::signing_key::{EcdsaKey, SecureEcdsaKey};
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
-use crate::bridge::hw_keystore::{EncryptionKeyBridge, KeyStoreBridge, SigningKeyBridge, KEY_STORE};
+use crate::bridge::hw_keystore::{get_key_store, EncryptionKeyBridge, SigningKeyBridge};
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
     // wrap KeyStoreError in p256::ecdsa::signature::error,
@@ -90,13 +88,4 @@ impl PlatformEncryptionKey for HardwareEncryptionKey {
 
         Ok(result)
     }
-}
-
-fn get_key_store() -> MutexGuard<'static, Box<dyn KeyStoreBridge>> {
-    // crash if KEY_STORE is not yet set, then wait for key store mutex lock
-    KEY_STORE
-        .get()
-        .expect("KEY_STORE used before init_hw_keystore() was called")
-        .lock()
-        .expect("Could not get lock on KEY_STORE")
 }

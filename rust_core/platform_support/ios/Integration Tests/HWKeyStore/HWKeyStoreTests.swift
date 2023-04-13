@@ -12,11 +12,11 @@ import XCTest
 import PlatformSupport
 
 final class HWKeyStoreTests: XCTestCase {
-    static var keyStore: HWKeyStore?
+    static var platformSupport: PlatformSupport?
     static let identifier = "key"
 
     override class func setUp() {
-        self.keyStore = HWKeyStore.shared
+        self.platformSupport = PlatformSupport.shared
     }
 
     override func tearDown() {
