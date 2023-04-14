@@ -15,7 +15,7 @@ ring = "0.16.20"
 serde = { version = "1.0.156", features = ["derive"] }
 sha2 = "0.10.6"
 thiserror = "1.0.39"
-reqwest = { version = "0.11.16", features = ["serde_json", "json", "blocking"] }
+reqwest = { version = "0.11.16", features = ["serde_json", "json", "blocking", "native-tls-vendored"] }
 
 # TODO: find a proper way to talk to the wallet provider instead of this
 wallet_provider = { path = "../wallet_provider" }
