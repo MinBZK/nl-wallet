@@ -120,7 +120,6 @@ final class SecureEnclaveKey {
     let identifier: String
 
     private let privateKey: SecKey
-    private var _encodedPublicKey: Data?
 
     private var publicKey: SecKey {
         guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
@@ -147,14 +146,7 @@ final class SecureEnclaveKey {
     // MARK: - Instance methods
 
     func encodePublicKey() throws -> Data {
-        guard let encodedPublicKey = self._encodedPublicKey else {
-            let encodedPublicKey = try Self.encode(publicKey: self.publicKey)
-            self._encodedPublicKey = encodedPublicKey
-
-            return encodedPublicKey
-        }
-
-        return encodedPublicKey
+        return try Self.encode(publicKey: self.publicKey)
     }
 
     func sign(payload: Data) throws -> Data {
