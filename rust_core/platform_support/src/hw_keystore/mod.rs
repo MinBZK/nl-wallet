@@ -24,21 +24,24 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
+pub trait ConstructableWithIdentifier {
+    fn new(identifier: &str) -> Self
+    where
+        Self: Sized;
+
+    fn identifier(&self) -> &str;
+}
+
 /// Contract for ECDSA private keys suitable for use in the wallet, as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`PlatformSigningKey::signing_key()`].
-pub trait PlatformEcdsaKey: SecureEcdsaKey {
-    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-    where
-        Self: Sized;
-
+pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
+    // from ConstructableWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
-pub trait PlatformEncryptionKey {
-    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-    where
-        Self: Sized;
+pub trait PlatformEncryptionKey: ConstructableWithIdentifier {
+    // from ConstructableWithIdentifier: new(), identifier()
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;

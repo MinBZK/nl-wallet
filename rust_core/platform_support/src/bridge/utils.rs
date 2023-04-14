@@ -15,6 +15,6 @@ pub trait UtilitiesBridge: Send + Sync + Debug {
     fn get_storage_path(&self) -> Result<String, UtilitiesError>;
 }
 
-pub fn get_utils() -> &'static dyn UtilitiesBridge {
+pub fn get_utils_bridge() -> &'static dyn UtilitiesBridge {
     get_bridge_collection().utils.as_ref()
 }

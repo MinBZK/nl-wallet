@@ -2,10 +2,9 @@ pub mod hw_keystore;
 pub mod utils;
 
 use once_cell::sync::OnceCell;
-use std::sync::Mutex;
 
 use self::{
-    hw_keystore::{EncryptionKeyBridge, KeyStoreBridge, KeyStoreError, SigningKeyBridge},
+    hw_keystore::{EncryptionKeyBridge, KeyStoreError, SigningKeyBridge},
     utils::{UtilitiesBridge, UtilitiesError},
 };
 
@@ -20,13 +19,19 @@ static BRIDGE_COLLECTION: OnceCell<BridgeCollection> = OnceCell::new();
 
 #[derive(Debug)]
 struct BridgeCollection {
-    key_store: Mutex<Box<dyn KeyStoreBridge>>, // TODO: remove mutex by making native implementations thread-safe
+    signing_key: Box<dyn SigningKeyBridge>,
+    encryption_key: Box<dyn EncryptionKeyBridge>,
     utils: Box<dyn UtilitiesBridge>,
 }
 
-pub fn init_platform_support(key_store: Box<dyn KeyStoreBridge>, utils: Box<dyn UtilitiesBridge>) {
+pub fn init_platform_support(
+    signing_key: Box<dyn SigningKeyBridge>,
+    encryption_key: Box<dyn EncryptionKeyBridge>,
+    utils: Box<dyn UtilitiesBridge>,
+) {
     let bridge_collection = BridgeCollection {
-        key_store: Mutex::new(key_store),
+        signing_key,
+        encryption_key,
         utils,
     };
 

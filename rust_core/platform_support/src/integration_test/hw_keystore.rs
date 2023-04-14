@@ -8,9 +8,13 @@ use crate::hw_keystore::{PlatformEcdsaKey, PlatformEncryptionKey};
 // for the "hardware" integration test.
 pub fn sign_and_verify_signature<K: PlatformEcdsaKey>(payload: &[u8], key_identifier: &str) -> bool {
     // Create a signing key for the identifier
-    let key1 = K::signing_key(key_identifier).expect("Could not create signing key");
+    let key1 = K::new(key_identifier);
     // Create another signing key with the same identifier, should use the same private key
-    let key2 = K::signing_key(key_identifier).expect("Could not create signing key");
+    let key2 = K::new(key_identifier);
+
+    // Check if identifiers match
+    assert_eq!(key1.identifier(), key_identifier);
+    assert_eq!(key2.identifier(), key_identifier);
 
     // Get the public key from the first key
     let public_key = key1.verifying_key().expect("Could not get public key");
@@ -24,13 +28,19 @@ pub fn sign_and_verify_signature<K: PlatformEcdsaKey>(payload: &[u8], key_identi
 
 pub fn encrypt_and_decrypt_message<K: PlatformEncryptionKey>(payload: &[u8], key_identifier: &str) -> bool {
     // Create an encryption key for the identifier
-    let encryption_key = K::encryption_key(key_identifier).expect("Could not create encryption key");
+    let encryption_key1 = K::new(key_identifier);
+    // Create another encryption key with the same identifier, should use the same key
+    let encryption_key2 = K::new(key_identifier);
 
-    // Encrypt the payload with the key
-    let encrypted_payload = encryption_key.encrypt(payload).expect("Could not encrypt message");
+    // Check if identifiers match
+    assert_eq!(encryption_key1.identifier(), key_identifier);
+    assert_eq!(encryption_key2.identifier(), key_identifier);
 
-    // Decrypt the encrypted message with the key
-    let decrypted_payload = encryption_key
+    // Encrypt the payload with the first key
+    let encrypted_payload = encryption_key1.encrypt(payload).expect("Could not encrypt message");
+
+    // Decrypt the encrypted message with the second key
+    let decrypted_payload = encryption_key2
         .decrypt(&encrypted_payload)
         .expect("Could not decrypt message");
 
