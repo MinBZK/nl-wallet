@@ -4,7 +4,6 @@ import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.storage.StoragePathProvider
 import uniffi.platform_support.UtilitiesBridge
-import uniffi.platform_support.initUtilities
 
 /**
  * This class is automatically initialized on app start through
@@ -19,7 +18,6 @@ class NativeUtilitiesBridge(private val pathProvider: StoragePathProvider) : Uti
 
     init {
         bridge = this
-        initUtilities(this)
     }
 
     override fun getStoragePath() = pathProvider.getStoragePath()

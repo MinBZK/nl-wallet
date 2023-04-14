@@ -11,7 +11,6 @@ import nl.rijksoverheid.edi.wallet.platform_support.util.isDeviceLocked
 import uniffi.platform_support.EncryptionKeyBridge
 import uniffi.platform_support.KeyStoreBridge
 import uniffi.platform_support.SigningKeyBridge
-import uniffi.platform_support.initHwKeystore
 import java.security.KeyStore
 import java.security.KeyStoreException
 
@@ -32,7 +31,6 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
     init {
         keyStore.load(null)
         bridge = this
-        initHwKeystore(this)
     }
 
     @Throws(uniffi.platform_support.KeyStoreException::class)

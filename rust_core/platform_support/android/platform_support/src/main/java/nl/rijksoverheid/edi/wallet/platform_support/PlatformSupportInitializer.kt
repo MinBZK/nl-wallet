@@ -8,13 +8,15 @@ import androidx.startup.Initializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.HwKeyStoreBridge
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.NativeUtilitiesBridge
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.storage.StoragePathProviderImpl
+import uniffi.platform_support.initPlatformSupport
 
 // Any app consuming this library can (optionally) use this key to override which .so should be loaded
 private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
     "nl.rijksoverheid.edi.wallet.platform_support.libraryOverride"
 
 // The key used by the generated code [hw_keystore.kt] to check which .so should be loaded
-private const val LIBRARY_OVERRIDE_PROPERTY_KEY = "uniffi.component.platform_support.libraryOverride"
+private const val LIBRARY_OVERRIDE_PROPERTY_KEY =
+    "uniffi.component.platform_support.libraryOverride"
 
 class PlatformSupportInitializer : Initializer<PlatformSupport> {
     override fun create(context: Context): PlatformSupport {
@@ -36,9 +38,11 @@ class PlatformSupportInitializer : Initializer<PlatformSupport> {
 }
 
 data class PlatformSupport(val context: Context) {
+    private val hwKeyStoreBridge = HwKeyStoreBridge(context)
+    private val nativeUtilitiesBridge = NativeUtilitiesBridge(StoragePathProviderImpl(context))
+
     init {
-        HwKeyStoreBridge(context)
-        NativeUtilitiesBridge(StoragePathProviderImpl(context))
+        initPlatformSupport(hwKeyStoreBridge, nativeUtilitiesBridge)
     }
 }
 
