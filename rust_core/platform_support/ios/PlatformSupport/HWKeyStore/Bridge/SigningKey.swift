@@ -8,25 +8,23 @@
 import Foundation
 
 final class SigningKey {
-    let key: SecureEnclaveKey
-
-    init(key: SecureEnclaveKey) {
-        self.key = key
+    private func secureEnclaveKey(for identifier: String) throws -> SecureEnclaveKey {
+        return try SecureEnclaveKey(identifier: identifier)
     }
 }
 
 extension SigningKey: SigningKeyBridge {
-    func publicKey() throws -> [UInt8] {
+    func publicKey(identifier: String) throws -> [UInt8] {
         do {
-            return try Array(self.key.encodePublicKey())
+            return try Array(self.secureEnclaveKey(for: identifier).encodePublicKey())
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }
     }
 
-    func sign(payload: [UInt8]) throws -> [UInt8] {
+    func sign(identifier: String, payload: [UInt8]) throws -> [UInt8] {
         do {
-            return try Array(self.key.sign(payload: Data(payload)))
+            return try Array(self.secureEnclaveKey(for: identifier).sign(payload: Data(payload)))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }

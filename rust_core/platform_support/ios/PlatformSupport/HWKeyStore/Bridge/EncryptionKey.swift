@@ -8,25 +8,23 @@
 import Foundation
 
 final class EncryptionKey {
-    let key: SecureEnclaveKey
-
-    init(key: SecureEnclaveKey) {
-        self.key = key
+    private func secureEnclaveKey(for identifier: String) throws -> SecureEnclaveKey {
+        return try SecureEnclaveKey(identifier: identifier)
     }
 }
 
 extension EncryptionKey: EncryptionKeyBridge {
-    func encrypt(payload: [UInt8]) throws -> [UInt8] {
+    func encrypt(identifier: String, payload: [UInt8]) throws -> [UInt8] {
         do {
-            return try Array(self.key.encrypt(payload: Data(payload)))
+            return try Array(self.secureEnclaveKey(for: identifier).encrypt(payload: Data(payload)))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }
     }
 
-    func decrypt(payload: [UInt8]) throws -> [UInt8] {
+    func decrypt(identifier: String, payload: [UInt8]) throws -> [UInt8] {
         do {
-            return try Array(self.key.decrypt(payload: Data(payload)))
+            return try Array(self.secureEnclaveKey(for: identifier).decrypt(payload: Data(payload)))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }
