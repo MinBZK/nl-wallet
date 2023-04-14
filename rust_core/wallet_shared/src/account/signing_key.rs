@@ -10,11 +10,3 @@ pub trait EcdsaKey: Signer<Signature> {
 pub trait EphemeralEcdsaKey: EcdsaKey {}
 
 pub trait SecureEcdsaKey: EcdsaKey {}
-
-impl EcdsaKey for p256::ecdsa::SigningKey {
-    type Error = p256::ecdsa::Error;
-
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(*self.verifying_key())
-    }
-}
