@@ -70,7 +70,9 @@ final class SecureEnclaveKey {
             throw SecureEnclaveKeyError.fetch(errorMessage: errorMessage)
         }
 
-        return item as! SecKey
+        // swiftformat:disable redundantParens
+        return (item as! SecKey)
+        // swiftformat:enable redundantParens
     }
 
     private static func createKey(with identifier: String) throws -> SecKey {
