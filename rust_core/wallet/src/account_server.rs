@@ -1,6 +1,3 @@
-//! A temporary rust implementation of the account server, for use in tests and stubs before the Kotlin implementation
-//! is fully functional.
-
 use anyhow::Result;
 
 use wallet_shared::account::{
@@ -48,8 +45,9 @@ impl AccountServerClient for RemoteAccountServer {
 
 #[cfg(test)]
 pub mod tests {
-    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
     use rand::rngs::OsRng;
+
+    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
     use wallet_provider::account_server::AccountServer;
     use wallet_shared::account::{jwt::EcdsaDecodingKey, signing_key::EcdsaKey};
 

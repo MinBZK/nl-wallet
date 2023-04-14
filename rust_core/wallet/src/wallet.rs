@@ -64,23 +64,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose::STANDARD, Engine};
-
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
-
-    use crate::account_server::RemoteAccountServer;
+    use wallet_provider::account_server::AccountServer;
 
     use super::*;
 
     #[test]
     fn it_works() {
-        let pubkey = "BAJXSbbTOGMvUAWhLaWp9acM3/xHdvfg7EEPyqxYDSV8gGcJ+/KUfyL9bSAlwklXu0TV6U5B8ngW4p19oNy5YrU="
-            .as_bytes()
-            .to_vec();
-        let pubkey = STANDARD.decode(pubkey).unwrap();
-        let url = "http://localhost:3000".to_owned();
+        let account_server = AccountServer::new_stub();
+        let pubkey = account_server.pubkey.clone();
 
-        let mut wallet = Wallet::<_, SoftwareEcdsaKey>::new(RemoteAccountServer::new(url), pubkey.clone());
+        let mut wallet = Wallet::<_, SoftwareEcdsaKey>::new(account_server, pubkey.clone());
 
         assert!(wallet.register("123456".to_owned()).is_err());
 
