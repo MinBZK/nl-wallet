@@ -20,6 +20,8 @@ enum SecureEnclaveKeyError: Error {
     case create(keyChainError: Error?)
     case derivePublicKey(keyChainError: Error?)
     case sign(keyChainError: Error?)
+    case encrypt(keyChainError: Error?)
+    case decrypt(keyChainError: Error?)
 
     var localizedDescription: String {
         switch self {
@@ -31,6 +33,10 @@ enum SecureEnclaveKeyError: Error {
             return Self.format(message: "Could not derive public key", with: keyChainError?.localizedDescription)
         case let .sign(keyChainError: keyChainError):
             return Self.format(message: "Could not sign with private key", with: keyChainError?.localizedDescription)
+        case let .encrypt(keyChainError: keyChainError):
+            return Self.format(message: "Could not encrypt", with: keyChainError?.localizedDescription)
+        case let .decrypt(keyChainError: keyChainError):
+            return Self.format(message: "Could not decrypt", with: keyChainError?.localizedDescription)
         }
     }
 }

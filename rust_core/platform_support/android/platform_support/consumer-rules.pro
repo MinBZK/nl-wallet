@@ -1,4 +1,4 @@
--keep class uniffi.hw_keystore.** { *; }
+-keep class uniffi.platform_support.** { *; }
 
 -keepnames class * extends androidx.startup.Initializer
 -keep class * extends androidx.startup.Initializer {

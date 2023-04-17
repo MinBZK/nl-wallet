@@ -7,12 +7,27 @@
 
 import Foundation
 
-final class KeyStore {}
+final class KeyStore {
+    private static let signingPrefix = "ecdsa"
+    private static let encryptionPrefix = "ecies"
+}
 
 extension KeyStore: KeyStoreBridge {
-    func getOrCreateKey(identifier: String) throws -> SigningKeyBridge {
+    func getOrCreateSigningKey(identifier: String) throws -> SigningKeyBridge {
+        let identifier = "\(Self.signingPrefix)_\(identifier)"
+
         do {
             return try SigningKey(key: SecureEnclaveKey(identifier: identifier))
+        } catch let error as SecureEnclaveKeyError {
+            throw KeyStoreError.from(error)
+        }
+    }
+
+    func getOrCreateEncryptionKey(identifier: String) throws -> EncryptionKeyBridge {
+        let identifier = "\(Self.encryptionPrefix)_\(identifier)"
+
+        do {
+            return try EncryptionKey(key: SecureEnclaveKey(identifier: identifier))
         } catch let error as SecureEnclaveKeyError {
             throw KeyStoreError.from(error)
         }

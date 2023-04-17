@@ -7,9 +7,9 @@ pub mod pin;
 pub mod wallet;
 
 use account_server::AccountServer;
-use platform_support::hw_keystore::PreferredPlatformEcdsaKey;
+use platform_support::preferred;
 
-pub type Wallet = wallet::Wallet<AccountServer, PreferredPlatformEcdsaKey>;
+pub type Wallet = wallet::Wallet<AccountServer, preferred::PlatformEcdsaKey>;
 
 pub fn init_wallet() -> Wallet {
     let account_server = AccountServer::new_stub(); // TODO
