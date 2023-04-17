@@ -7,7 +7,6 @@ import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
-import uniffi.platform_support.EncryptionKeyBridge
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.security.KeyStore
@@ -19,7 +18,7 @@ import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 
-class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKeyBridge {
+class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
@@ -52,7 +51,7 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
         }
     }
 
-    override fun encrypt(payload: List<UByte>): List<UByte> {
+    fun encrypt(payload: List<UByte>): List<UByte> {
         val cipher = encryptCipher
         val bytes = payload.toByteArray()
         val iv = cipher.iv
@@ -77,7 +76,7 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
         return outputStream.toByteArray().toUByteList()
     }
 
-    override fun decrypt(payload: List<UByte>): List<UByte> {
+    fun decrypt(payload: List<UByte>): List<UByte> {
         val inputStream = ByteArrayInputStream(payload.toByteArray())
         return inputStream.use {
             val iv = ByteArray(KEY_SIZE)

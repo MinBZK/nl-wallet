@@ -9,7 +9,6 @@ import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
 import nl.rijksoverheid.edi.wallet.platform_support.util.isDeviceLocked
 import uniffi.platform_support.EncryptionKeyBridge
-import uniffi.platform_support.KeyStoreBridge
 import uniffi.platform_support.SigningKeyBridge
 import java.security.KeyStore
 import java.security.KeyStoreException
@@ -22,21 +21,18 @@ private const val ENCRYPT_KEY_PREFIX = "aes_"
  * This class is automatically initialized on app start through
  * the [PlatformSupportInitializer] class.
  */
-class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
-    companion object {
-        @VisibleForTesting
-        lateinit var bridge: KeyStoreBridge
-    }
+class HwKeyStoreBridge(private val context: Context) : SigningKeyBridge, EncryptionKeyBridge {
 
     private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
 
     init {
         keyStore.load(null)
-        bridge = this
     }
 
+    //region SigningKeyBridge
+
     @Throws(uniffi.platform_support.KeyStoreException::class)
-    override fun getOrCreateSigningKey(identifier: String): SigningKeyBridge {
+    fun getOrCreateSigningKey(identifier: String): ECDSAKey {
         val alias = SIGN_KEY_PREFIX + identifier
         try {
             verifyDeviceUnlocked()
@@ -48,7 +44,16 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
         }
     }
 
-    override fun getOrCreateEncryptionKey(identifier: String): EncryptionKeyBridge {
+    override fun publicKey(identifier: String) = getOrCreateSigningKey(identifier).publicKey()
+
+    override fun sign(identifier: String, payload: List<UByte>) =
+        getOrCreateSigningKey(identifier).sign(payload)
+
+    //endregion SigningKeyBridge
+
+    //region EncryptionKeyBridge
+
+    fun getOrCreateEncryptionKey(identifier: String): AESKey {
         val alias = ENCRYPT_KEY_PREFIX + identifier;
         try {
             verifyDeviceUnlocked()
@@ -59,6 +64,14 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
         }
     }
+
+    override fun encrypt(identifier: String, payload: List<UByte>) =
+        getOrCreateEncryptionKey(identifier).encrypt(payload)
+
+    override fun decrypt(identifier: String, payload: List<UByte>) =
+        getOrCreateEncryptionKey(identifier).decrypt(payload)
+
+    //endregion EncryptionKeyBridge
 
     @VisibleForTesting
     fun clean() = keyStore.aliases().asSequence().forEach(::deleteEntry)

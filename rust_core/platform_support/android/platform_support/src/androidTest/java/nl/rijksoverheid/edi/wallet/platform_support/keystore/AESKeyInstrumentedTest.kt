@@ -1,6 +1,8 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import org.junit.After
@@ -21,7 +23,8 @@ class AESKeyInstrumentedTest {
 
     @Before
     fun setup() {
-        hwKeyStoreBridge = HwKeyStoreBridge.bridge as HwKeyStoreBridge
+        val context = InstrumentationRegistry.getInstrumentation().context
+        hwKeyStoreBridge = PlatformSupport.getInstance(context).hwKeyStoreBridge
     }
 
     @After

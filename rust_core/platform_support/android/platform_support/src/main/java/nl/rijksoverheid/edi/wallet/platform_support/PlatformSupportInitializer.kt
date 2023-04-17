@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.VisibleForTesting
 import androidx.startup.Initializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.HwKeyStoreBridge
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.NativeUtilitiesBridge
@@ -31,18 +32,31 @@ class PlatformSupportInitializer : Initializer<PlatformSupport> {
                 System.setProperty(LIBRARY_OVERRIDE_PROPERTY_KEY, libraryOverride)
             }
         }
-        return PlatformSupport(context)
+        return PlatformSupport.getInstance(context)
     }
 
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }
 
-data class PlatformSupport(val context: Context) {
-    private val hwKeyStoreBridge = HwKeyStoreBridge(context)
-    private val nativeUtilitiesBridge = NativeUtilitiesBridge(StoragePathProviderImpl(context))
+class PlatformSupport private constructor(context: Context) {
+
+    companion object {
+        @Volatile
+        private var INSTANCE: PlatformSupport? = null
+
+        fun getInstance(context: Context): PlatformSupport =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: PlatformSupport(context).also { INSTANCE = it }
+            }
+    }
+
+    @VisibleForTesting
+    val hwKeyStoreBridge = HwKeyStoreBridge(context)
+    @VisibleForTesting
+    val nativeUtilitiesBridge = NativeUtilitiesBridge(StoragePathProviderImpl(context))
 
     init {
-        initPlatformSupport(hwKeyStoreBridge, nativeUtilitiesBridge)
+        initPlatformSupport(hwKeyStoreBridge, hwKeyStoreBridge, nativeUtilitiesBridge)
     }
 }
 

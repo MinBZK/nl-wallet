@@ -1,6 +1,8 @@
 package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -17,7 +19,9 @@ class NativeUtilitiesBridgeInstrumentedTest {
 
     @Test
     fun bridge_is_initialized() {
-        assertNotNull(NativeUtilitiesBridge.bridge)
+        val context = InstrumentationRegistry.getInstrumentation().context
+        val platformSupport = PlatformSupport.getInstance(context)
+        assertNotNull(platformSupport.nativeUtilitiesBridge)
     }
 
     @Test

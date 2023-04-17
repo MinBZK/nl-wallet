@@ -9,7 +9,6 @@ import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError.*
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
-import uniffi.platform_support.SigningKeyBridge
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStoreException
@@ -24,7 +23,7 @@ import java.security.spec.ECGenParameterSpec
 @VisibleForTesting
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
-class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias), SigningKeyBridge {
+class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         @Throws(
@@ -57,7 +56,7 @@ class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias), SigningKey
         }
 
     @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
-    override fun publicKey(): List<UByte> {
+    fun publicKey(): List<UByte> {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
         } catch (ex: Exception) {
@@ -66,7 +65,7 @@ class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias), SigningKey
     }
 
     @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
-    override fun sign(payload: List<UByte>): List<UByte> {
+    fun sign(payload: List<UByte>): List<UByte> {
         try {
             val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
             val privateKey = keyStore.getKey(keyAlias, null) as PrivateKey
