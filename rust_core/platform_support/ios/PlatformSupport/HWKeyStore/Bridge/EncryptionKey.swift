@@ -8,8 +8,10 @@
 import Foundation
 
 final class EncryptionKey {
+    private static let identifierPrefix = "ecies"
+
     private func secureEnclaveKey(for identifier: String) throws -> SecureEnclaveKey {
-        return try SecureEnclaveKey(identifier: identifier)
+        return try SecureEnclaveKey(identifier: "\(Self.identifierPrefix)_\(identifier)")
     }
 }
 

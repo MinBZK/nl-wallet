@@ -8,8 +8,10 @@
 import Foundation
 
 final class SigningKey {
+    private static let identifierPrefix = "ecdsa"
+
     private func secureEnclaveKey(for identifier: String) throws -> SecureEnclaveKey {
-        return try SecureEnclaveKey(identifier: identifier)
+        return try SecureEnclaveKey(identifier: "\(Self.identifierPrefix)_\(identifier)")
     }
 }
 

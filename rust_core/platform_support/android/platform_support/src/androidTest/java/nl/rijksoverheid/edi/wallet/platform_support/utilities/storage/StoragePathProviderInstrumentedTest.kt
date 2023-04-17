@@ -22,7 +22,7 @@ class StoragePathProviderInstrumentedTest {
     @Test
     fun test_path_is_valid() {
         assertNotNull(storagePathProvider.getStoragePath())
-        // Sanity check for the provided path: /<package specific>/files
+        // Verify that the `/*/files` folder is provided.
         assertTrue("^/.*/files\$".toRegex().matches(storagePathProvider.getStoragePath()))
     }
 }
