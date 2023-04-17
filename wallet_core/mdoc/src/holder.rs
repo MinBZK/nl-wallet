@@ -22,6 +22,11 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Credentials(pub IndexMap<DocType, Credential>);
 
+impl Default for Credentials {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<const N: usize> From<[Credential; N]> for Credentials {
     fn from(m: [Credential; N]) -> Self {
         Credentials(IndexMap::from_iter(
@@ -30,73 +35,13 @@ impl<const N: usize> From<[Credential; N]> for Credentials {
     }
 }
 
-impl Entry {
-    fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
-        IssuerSignedItem {
-            digest_id: index as u32,
-            random,
-            element_identifier: self.name.clone(),
-            element_value: self.value.clone(),
-        }
-        .into()
-    }
-}
-
-impl SparseIssuerSigned {
-    fn to_credential(
-        &self,
-        private_key: SigningKey<p256::NistP256>,
-        unsigned: &UnsignedMdoc,
-        iss_cert: &X509Certificate,
-    ) -> Result<Credential> {
-        let name_spaces: IssuerNameSpaces = unsigned
-            .attributes
-            .iter()
-            .map(|(namespace, attrs)| {
-                (
-                    namespace.clone(),
-                    attrs
-                        .iter()
-                        .enumerate()
-                        .map(|(index, attr)| attr.to_issuer_signed_item(index, self.randoms[namespace][index].to_vec()))
-                        .collect::<Vec<_>>()
-                        .into(),
-                )
-            })
-            .collect();
-
-        let mso = MobileSecurityObject {
-            version: self.sparse_issuer_auth.version.clone(),
-            digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
-            value_digests: (&name_spaces).try_into()?,
-            device_key_info: private_key.verifying_key().try_into()?,
-            doc_type: unsigned.doc_type.clone(),
-            validity_info: self.sparse_issuer_auth.validity_info.clone(),
-        };
-        let issuer_auth = self
-            .sparse_issuer_auth
-            .issuer_auth
-            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(anyhow::Error::msg)?);
-
-        let issuer_signed = IssuerSigned {
-            name_spaces: Some(name_spaces),
-            issuer_auth,
-        };
-        issuer_signed.verify(iss_cert)?;
-
-        Ok(Credential {
-            private_key,
-            issuer_signed,
-            doc_type: unsigned.doc_type.clone(),
-        })
-    }
-}
-
 #[derive(Debug)]
 pub struct IssuanceState<'a> {
     pub request: &'a RequestKeyGenerationMessage,
-    pub private_keys: Vec<Vec<SigningKey<NistP256>>>,
     pub response: KeyGenerationResponseMessage,
+
+    /// Private keys grouped by distinct credentials, and then per copies of each distinct credential.
+    pub private_keys: Vec<Vec<SigningKey<NistP256>>>,
 }
 
 impl Credentials {
@@ -181,12 +126,7 @@ impl Credentials {
     }
 }
 
-impl Default for Credentials {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
+/// A full mdoc credential: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone)]
 pub struct Credential {
     private_key: ecdsa::SigningKey<p256::NistP256>,
@@ -233,6 +173,68 @@ impl Credential {
             device_signed: DeviceSigned::new_signature(&self.private_key, challenge),
             errors: None,
         })
+    }
+}
+
+impl SparseIssuerSigned {
+    fn to_credential(
+        &self,
+        private_key: SigningKey<p256::NistP256>,
+        unsigned: &UnsignedMdoc,
+        iss_cert: &X509Certificate,
+    ) -> Result<Credential> {
+        let name_spaces: IssuerNameSpaces = unsigned
+            .attributes
+            .iter()
+            .map(|(namespace, attrs)| {
+                (
+                    namespace.clone(),
+                    attrs
+                        .iter()
+                        .enumerate()
+                        .map(|(index, attr)| attr.to_issuer_signed_item(index, self.randoms[namespace][index].to_vec()))
+                        .collect::<Vec<_>>()
+                        .into(),
+                )
+            })
+            .collect();
+
+        let mso = MobileSecurityObject {
+            version: self.sparse_issuer_auth.version.clone(),
+            digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
+            value_digests: (&name_spaces).try_into()?,
+            device_key_info: private_key.verifying_key().try_into()?,
+            doc_type: unsigned.doc_type.clone(),
+            validity_info: self.sparse_issuer_auth.validity_info.clone(),
+        };
+        let issuer_auth = self
+            .sparse_issuer_auth
+            .issuer_auth
+            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(anyhow::Error::msg)?);
+
+        let issuer_signed = IssuerSigned {
+            name_spaces: Some(name_spaces),
+            issuer_auth,
+        };
+        issuer_signed.verify(iss_cert)?;
+
+        Ok(Credential {
+            private_key,
+            issuer_signed,
+            doc_type: unsigned.doc_type.clone(),
+        })
+    }
+}
+
+impl Entry {
+    fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
+        IssuerSignedItem {
+            digest_id: index as u32,
+            random,
+            element_identifier: self.name.clone(),
+            element_value: self.value.clone(),
+        }
+        .into()
     }
 }
 
