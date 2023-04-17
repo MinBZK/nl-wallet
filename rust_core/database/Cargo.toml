@@ -1,0 +1,12 @@
+[package]
+name = "database"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rusqlite = { version = "0.27.0", features = [ "bundled-sqlcipher-vendored-openssl" ] }
+tokio = { version = "1", features = [ "full" ] } # Should this live globally somewhere?
+platform_support = { path = "../platform_support" }
+rand = "0.8.3"
