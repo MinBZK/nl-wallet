@@ -4,9 +4,12 @@ use aes_gcm::{
 };
 use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-use rand_core::{OsRng, RngCore};
+use rand_core::OsRng;
 use std::{collections::HashMap, sync::Mutex};
-use wallet_shared::account::signing_key::{EcdsaKey, SecureEcdsaKey};
+use wallet_shared::{
+    account::signing_key::{EcdsaKey, SecureEcdsaKey},
+    utils::random_bytes,
+};
 
 use super::{HardwareKeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
@@ -85,8 +88,7 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
         let cipher = &self.0;
 
         // Generate a random nonce
-        let mut nonce_bytes = [0u8; 12];
-        OsRng.fill_bytes(&mut nonce_bytes);
+        let nonce_bytes = random_bytes(12);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
 
         // Encrypt the provided message
