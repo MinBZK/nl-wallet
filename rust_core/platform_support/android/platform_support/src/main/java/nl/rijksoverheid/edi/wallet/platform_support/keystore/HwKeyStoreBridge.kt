@@ -15,6 +15,8 @@ import java.security.KeyStore
 import java.security.KeyStoreException
 
 const val KEYSTORE_PROVIDER = "AndroidKeyStore"
+private const val SIGN_KEY_PREFIX = "ecdsa_"
+private const val ENCRYPT_KEY_PREFIX = "aes_"
 
 /**
  * This class is automatically initialized on app start through
@@ -35,7 +37,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
 
     @Throws(uniffi.platform_support.KeyStoreException::class)
     override fun getOrCreateSigningKey(identifier: String): SigningKeyBridge {
-        val alias = "ecdsa_$identifier"
+        val alias = SIGN_KEY_PREFIX + identifier
         try {
             verifyDeviceUnlocked()
             if (!keyExists(alias)) ECDSAKey.createKey(context, alias)
@@ -47,7 +49,7 @@ class HwKeyStoreBridge(private val context: Context) : KeyStoreBridge {
     }
 
     override fun getOrCreateEncryptionKey(identifier: String): EncryptionKeyBridge {
-        val alias = "aes_$identifier"
+        val alias = ENCRYPT_KEY_PREFIX + identifier;
         try {
             verifyDeviceUnlocked()
             if (!keyExists(alias)) AESKey.createKey(context, alias)
@@ -88,8 +90,11 @@ private val KeyStoreKey.isConsideredValid: Boolean
     get() {
         val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
         return when {
-            this.isHardwareBacked -> true
+            isHardwareBacked -> true
             allowSoftwareBackedKeys -> true
-            else -> throw KeyStoreKeyError.MissingHardwareError(this.securityLevelCompat).keyException
+            !isHardwareBacked && !allowSoftwareBackedKeys -> {
+                throw KeyStoreKeyError.MissingHardwareError(securityLevelCompat).keyException
+            }
+            else -> false
         }
     }
