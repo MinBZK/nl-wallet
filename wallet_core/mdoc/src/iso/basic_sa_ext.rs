@@ -85,7 +85,7 @@ pub struct DataToIssueMessage {
     pub(crate) mobile_id_documents: MobileIDDocuments,
 }
 
-pub type MobileIDDocuments = IndexMap<DocType, SparseIssuerSigned>;
+pub type MobileIDDocuments = IndexMap<DocType, Vec<SparseIssuerSigned>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerSigned {
