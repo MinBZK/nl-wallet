@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use rand::distributions::{Alphanumeric, DistString};
 use rusqlite::Connection;
 
-pub async fn get_or_create_db() -> Connection {
+pub async fn get_or_create_db(db_name: &str) -> Connection {
     //Get path to database
     //PlatformUtilities::storage_path().expect("Could not get storage path")
     let storage_path = temp_dir().to_str().expect("Could not convert to str").to_string();
@@ -15,21 +15,24 @@ pub async fn get_or_create_db() -> Connection {
 
     // Get db password
     let db_password = get_or_create_db_password().await;
+
     // Open db
     // let conn = Connection::open(sqlite_path).expect("Could not open database");
-    let path: PathBuf = "./test.db".into();
-    let conn = Connection::open(path).expect("Failed to open database");
+    let db_path = Path::new("./").join(db_name); //todo: get path through platform
+    let conn = Connection::open(db_path).expect("Failed to open database");
+
+    // Enable SQLCipher / Db Encryption
     let encrypt_statement = format!("PRAGMA key = '{}';", &db_password);
-    // conn.execute(&*encrypt_statement, []).expect("Could not encrypt database");
-    // conn.execute("PRAGMA key = 'supersecret';", []).expect("Could not encrypt database");
+    conn.prepare(&*encrypt_statement).expect("Could not encrypt database");
     // return db connection
     conn
 }
 
-fn delete_db() {
-    let path: PathBuf = "./test.db".into();
-    if path.exists() {
-        fs::remove_file(path).expect("Could not delete test_db");
+fn delete_db(db_name: &str) {
+    //TODO: Use utils dir
+    let db_path = Path::new("./").join(db_name);
+    if db_path.exists() {
+        fs::remove_file(db_path).expect("Failed to delete database");
     }
 }
 
@@ -59,10 +62,6 @@ fn generate_db_password() -> String {
     Alphanumeric.sample_string(&mut rand::thread_rng(), 24)
 }
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
     use rusqlite::params;
@@ -76,12 +75,6 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-
-    #[test]
     fn test_generate_password() {
         assert_eq!(24, generate_db_password().len())
     }
@@ -89,18 +82,19 @@ mod tests {
     #[tokio::test]
     async fn test_get_password() {
         let created_pass = get_or_create_db_password().await;
-        println!("Created password: {}", created_pass);
         let fetched_pass = get_or_create_db_password().await;
         assert_eq!(created_pass, fetched_pass)
     }
 
     #[tokio::test]
     async fn open_db() {
-        // Make sure we always start clean.
-        delete_db();
+        let db_name = "test.db";
+
+        // Make sure we always start clean, e.g. when previous test failed.
+        delete_db(db_name);
 
         // Create a new (encrypted) database
-        let conn = get_or_create_db().await;
+        let conn = get_or_create_db(db_name).await;
 
         // Create a table for our [Person] model
         conn.execute(
@@ -108,7 +102,7 @@ mod tests {
             id    INTEGER PRIMARY KEY,
             name  TEXT NOT NULL,
             data  BLOB
-        )", params![]).expect("Could not create table");
+        )", []).expect("Could not create table");
 
         // Create and insert our test Person
         let me = Person {
@@ -122,7 +116,8 @@ mod tests {
         ).expect("Could not insert person");
 
         // Query our person table for any [Person]s
-        let mut stmt = conn.prepare("SELECT id, name, data FROM person").expect("Could not execute select statement");
+        let mut stmt = conn.prepare("SELECT id, name, data FROM person")
+            .expect("Could not execute select statement");
 
         // Map our query results back to our [Person] model
         let person_iter = stmt.query_map([], |row| {
@@ -147,6 +142,6 @@ mod tests {
         assert_eq!(person_count, 1);
 
         // Clean up test db
-        delete_db();
+        delete_db(db_name);
     }
 }
