@@ -90,7 +90,7 @@ pub type MobileIDDocuments = IndexMap<DocType, SparseIssuerSigned>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerSigned {
     pub(crate) randoms: IndexMap<NameSpace, Vec<ByteBuf>>,
-    pub(crate) issuance_issuer_auth: SparseIssuerAuth,
+    pub(crate) sparse_issuer_auth: SparseIssuerAuth,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
