@@ -27,14 +27,13 @@ pub struct StartIssuingMessage {
 pub struct RequestKeyGenerationMessage {
     pub(crate) e_session_id: SessionId,
     pub(crate) challenge: ByteBuf,
-    pub(crate) unsigned_mdocs: UnsignedMdocs,
+    pub(crate) unsigned_mdocs: Vec<UnsignedMdoc>,
 }
-
-pub type UnsignedMdocs = IndexMap<DocType, UnsignedMdoc>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UnsignedMdoc {
+    pub(crate) doc_type: DocType,
     pub(crate) count: u64,
     pub(crate) valid_until: Tdate,
     pub(crate) attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -52,11 +51,15 @@ pub struct Entry {
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenerationResponseMessage {
     pub(crate) e_session_id: SessionId,
-    pub(crate) responses: Responses,
+    pub(crate) doc_type_responses: Vec<DocTypeResponses>,
 }
 
-pub type MdocPublicKeys = IndexMap<DocType, Vec<CoseKey>>;
-pub type Responses = IndexMap<DocType, Vec<Response>>;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DocTypeResponses {
+    pub(crate) doc_type: DocType,
+    pub(crate) responses: Vec<Response>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
@@ -82,10 +85,14 @@ impl ResponseSignaturePayload {
 pub struct DataToIssueMessage {
     pub(crate) e_session_id: SessionId,
     #[serde(rename = "mobileIDdocuments")]
-    pub(crate) mobile_id_documents: MobileIDDocuments,
+    pub(crate) mobile_id_documents: Vec<MobileIDDocuments>,
 }
 
-pub type MobileIDDocuments = IndexMap<DocType, Vec<SparseIssuerSigned>>;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MobileIDDocuments {
+    pub(crate) doc_type: DocType,
+    pub(crate) sparse_issuer_signed: Vec<SparseIssuerSigned>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerSigned {

@@ -47,7 +47,6 @@ impl SparseIssuerSigned {
         &self,
         private_key: SigningKey<p256::NistP256>,
         unsigned: &UnsignedMdoc,
-        doc_type: DocType,
         iss_cert: &X509Certificate,
     ) -> Result<Credential> {
         let name_spaces: IssuerNameSpaces = unsigned
@@ -71,7 +70,7 @@ impl SparseIssuerSigned {
             digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
             value_digests: (&name_spaces).try_into()?,
             device_key_info: private_key.verifying_key().try_into()?,
-            doc_type: doc_type.clone(),
+            doc_type: unsigned.doc_type.clone(),
             validity_info: self.sparse_issuer_auth.validity_info.clone(),
         };
         let issuer_auth = self
@@ -88,7 +87,7 @@ impl SparseIssuerSigned {
         Ok(Credential {
             private_key,
             issuer_signed,
-            doc_type,
+            doc_type: unsigned.doc_type.clone(),
         })
     }
 }
@@ -96,7 +95,7 @@ impl SparseIssuerSigned {
 #[derive(Debug)]
 pub struct IssuanceState<'a> {
     pub request: &'a RequestKeyGenerationMessage,
-    pub private_keys: IndexMap<String, Vec<SigningKey<NistP256>>>,
+    pub private_keys: Vec<Vec<SigningKey<NistP256>>>,
     pub response: KeyGenerationResponseMessage,
 }
 
@@ -123,10 +122,9 @@ impl Credentials {
         let private_keys = request
             .unsigned_mdocs
             .iter()
-            .map(|(doc_type, unsigned_mdoc)| (doc_type.clone(), Credentials::generate_keys(unsigned_mdoc.count)))
-            .collect();
-        let response =
-            KeyGenerationResponseMessage::new(request.e_session_id.clone(), request.challenge.clone(), &private_keys)?;
+            .map(|unsigned| Credentials::generate_keys(unsigned.count))
+            .collect::<Vec<_>>();
+        let response = KeyGenerationResponseMessage::new(request, &private_keys)?;
 
         Ok(IssuanceState {
             request,
@@ -143,20 +141,15 @@ impl Credentials {
         issuer_response
             .mobile_id_documents
             .iter()
-            .map(|(doc_type, iss_signature)| {
+            .zip(&state.request.unsigned_mdocs)
+            .zip(&state.private_keys)
+            .map(|((doc, unsigned), keys)| {
                 Ok((
-                    doc_type.clone(),
-                    iss_signature
+                    doc.doc_type.clone(),
+                    doc.sparse_issuer_signed
                         .iter()
-                        .enumerate()
-                        .map(|(i, iss_signature)| {
-                            iss_signature.to_credential(
-                                state.private_keys[doc_type][i].clone(),
-                                &state.request.unsigned_mdocs[doc_type],
-                                doc_type.clone(),
-                                issuer_cert,
-                            )
-                        })
+                        .zip(keys)
+                        .map(|(iss_signature, key)| iss_signature.to_credential(key.clone(), unsigned, issuer_cert))
                         .collect::<Result<_>>()?,
                 ))
             })

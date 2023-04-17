@@ -1,14 +1,14 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, Header, HeaderBuilder};
-use indexmap::IndexMap;
 use serde_bytes::ByteBuf;
 
 use crate::{
     basic_sa_ext::{
-        DataToIssueMessage, KeyGenerationResponseMessage, MobileIDDocuments, RequestKeyGenerationMessage, Response,
-        ResponseSignaturePayload, Responses, SparseIssuerAuth, SparseIssuerSigned, UnsignedMdoc,
+        DataToIssueMessage, DocTypeResponses, KeyGenerationResponseMessage, MobileIDDocuments,
+        RequestKeyGenerationMessage, Response, ResponseSignaturePayload, SparseIssuerAuth, SparseIssuerSigned,
+        UnsignedMdoc,
     },
     cose::{ClonePayload, CoseKey, MdocCose},
     iso::*,
@@ -34,12 +34,7 @@ impl Issuer {
         }
     }
 
-    fn issue_cred(
-        &self,
-        doc_type: DocType,
-        unsigned_mdoc: &UnsignedMdoc,
-        response: &Response,
-    ) -> Result<SparseIssuerSigned> {
+    fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
         let attrs = unsigned_mdoc
             .attributes
             .clone()
@@ -57,7 +52,7 @@ impl Issuer {
         let mso = MobileSecurityObject {
             version: "1.0".to_string(),
             digest_algorithm: "SHA-256".to_string(),
-            doc_type,
+            doc_type: unsigned_mdoc.doc_type.clone(),
             value_digests: (&attrs).try_into()?,
             device_key_info: response.public_key.clone().into(),
             validity_info: validity.clone(),
@@ -88,10 +83,15 @@ impl Issuer {
         })
     }
 
-    fn issue_creds(&self, doc_type: &DocType, responses: &[Response]) -> Result<Vec<SparseIssuerSigned>> {
-        responses
+    fn issue_creds(
+        &self,
+        doctype_responses: &DocTypeResponses,
+        unsigned: &UnsignedMdoc,
+    ) -> Result<Vec<SparseIssuerSigned>> {
+        doctype_responses
+            .responses
             .iter()
-            .map(|response| self.issue_cred(doc_type.clone(), &self.request.unsigned_mdocs[doc_type], response))
+            .map(|response| self.issue_cred(unsigned, response))
             .collect()
     }
 
@@ -99,10 +99,16 @@ impl Issuer {
         device_response.verify(&self.request)?;
 
         let docs = device_response
-            .responses
+            .doc_type_responses
             .iter()
-            .map(|(doc_type, responses)| Ok((doc_type.clone(), self.issue_creds(doc_type, responses)?)))
-            .collect::<Result<MobileIDDocuments>>()?;
+            .zip(&self.request.unsigned_mdocs)
+            .map(|(responses, unsigned)| {
+                Ok(MobileIDDocuments {
+                    doc_type: unsigned.doc_type.clone(),
+                    sparse_issuer_signed: self.issue_creds(responses, unsigned)?,
+                })
+            })
+            .collect::<Result<Vec<MobileIDDocuments>>>()?;
 
         Ok(DataToIssueMessage {
             e_session_id: self.request.e_session_id,
@@ -117,47 +123,53 @@ impl KeyGenerationResponseMessage {
             bail!("session IDs did not match")
         }
 
-        request
-            .unsigned_mdocs
+        self.doc_type_responses
             .iter()
-            .find_map(|(doc_type, unsigned_mdoc)| {
-                check_responses(self.responses.get(doc_type), unsigned_mdoc, &request.challenge).err()
-            })
+            .zip(&request.unsigned_mdocs)
+            .find_map(|(responses, unsigned_mdoc)| check_responses(responses, unsigned_mdoc, &request.challenge).err())
             .map_or(Ok(()), Err)
     }
 
     pub fn new(
-        session_id: SessionId,
-        challenge: ByteBuf,
-        keys: &IndexMap<DocType, Vec<ecdsa::SigningKey<p256::NistP256>>>,
+        request: &RequestKeyGenerationMessage,
+        keys: &[Vec<ecdsa::SigningKey<p256::NistP256>>],
     ) -> anyhow::Result<KeyGenerationResponseMessage> {
         let responses = keys
             .iter()
-            .map(|(doc_type, keys)| {
-                Ok((
-                    doc_type.clone(),
-                    keys.iter()
-                        .map(|key| Response::sign(&challenge, key))
+            .zip(&request.unsigned_mdocs)
+            .map(|(keys, unsigned)| {
+                Ok(DocTypeResponses {
+                    doc_type: unsigned.doc_type.clone(),
+                    responses: keys
+                        .iter()
+                        .map(|key| Response::sign(&request.challenge, key))
                         .collect::<Result<Vec<_>>>()?,
-                ))
+                })
             })
-            .collect::<Result<Responses>>()?;
+            .collect::<Result<Vec<DocTypeResponses>>>()?;
 
         let response = KeyGenerationResponseMessage {
-            e_session_id: session_id,
-            responses,
+            e_session_id: request.e_session_id.clone(),
+            doc_type_responses: responses,
         };
         Ok(response)
     }
 }
 
-fn check_responses(responses: Option<&Vec<Response>>, unsigned_mdoc: &UnsignedMdoc, challenge: &ByteBuf) -> Result<()> {
-    let responses = responses.ok_or(anyhow!("response not found"))?;
-    if responses.len() as u64 > unsigned_mdoc.count {
+fn check_responses(
+    doctype_responses: &DocTypeResponses,
+    unsigned_mdoc: &UnsignedMdoc,
+    challenge: &ByteBuf,
+) -> Result<()> {
+    if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
         bail!("too many responses")
     }
+    if doctype_responses.doc_type != unsigned_mdoc.doc_type {
+        bail!("wrong doctype")
+    }
 
-    responses
+    doctype_responses
+        .responses
         .iter()
         .find_map(|response| response.verify(challenge).err())
         .map_or(Ok(()), Err)

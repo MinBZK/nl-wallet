@@ -125,23 +125,21 @@ fn new_issuance_request() -> RequestKeyGenerationMessage {
     RequestKeyGenerationMessage {
         e_session_id: ByteBuf::from("e_session_id"),
         challenge: ByteBuf::from("challenge"),
-        unsigned_mdocs: IndexMap::from([(
-            ISSUANCE_DOC_TYPE.to_string(),
-            UnsignedMdoc {
-                count: 2,
-                valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
-                attributes: IndexMap::from([(
-                    ISSUANCE_NAME_SPACE.to_string(),
-                    ISSUANCE_ATTRS
-                        .iter()
-                        .map(|(key, val)| Entry {
-                            name: key.to_string(),
-                            value: Value::Text(val.to_string()),
-                        })
-                        .collect(),
-                )]),
-            },
-        )]),
+        unsigned_mdocs: vec![UnsignedMdoc {
+            doc_type: ISSUANCE_DOC_TYPE.to_string(),
+            count: 2,
+            valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
+            attributes: IndexMap::from([(
+                ISSUANCE_NAME_SPACE.to_string(),
+                ISSUANCE_ATTRS
+                    .iter()
+                    .map(|(key, val)| Entry {
+                        name: key.to_string(),
+                        value: Value::Text(val.to_string()),
+                    })
+                    .collect(),
+            )]),
+        }],
     }
 }
 
