@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use anyhow::{bail, Ok, Result};
+use anyhow::{bail, Result};
 use p256::ecdsa::{
     signature::{Signer, Verifier},
     Signature, VerifyingKey,
@@ -177,6 +177,8 @@ mod tests {
 
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
+    use crate::account::signing_key::EcdsaKey;
+
     #[derive(Serialize, Deserialize, Debug)]
     struct ToyMessage {
         number: u8,
@@ -205,6 +207,14 @@ mod tests {
     }
 
     // make sure we can substitute a SigningKey instead in tests
+    impl EcdsaKey for p256::ecdsa::SigningKey {
+        type Error = p256::ecdsa::Error;
+
+        fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+            Ok(*self.verifying_key())
+        }
+    }
+
     impl EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
     impl SecureEcdsaKey for p256::ecdsa::SigningKey {}
 
