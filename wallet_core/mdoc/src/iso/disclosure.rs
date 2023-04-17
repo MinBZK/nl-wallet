@@ -18,10 +18,10 @@ use std::fmt::Debug;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
-    pub(crate) version: String,
-    pub(crate) documents: Option<Vec<Document>>,
-    pub(crate) document_errors: Option<Vec<DocumentError>>,
-    pub(crate) status: u32,
+    pub version: String,
+    pub documents: Option<Vec<Document>>,
+    pub document_errors: Option<Vec<DocumentError>>,
+    pub status: u32,
 }
 
 pub type DocumentError = IndexMap<DocType, ErrorCode>;
@@ -29,10 +29,10 @@ pub type DocumentError = IndexMap<DocType, ErrorCode>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Document {
-    pub(crate) doc_type: DocType,
-    pub(crate) issuer_signed: IssuerSigned,
-    pub(crate) device_signed: DeviceSigned,
-    pub(crate) errors: Option<Errors>,
+    pub doc_type: DocType,
+    pub issuer_signed: IssuerSigned,
+    pub device_signed: DeviceSigned,
+    pub errors: Option<Errors>,
 }
 
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes
@@ -40,15 +40,15 @@ pub struct Document {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSigned {
-    pub(crate) name_spaces: Option<IssuerNameSpaces>,
-    pub(crate) issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
+    pub name_spaces: Option<IssuerNameSpaces>,
+    pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceSigned {
-    pub(crate) name_spaces: DeviceNameSpacesBytes,
-    pub(crate) device_auth: DeviceAuth,
+    pub name_spaces: DeviceNameSpacesBytes,
+    pub device_auth: DeviceAuth,
 }
 
 pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;

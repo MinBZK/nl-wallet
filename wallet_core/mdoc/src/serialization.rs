@@ -14,7 +14,7 @@ use std::borrow::Cow;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
-pub(crate) fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
+pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;
     Ok(bts)
@@ -96,7 +96,7 @@ where
 /// Used to be able to refer by name instead of by an integer to refer to the contents of the
 /// data structure.
 #[derive(Debug, Clone)]
-pub struct CborSeq<T>(pub(crate) T);
+pub struct CborSeq<T>(pub T);
 impl<T> From<T> for CborSeq<T> {
     fn from(val: T) -> Self {
         CborSeq(val)
@@ -108,7 +108,7 @@ impl<T> From<T> for CborSeq<T> {
 /// Used to be able to refer by name instead of by an integer to refer to the contents of the
 /// data structure.
 #[derive(Debug, Clone)]
-pub struct CborIntMap<T, const STRING: bool = false>(pub(crate) T);
+pub struct CborIntMap<T, const STRING: bool = false>(pub T);
 impl<T> From<T> for CborIntMap<T> {
     fn from(val: T) -> Self {
         CborIntMap(val)

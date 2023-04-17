@@ -64,16 +64,16 @@ pub type DataElementIdentifier = String;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAuthorizations {
-    pub(crate) name_spaces: Option<AuthorizedNameSpaces>,
-    pub(crate) data_elements: Option<AuthorizedDataElements>,
+    pub name_spaces: Option<AuthorizedNameSpaces>,
+    pub data_elements: Option<AuthorizedDataElements>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceKeyInfo {
-    pub(crate) device_key: DeviceKey,
-    pub(crate) key_authorizations: Option<KeyAuthorizations>,
-    pub(crate) key_info: Option<KeyInfo>,
+    pub device_key: DeviceKey,
+    pub key_authorizations: Option<KeyAuthorizations>,
+    pub key_info: Option<KeyInfo>,
 }
 
 impl TryFrom<VerifyingKey<p256::NistP256>> for DeviceKeyInfo {
@@ -102,21 +102,21 @@ pub type DeviceKey = CoseKey;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {
-    pub(crate) version: String,
-    pub(crate) digest_algorithm: String,
-    pub(crate) value_digests: ValueDigests,
-    pub(crate) device_key_info: DeviceKeyInfo,
-    pub(crate) doc_type: String,
-    pub(crate) validity_info: ValidityInfo,
+    pub version: String,
+    pub digest_algorithm: String,
+    pub value_digests: ValueDigests,
+    pub device_key_info: DeviceKeyInfo,
+    pub doc_type: String,
+    pub validity_info: ValidityInfo,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
-    pub(crate) signed: Tdate,
-    pub(crate) valid_from: Tdate,
-    pub(crate) valid_until: Tdate,
-    pub(crate) expected_update: Option<Tdate>,
+    pub signed: Tdate,
+    pub valid_from: Tdate,
+    pub valid_until: Tdate,
+    pub expected_update: Option<Tdate>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -135,7 +135,7 @@ pub type IssuerNameSpaces = IndexMap<NameSpace, Attributes>;
 /// A `Vec` of [`IssuerSignedItemBytes`], i.e., attributes. In the [`IssuerNameSpaces`] map,
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Attributes(pub(crate) Vec<IssuerSignedItemBytes>);
+pub struct Attributes(pub Vec<IssuerSignedItemBytes>);
 impl From<Vec<IssuerSignedItemBytes>> for Attributes {
     fn from(val: Vec<IssuerSignedItemBytes>) -> Self {
         Attributes(val)
@@ -171,11 +171,11 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSignedItem {
     #[serde(rename = "digestID")]
-    pub(crate) digest_id: u32,
+    pub digest_id: u32,
     #[serde(with = "serde_bytes")]
-    pub(crate) random: Vec<u8>,
-    pub(crate) element_identifier: String,
-    pub(crate) element_value: Value,
+    pub random: Vec<u8>,
+    pub element_identifier: String,
+    pub element_value: Value,
 }
 
 impl IssuerSignedItem {

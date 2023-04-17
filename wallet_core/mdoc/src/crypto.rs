@@ -14,17 +14,17 @@ use x509_parser::nom::AsBytes;
 
 use crate::{cose::CoseKey, serialization::cbor_serialize};
 
-pub(crate) fn sha256(bts: &[u8]) -> Vec<u8> {
+pub fn sha256(bts: &[u8]) -> Vec<u8> {
     sha2::Sha256::digest(bts).to_vec()
 }
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
-pub(crate) fn cbor_digest<T: Serialize>(val: &T) -> Result<Vec<u8>> {
+pub fn cbor_digest<T: Serialize>(val: &T) -> Result<Vec<u8>> {
     Ok(sha256(cbor_serialize(val)?.as_ref()))
 }
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
-pub(crate) fn dh_hmac_key(
+pub fn dh_hmac_key(
     privkey: &ecdsa::SigningKey<NistP256>,
     pubkey: &ecdsa::VerifyingKey<NistP256>,
     salt: &[u8],
@@ -37,7 +37,7 @@ pub(crate) fn dh_hmac_key(
 
 // TODO support no salt
 /// Using the HKDF from RFC 5869, compute a HMAC key.
-pub(crate) fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
+pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
     let mut bts = vec![0u8; len];
     let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, sha256(salt).as_slice());
 
@@ -106,7 +106,7 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
     }
 }
 
-pub(crate) fn random_bytes(len: usize) -> Result<Vec<u8>> {
+pub fn random_bytes(len: usize) -> Result<Vec<u8>> {
     let mut output = vec![0u8; len];
     rand::SystemRandom::new()
         .fill(&mut output[..])

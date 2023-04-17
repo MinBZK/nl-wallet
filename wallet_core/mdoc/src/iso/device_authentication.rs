@@ -23,17 +23,17 @@ pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceAuthenticationKeyed {
-    pub(crate) device_authentication: RequiredValue<DeviceAuthenticationString>,
-    pub(crate) session_transcript: SessionTranscript,
-    pub(crate) doc_type: DocType,
-    pub(crate) device_name_spaces_bytes: DeviceNameSpacesBytes,
+    pub device_authentication: RequiredValue<DeviceAuthenticationString>,
+    pub session_transcript: SessionTranscript,
+    pub doc_type: DocType,
+    pub device_name_spaces_bytes: DeviceNameSpacesBytes,
 }
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SessionTranscriptKeyed {
-    pub(crate) device_engagement_bytes: DeviceEngagementBytes,
-    pub(crate) ereader_key_bytes: EReaderKeyBytes,
-    pub(crate) handover: Handover,
+    pub device_engagement_bytes: DeviceEngagementBytes,
+    pub ereader_key_bytes: EReaderKeyBytes,
+    pub handover: Handover,
 }
 
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
@@ -48,8 +48,8 @@ pub enum Handover {
 
 #[derive(Debug, Clone)]
 pub struct NFCHandover {
-    pub(crate) handover_select_message: ByteBuf,
-    pub(crate) handover_request_message: Option<ByteBuf>,
+    pub handover_select_message: ByteBuf,
+    pub handover_request_message: Option<ByteBuf>,
 }
 
 pub type DeviceEngagement = CborIntMap<DeviceEngagementKeyed>;
@@ -57,19 +57,19 @@ pub type DeviceEngagement = CborIntMap<DeviceEngagementKeyed>;
 // TODO: support remaining fields
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceEngagementKeyed {
-    pub(crate) version: String,
-    pub(crate) security: Security,
-    pub(crate) device_retrieval_methods: Option<DeviceRetrievalMethods>,
-    pub(crate) server_retrieval_methods: Option<ServerRetrievalMethods>,
-    pub(crate) protocol_info: Option<ProtocolInfo>,
+    pub version: String,
+    pub security: Security,
+    pub device_retrieval_methods: Option<DeviceRetrievalMethods>,
+    pub server_retrieval_methods: Option<ServerRetrievalMethods>,
+    pub protocol_info: Option<ProtocolInfo>,
 }
 
 pub type Security = CborSeq<SecurityKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SecurityKeyed {
-    pub(crate) cipher_suite_identifier: u32,
-    pub(crate) e_device_key_bytes: EDeviceKeyBytes,
+    pub cipher_suite_identifier: u32,
+    pub e_device_key_bytes: EDeviceKeyBytes,
 }
 
 pub type DeviceRetrievalMethods = Vec<DeviceRetrievalMethod>;
@@ -77,8 +77,8 @@ pub type DeviceRetrievalMethods = Vec<DeviceRetrievalMethod>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerRetrievalMethods {
-    pub(crate) web_api: WebApi,
-    pub(crate) oidc: Oidc,
+    pub web_api: WebApi,
+    pub oidc: Oidc,
 }
 
 pub type Oidc = CborSeq<WebSessionInfo>;
@@ -87,9 +87,9 @@ pub type WebApi = CborSeq<WebSessionInfo>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct WebSessionInfo {
-    pub(crate) version: u32,
-    pub(crate) issuer_url: String,
-    pub(crate) server_retrieval_token: String,
+    pub version: u32,
+    pub issuer_url: String,
+    pub server_retrieval_token: String,
 }
 
 pub type ProtocolInfo = Value;
@@ -98,9 +98,9 @@ pub type DeviceRetrievalMethod = CborSeq<DeviceRetrievalMethodKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceRetrievalMethodKeyed {
-    pub(crate) typ: u32,
-    pub(crate) version: u32,
-    pub(crate) retrieval_options: RetrievalOptions,
+    pub typ: u32,
+    pub version: u32,
+    pub retrieval_options: RetrievalOptions,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

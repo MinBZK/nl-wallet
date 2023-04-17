@@ -15,7 +15,7 @@ type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 impl DeviceResponse {
     #[allow(dead_code)] // TODO use this in verifier
-    pub(crate) fn verify(
+    pub fn verify(
         &self,
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication_bts: &Vec<u8>,
@@ -60,10 +60,7 @@ impl DeviceResponse {
 pub type X509Subject = IndexMap<String, String>;
 
 impl IssuerSigned {
-    pub(crate) fn verify(
-        &self,
-        ca_cert: &X509Certificate<'_>,
-    ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
+    pub fn verify(&self, ca_cert: &X509Certificate<'_>) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
         let (mso, _) = self.issuer_auth.verify_against_cert(ca_cert)?;
 
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
@@ -96,7 +93,7 @@ impl IssuerSigned {
 }
 
 impl Document {
-    pub(crate) fn verify(
+    pub fn verify(
         &self,
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication: &DeviceAuthenticationBytes,
@@ -134,7 +131,7 @@ impl Document {
 impl DeviceAuthentication {
     // TODO the reader should instead take this from earlier on in the protocol
     // TODO: maybe grab this from the DeviceAuthenticationBytes instead, so we can avoid deserialize -> serialize sequence
-    pub(crate) fn session_transcript_bts(&self) -> Result<Vec<u8>> {
+    pub fn session_transcript_bts(&self) -> Result<Vec<u8>> {
         let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
         Ok(cbor_serialize(&tagged)?)
     }

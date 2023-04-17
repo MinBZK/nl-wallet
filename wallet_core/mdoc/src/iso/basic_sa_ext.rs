@@ -16,8 +16,8 @@ use crate::{
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct StartIssuingMessage {
-    pub(crate) e_session_id: SessionId,
-    pub(crate) version: u64,
+    pub e_session_id: SessionId,
+    pub version: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,24 +25,24 @@ pub struct StartIssuingMessage {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct RequestKeyGenerationMessage {
-    pub(crate) e_session_id: SessionId,
-    pub(crate) challenge: ByteBuf,
-    pub(crate) unsigned_mdocs: Vec<UnsignedMdoc>,
+    pub e_session_id: SessionId,
+    pub challenge: ByteBuf,
+    pub unsigned_mdocs: Vec<UnsignedMdoc>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UnsignedMdoc {
-    pub(crate) doc_type: DocType,
-    pub(crate) count: u64,
-    pub(crate) valid_until: Tdate,
-    pub(crate) attributes: IndexMap<NameSpace, Vec<Entry>>,
+    pub doc_type: DocType,
+    pub count: u64,
+    pub valid_until: Tdate,
+    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Entry {
-    pub(crate) name: String,
-    pub(crate) value: Value,
+    pub name: String,
+    pub value: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,21 +50,21 @@ pub struct Entry {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenerationResponseMessage {
-    pub(crate) e_session_id: SessionId,
-    pub(crate) doc_type_responses: Vec<DocTypeResponses>,
+    pub e_session_id: SessionId,
+    pub doc_type_responses: Vec<DocTypeResponses>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DocTypeResponses {
-    pub(crate) doc_type: DocType,
-    pub(crate) responses: Vec<Response>,
+    pub doc_type: DocType,
+    pub responses: Vec<Response>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
-    pub(crate) public_key: CoseKey,
-    pub(crate) signature: MdocCose<CoseSign1, ResponseSignaturePayload>,
+    pub public_key: CoseKey,
+    pub signature: MdocCose<CoseSign1, ResponseSignaturePayload>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -83,29 +83,29 @@ impl ResponseSignaturePayload {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct DataToIssueMessage {
-    pub(crate) e_session_id: SessionId,
+    pub e_session_id: SessionId,
     #[serde(rename = "mobileIDdocuments")]
-    pub(crate) mobile_id_documents: Vec<MobileIDDocuments>,
+    pub mobile_id_documents: Vec<MobileIDDocuments>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MobileIDDocuments {
-    pub(crate) doc_type: DocType,
-    pub(crate) sparse_issuer_signed: Vec<SparseIssuerSigned>,
+    pub doc_type: DocType,
+    pub sparse_issuer_signed: Vec<SparseIssuerSigned>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerSigned {
-    pub(crate) randoms: IndexMap<NameSpace, Vec<ByteBuf>>,
-    pub(crate) sparse_issuer_auth: SparseIssuerAuth,
+    pub randoms: IndexMap<NameSpace, Vec<ByteBuf>>,
+    pub sparse_issuer_auth: SparseIssuerAuth,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerAuth {
-    pub(crate) version: String,
-    pub(crate) digest_algorithm: String,
-    pub(crate) validity_info: ValidityInfo,
-    pub(crate) issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
+    pub version: String,
+    pub digest_algorithm: String,
+    pub validity_info: ValidityInfo,
+    pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -113,6 +113,6 @@ pub struct SparseIssuerAuth {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct DataToIssueResultMessage {
-    pub(crate) e_session_id: SessionId,
-    pub(crate) result: ByteBuf,
+    pub e_session_id: SessionId,
+    pub result: ByteBuf,
 }

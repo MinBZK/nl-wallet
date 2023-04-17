@@ -8,13 +8,15 @@ use serde_bytes::ByteBuf;
 use std::ops::Add;
 use x509_parser::prelude::{FromDer, X509Certificate};
 
-use crate::{
+use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
-    examples::*,
     holder::*,
     iso::*,
     issuer::*,
 };
+
+mod examples;
+use examples::*;
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]

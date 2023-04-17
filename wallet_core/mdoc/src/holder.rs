@@ -249,7 +249,7 @@ impl Attributes {
 }
 
 impl DeviceSigned {
-    pub(crate) fn new_signature(private_key: &ecdsa::SigningKey<p256::NistP256>, challenge: &[u8]) -> DeviceSigned {
+    pub fn new_signature(private_key: &ecdsa::SigningKey<p256::NistP256>, challenge: &[u8]) -> DeviceSigned {
         let cose = CoseSign1Builder::new()
             .payload(Vec::from(challenge))
             .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
@@ -264,7 +264,7 @@ impl DeviceSigned {
     }
 
     #[allow(dead_code)] // TODO test this
-    pub(crate) fn new_mac(
+    pub fn new_mac(
         private_key: &ecdsa::SigningKey<p256::NistP256>,
         reader_pub_key: &ecdsa::VerifyingKey<p256::NistP256>,
         challenge: &[u8],
@@ -299,11 +299,7 @@ impl DeviceRequest {
     /// For now, this function requires either none of the DocRequests to be signed, or all of them
     /// by the same reader.
     #[allow(dead_code)] // TODO use in client
-    pub(crate) fn verify(
-        &self,
-        ca_cert: &X509Certificate,
-        reader_authentication_bts: &[u8],
-    ) -> Result<Option<X509Subject>> {
+    pub fn verify(&self, ca_cert: &X509Certificate, reader_authentication_bts: &[u8]) -> Result<Option<X509Subject>> {
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
         }

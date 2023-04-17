@@ -13,11 +13,6 @@ pub mod serialization;
 
 mod crypto;
 
-#[cfg(test)]
-mod examples;
-#[cfg(test)]
-mod tests;
-
 pub use iso::*;
 
 // TODO: check expiry of all certificates and credentials
