@@ -321,19 +321,15 @@ impl RequiredValueTrait for ReaderAuthenticationString {
 #[cfg(test)]
 mod tests {
     use crate::serialization::{cbor_serialize, TaggedBytes};
-
-    use anyhow::Result;
     use hex_literal::hex;
 
     #[test]
-    fn tagged_bytes() -> Result<()> {
+    fn tagged_bytes() {
         let original: TaggedBytes<Vec<u8>> = vec![0, 1, 42].into();
-        let encoded = cbor_serialize(&original)?;
+        let encoded = cbor_serialize(&original).unwrap();
         assert_eq!(encoded, hex!("D81845830001182A"));
 
-        let decoded: TaggedBytes<Vec<u8>> = ciborium::de::from_reader(encoded.as_slice())?;
+        let decoded: TaggedBytes<Vec<u8>> = ciborium::de::from_reader(encoded.as_slice()).unwrap();
         assert_eq!(original.0, decoded.0);
-
-        Ok(())
     }
 }

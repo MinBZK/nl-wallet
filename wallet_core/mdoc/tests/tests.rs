@@ -20,13 +20,14 @@ use examples::*;
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
-fn iso_examples_consistency() -> Result<()> {
+fn iso_examples_consistency() {
     let static_device_key = Examples::static_device_key();
 
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
         .issuer_signed
         .issuer_auth
-        .verify_against_cert(&Examples::issuer_ca_cert())?
+        .verify_against_cert(&Examples::issuer_ca_cert())
+        .unwrap()
         .0
          .0
         .device_key_info
@@ -34,25 +35,25 @@ fn iso_examples_consistency() -> Result<()> {
 
     assert_eq!(
         static_device_key.verifying_key(),
-        ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key)?,
+        ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
     );
-
-    Ok(())
 }
 
 #[test]
-fn iso_examples_disclosure() -> Result<()> {
+fn iso_examples_disclosure() {
     let ca_cert = Examples::issuer_ca_cert();
     let eph_reader_key = Examples::ephemeral_reader_key();
     let device_response = DeviceResponse::example();
     println!("DeviceResponse: {:#?} ", DebugCollapseBts(&device_response));
 
     // Do the verification
-    let disclosed_attributes = device_response.verify(
-        Some(&eph_reader_key),
-        &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
-        &ca_cert,
-    )?;
+    let disclosed_attributes = device_response
+        .verify(
+            Some(&eph_reader_key),
+            &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
+            &ca_cert,
+        )
+        .unwrap();
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts(disclosed_attributes));
 
     let device_request = DeviceRequest::example();
@@ -61,7 +62,9 @@ fn iso_examples_disclosure() -> Result<()> {
     let reader_ca_cert = Examples::reader_ca_cert();
     println!(
         "Reader: {:#?}",
-        device_request.verify(&reader_ca_cert, &ReaderAuthenticationBytes::example_bts())?,
+        device_request
+            .verify(&reader_ca_cert, &ReaderAuthenticationBytes::example_bts())
+            .unwrap(),
     );
 
     let static_device_key = Examples::static_device_key();
@@ -69,22 +72,23 @@ fn iso_examples_disclosure() -> Result<()> {
         static_device_key,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
-    )?;
+    )
+    .unwrap();
 
     let creds = Credentials::from([(cred)]);
-    let resp = creds.disclose(&device_request, &DeviceAuthenticationBytes::example_bts())?;
+    let resp = creds
+        .disclose(&device_request, &DeviceAuthenticationBytes::example_bts())
+        .unwrap();
 
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
     println!(
         "Disclosure: {:#?}",
         DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
     );
-
-    Ok(())
 }
 
 #[test]
-fn iso_examples_custom_disclosure() -> Result<()> {
+fn iso_examples_custom_disclosure() {
     let ca_cert = Examples::issuer_ca_cert();
     let static_device_key = Examples::static_device_key();
     let device_response = DeviceResponse::example();
@@ -103,18 +107,19 @@ fn iso_examples_custom_disclosure() -> Result<()> {
         static_device_key,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
-    )?;
+    )
+    .unwrap();
 
     let creds = Credentials::from([(cred)]);
-    let resp = creds.disclose(&request, &DeviceAuthenticationBytes::example_bts())?;
+    let resp = creds
+        .disclose(&request, &DeviceAuthenticationBytes::example_bts())
+        .unwrap();
 
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
     println!(
         "My Disclosure: {:#?}",
         DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
     );
-
-    Ok(())
 }
 
 const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
@@ -146,12 +151,12 @@ fn new_issuance_request() -> RequestKeyGenerationMessage {
 }
 
 #[test]
-fn issuance_and_disclosure() -> Result<()> {
+fn issuance_and_disclosure() {
     // Issuer data
-    let ca = new_ca(ISSUANCE_CA_CN)?;
-    let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN)?;
-    let ca_bts = ca.serialize_der()?;
-    let ca_cert = X509Certificate::from_der(ca_bts.as_slice())?.1;
+    let ca = new_ca(ISSUANCE_CA_CN).unwrap();
+    let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
+    let ca_bts = ca.serialize_der().unwrap();
+    let ca_cert = X509Certificate::from_der(ca_bts.as_slice()).unwrap().1;
 
     let request = new_issuance_request();
     let issuer = Issuer::new(request.clone(), privkey, cert_bts);
@@ -160,14 +165,14 @@ fn issuance_and_disclosure() -> Result<()> {
     let mut wallet = Credentials::new();
 
     // Do issuance
-    let wallet_issuance_state = Credentials::issuance_start(&request)?;
+    let wallet_issuance_state = Credentials::issuance_start(&request).unwrap();
     println!(
         "wallet response: {:#?}",
         DebugCollapseBts(&wallet_issuance_state.response)
     );
-    let issuer_response = issuer.issue(&wallet_issuance_state.response)?;
+    let issuer_response = issuer.issue(&wallet_issuance_state.response).unwrap();
     println!("issuer response: {:#?}", DebugCollapseBts(&issuer_response));
-    let creds = Credentials::issuance_finish(wallet_issuance_state, issuer_response, &ca_cert)?;
+    let creds = Credentials::issuance_finish(wallet_issuance_state, issuer_response, &ca_cert).unwrap();
     wallet.add(creds);
 
     // Disclose some attributes from our cred
@@ -181,13 +186,11 @@ fn issuance_and_disclosure() -> Result<()> {
     }]);
 
     let challenge = DeviceAuthenticationBytes::example_bts();
-    let disclosed = wallet.disclose(&request, challenge.as_ref())?;
+    let disclosed = wallet.disclose(&request, challenge.as_ref()).unwrap();
     println!(
         "Disclosure: {:#?}",
-        DebugCollapseBts(disclosed.verify(None, &challenge, &ca_cert)?)
+        DebugCollapseBts(disclosed.verify(None, &challenge, &ca_cert).unwrap())
     );
-
-    Ok(())
 }
 
 pub fn new_ca(common_name: &str) -> Result<Certificate, rcgen::RcgenError> {
