@@ -7,7 +7,7 @@ use serde_bytes::ByteBuf;
 use crate::cose::MdocCose;
 use crate::{
     basic_sa_ext::{
-        DataToIssueMessage, DocTypeResponses, KeyGenerationResponseMessage, MobileIDDocuments,
+        DataToIssueMessage, KeyGenerationResponseMessage, MdocResponses, MobileIDDocuments,
         RequestKeyGenerationMessage, Response, SparseIssuerAuth, SparseIssuerSigned, UnsignedMdoc,
     },
     cose::ClonePayload,
@@ -85,7 +85,7 @@ impl Issuer {
 
     fn issue_creds(
         &self,
-        doctype_responses: &DocTypeResponses,
+        doctype_responses: &MdocResponses,
         unsigned: &UnsignedMdoc,
     ) -> Result<Vec<SparseIssuerSigned>> {
         doctype_responses
@@ -99,7 +99,7 @@ impl Issuer {
         device_response.verify(&self.request)?;
 
         let docs = device_response
-            .doc_type_responses
+            .mdoc_responses
             .iter()
             .zip(&self.request.unsigned_mdocs)
             .map(|(responses, unsigned)| {

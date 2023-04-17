@@ -4,8 +4,8 @@ use serde_bytes::ByteBuf;
 
 use crate::{
     basic_sa_ext::{
-        DocTypeResponses, KeyGenerationResponseMessage, RequestKeyGenerationMessage, Response,
-        ResponseSignaturePayload, UnsignedMdoc,
+        KeyGenerationResponseMessage, MdocResponses, RequestKeyGenerationMessage, Response, ResponseSignaturePayload,
+        UnsignedMdoc,
     },
     cose::{ClonePayload, CoseKey, MdocCose},
     serialization::cbor_serialize,
@@ -39,7 +39,7 @@ impl KeyGenerationResponseMessage {
             bail!("session IDs did not match")
         }
 
-        self.doc_type_responses
+        self.mdoc_responses
             .iter()
             .zip(&request.unsigned_mdocs)
             .find_map(|(responses, unsigned_mdoc)| check_responses(responses, unsigned_mdoc, &request.challenge).err())
@@ -54,7 +54,7 @@ impl KeyGenerationResponseMessage {
             .iter()
             .zip(&request.unsigned_mdocs)
             .map(|(keys, unsigned)| {
-                Ok(DocTypeResponses {
+                Ok(MdocResponses {
                     doc_type: unsigned.doc_type.clone(),
                     responses: keys
                         .iter()
@@ -62,21 +62,17 @@ impl KeyGenerationResponseMessage {
                         .collect::<Result<Vec<_>>>()?,
                 })
             })
-            .collect::<Result<Vec<DocTypeResponses>>>()?;
+            .collect::<Result<Vec<MdocResponses>>>()?;
 
         let response = KeyGenerationResponseMessage {
             e_session_id: request.e_session_id.clone(),
-            doc_type_responses: responses,
+            mdoc_responses: responses,
         };
         Ok(response)
     }
 }
 
-fn check_responses(
-    doctype_responses: &DocTypeResponses,
-    unsigned_mdoc: &UnsignedMdoc,
-    challenge: &ByteBuf,
-) -> Result<()> {
+fn check_responses(doctype_responses: &MdocResponses, unsigned_mdoc: &UnsignedMdoc, challenge: &ByteBuf) -> Result<()> {
     if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
         bail!("too many responses")
     }

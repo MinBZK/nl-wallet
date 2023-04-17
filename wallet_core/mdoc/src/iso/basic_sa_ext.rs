@@ -51,12 +51,12 @@ pub struct Entry {
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenerationResponseMessage {
     pub e_session_id: SessionId,
-    pub doc_type_responses: Vec<DocTypeResponses>,
+    pub mdoc_responses: Vec<MdocResponses>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct DocTypeResponses {
+pub struct MdocResponses {
     pub doc_type: DocType,
     pub responses: Vec<Response>,
 }
