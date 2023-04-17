@@ -6,6 +6,8 @@ pub mod holder;
 pub mod issuer;
 pub mod verifier;
 
+pub mod issuer_shared;
+
 pub mod cose;
 pub mod serialization;
 
