@@ -61,7 +61,18 @@ pub type Responses = IndexMap<DocType, Vec<Response>>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
     pub(crate) public_key: CoseKey,
-    pub(crate) signature: MdocCose<CoseSign1, ByteBuf>,
+    pub(crate) signature: MdocCose<CoseSign1, ResponseSignaturePayload>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ResponseSignaturePayload {
+    challenge: Vec<u8>,
+}
+
+impl ResponseSignaturePayload {
+    pub fn new(challenge: Vec<u8>) -> ResponseSignaturePayload {
+        ResponseSignaturePayload { challenge }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
