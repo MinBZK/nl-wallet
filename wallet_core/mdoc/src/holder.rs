@@ -1,15 +1,23 @@
-use crate::cose::ClonePayload;
-use crate::crypto::dh_hmac_key;
-use crate::iso::*;
-use crate::issuer::IssuanceDeviceResponse;
-use crate::verifier::X509Subject;
-
 use anyhow::{bail, Result};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
+use ecdsa::SigningKey;
 use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer};
 use indexmap::IndexMap;
+use p256::NistP256;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::X509Certificate;
+
+use crate::{
+    basic_sa_ext::{
+        DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
+        UnsignedMdoc,
+    },
+    cose::ClonePayload,
+    crypto::dh_hmac_key,
+    iso::*,
+    serialization::{cbor_serialize, TaggedBytes},
+    verifier::X509Subject,
+};
 
 #[derive(Debug, Clone)]
 pub struct Credentials(pub IndexMap<DocType, Credential>);
@@ -22,22 +30,137 @@ impl<const N: usize> From<[Credential; N]> for Credentials {
     }
 }
 
+impl Entry {
+    fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
+        IssuerSignedItem {
+            digest_id: index as u32,
+            random,
+            element_identifier: self.name.clone(),
+            element_value: self.value.clone(),
+        }
+        .into()
+    }
+}
+
+impl SparseIssuerSigned {
+    fn to_credential(
+        &self,
+        private_key: SigningKey<p256::NistP256>,
+        unsigned: &UnsignedMdoc,
+        doc_type: DocType,
+        iss_cert: &X509Certificate,
+    ) -> Result<Credential> {
+        let name_spaces: IssuerNameSpaces = unsigned
+            .attributes
+            .iter()
+            .map(|(namespace, attrs)| {
+                (
+                    namespace.clone(),
+                    attrs
+                        .iter()
+                        .enumerate()
+                        .map(|(index, attr)| attr.to_issuer_signed_item(index, self.randoms[namespace][index].to_vec()))
+                        .collect::<Vec<_>>()
+                        .into(),
+                )
+            })
+            .collect();
+
+        let mso = MobileSecurityObject {
+            version: self.sparse_issuer_auth.version.clone(),
+            digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
+            value_digests: (&name_spaces).try_into()?,
+            device_key_info: private_key.verifying_key().try_into()?,
+            doc_type: doc_type.clone(),
+            validity_info: self.sparse_issuer_auth.validity_info.clone(),
+        };
+        let issuer_auth = self
+            .sparse_issuer_auth
+            .issuer_auth
+            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(anyhow::Error::msg)?);
+
+        let issuer_signed = IssuerSigned {
+            name_spaces: Some(name_spaces),
+            issuer_auth,
+        };
+        issuer_signed.verify(iss_cert)?;
+
+        Ok(Credential {
+            private_key,
+            issuer_signed,
+            doc_type,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct IssuanceState<'a> {
+    pub request: &'a RequestKeyGenerationMessage,
+    pub private_keys: IndexMap<String, Vec<SigningKey<NistP256>>>,
+    pub response: KeyGenerationResponseMessage,
+}
+
 impl Credentials {
     pub fn new() -> Credentials {
         Credentials(IndexMap::new())
     }
 
-    pub fn add(&mut self, cred: Credential) {
-        self.0.insert(cred.doc_type.clone(), cred);
+    pub fn add(&mut self, creds: IndexMap<DocType, Vec<Credential>>) {
+        for (doc_type, creds) in creds {
+            for cred in creds {
+                self.0.insert(doc_type.clone(), cred);
+            }
+        }
     }
 
-    pub fn start_issuance(
-        &self,
-        challenge: &[u8],
-    ) -> Result<(ecdsa::SigningKey<p256::NistP256>, IssuanceDeviceResponse)> {
-        let device_key = ecdsa::SigningKey::<p256::NistP256>::random(&mut OsRng);
-        let response = IssuanceDeviceResponse::sign(challenge, &device_key)?;
-        Ok((device_key, response))
+    fn generate_keys(count: u64) -> Vec<SigningKey<p256::NistP256>> {
+        (0..count)
+            .map(|_| SigningKey::<p256::NistP256>::random(OsRng))
+            .collect()
+    }
+
+    pub fn issuance_start(request: &RequestKeyGenerationMessage) -> Result<IssuanceState> {
+        let private_keys = request
+            .unsigned_mdocs
+            .iter()
+            .map(|(doc_type, unsigned_mdoc)| (doc_type.clone(), Credentials::generate_keys(unsigned_mdoc.count)))
+            .collect();
+        let response =
+            KeyGenerationResponseMessage::new(request.e_session_id.clone(), request.challenge.clone(), &private_keys)?;
+
+        Ok(IssuanceState {
+            request,
+            private_keys,
+            response,
+        })
+    }
+
+    pub fn issuance_finish(
+        state: IssuanceState,
+        issuer_response: DataToIssueMessage,
+        issuer_cert: &X509Certificate,
+    ) -> Result<IndexMap<DocType, Vec<Credential>>> {
+        issuer_response
+            .mobile_id_documents
+            .iter()
+            .map(|(doc_type, iss_signature)| {
+                Ok((
+                    doc_type.clone(),
+                    iss_signature
+                        .iter()
+                        .enumerate()
+                        .map(|(i, iss_signature)| {
+                            iss_signature.to_credential(
+                                state.private_keys[doc_type][i].clone(),
+                                &state.request.unsigned_mdocs[doc_type],
+                                doc_type.clone(),
+                                issuer_cert,
+                            )
+                        })
+                        .collect::<Result<_>>()?,
+                ))
+            })
+            .collect()
     }
 
     pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
@@ -52,7 +175,7 @@ impl Credentials {
                 )
             }
 
-            let cred = self.0.get(&items_request.doc_type).unwrap();
+            let cred = &self.0[&items_request.doc_type];
             docs.push(cred.disclose_document(items_request, challenge)?);
         }
 

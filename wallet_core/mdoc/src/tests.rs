@@ -1,15 +1,20 @@
-use crate::examples::*;
-use crate::holder::*;
-use crate::iso::*;
-use crate::issuer::*;
-
 use anyhow::{anyhow, Result};
 use ciborium::value::Value;
 use core::fmt::Debug;
 use indexmap::IndexMap;
 use p256::pkcs8::DecodePrivateKey;
 use rcgen::{BasicConstraints, Certificate, CertificateParams, DnType, IsCa};
+use serde_bytes::ByteBuf;
+use std::ops::Add;
 use x509_parser::prelude::{FromDer, X509Certificate};
+
+use crate::{
+    basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
+    examples::*,
+    holder::*,
+    iso::*,
+    issuer::*,
+};
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
@@ -116,34 +121,54 @@ const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
+fn new_issuance_request() -> RequestKeyGenerationMessage {
+    RequestKeyGenerationMessage {
+        e_session_id: ByteBuf::from("e_session_id"),
+        challenge: ByteBuf::from("challenge"),
+        unsigned_mdocs: IndexMap::from([(
+            ISSUANCE_DOC_TYPE.to_string(),
+            UnsignedMdoc {
+                count: 2,
+                valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
+                attributes: IndexMap::from([(
+                    ISSUANCE_NAME_SPACE.to_string(),
+                    ISSUANCE_ATTRS
+                        .iter()
+                        .map(|(key, val)| Entry {
+                            name: key.to_string(),
+                            value: Value::Text(val.to_string()),
+                        })
+                        .collect(),
+                )]),
+            },
+        )]),
+    }
+}
+
 #[test]
 fn issuance_and_disclosure() -> Result<()> {
-    // Attributes to be issued
-    let name_spaced_attributes = IssuerNameSpaces::from([(
-        ISSUANCE_NAME_SPACE.to_string(),
-        ISSUANCE_ATTRS
-            .iter()
-            .map(|(key, val)| (key.to_string(), Value::Text(val.to_string())))
-            .collect::<IndexMap<_, _>>()
-            .try_into()?,
-    )]);
-
     // Issuer data
     let ca = new_ca(ISSUANCE_CA_CN)?;
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN)?;
     let ca_bts = ca.serialize_der()?;
     let ca_cert = X509Certificate::from_der(ca_bts.as_slice())?.1;
-    let issuer = Issuer::new(privkey, cert_bts, ISSUANCE_DOC_TYPE.to_string(), name_spaced_attributes)?;
+
+    let request = new_issuance_request();
+    let issuer = Issuer::new(request.clone(), privkey, cert_bts);
 
     // User data
     let mut wallet = Credentials::new();
 
     // Do issuance
-    let (device_key, response) = wallet.start_issuance(issuer.challenge.as_slice())?;
-    println!("response: {:#?}", DebugCollapseBts(&response));
-    let issuer_signed = issuer.issue(&response)?;
-    let cred = Credential::new(device_key, issuer_signed, &ca_cert)?;
-    wallet.add(cred);
+    let wallet_issuance_state = Credentials::issuance_start(&request)?;
+    println!(
+        "wallet response: {:#?}",
+        DebugCollapseBts(&wallet_issuance_state.response)
+    );
+    let issuer_response = issuer.issue(&wallet_issuance_state.response)?;
+    println!("issuer response: {:#?}", DebugCollapseBts(&issuer_response));
+    let creds = Credentials::issuance_finish(wallet_issuance_state, issuer_response, &ca_cert)?;
+    wallet.add(creds);
 
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {

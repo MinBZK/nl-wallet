@@ -108,7 +108,7 @@ impl<C, T> From<C> for MdocCose<C, T> {
 impl<T> MdocCose<CoseSign1, T> {
     pub fn sign(
         obj: &T,
-        unprotected_header: coset::Header,
+        unprotected_header: Header,
         private_key: &ecdsa::SigningKey<NistP256>,
     ) -> Result<MdocCose<CoseSign1, T>>
     where
@@ -229,5 +229,38 @@ impl coset::AsCborValue for CoseKey {
     }
     fn to_cbor_value(self) -> coset::Result<Value> {
         self.0.to_cbor_value()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use coset::{CoseSign1, Header};
+    use ecdsa::signature::rand_core::OsRng;
+    use p256::ecdsa::SigningKey;
+    use serde::{Deserialize, Serialize};
+
+    use super::MdocCose;
+
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+    struct ToyMessage {
+        number: u8,
+        string: String,
+    }
+    impl Default for ToyMessage {
+        fn default() -> Self {
+            Self {
+                number: 42,
+                string: "Hello, world!".to_string(),
+            }
+        }
+    }
+
+    #[test]
+    fn it_works() {
+        let key = SigningKey::random(OsRng);
+        let payload = ToyMessage::default();
+        let cose = MdocCose::<CoseSign1, ToyMessage>::sign(&payload, Header::default(), &key).unwrap();
+        let verified = cose.verify_and_parse(&key.verifying_key()).unwrap();
+        assert_eq!(payload, verified);
     }
 }

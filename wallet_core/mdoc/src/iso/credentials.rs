@@ -5,6 +5,7 @@
 //! to enable selective disclosure.
 
 use crate::{
+    basic_sa_ext::Entry,
     cose::CoseKey,
     crypto::{cbor_digest, random_bytes},
     serialization::TaggedBytes,
@@ -13,6 +14,7 @@ use crate::{
 use anyhow::Result;
 use chrono::Utc;
 use ciborium::{tag, value::Value};
+use ecdsa::VerifyingKey;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -74,6 +76,26 @@ pub struct DeviceKeyInfo {
     pub(crate) key_info: Option<KeyInfo>,
 }
 
+impl TryFrom<VerifyingKey<p256::NistP256>> for DeviceKeyInfo {
+    type Error = anyhow::Error;
+    fn try_from(value: VerifyingKey<p256::NistP256>) -> Result<Self> {
+        Ok(DeviceKeyInfo {
+            device_key: (&value).try_into()?,
+            key_authorizations: None,
+            key_info: None,
+        })
+    }
+}
+impl From<CoseKey> for DeviceKeyInfo {
+    fn from(value: CoseKey) -> Self {
+        DeviceKeyInfo {
+            device_key: value,
+            key_authorizations: None,
+            key_info: None,
+        }
+    }
+}
+
 pub type DeviceKey = CoseKey;
 
 /// Data signed by the issuer, containing among others the digests of the attributes ([`ValueDigests`]).
@@ -128,6 +150,17 @@ impl TryFrom<IndexMap<String, Value>> for Attributes {
                 .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u32, key, val)?.into()))
                 .collect::<Result<Vec<_>, anyhow::Error>>()?,
         ))
+    }
+}
+impl TryFrom<Vec<Entry>> for Attributes {
+    type Error = anyhow::Error;
+    fn try_from(attrs: Vec<Entry>) -> std::result::Result<Self, Self::Error> {
+        Attributes::try_from(
+            attrs
+                .iter()
+                .map(|entry| (entry.name.clone(), entry.value.clone()))
+                .collect::<IndexMap<String, Value>>(),
+        )
     }
 }
 

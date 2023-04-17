@@ -1,121 +1,186 @@
-use crate::cose::{ClonePayload, CoseKey};
-use crate::iso::*;
-use crate::serialization::cbor_serialize;
-use crate::{cose::MdocCose, crypto::random_bytes, serialization::TaggedBytes};
-
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use chrono::Utc;
 use ciborium::value::Value;
-use coset::{AsCborValue, CoseSign1, CoseSign1Builder, HeaderBuilder, Label};
-use ecdsa::signature::Signer;
-use serde::{Deserialize, Serialize};
-use std::ops::Add;
+use coset::{CoseSign1, Header, HeaderBuilder};
+use indexmap::IndexMap;
+use serde_bytes::ByteBuf;
+
+use crate::{
+    basic_sa_ext::{
+        DataToIssueMessage, KeyGenerationResponseMessage, MobileIDDocuments, RequestKeyGenerationMessage, Response,
+        ResponseSignaturePayload, Responses, SparseIssuerAuth, SparseIssuerSigned, UnsignedMdoc,
+    },
+    cose::{ClonePayload, CoseKey, MdocCose},
+    iso::*,
+    serialization::{cbor_serialize, TaggedBytes},
+};
 
 pub struct Issuer {
     private_key: ecdsa::SigningKey<p256::NistP256>,
     cert_bts: Vec<u8>,
-    doc_type: DocType,
-    attributes: IssuerNameSpaces,
-    pub challenge: Vec<u8>,
+    request: RequestKeyGenerationMessage,
 }
 
 impl Issuer {
     pub fn new(
+        request: RequestKeyGenerationMessage,
         private_key: ecdsa::SigningKey<p256::NistP256>,
         cert_bts: Vec<u8>,
-        doc_type: DocType,
-        attributes: IssuerNameSpaces,
-    ) -> Result<Issuer> {
-        Ok(Issuer {
+    ) -> Issuer {
+        Issuer {
+            request,
             cert_bts,
             private_key,
-            doc_type,
-            attributes,
-            challenge: random_bytes(32)?,
-        })
+        }
     }
-}
 
-impl Issuer {
-    pub fn issue(self, device_response: &IssuanceDeviceResponse) -> Result<IssuerSigned> {
-        let public_key = device_response.verify(self.challenge.as_slice())?;
+    fn issue_cred(
+        &self,
+        doc_type: DocType,
+        unsigned_mdoc: &UnsignedMdoc,
+        response: &Response,
+    ) -> Result<SparseIssuerSigned> {
+        let attrs = unsigned_mdoc
+            .attributes
+            .clone()
+            .into_iter()
+            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
+            .collect::<Result<IssuerNameSpaces>>()?;
 
         let now = Utc::now();
+        let validity = ValidityInfo {
+            signed: now.into(),
+            valid_from: now.into(),
+            valid_until: unsigned_mdoc.valid_until.clone(),
+            expected_update: None,
+        };
         let mso = MobileSecurityObject {
             version: "1.0".to_string(),
             digest_algorithm: "SHA-256".to_string(),
-            doc_type: self.doc_type,
-            value_digests: (&self.attributes).try_into()?,
-            device_key_info: DeviceKeyInfo {
-                device_key: public_key,
-                key_authorizations: None,
-                key_info: None,
-            },
-            validity_info: ValidityInfo {
-                signed: now.into(),
-                valid_from: now.into(),
-                valid_until: now.add(chrono::Duration::days(365)).into(),
-                expected_update: None,
-            },
+            doc_type,
+            value_digests: (&attrs).try_into()?,
+            device_key_info: response.public_key.clone().into(),
+            validity_info: validity.clone(),
         };
 
-        let headers = HeaderBuilder::new().value(33, Value::Bytes(self.cert_bts)).build();
+        let headers = HeaderBuilder::new()
+            .value(33, Value::Bytes(self.cert_bts.clone()))
+            .build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso.into(), headers, &self.private_key)?;
 
-        Ok(IssuerSigned {
-            name_spaces: Some(self.attributes),
-            issuer_auth: cose,
+        Ok(SparseIssuerSigned {
+            randoms: attrs
+                .into_iter()
+                .map(|(namespace, attrs)| {
+                    (
+                        namespace,
+                        attrs.0.into_iter().map(|attr| ByteBuf::from(attr.0.random)).collect(),
+                    )
+                })
+                .collect(),
+            sparse_issuer_auth: SparseIssuerAuth {
+                version: "1.0".to_string(),
+                digest_algorithm: "SHA-256".to_string(),
+                validity_info: validity,
+                issuer_auth: cose.clone_without_payload(),
+            },
+        })
+    }
+
+    fn issue_creds(&self, doc_type: &DocType, responses: &[Response]) -> Result<Vec<SparseIssuerSigned>> {
+        responses
+            .iter()
+            .map(|response| self.issue_cred(doc_type.clone(), &self.request.unsigned_mdocs[doc_type], response))
+            .collect()
+    }
+
+    pub fn issue(self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+        device_response.verify(&self.request)?;
+
+        let docs = device_response
+            .responses
+            .iter()
+            .map(|(doc_type, responses)| Ok((doc_type.clone(), self.issue_creds(doc_type, responses)?)))
+            .collect::<Result<MobileIDDocuments>>()?;
+
+        Ok(DataToIssueMessage {
+            e_session_id: self.request.e_session_id,
+            mobile_id_documents: docs,
         })
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct IssuanceDeviceResponse {
-    cose: MdocCose<CoseSign1, IssuanceDeviceResponseContents>,
-}
+impl KeyGenerationResponseMessage {
+    pub fn verify(&self, request: &RequestKeyGenerationMessage) -> Result<()> {
+        if self.e_session_id != request.e_session_id {
+            bail!("session IDs did not match")
+        }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct IssuanceDeviceResponseContents {
-    challenge: Vec<u8>,
-}
-
-impl IssuanceDeviceResponse {
-    pub(crate) fn sign(challenge: &[u8], device_key: &ecdsa::SigningKey<p256::NistP256>) -> Result<Self> {
-        let public_key_cbor = CoseKey::try_from(&ecdsa::VerifyingKey::from(device_key))?
-            .0
-            .to_cbor_value()
-            .map_err(|e| anyhow!("{e}"))?;
-        let cose = CoseSign1Builder::new()
-            .unprotected(
-                HeaderBuilder::new()
-                    .text_value("public_key".to_string(), public_key_cbor)
-                    .build(),
-            )
-            .payload(cbor_serialize(&IssuanceDeviceResponseContents {
-                challenge: challenge.into(),
-            })?)
-            .create_signature(&[], |data| device_key.sign(data).to_vec())
-            .build()
-            .clone_without_payload();
-
-        Ok(IssuanceDeviceResponse { cose: cose.into() })
+        request
+            .unsigned_mdocs
+            .iter()
+            .find_map(|(doc_type, unsigned_mdoc)| {
+                check_responses(self.responses.get(doc_type), unsigned_mdoc, &request.challenge).err()
+            })
+            .map_or(Ok(()), Err)
     }
 
-    pub(crate) fn verify(&self, challenge: &[u8]) -> Result<CoseKey> {
-        let public_key = CoseKey::from_cbor_value(
-            self.cose
-                .unprotected_header_item(&Label::Text("public_key".to_string()))?
-                .clone(),
-        )
-        .map_err(|e| anyhow!(e))?;
+    pub fn new(
+        session_id: SessionId,
+        challenge: ByteBuf,
+        keys: &IndexMap<DocType, Vec<ecdsa::SigningKey<p256::NistP256>>>,
+    ) -> anyhow::Result<KeyGenerationResponseMessage> {
+        let responses = keys
+            .iter()
+            .map(|(doc_type, keys)| {
+                Ok((
+                    doc_type.clone(),
+                    keys.iter()
+                        .map(|key| Response::sign(&challenge, key))
+                        .collect::<Result<Vec<_>>>()?,
+                ))
+            })
+            .collect::<Result<Responses>>()?;
 
-        self.cose
-            .clone_with_payload(cbor_serialize(&IssuanceDeviceResponseContents {
-                challenge: challenge.into(),
-            })?)
-            .verify(&(&public_key).try_into()?)?;
+        let response = KeyGenerationResponseMessage {
+            e_session_id: session_id,
+            responses,
+        };
+        Ok(response)
+    }
+}
 
-        Ok(public_key)
+fn check_responses(responses: Option<&Vec<Response>>, unsigned_mdoc: &UnsignedMdoc, challenge: &ByteBuf) -> Result<()> {
+    let responses = responses.ok_or(anyhow!("response not found"))?;
+    if responses.len() as u64 > unsigned_mdoc.count {
+        bail!("too many responses")
+    }
+
+    responses
+        .iter()
+        .find_map(|response| response.verify(challenge).err())
+        .map_or(Ok(()), Err)
+}
+
+impl Response {
+    fn sign(challenge: &ByteBuf, key: &ecdsa::SigningKey<p256::NistP256>) -> Result<Response> {
+        let response = Response {
+            public_key: CoseKey::try_from(&key.verifying_key())?,
+            signature: MdocCose::sign(
+                &ResponseSignaturePayload::new(challenge.to_vec()),
+                Header::default(),
+                key,
+            )?
+            .clone_without_payload(),
+        };
+        Ok(response)
+    }
+
+    pub fn verify(&self, challenge: &ByteBuf) -> Result<()> {
+        let expected_payload = &ResponseSignaturePayload::new(challenge.to_vec());
+        self.signature
+            .clone_with_payload(cbor_serialize(&expected_payload)?)
+            .verify(&(&self.public_key).try_into()?)
     }
 }
