@@ -1,51 +1,44 @@
-use std::env::temp_dir;
 use std::fs;
-use std::path::{Path, PathBuf};
 
 use rand::distributions::{Alphanumeric, DistString};
 use rusqlite::Connection;
+use platform_support::utils::PlatformUtilities;
+use platform_support::utils::software::SoftwareUtilities;
 
 pub async fn get_or_create_db(db_name: &str) -> Connection {
     //Get path to database
-    //PlatformUtilities::storage_path().expect("Could not get storage path")
-    let storage_path = temp_dir().to_str().expect("Could not convert to str").to_string();
-    let db_file_path = format!("{}wallet.db", storage_path);
-    // let sqlite_path = format!("sqlite://{}?mode=rwc", db_file_path);
-    let sqlite_path = "sqlite://test.db?mode=rwc";
+    let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
+    let db_path = storage_path.join(format!("{}.db", db_name));
 
     // Get db password
-    let db_password = get_or_create_db_password().await;
+    let db_password = get_or_create_db_password(db_name).await;
 
     // Open db
-    // let conn = Connection::open(sqlite_path).expect("Could not open database");
-    let db_path = Path::new("./").join(db_name); //todo: get path through platform
     let conn = Connection::open(db_path).expect("Failed to open database");
 
     // Enable SQLCipher / Db Encryption
     let encrypt_statement = format!("PRAGMA key = '{}';", &db_password);
     conn.prepare(&*encrypt_statement).expect("Could not encrypt database");
+
     // return db connection
     conn
 }
 
 fn delete_db(db_name: &str) {
-    //TODO: Use utils dir
-    let db_path = Path::new("./").join(db_name);
-    if db_path.exists() {
-        fs::remove_file(db_path).expect("Failed to delete database");
-    }
+    //Get path to database
+    let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
+    let db_path = storage_path.join(format!("{}.db", db_name));
+    if db_path.exists() { fs::remove_file(db_path).expect("Failed to delete database"); }
 }
 
-pub async fn get_or_create_db_password() -> String {
+pub async fn get_or_create_db_password(alias: &str) -> String {
     // Get path to password file
-    let mut storage_path: PathBuf = temp_dir(); //TODO: Get path from platform_utils
-    storage_path.push("password.txt");
+    let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
+    let pw_file_path = storage_path.join(format!("{}.pass", alias));
 
-    let pw_file_exists = storage_path.exists();
-    // println!(storage_path);
-    if pw_file_exists {
+    if pw_file_path.exists() {
         // Open file
-        let contents = fs::read_to_string(storage_path).expect("Could not read password.txt");
+        let contents = fs::read_to_string(pw_file_path).expect("Could not read password.txt");
         // Decrypt password
         //TODO: Decrypt the contents
         contents
@@ -53,7 +46,7 @@ pub async fn get_or_create_db_password() -> String {
         // Generate password
         let new_password = generate_db_password();
         //TODO: Encrypt the password
-        fs::write(storage_path, &new_password).expect("Unable to write password.txt");
+        fs::write(pw_file_path, &new_password).expect("Unable to write password.txt");
         new_password
     }
 }
@@ -80,15 +73,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_password() {
-        let created_pass = get_or_create_db_password().await;
-        let fetched_pass = get_or_create_db_password().await;
+    async fn test_create_and_get_password() {
+        let alias = "alias";
+        let created_pass = get_or_create_db_password(alias).await;
+        let fetched_pass = get_or_create_db_password(alias).await;
         assert_eq!(created_pass, fetched_pass)
     }
 
     #[tokio::test]
+    async fn test_password_should_be_unique() {
+        let alias = "pass1";
+        let alias2 = "pass2";
+        let pass1 = get_or_create_db_password(alias).await;
+        let pass2 = get_or_create_db_password(alias2).await;
+        assert_ne!(pass1, pass2)
+    }
+
+    #[tokio::test]
     async fn open_db() {
-        let db_name = "test.db";
+        let db_name = "test";
 
         // Make sure we always start clean, e.g. when previous test failed.
         delete_db(db_name);
