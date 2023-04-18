@@ -1,7 +1,7 @@
 NL-Wallet Platform Support
 ==========================
 
-This crate allows native Android and iOS functionality to be called from the Rust core.
+This crate allows native Android and iOS functionality to be called from the wallet core.
 
 # Components
 
@@ -20,10 +20,10 @@ When compiling the main Android project of the app, the `platform_support` modul
 The final process can be visualised as follows:
 
 ```
-Wallet Android Project --> rust_core --> platform_support
-            |                               ^
-            |                               | (uniffi)
-            \----->  PlatformSupport  -----/
+Wallet Android Project --> wallet_core --> platform_support
+            |                                 ^
+            |                                 | (uniffi)
+            \----->  PlatformSupport  -------/
 ```
 
 ## iOS
@@ -35,20 +35,20 @@ In Swift, singleton classes wrap the initializers that need to be called on app 
 
 Then there is the Rust code that accepts the initializer function calls and allows a consumer of this crate to call to native code.
 This also uses `uniffi` during compilation to generate the necessary Rust code from the UDL files.
-The `platform_support` crate is included directly in compilation of the `rust_core` crate, which in turn produces another static library.
+The `platform_support` crate is included directly in compilation of the `wallet_core` crate, which in turn produces another static library.
 
 The two are combined in the main Xcore project of the app.
-The smaller Xcode project mentioned above is included as a dependency of this project, while the `rust_core` crate is compiled as a build step within this project.
+The smaller Xcode project mentioned above is included as a dependency of this project, while the `wallet_core` crate is compiled as a build step within this project.
 The main project creates instances of the singleton classes on app startup in its `AppDelegate`.
 Finally both static libraries that are produced are linked together with the main app binary, causing all of the required symbols to be resolved.
 
 The final process can be visualised as follows:
 
 ```
-Wallet Xcode Project --> rust_core --> platform_support
-            |                               ^
-            |                               | (uniffi)
-            \----->  PlatformSupport  -----/
+Wallet Xcode Project --> wallet_core --> platform_support
+            |                                  ^
+            |                                  | (uniffi)
+            \----->  PlatformSupport  --------/
 ```
 
 # Hardware Keystore
@@ -79,7 +79,7 @@ This test simply uses the crate to create a new private key, get its public key,
 
 ### Android
 
-To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/rust_core/platform_support/android` directory.
+To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/wallet_core/platform_support/android` directory.
 
 ### iOS
 

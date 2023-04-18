@@ -8,8 +8,8 @@ import '../data/source/organization_datasource.dart';
 import '../data/source/wallet_datasource.dart';
 import '../data/store/impl/language_store_impl.dart';
 import '../data/store/language_store.dart';
-import '../rust_core/rust_core.dart';
-import '../rust_core/typed_rust_core.dart';
+import '../wallet_core/wallet_core.dart';
+import '../wallet_core/typed_wallet_core.dart';
 
 class WalletDataSourceProvider extends StatelessWidget {
   final Widget child;
@@ -26,8 +26,8 @@ class WalletDataSourceProvider extends StatelessWidget {
         RepositoryProvider<OrganizationDataSource>(
           create: (context) => MockOrganizationDataSource(),
         ),
-        RepositoryProvider<TypedRustCore>(
-          create: (context) => TypedRustCore(api),
+        RepositoryProvider<TypedWalletCore>(
+          create: (context) => TypedWalletCore(api),
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),

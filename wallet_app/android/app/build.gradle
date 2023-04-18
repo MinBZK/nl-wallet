@@ -57,7 +57,7 @@ android {
 
     packagingOptions {
         // Exclude the platform_support.so files that are added by the
-        // platform_support module, as this code is also in librust_core.so
+        // platform_support module, as this code is also in libwallet_core.so
         jniLibs {
             excludes += "**/libplatform_support.so"
         }
@@ -123,9 +123,9 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-        workingDir "../../../rust_core"
+        workingDir "../../../wallet_core"
 
-        // Build the Rust code (rust_core)
+        // Build the Rust code (wallet_core)
         commandLine 'cargo', 'ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',

@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [lib]
-name = "rust_core"
+name = "wallet_core"
 crate-type = ["staticlib", "cdylib"]
 
 [[bin]]

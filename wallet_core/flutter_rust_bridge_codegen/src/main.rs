@@ -25,7 +25,7 @@ fn main() {
         rust_input: vec![RUST_INPUT.to_string()],
         dart_output: vec![DART_OUTPUT.to_string()],
         dart_format_line_length: 120,
-        class_name: Some(vec!["RustCore".to_string()]),
+        class_name: Some(vec!["WalletCore".to_string()]),
         c_output: Some(vec![C_OUTPUT.to_string()]),
         rust_output: Some(vec![RUST_OUTPUT.to_string()]),
         skip_add_mod_to_lib: true,

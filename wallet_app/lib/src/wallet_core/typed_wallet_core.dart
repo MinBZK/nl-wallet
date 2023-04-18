@@ -1,25 +1,25 @@
 import 'package:core_domain/core_domain.dart';
 
-import 'rust_core.dart';
+import 'wallet_core.dart';
 
-/// Wraps the generated RustCore to provide
+/// Wraps the generated WalletCore to provide
 /// a typed interface using the SERDE generated
 /// models from the 'core_domain' package.
-class TypedRustCore {
-  final RustCore _rustCore;
+class TypedWalletCore {
+  final WalletCore _walletCore;
 
-  TypedRustCore(this._rustCore) {
+  TypedWalletCore(this._walletCore) {
     // Initialize the Asynchronous runtime of the Rust core module.
     // This is required to be able to execute asynchronous Rust functions.
-    _rustCore.initAsync();
+    _walletCore.initAsync();
   }
 
   Future<PinValidationResult> isValidPin(String pin) async {
-    final bytes = await _rustCore.isValidPin(pin: pin);
+    final bytes = await _walletCore.isValidPin(pin: pin);
     return PinValidationResultExtension.bincodeDeserialize(bytes);
   }
 
   Future<void> register(String pin) async {
-    await _rustCore.register(pin: pin);
+    await _walletCore.register(pin: pin);
   }
 }

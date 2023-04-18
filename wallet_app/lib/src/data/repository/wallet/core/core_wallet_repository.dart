@@ -2,19 +2,19 @@ import 'package:core_domain/core_domain.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
-import '../../../../rust_core/typed_rust_core.dart';
+import '../../../../wallet_core/typed_wallet_core.dart';
 import '../../../mapper/mapper.dart';
 import '../wallet_repository.dart';
 
 class CoreWalletRepository implements WalletRepository {
-  final TypedRustCore _rustCore;
+  final TypedWalletCore _walletCore;
   final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
-  CoreWalletRepository(this._rustCore, this._pinValidationErrorMapper);
+  CoreWalletRepository(this._walletCore, this._pinValidationErrorMapper);
 
   @override
   Future<void> validatePin(String pin) async {
-    final result = await _rustCore.isValidPin(pin);
+    final result = await _walletCore.isValidPin(pin);
     final error = _pinValidationErrorMapper.map(result);
 
     if (error != null) {
@@ -24,7 +24,7 @@ class CoreWalletRepository implements WalletRepository {
 
   @override
   Future<void> createWallet(String pin) async {
-    _rustCore.register(pin);
+    _walletCore.register(pin);
   }
 
   @override

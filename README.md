@@ -197,13 +197,13 @@ You should now be able to launch an Android Emulator or iOS Simulator and run th
 
 All `Dart` code goes in the `wallet_app/lib/` directory and their appropriate sub-directories.
 
-All `Rust` code goes in the `rust_core/` directory and their appropriate sub-directories.
+All `Rust` code goes in the `wallet_core/` directory and their appropriate sub-directories.
 
 ### Flutter <-> Rust Bridge
-Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/rust_core/src/api.rs` and generation is done with the following command:
+Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/wallet_core/src/api.rs` and generation is done with the following command:
 
 ```
-cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
+cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
 ```
 
 The generated code is currently checked in, so that generation only has to be performed when the API changes.

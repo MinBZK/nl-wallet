@@ -1,6 +1,6 @@
 # Regenerate the flutter bindings
 
-To regenerate the bindings, run the following command from `rust_core`:
+To regenerate the bindings, run the following command from `wallet_core`:
 
 ```sh
 cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
@@ -8,7 +8,7 @@ cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
 
 # Regenerate the datatypes for bincode
 
-To regenerate the data types, run the following command from `rust_core`:
+To regenerate the data types, run the following command from `wallet_core`:
 
 ```sh
 cargo run --bin serde_reflection_codegen --features serde_reflection_codegen
