@@ -164,12 +164,14 @@ easiest way to do so is:
 2. Open Android Studio
     1. Tools -> SDK Manager
     2. Select 'SDK Tools' Tab
-    3. Uncheck 'hide obsolete packages'
-    4. Check 'NDK (obsolete)' in the list
-    5. Hit 'apply' to install (version 22.1.7171670)
-3. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
-   e.g. `echo "ANDROID_NDK_HOME=\"$HOME/Library/Android/sdk/ndk-bundle\"" >> ~/.gradle/gradle.properties`
-4. Finally run `cargo install cargo-ndk` to be able to build the Rust code for Android
+    3. Check latest 'NDK (Side by side)' in the list (>= v25.2.9519653)
+    4. Hit 'apply' to install
+3. Add `export ANDROID_HOME="$HOME/Library/Android/sdk"` to your `~/.bash_profile` or
+   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically 
+   picks up the NDK version you installed in the previous step
+4. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
+   e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
+5. Finally run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 
 #### iOS
 
