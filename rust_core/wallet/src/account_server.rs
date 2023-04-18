@@ -165,8 +165,10 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(test)]
 pub mod tests {
-    use p256::ecdsa::{signature::Signer, Signature};
-    use wallet_shared::account::signing_key::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey};
+    use platform_support::hw_keystore::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
+    use wallet_shared::account::signing_key::EcdsaKey;
+
+    use crate::pin::key::PinKey;
 
     use super::*;
 
@@ -183,37 +185,14 @@ pub mod tests {
         )
     }
 
-    // make sure we can substitute a SigningKey instead in tests
-    struct SigningKey(p256::ecdsa::SigningKey);
-
-    impl From<p256::ecdsa::SigningKey> for SigningKey {
-        fn from(value: p256::ecdsa::SigningKey) -> Self {
-            SigningKey(value)
-        }
-    }
-    impl Signer<Signature> for SigningKey {
-        fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-            self.0.try_sign(msg)
-        }
-    }
-    impl EcdsaKey for SigningKey {
-        type Error = p256::ecdsa::Error;
-
-        fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-            Ok(*self.0.verifying_key())
-        }
-    }
-    impl EphemeralEcdsaKey for SigningKey {}
-    impl SecureEcdsaKey for SigningKey {}
-
     #[test]
     fn it_works() {
         // Setup wallet provider
         let (account_server, account_server_pubkey) = new_account_server();
 
         // Setup wallet
-        let hw_privkey: SigningKey = p256::ecdsa::SigningKey::random(&mut OsRng).into();
-        let pin_privkey: SigningKey = p256::ecdsa::SigningKey::random(&mut OsRng).into();
+        let hw_privkey = SoftwareEcdsaKey::new("hw_privkey");
+        let pin_privkey = PinKey::new("112233", b"salt");
 
         // Register
         let challenge = account_server.registration_challenge().unwrap();
