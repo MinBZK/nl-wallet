@@ -14,7 +14,7 @@ software-integration-test = ["integration-test", "software"]
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
-wallet_shared = { path = "../wallet_shared" }
+wallet_common = { path = "../wallet_common" }
 aes-gcm = { version = "0.10.1", optional = true }
 jni = { version = "0.21.1", optional = true }
 never = "0.1.0"

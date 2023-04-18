@@ -10,7 +10,7 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-use wallet_shared::{
+use wallet_common::{
     account::{
         instructions::Registration,
         jwt::{Jwt, JwtClaims},
@@ -166,7 +166,7 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 #[cfg(test)]
 pub mod tests {
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
-    use wallet_shared::account::signing_key::EcdsaKey;
+    use wallet_common::account::signing_key::EcdsaKey;
 
     use crate::pin::key::PinKey;
 

@@ -2,7 +2,7 @@ use p256::{
     ecdsa::{signature::Signer, Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
-use wallet_shared::account::signing_key::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::account::signing_key::{EcdsaKey, SecureEcdsaKey};
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 use crate::bridge::hw_keystore::{get_key_store, EncryptionKeyBridge, SigningKeyBridge};

@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-wallet_shared = { path = "../wallet_shared" }
+wallet_common = { path = "../wallet_common" }
 anyhow = "1.0.66"
 der = { version = "0.6.1" }
 jsonwebtoken = "8.2.0"

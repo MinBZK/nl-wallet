@@ -2,7 +2,7 @@ use anyhow::Result;
 use once_cell::sync::OnceCell;
 
 use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformEcdsaKey};
-use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
+use wallet_common::account::{instructions::Registration, AccountServerClient, WalletCertificate};
 
 use crate::pin::{
     key::{new_pin_salt, PinKey},

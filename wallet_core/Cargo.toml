@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "wallet",
     "flutter_api",
     "flutter_api_macros",
     "platform_support",
-    "wallet_shared"
+    "wallet",
+    "wallet_common"
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
