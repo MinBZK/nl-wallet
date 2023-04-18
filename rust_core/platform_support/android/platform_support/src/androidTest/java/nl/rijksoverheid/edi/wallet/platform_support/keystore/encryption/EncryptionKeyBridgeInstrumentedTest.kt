@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -6,48 +6,50 @@ import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class AESKeyInstrumentedTest {
+class EncryptionKeyBridgeInstrumentedTest {
 
-    private lateinit var hwKeyStoreBridge: HwKeyStoreBridge
+    private lateinit var encryptionKeyBridge: EncryptionKeyBridge
 
     companion object {
         const val KEY_ID = "key1"
+
+        @JvmStatic
+        external fun hw_keystore_test_hardware_encryption(): Boolean
     }
 
     @Before
     fun setup() {
         val context = InstrumentationRegistry.getInstrumentation().context
-        hwKeyStoreBridge = PlatformSupport.getInstance(context).hwKeyStoreBridge
+        encryptionKeyBridge = PlatformSupport.getInstance(context).encryptionKeyBridge
     }
 
     @After
     fun cleanup() {
-        hwKeyStoreBridge.clean()
+        encryptionKeyBridge.clean()
     }
 
     @Test
     fun test_init() {
-        hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
+        assertNotNull("Should be initialized", encryptionKeyBridge)
     }
 
     @Test
     fun test_encrypt_decrypt() {
-        val key = hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
         val originalMessage = "Hello World!".toByteArray()
-        val encryptedMessage = key.encrypt(originalMessage.toUByteList()).toByteArray()
+        val encryptedMessage =
+            encryptionKeyBridge.encrypt(KEY_ID, originalMessage.toUByteList()).toByteArray()
         assertNotEquals(
             "Encrypted message should not match the original",
             originalMessage,
             encryptedMessage
         )
-        val decryptedMessage = key.decrypt(encryptedMessage.toUByteList())
+        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_ID, encryptedMessage.toUByteList())
         assertEquals(
             "Decrypted message should match the original", String(originalMessage),
             String(decryptedMessage.toByteArray())
@@ -56,18 +58,29 @@ class AESKeyInstrumentedTest {
 
     @Test
     fun test_long_encrypt_decrypt() {
-        val key = hwKeyStoreBridge.getOrCreateEncryptionKey(KEY_ID)
         val originalMessage = "Hello World, Repeated!".repeat(1024).toByteArray()
-        val encryptedMessage = key.encrypt(originalMessage.toUByteList()).toByteArray()
+        val encryptedMessage =
+            encryptionKeyBridge.encrypt(KEY_ID, originalMessage.toUByteList()).toByteArray()
         assertNotEquals(
             "Encrypted message should not match the original",
             originalMessage,
             encryptedMessage
         )
-        val decryptedMessage = key.decrypt(encryptedMessage.toUByteList())
+        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_ID, encryptedMessage.toUByteList())
         assertEquals(
             "Decrypted message should match the original", String(originalMessage),
             String(decryptedMessage.toByteArray())
+        )
+    }
+
+    @Test
+    fun bridge_test_symmetric_encryption() {
+        // Explicitly load platform_support since hw_keystore_test_hardware_encryption() is stripped from rust_core
+        System.loadLibrary("platform_support")
+
+        assertTrue(
+            "Could not complete encryption round trip",
+            hw_keystore_test_hardware_encryption()
         )
     }
 }

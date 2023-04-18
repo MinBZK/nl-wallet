@@ -6,9 +6,11 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
+import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
+import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
 import java.security.KeyStore
 
-abstract class KeyStoreKey(private val keyAlias: String) {
+abstract class KeyStoreKey(val keyAlias: String) {
 
     protected val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
 
@@ -24,7 +26,7 @@ abstract class KeyStoreKey(private val keyAlias: String) {
 
     abstract val keyInfo: KeyInfo
 
-    val isHardwareBacked: Boolean
+    private val isHardwareBacked: Boolean
         get() {
             if (securityLevelCompat == KeyProperties.SECURITY_LEVEL_STRONGBOX) return true
             if (securityLevelCompat == KeyProperties.SECURITY_LEVEL_TRUSTED_ENVIRONMENT) return true
@@ -36,14 +38,30 @@ abstract class KeyStoreKey(private val keyAlias: String) {
      * Returns the securityLevel of this key, falls back to providing
      * null on devices with API level < 31
      */
-    val securityLevelCompat: Int?
-        get() = runCatching<Int> {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                keyInfo.securityLevel
-            } else {
-                null
+    private val securityLevelCompat: Int?
+        get() {
+            return runCatching<Int> {
+                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    keyInfo.securityLevel
+                } else {
+                    null
+                }
+            }.getOrNull()
+        }
+
+    val isConsideredValid: Boolean
+        @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
+        get() {
+            val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
+            return when {
+                isHardwareBacked -> true
+                allowSoftwareBackedKeys -> true
+                !isHardwareBacked && !allowSoftwareBackedKeys -> {
+                    throw KeyStoreKeyError.MissingHardwareError(securityLevelCompat).keyException
+                }
+                else -> false
             }
-        }.getOrNull()
+        }
 }
 
 /**

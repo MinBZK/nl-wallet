@@ -65,7 +65,7 @@ mod hardware {
     }
 
     #[no_mangle]
-    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_HWKeyStoreBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signing_SigningKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
         _env: JNIEnv,
         _: JClass,
     ) -> bool {
@@ -82,7 +82,7 @@ mod hardware {
     }
 
     #[no_mangle]
-    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_HWKeyStoreBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryption_EncryptionKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
         _env: JNIEnv,
         _: JClass,
     ) -> bool {

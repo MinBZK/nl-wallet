@@ -1,10 +1,13 @@
 // Inspired by AndroidCrypto: https://github.com/philipplackner/AndroidCrypto/issues/2#issuecomment-1267021656
-package nl.rijksoverheid.edi.wallet.platform_support.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import java.io.ByteArrayInputStream
@@ -18,7 +21,7 @@ import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 
-class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
+class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
@@ -74,6 +77,7 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
             //////////////////////////////////
         }
         return outputStream.toByteArray().toUByteList()
+
     }
 
     fun decrypt(payload: List<UByte>): List<UByte> {
@@ -114,7 +118,6 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
 
     private val secretKey: SecretKey
         get() = (keyStore.getEntry(keyAlias, null) as KeyStore.SecretKeyEntry).secretKey
-
 
     private val encryptCipher
         get() = Cipher.getInstance(TRANSFORMATION).apply {

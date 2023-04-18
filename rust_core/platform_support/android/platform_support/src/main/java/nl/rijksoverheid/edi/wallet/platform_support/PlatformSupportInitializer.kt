@@ -4,12 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.annotation.VisibleForTesting
 import androidx.startup.Initializer
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.HwKeyStoreBridge
-import nl.rijksoverheid.edi.wallet.platform_support.utilities.NativeUtilitiesBridge
-import nl.rijksoverheid.edi.wallet.platform_support.utilities.storage.StoragePathProviderImpl
-import uniffi.platform_support.initPlatformSupport
 
 // Any app consuming this library can (optionally) use this key to override which .so should be loaded
 private const val LIBRARY_OVERRIDE_MANIFEST_KEY =
@@ -36,28 +31,6 @@ class PlatformSupportInitializer : Initializer<PlatformSupport> {
     }
 
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
-}
-
-class PlatformSupport private constructor(context: Context) {
-
-    companion object {
-        @Volatile
-        private var INSTANCE: PlatformSupport? = null
-
-        fun getInstance(context: Context): PlatformSupport =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: PlatformSupport(context).also { INSTANCE = it }
-            }
-    }
-
-    @VisibleForTesting
-    val hwKeyStoreBridge = HwKeyStoreBridge(context)
-    @VisibleForTesting
-    val nativeUtilitiesBridge = NativeUtilitiesBridge(StoragePathProviderImpl(context))
-
-    init {
-        initPlatformSupport(hwKeyStoreBridge, hwKeyStoreBridge, nativeUtilitiesBridge)
-    }
 }
 
 private fun PackageManager.getApplicationInfoCompat(

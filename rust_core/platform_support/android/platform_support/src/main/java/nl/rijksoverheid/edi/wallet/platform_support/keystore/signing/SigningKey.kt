@@ -1,14 +1,18 @@
 // Inspired by IRMAMobile: https://github.com/privacybydesign/irmamobile/blob/v6.4.1/android/app/src/main/java/foundation/privacybydesign/irmamobile/irma_mobile_bridge/ECDSA.java
-package nl.rijksoverheid.edi.wallet.platform_support.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import androidx.annotation.VisibleForTesting
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError.*
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import uniffi.platform_support.KeyStoreException.*
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStoreException
@@ -23,7 +27,7 @@ import java.security.spec.ECGenParameterSpec
 @VisibleForTesting
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
-class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
+class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         @Throws(
@@ -47,24 +51,16 @@ class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
         }
     }
 
-    override val keyInfo: KeyInfo
-        get() {
-            val privateKey = keyStore.getKey(keyAlias, null)
-            val keyFactory: KeyFactory =
-                KeyFactory.getInstance(privateKey.algorithm, KEYSTORE_PROVIDER)
-            return keyFactory.getKeySpec(privateKey, KeyInfo::class.java)
-        }
-
-    @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
+    @Throws(KeyException::class)
     fun publicKey(): List<UByte> {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
         } catch (ex: Exception) {
-            throw DeriveKeyError(ex).keyException
+            throw KeyStoreKeyError.DeriveKeyError(ex).keyException
         }
     }
 
-    @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
+    @Throws(KeyException::class)
     fun sign(payload: List<UByte>): List<UByte> {
         try {
             val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
@@ -76,9 +72,17 @@ class ECDSAKey(private val keyAlias: String) : KeyStoreKey(keyAlias) {
             when (ex) {
                 is UnrecoverableKeyException,
                 is NoSuchAlgorithmException,
-                is KeyStoreException -> throw FetchKeyError(ex).keyException
+                is KeyStoreException -> throw KeyStoreKeyError.FetchKeyError(ex).keyException
             }
-            throw SignKeyError(ex).keyException
+            throw KeyStoreKeyError.SignKeyError(ex).keyException
         }
     }
+
+    override val keyInfo: KeyInfo
+        get() {
+            val privateKey = keyStore.getKey(keyAlias, null)
+            val keyFactory: KeyFactory =
+                KeyFactory.getInstance(privateKey.algorithm, KEYSTORE_PROVIDER)
+            return keyFactory.getKeySpec(privateKey, KeyInfo::class.java)
+        }
 }
