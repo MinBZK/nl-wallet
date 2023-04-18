@@ -35,8 +35,8 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             NoSuchAlgorithmException::class,
             IllegalStateException::class
         )
-        fun createKey(context: Context, alias: String) {
-            val spec = KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN)
+        fun createKey(context: Context, keyAlias: String) {
+            val spec = KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
                 .setStrongBoxBackedCompat(context, true)

@@ -6,6 +6,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
+import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
 import java.security.KeyStore
@@ -16,12 +17,10 @@ abstract class KeyStoreKey(val keyAlias: String) {
 
     init {
         keyStore.load(null)
-        assert(
-            keyStore.getKey(
-                keyAlias,
-                null
-            ) != null
-        ) { "Key should be created before wrapping it in ${this.javaClass.simpleName}" }
+        val keyExists = keyStore.getKey(keyAlias, null) != null
+        if (!keyExists) {
+            throw IllegalArgumentException("No key found for $keyAlias, make sure it's created first before wrapping it in  ${this.javaClass.simpleName}")
+        }
     }
 
     abstract val keyInfo: KeyInfo
@@ -62,6 +61,9 @@ abstract class KeyStoreKey(val keyAlias: String) {
                 else -> false
             }
         }
+
+    @VisibleForTesting
+    fun delete() = keyStore.deleteEntry(keyAlias)
 }
 
 /**

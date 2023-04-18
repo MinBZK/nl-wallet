@@ -36,9 +36,9 @@ class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             NoSuchAlgorithmException::class,
             IllegalStateException::class
         )
-        fun createKey(context: Context, alias: String) {
+        fun createKey(context: Context, keyAlias: String) {
             val spec = KeyGenParameterSpec.Builder(
-                alias,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             ).setBlockModes(BLOCK_MODE)
                 .setEncryptionPaddings(PADDING)
