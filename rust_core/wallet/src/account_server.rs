@@ -71,7 +71,7 @@ pub mod tests {
 
         // Verify the certificate
         let cert_data = cert
-            .parse_and_verify(EcdsaDecodingKey::from_sec1(&account_server.pubkey).unwrap())
+            .parse_and_verify(EcdsaDecodingKey::from_sec1(&account_server.pubkey))
             .unwrap();
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);

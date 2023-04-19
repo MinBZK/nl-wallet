@@ -97,7 +97,7 @@ impl AccountServer {
     fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
         Jwt::parse_and_verify(
             &String::from_utf8(challenge.to_owned())?.into(),
-            EcdsaDecodingKey::from_sec1(&self.pubkey)?,
+            EcdsaDecodingKey::from_sec1(&self.pubkey),
         )
     }
 

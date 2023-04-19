@@ -35,8 +35,8 @@ impl From<DecodingKey> for EcdsaDecodingKey {
     }
 }
 impl EcdsaDecodingKey {
-    pub fn from_sec1(key: &[u8]) -> Result<Self> {
-        Ok(DecodingKey::from_ec_der(key).into())
+    pub fn from_sec1(key: &[u8]) -> Self {
+        DecodingKey::from_ec_der(key).into()
     }
 }
 

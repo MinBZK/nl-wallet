@@ -51,7 +51,7 @@ where
         let registration_message = Registration::new_signed(hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
-        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_sec1(&self.account_server_pubkey)?)?;
+        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_sec1(&self.account_server_pubkey))?;
         if cert_claims.hw_pubkey.0 != self.hw_privkey()?.verifying_key()? {
             return Err(anyhow!("hardware pubkey did not match"));
         }
@@ -86,7 +86,7 @@ mod tests {
             .registration_cert
             .as_ref()
             .unwrap()
-            .parse_and_verify(EcdsaDecodingKey::from_sec1(&pubkey).unwrap())
+            .parse_and_verify(EcdsaDecodingKey::from_sec1(&pubkey))
             .unwrap());
     }
 }
