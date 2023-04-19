@@ -32,4 +32,8 @@ class EncryptionKeyBridge(context: Context) : KeyBridge(context), RustEncryption
         val key = getOrCreateKey(identifier)
         return key.decrypt(payload)
     }
+
+    override fun clean() =
+        keyStore.aliases().asSequence().filter { it.startsWith(ENCRYPT_KEY_PREFIX) }
+            .forEach(::deleteEntry)
 }

@@ -10,7 +10,7 @@ const val KEYSTORE_PROVIDER = "AndroidKeyStore"
 
 abstract class KeyBridge(val context: Context) {
 
-    private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
+    protected val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
 
     init {
         keyStore.load(null)
@@ -35,9 +35,17 @@ abstract class KeyBridge(val context: Context) {
     @Throws(KeyStoreException::class)
     fun keyExists(keyAlias: String): Boolean = keyStore.containsAlias(keyAlias)
 
+    /**
+     * Removes all keyAliases associated with this KeyBridge
+     * from the KeyStore.
+     */
     @VisibleForTesting
-    fun clean() = keyStore.aliases().asSequence().forEach(::deleteEntry)
+    abstract fun clean()
 
-    private fun deleteEntry(identifier: String) = keyStore.deleteEntry(identifier)
+    /**
+     * Deletes the key associated with the provided [keyAlias]
+     * from the KeyStore.
+     */
+    protected fun deleteEntry(keyAlias: String) = keyStore.deleteEntry(keyAlias)
 
 }
