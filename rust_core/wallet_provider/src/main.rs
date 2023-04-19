@@ -1,12 +1,24 @@
+// Prevent dead code warnings because AccountServer::new_stub is not used in the bin.
+// TODO: remove this when the wallet_provider is not a dependency of the wallet.
+#![allow(dead_code)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
 use base64::{engine::general_purpose::STANDARD, Engine};
+use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use rand::rngs::OsRng;
 use tower_http::trace::TraceLayer;
 
-use wallet_provider::account_server::AccountServer;
-use wallet_shared::account::{instructions::Registration, signed::SignedDouble, Certificate, Challenge};
+use wallet_shared::{
+    account::{instructions::Registration, signed::SignedDouble, Certificate, Challenge},
+    utils::random_bytes,
+};
+
+use crate::account_server::AccountServer;
+
+mod account_server;
 
 struct AppState {
     account_server: AccountServer,
@@ -16,7 +28,14 @@ struct AppState {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let account_server = AccountServer::new_stub();
+    let account_server_privkey = SigningKey::random(&mut OsRng);
+    let account_server = AccountServer::new(
+        account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
+        random_bytes(32),
+        "stub_account_server".into(),
+    )
+    .unwrap();
+
     dbg!(STANDARD.encode(&account_server.pubkey));
 
     let app = app(account_server);
@@ -40,7 +59,7 @@ fn app(account_server: AccountServer) -> Router {
 }
 
 async fn enroll(State(state): State<Arc<AppState>>) -> (StatusCode, Json<Challenge>) {
-    let challenge = state.account_server.registration_challenge().unwrap();
+    let challenge = state.account_server.registration_challenge().unwrap(); // todo: error handling
     (
         StatusCode::OK,
         Json(Challenge {
@@ -53,6 +72,6 @@ async fn create_wallet(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SignedDouble<Registration>>,
 ) -> (StatusCode, Json<Certificate>) {
-    let cert = state.account_server.register(payload).unwrap();
+    let cert = state.account_server.register(payload).unwrap(); // todo: error handling
     (StatusCode::CREATED, Json(Certificate { certificate: cert }))
 }

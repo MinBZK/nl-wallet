@@ -7,6 +7,9 @@ edition.workspace = true
 
 [lib]
 
+[[bin]]
+name = "wallet_provider"
+
 [dependencies]
 wallet_shared = { path = "../wallet_shared" }
 anyhow = "1.0.66"
@@ -18,7 +21,7 @@ base64 = "0.21.0"
 rand = "0.8.5"
 jsonwebtoken = "8.2.0"
 der = { version = "0.6.1", features = ["alloc"] }
-tokio = { version = "1.25.0", features = ["rt", "macros"] }
+tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 axum = { version = "0.6.12" }
 hyper = { version = "0.14.25", features = ["full"] }
 tower = "0.4.13"

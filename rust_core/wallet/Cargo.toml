@@ -34,4 +34,3 @@ platform_support = { path = "../platform_support", features = ["software"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }
-base64 = "0.21.0"

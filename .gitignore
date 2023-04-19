@@ -48,6 +48,3 @@ jniLibs/
 # golden test failures
 **/failures/*.png
 
-# Rust artifacts
-target
-
