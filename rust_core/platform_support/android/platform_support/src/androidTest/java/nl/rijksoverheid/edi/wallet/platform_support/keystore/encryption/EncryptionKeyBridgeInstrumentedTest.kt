@@ -17,7 +17,7 @@ class EncryptionKeyBridgeInstrumentedTest {
     private lateinit var encryptionKeyBridge: EncryptionKeyBridge
 
     companion object {
-        const val KEY_ID = "key1"
+        const val KEY_1_IDENTIFIER = "key1"
 
         @JvmStatic
         external fun hw_keystore_test_hardware_encryption(): Boolean
@@ -43,13 +43,13 @@ class EncryptionKeyBridgeInstrumentedTest {
     fun test_encrypt_decrypt() {
         val originalMessage = "Hello World!".toByteArray()
         val encryptedMessage =
-            encryptionKeyBridge.encrypt(KEY_ID, originalMessage.toUByteList()).toByteArray()
+            encryptionKeyBridge.encrypt(KEY_1_IDENTIFIER, originalMessage.toUByteList()).toByteArray()
         assertNotEquals(
             "Encrypted message should not match the original",
             originalMessage,
             encryptedMessage
         )
-        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_ID, encryptedMessage.toUByteList())
+        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_1_IDENTIFIER, encryptedMessage.toUByteList())
         assertEquals(
             "Decrypted message should match the original", String(originalMessage),
             String(decryptedMessage.toByteArray())
@@ -60,13 +60,13 @@ class EncryptionKeyBridgeInstrumentedTest {
     fun test_long_encrypt_decrypt() {
         val originalMessage = "Hello World, Repeated!".repeat(1024).toByteArray()
         val encryptedMessage =
-            encryptionKeyBridge.encrypt(KEY_ID, originalMessage.toUByteList()).toByteArray()
+            encryptionKeyBridge.encrypt(KEY_1_IDENTIFIER, originalMessage.toUByteList()).toByteArray()
         assertNotEquals(
             "Encrypted message should not match the original",
             originalMessage,
             encryptedMessage
         )
-        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_ID, encryptedMessage.toUByteList())
+        val decryptedMessage = encryptionKeyBridge.decrypt(KEY_1_IDENTIFIER, encryptedMessage.toUByteList())
         assertEquals(
             "Decrypted message should match the original", String(originalMessage),
             String(decryptedMessage.toByteArray())
