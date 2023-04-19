@@ -25,7 +25,7 @@ pub struct AccountServer {
     pin_hash_salt: Vec<u8>,
 
     pub name: String,
-    pub pubkey: Vec<u8>,
+    pub pubkey: EcdsaDecodingKey,
 }
 
 /// Used as the challenge in the challenge-response protocol during wallet registration.
@@ -53,12 +53,13 @@ impl AccountServerClient for AccountServer {
 
 impl AccountServer {
     pub fn new(privkey: Vec<u8>, pin_hash_salt: Vec<u8>, name: String) -> Result<AccountServer> {
-        let pubkey = SigningKey::from_pkcs8_der(&privkey)
-            .map_err(anyhow::Error::msg)?
-            .verifying_key()
-            .to_encoded_point(false)
-            .as_bytes()
-            .to_vec();
+        let pubkey = EcdsaDecodingKey::from_sec1(
+            SigningKey::from_pkcs8_der(&privkey)
+                .map_err(anyhow::Error::msg)?
+                .verifying_key()
+                .to_encoded_point(false)
+                .as_bytes(),
+        );
         Ok(AccountServer {
             privkey,
             pin_hash_salt,
@@ -95,10 +96,7 @@ impl AccountServer {
     }
 
     fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
-        Jwt::parse_and_verify(
-            &String::from_utf8(challenge.to_owned())?.into(),
-            EcdsaDecodingKey::from_sec1(&self.pubkey),
-        )
+        Jwt::parse_and_verify(&String::from_utf8(challenge.to_owned())?.into(), &self.pubkey)
     }
 
     pub fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {

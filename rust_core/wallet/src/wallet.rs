@@ -15,7 +15,7 @@ const WALLET_KEY_ID: &str = "wallet";
 
 pub struct Wallet<T, S> {
     account_server: T,
-    account_server_pubkey: Vec<u8>,
+    account_server_pubkey: EcdsaDecodingKey,
     registration_cert: Option<WalletCertificate>,
 
     pin_salt: Vec<u8>,
@@ -27,7 +27,7 @@ where
     T: AccountServerClient,
     S: PlatformEcdsaKey,
 {
-    pub fn new(account_server: T, account_server_pubkey: Vec<u8>) -> Wallet<T, S> {
+    pub fn new(account_server: T, account_server_pubkey: EcdsaDecodingKey) -> Wallet<T, S> {
         Wallet {
             account_server,
             account_server_pubkey,
@@ -51,7 +51,7 @@ where
         let registration_message = Registration::new_signed(hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
-        let cert_claims = cert.parse_and_verify(EcdsaDecodingKey::from_sec1(&self.account_server_pubkey))?;
+        let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
         if cert_claims.hw_pubkey.0 != self.hw_privkey()?.verifying_key()? {
             return Err(anyhow!("hardware pubkey did not match"));
         }
@@ -86,7 +86,7 @@ mod tests {
             .registration_cert
             .as_ref()
             .unwrap()
-            .parse_and_verify(EcdsaDecodingKey::from_sec1(&pubkey))
+            .parse_and_verify(&pubkey)
             .unwrap());
     }
 }

@@ -28,6 +28,7 @@ pub trait JwtClaims {
 /// * PKIX: this uses DER to encode an identifier for the curve (`secp256r` in our case), as well as the public key coordinates in SEC1 form. This is the encoding that is used in X509 certificates (hence the name). The function [`DecodingKey::from_ec_pem()`] accepts this encoding, in PEM form (although it also accepts SEC1-encoded keys in PEM form).
 ///
 /// This type solves the unclarity by explicitly naming the SEC1 encoding in [`EcdsaDecodingKey::from_sec1()`] that it takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling `public_key.to_encoded_point(false).as_bytes()`.
+#[derive(Clone)]
 pub struct EcdsaDecodingKey(DecodingKey);
 impl From<DecodingKey> for EcdsaDecodingKey {
     fn from(value: DecodingKey) -> Self {
@@ -45,7 +46,7 @@ where
     T: Serialize + DeserializeOwned + JwtClaims,
 {
     /// Verify the JWT, and parse and return its payload.
-    pub fn parse_and_verify(&self, pubkey: EcdsaDecodingKey) -> Result<T> {
+    pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey) -> Result<T> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
         validation_options.sub = T::SUB.to_owned().into();

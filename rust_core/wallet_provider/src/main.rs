@@ -7,7 +7,10 @@ use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use p256::{
+    ecdsa::SigningKey,
+    pkcs8::{EncodePrivateKey, EncodePublicKey},
+};
 use rand::rngs::OsRng;
 use tower_http::trace::TraceLayer;
 
@@ -36,7 +39,13 @@ async fn main() {
     )
     .unwrap();
 
-    dbg!(STANDARD.encode(&account_server.pubkey));
+    dbg!(STANDARD.encode(
+        account_server_privkey
+            .verifying_key()
+            .to_public_key_der()
+            .unwrap()
+            .as_bytes()
+    ));
 
     let app = app(account_server);
 

@@ -49,7 +49,7 @@ pub mod tests {
 
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
     use wallet_provider::account_server::AccountServer;
-    use wallet_shared::account::{jwt::EcdsaDecodingKey, signing_key::EcdsaKey};
+    use wallet_shared::account::signing_key::EcdsaKey;
 
     use crate::pin::key::PinKey;
 
@@ -70,9 +70,7 @@ pub mod tests {
         let cert = account_server.register(registration_message).unwrap();
 
         // Verify the certificate
-        let cert_data = cert
-            .parse_and_verify(EcdsaDecodingKey::from_sec1(&account_server.pubkey))
-            .unwrap();
+        let cert_data = cert.parse_and_verify(&account_server.pubkey).unwrap();
         dbg!(&cert, &cert_data);
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, hw_privkey.verifying_key().unwrap());
