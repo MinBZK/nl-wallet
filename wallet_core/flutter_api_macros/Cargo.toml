@@ -8,6 +8,5 @@ description = "Support macros for flutter_api."
 proc-macro = true
 
 [dependencies]
-syn = { version = "2.0", features = [ "full" ] }
 quote = "1.0.26"
-proc-macro2 = "1.0.52"
+syn = { version = "2.0", features = ["full"] }
