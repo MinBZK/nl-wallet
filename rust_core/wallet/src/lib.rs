@@ -6,8 +6,8 @@ mod account_server;
 pub mod pin;
 pub mod wallet;
 
-use account_server::AccountServer;
 use platform_support::preferred;
+use wallet_provider::account_server::AccountServer;
 
 pub type Wallet = wallet::Wallet<AccountServer, preferred::PlatformEcdsaKey>;
 

@@ -4,7 +4,8 @@ members = [
     "flutter_api",
     "flutter_api_macros",
     "platform_support",
-    "wallet_shared"
+    "wallet_shared",
+    "wallet_provider"
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"

@@ -44,5 +44,7 @@ jniLibs/
 /fastlane/test_output
 /.env*
 
+
 # golden test failures
 **/failures/*.png
+

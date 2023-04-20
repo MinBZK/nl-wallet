@@ -1,8 +1,10 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use once_cell::sync::OnceCell;
 
 use platform_support::hw_keystore::{HardwareKeyStoreError, PlatformEcdsaKey};
-use wallet_shared::account::{instructions::Registration, AccountServerClient, WalletCertificate};
+use wallet_shared::account::{
+    instructions::Registration, jwt::EcdsaDecodingKey, AccountServerClient, WalletCertificate,
+};
 
 use crate::pin::{
     key::{new_pin_salt, PinKey},
@@ -13,7 +15,7 @@ const WALLET_KEY_ID: &str = "wallet";
 
 pub struct Wallet<T, S> {
     account_server: T,
-    account_server_pubkey: Vec<u8>,
+    account_server_pubkey: EcdsaDecodingKey,
     registration_cert: Option<WalletCertificate>,
 
     pin_salt: Vec<u8>,
@@ -25,7 +27,7 @@ where
     T: AccountServerClient,
     S: PlatformEcdsaKey,
 {
-    pub fn new(account_server: T, account_server_pubkey: Vec<u8>) -> Wallet<T, S> {
+    pub fn new(account_server: T, account_server_pubkey: EcdsaDecodingKey) -> Wallet<T, S> {
         Wallet {
             account_server,
             account_server_pubkey,
@@ -49,6 +51,11 @@ where
         let registration_message = Registration::new_signed(hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
+        let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
+        if cert_claims.hw_pubkey.0 != self.hw_privkey()?.verifying_key()? {
+            return Err(anyhow!("hardware pubkey did not match"));
+        }
+
         self.registration_cert = Some(cert);
 
         Ok(())
@@ -57,20 +64,29 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
+    use wallet_provider::account_server::AccountServer;
+
+    use super::*;
 
     #[test]
     fn it_works() {
-        let (account_server, account_server_pubkey) = crate::account_server::tests::new_account_server();
-        let mut wallet: Wallet<_, SoftwareEcdsaKey> = Wallet::new(account_server, account_server_pubkey);
+        let account_server = AccountServer::new_stub();
+        let pubkey = account_server.pubkey.clone();
+
+        let mut wallet = Wallet::<_, SoftwareEcdsaKey>::new(account_server, pubkey.clone());
 
         assert!(wallet.register("123456".to_owned()).is_err());
 
         wallet.register("112233".to_owned()).unwrap();
 
         assert!(wallet.registration_cert.is_some());
-        dbg!(wallet.registration_cert.unwrap().0);
+        dbg!(&wallet.registration_cert.as_ref().unwrap().0);
+        dbg!(wallet
+            .registration_cert
+            .as_ref()
+            .unwrap()
+            .parse_and_verify(&pubkey)
+            .unwrap());
     }
 }

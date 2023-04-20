@@ -1,0 +1,30 @@
+[package]
+name = "wallet_provider"
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+
+[[bin]]
+name = "wallet_provider"
+
+[dependencies]
+wallet_shared = { path = "../wallet_shared" }
+anyhow = "1.0.66"
+p256 = { version = "0.12.0", features = ["pem"] }
+sha2 = "0.10.6"
+serde = { version = "1.0.147", features = ["serde_derive"] }
+serde_json = { version = "1.0.92", features = ["raw_value"] }
+base64 = "0.21.0"
+rand = "0.8.5"
+jsonwebtoken = "8.2.0"
+der = { version = "0.6.1", features = ["alloc"] }
+tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
+axum = { version = "0.6.12" }
+hyper = { version = "0.14.25", features = ["full"] }
+tower = "0.4.13"
+tower-http = { version = "0.4.0", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
