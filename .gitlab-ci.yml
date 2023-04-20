@@ -63,7 +63,7 @@ test-rust:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:7fb5da3cef6ea249f52f437f201d9f4bd181b724360420550fd4a3cc4c0a0d9f"
   script:
     - set -euxo pipefail
-    - cargo test --manifest-path rust_core/Cargo.toml
+    - cargo test --manifest-path wallet_core/Cargo.toml
 
 test-ios:
   stage: test
@@ -96,11 +96,11 @@ test-rust-analyze:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:7fb5da3cef6ea249f52f437f201d9f4bd181b724360420550fd4a3cc4c0a0d9f"
   script:
     - set -euxo pipefail
-    - find rust_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
+    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
-    - cargo clippy --manifest-path rust_core/Cargo.toml --all-features --tests -- -Dwarnings
-    - grep ^exclude rust_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path rust_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
+    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
 
 test-codegen:
   stage: test
@@ -113,8 +113,8 @@ test-codegen:
   script:
     - set -euxo pipefail
     - flutter pub get $FLUTTER_APP_PROJECT_DIR
-    - cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
-    - cargo run --manifest-path rust_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
+    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
+    - cargo run --manifest-path wallet_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 

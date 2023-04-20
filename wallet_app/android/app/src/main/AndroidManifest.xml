@@ -32,10 +32,10 @@
             </intent-filter>
 
         </activity>
-        <!-- Used to inform the platform_support module to load the rust_core.so file -->
+        <!-- Used to inform the platform_support module to load the wallet_core.so file -->
         <meta-data
             android:name="nl.rijksoverheid.edi.wallet.platform_support.libraryOverride"
-            android:value="rust_core" />
+            android:value="wallet_core" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
