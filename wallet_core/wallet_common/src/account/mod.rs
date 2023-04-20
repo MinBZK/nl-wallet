@@ -35,3 +35,13 @@ pub trait AccountServerClient {
     fn registration_challenge(&self) -> Result<Vec<u8>>;
     fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct Challenge {
+    pub challenge: Base64Bytes,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Certificate {
+    pub certificate: WalletCertificate,
+}
