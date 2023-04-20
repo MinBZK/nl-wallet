@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../common/widget/text_icon_button.dart';
+import '../../../common/widget/button/text_icon_button.dart';
 
 const _kIllustrationPath = 'assets/images/personalize_wallet_intro_illustration.png';
 const _kDigidLogoPath = 'assets/images/digid_logo.png';

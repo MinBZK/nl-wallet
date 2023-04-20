@@ -1,29 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../common/widget/confirm_buttons.dart';
+import '../common/widget/button/confirm_buttons.dart';
+import '../common/widget/icon_row.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../common/widget/sliver_sized_box.dart';
-import '../common/widget/text_icon_button.dart';
 import '../verification/model/organization.dart';
+import 'widget/organization_row.dart';
 
 class ApproveOrganizationPage extends StatelessWidget {
-  final VoidCallback onDecline;
+  /// Callback that is triggered when the user approves the request
   final VoidCallback onAccept;
+
+  /// Callback that is triggered when the user declines the request
+  final VoidCallback onDecline;
+
+  /// The organization that user is interacting with
   final Organization organization;
+
+  /// Tells the Page in which flow it's currently used, used to select the correct string resources
   final ApprovalPurpose purpose;
+
+  /// If true, the 'first interaction' banner will be shown.
+  final bool isFirstInteractionWithOrganization;
 
   const ApproveOrganizationPage({
     required this.onDecline,
     required this.onAccept,
     required this.organization,
     required this.purpose,
+    this.isFirstInteractionWithOrganization = true,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
@@ -32,15 +43,16 @@ class ApproveOrganizationPage extends StatelessWidget {
         slivers: <Widget>[
           const SliverSizedBox(height: 32),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(child: _buildDescriptionSection(context)),
-          const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
           const SliverSizedBox(height: 12),
-          SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
+          SliverToBoxAdapter(child: _buildInfoRows(context)),
           const SliverSizedBox(height: 12),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+          SliverToBoxAdapter(
+            child: OrganizationRow(
+              onTap: () => PlaceholderScreen.show(context),
+              organizationName: organization.shortName,
+            ),
+          ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverFillRemaining(
             hasScrollBody: false,
@@ -48,10 +60,12 @@ class ApproveOrganizationPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
+                forceVertical: true,
                 onAccept: onAccept,
-                acceptText: locale.approveOrganizationPageApproveCta,
+                acceptIcon: Icons.arrow_forward,
+                acceptText: _approveButtonText(context),
                 onDecline: onDecline,
-                declineText: locale.approveOrganizationPageDenyCta,
+                declineText: _declineButtonText(context),
               ),
             ),
           ),
@@ -64,6 +78,7 @@ class ApproveOrganizationPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
@@ -78,7 +93,7 @@ class ApproveOrganizationPage extends StatelessWidget {
           Text(
             _headerTitleText(context),
             style: Theme.of(context).textTheme.displayMedium,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
           ),
         ],
       ),
@@ -97,35 +112,53 @@ class ApproveOrganizationPage extends StatelessWidget {
     }
   }
 
-  Widget _buildDescriptionSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            organization.shortName,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
+  Widget _buildInfoRows(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        isFirstInteractionWithOrganization
+            ? IconRow(
+                icon: Image.asset('assets/images/ic_first_share.png'),
+                text: Text(locale.approveOrganizationPageFirstInteraction),
+              )
+            : const SizedBox.shrink(),
+        IconRow(
+          icon: Icon(
+            Icons.flag_outlined,
+            color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 8),
-          Text(
-            organization.description,
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
+          text: Text(
+            //TODO: Replace [purpose.name] with the actual purpose once the mocks are updated.
+            locale.approveOrganizationPagePurpose(purpose.name),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDataIncorrectButton(BuildContext context) {
-    return Center(
-      child: TextIconButton(
-        child: Text(AppLocalizations.of(context).approveOrganizationPageIncorrectCta),
-        onPressed: () => PlaceholderScreen.show(context),
-      ),
-    );
+  String _approveButtonText(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    switch (purpose) {
+      case ApprovalPurpose.issuance:
+        return locale.approveOrganizationPageApproveCta;
+      case ApprovalPurpose.verification:
+        return locale.approveOrganizationPageShareWithApproveCta;
+      case ApprovalPurpose.sign:
+        return locale.approveOrganizationPageApproveCta;
+    }
+  }
+
+  String _declineButtonText(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    switch (purpose) {
+      case ApprovalPurpose.issuance:
+        return locale.approveOrganizationPageDenyCta;
+      case ApprovalPurpose.verification:
+        return locale.approveOrganizationPageShareWithDenyCta;
+      case ApprovalPurpose.sign:
+        return locale.approveOrganizationPageDenyCta;
+    }
   }
 }
 

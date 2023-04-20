@@ -19,12 +19,14 @@ class ConfirmButtons extends StatelessWidget {
   final String declineText;
   final IconData? acceptIcon;
   final IconData? declineIcon;
+  final bool forceVertical;
 
   const ConfirmButtons({
     required this.onDecline,
     required this.onAccept,
     required this.acceptText,
     required this.declineText,
+    this.forceVertical = false,
     this.acceptIcon = Icons.check,
     this.declineIcon = Icons.not_interested,
     Key? key,
@@ -49,7 +51,7 @@ class ConfirmButtons extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: _kHorizontalPadding, vertical: _kVerticalPadding),
       child: _buildDirectionalButtonsLayout(
         context,
-        vertical: buttonExceedsWidth,
+        vertical: forceVertical || buttonExceedsWidth,
       ),
     );
   }
@@ -58,7 +60,7 @@ class ConfirmButtons extends StatelessWidget {
   Widget _buildDirectionalButtonsLayout(BuildContext context, {required bool vertical}) {
     List<Widget> children = _buildButtons(context, vertical: vertical);
     if (vertical) {
-      return Column(children: children);
+      return Column(mainAxisSize: MainAxisSize.min, children: children);
     } else {
       return Row(children: children);
     }

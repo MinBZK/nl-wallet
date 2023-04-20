@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/widget/link_button.dart';
+import '../../common/widget/button/link_button.dart';
 
 class DataIncorrectOptionRow extends StatelessWidget {
   final String title, description, cta;

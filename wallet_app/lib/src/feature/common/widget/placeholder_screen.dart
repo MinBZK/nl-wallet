@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../wallet_routes.dart';
-import 'bottom_back_button.dart';
+import 'button/bottom_back_button.dart';
 
 const _kPlaceholderGenericIllustration = 'assets/non-free/images/placeholder_generic_illustration.png';
 const _kPlaceholderContractIllustration = 'assets/non-free/images/placeholder_contract_illustration.png';

@@ -3,7 +3,21 @@
   "@@locale": "en",
   "appTitle": "NL Wallet",
   "approveOrganizationPageApproveCta": "Yes, next",
+  "approveOrganizationPageShareWithApproveCta": "Yes, view request",
+  "approveOrganizationPageShareWithDenyCta": "No, stop",
+  "organizationButtonLabel": "About this organization",
+  "approveOrganizationPageFirstInteraction": "First request",
   "approveOrganizationPageDenyCta": "No, decline",
+  "@approveOrganizationPagePurpose": {
+    "placeholders": {
+      "purpose": {
+        "example": "Confirm appointment",
+        "type": "String"
+      }
+    },
+    "description": "Reason why this organization is requesting data"
+  },
+  "approveOrganizationPagePurpose": "Purpose: {purpose}",
   "approveOrganizationPageIncorrectCta": "Is something not right?",
   "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
   "@approveOrganizationPageReceiveFromTitle": {

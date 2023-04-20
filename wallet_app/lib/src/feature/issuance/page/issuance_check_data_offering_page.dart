@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../common/widget/check_data_offering_page.dart';
-import '../../common/widget/confirm_buttons.dart';
+import '../../common/widget/button/confirm_buttons.dart';
 
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDecline;

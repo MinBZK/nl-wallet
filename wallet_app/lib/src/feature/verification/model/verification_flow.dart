@@ -9,12 +9,14 @@ import 'organization.dart';
 class VerificationFlow extends Equatable {
   final String id;
   final Organization organization;
+  final bool hasPreviouslyInteractedWithOrganization;
   final List<Attribute> attributes;
   final Policy policy;
 
   const VerificationFlow({
     required this.id,
     required this.organization,
+    required this.hasPreviouslyInteractedWithOrganization,
     required this.attributes,
     required this.policy,
   });
@@ -26,5 +28,5 @@ class VerificationFlow extends Equatable {
   bool get hasMissingAttributes => missingAttributes.isNotEmpty;
 
   @override
-  List<Object?> get props => [id, organization, attributes, policy];
+  List<Object?> get props => [id, organization, hasPreviouslyInteractedWithOrganization, attributes, policy];
 }
