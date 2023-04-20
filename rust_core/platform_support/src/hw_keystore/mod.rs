@@ -32,14 +32,17 @@ pub trait ConstructableWithIdentifier {
     fn identifier(&self) -> &str;
 }
 
-/// Contract for ECDSA private keys suitable for use in the wallet, as the authentication key for the WP.
+/// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`PlatformSigningKey::signing_key()`].
+/// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
 pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
     // from ConstructableWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
+/// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
+/// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
+/// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
 pub trait PlatformEncryptionKey: ConstructableWithIdentifier {
     // from ConstructableWithIdentifier: new(), identifier()
 
