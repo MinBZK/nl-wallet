@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
-import '../limit_font_scaling.dart';
+import '../utility/limit_font_scaling.dart';
 import '../svg_or_image.dart';
 import 'card_holograph.dart';
 import 'card_logo.dart';

@@ -13,7 +13,7 @@ import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/change_language/bloc/change_language_bloc.dart';
 import 'feature/change_language/change_language_screen.dart';
-import 'feature/common/widget/do_on_init.dart';
+import 'feature/common/widget/utility/do_on_init.dart';
 import 'feature/history/detail/argument/history_detail_screen_argument.dart';
 import 'feature/history/detail/bloc/history_detail_bloc.dart';
 import 'feature/history/detail/history_detail_screen.dart';
@@ -218,7 +218,7 @@ WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<VerificationBloc>(
       create: (BuildContext context) {
-        return VerificationBloc(context.read(), context.read(), context.read())
+        return VerificationBloc(context.read(), context.read(), context.read(), context.read())
           ..add(VerificationLoadRequested(sessionId));
       },
       child: const VerificationScreen(),

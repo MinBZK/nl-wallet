@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../wallet_routes.dart';
-import '../link_button.dart';
+import '../button/link_button.dart';
 import 'policy_row.dart';
 
 class PolicySection extends StatelessWidget {

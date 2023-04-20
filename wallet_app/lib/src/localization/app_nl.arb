@@ -3,7 +3,21 @@
   "@@locale": "nl",
   "appTitle": "NL Wallet",
   "approveOrganizationPageApproveCta": "Ja, volgende",
+  "approveOrganizationPageShareWithApproveCta": "Ja, bekijk verzoek",
+  "approveOrganizationPageShareWithDenyCta": "Nee, stoppen",
+  "approveOrganizationPageFirstInteraction": "Eerste deelverzoek",
+  "@approveOrganizationPagePurpose": {
+    "placeholders": {
+      "purpose": {
+        "example": "Afspraak bevestigen",
+        "type": "String"
+      }
+    },
+    "description": "Reason why this organization is requesting data"
+  },
+  "approveOrganizationPagePurpose": "Reden: {purpose}",
   "approveOrganizationPageDenyCta": "Nee",
+  "organizationButtonLabel": "Over deze partij",
   "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
   "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
   "@approveOrganizationPageReceiveFromTitle": {

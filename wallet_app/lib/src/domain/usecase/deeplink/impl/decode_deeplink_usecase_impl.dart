@@ -10,6 +10,9 @@ import '../decode_deeplink_usecase.dart';
 
 /// Takes a [Uri] and attempts to provide a [NavigationRequest] that contains
 /// the information to navigate the user to the related destination.
+///
+/// Sample to trigger marketplace verify mock from the terminal:
+/// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deeplink#%7B%22id%22%3A%20%22MARKETPLACE_LOGIN%22%2C%22type%22%3A%20%22verify%22%7D" nl.rijksoverheid.edi.wallet
 class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
   DecodeDeeplinkUseCaseImpl();
 

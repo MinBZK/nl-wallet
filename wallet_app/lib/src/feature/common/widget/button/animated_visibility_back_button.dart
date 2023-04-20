@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../wallet_constants.dart';
+import '../../../../wallet_constants.dart';
 
 class AnimatedVisibilityBackButton extends StatelessWidget {
   final VoidCallback? onPressed;

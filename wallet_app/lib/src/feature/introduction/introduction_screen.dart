@@ -10,7 +10,7 @@ import '../../util/extension/num_extensions.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/placeholder_screen.dart';
-import '../common/widget/text_icon_button.dart';
+import '../common/widget/button/text_icon_button.dart';
 import 'page/introduction_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 

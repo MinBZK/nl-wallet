@@ -4,7 +4,7 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import 'attribute/data_attribute_row.dart';
 import 'card/wallet_card_item.dart';
-import 'link_button.dart';
+import 'button/link_button.dart';
 import 'placeholder_screen.dart';
 import 'sliver_sized_box.dart';
 

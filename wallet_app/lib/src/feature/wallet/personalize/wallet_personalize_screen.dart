@@ -6,7 +6,7 @@ import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
-import '../../common/widget/animated_visibility_back_button.dart';
+import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
