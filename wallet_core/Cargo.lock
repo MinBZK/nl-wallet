@@ -581,7 +581,6 @@ dependencies = [
 name = "flutter_api_macros"
 version = "0.1.0"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 2.0.11",
 ]
@@ -2379,15 +2378,10 @@ name = "wallet"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "der",
- "jsonwebtoken",
  "p256",
  "platform_support",
- "rand",
  "reqwest",
  "ring",
- "serde",
- "sha2",
  "thiserror",
  "wallet_common",
  "wallet_provider",
@@ -2399,7 +2393,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
- "der",
  "jsonwebtoken",
  "p256",
  "rand",
@@ -2415,15 +2408,12 @@ dependencies = [
  "axum",
  "base64 0.21.0",
  "der",
- "hyper",
  "jsonwebtoken",
  "p256",
  "rand",
  "serde",
- "serde_json",
  "sha2",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
