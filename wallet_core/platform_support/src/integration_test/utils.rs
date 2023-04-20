@@ -4,6 +4,10 @@ use std::io::{Read, Write};
 
 use crate::utils::PlatformUtilities;
 
+// This utility function is used both by the Rust integration test for the "software" feature
+// and by integration test performed from Android / iOS for the "hardware" feature.
+// This would normally fall under dev-dependencies, however we need it in the main binary
+// for the "hardware" integration test.
 pub fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     let original_message = "Hello, wallet!";
     let mut path = K::storage_path()
@@ -53,7 +57,7 @@ mod hardware {
     }
 
     #[no_mangle]
-    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_NativeUtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_UtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
         _env: JNIEnv,
         _: JClass,
     ) -> bool {

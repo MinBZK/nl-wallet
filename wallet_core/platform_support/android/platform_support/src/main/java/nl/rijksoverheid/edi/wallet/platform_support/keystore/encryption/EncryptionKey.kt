@@ -1,13 +1,15 @@
 // Inspired by AndroidCrypto: https://github.com/philipplackner/AndroidCrypto/issues/2#issuecomment-1267021656
-package nl.rijksoverheid.edi.wallet.platform_support.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
-import uniffi.platform_support.EncryptionKeyBridge
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.security.KeyStore
@@ -19,7 +21,7 @@ import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 
-class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKeyBridge {
+class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
@@ -34,9 +36,9 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
             NoSuchAlgorithmException::class,
             IllegalStateException::class
         )
-        fun createKey(context: Context, alias: String) {
+        fun createKey(context: Context, keyAlias: String) {
             val spec = KeyGenParameterSpec.Builder(
-                alias,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             ).setBlockModes(BLOCK_MODE)
                 .setEncryptionPaddings(PADDING)
@@ -52,7 +54,7 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
         }
     }
 
-    override fun encrypt(payload: List<UByte>): List<UByte> {
+    fun encrypt(payload: List<UByte>): List<UByte> {
         val cipher = encryptCipher
         val bytes = payload.toByteArray()
         val iv = cipher.iv
@@ -75,9 +77,10 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
             //////////////////////////////////
         }
         return outputStream.toByteArray().toUByteList()
+
     }
 
-    override fun decrypt(payload: List<UByte>): List<UByte> {
+    fun decrypt(payload: List<UByte>): List<UByte> {
         val inputStream = ByteArrayInputStream(payload.toByteArray())
         return inputStream.use {
             val iv = ByteArray(KEY_SIZE)
@@ -115,7 +118,6 @@ class AESKey(private val keyAlias: String) : KeyStoreKey(keyAlias), EncryptionKe
 
     private val secretKey: SecretKey
         get() = (keyStore.getEntry(keyAlias, null) as KeyStore.SecretKeyEntry).secretKey
-
 
     private val encryptCipher
         get() = Cipher.getInstance(TRANSFORMATION).apply {

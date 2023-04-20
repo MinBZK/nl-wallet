@@ -4,8 +4,10 @@ use p256::{
 };
 use wallet_common::account::signing_key::{EcdsaKey, SecureEcdsaKey};
 
-use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
-use crate::bridge::hw_keystore::{get_key_store, EncryptionKeyBridge, SigningKeyBridge};
+use super::{
+    ConstructableWithIdentifier, HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey,
+};
+use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
     // wrap KeyStoreError in p256::ecdsa::signature::error,
@@ -17,18 +19,12 @@ impl From<KeyStoreError> for p256::ecdsa::Error {
 
 // HardwareSigningKey wraps SigningKeyBridge from native
 pub struct HardwareEcdsaKey {
-    bridge: Box<dyn SigningKeyBridge>,
-}
-
-impl HardwareEcdsaKey {
-    fn new(bridge: Box<dyn SigningKeyBridge>) -> Self {
-        HardwareEcdsaKey { bridge }
-    }
+    identifier: String,
 }
 
 impl Signer<Signature> for HardwareEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
-        let signature_bytes = self.bridge.sign(msg.to_vec())?;
+        let signature_bytes = get_signing_key_bridge().sign(self.identifier.to_owned(), msg.to_vec())?;
 
         // decode the DER encoded signature
         Signature::from_der(&signature_bytes)
@@ -38,7 +34,7 @@ impl EcdsaKey for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let public_key_bytes = self.bridge.public_key()?;
+        let public_key_bytes = get_signing_key_bridge().public_key(self.identifier.to_owned())?;
         let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
         Ok(public_key)
@@ -46,45 +42,44 @@ impl EcdsaKey for HardwareEcdsaKey {
 }
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
-impl PlatformEcdsaKey for HardwareEcdsaKey {
-    fn signing_key(identifier: &str) -> Result<Self, HardwareKeyStoreError> {
-        let bridge = get_key_store().get_or_create_signing_key(identifier.to_string())?;
-        let key = HardwareEcdsaKey::new(bridge);
+impl ConstructableWithIdentifier for HardwareEcdsaKey {
+    fn new(identifier: &str) -> Self {
+        HardwareEcdsaKey {
+            identifier: identifier.to_string(),
+        }
+    }
 
-        Ok(key)
+    fn identifier(&self) -> &str {
+        &self.identifier
     }
 }
+impl PlatformEcdsaKey for HardwareEcdsaKey {}
 
-// HardwareSigningKey wraps SigningKeyBridge from native
+// HardwareEncryptionKey wraps EncryptionKeyBridge from native
 pub struct HardwareEncryptionKey {
-    bridge: Box<dyn EncryptionKeyBridge>,
+    identifier: String,
 }
 
-impl HardwareEncryptionKey {
-    fn new(bridge: Box<dyn EncryptionKeyBridge>) -> Self {
-        HardwareEncryptionKey { bridge }
+impl ConstructableWithIdentifier for HardwareEncryptionKey {
+    fn new(identifier: &str) -> Self {
+        HardwareEncryptionKey {
+            identifier: identifier.to_string(),
+        }
+    }
+
+    fn identifier(&self) -> &str {
+        &self.identifier
     }
 }
-
 impl PlatformEncryptionKey for HardwareEncryptionKey {
-    fn encryption_key(identifier: &str) -> Result<Self, HardwareKeyStoreError>
-    where
-        Self: Sized,
-    {
-        let bridge = get_key_store().get_or_create_encryption_key(identifier.to_string())?;
-        let key = HardwareEncryptionKey::new(bridge);
-
-        Ok(key)
-    }
-
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let result = self.bridge.encrypt(msg.to_vec())?;
+        let result = get_encryption_key_bridge().encrypt(self.identifier.to_owned(), msg.to_vec())?;
 
         Ok(result)
     }
 
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let result = self.bridge.decrypt(msg.to_vec())?;
+        let result = get_encryption_key_bridge().decrypt(self.identifier.to_owned(), msg.to_vec())?;
 
         Ok(result)
     }

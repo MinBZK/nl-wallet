@@ -45,9 +45,7 @@ impl AccountServerClient for RemoteAccountServer {
 
 #[cfg(test)]
 pub mod tests {
-    use rand::rngs::OsRng;
-
-    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
+    use platform_support::hw_keystore::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
     use wallet_common::account::signing_key::EcdsaKey;
     use wallet_provider::account_server::AccountServer;
 
@@ -61,7 +59,7 @@ pub mod tests {
         let account_server = AccountServer::new_stub();
 
         // Setup wallet
-        let hw_privkey: SoftwareEcdsaKey = p256::ecdsa::SigningKey::random(&mut OsRng).into();
+        let hw_privkey = SoftwareEcdsaKey::new("hw_privkey");
         let pin_privkey = PinKey::new("112233", b"salt");
 
         // Register

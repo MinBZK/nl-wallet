@@ -1,13 +1,16 @@
-package nl.rijksoverheid.edi.wallet.platform_support.keystore
+package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.security.keystore.KeyProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
 import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -18,77 +21,69 @@ import java.security.spec.X509EncodedKeySpec
 import kotlin.text.Charsets.US_ASCII
 
 @RunWith(AndroidJUnit4::class)
-class ECDSAKeyInstrumentedTest {
+class SigningKeyBridgeInstrumentedTest {
 
     companion object {
         private const val KEY_1_IDENTIFIER = "key1"
         private const val KEY_2_IDENTIFIER = "key2"
+
+        @JvmStatic
+        external fun hw_keystore_test_hardware_signature(): Boolean
     }
 
 
-    private lateinit var hwKeyStoreBridge: HwKeyStoreBridge
+    private lateinit var signingKeyBridge: SigningKeyBridge
 
     @Before
     fun setup() {
-        hwKeyStoreBridge = HwKeyStoreBridge.bridge as HwKeyStoreBridge
+        val context = InstrumentationRegistry.getInstrumentation().context
+        signingKeyBridge = PlatformSupport.getInstance(context).signingKeyBridge
     }
 
     @After
     fun cleanup() {
-        hwKeyStoreBridge.clean()
+        signingKeyBridge.clean()
     }
 
     @Test
     fun test_init() {
-        val key1 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER)
-        val key1again = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER)
-        assertNotEquals(
-            "Keys with same identifier are wrapped in different objects",
-            key1,
-            key1again
-        )
+        assertNotNull("SigningKeyBridge should be initialized", signingKeyBridge)
     }
 
     @Test
     fun test_pub_key() {
-        val key1 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key1again = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_2_IDENTIFIER) as ECDSAKey
         assertEquals(
             "Keys with the same identifier should be equal",
-            key1.publicKey(),
-            key1again.publicKey()
+            signingKeyBridge.publicKey(KEY_1_IDENTIFIER),
+            signingKeyBridge.publicKey(KEY_1_IDENTIFIER)
         )
         assertNotEquals(
             "Keys with a different identifier should not be equal",
-            key1.publicKey(),
-            key2.publicKey()
+            signingKeyBridge.publicKey(KEY_1_IDENTIFIER),
+            signingKeyBridge.publicKey(KEY_2_IDENTIFIER)
         )
     }
 
     @Test
     fun test_sign() {
-        val key1 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key1again = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_2_IDENTIFIER) as ECDSAKey
-
-
         val message = "This is a message that will be signed."
 
-        val emptySignature = key1.sign(emptyList())
-        val signature1 = key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
-        val signature1Repeat =
-            key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
-        val signature1Again =
-            key1again.sign(message.toByteArray(charset = US_ASCII).toUByteList())
-        val signature2 = key2.sign(message.toByteArray(charset = US_ASCII).toUByteList())
-
-        assertTrue("An empty payload should produce a signature", emptySignature.size > 0)
-        assertNotEquals(
-            "Signatures signed with the same key instance should differ",
-            signature1,
-            signature1Repeat
+        val emptySignature = signingKeyBridge.sign(KEY_1_IDENTIFIER, emptyList())
+        val signature1 = signingKeyBridge.sign(
+            KEY_1_IDENTIFIER,
+            message.toByteArray(charset = US_ASCII).toUByteList()
         )
+        val signature1Again =
+            signingKeyBridge.sign(
+                KEY_1_IDENTIFIER,
+                message.toByteArray(charset = US_ASCII).toUByteList()
+            )
+        val signature2 = signingKeyBridge.sign(
+            KEY_2_IDENTIFIER,
+            message.toByteArray(charset = US_ASCII).toUByteList()
+        )
+
+        assertTrue("An empty payload should produce a signature", emptySignature.isNotEmpty())
         assertNotEquals(
             "Signatures signed with the same key should differ",
             signature1,
@@ -103,19 +98,24 @@ class ECDSAKeyInstrumentedTest {
 
     @Test
     fun test_verify_signature() {
-        val key1 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
 
-        val signature1 = key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
+        val signature1 = signingKeyBridge.sign(
+            KEY_1_IDENTIFIER,
+            message.toByteArray(charset = US_ASCII).toUByteList()
+        )
         val signature1Repeat =
-            key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
+            signingKeyBridge.sign(
+                KEY_1_IDENTIFIER,
+                message.toByteArray(charset = US_ASCII).toUByteList()
+            )
 
         assertTrue(
             "Signature should be valid",
             isValidSignature(
                 signature1.toByteArray(),
                 message.toByteArray(),
-                key1.publicKey().toByteArray()
+                signingKeyBridge.publicKey(KEY_1_IDENTIFIER).toByteArray()
             )
         )
         assertTrue(
@@ -123,15 +123,13 @@ class ECDSAKeyInstrumentedTest {
             isValidSignature(
                 signature1Repeat.toByteArray(),
                 message.toByteArray(),
-                key1.publicKey().toByteArray()
+                signingKeyBridge.publicKey(KEY_1_IDENTIFIER).toByteArray()
             )
         )
     }
 
     @Test
     fun test_signature_mismatch() {
-        val key1 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_1_IDENTIFIER) as ECDSAKey
-        val key2 = hwKeyStoreBridge.getOrCreateSigningKey(KEY_2_IDENTIFIER) as ECDSAKey
         val message = "This is a message that will be signed."
         val otherMessage = "Some other message"
         assertNotEquals(
@@ -140,23 +138,37 @@ class ECDSAKeyInstrumentedTest {
             otherMessage
         )
 
-        val signature1 = key1.sign(message.toByteArray(charset = US_ASCII).toUByteList())
+        val messageSignature = signingKeyBridge.sign(
+            KEY_1_IDENTIFIER,
+            message.toByteArray(charset = US_ASCII).toUByteList()
+        )
 
         assertFalse(
             "Signature from different key should not be valid",
             isValidSignature(
-                signature1.toByteArray(),
+                messageSignature.toByteArray(),
                 message.toByteArray(),
-                key2.publicKey().toByteArray()
+                signingKeyBridge.publicKey(KEY_2_IDENTIFIER).toByteArray()
             )
         )
         assertFalse(
             "Signature with different payload should not be valid",
             isValidSignature(
-                signature1.toByteArray(),
+                messageSignature.toByteArray(),
                 otherMessage.toByteArray(),
-                key1.publicKey().toByteArray()
+                signingKeyBridge.publicKey(KEY_1_IDENTIFIER).toByteArray()
             )
+        )
+    }
+
+    @Test
+    fun bridge_test_signature() {
+        // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
+        System.loadLibrary("platform_support")
+
+        assertTrue(
+            "Could not complete signature round trip",
+            hw_keystore_test_hardware_signature()
         )
     }
 

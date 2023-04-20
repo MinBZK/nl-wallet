@@ -24,6 +24,8 @@ final class SecureEnclaveKey {
 
     private static let encryptionAlgorithm: SecKeyAlgorithm = .eciesEncryptionCofactorVariableIVX963SHA256AESGCM
 
+    private static let queue = DispatchQueue(label: String(describing: SecureEnclaveKey.self), qos: .userInitiated)
+
     // MARK: - Static methods
 
     private static func tag(from identifier: String) -> Data {
@@ -120,7 +122,6 @@ final class SecureEnclaveKey {
     let identifier: String
 
     private let privateKey: SecKey
-    private var _encodedPublicKey: Data?
 
     private var publicKey: SecKey {
         guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
@@ -135,26 +136,19 @@ final class SecureEnclaveKey {
     init(identifier: String) throws {
         self.identifier = identifier
 
-        self.privateKey = try {
+        self.privateKey = try Self.queue.sync(execute: {
             guard let privateKey = try Self.fetchKey(with: identifier) else {
                 return try Self.createKey(with: identifier)
             }
 
             return privateKey
-        }()
+        })
     }
 
     // MARK: - Instance methods
 
     func encodePublicKey() throws -> Data {
-        guard let encodedPublicKey = self._encodedPublicKey else {
-            let encodedPublicKey = try Self.encode(publicKey: self.publicKey)
-            self._encodedPublicKey = encodedPublicKey
-
-            return encodedPublicKey
-        }
-
-        return encodedPublicKey
+        return try Self.encode(publicKey: self.publicKey)
     }
 
     func sign(payload: Data) throws -> Data {
