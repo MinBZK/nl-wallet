@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "flutter_api",
+    "flutter_api_macros",
+    "platform_support",
+    "wallet",
+    "wallet_common"
+]
+exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"

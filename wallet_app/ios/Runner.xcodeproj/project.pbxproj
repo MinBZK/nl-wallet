@@ -59,7 +59,7 @@
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		6117501E299543F800ABDA02 /* bridge_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge_generated.h; sourceTree = "<group>"; };
-		61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PlatformSupport.xcodeproj; path = ../../rust_core/platform_support/ios/PlatformSupport.xcodeproj; sourceTree = "<group>"; };
+		61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PlatformSupport.xcodeproj; path = ../../wallet_core/platform_support/ios/PlatformSupport.xcodeproj; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
@@ -330,7 +330,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\n\"$HOME/.cargo/bin/cargo\" build --manifest-path \"$PROJECT_DIR/../../rust_core/Cargo.toml\" ${CARGO_FLAGS}\n";
+			shellScript = "if [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\n\"$HOME/.cargo/bin/cargo\" build --manifest-path \"$PROJECT_DIR/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -494,15 +494,15 @@
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios-sim/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/x86_64-apple-ios/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -645,15 +645,15 @@
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios/debug/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/debug/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios-sim/debug/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/debug/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/x86_64-apple-ios/debug/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libwallet_core.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -690,15 +690,15 @@
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/aarch64-apple-ios-sim/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a",
 				);
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../../rust_core/target/x86_64-apple-ios/release/librust_core.a",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
