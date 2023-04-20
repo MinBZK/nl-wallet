@@ -15,9 +15,9 @@ import '../../common/widget/attribute/data_attribute_row_image.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/explanation_sheet.dart';
-import '../../common/widget/link_button.dart';
+import '../../common/widget/button/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/text_icon_button.dart';
+import '../../common/widget/button/text_icon_button.dart';
 import '../../issuance/argument/issuance_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 

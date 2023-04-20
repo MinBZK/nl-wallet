@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../common/widget/text_icon_button.dart';
+import '../common/widget/button/text_icon_button.dart';
 import 'widget/data_incorrect_option_row.dart';
 
 class DataIncorrectScreen extends StatelessWidget {

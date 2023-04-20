@@ -5,7 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
 import '../common/widget/placeholder_screen.dart';
-import '../common/widget/text_icon_button.dart';
+import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/wallet_logo.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';

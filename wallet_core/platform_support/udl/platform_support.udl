@@ -1,0 +1,53 @@
+// hw_keystore module
+
+// Error type returned from native code
+[Error]
+interface KeyStoreError {
+    KeyError(string reason); // All exceptions in native code are represented by this error
+    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+// This bridge grants access to EC keys that are securely stored in hardware.
+// The identifier represents a string uniquely identifying a particular EC key pair.
+// These keys will lazily be created on first use.
+// Note that the namespace for the identifiers is completely separate from that of EncryptionKeyBridge.
+callback interface SigningKeyBridge {
+    [Throws=KeyStoreError]
+    sequence<u8> public_key(string identifier); // The public key in DER encoding
+
+    [Throws=KeyStoreError]
+    sequence<u8> sign(string identifier, sequence<u8> payload); // Returns a DER encoded signature
+};
+
+// This bridge grants access to encryption keys that are securely stored in hardware.
+// The identifier represents a string uniquely identifying a particular key.
+// These keys will lazily be created on first use.
+// The actual implementations on Android and iOS are slightly different,
+// with Android using an actual AES key, while iOS uses ECIES for encryption and decryption.
+// Note that the namespace for the identifiers is completely separate from that of SigningKeyBridge.
+callback interface EncryptionKeyBridge {
+    [Throws=KeyStoreError]
+    sequence<u8> encrypt(string identifier, sequence<u8> payload); // Returns encrypted payload
+
+    [Throws=KeyStoreError]
+    sequence<u8> decrypt(string identifier, sequence<u8> payload); // Returns decrypted payload
+};
+
+// utils module
+
+[Error]
+interface UtilitiesError {
+    PlatformError(string reason); // All exceptions in native code are represented by this error
+    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+callback interface UtilitiesBridge {
+    [Throws=UtilitiesError]
+    string get_storage_path();
+};
+
+namespace platform_support {
+    // Initialization function, this MUST be called by native code
+    // so that Rust is able to use the bridge callbacks
+    void init_platform_support(SigningKeyBridge signing_key, EncryptionKeyBridge encryption_key, UtilitiesBridge utils);
+};

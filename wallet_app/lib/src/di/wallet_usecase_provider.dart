@@ -33,8 +33,10 @@ import '../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../domain/usecase/deeplink/impl/decode_deeplink_usecase_impl.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
+import '../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
 import '../domain/usecase/history/impl/get_timeline_attribute_usecase_impl.dart';
 import '../domain/usecase/history/impl/get_wallet_timeline_attributes_usecase_impl.dart';
+import '../domain/usecase/history/impl/has_previously_interacted_with_organization_usecase_impl.dart';
 import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
 import '../domain/usecase/issuance/impl/get_issuance_response_usecase_impl.dart';
@@ -184,6 +186,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<IsWalletInitializedWithPid>(
           create: (context) => IsWalletInitializedWithPidImpl(context.read(), context.read()),
+        ),
+        RepositoryProvider<HasPreviouslyInteractedWithOrganizationUseCase>(
+          create: (context) => HasPreviouslyInteractedWithOrganizationUseCaseImpl(context.read()),
         ),
       ],
       child: child,

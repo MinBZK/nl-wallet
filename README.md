@@ -164,12 +164,14 @@ easiest way to do so is:
 2. Open Android Studio
     1. Tools -> SDK Manager
     2. Select 'SDK Tools' Tab
-    3. Uncheck 'hide obsolete packages'
-    4. Check 'NDK (obsolete)' in the list
-    5. Hit 'apply' to install (version 22.1.7171670)
-3. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
-   e.g. `echo "ANDROID_NDK_HOME=\"$HOME/Library/Android/sdk/ndk-bundle\"" >> ~/.gradle/gradle.properties`
-4. Finally run `cargo install cargo-ndk` to be able to build the Rust code for Android
+    3. Check latest 'NDK (Side by side)' in the list (>= v25.2.9519653)
+    4. Hit 'apply' to install
+3. Add `export ANDROID_HOME="$HOME/Library/Android/sdk"` to your `~/.bash_profile` or
+   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically 
+   picks up the NDK version you installed in the previous step
+4. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
+   e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
+5. Finally run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 
 #### iOS
 
@@ -195,13 +197,13 @@ You should now be able to launch an Android Emulator or iOS Simulator and run th
 
 All `Dart` code goes in the `wallet_app/lib/` directory and their appropriate sub-directories.
 
-All `Rust` code goes in the `rust_core/` directory and their appropriate sub-directories.
+All `Rust` code goes in the `wallet_core/` directory and their appropriate sub-directories.
 
 ### Flutter <-> Rust Bridge
-Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/rust_core/src/api.rs` and generation is done with the following command:
+Communication between the Flutter and Rust layers relies on the `flutter_rust_bridge` package, the bridge code is generated. The definition of this bridge can is located at `/wallet_core/src/api.rs` and generation is done with the following command:
 
 ```
-cargo run --manifest-path rust_core/flutter_rust_bridge_codegen/Cargo.toml
+cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
 ```
 
 The generated code is currently checked in, so that generation only has to be performed when the API changes.

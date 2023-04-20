@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/wallet_card.dart';
-import '../../common/widget/confirm_buttons.dart';
-import '../../common/widget/link_button.dart';
+import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/sliver_sized_box.dart';

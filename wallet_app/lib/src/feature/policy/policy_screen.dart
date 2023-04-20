@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/policy/policy.dart';
-import '../common/widget/bottom_back_button.dart';
+import '../common/widget/button/bottom_back_button.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';

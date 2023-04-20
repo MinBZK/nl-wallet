@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/link_button.dart';
+import '../../common/widget/button/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/verification_flow.dart';

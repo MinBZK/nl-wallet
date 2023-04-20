@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/document.dart';
 import '../../verification/model/organization.dart';
-import 'link_button.dart';
+import 'button/link_button.dart';
 import 'placeholder_screen.dart';
 
 class DocumentSection extends StatelessWidget {

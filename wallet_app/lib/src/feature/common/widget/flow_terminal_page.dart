@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'status_icon.dart';
-import 'text_icon_button.dart';
+import 'button/text_icon_button.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/verification flow.
 class FlowTerminalPage extends StatelessWidget {
