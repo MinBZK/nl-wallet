@@ -9,34 +9,53 @@ use super::password::{delete_password, get_or_create_password};
 
 const PRAGMA_KEY: &str = "key";
 
-pub async fn open_database<K: PlatformEncryptionKey, U: PlatformUtilities>(name: &str) -> Result<Connection> {
-    // Get path to database, stored as "<storage_path>/<name>.db"
-    let path = U::storage_path()?.join(format!("{}.db", name));
-    // Get database password, stored in encrypted file.
-    let password = get_or_create_password::<K, U>(name).await?;
-    // Open database connection
-    let connection = Connection::open(path)?;
-
-    // Set database password using PRAGMA statement
-    block_in_place(|| connection.pragma_update(None, PRAGMA_KEY, password))?;
-
-    Ok(connection)
+pub struct Database {
+    pub name: String,
+    connection: Connection,
 }
 
-pub async fn close_and_delete_database<U: PlatformUtilities>(connection: Connection) -> Result<bool> {
-    // Get the path from the database connection, assume it has one.
-    let path = PathBuf::from_str(connection.path().unwrap()).unwrap();
+impl Database {
+    fn new(name: String, connection: Connection) -> Self {
+        Database { name, connection }
+    }
 
-    // Close the database connection and remove the file.
-    block_in_place(|| connection.close()).map_err(|(_, e)| e)?;
-    let remove_result = fs::remove_file(&path).await;
+    pub async fn open<K: PlatformEncryptionKey, U: PlatformUtilities>(name: impl Into<String>) -> Result<Self> {
+        let name = name.into();
+        // Get path to database, stored as "<storage_path>/<name>.db"
+        let path = U::storage_path()?.join(format!("{}.db", &name));
+        // Get database password, stored in encrypted file.
+        let password = get_or_create_password::<K, U>(&name).await?;
+        // Open database connection
+        let connection = block_in_place(|| Connection::open(path))?;
 
-    // Also delete the password used to encrypt the database, assume we can get the name from the path.
-    let name = path.file_stem().unwrap();
-    delete_password::<U>(name.to_str().unwrap()).await?;
+        // Set database password using PRAGMA statement
+        block_in_place(|| connection.pragma_update(None, PRAGMA_KEY, password))?;
 
-    // Return true if the delete did not result in an error.
-    Ok(remove_result.is_ok())
+        Ok(Self::new(name, connection))
+    }
+
+    pub async fn close_and_delete<U: PlatformUtilities>(
+        self,
+    ) -> std::result::Result<(), (Option<Self>, anyhow::Error)> {
+        // Get the path from the database connection, assume it has one.
+        let path = PathBuf::from_str(self.connection.path().unwrap()).unwrap();
+
+        // Close the database connection, return a new Database instance if we could not close.
+        block_in_place(|| self.connection.close()).map_err(|(connection, error)| {
+            (
+                Some(Self::new(self.name.clone(), connection)),
+                anyhow::Error::new(error),
+            )
+        })?;
+
+        // Remove the database file and ignore any errors.
+        _ = fs::remove_file(&path).await;
+
+        // Delete the password file and remap errors (note that deletion errors will be ignored).
+        delete_password::<U>(&self.name).await.map_err(|e| (None, e))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -61,45 +80,48 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_open_database() -> Result<()> {
+    async fn test_database() -> Result<()> {
         let db_name = "test_db";
 
-        // Make sure we start with a clean slate
+        // Make sure we start with a clean slate.
         delete_database::<SoftwareUtilities>(db_name).await?;
 
-        // Create a new (encrypted) database
-        let conn = open_database::<SoftwareEncryptionKey, SoftwareUtilities>(db_name).await?;
+        // Create a new (encrypted) database.
+        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name).await?;
 
-        // Create a table for our [Person] model
-        conn.execute(
-            "CREATE TABLE person (
+        // Create a table for our [Person] model.
+        db.connection
+            .execute(
+                "CREATE TABLE person (
             id    INTEGER PRIMARY KEY,
             name  TEXT NOT NULL,
             data  BLOB
         )",
-            [],
-        )
-        .expect("Could not create table");
+                [],
+            )
+            .expect("Could not create table");
 
-        // Create and insert our test Person
+        // Create and insert our test Person.
         let me = Person {
             id: 1337,
             name: "Willeke".to_string(),
             data: None,
         };
-        conn.execute(
-            "INSERT INTO person (id, name, data) VALUES (?1, ?2, ?3)",
-            params![&me.id, &me.name, &me.data],
-        )
-        .expect("Could not insert person");
+        db.connection
+            .execute(
+                "INSERT INTO person (id, name, data) VALUES (?1, ?2, ?3)",
+                params![&me.id, &me.name, &me.data],
+            )
+            .expect("Could not insert person");
 
         {
-            // Query our person table for any [Person]s
-            let mut stmt = conn
+            // Query our person table for any [Person]s.
+            let mut stmt = db
+                .connection
                 .prepare("SELECT id, name, data FROM person")
                 .expect("Could not execute select statement");
 
-            // Map our query results back to our [Person] model
+            // Map our query results back to our [Person] model.
             let person_iter = stmt
                 .query_map([], |row| {
                     Ok(Person {
@@ -110,7 +132,7 @@ mod tests {
                 })
                 .expect("Could not create iterator");
 
-            // Verify our test [Person] was correctly inserted
+            // Verify our test [Person] was correctly inserted.
             let mut person_count = 0;
             for person in person_iter {
                 let result = person.unwrap();
@@ -120,11 +142,11 @@ mod tests {
                 person_count += 1;
             }
 
-            // Verify we really checked our test person (and did not loop over empty iterator)
+            // Verify we really checked our test person (and did not loop over empty iterator).
             assert_eq!(person_count, 1);
         }
 
-        close_and_delete_database::<SoftwareUtilities>(conn).await?;
+        db.close_and_delete::<SoftwareUtilities>().await.map_err(|(_, e)| e)?;
 
         Ok(())
     }
