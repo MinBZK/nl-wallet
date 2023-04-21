@@ -3,8 +3,8 @@
 #![allow(dead_code)]
 
 mod account_server;
-pub mod database;
 pub mod pin;
+mod storage;
 pub mod wallet;
 
 use platform_support::preferred;

@@ -504,17 +504,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "database"
-version = "0.1.0"
-dependencies = [
- "platform_support",
- "rand",
- "rusqlite",
- "tokio",
- "wallet",
-]
-
-[[package]]
 name = "der"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2603,6 +2592,7 @@ dependencies = [
  "platform_support",
  "reqwest",
  "ring",
+ "rusqlite",
  "tempfile",
  "thiserror",
  "tokio",
