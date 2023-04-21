@@ -651,7 +651,6 @@ dependencies = [
 name = "flutter_api_macros"
 version = "0.1.0"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 2.0.11",
 ]
@@ -1315,18 +1314,18 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl-src"
-version = "111.25.2+1.1.1t"
+version = "111.25.3+1.1.1t"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320708a054ad9b3bf314688b5db87cf4d6683d64cfc835e2337924ae62bf4431"
+checksum = "924757a6a226bf60da5f7dd0311a34d2b52283dd82ddeb103208ddc66362f80c"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.85"
+version = "0.9.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d3d193fb1488ad46ffe3aaabc912cc931d02ee8518fe2959aea8ef52718b0c0"
+checksum = "992bac49bdbab4423199c654a5515bd2a6c6a23bf03f2dd3bdb7e5ae6259bc69"
 dependencies = [
  "cc",
  "libc",
@@ -2600,15 +2599,10 @@ name = "wallet"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "der",
- "jsonwebtoken",
  "p256",
  "platform_support",
- "rand",
  "reqwest",
  "ring",
- "serde",
- "sha2",
  "tempfile",
  "thiserror",
  "tokio",
@@ -2622,7 +2616,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
- "der",
  "jsonwebtoken",
  "p256",
  "rand",
@@ -2638,15 +2631,12 @@ dependencies = [
  "axum",
  "base64 0.21.0",
  "der",
- "hyper",
  "jsonwebtoken",
  "p256",
  "rand",
  "serde",
- "serde_json",
  "sha2",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
