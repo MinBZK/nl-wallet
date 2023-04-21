@@ -1,14 +1,12 @@
 use std::fs;
 use std::str;
 
-use rand::distributions::{Alphanumeric, DistString};
 use rusqlite::Connection;
 
 use platform_support::hw_keystore::software::SoftwareEncryptionKey;
-use platform_support::hw_keystore::ConstructableWithIdentifier;
-use platform_support::hw_keystore::PlatformEncryptionKey;
 use platform_support::utils::software::SoftwareUtilities;
 use platform_support::utils::PlatformUtilities;
+use wallet::database::password::get_or_create_password;
 
 pub async fn get_or_create_db(db_name: &str) -> Connection {
     //Get path to database
@@ -17,14 +15,16 @@ pub async fn get_or_create_db(db_name: &str) -> Connection {
     let db_path = storage_path.join(format!("{}.db", db_name));
 
     // Get db password
-    let db_password = get_or_create_password(db_name).await;
+    let db_password = get_or_create_password::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+        .await
+        .expect("Could not get or create password");
 
     // Open db
     let conn = Connection::open(db_path).expect("Failed to open database");
 
     // Enable SQLCipher / Db Encryption
     let encrypt_statement = format!("PRAGMA key = '{}';", &db_password);
-    conn.prepare(&*encrypt_statement).expect("Could not encrypt database");
+    conn.prepare(&encrypt_statement).expect("Could not encrypt database");
 
     // return db connection
     conn
@@ -40,48 +40,7 @@ fn delete_db(db_name: &str) {
     }
 
     // Database password relies on same name password file, clean that up too.
-    delete_password(db_name);
-}
-
-pub async fn get_or_create_password(alias: &str) -> String {
-    // Get path to password file
-    //TODO: Migrate to generic PlatformUtilities
-    let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
-    let pw_file_path = storage_path.join(format!("{}.pass", alias));
-
-    if pw_file_path.exists() {
-        // Open file
-        let contents = fs::read(pw_file_path).expect("Unable to read password from file");
-        //TODO: Migrate to generic PlatformEncryptionKey
-        let key = SoftwareEncryptionKey::new("database");
-        let decrypted_contents = key.decrypt(&contents).expect("Could not decrypt contents");
-        let password = str::from_utf8(&decrypted_contents).expect("Could not convert");
-        password.to_string()
-    } else {
-        // Generate password
-        let new_password = generate_db_password();
-        //TODO: Migrate to generic PlatformEncryptionKey
-        let key = SoftwareEncryptionKey::new("database");
-        let encrypted_pass = key
-            .encrypt(new_password.as_bytes())
-            .expect("Could not encrypt password");
-        fs::write(pw_file_path, &encrypted_pass).expect("Unable to write password to file");
-        new_password
-    }
-}
-
-fn delete_password(alias: &str) {
-    // Get path to the password file
-    //TODO: Migrate to generic PlatformUtilities
-    let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
-    let db_path = storage_path.join(format!("{}.pass", alias));
-    if db_path.exists() {
-        fs::remove_file(db_path).expect("Failed to delete password");
-    }
-}
-
-fn generate_db_password() -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), 24)
+    _ = fs::remove_file(storage_path.join(format!("{}.pass", db_name)));
 }
 
 #[cfg(test)]
@@ -94,34 +53,6 @@ mod tests {
         id: i32,
         name: String,
         data: Option<Vec<u8>>,
-    }
-
-    #[test]
-    fn test_generate_password() {
-        assert_eq!(24, generate_db_password().len())
-    }
-
-    #[tokio::test]
-    async fn test_create_and_get_password() {
-        let alias = "password_alias";
-        // Make sure we start with a clean slate
-        delete_password(alias);
-        let created_pass = get_or_create_password(alias).await;
-        let fetched_pass = get_or_create_password(alias).await;
-        assert_eq!(created_pass, fetched_pass)
-    }
-
-    #[tokio::test]
-    async fn test_password_should_be_unique() {
-        let alias = "password1";
-        let alias2 = "password2";
-        // Make sure we start with a clean slate
-        delete_password(alias);
-        delete_password(alias2);
-
-        let pass1 = get_or_create_password(alias).await;
-        let pass2 = get_or_create_password(alias2).await;
-        assert_ne!(pass1, pass2)
     }
 
     #[tokio::test]
