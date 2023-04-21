@@ -6,6 +6,7 @@ use rusqlite::Connection;
 use platform_support::hw_keystore::software::SoftwareEncryptionKey;
 use platform_support::utils::software::SoftwareUtilities;
 use platform_support::utils::PlatformUtilities;
+use wallet::database::password::delete_password;
 use wallet::database::password::get_or_create_password;
 
 pub async fn get_or_create_db(db_name: &str) -> Connection {
@@ -30,7 +31,7 @@ pub async fn get_or_create_db(db_name: &str) -> Connection {
     conn
 }
 
-fn delete_db(db_name: &str) {
+async fn delete_db(db_name: &str) {
     // Get path to database
     //TODO: Migrate to generic PlatformUtilities
     let storage_path = SoftwareUtilities::storage_path().expect("Could not get storage path");
@@ -40,7 +41,9 @@ fn delete_db(db_name: &str) {
     }
 
     // Database password relies on same name password file, clean that up too.
-    _ = fs::remove_file(storage_path.join(format!("{}.pass", db_name)));
+    _ = delete_password::<SoftwareUtilities>(db_name)
+        .await
+        .expect("Could not delete password");
 }
 
 #[cfg(test)]
@@ -60,7 +63,7 @@ mod tests {
         let db_name = "test_db";
 
         // Make sure we start with a clean slate
-        delete_db(db_name);
+        delete_db(db_name).await;
 
         // Create a new (encrypted) database
         let conn = get_or_create_db(db_name).await;

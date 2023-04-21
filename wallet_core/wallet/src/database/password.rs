@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Ok, Result};
 use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
@@ -10,11 +10,26 @@ const PASSWORD_LENGTH: usize = 32;
 pub async fn get_or_create_password<K: PlatformEncryptionKey, U: PlatformUtilities>(alias: &str) -> Result<String> {
     // Path to password file will be "<storage_path>/<alias>.pass",
     // it will be encrypted with a key named "passwordfile_<alias>".
-    let path = U::storage_path()?.join(format!("{}.pass", alias));
+    let path = path_for_password::<U>(alias)?;
     let encryption_key = K::new(&format!("passwordfile_{}", alias));
 
     // Decrypt file at path, create password and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_string(PASSWORD_LENGTH)).await
+}
+
+pub async fn delete_password<U: PlatformUtilities>(alias: &str) -> Result<bool> {
+    let path = path_for_password::<U>(alias)?;
+    let remove_result = fs::remove_file(&path).await;
+
+    // Return true if the delete did not result in an error.
+    Ok(remove_result.is_ok())
+}
+
+fn path_for_password<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
+    let storage_path = U::storage_path()?;
+    let path = storage_path.join(format!("{}.pass", alias));
+
+    Ok(path)
 }
 
 async fn get_or_create_encrypted_file_contents(
@@ -125,13 +140,9 @@ mod tests {
         let alias1 = "test_get_or_create_password1".to_string();
         let alias2 = "test_get_or_create_password2".to_string();
 
-        let path = SoftwareUtilities::storage_path()?;
-        let alias1_path = path.join(format!("{}.pass", alias1));
-        let alias2_path = path.join(format!("{}.pass", alias2));
-
-        // Make sure we start with a clean slate, ignore errors.
-        _ = fs::remove_file(alias1_path.clone()).await;
-        _ = fs::remove_file(alias2_path.clone()).await;
+        // Make sure we start with a clean slate.
+        delete_password::<SoftwareUtilities>(&alias1).await?;
+        delete_password::<SoftwareUtilities>(&alias2).await?;
 
         // Create three passwords, two of them with the same alias.
         let password1 = get_or_create_password::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1).await?;
@@ -144,8 +155,8 @@ mod tests {
         assert_eq!(password1, password1_again);
 
         // Cleanup after ourselves.
-        fs::remove_file(alias1_path).await?;
-        fs::remove_file(alias2_path).await?;
+        delete_password::<SoftwareUtilities>(&alias1).await?;
+        delete_password::<SoftwareUtilities>(&alias2).await?;
 
         Ok(())
     }
