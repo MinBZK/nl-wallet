@@ -3,31 +3,32 @@ use std::path::{Path, PathBuf};
 use anyhow::{Ok, Result};
 use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use tokio::fs;
-use wallet_common::utils::random_string;
+use wallet_common::utils::random_bytes;
 
-const PASSWORD_LENGTH: usize = 32;
+pub async fn get_or_create_key<K: PlatformEncryptionKey, U: PlatformUtilities>(
+    alias: &str,
+    byte_length: usize,
+) -> Result<Vec<u8>> {
+    // Path to key file will be "<storage_path>/<alias>.key",
+    // it will be encrypted with a key named "keyfile_<alias>".
+    let path = path_for_key::<U>(alias)?;
+    let encryption_key = K::new(&format!("keyfile_{}", alias));
 
-pub async fn get_or_create_password<K: PlatformEncryptionKey, U: PlatformUtilities>(alias: &str) -> Result<String> {
-    // Path to password file will be "<storage_path>/<alias>.pass",
-    // it will be encrypted with a key named "passwordfile_<alias>".
-    let path = path_for_password::<U>(alias)?;
-    let encryption_key = K::new(&format!("passwordfile_{}", alias));
-
-    // Decrypt file at path, create password and write to file if needed.
-    get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_string(PASSWORD_LENGTH)).await
+    // Decrypt file at path, create key and write to file if needed.
+    get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
 }
 
-pub async fn delete_password<U: PlatformUtilities>(alias: &str) -> Result<bool> {
-    let path = path_for_password::<U>(alias)?;
+pub async fn delete_key<U: PlatformUtilities>(alias: &str) -> Result<bool> {
+    let path = path_for_key::<U>(alias)?;
     let remove_result = fs::remove_file(&path).await;
 
     // Return true if the delete did not result in an error.
     Ok(remove_result.is_ok())
 }
 
-fn path_for_password<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
+fn path_for_key<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
     let storage_path = U::storage_path()?;
-    let path = storage_path.join(format!("{}.pass", alias));
+    let path = storage_path.join(format!("{}.key", alias));
 
     Ok(path)
 }
@@ -35,21 +36,19 @@ fn path_for_password<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
 async fn get_or_create_encrypted_file_contents(
     path: &Path,
     encryption_key: &impl PlatformEncryptionKey,
-    default: impl FnOnce() -> String,
-) -> Result<String> {
+    default: impl FnOnce() -> Vec<u8>,
+) -> Result<Vec<u8>> {
     // If no file at the path exsits, call the default closure to get the desired contents,
     // ecnrypt it and write it to a new file at the path.
     if !fs::try_exists(path).await? {
         let contents = default();
-        write_encrypted_file(path, contents.as_bytes(), encryption_key).await?;
+        write_encrypted_file(path, &contents, encryption_key).await?;
 
         return Ok(contents);
     }
 
-    // Otherwise, decrypt the file and return its contents as a String
-    let contents = String::from_utf8(read_encrypted_file(path, encryption_key).await?)?;
-
-    Ok(contents)
+    // Otherwise, decrypt the file and return its contents
+    read_encrypted_file(path, encryption_key).await
 }
 
 async fn write_encrypted_file(path: &Path, contents: &[u8], encryption_key: &impl PlatformEncryptionKey) -> Result<()> {
@@ -117,46 +116,47 @@ mod tests {
         let default = || {
             *default_counter.borrow_mut() += 1;
 
-            contents.to_string()
+            contents.as_bytes().to_vec()
         };
 
         // This should create a new file and call the default closure.
         let contents1 = get_or_create_encrypted_file_contents(&path, &encryption_key, default).await?;
 
-        assert_eq!(contents1, contents);
+        assert_eq!(contents1, contents.as_bytes());
         assert_eq!(*default_counter.borrow(), 1);
 
         // This should read the encrypted file from disk and not call the default closure.
         let contents2 = get_or_create_encrypted_file_contents(&path, &encryption_key, default).await?;
 
-        assert_eq!(contents2, contents);
+        assert_eq!(contents2, contents.as_bytes());
         assert_eq!(*default_counter.borrow(), 1);
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_or_create_password() -> Result<()> {
-        let alias1 = "test_get_or_create_password1".to_string();
-        let alias2 = "test_get_or_create_password2".to_string();
+    async fn test_get_or_create_key() -> Result<()> {
+        let alias1 = "test_get_or_create_key1".to_string();
+        let alias2 = "test_get_or_create_key2".to_string();
+        let byte_length: usize = 48;
 
         // Make sure we start with a clean slate.
-        delete_password::<SoftwareUtilities>(&alias1).await?;
-        delete_password::<SoftwareUtilities>(&alias2).await?;
+        delete_key::<SoftwareUtilities>(&alias1).await?;
+        delete_key::<SoftwareUtilities>(&alias2).await?;
 
-        // Create three passwords, two of them with the same alias.
-        let password1 = get_or_create_password::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1).await?;
-        let password2 = get_or_create_password::<SoftwareEncryptionKey, SoftwareUtilities>(&alias2).await?;
-        let password1_again = get_or_create_password::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1).await?;
+        // Create three keys, two of them with the same alias.
+        let key1 = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
+        let key2 = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias2, byte_length).await?;
+        let key1_again = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
 
-        assert!(!password1.is_empty());
-        assert!(!password2.is_empty());
-        assert_ne!(password1, password2);
-        assert_eq!(password1, password1_again);
+        assert!(!key1.is_empty());
+        assert!(!key2.is_empty());
+        assert_ne!(key1, key2);
+        assert_eq!(key1, key1_again);
 
         // Cleanup after ourselves.
-        delete_password::<SoftwareUtilities>(&alias1).await?;
-        delete_password::<SoftwareUtilities>(&alias2).await?;
+        delete_key::<SoftwareUtilities>(&alias1).await?;
+        delete_key::<SoftwareUtilities>(&alias2).await?;
 
         Ok(())
     }

@@ -1,13 +1,41 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{array::TryFromSliceError, path::PathBuf, str::FromStr};
 
 use anyhow::Result;
 use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use rusqlite::Connection;
 use tokio::{fs, task::block_in_place};
 
-use super::password::{delete_password, get_or_create_password};
+use super::key::{delete_key, get_or_create_key};
 
 const PRAGMA_KEY: &str = "key";
+
+/// This represents a 32-bytes encryption key and 16-byte salt. See:
+/// https://www.zetetic.net/sqlcipher/sqlcipher-api/#example-3-raw-key-data-with-explicit-salt-without-key-derivation
+const KEY_BYTE_LENGTH: usize = 32 + 16;
+
+// A database key with an exact length in bytes
+#[derive(Clone, Copy)]
+struct DatabaseKey<const N: usize>([u8; N]);
+
+// Pass through TryFrom blanket implementation for arrays from slices
+impl<const N: usize> TryFrom<&[u8]> for DatabaseKey<N> {
+    type Error = TryFromSliceError;
+
+    fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
+        let bytes = <[u8; N]>::try_from(value)?;
+
+        Ok(DatabaseKey(bytes))
+    }
+}
+
+// Implement hex blob encoding
+impl<const N: usize> DatabaseKey<N> {
+    fn as_string(&self) -> String {
+        let hex: String = self.0.iter().map(|b| format!("{:02X}", b)).collect();
+
+        format!(r#""x'{}'""#, hex)
+    }
+}
 
 pub struct Database {
     pub name: String,
@@ -23,13 +51,14 @@ impl Database {
         let name = name.into();
         // Get path to database, stored as "<storage_path>/<name>.db"
         let path = U::storage_path()?.join(format!("{}.db", &name));
-        // Get database password, stored in encrypted file.
-        let password = get_or_create_password::<K, U>(&name).await?;
+        // Get database key of length KEY_BYTE_LENGTH, stored in encrypted file.
+        let key_bytes = get_or_create_key::<K, U>(&name, KEY_BYTE_LENGTH).await?;
+        let key = DatabaseKey::<KEY_BYTE_LENGTH>::try_from(key_bytes.as_slice())?;
         // Open database connection
         let connection = block_in_place(|| Connection::open(path))?;
 
         // Set database password using PRAGMA statement
-        block_in_place(|| connection.pragma_update(None, PRAGMA_KEY, password))?;
+        block_in_place(|| connection.execute_batch(&format!("PRAGMA key = {};", key.as_string())))?;
 
         Ok(Self::new(name, connection))
     }
@@ -52,7 +81,7 @@ impl Database {
         _ = fs::remove_file(&path).await;
 
         // Delete the password file and remap errors (note that deletion errors will be ignored).
-        delete_password::<U>(&self.name).await.map_err(|e| (None, e))?;
+        delete_key::<U>(&self.name).await.map_err(|e| (None, e))?;
 
         Ok(())
     }
@@ -68,7 +97,7 @@ mod tests {
     async fn delete_database<U: PlatformUtilities>(name: &str) -> Result<()> {
         let path = U::storage_path()?.join(format!("{}.db", name));
         _ = fs::remove_file(&path).await;
-        delete_password::<U>(name).await?;
+        delete_key::<U>(name).await?;
 
         Ok(())
     }
