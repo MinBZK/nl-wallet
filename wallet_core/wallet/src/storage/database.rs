@@ -38,6 +38,9 @@ impl Database {
         Ok(Self::new(name, connection))
     }
 
+    /// If the database could not be closed for some reason, this will return
+    /// another instance of [`Database`] as the first entry of the Result error tuple.
+    /// Closing and deleting the database may then be tried at another point in time.
     pub async fn close_and_delete<U: PlatformUtilities>(
         self,
     ) -> std::result::Result<(), (Option<Self>, anyhow::Error)> {
@@ -45,12 +48,11 @@ impl Database {
         let path = PathBuf::from_str(self.connection.path().unwrap()).unwrap();
 
         // Close the database connection, return a new Database instance if we could not close.
-        block_in_place(|| self.connection.close()).map_err(|(connection, error)| {
-            (
-                Some(Self::new(self.name.clone(), connection)),
-                anyhow::Error::new(error),
-            )
-        })?;
+        let result = block_in_place(|| self.connection.close());
+        if result.is_err() {
+            return result
+                .map_err(|(connection, error)| (Some(Self::new(self.name, connection)), anyhow::Error::new(error)));
+        }
 
         // Remove the database file and ignore any errors.
         _ = fs::remove_file(&path).await;
