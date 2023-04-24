@@ -69,12 +69,14 @@ pub struct Response {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ResponseSignaturePayload {
-    challenge: Vec<u8>,
+    challenge: ByteBuf,
 }
 
 impl ResponseSignaturePayload {
     pub fn new(challenge: Vec<u8>) -> ResponseSignaturePayload {
-        ResponseSignaturePayload { challenge }
+        ResponseSignaturePayload {
+            challenge: ByteBuf::from(challenge),
+        }
     }
 }
 

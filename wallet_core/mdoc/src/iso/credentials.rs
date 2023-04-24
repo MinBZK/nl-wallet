@@ -184,15 +184,14 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 pub struct IssuerSignedItem {
     #[serde(rename = "digestID")]
     pub digest_id: u32,
-    #[serde(with = "serde_bytes")]
-    pub random: Vec<u8>,
+    pub random: ByteBuf,
     pub element_identifier: String,
     pub element_value: Value,
 }
 
 impl IssuerSignedItem {
     pub fn new(digest_id: u32, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
-        let random = random_bytes(32)?;
+        let random = ByteBuf::from(random_bytes(32)?);
         Ok(IssuerSignedItem {
             digest_id,
             random,

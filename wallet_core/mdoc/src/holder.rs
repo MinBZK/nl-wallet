@@ -4,6 +4,7 @@ use ecdsa::SigningKey;
 use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer};
 use indexmap::IndexMap;
 use p256::NistP256;
+use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::X509Certificate;
 
@@ -286,7 +287,7 @@ impl Entry {
     fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
         IssuerSignedItem {
             digest_id: index as u32,
-            random,
+            random: ByteBuf::from(random),
             element_identifier: self.name.clone(),
             element_value: self.value.clone(),
         }

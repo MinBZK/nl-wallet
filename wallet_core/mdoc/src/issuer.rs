@@ -2,7 +2,6 @@ use anyhow::Result;
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
-use serde_bytes::ByteBuf;
 
 use crate::cose::MdocCose;
 use crate::{
@@ -67,12 +66,7 @@ impl Issuer {
         Ok(SparseIssuerSigned {
             randoms: attrs
                 .into_iter()
-                .map(|(namespace, attrs)| {
-                    (
-                        namespace,
-                        attrs.0.into_iter().map(|attr| ByteBuf::from(attr.0.random)).collect(),
-                    )
-                })
+                .map(|(namespace, attrs)| (namespace, attrs.0.into_iter().map(|attr| attr.0.random).collect()))
                 .collect(),
             sparse_issuer_auth: SparseIssuerAuth {
                 version: "1.0".to_string(),
