@@ -18,12 +18,13 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtiliti
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
 }
 
-pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<bool> {
+pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<()> {
     let path = path_for_key_file::<U>(alias)?;
-    let remove_result = fs::remove_file(&path).await;
+    // Ignore any errors when removing the file,
+    // as we do not want this to propagate.
+    let _ = fs::remove_file(&path).await;
 
-    // Return true if the delete did not result in an error.
-    Ok(remove_result.is_ok())
+    Ok(())
 }
 
 fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
