@@ -10,43 +10,40 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02X}", b)).collect()
 }
 
-/// Filled in const generics for struct below, only one actually supported by SQLCipher.
-const AES_KEY_LENGTH: usize = 32;
-const AES_SALT_LENGTH: usize = 16;
-
-pub type Aes256SqlCipherKey = SqlCipherKey<AES_KEY_LENGTH, AES_SALT_LENGTH>;
+const KEY_LENGTH: usize = 32;
+const SALT_LENGTH: usize = 16;
 
 /// This represents a 32-bytes encryption key and 16-byte salt. See:
 /// https://www.zetetic.net/sqlcipher/sqlcipher-api/#example-3-raw-key-data-with-explicit-salt-without-key-derivation
 #[derive(Clone, Copy)]
-pub struct SqlCipherKey<const N: usize, const M: usize> {
-    key: [u8; N],
-    salt: Option<[u8; M]>,
+pub struct SqlCipherKey {
+    key: [u8; KEY_LENGTH],
+    salt: Option<[u8; SALT_LENGTH]>,
 }
 
-impl<const N: usize, const M: usize> SqlCipherKey<N, M> {
-    pub fn new(key: [u8; N], salt: Option<[u8; M]>) -> Self {
+impl SqlCipherKey {
+    pub fn new(key: [u8; KEY_LENGTH], salt: Option<[u8; SALT_LENGTH]>) -> Self {
         SqlCipherKey { key, salt }
     }
 
     pub fn size() -> usize {
-        N
+        KEY_LENGTH
     }
 
     pub fn size_with_salt() -> usize {
-        N + M
+        KEY_LENGTH + SALT_LENGTH
     }
 }
 
 /// Conversion from bytes by implementing TryFrom, which accepts a byte slice
 /// of either N (no salt) or N + M (with salt) length.
-impl<const N: usize, const M: usize> TryFrom<&[u8]> for SqlCipherKey<N, M> {
+impl TryFrom<&[u8]> for SqlCipherKey {
     type Error = TryFromSliceError;
 
     fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
-        let key = value.get(..N).unwrap_or_default().try_into()?;
+        let key = value.get(..KEY_LENGTH).unwrap_or_default().try_into()?;
         let salt = value
-            .get(N..)
+            .get(KEY_LENGTH..)
             .filter(|b| !b.is_empty())
             .map(|b| b.try_into())
             .transpose()?;
@@ -57,7 +54,7 @@ impl<const N: usize, const M: usize> TryFrom<&[u8]> for SqlCipherKey<N, M> {
 
 /// Convertion to a string usable in SQL statement, with or without the salt.
 /// The resulting format is: x'1234ABCD'
-impl<const N: usize, const M: usize> ToSql for SqlCipherKey<N, M> {
+impl ToSql for SqlCipherKey {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
         let key_hex = bytes_to_hex(&self.key);
         let salt_hex = self.salt.as_ref().map(|s| bytes_to_hex(s)).unwrap_or_default();
@@ -74,26 +71,41 @@ mod tests {
 
     #[test]
     fn test_sql_cipher_key() {
-        type TestSqlCipherKey = SqlCipherKey<2, 3>;
+        let key_data: [u8; 32] = [
+            190, 239, 186, 190, 190, 239, 186, 190, 190, 239, 186, 190, 1, 1, 1, 1, 190, 239, 186, 190, 190, 239, 186,
+            190, 190, 239, 186, 190, 190, 239, 186, 190,
+        ];
+        let salt_data: [u8; 16] = [202, 254, 186, 190, 1, 1, 1, 1, 202, 254, 186, 190, 202, 254, 186, 190];
 
-        assert_eq!(TestSqlCipherKey::size(), 2);
-        assert_eq!(TestSqlCipherKey::size_with_salt(), 5);
+        type TestSqlCipherKey = SqlCipherKey;
+
+        assert_eq!(TestSqlCipherKey::size(), 32);
+        assert_eq!(TestSqlCipherKey::size_with_salt(), 48);
 
         assert!(TestSqlCipherKey::try_from([].as_slice()).is_err());
-        assert!(TestSqlCipherKey::try_from([190].as_slice()).is_err());
-        assert!(TestSqlCipherKey::try_from([190, 239, 186, 190].as_slice()).is_err());
+        assert!(TestSqlCipherKey::try_from(&key_data[..16]).is_err());
+        assert!(TestSqlCipherKey::try_from([key_data.as_slice(), &salt_data[..8]].concat().as_slice()).is_err());
 
-        let key = TestSqlCipherKey::try_from([190, 239].as_slice()).unwrap();
-        assert_eq!(key.key, [190, 239]);
+        let key = TestSqlCipherKey::try_from(key_data.as_slice()).unwrap();
+        assert_eq!(key.key, key_data);
         assert_eq!(key.salt, None);
-        assert_eq!(key.to_sql(), Ok(ToSqlOutput::Owned(Value::Text("x'BEEF'".to_string()))));
-
-        let key = TestSqlCipherKey::try_from([190, 239, 0, 186, 190].as_slice()).unwrap();
-        assert_eq!(key.key, [190, 239]);
-        assert_eq!(key.salt, Some([0, 186, 190]));
         assert_eq!(
             key.to_sql(),
-            Ok(ToSqlOutput::Owned(Value::Text("x'BEEF00BABE'".to_string())))
+            Ok(ToSqlOutput::Owned(Value::Text(
+                "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABE'".to_string()
+            )))
+        );
+
+        let key_with_salt =
+            TestSqlCipherKey::try_from([key_data.as_slice(), salt_data.as_slice()].concat().as_slice()).unwrap();
+        assert_eq!(key_with_salt.key, key_data);
+        assert_eq!(key_with_salt.salt, Some(salt_data));
+        assert_eq!(
+            key_with_salt.to_sql(),
+            Ok(ToSqlOutput::Owned(Value::Text(
+                "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABECAFEBABE01010101CAFEBABECAFEBABE'"
+                    .to_string()
+            )))
         );
     }
 }

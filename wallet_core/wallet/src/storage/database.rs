@@ -7,7 +7,7 @@ use tokio::{fs, task::block_in_place};
 
 use super::{
     key_file::{delete_key_file, get_or_create_key_file},
-    sql_cipher_key::Aes256SqlCipherKey,
+    sql_cipher_key::SqlCipherKey,
 };
 
 const PRAGMA_KEY: &str = "key";
@@ -27,8 +27,8 @@ impl Database {
         // Get path to database, stored as "<storage_path>/<name>.db"
         let path = U::storage_path()?.join(format!("{}.db", &name));
         // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes = get_or_create_key_file::<K, U>(&name, Aes256SqlCipherKey::size_with_salt()).await?;
-        let key = Aes256SqlCipherKey::try_from(key_bytes.as_slice())?;
+        let key_bytes = get_or_create_key_file::<K, U>(&name, SqlCipherKey::size_with_salt()).await?;
+        let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
         // Open database connection
         let connection = block_in_place(|| Connection::open(path))?;
 
