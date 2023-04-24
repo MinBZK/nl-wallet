@@ -5,28 +5,28 @@ use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilit
 use tokio::fs;
 use wallet_common::utils::random_bytes;
 
-pub async fn get_or_create_key<K: PlatformEncryptionKey, U: PlatformUtilities>(
+pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtilities>(
     alias: &str,
     byte_length: usize,
 ) -> Result<Vec<u8>> {
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
-    let path = path_for_key::<U>(alias)?;
+    let path = path_for_key_file::<U>(alias)?;
     let encryption_key = K::new(&format!("keyfile_{}", alias));
 
     // Decrypt file at path, create key and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
 }
 
-pub async fn delete_key<U: PlatformUtilities>(alias: &str) -> Result<bool> {
-    let path = path_for_key::<U>(alias)?;
+pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<bool> {
+    let path = path_for_key_file::<U>(alias)?;
     let remove_result = fs::remove_file(&path).await;
 
     // Return true if the delete did not result in an error.
     Ok(remove_result.is_ok())
 }
 
-fn path_for_key<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
+fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf> {
     let storage_path = U::storage_path()?;
     let path = storage_path.join(format!("{}.key", alias));
 
@@ -141,13 +141,14 @@ mod tests {
         let byte_length: usize = 48;
 
         // Make sure we start with a clean slate.
-        delete_key::<SoftwareUtilities>(&alias1).await?;
-        delete_key::<SoftwareUtilities>(&alias2).await?;
+        delete_key_file::<SoftwareUtilities>(&alias1).await?;
+        delete_key_file::<SoftwareUtilities>(&alias2).await?;
 
         // Create three keys, two of them with the same alias.
-        let key1 = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
-        let key2 = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias2, byte_length).await?;
-        let key1_again = get_or_create_key::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
+        let key1 = get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
+        let key2 = get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias2, byte_length).await?;
+        let key1_again =
+            get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length).await?;
 
         assert!(!key1.is_empty());
         assert!(!key2.is_empty());
@@ -155,8 +156,8 @@ mod tests {
         assert_eq!(key1, key1_again);
 
         // Cleanup after ourselves.
-        delete_key::<SoftwareUtilities>(&alias1).await?;
-        delete_key::<SoftwareUtilities>(&alias2).await?;
+        delete_key_file::<SoftwareUtilities>(&alias1).await?;
+        delete_key_file::<SoftwareUtilities>(&alias2).await?;
 
         Ok(())
     }
