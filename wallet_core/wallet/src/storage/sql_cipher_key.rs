@@ -70,12 +70,10 @@ impl<const N: usize, const M: usize> ToSql for SqlCipherKey<N, M> {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::*;
 
     #[test]
-    fn test_sql_cipher_key() -> Result<()> {
+    fn test_sql_cipher_key() {
         type TestSqlCipherKey = SqlCipherKey<2, 3>;
 
         assert_eq!(TestSqlCipherKey::size(), 2);
@@ -85,19 +83,17 @@ mod tests {
         assert!(TestSqlCipherKey::try_from([190].as_slice()).is_err());
         assert!(TestSqlCipherKey::try_from([190, 239, 186, 190].as_slice()).is_err());
 
-        let key = TestSqlCipherKey::try_from([190, 239].as_slice())?;
+        let key = TestSqlCipherKey::try_from([190, 239].as_slice()).unwrap();
         assert_eq!(key.key, [190, 239]);
         assert_eq!(key.salt, None);
         assert_eq!(key.to_sql(), Ok(ToSqlOutput::Owned(Value::Text("x'BEEF'".to_string()))));
 
-        let key = TestSqlCipherKey::try_from([190, 239, 0, 186, 190].as_slice())?;
+        let key = TestSqlCipherKey::try_from([190, 239, 0, 186, 190].as_slice()).unwrap();
         assert_eq!(key.key, [190, 239]);
         assert_eq!(key.salt, Some([0, 186, 190]));
         assert_eq!(
             key.to_sql(),
             Ok(ToSqlOutput::Owned(Value::Text("x'BEEF00BABE'".to_string())))
         );
-
-        Ok(())
     }
 }

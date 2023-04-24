@@ -86,14 +86,16 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_database() -> Result<()> {
+    async fn test_database() {
         let db_name = "test_db";
 
         // Make sure we start with a clean slate.
-        delete_database::<SoftwareUtilities>(db_name).await?;
+        delete_database::<SoftwareUtilities>(db_name).await.unwrap();
 
         // Create a new (encrypted) database.
-        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name).await?;
+        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+            .await
+            .expect("Could not open database");
 
         // Create a table for our [Person] model.
         db.connection
@@ -152,8 +154,9 @@ mod tests {
             assert_eq!(person_count, 1);
         }
 
-        db.close_and_delete::<SoftwareUtilities>().await.map_err(|(_, e)| e)?;
-
-        Ok(())
+        db.close_and_delete::<SoftwareUtilities>()
+            .await
+            .map_err(|(_, e)| e)
+            .expect("Could not close and delete database");
     }
 }
