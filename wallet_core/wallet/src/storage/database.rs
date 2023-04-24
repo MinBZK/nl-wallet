@@ -122,6 +122,10 @@ mod tests {
             )
             .expect("Could not insert person");
 
+        // Start a new context, because the prepared statement below borrows the connection.
+        // Calling the close_and_delete() method consumes the Database instance, which owns
+        // the connection, meaning there can be no more borrows present. The context limits
+        // the lifetime of the statement appropriately.
         {
             // Query our person table for any [Person]s.
             let mut stmt = db
