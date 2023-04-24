@@ -75,7 +75,7 @@ fn iso_examples_disclosure() {
     )
     .unwrap();
 
-    let creds = Credentials::from([(cred)]);
+    let creds = Credentials::try_from([cred]).unwrap();
     let resp = creds
         .disclose(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -110,7 +110,7 @@ fn iso_examples_custom_disclosure() {
     )
     .unwrap();
 
-    let creds = Credentials::from([(cred)]);
+    let creds = Credentials::try_from([cred]).unwrap();
     let resp = creds
         .disclose(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -173,7 +173,7 @@ fn issuance_and_disclosure() {
     let issuer_response = issuer.issue(&wallet_issuance_state.response).unwrap();
     println!("issuer response: {:#?}", DebugCollapseBts(&issuer_response));
     let creds = Credentials::issuance_finish(wallet_issuance_state, issuer_response, &ca_cert).unwrap();
-    wallet.add(creds);
+    wallet.add(creds.into_iter().flatten()).unwrap();
 
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {

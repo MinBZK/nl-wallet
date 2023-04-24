@@ -163,6 +163,18 @@ impl TryFrom<Vec<Entry>> for Attributes {
         )
     }
 }
+impl From<&Attributes> for Vec<Entry> {
+    fn from(attrs: &Attributes) -> Self {
+        attrs
+            .0
+            .iter()
+            .map(|issuer_signed| Entry {
+                name: issuer_signed.0.element_identifier.clone(),
+                value: issuer_signed.0.element_value.clone(),
+            })
+            .collect()
+    }
+}
 
 pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 

@@ -13,25 +13,32 @@ use crate::{
         UnsignedMdoc,
     },
     cose::ClonePayload,
-    crypto::dh_hmac_key,
+    crypto::{dh_hmac_key, sha256},
     iso::*,
     serialization::{cbor_serialize, TaggedBytes},
     verifier::X509Subject,
 };
 
+/// Mdoc credentials of the holder. This data structure supports storing:
+/// - mdocs with different doctypes, through the map over `DocType`,
+/// - multiple mdocs having the same doctype but distinct attributes, through the map over `Vec<u8>` which is computed
+///   with [`Credential::hash()`] (see its rustdoc for details),
+/// - multiple mdocs having the same doctype and the same attributes, through the `CredentialCopies` data structure.
 #[derive(Debug, Clone)]
-pub struct Credentials(pub IndexMap<DocType, Credential>);
+pub struct Credentials(pub IndexMap<DocType, IndexMap<Vec<u8>, CredentialCopies>>);
 
 impl Default for Credentials {
     fn default() -> Self {
         Self::new()
     }
 }
-impl<const N: usize> From<[Credential; N]> for Credentials {
-    fn from(m: [Credential; N]) -> Self {
-        Credentials(IndexMap::from_iter(
-            m.into_iter().map(move |cred| (cred.doc_type.clone(), cred)),
-        ))
+impl<const N: usize> TryFrom<[Credential; N]> for Credentials {
+    type Error = anyhow::Error;
+
+    fn try_from(value: [Credential; N]) -> Result<Self> {
+        let mut creds = Credentials::new();
+        creds.add(value.into_iter())?;
+        Ok(creds)
     }
 }
 
@@ -49,12 +56,18 @@ impl Credentials {
         Credentials(IndexMap::new())
     }
 
-    pub fn add(&mut self, creds: IndexMap<DocType, Vec<Credential>>) {
-        for (doc_type, creds) in creds {
-            for cred in creds {
-                self.0.insert(doc_type.clone(), cred);
-            }
+    pub fn add(&mut self, creds: impl Iterator<Item = Credential>) -> Result<()> {
+        for cred in creds.into_iter() {
+            self.0
+                .entry(cred.doc_type.clone())
+                .or_insert(IndexMap::new())
+                .entry(cred.hash()?)
+                .or_insert(CredentialCopies::new())
+                .creds
+                .push(cred);
         }
+
+        Ok(())
     }
 
     fn generate_keys(count: u64) -> Vec<SigningKey<p256::NistP256>> {
@@ -82,21 +95,20 @@ impl Credentials {
         state: IssuanceState,
         issuer_response: DataToIssueMessage,
         issuer_cert: &X509Certificate,
-    ) -> Result<IndexMap<DocType, Vec<Credential>>> {
+    ) -> Result<Vec<CredentialCopies>> {
         issuer_response
             .mobile_id_documents
             .iter()
             .zip(&state.request.unsigned_mdocs)
             .zip(&state.private_keys)
             .map(|((doc, unsigned), keys)| {
-                Ok((
-                    doc.doc_type.clone(),
-                    doc.sparse_issuer_signed
-                        .iter()
-                        .zip(keys)
-                        .map(|(iss_signature, key)| iss_signature.to_credential(key.clone(), unsigned, issuer_cert))
-                        .collect::<Result<_>>()?,
-                ))
+                Ok(doc
+                    .sparse_issuer_signed
+                    .iter()
+                    .zip(keys)
+                    .map(|(iss_signature, key)| iss_signature.to_credential(key.clone(), unsigned, issuer_cert))
+                    .collect::<Result<Vec<_>>>()?
+                    .into())
             })
             .collect()
     }
@@ -113,7 +125,8 @@ impl Credentials {
                 )
             }
 
-            let cred = &self.0[&items_request.doc_type];
+            // This takes any mdoc of the specified doctype. TODO: allow user choice.
+            let cred = &self.0[&items_request.doc_type].values().next().unwrap().creds[0];
             docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
@@ -123,6 +136,33 @@ impl Credentials {
             document_errors: None,
             status: 0,
         })
+    }
+}
+
+/// Stores multiple copies of mdocs that have identical attributes.
+///
+/// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
+/// for unlinkability.
+#[derive(Debug, Clone)]
+pub struct CredentialCopies {
+    pub creds: Vec<Credential>,
+}
+
+impl IntoIterator for CredentialCopies {
+    type Item = Credential;
+    type IntoIter = std::vec::IntoIter<Credential>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.creds.into_iter()
+    }
+}
+impl From<Vec<Credential>> for CredentialCopies {
+    fn from(creds: Vec<Credential>) -> Self {
+        Self { creds }
+    }
+}
+impl CredentialCopies {
+    fn new() -> Self {
+        CredentialCopies { creds: vec![] }
     }
 }
 
@@ -146,6 +186,22 @@ impl Credential {
             issuer_signed,
             doc_type: mso.doc_type,
         })
+    }
+
+    /// Hash of the credential, acting as an identifier for the credential that takes into account its doctype
+    /// and all of its attributes. Computed schematically as `SHA256(CBOR(doctype, attributes))`.
+    fn hash(&self) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
+        Ok(sha256(&cbor_serialize(&(
+            &self.doc_type,
+            &self
+                .issuer_signed
+                .name_spaces
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
+                .collect::<IndexMap<_, _>>(),
+        ))?))
     }
 
     pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
