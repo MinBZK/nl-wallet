@@ -99,10 +99,10 @@ mod tests {
         db.connection
             .execute(
                 "CREATE TABLE person (
-            id    INTEGER PRIMARY KEY,
-            name  TEXT NOT NULL,
-            data  BLOB
-        )",
+                    id    INTEGER PRIMARY KEY,
+                    name  TEXT NOT NULL,
+                    data  BLOB
+                )",
                 [],
             )
             .expect("Could not create table");
