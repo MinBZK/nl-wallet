@@ -286,7 +286,7 @@ impl SparseIssuerSigned {
 impl Entry {
     fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
         IssuerSignedItem {
-            digest_id: index as u32,
+            digest_id: index as u64,
             random: ByteBuf::from(random),
             element_identifier: self.name.clone(),
             element_value: self.value.clone(),

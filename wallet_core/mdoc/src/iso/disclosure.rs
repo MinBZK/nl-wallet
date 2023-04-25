@@ -21,7 +21,7 @@ pub struct DeviceResponse {
     pub version: String,
     pub documents: Option<Vec<Document>>,
     pub document_errors: Option<Vec<DocumentError>>,
-    pub status: u32,
+    pub status: u64,
 }
 
 pub type DocumentError = IndexMap<DocType, ErrorCode>;

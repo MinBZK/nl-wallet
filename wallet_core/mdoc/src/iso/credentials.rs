@@ -23,7 +23,7 @@ use std::fmt::Debug;
 pub type NameSpace = String;
 
 pub type Digest = ByteBuf;
-pub type DigestID = u32;
+pub type DigestID = u64;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
@@ -34,7 +34,7 @@ impl TryFrom<&Attributes> for DigestIDs {
             val.0
                 .iter()
                 .enumerate()
-                .map(|(i, attr)| Ok((i as u32, ByteBuf::from(cbor_digest(attr)?))))
+                .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
                 .collect::<Result<IndexMap<_, _>, anyhow::Error>>()?,
         ))
     }
@@ -147,7 +147,7 @@ impl TryFrom<IndexMap<String, Value>> for Attributes {
         Ok(Attributes(
             val.into_iter()
                 .enumerate()
-                .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u32, key, val)?.into()))
+                .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u64, key, val)?.into()))
                 .collect::<Result<Vec<_>, anyhow::Error>>()?,
         ))
     }
@@ -183,14 +183,14 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSignedItem {
     #[serde(rename = "digestID")]
-    pub digest_id: u32,
+    pub digest_id: u64,
     pub random: ByteBuf,
     pub element_identifier: String,
     pub element_value: Value,
 }
 
 impl IssuerSignedItem {
-    pub fn new(digest_id: u32, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
+    pub fn new(digest_id: u64, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
         let random = ByteBuf::from(random_bytes(32)?);
         Ok(IssuerSignedItem {
             digest_id,

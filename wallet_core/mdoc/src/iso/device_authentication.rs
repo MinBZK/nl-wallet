@@ -68,7 +68,7 @@ pub type Security = CborSeq<SecurityKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SecurityKeyed {
-    pub cipher_suite_identifier: u32,
+    pub cipher_suite_identifier: u64,
     pub e_device_key_bytes: EDeviceKeyBytes,
 }
 
@@ -87,7 +87,7 @@ pub type WebApi = CborSeq<WebSessionInfo>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct WebSessionInfo {
-    pub version: u32,
+    pub version: u64,
     pub issuer_url: String,
     pub server_retrieval_token: String,
 }
@@ -98,8 +98,8 @@ pub type DeviceRetrievalMethod = CborSeq<DeviceRetrievalMethodKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceRetrievalMethodKeyed {
-    pub typ: u32,
-    pub version: u32,
+    pub typ: u64,
+    pub version: u64,
     pub retrieval_options: RetrievalOptions,
 }
 
