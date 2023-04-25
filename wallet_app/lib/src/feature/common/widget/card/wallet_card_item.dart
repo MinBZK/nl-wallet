@@ -65,7 +65,7 @@ class WalletCardItem extends StatelessWidget {
       : title = front.title,
         background = front.backgroundImage,
         logo = front.logoImage,
-        holograph = null,
+        holograph = front.holoImage,
         subtitle1 = front.subtitle,
         subtitle2 = front.info,
         brightness = front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
@@ -126,28 +126,30 @@ class WalletCardItem extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(_kCardContentPadding),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: Text(title, style: Theme.of(context).textTheme.displaySmall)),
-              if (logo != null) const SizedBox(width: 16),
-              if (logo != null) CardLogo(logo: logo!),
-            ],
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.displaySmall),
+                const SizedBox(height: 4),
+                Text(subtitle1 ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: 4),
+                Text(subtitle2 ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: 16),
+                const Opacity(
+                  /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */
+                  opacity: 0,
+                  child: ShowDetailsCta(),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(subtitle1 ?? '', style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: 4),
-          Text(subtitle2 ?? '', style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: 16),
-          const Opacity(
-            /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */
-            opacity: 0,
-            child: ShowDetailsCta(),
-          )
+          if (logo != null) const SizedBox(width: 16),
+          if (logo != null) CardLogo(logo: logo!),
         ],
       ),
     );

@@ -66,8 +66,9 @@ const _kMockPidCardFront = CardFront(
   title: 'Persoonsgegevens',
   subtitle: 'Willeke',
   logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
-  theme: CardFrontTheme.dark,
+  holoImage: 'assets/svg/rijks_card_holo.svg',
+  backgroundImage: 'assets/svg/rijks_card_bg_light.svg',
+  theme: CardFrontTheme.light,
 );
 
 const _kMockDiplomaCardFront = CardFront(

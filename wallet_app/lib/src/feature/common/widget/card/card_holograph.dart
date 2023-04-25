@@ -17,9 +17,9 @@ class CardHolograph extends StatelessWidget {
       blendMode: BlendMode.srcATop,
       gradient: Foils.oilslick,
       child: SvgOrImage(
-          asset: holograph,
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerRight
+        asset: holograph,
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
       ),
     );
   }
