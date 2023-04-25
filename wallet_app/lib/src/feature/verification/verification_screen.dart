@@ -10,7 +10,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
-import '../organization/approve_organization_page.dart';
+import '../organization/approve/organization_approve_page.dart';
 import 'bloc/verification_bloc.dart';
 import 'page/verification_confirm_data_attributes_page.dart';
 import 'page/verification_confirm_pin_page.dart';
@@ -101,7 +101,7 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
   Widget _buildCheckOrganizationPage(BuildContext context, VerificationCheckOrganization state) {
-    return ApproveOrganizationPage(
+    return OrganizationApprovePage(
       onDecline: () => _stopVerification(context),
       onAccept: () => context.read<VerificationBloc>().add(const VerificationOrganizationApproved()),
       organization: state.flow.organization,

@@ -10,7 +10,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
-import '../organization/approve_organization_page.dart';
+import '../organization/approve/organization_approve_page.dart';
 import 'bloc/sign_bloc.dart';
 import 'page/check_agreement_page.dart';
 import 'page/confirm_agreement_page.dart';
@@ -105,7 +105,7 @@ class SignScreen extends StatelessWidget {
   }
 
   Widget _buildCheckOrganization(BuildContext context, SignCheckOrganization state) {
-    return ApproveOrganizationPage(
+    return OrganizationApprovePage(
       onDecline: () => _stopSigning(context),
       onAccept: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
       organization: state.flow.organization,

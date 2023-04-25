@@ -2,13 +2,12 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "en",
   "appTitle": "NL Wallet",
-  "approveOrganizationPageApproveCta": "Yes, next",
-  "approveOrganizationPageShareWithApproveCta": "Yes, view request",
-  "approveOrganizationPageShareWithDenyCta": "No, stop",
-  "organizationButtonLabel": "About this organization",
-  "approveOrganizationPageFirstInteraction": "First request",
-  "approveOrganizationPageDenyCta": "No, decline",
-  "@approveOrganizationPagePurpose": {
+  "organizationApprovePageApproveCta": "Yes, next",
+  "organizationApprovePageDenyCta": "No, decline",
+  "organizationApprovePageFirstInteraction": "First request",
+  "organizationApprovePageIncorrectCta": "Is something not right?",
+  "organizationApprovePagePurpose": "Purpose: {purpose}",
+  "@organizationApprovePagePurpose": {
     "placeholders": {
       "purpose": {
         "example": "Confirm appointment",
@@ -17,10 +16,8 @@
     },
     "description": "Reason why this organization is requesting data"
   },
-  "approveOrganizationPagePurpose": "Purpose: {purpose}",
-  "approveOrganizationPageIncorrectCta": "Is something not right?",
-  "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
-  "@approveOrganizationPageReceiveFromTitle": {
+  "organizationApprovePageReceiveFromTitle": "Receive information from {organization}?",
+  "@organizationApprovePageReceiveFromTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -29,8 +26,10 @@
     },
     "description": "Title shown at the top of the screen when requesting cards"
   },
-  "approveOrganizationPageShareWithTitle": "{organization} is requesting information, is that correct?",
-  "@approveOrganizationPageShareWithTitle": {
+  "organizationApprovePageShareWithApproveCta": "Yes, view request",
+  "organizationApprovePageShareWithDenyCta": "No, stop",
+  "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
+  "@organizationApprovePageShareWithTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -39,8 +38,8 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
-  "approveOrganizationPageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
-  "@approveOrganizationPageSignWithTitle": {
+  "organizationApprovePageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
+  "@organizationApprovePageSignWithTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -379,6 +378,15 @@
   "mockDigidScreenHeaderSubtitle": "You are logging in at:",
   "mockDigidScreenHeaderTitle": "Login",
   "mockDigidScreenTitle": "Securely login with DigiD",
+  "organizationButtonLabel": "About this organization",
+  "organizationDetailScreenDataIncorrectCta": "Something not right?",
+  "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
+  "organizationDetailScreenInfoHeader": "Info",
+  "organizationDetailScreenOrganizationNotChecked": "This organization is not verified. ",
+  "organizationDetailScreenOrganizationNotCheckedReadMore": "Read more",
+  "organizationDetailScreenPrivacyHeader": "Privacy",
+  "organizationDetailScreenPrivacyPolicy": "privacy statement",
+  "organizationDetailScreenViewTerms": "View the ",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "select",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",

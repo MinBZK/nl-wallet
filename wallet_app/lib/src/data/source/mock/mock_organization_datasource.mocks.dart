@@ -64,6 +64,9 @@ const _kMarketPlaceOrganization = Organization(
   shortName: 'Marketplace Y',
   description: 'Online Marketplace Y is een Nederlands online marktplaats met een hoofdkantoor in Amsterdam.',
   logoUrl: 'assets/non-free/images/logo_ecommerce.png',
+  department: 'Service',
+  location: 'Amsterdam, Nederland',
+  webUrl: 'www.example.org',
 );
 
 const _kBarOrganization = Organization(
