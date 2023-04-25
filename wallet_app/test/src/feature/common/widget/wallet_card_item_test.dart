@@ -7,7 +7,8 @@ import '../../../../wallet_app_test_widget.dart';
 
 const _kDarkBg = 'assets/svg/rijks_card_bg_dark.svg';
 const _kLightBg = 'assets/svg/rijks_card_bg_light.svg';
-const _kRijksHolo = 'assets/svg/rijks_holo.svg';
+const _kLogo = 'assets/non-free/images/logo_card_rijksoverheid.png';
+const _kHolo = 'assets/svg/rijks_card_holo.svg';
 
 void _voidCallback() {}
 
@@ -35,6 +36,7 @@ void main() {
               subtitle2: 'subtitle2',
               brightness: Brightness.dark,
               background: _kDarkBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           )
@@ -44,9 +46,10 @@ void main() {
               title: 'Light Card',
               subtitle1: 'subtitle',
               subtitle2: 'subtitle2',
-              holograph: _kRijksHolo,
+              holograph: _kHolo,
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           );
@@ -72,9 +75,10 @@ void main() {
               title: '50 characters looooooong title is consider the max',
               subtitle1: '50 characters loong subtitle is considered the max',
               subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: _kRijksHolo,
+              holograph: _kHolo,
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           )
@@ -84,16 +88,17 @@ void main() {
               title: '50 characters looooooong title is consider the max',
               subtitle1: '50 characters loong subtitle is considered the max',
               subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: _kRijksHolo,
+              holograph: _kHolo,
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           );
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(400, 1078),
+          surfaceSize: const Size(400, 1320),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/scaling');
@@ -112,6 +117,18 @@ void main() {
               subtitle2: 'SUBTITLE - 2',
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
+              onPressed: _voidCallback,
+            ),
+          )
+          ..addScenario(
+            'no logo',
+            const WalletCardItem(
+              title: 'TITLE',
+              subtitle1: 'SUBTITLE',
+              subtitle2: 'SUBTITLE - 2',
+              brightness: Brightness.light,
+              background: _kLightBg,
               onPressed: _voidCallback,
             ),
           )
@@ -122,6 +139,7 @@ void main() {
               subtitle1: 'SUBTITLE',
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           )
@@ -132,6 +150,7 @@ void main() {
               subtitle2: 'SUBTITLE - 2',
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           )
@@ -141,6 +160,7 @@ void main() {
               title: 'TITLE - NO SUBTITLES',
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
               onPressed: _voidCallback,
             ),
           )
@@ -150,12 +170,13 @@ void main() {
               title: 'TITLE - NO SHOW DETAILS',
               brightness: Brightness.light,
               background: _kLightBg,
+              logo: _kLogo,
             ),
           );
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(400, 1365),
+          surfaceSize: const Size(400, 1638),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/content');

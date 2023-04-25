@@ -3,6 +3,7 @@ class CardFront {
   final String? subtitle;
   final String? info;
   final String? logoImage;
+  final String? holoImage;
   final String backgroundImage;
   final CardFrontTheme theme;
 
@@ -11,6 +12,7 @@ class CardFront {
     this.subtitle,
     this.info,
     this.logoImage,
+    this.holoImage,
     required this.backgroundImage,
     required this.theme,
   });
