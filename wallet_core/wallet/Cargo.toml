@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 wallet_common = { path = "../wallet_common" }
+wallet_migration = { path = "../wallet_migration" }
 anyhow = "1.0.66"
 libsqlite3-sys = { version = "0.24.2", features = [
     "bundled-sqlcipher-vendored-openssl",

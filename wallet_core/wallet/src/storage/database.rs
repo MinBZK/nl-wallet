@@ -4,6 +4,7 @@ use anyhow::Result;
 use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
 use tokio::fs;
+use wallet_migration::{Migrator, MigratorTrait};
 
 use super::{
     key_file::{delete_key_file, get_or_create_key_file},
@@ -38,6 +39,9 @@ impl Database {
         connection
             .execute_unprepared(&format!(r#"PRAGMA {} = "{}";"#, PRAGMA_KEY, String::from(key)))
             .await?;
+
+        // Execute all migrations
+        Migrator::up(&connection, None).await?;
 
         Ok(Self::new(name, path, connection))
     }

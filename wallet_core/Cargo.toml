@@ -5,6 +5,7 @@ members = [
     "platform_support",
     "wallet",
     "wallet_common",
+    "wallet_migration",
     "wallet_provider",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
