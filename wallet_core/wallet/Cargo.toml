@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 wallet_common = { path = "../wallet_common" }
+wallet_entity = { path = "../wallet_entity" }
 wallet_migration = { path = "../wallet_migration" }
 anyhow = "1.0.66"
 libsqlite3-sys = { version = "0.24.2", features = [
@@ -21,8 +22,6 @@ ring = "0.16.20"
 sea-orm = { version = "0.11.3", default-features = false, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
-    "macros",
-    "with-json",
 ] }
 thiserror = "1.0.39"
 
@@ -43,4 +42,6 @@ platform_support = { path = "../platform_support", features = ["software"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }
+serde = { version = "1.0.156", features = ["derive"] }
+serde_json = { version = "1.0.92" }
 tempfile = "3.5.0"

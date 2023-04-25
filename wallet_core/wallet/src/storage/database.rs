@@ -64,7 +64,6 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
-    use sea_orm::{DatabaseBackend, DbBackend, Statement, Value};
 
     use super::*;
 
@@ -84,8 +83,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_database() {
-        let db_name = "test_db";
+    async fn test_raw_sql_database() {
+        use sea_orm::{DatabaseBackend, DbBackend, Statement, Value};
+
+        let db_name = "test_raw_sql_database";
 
         // Make sure we start with a clean slate.
         delete_database::<SoftwareUtilities>(db_name).await.unwrap();
@@ -149,6 +150,66 @@ mod tests {
         // Verify our test [Person] was correctly inserted.
         assert_eq!(persons, [me]);
 
+        // Finally, delete the test database.
+        db.close_and_delete::<SoftwareUtilities>()
+            .await
+            .expect("Could not close and delete database");
+    }
+
+    #[tokio::test]
+    async fn test_entities_database() {
+        use sea_orm::{prelude::*, Set};
+        use serde::{Deserialize, Serialize};
+        use wallet_entity::keyed_data;
+
+        // Define example JSON data
+        #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+        struct Configuration {
+            id: u32,
+            name: String,
+        }
+        let configuration = Configuration {
+            id: 1234,
+            name: "My wallet app".to_string(),
+        };
+
+        let db_name = "test_entities_database";
+
+        // Make sure we start with a clean slate.
+        delete_database::<SoftwareUtilities>(db_name).await.unwrap();
+
+        // Create a new (encrypted) database.
+        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+            .await
+            .expect("Could not open database");
+
+        // Insert example data.
+        let configuration_model = keyed_data::ActiveModel {
+            key: Set("config".to_string()),
+            data: Set(serde_json::to_value(&configuration).unwrap()),
+        };
+        configuration_model
+            .insert(&db.connection)
+            .await
+            .expect("Could not insert keyed data");
+
+        // Fetch all keyed data and check if our example data is present.
+        let all_keyed_data = keyed_data::Entity::find()
+            .all(&db.connection)
+            .await
+            .expect("Could not query keyed data");
+
+        assert_eq!(all_keyed_data.len(), 1);
+
+        let keyed_data = all_keyed_data.into_iter().last().unwrap();
+
+        assert_eq!(keyed_data.key, "config");
+        assert_eq!(
+            serde_json::from_value::<Configuration>(keyed_data.data).unwrap(),
+            configuration
+        );
+
+        // Finally, delete the test database.
         db.close_and_delete::<SoftwareUtilities>()
             .await
             .expect("Could not close and delete database");

@@ -3077,10 +3077,13 @@ dependencies = [
  "reqwest",
  "ring",
  "sea-orm",
+ "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
  "tokio",
  "wallet_common",
+ "wallet_entity",
  "wallet_migration",
  "wallet_provider",
 ]
@@ -3096,6 +3099,13 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "wallet_entity"
+version = "0.1.0"
+dependencies = [
+ "sea-orm",
 ]
 
 [[package]]

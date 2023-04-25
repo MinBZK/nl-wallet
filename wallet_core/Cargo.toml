@@ -5,6 +5,7 @@ members = [
     "platform_support",
     "wallet",
     "wallet_common",
+    "wallet_entity",
     "wallet_migration",
     "wallet_provider",
 ]
