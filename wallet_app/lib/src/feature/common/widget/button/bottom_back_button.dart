@@ -10,16 +10,27 @@ class BottomBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeData = Theme.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: SizedBox(
         height: _kButtonHeight,
         width: double.infinity,
-        child: TextIconButton(
-          onPressed: () => Navigator.pop(context),
-          iconPosition: IconPosition.start,
-          icon: Icons.arrow_back,
-          child: Text(AppLocalizations.of(context).generalBottomBackCta),
+        child: Theme(
+          data: themeData.copyWith(
+            textButtonTheme: TextButtonThemeData(
+              style: themeData.textButtonTheme.style?.copyWith(
+                // Remove rounded edges
+                shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+              ),
+            ),
+          ),
+          child: TextIconButton(
+            onPressed: () => Navigator.pop(context),
+            iconPosition: IconPosition.start,
+            icon: Icons.arrow_back,
+            child: Text(AppLocalizations.of(context).generalBottomBackCta),
+          ),
         ),
       ),
     );

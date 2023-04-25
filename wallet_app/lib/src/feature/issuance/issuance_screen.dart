@@ -12,7 +12,7 @@ import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/placeholder_screen.dart';
 import '../data_incorrect/data_incorrect_screen.dart';
-import '../organization/approve_organization_page.dart';
+import '../organization/approve/organization_approve_page.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'page/issuance_check_card_page.dart';
@@ -124,7 +124,7 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
-    return ApproveOrganizationPage(
+    return OrganizationApprovePage(
       onDecline: () => _stopIssuance(context),
       onAccept: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
