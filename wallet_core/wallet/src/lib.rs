@@ -4,6 +4,7 @@
 
 mod account_server;
 pub mod pin;
+mod storage;
 pub mod wallet;
 
 use platform_support::preferred;

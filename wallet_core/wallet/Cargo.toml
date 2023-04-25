@@ -7,10 +7,14 @@ edition.workspace = true
 wallet_common = { path = "../wallet_common" }
 anyhow = "1.0.66"
 p256 = { version = "0.12.0" }
+tokio = { version = "1.27.0", features = ["full"] }
 reqwest = { version = "0.11.16", default-features = false, features = [
     "json",
     "blocking",
     "rustls-tls-webpki-roots",
+] }
+rusqlite = { version = "0.29.0", features = [
+    "bundled-sqlcipher-vendored-openssl",
 ] }
 ring = "0.16.20"
 thiserror = "1.0.39"
@@ -32,3 +36,4 @@ platform_support = { path = "../platform_support", features = ["software"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }
+tempfile = "3.5.0"
