@@ -2,11 +2,12 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
   "appTitle": "NL Wallet",
-  "approveOrganizationPageApproveCta": "Ja, volgende",
-  "approveOrganizationPageShareWithApproveCta": "Ja, bekijk verzoek",
-  "approveOrganizationPageShareWithDenyCta": "Nee, stoppen",
-  "approveOrganizationPageFirstInteraction": "Eerste deelverzoek",
-  "@approveOrganizationPagePurpose": {
+  "organizationApprovePageApproveCta": "Ja, volgende",
+  "organizationApprovePageDenyCta": "Nee",
+  "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
+  "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+  "organizationApprovePagePurpose": "Reden: {purpose}",
+  "@organizationApprovePagePurpose": {
     "placeholders": {
       "purpose": {
         "example": "Afspraak bevestigen",
@@ -15,12 +16,8 @@
     },
     "description": "Reason why this organization is requesting data"
   },
-  "approveOrganizationPagePurpose": "Reden: {purpose}",
-  "approveOrganizationPageDenyCta": "Nee",
-  "organizationButtonLabel": "Over deze partij",
-  "approveOrganizationPageIncorrectCta": "Klopt er iets niet?",
-  "approveOrganizationPageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
-  "@approveOrganizationPageReceiveFromTitle": {
+  "organizationApprovePageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
+  "@organizationApprovePageReceiveFromTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -29,8 +26,10 @@
     },
     "description": "Title shown at the top of the screen when fetching cards"
   },
-  "approveOrganizationPageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
-  "@approveOrganizationPageShareWithTitle": {
+  "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
+  "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
+  "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
+  "@organizationApprovePageShareWithTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -39,8 +38,8 @@
     },
     "description": "Title shown at the top of the screen when verifying"
   },
-  "approveOrganizationPageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
-  "@approveOrganizationPageSignWithTitle": {
+  "organizationApprovePageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
+  "@organizationApprovePageSignWithTitle": {
     "placeholders": {
       "organization": {
         "example": "DUO",
@@ -379,6 +378,15 @@
   "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
   "mockDigidScreenHeaderTitle": "Inloggen",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+  "organizationButtonLabel": "Over deze partij",
+  "organizationDetailScreenDataIncorrectCta": "Klopt er iets niet?",
+  "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
+  "organizationDetailScreenInfoHeader": "Info",
+  "organizationDetailScreenOrganizationNotChecked": "Deze organisatie wordt niet gecontroleerd. ",
+  "organizationDetailScreenOrganizationNotCheckedReadMore": "Lees meer",
+  "organizationDetailScreenPrivacyHeader": "Privacy",
+  "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
+  "organizationDetailScreenViewTerms": "Bekijk de algemene ",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "invoer",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",

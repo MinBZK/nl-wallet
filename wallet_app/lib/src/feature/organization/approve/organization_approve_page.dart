@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../common/widget/button/confirm_buttons.dart';
-import '../common/widget/icon_row.dart';
-import '../common/widget/placeholder_screen.dart';
-import '../common/widget/sliver_sized_box.dart';
-import '../verification/model/organization.dart';
-import 'widget/organization_row.dart';
+import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/icon_row.dart';
+import '../../common/widget/sliver_sized_box.dart';
+import '../../verification/model/organization.dart';
+import '../detail/organization_detail_screen.dart';
+import '../widget/organization_row.dart';
 
-class ApproveOrganizationPage extends StatelessWidget {
+class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
   final VoidCallback onAccept;
 
@@ -24,7 +24,7 @@ class ApproveOrganizationPage extends StatelessWidget {
   /// If true, the 'first interaction' banner will be shown.
   final bool isFirstInteractionWithOrganization;
 
-  const ApproveOrganizationPage({
+  const OrganizationApprovePage({
     required this.onDecline,
     required this.onAccept,
     required this.organization,
@@ -49,7 +49,11 @@ class ApproveOrganizationPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverToBoxAdapter(
             child: OrganizationRow(
-              onTap: () => PlaceholderScreen.show(context),
+              onTap: () => OrganizationDetailScreen.show(
+                context,
+                organization.id,
+                AppLocalizations.of(context).verificationScreenTitle,
+              ),
               organizationName: organization.shortName,
             ),
           ),
@@ -104,11 +108,11 @@ class ApproveOrganizationPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.approveOrganizationPageReceiveFromTitle(organization.shortName);
+        return locale.organizationApprovePageReceiveFromTitle(organization.shortName);
       case ApprovalPurpose.verification:
-        return locale.approveOrganizationPageShareWithTitle(organization.shortName);
+        return locale.organizationApprovePageShareWithTitle(organization.shortName);
       case ApprovalPurpose.sign:
-        return locale.approveOrganizationPageSignWithTitle(organization.shortName);
+        return locale.organizationApprovePageSignWithTitle(organization.shortName);
     }
   }
 
@@ -120,7 +124,7 @@ class ApproveOrganizationPage extends StatelessWidget {
         isFirstInteractionWithOrganization
             ? IconRow(
                 icon: Image.asset('assets/images/ic_first_share.png'),
-                text: Text(locale.approveOrganizationPageFirstInteraction),
+                text: Text(locale.organizationApprovePageFirstInteraction),
               )
             : const SizedBox.shrink(),
         IconRow(
@@ -130,7 +134,7 @@ class ApproveOrganizationPage extends StatelessWidget {
           ),
           text: Text(
             //TODO: Replace [purpose.name] with the actual purpose once the mocks are updated.
-            locale.approveOrganizationPagePurpose(purpose.name),
+            locale.organizationApprovePagePurpose(purpose.name),
           ),
         ),
       ],
@@ -141,11 +145,11 @@ class ApproveOrganizationPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.approveOrganizationPageApproveCta;
+        return locale.organizationApprovePageApproveCta;
       case ApprovalPurpose.verification:
-        return locale.approveOrganizationPageShareWithApproveCta;
+        return locale.organizationApprovePageShareWithApproveCta;
       case ApprovalPurpose.sign:
-        return locale.approveOrganizationPageApproveCta;
+        return locale.organizationApprovePageApproveCta;
     }
   }
 
@@ -153,11 +157,11 @@ class ApproveOrganizationPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.approveOrganizationPageDenyCta;
+        return locale.organizationApprovePageDenyCta;
       case ApprovalPurpose.verification:
-        return locale.approveOrganizationPageShareWithDenyCta;
+        return locale.organizationApprovePageShareWithDenyCta;
       case ApprovalPurpose.sign:
-        return locale.approveOrganizationPageDenyCta;
+        return locale.organizationApprovePageDenyCta;
     }
   }
 }

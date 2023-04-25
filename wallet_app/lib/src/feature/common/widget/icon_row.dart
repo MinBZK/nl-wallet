@@ -25,7 +25,7 @@ class IconRow extends StatelessWidget {
           const SizedBox(width: 16),
           DefaultTextStyle(
             style: Theme.of(context).textTheme.bodyLarge!,
-            child: text,
+            child: Expanded(child: text),
           ),
         ],
       ),

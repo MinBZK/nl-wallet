@@ -27,6 +27,9 @@ import 'feature/issuance/bloc/issuance_bloc.dart';
 import 'feature/issuance/issuance_screen.dart';
 import 'feature/menu/bloc/menu_bloc.dart';
 import 'feature/navigation/deeplink_service.dart';
+import 'feature/organization/detail/argument/organization_detail_screen_argument.dart';
+import 'feature/organization/detail/bloc/organization_detail_bloc.dart';
+import 'feature/organization/detail/organization_detail_screen.dart';
 import 'feature/pin/bloc/pin_bloc.dart';
 import 'feature/pin/pin_overlay.dart';
 import 'feature/pin/pin_prompt.dart';
@@ -79,6 +82,7 @@ class WalletRoutes {
   static const policyRoute = '/policy';
   static const historyDetailRoute = '/history';
   static const changeLanguageRoute = '/language';
+  static const organizationDetailRoute = '/organization';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -127,8 +131,10 @@ class WalletRoutes {
         return _createHistoryOverviewScreenBuilder;
       case WalletRoutes.historyDetailRoute:
         return _createHistoryDetailScreenBuilder(settings);
+      case WalletRoutes.organizationDetailRoute:
+        return _createOrganizationDetailScreenBuilder(settings);
       case WalletRoutes.changeLanguageRoute:
-        return _createChangeLanguageScreenBuilder(settings);
+        return _createChangeLanguageScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -287,11 +293,22 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createChangeLanguageScreenBuilder(RouteSettings settings) {
+Widget _createChangeLanguageScreenBuilder(BuildContext context) {
+  return BlocProvider<ChangeLanguageBloc>(
+    create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
+    child: const ChangeLanguageScreen(),
+  );
+}
+
+WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    return BlocProvider<ChangeLanguageBloc>(
-      create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
-      child: const ChangeLanguageScreen(),
+    OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
+    return BlocProvider<OrganizationDetailBloc>(
+      create: (BuildContext context) => OrganizationDetailBloc(context.read(), context.read())
+        ..add(
+          OrganizationLoadTriggered(organizationId: argument.organizationId),
+        ),
+      child: OrganizationDetailScreen(title: argument.title),
     );
   };
 }
