@@ -33,7 +33,7 @@ impl Database {
         let connection = block_in_place(|| Connection::open(path))?;
 
         // Set database password using PRAGMA statement
-        block_in_place(|| connection.pragma_update(None, PRAGMA_KEY, key))?;
+        block_in_place(|| connection.pragma_update::<String>(None, PRAGMA_KEY, key.into()))?;
 
         Ok(Self::new(name, connection))
     }

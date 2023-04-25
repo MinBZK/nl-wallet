@@ -1,10 +1,5 @@
 use std::array::TryFromSliceError;
 
-use rusqlite::{
-    types::{ToSqlOutput, Value},
-    ToSql,
-};
-
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02X}", b)).collect()
@@ -54,14 +49,12 @@ impl TryFrom<&[u8]> for SqlCipherKey {
 
 /// Convertion to a string usable in SQL statement, with or without the salt.
 /// The resulting format is: x'1234ABCD'
-impl ToSql for SqlCipherKey {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        let key_hex = bytes_to_hex(&self.key);
-        let salt_hex = self.salt.as_ref().map(|s| bytes_to_hex(s)).unwrap_or_default();
+impl From<SqlCipherKey> for String {
+    fn from(value: SqlCipherKey) -> Self {
+        let key_hex = bytes_to_hex(&value.key);
+        let salt_hex = value.salt.as_ref().map(|s| bytes_to_hex(s)).unwrap_or_default();
 
-        let key = format!("x'{}{}'", key_hex, salt_hex);
-
-        Ok(ToSqlOutput::Owned(Value::Text(key)))
+        format!("x'{}{}'", key_hex, salt_hex)
     }
 }
 
@@ -90,10 +83,8 @@ mod tests {
         assert_eq!(key.key, key_data);
         assert_eq!(key.salt, None);
         assert_eq!(
-            key.to_sql(),
-            Ok(ToSqlOutput::Owned(Value::Text(
-                "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABE'".to_string()
-            )))
+            String::from(key),
+            "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABE'"
         );
 
         let key_with_salt =
@@ -101,11 +92,8 @@ mod tests {
         assert_eq!(key_with_salt.key, key_data);
         assert_eq!(key_with_salt.salt, Some(salt_data));
         assert_eq!(
-            key_with_salt.to_sql(),
-            Ok(ToSqlOutput::Owned(Value::Text(
-                "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABECAFEBABE01010101CAFEBABECAFEBABE'"
-                    .to_string()
-            )))
+            String::from(key_with_salt),
+            "x'BEEFBABEBEEFBABEBEEFBABE01010101BEEFBABEBEEFBABEBEEFBABEBEEFBABECAFEBABE01010101CAFEBABECAFEBABE'"
         );
     }
 }
