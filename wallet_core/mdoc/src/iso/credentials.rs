@@ -191,7 +191,7 @@ pub struct IssuerSignedItem {
 
 impl IssuerSignedItem {
     pub fn new(digest_id: u64, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
-        let random = ByteBuf::from(random_bytes(32)?);
+        let random = ByteBuf::from(random_bytes(32));
         Ok(IssuerSignedItem {
             digest_id,
             random,

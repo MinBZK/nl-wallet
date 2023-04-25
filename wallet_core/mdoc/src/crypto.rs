@@ -4,10 +4,8 @@ use anyhow::{anyhow, bail, Context, Result};
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
 use p256::{ecdh, NistP256};
-use ring::{
-    hkdf, hmac,
-    rand::{self, SecureRandom},
-};
+use rand::Rng;
+use ring::{hkdf, hmac};
 use serde::Serialize;
 use sha2::Digest;
 use x509_parser::nom::AsBytes;
@@ -106,10 +104,8 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
     }
 }
 
-pub fn random_bytes(len: usize) -> Result<Vec<u8>> {
+pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];
-    rand::SystemRandom::new()
-        .fill(&mut output[..])
-        .map_err(|_| anyhow!("generating random bytes failed"))?;
-    Ok(output)
+    rand::thread_rng().fill(&mut output[..]);
+    output
 }
