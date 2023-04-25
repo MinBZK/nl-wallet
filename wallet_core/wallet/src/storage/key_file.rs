@@ -105,7 +105,7 @@ mod tests {
             .expect("Could not read encrypted file");
         let decrypted_contents = read_encrypted_file(&path, &encryption_key)
             .await
-            .expect("Could read and decrypt encrypted file");
+            .expect("Could not read and decrypt encrypted file");
 
         assert!(!encrypted_contents.is_empty());
         assert!(!decrypted_contents.is_empty());
