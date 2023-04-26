@@ -1,40 +1,49 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
 use tokio::fs;
 use wallet_migration::{Migrator, MigratorTrait};
 
-use super::{
-    key_file::{delete_key_file, get_or_create_key_file},
-    sql_cipher_key::SqlCipherKey,
-};
+use super::sql_cipher_key::SqlCipherKey;
 
 const PRAGMA_KEY: &str = "key";
 
+pub enum SqliteUrl {
+    File(PathBuf),
+    InMemory,
+}
+
+impl From<&SqliteUrl> for String {
+    fn from(value: &SqliteUrl) -> Self {
+        match value {
+            SqliteUrl::File(path) => format!("sqlite://{}?mode=rwc", path.to_string_lossy()),
+            SqliteUrl::InMemory => "sqlite::memory:".to_string(),
+        }
+    }
+}
+
+impl From<SqliteUrl> for String {
+    fn from(value: SqliteUrl) -> Self {
+        Self::from(&value)
+    }
+}
+
 pub struct Database {
-    pub name: String,
-    path: PathBuf,
+    pub url: SqliteUrl,
     connection: DatabaseConnection,
 }
 
 impl Database {
-    fn new(name: String, path: PathBuf, connection: DatabaseConnection) -> Self {
-        Database { name, path, connection }
+    fn new(url: SqliteUrl, connection: DatabaseConnection) -> Self {
+        Database { url, connection }
     }
 
-    pub async fn open<K: PlatformEncryptionKey, U: PlatformUtilities>(name: impl Into<String>) -> Result<Self> {
-        let name = name.into();
-        // Get path to database, stored as "<storage_path>/<name>.db"
-        let path = U::storage_path()?.join(format!("{}.db", &name));
+    pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self> {
         // Open database connection and set database key
-        let connection_options = ConnectOptions::new(format!("sqlite://{}?mode=rwc", path.to_str().unwrap()));
+        let connection_options = ConnectOptions::new((&url).into());
         let connection = sea_orm::Database::connect(connection_options).await?;
 
-        // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes = get_or_create_key_file::<K, U>(&name, SqlCipherKey::size_with_salt()).await?;
-        let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
         // Set database password using PRAGMA statement
         connection
             .execute_unprepared(&format!(r#"PRAGMA {} = "{}";"#, PRAGMA_KEY, String::from(key)))
@@ -43,56 +52,55 @@ impl Database {
         // Execute all migrations
         Migrator::up(&connection, None).await?;
 
-        Ok(Self::new(name, path, connection))
+        Ok(Self::new(url, connection))
     }
 
-    /// If the database could not be closed for some reason, this will return
-    /// another instance of [`Database`] as the first entry of the Result error tuple.
-    /// Closing and deleting the database may then be tried at another point in time.
-    pub async fn close_and_delete<U: PlatformUtilities>(self) -> Result<()> {
+    pub async fn close_and_delete(self) -> Result<()> {
         // Close the database connection
         self.connection.close().await?;
 
-        // Remove the database file and ignore any errors.
-        _ = fs::remove_file(&self.path).await;
+        // Remove the database file (if there is one) and ignore any errors.
+        if let SqliteUrl::File(path) = self.url {
+            _ = fs::remove_file(path).await;
+        }
 
-        // Delete the password file and remap errors (note that deletion errors will be ignored).
-        delete_key_file::<U>(&self.name).await
+        Ok(())
+    }
+
+    pub fn get_connection(&self) -> &impl ConnectionTrait {
+        &self.connection
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
+    use wallet_common::utils::random_bytes;
 
     use super::*;
 
-    async fn delete_database<U: PlatformUtilities>(name: &str) -> Result<()> {
-        let path = U::storage_path()?.join(format!("{}.db", name));
-        _ = fs::remove_file(&path).await;
-        delete_key_file::<U>(name).await?;
-
-        Ok(())
-    }
-
-    #[derive(Debug, PartialEq, Eq)]
-    struct Person {
-        id: i32,
-        name: String,
-        data: Option<Vec<u8>>,
+    #[test]
+    fn test_sqlite_url() {
+        assert_eq!(
+            String::from(SqliteUrl::File(PathBuf::from("/foo/bar/database.db"))),
+            "sqlite:///foo/bar/database.db?mode=rwc"
+        );
+        assert_eq!(String::from(SqliteUrl::InMemory), "sqlite::memory:");
     }
 
     #[tokio::test]
     async fn test_raw_sql_database() {
-        use sea_orm::{DatabaseBackend, DbBackend, Statement, Value};
+        use sea_orm::{Statement, Value};
 
-        let db_name = "test_raw_sql_database";
-
-        // Make sure we start with a clean slate.
-        delete_database::<SoftwareUtilities>(db_name).await.unwrap();
+        #[derive(Debug, PartialEq, Eq)]
+        struct Person {
+            id: i32,
+            name: String,
+            data: Option<Vec<u8>>,
+        }
 
         // Create a new (encrypted) database.
-        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size()).as_slice()).unwrap();
+        let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");
 
@@ -116,7 +124,7 @@ mod tests {
         };
         db.connection
             .execute(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
+                db.connection.get_database_backend(),
                 "INSERT INTO person (id, name, data) VALUES ($1, $2, $3)",
                 [
                     me.id.into(),
@@ -131,7 +139,7 @@ mod tests {
         let person_query_results = db
             .connection
             .query_all(Statement::from_string(
-                DatabaseBackend::Sqlite,
+                db.connection.get_database_backend(),
                 "SELECT id, name, data FROM person".to_string(),
             ))
             .await
@@ -151,7 +159,7 @@ mod tests {
         assert_eq!(persons, [me]);
 
         // Finally, delete the test database.
-        db.close_and_delete::<SoftwareUtilities>()
+        db.close_and_delete()
             .await
             .expect("Could not close and delete database");
     }
@@ -173,13 +181,9 @@ mod tests {
             name: "My wallet app".to_string(),
         };
 
-        let db_name = "test_entities_database";
-
-        // Make sure we start with a clean slate.
-        delete_database::<SoftwareUtilities>(db_name).await.unwrap();
-
         // Create a new (encrypted) database.
-        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size_with_salt()).as_slice()).unwrap();
+        let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");
 
@@ -189,13 +193,13 @@ mod tests {
             data: Set(serde_json::to_value(&configuration).unwrap()),
         };
         configuration_model
-            .insert(&db.connection)
+            .insert(db.get_connection())
             .await
             .expect("Could not insert keyed data");
 
         // Fetch all keyed data and check if our example data is present.
         let all_keyed_data = keyed_data::Entity::find()
-            .all(&db.connection)
+            .all(db.get_connection())
             .await
             .expect("Could not query keyed data");
 
@@ -210,7 +214,7 @@ mod tests {
         );
 
         // Finally, delete the test database.
-        db.close_and_delete::<SoftwareUtilities>()
+        db.close_and_delete()
             .await
             .expect("Could not close and delete database");
     }

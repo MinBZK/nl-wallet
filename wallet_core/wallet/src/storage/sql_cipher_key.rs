@@ -49,12 +49,18 @@ impl TryFrom<&[u8]> for SqlCipherKey {
 
 /// Convertion to a string usable in SQL statement, with or without the salt.
 /// The resulting format is: x'1234ABCD'
-impl From<SqlCipherKey> for String {
-    fn from(value: SqlCipherKey) -> Self {
+impl From<&SqlCipherKey> for String {
+    fn from(value: &SqlCipherKey) -> Self {
         let key_hex = bytes_to_hex(&value.key);
         let salt_hex = value.salt.as_ref().map(|s| bytes_to_hex(s)).unwrap_or_default();
 
         format!("x'{}{}'", key_hex, salt_hex)
+    }
+}
+
+impl From<SqlCipherKey> for String {
+    fn from(value: SqlCipherKey) -> Self {
+        Self::from(&value)
     }
 }
 
