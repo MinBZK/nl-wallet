@@ -1,5 +1,6 @@
 use anyhow::Result;
 use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
+use sea_orm::ConnectionTrait;
 use tokio::try_join;
 
 use crate::storage::key_file::delete_key_file;
@@ -16,7 +17,8 @@ fn key_file_alias_for_name(name: &str) -> String {
     format!("{}{}", name, KEY_FILE_SUFFIX)
 }
 
-struct WalletDatabase {
+#[derive(Debug)]
+pub struct WalletDatabase {
     pub name: String,
     database: Database,
 }
@@ -45,6 +47,10 @@ impl WalletDatabase {
     pub async fn close_and_delete<U: PlatformUtilities>(self) -> Result<()> {
         let key_file_alias = key_file_alias_for_name(&self.name);
         try_join!(self.database.close_and_delete(), delete_key_file::<U>(&key_file_alias)).map(|_| ())
+    }
+
+    pub fn get_connection(&self) -> &impl ConnectionTrait {
+        self.database.get_connection()
     }
 }
 

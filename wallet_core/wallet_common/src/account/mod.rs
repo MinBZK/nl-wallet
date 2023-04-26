@@ -14,7 +14,7 @@ use crate::account::{
     signed::SignedDouble,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletCertificateClaims {
     pub wallet_id: String,
     pub hw_pubkey: DerVerifyingKey,

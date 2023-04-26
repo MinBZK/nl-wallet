@@ -9,6 +9,7 @@ use super::sql_cipher_key::SqlCipherKey;
 
 const PRAGMA_KEY: &str = "key";
 
+#[derive(Debug)]
 pub enum SqliteUrl {
     File(PathBuf),
     InMemory,
@@ -29,6 +30,7 @@ impl From<SqliteUrl> for String {
     }
 }
 
+#[derive(Debug)]
 pub struct Database {
     pub url: SqliteUrl,
     connection: DatabaseConnection,

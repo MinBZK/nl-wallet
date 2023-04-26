@@ -8,6 +8,7 @@ wallet_common = { path = "../wallet_common" }
 wallet_entity = { path = "../wallet_entity" }
 wallet_migration = { path = "../wallet_migration" }
 anyhow = "1.0.66"
+async-trait = "0.1.68"
 libsqlite3-sys = { version = "0.24.2", features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -23,6 +24,8 @@ sea-orm = { version = "0.11.3", default-features = false, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
 ] }
+serde = { version = "1.0.156", features = ["derive"] }
+serde_json = { version = "1.0.92" }
 thiserror = "1.0.39"
 
 # TODO: find a proper way to talk to the wallet provider instead of this
@@ -42,6 +45,4 @@ platform_support = { path = "../platform_support", features = ["software"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }
-serde = { version = "1.0.156", features = ["derive"] }
-serde_json = { version = "1.0.92" }
 tempfile = "3.5.0"
