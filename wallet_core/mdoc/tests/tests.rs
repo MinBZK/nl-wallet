@@ -2,8 +2,11 @@ use anyhow::{anyhow, Result};
 use ciborium::value::Value;
 use core::fmt::Debug;
 use indexmap::IndexMap;
-use p256::pkcs8::DecodePrivateKey;
-use rcgen::{BasicConstraints, Certificate, CertificateParams, DnType, IsCa};
+use p256::pkcs8::{
+    der::{asn1::SequenceOf, Encode},
+    DecodePrivateKey, ObjectIdentifier,
+};
+use rcgen::{BasicConstraints, Certificate, CertificateParams, CustomExtension, DnType, IsCa};
 use serde_bytes::ByteBuf;
 use std::ops::Add;
 use x509_parser::prelude::{FromDer, X509Certificate};
@@ -155,6 +158,7 @@ fn issuance_and_disclosure() {
     // Issuer data
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
+    dbg!(DebugCollapseBts(&cert_bts));
     let ca_bts = ca.serialize_der().unwrap();
     let ca_cert = X509Certificate::from_der(ca_bts.as_slice()).unwrap().1;
 
@@ -200,11 +204,23 @@ pub fn new_ca(common_name: &str) -> Result<Certificate, rcgen::RcgenError> {
     Certificate::from_params(ca_params)
 }
 
+const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
+const MDL_EXT_KEY_USAGE: &str = "1.0.18013.5.1.2";
+
 pub fn new_certificate(ca: &Certificate, common_name: &str) -> Result<(ecdsa::SigningKey<p256::NistP256>, Vec<u8>)> {
     let mut cert_params = CertificateParams::new(vec![]);
     cert_params.is_ca = IsCa::NoCa;
     cert_params.distinguished_name.push(DnType::CommonName, common_name);
-    // TODO: X509v3 Extended Key Usage: critical / 1.0.18013.5.1.2
+
+    // The spec requires that we add OID 1.0.18013.5.1.2 to the extended key usage extension, but [`CertificateParams`]
+    // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
+    // the custom extensions.
+    let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
+    seq.add(MDL_EXT_KEY_USAGE.parse().unwrap()).unwrap(); // this will always succeed
+    let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_vec().map_err(anyhow::Error::msg)?);
+    ext.set_criticality(true);
+    cert_params.custom_extensions.push(ext);
+
     let cert = Certificate::from_params(cert_params)?;
     let cert_bts = cert.serialize_der_with_signer(ca)?;
 
