@@ -2,6 +2,16 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "en",
   "appTitle": "NL Wallet",
+  "cardAttributeRowTitle": "From {name}",
+  "@cardAttributeRowTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Address",
+        "type": "String"
+      }
+    },
+    "description": "Shows from which card the attributes were retrieved"
+  },
   "cardDataScreenIncorrectCta": "Is something not right?",
   "cardDataScreenTitle": "All data",
   "cardHistoryScreenTitle": "Card history",
@@ -544,10 +554,52 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
+  "verificationConfirmDataAttributesCheckAttributesCta": "Check your data",
+  "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
+  "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
+  "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, =1 {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
+  "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible",
   "verificationConfirmDataAttributesPageApproveCta": "Share",
   "verificationConfirmDataAttributesPageDenyCta": "No, decline",
   "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",
-  "verificationConfirmDataAttributesPageShareDataTitle": "Do you want to share this information?",
+  "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Do you want to share this attribute?} other {Do you want to share these {count} attributes?}}",
+  "@verificationConfirmDataAttributesPageShareDataTitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of attributes to share"
+  },
+  "verificationConfirmDataAttributesShareWithTitle": "Share with {organization}",
+  "@verificationConfirmDataAttributesShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title showing what organization you will be sharing data with"
+  },
   "verificationConfirmPinPageDescription": "By entering your pin you agree to share your information.",
   "verificationConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
   "@verificationConfirmPinPageErrorDescription": {
