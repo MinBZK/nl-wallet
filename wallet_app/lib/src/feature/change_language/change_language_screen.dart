@@ -14,6 +14,11 @@ class ChangeLanguageScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).changeLanguageScreenTitle),
+        leading: IconButton(
+          key: const Key('changeLanguageScreenBackCta'),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: BlocBuilder<ChangeLanguageBloc, ChangeLanguageState>(
         builder: (context, state) {

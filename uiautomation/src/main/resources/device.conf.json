@@ -1,0 +1,64 @@
+{
+  "device": "emulator-5554",
+  "remoteOrLocal": "local",
+  "appPackage": "nl.rijksoverheid.edi.wallet",
+  "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
+  "bundleId": "nl.ictu.edi.wallet.latest",
+  "server": "http://hub.browserstack.com/wd/hub",
+  "sessionUrl": "https://api.browserstack.com/app-automate/sessions/%s.json",
+  "uploadedApp" : "https://api-cloud.browserstack.com/app-automate/recent_apps/",
+  "browserStackCapabilities": {
+    "project": "NL-Wallet",
+    "build": "build-101",
+    "name": "single-run"
+  },
+  "browserstackDevices": [
+    {
+      "deviceName": "Google Pixel 3",
+      "platformVersion": "9.0",
+      "platformName": "android"
+    },
+    {
+      "deviceName": "Samsung Galaxy S10e",
+      "platformVersion": "9.0",
+      "platformName": "android"
+    },
+    {
+      "deviceName": "iPhone 13 pro",
+      "platformVersion": "15",
+      "platformName": "ios"
+    }
+  ],
+  "localDevices": [
+    {
+      "deviceName": "Mi3",
+      "platformVersion": "11",
+      "platformName": "android",
+      "udid": "8359e1fccd9c"
+    },
+    {
+      "deviceName": "SamsungGalaxyTabS8ultra",
+      "platformVersion": "12",
+      "platformName": "android",
+      "udid": "R52T4090AVM"
+    },
+    {
+      "deviceName": "OnePlus7Pro",
+      "platformVersion": "11",
+      "platformName": "android",
+      "udid": "fe3eac34"
+    },
+    {
+      "deviceName": "OnePlus10Pro",
+      "platformVersion": "13",
+      "platformName": "android",
+      "udid": "129bdc23"
+    },
+    {
+      "deviceName": "emulator-5554",
+      "platformVersion": "13",
+      "platformName": "android",
+      "udid": "emulator-5554"
+    }
+  ]
+}
