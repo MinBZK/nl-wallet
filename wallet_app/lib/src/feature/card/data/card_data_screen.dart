@@ -6,30 +6,35 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
+import 'widget/data_privacy_banner.dart';
 
 class CardDataScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+  static CardDataScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return CardDataScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a (mock) id when opening the CardSummaryScreen');
+      throw UnsupportedError('Make sure to pass in [CardDataScreenArgument] when opening the CardDataScreen');
     }
   }
 
-  const CardDataScreen({Key? key}) : super(key: key);
+  final String cardTitle;
+
+  const CardDataScreen({required this.cardTitle, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).cardDataScreenTitle),
+        title: Text(cardTitle),
       ),
       body: _buildBody(),
     );
@@ -52,9 +57,18 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
     final List<Widget> slivers = [];
-    slivers.add(const SliverSizedBox(height: 8));
+
+    // Data privacy
+    slivers.add(
+      SliverToBoxAdapter(
+        child: DataPrivacyBanner(
+          onPressed: () => _showDataPrivacySheet(context),
+        ),
+      ),
+    );
 
     // Data attributes
+    slivers.add(const SliverSizedBox(height: 24));
     for (var element in attributes) {
       slivers.add(SliverToBoxAdapter(
         child: Padding(
@@ -67,7 +81,8 @@ class CardDataScreen extends StatelessWidget {
     // Incorrect button
     slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
     slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
-    slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
+    slivers.add(const SliverSizedBox(height: 16));
+    slivers.add(const SliverToBoxAdapter(child: Divider(height: 1)));
 
     return Column(
       children: [
@@ -79,6 +94,7 @@ class CardDataScreen extends StatelessWidget {
             ),
           ),
         ),
+        const Divider(height: 1),
         const BottomBackButton(),
       ],
     );
@@ -94,6 +110,16 @@ class CardDataScreen extends StatelessWidget {
           onPressed: () => PlaceholderScreen.show(context),
         ),
       ),
+    );
+  }
+
+  void _showDataPrivacySheet(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    ExplanationSheet.show(
+      context,
+      title: locale.cardDataScreenDataPrivacySheetTitle,
+      description: locale.cardDataScreenDataPrivacySheetDescription,
+      closeButtonText: locale.qrScanTabHowToScanSheetCloseCta,
     );
   }
 }
