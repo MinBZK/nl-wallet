@@ -17,10 +17,12 @@ class TimelineAttributeStatusColorMapper {
 class InteractionStatusColorMapper {
   static Color map(ThemeData themeData, InteractionStatus status) {
     switch (status) {
+      case InteractionStatus.success:
+        return themeData.colorScheme.onBackground;
       case InteractionStatus.failed:
         return themeData.colorScheme.error;
-      default:
-        return themeData.colorScheme.onBackground;
+      case InteractionStatus.rejected:
+        return themeData.colorScheme.error;
     }
   }
 }

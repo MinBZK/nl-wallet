@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../util/formatter/time_ago_formatter.dart';
 import '../../../../util/formatter/timeline_attribute_title_formatter.dart';
+import '../../../../util/mapper/timeline_attribute_error_status_icon_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_status_color_mapper.dart';
-import '../../../../util/mapper/timeline_attribute_status_icon_color_mapper.dart';
-import '../../../../util/mapper/timeline_attribute_status_icon_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_status_mapper.dart';
-import '../status_icon.dart';
+import '../organization/organization_logo.dart';
+
+const _kOrganizationLogoSize = 40.0;
 
 class TimelineAttributeRow extends StatelessWidget {
   final TimelineAttribute attribute;
@@ -27,14 +29,7 @@ class TimelineAttributeRow extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final String titleText = TimelineAttributeTitleFormatter.format(
-      attribute,
-      showOperationTitle: showOperationTitle,
-    );
-    final Color iconColor = TimelineAttributeStatusIconColorMapper.map(theme, attribute);
-    final IconData iconData = TimelineAttributeStatusIconMapper.map(attribute);
-    final String typeText = TimelineAttributeStatusTextMapper.map(locale, attribute);
-    final Color typeTextColor = TimelineAttributeStatusColorMapper.map(theme, attribute);
+    final String titleText = TimelineAttributeTitleFormatter.format(attribute, showOperationTitle: showOperationTitle);
     final String timeAgoText = TimeAgoFormatter.format(locale, attribute.dateTime);
 
     return InkWell(
@@ -47,10 +42,9 @@ class TimelineAttributeRow extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.max,
               children: [
-                SizedBox(
-                  height: 40,
-                  width: 40,
-                  child: StatusIcon(color: iconColor, icon: iconData),
+                OrganizationLogo(
+                  image: AssetImage(attribute.organization.logoUrl),
+                  size: _kOrganizationLogoSize,
                 ),
                 const SizedBox(width: 16.0),
                 Expanded(
@@ -59,20 +53,21 @@ class TimelineAttributeRow extends StatelessWidget {
                     children: [
                       Visibility(
                         visible: titleText.isNotEmpty,
-                        child: Text(titleText, style: Theme.of(context).textTheme.titleMedium),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 2.0),
+                          child: Text(titleText, style: theme.textTheme.titleMedium),
+                        ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        typeText,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: typeTextColor),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(timeAgoText, style: Theme.of(context).textTheme.bodySmall),
+                      _buildTypeRow(context, attribute),
+                      Text(timeAgoText, style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
                 const SizedBox(width: 16.0),
-                Icon(Icons.arrow_forward_ios_outlined, size: 16, color: Theme.of(context).colorScheme.onBackground),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onBackground,
+                ),
               ],
             ),
           ),
@@ -80,5 +75,32 @@ class TimelineAttributeRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Currently we do not show the type row for [InteractionTimelineAttribute] with status [InteractionStatus.success].
+  /// This is a design choice build on the thought that successful interactions are the main goal of the wallet.
+  Widget _buildTypeRow(BuildContext context, TimelineAttribute attribute) {
+    final bool hideTypeRow = attribute is InteractionTimelineAttribute && attribute.status == InteractionStatus.success;
+    if (!hideTypeRow) {
+      final locale = AppLocalizations.of(context);
+      final theme = Theme.of(context);
+
+      final IconData? errorStatusIcon = TimelineAttributeErrorStatusIconMapper.map(attribute);
+      final String typeText = TimelineAttributeStatusTextMapper.map(locale, attribute);
+      final Color typeTextColor = TimelineAttributeStatusColorMapper.map(theme, attribute);
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2.0),
+        child: Row(
+          children: [
+            if (errorStatusIcon != null) Icon(errorStatusIcon, color: theme.colorScheme.error, size: 16.0),
+            if (errorStatusIcon != null) const SizedBox(width: 8),
+            Text(typeText, style: theme.textTheme.bodyLarge?.copyWith(color: typeTextColor)),
+          ],
+        ),
+      );
+    } else {
+      return const SizedBox();
+    }
   }
 }

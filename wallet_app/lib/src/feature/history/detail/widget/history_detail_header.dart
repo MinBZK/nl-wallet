@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../util/formatter/time_ago_formatter.dart';
+import '../../../common/widget/organization/organization_logo.dart';
 import '../../../verification/model/organization.dart';
+
+const _kOrganizationLogoSize = 40.0;
 
 class HistoryDetailHeader extends StatelessWidget {
   final Organization organization;
@@ -20,13 +23,9 @@ class HistoryDetailHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.asset(organization.logoUrl),
-            ),
+          OrganizationLogo(
+            image: AssetImage(organization.logoUrl),
+            size: _kOrganizationLogoSize,
           ),
           const SizedBox(width: 16),
           Expanded(
