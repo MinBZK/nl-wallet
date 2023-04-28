@@ -2,55 +2,9 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
   "appTitle": "NL Wallet",
-  "organizationApprovePageApproveCta": "Ja, volgende",
-  "organizationApprovePageDenyCta": "Nee",
-  "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
-  "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
-  "organizationApprovePagePurpose": "Reden: {purpose}",
-  "@organizationApprovePagePurpose": {
-    "placeholders": {
-      "purpose": {
-        "example": "Afspraak bevestigen",
-        "type": "String"
-      }
-    },
-    "description": "Reason why this organization is requesting data"
-  },
-  "organizationApprovePageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
-  "@organizationApprovePageReceiveFromTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when fetching cards"
-  },
-  "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
-  "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
-  "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
-  "@organizationApprovePageShareWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when verifying"
-  },
-  "organizationApprovePageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
-  "@organizationApprovePageSignWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when signing"
-  },
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
   "cardDataScreenTitle": "Alle gegevens",
-  "cardHistoryScreenTitle": "Kaart geschiedenis",
+  "cardHistoryScreenTitle": "Kaartgeschiedenis",
   "cardHistoryTimelineInteractionFailed": "Delen mislukt",
   "cardHistoryTimelineInteractionRejected": "Delen gestopt",
   "cardHistoryTimelineInteractionSuccess": "Gegevens gedeeld",
@@ -61,21 +15,43 @@
   "cardHistoryTimelineSigningSuccess": "Ondertekend",
   "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
   "cardOverviewScreenTitle": "Mijn kaarten",
-  "cardShareScreenExplanationCta": "Hoe werkt delen?",
-  "cardShareScreenExplanationSheetCloseCta": "Sluiten",
-  "cardShareScreenExplanationSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Nadat je QR-code is gescant krijg je een gegevensverzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
-  "cardShareScreenExplanationSheetTitle": "Hoe werkt delen?",
-  "cardShareScreenSubtitle": "Laat de QR-code scannen om te beginnen met delen.",
-  "cardSummaryScreenAddCardCta": "Alle gegevens",
-  "cardSummaryScreenCardDeleteCta": "Verwijderen",
-  "cardSummaryScreenCardRenewCta": "Opnieuw ophalen",
-  "cardSummaryScreenDataAttributesTitle": "Gegevens",
-  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
-  "cardSummaryScreenShareCta": "Delen",
-  "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} met {organization}",
-  "@cardSummaryScreenShareHistory": {
+  "cardSummaryScreenCardDataCta": "Gegevens",
+  "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",
+  "@cardSummaryScreenCardDataIssuedBy": {
+    "placeholders": {
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
+    },
+    "description": "Issued by Organization"
+  },
+  "cardSummaryScreenCardDeleteCta": "Kaart verwijderen",
+  "cardSummaryScreenCardHistoryCta": "Kaartgeschiedenis",
+  "cardSummaryScreenCardUpdateCta": "Opnieuw ophalen",
+  "cardSummaryScreenCardValidUntil": "Geldig tot en met {dateTime}",
+  "@cardSummaryScreenCardValidUntil": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Card valid until."
+  },
+  "cardSummaryScreenLatestIssuedOperation": "Laatste update {dateTime}",
+  "@cardSummaryScreenLatestIssuedOperation": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Latest issued operation."
+  },
+  "cardSummaryScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
+  "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
+  "@cardSummaryScreenLatestSuccessInteraction": {
     "placeholders": {
       "timeAgo": {
         "example": "4 hours ago",
@@ -92,9 +68,10 @@
     },
     "description": "Most recent data share history."
   },
-  "cardSummaryScreenShareHistoryAllCta": "Geschiedenis",
-  "cardSummaryScreenShareHistoryTitle": "Geschiedenis",
-  "cardSummaryScreenShareSuccessNoHistory": "Nog nooit gedeeld.",
+  "cardSummaryScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
+  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
   "cardSummaryScreenTitle": "Kaart overzicht",
   "changeLanguageScreenTitle": "Kies een taal",
   "checkAgreementPageCancelCta": "Nee",
@@ -378,6 +355,52 @@
   "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
   "mockDigidScreenHeaderTitle": "Inloggen",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+  "organizationApprovePageApproveCta": "Ja, volgende",
+  "organizationApprovePageDenyCta": "Nee",
+  "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
+  "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+  "organizationApprovePagePurpose": "Reden: {purpose}",
+  "@organizationApprovePagePurpose": {
+    "placeholders": {
+      "purpose": {
+        "example": "Afspraak bevestigen",
+        "type": "String"
+      }
+    },
+    "description": "Reason why this organization is requesting data"
+  },
+  "organizationApprovePageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
+  "@organizationApprovePageReceiveFromTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when fetching cards"
+  },
+  "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
+  "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
+  "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
+  "@organizationApprovePageShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when verifying"
+  },
+  "organizationApprovePageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
+  "@organizationApprovePageSignWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when signing"
+  },
   "organizationButtonLabel": "Over deze partij",
   "organizationDetailScreenDataIncorrectCta": "Klopt er iets niet?",
   "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",

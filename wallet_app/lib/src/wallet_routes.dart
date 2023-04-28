@@ -8,7 +8,7 @@ import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/bloc/card_history_bloc.dart';
 import 'feature/card/history/card_history_screen.dart';
 import 'feature/card/overview/bloc/card_overview_bloc.dart';
-import 'feature/card/share/card_share_screen.dart';
+import 'feature/card/summary/argument/card_summary_screen_argument.dart';
 import 'feature/card/summary/bloc/card_summary_bloc.dart';
 import 'feature/card/summary/card_summary_screen.dart';
 import 'feature/change_language/bloc/change_language_bloc.dart';
@@ -74,7 +74,6 @@ class WalletRoutes {
   static const cardSummaryRoute = '/card/summary';
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
-  static const cardShareRoute = '/card/share';
   static const themeRoute = '/theme';
   static const verificationRoute = '/verification';
   static const issuanceRoute = '/issuance';
@@ -113,8 +112,6 @@ class WalletRoutes {
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
         return _createCardHistoryScreenBuilder(settings);
-      case WalletRoutes.cardShareRoute:
-        return _createCardShareScreenBuilder(settings);
       case WalletRoutes.themeRoute:
         return _createThemeScreenBuilder;
       case WalletRoutes.verificationRoute:
@@ -182,10 +179,10 @@ Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
 
 WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
   return (context) {
-    final String cardId = CardSummaryScreen.getArguments(settings);
+    CardSummaryScreenArgument argument = CardSummaryScreen.getArgument(settings);
     return BlocProvider<CardSummaryBloc>(
-      create: (context) => CardSummaryBloc(context.read())..add(CardSummaryLoadTriggered(cardId)),
-      child: const CardSummaryScreen(),
+      create: (context) => CardSummaryBloc(context.read())..add(CardSummaryLoadTriggered(argument.cardId)),
+      child: CardSummaryScreen(cardTitle: argument.cardTitle),
     );
   };
 }
@@ -207,13 +204,6 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
       create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(cardId)),
       child: const CardHistoryScreen(),
     );
-  };
-}
-
-WidgetBuilder _createCardShareScreenBuilder(RouteSettings settings) {
-  return (context) {
-    final String screenTitle = CardShareScreen.getArguments(settings);
-    return CardShareScreen(screenTitle: screenTitle);
   };
 }
 

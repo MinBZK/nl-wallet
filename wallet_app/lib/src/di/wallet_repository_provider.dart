@@ -4,12 +4,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../data/mapper/pin/pin_validation_error_mapper.dart';
 import '../data/repository/card/data_attribute_repository.dart';
-import '../data/repository/card/data_highlight_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
-import '../data/repository/card/impl/data_highlight_repository_impl.dart';
 import '../data/repository/card/impl/timeline_attribute_repository_impl.dart';
 import '../data/repository/card/impl/wallet_card_repository_impl.dart';
-import '../data/repository/card/mock/mock_data_highlight_repository.dart';
 import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/issuance/impl/issuance_response_repository_impl.dart';
@@ -17,6 +14,8 @@ import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
+import '../data/repository/organization/impl/organization_repository_impl.dart';
+import '../data/repository/organization/organization_repository.dart';
 import '../data/repository/qr/impl/qr_repository_impl.dart';
 import '../data/repository/qr/mock/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
@@ -47,14 +46,14 @@ class WalletRepositoryProvider extends StatelessWidget {
               ? MockWalletRepository(context.read())
               : CoreWalletRepository(context.read(), PinValidationErrorMapper()),
         ),
+        RepositoryProvider<OrganizationRepository>(
+          create: (context) => OrganizationRepositoryImpl(context.read()),
+        ),
         RepositoryProvider<WalletCardRepository>(
           create: (context) => WalletCardRepositoryImpl(context.read()),
         ),
         RepositoryProvider<DataAttributeRepository>(
           create: (context) => DataAttributeRepositoryImpl(context.read()),
-        ),
-        RepositoryProvider<DataHighlightRepository>(
-          create: (context) => provideMocks ? MockDataHighlightRepository() : DataHighlightRepositoryImpl(),
         ),
         RepositoryProvider<TimelineAttributeRepository>(
           create: (context) => TimelineAttributeRepositoryImpl(context.read()),

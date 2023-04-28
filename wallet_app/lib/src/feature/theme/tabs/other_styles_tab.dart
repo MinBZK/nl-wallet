@@ -8,9 +8,9 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
-import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bottom_sheet_drag_handle.dart';
+import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
@@ -23,6 +23,7 @@ import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
+import '../../common/widget/row/tappable_icon_list_row.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
@@ -245,8 +246,15 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: const WalletCard(front: _kSampleCardFront, attributes: [], id: 'id'),
+          card: const WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
           isSelected: true,
+        ),
+        const ThemeSectionSubHeader(title: 'TappableIconListRow'),
+        TappableIconListRow(
+          title: 'Sample title',
+          subtitle: 'Sample subtitle',
+          icon: Icons.add_alert_outlined,
+          onTap: () {},
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),
         const StatusIcon(icon: Icons.ac_unit),
@@ -255,7 +263,10 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletLogo'),
         const WalletLogo(size: 64),
         const ThemeSectionSubHeader(title: 'IconRow'),
-        const IconRow(icon: Icon(Icons.ac_unit), text: Text('IconRow'),),
+        const IconRow(
+          icon: Icon(Icons.ac_unit),
+          text: Text('IconRow'),
+        ),
       ],
     );
   }

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/card_front.dart';
-import '../card/wallet_card_item.dart';
+import '../card/sized_card_front.dart';
 
-const _kCardRenderSize = Size(328, 192);
-const _kCardDisplaySize = Size(115, 67);
+const _kCardDisplayWidth = 115.0;
 
 class TimelineCardHeader extends StatelessWidget {
   final CardFront cardFront;
@@ -19,15 +18,9 @@ class TimelineCardHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
             children: [
-              SizedBox.fromSize(
-                size: _kCardDisplaySize,
-                child: FittedBox(
-                  alignment: Alignment.center,
-                  child: SizedBox.fromSize(
-                    size: _kCardRenderSize,
-                    child: WalletCardItem.fromCardFront(front: cardFront),
-                  ),
-                ),
+              SizedCardFront(
+                cardFront: cardFront,
+                displayWidth: _kCardDisplayWidth,
               ),
               const SizedBox(height: 24),
               Text(
