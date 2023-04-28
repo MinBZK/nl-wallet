@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'domain/model/policy/policy.dart';
 import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'feature/card/data/argument/card_data_screen_argument.dart';
 import 'feature/card/data/bloc/card_data_bloc.dart';
 import 'feature/card/data/card_data_screen.dart';
 import 'feature/card/history/bloc/card_history_bloc.dart';
@@ -189,10 +190,10 @@ WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
   return (context) {
-    final String cardId = CardDataScreen.getArguments(settings);
+    final CardDataScreenArgument argument = CardDataScreen.getArgument(settings);
     return BlocProvider<CardDataBloc>(
-      create: (context) => CardDataBloc(context.read())..add(CardDataLoadTriggered(cardId)),
-      child: const CardDataScreen(),
+      create: (context) => CardDataBloc(context.read())..add(CardDataLoadTriggered(argument.cardId)),
+      child: CardDataScreen(cardTitle: argument.cardTitle),
     );
   };
 }

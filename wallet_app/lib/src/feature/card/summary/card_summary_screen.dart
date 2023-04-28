@@ -20,6 +20,7 @@ import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/row/tappable_icon_list_row.dart';
 import '../../issuance/argument/issuance_screen_argument.dart';
+import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_summary_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 
@@ -33,7 +34,7 @@ class CardSummaryScreen extends StatelessWidget {
       return CardSummaryScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in [CardSummaryScreenArgument] when opening the HistoryDetailScreen');
+      throw UnsupportedError('Make sure to pass in [CardSummaryScreenArgument] when opening the CardSummaryScreen');
     }
   }
 
@@ -86,7 +87,7 @@ class CardSummaryScreen extends StatelessWidget {
                   icon: Icons.description_outlined,
                   title: locale.cardSummaryScreenCardDataCta,
                   subtitle: locale.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
-                  onTap: () => _onCardDataPressed(context, summary.card.id),
+                  onTap: () => _onCardDataPressed(context, summary.card),
                 ),
                 const Divider(height: 1),
                 TappableIconListRow(
@@ -173,8 +174,15 @@ class CardSummaryScreen extends StatelessWidget {
     );
   }
 
-  void _onCardDataPressed(BuildContext context, String cardId) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardDataRoute, arguments: cardId);
+  void _onCardDataPressed(BuildContext context, WalletCard card) {
+    Navigator.restorablePushNamed(
+      context,
+      WalletRoutes.cardDataRoute,
+      arguments: CardDataScreenArgument(
+        cardId: card.id,
+        cardTitle: card.front.title,
+      ).toMap(),
+    );
   }
 
   void _onCardHistoryPressed(BuildContext context, String cardId) {

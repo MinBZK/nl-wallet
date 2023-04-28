@@ -22,8 +22,12 @@
     },
     "description": "Shows from which card the attributes were retrieved"
   },
+  "cardDataScreenDataPrivacyBannerReadMore": "Read more",
+  "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you. ",
+  "cardDataScreenDataPrivacySheetClose": "Close",
+  "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function.",
+  "cardDataScreenDataPrivacySheetTitle": "View of your data",
   "cardDataScreenIncorrectCta": "Is something not right?",
-  "cardDataScreenTitle": "All data",
   "cardHistoryScreenTitle": "Card history",
   "cardHistoryTimelineInteractionFailed": "Failed to share",
   "cardHistoryTimelineInteractionRejected": "Rejected to share",
