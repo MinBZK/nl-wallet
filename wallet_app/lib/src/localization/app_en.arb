@@ -12,6 +12,16 @@
     },
     "description": "Shows from which card the attributes were retrieved"
   },
+  "cardAttributeRowTitle": "From {name}",
+  "@cardAttributeRowTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Address",
+        "type": "String"
+      }
+    },
+    "description": "Shows from which card the attributes were retrieved"
+  },
   "cardDataScreenIncorrectCta": "Is something not right?",
   "cardDataScreenTitle": "All data",
   "cardHistoryScreenTitle": "Card history",
@@ -104,6 +114,8 @@
   },
   "checkAgreementPageSubtitle": "Check the agreement before continuing",
   "checkAgreementPageTitle": "Are you aware of the agreement?",
+  "checkAttributesScreenDataIncorrectCta": "Something not right?",
+  "checkAttributesScreenTitle": "Verify",
   "confirmAgreementPageCancelCta": "No",
   "confirmAgreementPageConfirmCta": "Yes, sign",
   "confirmAgreementPageDataIncorrectCta": "Something not right?",

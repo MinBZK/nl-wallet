@@ -12,6 +12,16 @@
     },
     "description": "Shows from which card the attributes were retrieved"
   },
+  "cardAttributeRowTitle": "Uit {name}",
+  "@cardAttributeRowTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Shows from which card the attributes were retrieved"
+  },
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
   "cardDataScreenTitle": "Alle gegevens",
   "cardHistoryScreenTitle": "Kaartgeschiedenis",
@@ -104,6 +114,8 @@
   },
   "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
   "checkAgreementPageTitle": "Ken je de afspraken?",
+  "checkAttributesScreenDataIncorrectCta": "Klopt er iets niet?",
+  "checkAttributesScreenTitle": "Controleren",
   "confirmAgreementPageCancelCta": "Nee",
   "confirmAgreementPageConfirmCta": "Ja, tekenen",
   "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",

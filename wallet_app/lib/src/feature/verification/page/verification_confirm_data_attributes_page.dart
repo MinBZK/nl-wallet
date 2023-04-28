@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/placeholder_screen.dart';
@@ -40,7 +41,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
             child: InfoRow(
               icon: Icons.remove_red_eye_outlined,
               title: locale.verificationConfirmDataAttributesCheckAttributesCta,
-              onTap: () => PlaceholderScreen.show(context),
+              onTap: () => CheckAttributesScreen.show(context, flow.resolvedAttributes),
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
