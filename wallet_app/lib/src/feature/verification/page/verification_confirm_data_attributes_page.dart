@@ -4,8 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/info_row.dart';
-import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../terms_and_conditions/terms_and_conditions_screen.dart';
 import '../model/verification_flow.dart';
 import '../widget/card_attribute_row.dart';
 
@@ -91,7 +91,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
       leading: Image.asset('assets/images/ic_policy.png'),
       title: locale.verificationConfirmDataAttributesCheckConditionsCta,
       subtitle: subtitle,
-      onTap: () => PlaceholderScreen.show(context),
+      onTap: () => TermsAndConditionsScreen.show(context, flow.policy),
     );
   }
 
