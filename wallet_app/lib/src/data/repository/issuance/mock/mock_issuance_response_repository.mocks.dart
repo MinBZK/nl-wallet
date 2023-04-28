@@ -11,6 +11,7 @@ const _kMockGender = 'Vrouw';
 const _kPidId = 'PID_1';
 const _kMockPidWalletCard = WalletCard(
   id: _kPidId,
+  issuerId: 'rvig',
   front: _kMockPidCardFront,
   attributes: _kMockPidDataAttributes,
 );
@@ -18,6 +19,7 @@ const _kMockPidWalletCard = WalletCard(
 const _kDiplomaId = 'DIPLOMA_1';
 const _kMockDiplomaWalletCard = WalletCard(
   id: _kDiplomaId,
+  issuerId: 'duo',
   front: _kMockDiplomaCardFront,
   attributes: _kMockDiplomaDataAttributes,
 );
@@ -26,6 +28,7 @@ const _kMultiDiplomaId = 'MULTI_DIPLOMA';
 const _kMasterDiplomaId = 'DIPLOMA_2';
 const _kMockMasterDiplomaWalletCard = WalletCard(
   id: _kMasterDiplomaId,
+  issuerId: 'duo',
   front: _kMockMasterDiplomaCardFront,
   attributes: _kMockMasterDiplomaDataAttributes,
 );
@@ -33,6 +36,7 @@ const _kMockMasterDiplomaWalletCard = WalletCard(
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
 final _kMockDrivingLicenseWalletCard = WalletCard(
   id: _kDrivingLicenseId,
+  issuerId: 'rdw',
   front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
 );
@@ -40,6 +44,7 @@ final _kMockDrivingLicenseWalletCard = WalletCard(
 const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
 final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
   id: _kDrivingLicenseId, // Same id as initial license! Used to mock 'renewal' a.k.a. card update
+  issuerId: 'rdw',
   front: _kMockDrivingLicenseRenewedCardFront,
   attributes: _kMockDrivingLicenseRenewedDataAttributes,
 );
@@ -47,6 +52,7 @@ final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
 const _kMockHealthInsuranceWalletCard = WalletCard(
   id: _kHealthInsuranceId,
+  issuerId: 'health_insurer_1',
   front: _kMockHealthInsuranceCardFront,
   attributes: _kMockHealthInsuranceDataAttributes,
 );
@@ -54,6 +60,7 @@ const _kMockHealthInsuranceWalletCard = WalletCard(
 const _kVOGId = 'VOG';
 const _kMockVOGWalletCard = WalletCard(
   id: _kVOGId,
+  issuerId: 'justis',
   front: _kMockVOGCardFront,
   attributes: _kMockVOGDataAttributes,
 );

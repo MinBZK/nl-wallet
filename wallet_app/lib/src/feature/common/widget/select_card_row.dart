@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/card_front.dart';
 import '../../../domain/model/wallet_card.dart';
-import 'card/wallet_card_item.dart';
+import 'card/sized_card_front.dart';
 
-const _kCardRenderSize = Size(328, 192);
-const _kCardDisplaySize = Size(40, 66);
+const _kCardDisplayWidth = 40.0;
 
 class SelectCardRow extends StatelessWidget {
   final Function(WalletCard) onCardSelectionToggled;
@@ -33,7 +31,10 @@ class SelectCardRow extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildSizedCardFront(card.front),
+                  child: SizedCardFront(
+                    cardFront: card.front,
+                    displayWidth: _kCardDisplayWidth,
+                  ),
                 ),
                 Expanded(
                   child: Column(
@@ -59,19 +60,6 @@ class SelectCardRow extends StatelessWidget {
         ),
         const Divider(height: 1),
       ],
-    );
-  }
-
-  Widget _buildSizedCardFront(CardFront front) {
-    return SizedBox.fromSize(
-      size: _kCardDisplaySize,
-      child: FittedBox(
-        alignment: Alignment.center,
-        child: SizedBox.fromSize(
-          size: _kCardRenderSize,
-          child: WalletCardItem.fromCardFront(front: front),
-        ),
-      ),
     );
   }
 }

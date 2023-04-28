@@ -2,52 +2,6 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "en",
   "appTitle": "NL Wallet",
-  "organizationApprovePageApproveCta": "Yes, next",
-  "organizationApprovePageDenyCta": "No, decline",
-  "organizationApprovePageFirstInteraction": "First request",
-  "organizationApprovePageIncorrectCta": "Is something not right?",
-  "organizationApprovePagePurpose": "Purpose: {purpose}",
-  "@organizationApprovePagePurpose": {
-    "placeholders": {
-      "purpose": {
-        "example": "Confirm appointment",
-        "type": "String"
-      }
-    },
-    "description": "Reason why this organization is requesting data"
-  },
-  "organizationApprovePageReceiveFromTitle": "Receive information from {organization}?",
-  "@organizationApprovePageReceiveFromTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when requesting cards"
-  },
-  "organizationApprovePageShareWithApproveCta": "Yes, view request",
-  "organizationApprovePageShareWithDenyCta": "No, stop",
-  "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
-  "@organizationApprovePageShareWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when verifying"
-  },
-  "organizationApprovePageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
-  "@organizationApprovePageSignWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when signing"
-  },
   "cardDataScreenIncorrectCta": "Is something not right?",
   "cardDataScreenTitle": "All data",
   "cardHistoryScreenTitle": "Card history",
@@ -61,21 +15,43 @@
   "cardHistoryTimelineSigningSuccess": "Signed",
   "cardOverviewScreenAddCardCta": "Add data",
   "cardOverviewScreenTitle": "My cards",
-  "cardShareScreenExplanationCta": "How does sharing work?",
-  "cardShareScreenExplanationSheetCloseCta": "Close",
-  "cardShareScreenExplanationSheetDescription": "Have the QR code scanned by a reviewer to start sharing. After your QR code has been scanned, you will receive a data request. Data will only be shared if you agree to the request.",
-  "cardShareScreenExplanationSheetTitle": "How does sharing work?",
-  "cardShareScreenSubtitle": "Have the QR code scanned to start sharing.",
-  "cardSummaryScreenAddCardCta": "All data",
-  "cardSummaryScreenCardDeleteCta": "Delete",
-  "cardSummaryScreenCardRenewCta": "Renew data",
-  "cardSummaryScreenDataAttributesTitle": "Data",
-  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
-  "cardSummaryScreenShareCta": "Share",
-  "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} with {organization}",
-  "@cardSummaryScreenShareHistory": {
+  "cardSummaryScreenCardDataCta": "Data",
+  "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
+  "@cardSummaryScreenCardDataIssuedBy": {
+    "placeholders": {
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
+    },
+    "description": "Issued by Organization"
+  },
+  "cardSummaryScreenCardDeleteCta": "Delete card",
+  "cardSummaryScreenCardHistoryCta": "Card history",
+  "cardSummaryScreenCardUpdateCta": "Renew data",
+  "cardSummaryScreenCardValidUntil": "Valid until {dateTime}",
+  "@cardSummaryScreenCardValidUntil": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Card valid until."
+  },
+  "cardSummaryScreenLatestIssuedOperation": "Latest update {dateTime}",
+  "@cardSummaryScreenLatestIssuedOperation": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Latest issued operation."
+  },
+  "cardSummaryScreenLatestIssuedOperationUnknown": "Latest update unknown",
+  "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} with {organization}",
+  "@cardSummaryScreenLatestSuccessInteraction": {
     "placeholders": {
       "timeAgo": {
         "example": "4 hours ago",
@@ -92,9 +68,10 @@
     },
     "description": "Most recent data share history."
   },
-  "cardSummaryScreenShareHistoryAllCta": "History",
-  "cardSummaryScreenShareHistoryTitle": "History",
-  "cardSummaryScreenShareSuccessNoHistory": "Never shared yet.",
+  "cardSummaryScreenLatestSuccessInteractionUnknown": "Never shared yet",
+  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
   "cardSummaryScreenTitle": "Card summary",
   "changeLanguageScreenTitle": "Select a language",
   "checkAgreementPageCancelCta": "No",
@@ -378,6 +355,52 @@
   "mockDigidScreenHeaderSubtitle": "You are logging in at:",
   "mockDigidScreenHeaderTitle": "Login",
   "mockDigidScreenTitle": "Securely login with DigiD",
+  "organizationApprovePageApproveCta": "Yes, next",
+  "organizationApprovePageDenyCta": "No, decline",
+  "organizationApprovePageFirstInteraction": "First request",
+  "organizationApprovePageIncorrectCta": "Is something not right?",
+  "organizationApprovePagePurpose": "Purpose: {purpose}",
+  "@organizationApprovePagePurpose": {
+    "placeholders": {
+      "purpose": {
+        "example": "Confirm appointment",
+        "type": "String"
+      }
+    },
+    "description": "Reason why this organization is requesting data"
+  },
+  "organizationApprovePageReceiveFromTitle": "Receive information from {organization}?",
+  "@organizationApprovePageReceiveFromTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when requesting cards"
+  },
+  "organizationApprovePageShareWithApproveCta": "Yes, view request",
+  "organizationApprovePageShareWithDenyCta": "No, stop",
+  "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
+  "@organizationApprovePageShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when verifying"
+  },
+  "organizationApprovePageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
+  "@organizationApprovePageSignWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when signing"
+  },
   "organizationButtonLabel": "About this organization",
   "organizationDetailScreenDataIncorrectCta": "Something not right?",
   "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",

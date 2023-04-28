@@ -174,7 +174,6 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
             context.read(),
             context.read(),
-            context.read(),
           ),
         ),
         RepositoryProvider<GetSignRequestUseCase>(

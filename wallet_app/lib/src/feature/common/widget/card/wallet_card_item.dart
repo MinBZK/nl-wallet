@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
-import '../utility/limit_font_scaling.dart';
 import '../svg_or_image.dart';
+import '../utility/limit_font_scaling.dart';
 import 'card_holograph.dart';
 import 'card_logo.dart';
 import 'show_details_cta.dart';
@@ -17,6 +17,9 @@ const _kLightBrightnessTextColor = LightWalletTheme.textColor;
 const _kDarkBrightnessTextColor = DarkWalletTheme.textColor;
 
 class WalletCardItem extends StatelessWidget {
+  /// Defines the default size of the card when rendered
+  static const kCardRenderSize = Size(328, 192);
+
   /// The cards title
   final String title;
 
