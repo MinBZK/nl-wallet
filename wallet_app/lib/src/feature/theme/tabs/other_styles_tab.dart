@@ -19,6 +19,7 @@ import '../../common/widget/history/timeline_attribute_row.dart';
 import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
+import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
@@ -30,6 +31,7 @@ import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../verification/model/organization.dart';
+import '../../verification/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
 
 const _kSampleCardFront = CardFront(
@@ -135,6 +137,17 @@ class OtherStylesTab extends StatelessWidget {
             type: AttributeType.other,
             label: 'Label',
             icon: Icons.remove_red_eye,
+          ),
+        ),
+        ThemeSectionSubHeader(title: 'CardAttributeRow'),
+        CardAttributeRow(
+          entry: MapEntry(
+            WalletCard(id: 'id', front: _kSampleCardFront, attributes: [], issuerId: ''),
+            [
+              DataAttribute(label: 'Voornaam', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+              DataAttribute(label: 'Achternaam', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+              DataAttribute(label: 'Postcode', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+            ],
           ),
         ),
       ],
@@ -266,6 +279,12 @@ class OtherStylesTab extends StatelessWidget {
         const IconRow(
           icon: Icon(Icons.ac_unit),
           text: Text('IconRow'),
+        ),
+        const ThemeSectionSubHeader(title: 'InfoRow'),
+        const InfoRow(
+          icon: Icons.ac_unit,
+          title: 'Title',
+          subtitle: 'Subtitle',
         ),
       ],
     );

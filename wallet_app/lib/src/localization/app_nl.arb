@@ -2,6 +2,16 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
   "appTitle": "NL Wallet",
+  "cardAttributeRowTitle": "Uit {name}",
+  "@cardAttributeRowTitle": {
+    "placeholders": {
+      "name": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Shows from which card the attributes were retrieved"
+  },
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
   "cardDataScreenTitle": "Alle gegevens",
   "cardHistoryScreenTitle": "Kaartgeschiedenis",
@@ -544,10 +554,52 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
+  "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
+  "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
+  "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
+  "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
+  "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is",
   "verificationConfirmDataAttributesPageApproveCta": "Delen",
   "verificationConfirmDataAttributesPageDenyCta": "Nee",
   "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-  "verificationConfirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
+  "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Wil je dit gegeven delen?} other {Wil je deze {count} gegevens delen?}}",
+  "@verificationConfirmDataAttributesPageShareDataTitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of attributes to share"
+  },
+  "verificationConfirmDataAttributesShareWithTitle": "Delen met {organization}",
+  "@verificationConfirmDataAttributesShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title showing what organization you will be sharing data with"
+  },
   "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
   "verificationConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
   "@verificationConfirmPinPageErrorDescription": {
