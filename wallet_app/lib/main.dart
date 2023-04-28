@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_driver/driver_extension.dart';
 
 import 'environment.dart';
 import 'src/di/wallet_bloc_provider.dart';
@@ -16,6 +17,11 @@ import 'src/wallet_app_bloc_observer.dart';
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  // Appium specific setup
+  if (kProfileMode || kDebugMode) {
+    enableFlutterDriverExtension();
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Debug specific setup

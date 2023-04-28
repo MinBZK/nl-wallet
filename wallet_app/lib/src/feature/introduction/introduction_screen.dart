@@ -147,6 +147,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildLanguageButton(double opacity) {
     final Widget result;
     var languageButton = TextIconButton(
+      key: const Key('introductionLanguageSelectCta'),
       icon: Icons.language,
       iconPosition: IconPosition.start,
       onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
@@ -184,6 +185,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return Opacity(
       opacity: opacity,
       child: TextIconButton(
+        key: const Key('introductionPrivacyPolicyCta'),
         icon: Icons.arrow_forward,
         onPressed: () => PlaceholderScreen.show(context, secured: false),
         child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
@@ -208,6 +210,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ElevatedButton(
+        key: const Key('introductionNextPageCta'),
         onPressed: () => _onNextPressed(context),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -231,6 +234,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Semantics(
+          key: const Key('introductionBackCta'),
           excludeSemantics: _currentPage < 1.0,
           button: true,
           tooltip: AppLocalizations.of(context).generalWCAGBack,
