@@ -16,7 +16,6 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
-import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/info_row.dart';
@@ -182,8 +181,6 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'History'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'TimelineCardHeader'),
-        const TimelineCardHeader(cardFront: _kSampleCardFront),
         const ThemeSectionSubHeader(title: 'TimelineAttributeRow'),
         TimelineAttributeRow(
           attribute: InteractionTimelineAttribute(
