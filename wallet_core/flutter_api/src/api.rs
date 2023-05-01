@@ -1,5 +1,6 @@
 use anyhow::Result;
 
+use flutter_api_macros::async_runtime;
 use wallet::pin::validation::validate_pin;
 
 use crate::{models::pin::PinValidationResult, wallet::WALLET};
@@ -13,9 +14,10 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
     bincode::serialize(&pin_result).unwrap()
 }
 
-pub fn register(pin: String) -> Result<()> {
+#[async_runtime]
+pub async fn register(pin: String) -> Result<()> {
     // TODO return differentiated errors?
-    WALLET.lock().expect("wallet lock failed").register(pin)
+    WALLET.lock().await.register(pin).await
 }
 
 #[cfg(test)]
