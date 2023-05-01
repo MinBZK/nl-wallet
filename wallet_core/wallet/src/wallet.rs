@@ -20,6 +20,7 @@ enum RegistrationData {
 }
 
 impl RegistrationData {
+    #[allow(dead_code)] // TODO: remove when this is by future Wallet methods
     fn data(&self) -> Option<&data::Registration> {
         if let RegistrationData::Loaded(data) = self {
             return data.as_ref();

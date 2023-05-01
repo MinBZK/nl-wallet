@@ -10,6 +10,7 @@ pub struct RemoteAccountServer {
 }
 
 impl RemoteAccountServer {
+    #[allow(dead_code)] // TODO: remove when RemoteAccountServer is actually used
     pub fn new(url: String) -> RemoteAccountServer {
         RemoteAccountServer {
             url,
