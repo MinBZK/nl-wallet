@@ -2,19 +2,20 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'widget/stop_verification_sheet.dart';
 
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/widget/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/widget/placeholder_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
+import '../report_issue/report_issue_screen.dart';
 import 'bloc/verification_bloc.dart';
 import 'page/verification_confirm_data_attributes_page.dart';
 import 'page/verification_confirm_pin_page.dart';
 import 'page/verification_generic_error_page.dart';
+import 'page/verification_report_submitted_page.dart';
 import 'page/verification_missing_attributes_page.dart';
 import 'page/verification_stopped_page.dart';
 import 'page/verification_success_page.dart';
@@ -90,6 +91,7 @@ class VerificationScreen extends StatelessWidget {
         if (state is VerificationConfirmDataAttributes) result = _buildConfirmDataAttributesPage(context, state);
         if (state is VerificationConfirmPin) result = _buildConfirmPinPage(context, state);
         if (state is VerificationStopped) result = _buildStoppedPage(context, state);
+        if (state is VerificationLeftFeedback) result = _buildLeftFeedbackPage(context, state);
         if (state is VerificationSuccess) result = _buildSuccessPage(context, state);
         if (state is VerificationGenericError) result = _buildGenericErrorPage(context, state);
         if (result == null) throw UnsupportedError('Unknown state: $state');
@@ -112,7 +114,7 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildMissingAttributesPage(BuildContext context, VerificationMissingAttributes state) {
     return VerificationMissingAttributesPage(
-      onDecline: () => context.read<VerificationBloc>().add(VerificationStopRequested(state.flow)),
+      onDecline: () => context.read<VerificationBloc>().add(VerificationStopRequested(flow: state.flow)),
       flow: state.flow,
     );
   }
@@ -132,9 +134,12 @@ class VerificationScreen extends StatelessWidget {
   }
 
   Widget _buildStoppedPage(BuildContext context, VerificationStopped state) {
-    return VerificationStoppedPage(
+    return VerificationStoppedPage(onClosePressed: () => Navigator.pop(context));
+  }
+
+  Widget _buildLeftFeedbackPage(BuildContext context, VerificationLeftFeedback state) {
+    return VerificationReportSubmittedPage(
       onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.show(context),
     );
   }
 
@@ -155,19 +160,50 @@ class VerificationScreen extends StatelessWidget {
   void _stopVerification(BuildContext context) async {
     final bloc = context.read<VerificationBloc>();
     if (bloc.state.showStopConfirmation) {
-      final locale = AppLocalizations.of(context);
+      final availableReportOptions = _resolveReportingOptionsForState(context);
       final organizationName = context.read<VerificationBloc>().state.organization?.shortName ?? '-';
-      final stopped = await ConfirmActionSheet.show(
+      final stopPressed = await StopVerificationSheet.show(
         context,
-        title: locale.verificationScreenCancelSheetTitle,
-        description: locale.verificationScreenCancelSheetDescription(organizationName),
-        cancelButtonText: locale.verificationScreenCancelSheetNegativeCta,
-        confirmButtonText: locale.verificationScreenCancelSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).colorScheme.error,
+        organizationName: organizationName,
+        onTapDataIncorrect: availableReportOptions.isEmpty
+            ? null
+            : () {
+                Navigator.pop(context); //Close the StopVerificationSheet
+                _onDataIncorrectPressed(context, availableReportOptions);
+              },
       );
-      if (stopped) bloc.add(VerificationStopRequested(bloc.state.flow));
+      if (stopPressed) bloc.add(VerificationStopRequested(flow: bloc.state.flow));
     } else {
       Navigator.pop(context);
     }
+  }
+
+  void _onDataIncorrectPressed(BuildContext context, List<ReportingOption> optionsToShow) async {
+    final bloc = context.read<VerificationBloc>();
+    final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
+    if (selectedOption != null) {
+      bloc.add(VerificationReportPressed(flow: bloc.state.flow, option: selectedOption));
+    }
+  }
+
+  List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
+    final state = context.read<VerificationBloc>().state;
+    if (state is VerificationCheckOrganization) {
+      return [
+        ReportingOption.unknownOrganization,
+        ReportingOption.requestNotInitiated,
+        ReportingOption.suspiciousOrganization,
+        ReportingOption.impersonatingOrganization,
+      ];
+    }
+    if (state is VerificationConfirmDataAttributes) {
+      return [
+        ReportingOption.untrusted,
+        ReportingOption.overAskingOrganization,
+        ReportingOption.suspiciousOrganization,
+        ReportingOption.unreasonableTerms,
+      ];
+    }
+    return <ReportingOption>[];
   }
 }

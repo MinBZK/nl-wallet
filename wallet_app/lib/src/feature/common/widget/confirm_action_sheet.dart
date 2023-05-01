@@ -9,8 +9,11 @@ class ConfirmActionSheet extends StatelessWidget {
   final String title;
   final String description;
   final String cancelButtonText;
+  final IconData? cancelIcon;
   final String confirmButtonText;
+  final IconData? confirmIcon;
   final Color? confirmButtonColor;
+  final Widget? extraContent;
 
   const ConfirmActionSheet({
     this.onCancel,
@@ -19,7 +22,10 @@ class ConfirmActionSheet extends StatelessWidget {
     required this.title,
     required this.description,
     required this.cancelButtonText,
+    this.cancelIcon,
     required this.confirmButtonText,
+    this.confirmIcon,
+    this.extraContent,
     Key? key,
   }) : super(key: key);
 
@@ -51,14 +57,16 @@ class ConfirmActionSheet extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
+            if (extraContent != null) extraContent!,
             const SizedBox(height: 16),
+            const Divider(height: 1),
             ConfirmButtons(
               onDecline: () => onCancel?.call(),
               onAccept: () => onConfirm?.call(),
               acceptText: confirmButtonText,
-              acceptIcon: null,
+              acceptIcon: confirmIcon,
               declineText: cancelButtonText,
-              declineIcon: null,
+              declineIcon: cancelIcon,
             ),
           ],
         ),
@@ -73,6 +81,7 @@ class ConfirmActionSheet extends StatelessWidget {
     required String cancelButtonText,
     required String confirmButtonText,
     Color? confirmButtonColor,
+    Widget? extraContent,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -86,6 +95,7 @@ class ConfirmActionSheet extends StatelessWidget {
           onConfirm: () => Navigator.pop(context, true),
           onCancel: () => Navigator.pop(context, false),
           confirmButtonColor: confirmButtonColor,
+          extraContent: extraContent,
         );
       },
     );
