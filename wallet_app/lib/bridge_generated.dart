@@ -19,6 +19,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
 
+  Future<bool> isRegistered({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kIsRegisteredConstMeta;
+
   Future<void> register({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kRegisterConstMeta;
@@ -62,6 +66,21 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
+  Future<bool> isRegistered({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_is_registered(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kIsRegisteredConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kIsRegisteredConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "is_registered",
+        argNames: [],
+      );
+
   Future<void> register({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
@@ -82,6 +101,10 @@ class WalletCoreImpl implements WalletCore {
     _platform.dispose();
   }
 // Section: wire2api
+
+  bool _wire2api_bool(dynamic raw) {
+    return raw as bool;
+  }
 
   int _wire2api_u8(dynamic raw) {
     return raw as int;
@@ -229,6 +252,17 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_is_valid_pin');
   late final _wire_is_valid_pin = _wire_is_valid_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_is_registered(
+    int port_,
+  ) {
+    return _wire_is_registered(
+      port_,
+    );
+  }
+
+  late final _wire_is_registeredPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_is_registered');
+  late final _wire_is_registered = _wire_is_registeredPtr.asFunction<void Function(int)>();
 
   void wire_register(
     int port_,

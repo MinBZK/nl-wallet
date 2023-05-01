@@ -15,6 +15,11 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 }
 
 #[async_runtime]
+pub async fn is_registered() -> Result<bool> {
+    WALLET.lock().await.load_registration().await
+}
+
+#[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
     // TODO return differentiated errors?
     WALLET.lock().await.register(pin).await
