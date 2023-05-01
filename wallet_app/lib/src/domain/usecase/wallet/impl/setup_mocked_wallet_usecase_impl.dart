@@ -2,7 +2,6 @@ import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/issuance/issuance_response_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
-import '../../../../data/source/organization_datasource.dart';
 import '../../../model/issuance_response.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../setup_mocked_wallet_usecase.dart';
@@ -12,14 +11,12 @@ class SetupMockedWalletUseCaseImpl implements SetupMockedWalletUseCase {
   final WalletCardRepository walletCardRepository;
   final IssuanceResponseRepository issuanceResponseRepository;
   final TimelineAttributeRepository timelineAttributeRepository;
-  final OrganizationDataSource organizationDataSource;
 
   SetupMockedWalletUseCaseImpl(
     this.walletRepository,
     this.walletCardRepository,
     this.issuanceResponseRepository,
     this.timelineAttributeRepository,
-    this.organizationDataSource,
   );
 
   @override

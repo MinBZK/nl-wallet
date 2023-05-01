@@ -62,9 +62,11 @@ import '../domain/usecase/verification/impl/get_verifier_policy_usecase_impl.dar
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_name_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
+import '../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_first_name_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid.dart';
@@ -174,7 +176,6 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
             context.read(),
             context.read(),
-            context.read(),
           ),
         ),
         RepositoryProvider<GetSignRequestUseCase>(
@@ -194,6 +195,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetOrganizationByIdUseCase>(
           create: (context) => GetOrganizationByIdUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetRequestedAttributesWithCardUseCase>(
+          create: (context) => GetRequestedAttributesWithCardUseCaseImpl(context.read()),
         ),
       ],
       child: child,

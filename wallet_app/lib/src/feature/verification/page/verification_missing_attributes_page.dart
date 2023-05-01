@@ -68,9 +68,9 @@ class VerificationMissingAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: AttributeRow(attribute: flow.attributes[index]),
+        child: AttributeRow(attribute: flow.missingAttributes[index]),
       ),
-      childCount: flow.attributes.length,
+      childCount: flow.missingAttributes.length,
     );
   }
 

@@ -6,7 +6,7 @@ import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
-import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
+import '../../../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../../../wallet_constants.dart';
 import '../model/organization.dart';
 import '../model/verification_flow.dart';
@@ -17,12 +17,12 @@ part 'verification_state.dart';
 class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   final GetVerificationRequestUseCase getVerificationRequestUseCase;
   final LogCardInteractionUseCase logCardInteractionUseCase;
-  final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
+  final GetRequestedAttributesWithCardUseCase getRequestedAttributesWithCardUseCase;
   final HasPreviouslyInteractedWithOrganizationUseCase hasPreviouslyInteractedWithOrganizationUseCase;
 
   VerificationBloc(
     this.getVerificationRequestUseCase,
-    this.getRequestedAttributesFromWalletUseCase,
+    this.getRequestedAttributesWithCardUseCase,
     this.logCardInteractionUseCase,
     this.hasPreviouslyInteractedWithOrganizationUseCase,
   ) : super(VerificationInitial()) {
@@ -44,8 +44,10 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
             VerificationFlow(
               id: request.id,
               organization: request.organization,
-              hasPreviouslyInteractedWithOrganization: await hasPreviouslyInteractedWithOrganizationUseCase.invoke(request.organization.id),
-              attributes: await getRequestedAttributesFromWalletUseCase.invoke(request.requestedAttributes),
+              hasPreviouslyInteractedWithOrganization:
+                  await hasPreviouslyInteractedWithOrganizationUseCase.invoke(request.organization.id),
+              availableAttributes: await getRequestedAttributesWithCardUseCase.invoke(request.requestedAttributes),
+              requestedAttributes: request.requestedAttributes,
               policy: request.interactionPolicy,
             ),
           ),

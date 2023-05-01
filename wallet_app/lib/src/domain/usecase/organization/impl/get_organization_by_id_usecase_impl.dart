@@ -1,12 +1,14 @@
-import '../../../../data/source/organization_datasource.dart';
+import '../../../../data/repository/organization/organization_repository.dart';
 import '../../../../feature/verification/model/organization.dart';
 import '../get_organization_by_id_usecase.dart';
 
 class GetOrganizationByIdUseCaseImpl implements GetOrganizationByIdUseCase {
-  final OrganizationDataSource _dataSource;
+  final OrganizationRepository _organizationRepository;
 
-  GetOrganizationByIdUseCaseImpl(this._dataSource);
+  GetOrganizationByIdUseCaseImpl(this._organizationRepository);
 
   @override
-  Future<Organization?> invoke(String organizationId) => _dataSource.read(organizationId);
+  Future<Organization?> invoke(String organizationId) {
+    return _organizationRepository.read(organizationId);
+  }
 }

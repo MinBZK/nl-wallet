@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../domain/model/card_front.dart';
 import '../../../domain/model/timeline/timeline_section.dart';
 import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
 import '../../history/detail/argument/history_detail_screen_argument.dart';
 import 'bloc/card_history_bloc.dart';
@@ -21,7 +19,7 @@ class CardHistoryScreen extends StatelessWidget {
       return args as String;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a (mock) id when opening the CardSummaryScreen');
+      throw UnsupportedError('Make sure to pass in a (mock) id when opening the CardHistoryScreen');
     }
   }
 
@@ -48,20 +46,16 @@ class CardHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading() {
-    return const CenteredLoadingIndicator();
-  }
+  Widget _buildLoading() => const CenteredLoadingIndicator();
 
   Widget _buildHistory(BuildContext context, CardHistoryLoadSuccess state) {
     final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
-
-    List<Widget> slivers = [
-      _buildCardHeader(state.card.front),
-      ...sections.map((section) => TimelineSectionSliver(
-            section: section,
-            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId, state.card.id),
-          )),
-    ];
+    List<Widget> slivers = sections
+        .map((section) => TimelineSectionSliver(
+              section: section,
+              onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId, state.card.id),
+            ))
+        .toList();
 
     return Column(
       children: [
@@ -73,13 +67,10 @@ class CardHistoryScreen extends StatelessWidget {
             ),
           ),
         ),
+        const Divider(height: 1),
         const BottomBackButton(),
       ],
     );
-  }
-
-  Widget _buildCardHeader(CardFront front) {
-    return SliverToBoxAdapter(child: TimelineCardHeader(cardFront: front));
   }
 
   void _onTimelineRowPressed(BuildContext context, String timelineAttributeId, String cardId) {

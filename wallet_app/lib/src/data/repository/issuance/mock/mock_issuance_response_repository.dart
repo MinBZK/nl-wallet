@@ -21,49 +21,49 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
     switch (issuanceRequestId) {
       case _kPidId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('rvig'))!,
+          organization: (await organizationDataSource.read(_kMockPidWalletCard.issuerId))!,
           requestedAttributes: [],
           policy: _kMockIssuancePolicy,
           cards: [_kMockPidWalletCard],
         );
       case _kDiplomaId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('duo'))!,
+          organization: (await organizationDataSource.read(_kMockDiplomaWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard],
         );
       case _kMultiDiplomaId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('duo'))!,
+          organization: (await organizationDataSource.read(_kMockDiplomaWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
         );
       case _kDrivingLicenseId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('rdw'))!,
+          organization: (await organizationDataSource.read(_kMockDrivingLicenseWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseWalletCard],
         );
       case _kDrivingLicenseRenewedId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('rdw'))!,
+          organization: (await organizationDataSource.read(_kMockDrivingLicenseRenewedWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseRenewedWalletCard],
         );
       case _kHealthInsuranceId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('health_insurer_1'))!,
+          organization: (await organizationDataSource.read(_kMockHealthInsuranceWalletCard.issuerId))!,
           requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockHealthInsuranceWalletCard],
         );
       case _kVOGId:
         return IssuanceResponse(
-          organization: (await organizationDataSource.read('justis'))!,
+          organization: (await organizationDataSource.read(_kMockVOGWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
           policy: _kMockIssuancePolicy,
           cards: [_kMockVOGWalletCard],

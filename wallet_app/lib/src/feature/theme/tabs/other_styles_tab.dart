@@ -8,27 +8,29 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
-import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bottom_sheet_drag_handle.dart';
+import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
-import '../../common/widget/history/timeline_card_header.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
+import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
+import '../../common/widget/row/tappable_icon_list_row.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../verification/model/organization.dart';
+import '../../verification/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
 
 const _kSampleCardFront = CardFront(
@@ -136,6 +138,17 @@ class OtherStylesTab extends StatelessWidget {
             icon: Icons.remove_red_eye,
           ),
         ),
+        ThemeSectionSubHeader(title: 'CardAttributeRow'),
+        CardAttributeRow(
+          entry: MapEntry(
+            WalletCard(id: 'id', front: _kSampleCardFront, attributes: [], issuerId: ''),
+            [
+              DataAttribute(label: 'Voornaam', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+              DataAttribute(label: 'Achternaam', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+              DataAttribute(label: 'Postcode', value: '', sourceCardId: '', valueType: AttributeValueType.text),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -168,8 +181,6 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'History'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'TimelineCardHeader'),
-        const TimelineCardHeader(cardFront: _kSampleCardFront),
         const ThemeSectionSubHeader(title: 'TimelineAttributeRow'),
         TimelineAttributeRow(
           attribute: InteractionTimelineAttribute(
@@ -245,8 +256,15 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: const WalletCard(front: _kSampleCardFront, attributes: [], id: 'id'),
+          card: const WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
           isSelected: true,
+        ),
+        const ThemeSectionSubHeader(title: 'TappableIconListRow'),
+        TappableIconListRow(
+          title: 'Sample title',
+          subtitle: 'Sample subtitle',
+          icon: Icons.add_alert_outlined,
+          onTap: () {},
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),
         const StatusIcon(icon: Icons.ac_unit),
@@ -255,7 +273,16 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletLogo'),
         const WalletLogo(size: 64),
         const ThemeSectionSubHeader(title: 'IconRow'),
-        const IconRow(icon: Icon(Icons.ac_unit), text: Text('IconRow'),),
+        const IconRow(
+          icon: Icon(Icons.ac_unit),
+          text: Text('IconRow'),
+        ),
+        const ThemeSectionSubHeader(title: 'InfoRow'),
+        const InfoRow(
+          icon: Icons.ac_unit,
+          title: 'Title',
+          subtitle: 'Subtitle',
+        ),
       ],
     );
   }

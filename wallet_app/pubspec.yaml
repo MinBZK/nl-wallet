@@ -46,7 +46,10 @@ dependencies:
 
 dev_dependencies:
   flutter_lints: ^2.0.0
+  test: any
   flutter_test:
+    sdk: flutter
+  flutter_driver:
     sdk: flutter
 
   bloc_test: ^9.0.0

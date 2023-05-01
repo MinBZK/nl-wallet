@@ -1,7 +1,7 @@
 part of 'mock_organization_datasource.dart';
 
 const _kOrganizations = [
-  _kRijksOrganization,
+  _kRvigOrganization,
   _kRdwOrganization,
   _kDuoOrganization,
   _kEmployerOrganization,
@@ -14,7 +14,7 @@ const _kOrganizations = [
   _kFirstAidOrganization,
 ];
 
-const _kRijksOrganization = Organization(
+const _kRvigOrganization = Organization(
   id: 'rvig',
   name: 'Rijksdienst voor Identiteitsgegevens',
   shortName: 'RvIG',

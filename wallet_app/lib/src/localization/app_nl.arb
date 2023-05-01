@@ -2,55 +2,33 @@
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
   "appTitle": "NL Wallet",
-  "organizationApprovePageApproveCta": "Ja, volgende",
-  "organizationApprovePageDenyCta": "Nee",
-  "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
-  "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
-  "organizationApprovePagePurpose": "Reden: {purpose}",
-  "@organizationApprovePagePurpose": {
+  "cardAttributeRowTitle": "Uit {name}",
+  "@cardAttributeRowTitle": {
     "placeholders": {
-      "purpose": {
-        "example": "Afspraak bevestigen",
+      "name": {
+        "example": "Persoonsgegevens",
         "type": "String"
       }
     },
-    "description": "Reason why this organization is requesting data"
+    "description": "Shows from which card the attributes were retrieved"
   },
-  "organizationApprovePageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
-  "@organizationApprovePageReceiveFromTitle": {
+  "cardAttributeRowTitle": "Uit {name}",
+  "@cardAttributeRowTitle": {
     "placeholders": {
-      "organization": {
-        "example": "DUO",
+      "name": {
+        "example": "Persoonsgegevens",
         "type": "String"
       }
     },
-    "description": "Title shown at the top of the screen when fetching cards"
+    "description": "Shows from which card the attributes were retrieved"
   },
-  "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
-  "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
-  "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
-  "@organizationApprovePageShareWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when verifying"
-  },
-  "organizationApprovePageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
-  "@organizationApprovePageSignWithTitle": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Title shown at the top of the screen when signing"
-  },
+  "cardDataScreenDataPrivacyBannerReadMore": "Lees meer",
+  "cardDataScreenDataPrivacyBannerTitle": "Dit overzicht is alleen voor jou. ",
+  "cardDataScreenDataPrivacySheetClose": "Sluiten",
+  "cardDataScreenDataPrivacySheetDescription": "In dit overzicht kun jij je gegevens controleren. Hou dit overzicht verborgen voor anderen. Op die manier bescherm je jouw privacy.\n\nWil je gegevens delen met een organisatie? Gebruik dan de QR-code functie.",
+  "cardDataScreenDataPrivacySheetTitle": "Zicht op jouw gegevens",
   "cardDataScreenIncorrectCta": "Klopt er iets niet?",
-  "cardDataScreenTitle": "Alle gegevens",
-  "cardHistoryScreenTitle": "Kaart geschiedenis",
+  "cardHistoryScreenTitle": "Kaartgeschiedenis",
   "cardHistoryTimelineInteractionFailed": "Delen mislukt",
   "cardHistoryTimelineInteractionRejected": "Delen gestopt",
   "cardHistoryTimelineInteractionSuccess": "Gegevens gedeeld",
@@ -61,21 +39,43 @@
   "cardHistoryTimelineSigningSuccess": "Ondertekend",
   "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
   "cardOverviewScreenTitle": "Mijn kaarten",
-  "cardShareScreenExplanationCta": "Hoe werkt delen?",
-  "cardShareScreenExplanationSheetCloseCta": "Sluiten",
-  "cardShareScreenExplanationSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Nadat je QR-code is gescant krijg je een gegevensverzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
-  "cardShareScreenExplanationSheetTitle": "Hoe werkt delen?",
-  "cardShareScreenSubtitle": "Laat de QR-code scannen om te beginnen met delen.",
-  "cardSummaryScreenAddCardCta": "Alle gegevens",
-  "cardSummaryScreenCardDeleteCta": "Verwijderen",
-  "cardSummaryScreenCardRenewCta": "Opnieuw ophalen",
-  "cardSummaryScreenDataAttributesTitle": "Gegevens",
-  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
-  "cardSummaryScreenShareCta": "Delen",
-  "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} met {organization}",
-  "@cardSummaryScreenShareHistory": {
+  "cardSummaryScreenCardDataCta": "Gegevens",
+  "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",
+  "@cardSummaryScreenCardDataIssuedBy": {
+    "placeholders": {
+      "organization": {
+        "example": "Organization",
+        "type": "String"
+      }
+    },
+    "description": "Issued by Organization"
+  },
+  "cardSummaryScreenCardDeleteCta": "Kaart verwijderen",
+  "cardSummaryScreenCardHistoryCta": "Kaartgeschiedenis",
+  "cardSummaryScreenCardUpdateCta": "Opnieuw ophalen",
+  "cardSummaryScreenCardValidUntil": "Geldig tot en met {dateTime}",
+  "@cardSummaryScreenCardValidUntil": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Card valid until."
+  },
+  "cardSummaryScreenLatestIssuedOperation": "Laatste update {dateTime}",
+  "@cardSummaryScreenLatestIssuedOperation": {
+    "placeholders": {
+      "dateTime": {
+        "example": "April 25 13:31",
+        "type": "String"
+      }
+    },
+    "description": "Latest issued operation."
+  },
+  "cardSummaryScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
+  "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
+  "@cardSummaryScreenLatestSuccessInteraction": {
     "placeholders": {
       "timeAgo": {
         "example": "4 hours ago",
@@ -92,9 +92,10 @@
     },
     "description": "Most recent data share history."
   },
-  "cardSummaryScreenShareHistoryAllCta": "Geschiedenis",
-  "cardSummaryScreenShareHistoryTitle": "Geschiedenis",
-  "cardSummaryScreenShareSuccessNoHistory": "Nog nooit gedeeld.",
+  "cardSummaryScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
+  "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+  "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+  "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
   "cardSummaryScreenTitle": "Kaart overzicht",
   "changeLanguageScreenTitle": "Kies een taal",
   "checkAgreementPageCancelCta": "Nee",
@@ -117,6 +118,8 @@
   },
   "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
   "checkAgreementPageTitle": "Ken je de afspraken?",
+  "checkAttributesScreenDataIncorrectCta": "Klopt er iets niet?",
+  "checkAttributesScreenTitle": "Controleren",
   "confirmAgreementPageCancelCta": "Nee",
   "confirmAgreementPageConfirmCta": "Ja, tekenen",
   "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
@@ -378,6 +381,52 @@
   "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
   "mockDigidScreenHeaderTitle": "Inloggen",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
+  "organizationApprovePageApproveCta": "Ja, volgende",
+  "organizationApprovePageDenyCta": "Nee",
+  "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
+  "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+  "organizationApprovePagePurpose": "Reden: {purpose}",
+  "@organizationApprovePagePurpose": {
+    "placeholders": {
+      "purpose": {
+        "example": "Afspraak bevestigen",
+        "type": "String"
+      }
+    },
+    "description": "Reason why this organization is requesting data"
+  },
+  "organizationApprovePageReceiveFromTitle": "Wil je gegevens ophalen bij {organization}?",
+  "@organizationApprovePageReceiveFromTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when fetching cards"
+  },
+  "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
+  "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
+  "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
+  "@organizationApprovePageShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when verifying"
+  },
+  "organizationApprovePageSignWithTitle": "{organization} vraagt of je wilt ondertekenen. Klopt dat?",
+  "@organizationApprovePageSignWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title shown at the top of the screen when signing"
+  },
   "organizationButtonLabel": "Over deze partij",
   "organizationDetailScreenDataIncorrectCta": "Klopt er iets niet?",
   "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
@@ -521,10 +570,61 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
+  "termsAndConditionsScreenDeleteTitle": "Voorwaarde over verwijderen...",
+  "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "Bekijk het ",
+  "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacybeleid",
+  "termsAndConditionsScreenDiscoverMoreSubtitlePart3": " voor meer informatie over hoe je gegevens gebruikt gaan worden.",
+  "termsAndConditionsScreenDiscoverMoreTitle": "Meer weten?",
+  "termsAndConditionsScreenPurposeTitle": "Voorwaarde over doel...",
+  "termsAndConditionsScreenShareTitle": "Voorwaarde over delen met derden...",
+  "termsAndConditionsScreenStorageTitle": "Voorwaarde over bewaartermijn...",
+  "termsAndConditionsScreenTitle": "Voorwaarden",
+  "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
+  "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
+  "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
+  "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
+  "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of months data is stored"
+  },
+  "verificationConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is",
   "verificationConfirmDataAttributesPageApproveCta": "Delen",
   "verificationConfirmDataAttributesPageDenyCta": "Nee",
   "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-  "verificationConfirmDataAttributesPageShareDataTitle": "Wil je deze gegevens delen?",
+  "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Wil je dit gegeven delen?} other {Wil je deze {count} gegevens delen?}}",
+  "@verificationConfirmDataAttributesPageShareDataTitle": {
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Nr of attributes to share"
+  },
+  "verificationConfirmDataAttributesShareWithTitle": "Delen met {organization}",
+  "@verificationConfirmDataAttributesShareWithTitle": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Title showing what organization you will be sharing data with"
+  },
   "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
   "verificationConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
   "@verificationConfirmPinPageErrorDescription": {
