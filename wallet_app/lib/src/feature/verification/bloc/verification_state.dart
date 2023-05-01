@@ -127,3 +127,13 @@ class VerificationStopped extends VerificationState {
   @override
   bool get showStopConfirmation => false;
 }
+
+class VerificationLeftFeedback extends VerificationState {
+  const VerificationLeftFeedback();
+
+  @override
+  double get stepperProgress => 1;
+
+  @override
+  bool get showStopConfirmation => false;
+}

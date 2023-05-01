@@ -46,8 +46,18 @@ class VerificationBackPressed extends VerificationEvent {
 class VerificationStopRequested extends VerificationEvent {
   final VerificationFlow? flow;
 
-  const VerificationStopRequested(this.flow);
+  const VerificationStopRequested({this.flow});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [flow];
+}
+
+class VerificationReportPressed extends VerificationEvent {
+  final VerificationFlow? flow;
+  final ReportingOption option;
+
+  const VerificationReportPressed({this.flow, required this.option});
+
+  @override
+  List<Object?> get props => [flow, option];
 }
