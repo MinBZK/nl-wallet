@@ -3,20 +3,36 @@ mod database;
 mod database_storage;
 mod key_file;
 mod sql_cipher_key;
-mod wallet_database;
 
 #[cfg(test)]
 mod mock_storage;
 
 use anyhow::Result;
-use data::Registration;
 
-pub use database_storage::DatabaseStorage;
+use self::data::Registration;
+
+pub use self::database_storage::DatabaseStorage;
 #[cfg(test)]
-pub use mock_storage::MockStorage;
+pub use self::mock_storage::MockStorage;
+
+#[derive(Debug, Clone, Copy)]
+pub enum StorageState {
+    Uninitialized,
+    Unopened,
+    Opened,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StorageError {
+    #[error("Storage database is not opened")]
+    NotOpened,
+}
 
 #[async_trait::async_trait]
-trait Storage {
+pub trait Storage {
+    async fn get_state(&self) -> Result<StorageState>;
+    async fn open(&mut self) -> Result<()>;
+    async fn clear(&mut self) -> Result<()>;
     async fn get_registration(&self) -> Result<Option<Registration>>;
     async fn save_registration(&mut self, registration: &Registration) -> Result<()>;
 }
