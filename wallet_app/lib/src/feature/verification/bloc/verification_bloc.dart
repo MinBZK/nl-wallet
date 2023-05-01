@@ -8,6 +8,7 @@ import '../../../domain/usecase/history/has_previously_interacted_with_organizat
 import '../../../domain/usecase/verification/get_verification_request_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../../../wallet_constants.dart';
+import '../../report_issue/report_issue_screen.dart';
 import '../model/organization.dart';
 import '../model/verification_flow.dart';
 
@@ -32,6 +33,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     on<VerificationPinConfirmed>(_onVerificationPinConfirmed);
     on<VerificationBackPressed>(_onVerificationBackPressed);
     on<VerificationStopRequested>(_onVerificationStopRequested);
+    on<VerificationReportPressed>(_onVerificationReportPressed);
   }
 
   void _onVerificationLoadRequested(VerificationLoadRequested event, emit) async {
@@ -101,6 +103,11 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   void _onVerificationStopRequested(VerificationStopRequested event, emit) async {
     if (event.flow != null) _logCardInteraction(event.flow!, InteractionStatus.rejected);
     emit(const VerificationStopped());
+  }
+
+  void _onVerificationReportPressed(VerificationReportPressed event, emit) async {
+    if (event.flow != null) _logCardInteraction(event.flow!, InteractionStatus.rejected);
+    emit(const VerificationLeftFeedback());
   }
 
   void _logCardInteraction(VerificationFlow flow, InteractionStatus status) {

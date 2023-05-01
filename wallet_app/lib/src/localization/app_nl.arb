@@ -12,16 +12,6 @@
     },
     "description": "Shows from which card the attributes were retrieved"
   },
-  "cardAttributeRowTitle": "Uit {name}",
-  "@cardAttributeRowTitle": {
-    "placeholders": {
-      "name": {
-        "example": "Persoonsgegevens",
-        "type": "String"
-      }
-    },
-    "description": "Shows from which card the attributes were retrieved"
-  },
   "cardDataScreenDataPrivacyBannerReadMore": "Lees meer",
   "cardDataScreenDataPrivacyBannerTitle": "Dit overzicht is alleen voor jou. ",
   "cardDataScreenDataPrivacySheetClose": "Sluiten",
@@ -499,6 +489,16 @@
   "qrScreenMyCodeTabTitle": "Mijn code",
   "qrScreenScanTabTitle": "Scannen",
   "qrScreenTitle": "QR-code",
+  "reportIssueScreenHeaderSubtitle": "Geef aan wat er niet klopt. De partij wordt gecontroleerd. Een melding is altijd anoniem.",
+  "reportIssueScreenHeaderTitle": "Een melding maken",
+  "reportIssueScreenTitle": "Klopt er iets niet?",
+  "reportOptionImpersonatingOrganization": "Deze partij doet zich voor als een ander",
+  "reportOptionOverAskingOrganization": "Deze partij vraagt te veel gegevens",
+  "reportOptionRequestNotInitiated": "Ik ben dit verzoek niet gestart",
+  "reportOptionSuspiciousOrganization": "Deze partij lijkt verdacht",
+  "reportOptionUnknownOrganization": "Ik ken deze partij niet",
+  "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
+  "reportOptionUntrusted": "Ik vertrouw het niet",
   "setupSecurityCompletedPageCreateWalletCta": "Mijn Wallet aanmaken",
   "setupSecurityCompletedPageDescription": "Je beveiliging is ingesteld.",
   "setupSecurityCompletedPageTitle": "Gelukt",
@@ -570,6 +570,20 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
+  "stopVerificationSheetDataIncorrectCta": "Klopt er iets niet?",
+  "stopVerificationSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
+  "@stopVerificationSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "stopVerificationSheetNegativeCta": "Nee",
+  "stopVerificationSheetPositiveCta": "Ja, stoppen",
+  "stopVerificationSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "termsAndConditionsScreenDeleteTitle": "Voorwaarde over verwijderen...",
   "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "Bekijk het ",
   "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacybeleid",
@@ -654,19 +668,9 @@
   },
   "verificationMissingAttributesPageHowToProceedCta": "Wat kan ik doen?",
   "verificationMissingAttributesPageTitle": "Je mist gegevens",
-  "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
-  "@verificationScreenCancelSheetDescription": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
-  },
-  "verificationScreenCancelSheetNegativeCta": "Nee",
-  "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
-  "verificationScreenCancelSheetTitle": "Weet je zeker dat je wilt stoppen?",
+  "verificationReportSubmittedPageCloseCta": "Sluiten",
+  "verificationReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd. Deze partij wordt zo snel mogelijk gecontroleerd.\n\nDeel nooit je gegevens met een partij die je niet vertrouwt.",
+  "verificationReportSubmittedPageTitle": "Bedankt voor je feedback",
   "verificationScreenTitle": "Gegevens delen",
   "verificationStoppedPageCloseCta": "Sluiten",
   "verificationStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",

@@ -12,16 +12,6 @@
     },
     "description": "Shows from which card the attributes were retrieved"
   },
-  "cardAttributeRowTitle": "From {name}",
-  "@cardAttributeRowTitle": {
-    "placeholders": {
-      "name": {
-        "example": "Address",
-        "type": "String"
-      }
-    },
-    "description": "Shows from which card the attributes were retrieved"
-  },
   "cardDataScreenDataPrivacyBannerReadMore": "Read more",
   "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you. ",
   "cardDataScreenDataPrivacySheetClose": "Close",
@@ -499,6 +489,16 @@
   "qrScreenMyCodeTabTitle": "My code",
   "qrScreenScanTabTitle": "Scan",
   "qrScreenTitle": "QR-code",
+  "reportIssueScreenHeaderSubtitle": "Geef aan wat er niet klopt. De partij wordt gecontroleerd. Een melding is altijd anoniem.",
+  "reportIssueScreenHeaderTitle": "Een melding maken",
+  "reportIssueScreenTitle": "Klopt er iets niet?",
+  "reportOptionImpersonatingOrganization": "Deze partij doet zich voor als een ander",
+  "reportOptionOverAskingOrganization": "Deze partij vraagt te veel gegevens",
+  "reportOptionRequestNotInitiated": "Ik ben dit verzoek niet gestart",
+  "reportOptionSuspiciousOrganization": "Deze partij lijkt verdacht",
+  "reportOptionUnknownOrganization": "Ik ken deze partij niet",
+  "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
+  "reportOptionUntrusted": "Ik vertrouw het niet",
   "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
   "setupSecurityCompletedPageDescription": "Your security is configured.",
   "setupSecurityCompletedPageTitle": "Success",
@@ -570,6 +570,20 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
+  "stopVerificationSheetDataIncorrectCta": "Something not right?",
+  "stopVerificationSheetDescription": "If you stop, no data will be shared with {organization}.",
+  "@stopVerificationSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "stopVerificationSheetNegativeCta": "No",
+  "stopVerificationSheetPositiveCta": "Yes, stop",
+  "stopVerificationSheetTitle": "Are you sure you want to stop?",
   "termsAndConditionsScreenDeleteTitle": "Conditions related to data deletion...",
   "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "View the ",
   "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacy policy",
@@ -654,19 +668,9 @@
   },
   "verificationMissingAttributesPageHowToProceedCta": "What can I do?",
   "verificationMissingAttributesPageTitle": "You're missing information",
-  "verificationScreenCancelSheetDescription": "If you stop, no data will be shared with {organization}.",
-  "@verificationScreenCancelSheetDescription": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
-  },
-  "verificationScreenCancelSheetNegativeCta": "No",
-  "verificationScreenCancelSheetPositiveCta": "Yes, stop",
-  "verificationScreenCancelSheetTitle": "Are you sure you want to stop?",
+  "verificationReportSubmittedPageCloseCta": "Close",
+  "verificationReportSubmittedPageSubtitle": "Your report has been sent anonymously. The organization will be checked as soon as possible.\n\nNever share any data with organizations you do not trust.",
+  "verificationReportSubmittedPageTitle": "Thanks for your feedback",
   "verificationScreenTitle": "Share data",
   "verificationStoppedPageCloseCta": "Close",
   "verificationStoppedPageDescription": "Because you have stopped, no data has been shared.",

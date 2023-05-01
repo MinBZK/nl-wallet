@@ -3,10 +3,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/flow_terminal_page.dart';
 
-class VerificationStoppedPage extends StatelessWidget {
+class VerificationReportSubmittedPage extends StatelessWidget {
   final VoidCallback onClosePressed;
 
-  const VerificationStoppedPage({
+  const VerificationReportSubmittedPage({
     required this.onClosePressed,
     Key? key,
   }) : super(key: key);
@@ -15,11 +15,11 @@ class VerificationStoppedPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
-      icon: Icons.not_interested,
+      icon: Icons.gpp_maybe_outlined,
       iconColor: Theme.of(context).primaryColorDark,
-      title: locale.verificationStoppedPageTitle,
-      description: locale.verificationStoppedPageDescription,
-      closeButtonCta: locale.verificationStoppedPageCloseCta,
+      title: locale.verificationReportSubmittedPageTitle,
+      description: locale.verificationReportSubmittedPageSubtitle,
+      closeButtonCta: locale.verificationReportSubmittedPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }

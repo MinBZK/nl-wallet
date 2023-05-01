@@ -37,14 +37,16 @@ class FlowTerminalPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: StatusIcon(
-              icon: icon,
-              color: iconColor,
+            child: Center(
+              child: StatusIcon(
+                icon: icon,
+                color: iconColor,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -53,7 +55,7 @@ class FlowTerminalPage extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.displayMedium,
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.start,
             ),
           ),
           const SizedBox(height: 8),
@@ -62,7 +64,7 @@ class FlowTerminalPage extends StatelessWidget {
             child: Text(
               description,
               style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.start,
             ),
           ),
           if (tertiaryButtonCta != null)
