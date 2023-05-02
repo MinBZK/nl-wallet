@@ -42,35 +42,3 @@ impl AccountServerClient for RemoteAccountServer {
         Ok(cert)
     }
 }
-
-#[cfg(test)]
-pub mod tests {
-    use platform_support::hw_keystore::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
-    use wallet_common::account::signing_key::EcdsaKey;
-    use wallet_provider::account_server::AccountServer;
-
-    use crate::pin::key::PinKey;
-
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        // Setup wallet provider
-        let account_server = AccountServer::new_stub();
-
-        // Setup wallet
-        let hw_privkey = SoftwareEcdsaKey::new("hw_privkey");
-        let pin_privkey = PinKey::new("112233", b"salt");
-
-        // Register
-        let challenge = account_server.registration_challenge().unwrap();
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).unwrap();
-        let cert = account_server.register(registration_message).unwrap();
-
-        // Verify the certificate
-        let cert_data = cert.parse_and_verify(&account_server.pubkey).unwrap();
-        dbg!(&cert, &cert_data);
-        assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(cert_data.hw_pubkey.0, hw_privkey.verifying_key().unwrap());
-    }
-}

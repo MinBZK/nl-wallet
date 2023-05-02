@@ -153,3 +153,35 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
     payload.encode_to_vec(&mut buf)?;
     Ok(buf)
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_account_server() {
+        // Setup account server
+        let account_server = AccountServer::new_stub();
+
+        // Set up keys
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        // Register
+        let challenge = account_server
+            .registration_challenge()
+            .expect("Could not get registration challenge");
+        let registration_message =
+            Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).expect("Could not sign new registration");
+        let cert = account_server
+            .register(registration_message)
+            .expect("Could not process registration message at account server");
+
+        // Verify the certificate
+        let cert_data = cert
+            .parse_and_verify(&account_server.pubkey)
+            .expect("Could not parse and verify wallet certificate");
+        assert_eq!(cert_data.iss, account_server.name);
+        assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
+    }
+}

@@ -25,3 +25,6 @@ tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 tower-http = { version = "0.4.0", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+wallet_common = { path = "../wallet_common", features = ["mock"] }
