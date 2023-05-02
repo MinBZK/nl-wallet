@@ -46,6 +46,12 @@ async fn main() {
             .unwrap()
             .as_bytes()
     ));
+    dbg!(STANDARD.encode(
+        account_server_privkey
+            .verifying_key()
+            .to_encoded_point(false)
+            .as_bytes()
+    ));
 
     let app = app(account_server);
 

@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 wallet_common = { path = "../wallet_common" }
 anyhow = "1.0.66"
+base64 = "0.21.0"
 p256 = { version = "0.12.0" }
 tokio = { version = "1.27.0", features = ["full"] }
 reqwest = { version = "0.11.16", default-features = false, features = [
@@ -19,9 +20,6 @@ rusqlite = { version = "0.29.0", features = [
 ring = "0.16.20"
 thiserror = "1.0.39"
 
-# TODO: find a proper way to talk to the wallet provider instead of this
-wallet_provider = { path = "../wallet_provider" }
-
 # enable the "hardware" feature for platform_support when building for either Android or iOS
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 platform_support = { path = "../platform_support", features = ["hardware"] }
@@ -33,6 +31,7 @@ platform_support = { path = "../platform_support", features = ["software"] }
 # enable the "software-integration-test" feature for platform_support when running tests,
 # which includes the "software" feature
 [dev-dependencies]
+wallet_provider = { path = "../wallet_provider" }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }

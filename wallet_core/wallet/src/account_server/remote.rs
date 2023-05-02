@@ -1,8 +1,9 @@
 use anyhow::Result;
-
 use wallet_common::account::{
-    instructions::Registration, signed::SignedDouble, AccountServerClient, Certificate, Challenge, WalletCertificate,
+    instructions::Registration, signed::SignedDouble, Certificate, Challenge, WalletCertificate,
 };
+
+use super::AccountServerClient;
 
 pub struct RemoteAccountServer {
     url: String,

@@ -4,14 +4,11 @@ pub mod serialization;
 pub mod signed;
 pub mod signing_key;
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::account::{
-    instructions::Registration,
     jwt::{Jwt, JwtClaims},
     serialization::{Base64Bytes, DerVerifyingKey},
-    signed::SignedDouble,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -30,11 +27,6 @@ impl JwtClaims for WalletCertificateClaims {
 }
 
 pub type WalletCertificate = Jwt<WalletCertificateClaims>;
-
-pub trait AccountServerClient {
-    fn registration_challenge(&self) -> Result<Vec<u8>>;
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct Challenge {

@@ -1,13 +1,14 @@
 use anyhow::{anyhow, Result};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::{
-    instructions::Registration, jwt::EcdsaDecodingKey, AccountServerClient, WalletCertificate,
-};
+use wallet_common::account::{instructions::Registration, jwt::EcdsaDecodingKey, WalletCertificate};
 
-use crate::pin::{
-    key::{new_pin_salt, PinKey},
-    validation::validate_pin,
+use crate::{
+    account_server::AccountServerClient,
+    pin::{
+        key::{new_pin_salt, PinKey},
+        validation::validate_pin,
+    },
 };
 
 const WALLET_KEY_ID: &str = "wallet";

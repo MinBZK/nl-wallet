@@ -7,14 +7,21 @@ pub mod pin;
 mod storage;
 pub mod wallet;
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use platform_support::preferred;
-use wallet_provider::account_server::AccountServer;
+use wallet_common::account::jwt::EcdsaDecodingKey;
 
-pub type Wallet = wallet::Wallet<AccountServer, preferred::PlatformEcdsaKey>;
+use crate::account_server::remote::RemoteAccountServer;
+
+// TODO: make these configurable
+const ACCOUNT_SERVER_URL: &str = "https://localhost:3000";
+const ACCOUNT_SERVER_PUB: &str = ""; // insert WP public key here
+
+pub type Wallet = wallet::Wallet<RemoteAccountServer, preferred::PlatformEcdsaKey>;
 
 pub fn init_wallet() -> Wallet {
-    let account_server = AccountServer::new_stub(); // TODO
-    let pubkey = account_server.pubkey.clone();
+    let account_server = RemoteAccountServer::new(ACCOUNT_SERVER_URL.to_string());
+    let pubkey = EcdsaDecodingKey::from_sec1(&STANDARD.decode(ACCOUNT_SERVER_PUB).unwrap());
 
     Wallet::new(account_server, pubkey)
 }

@@ -13,7 +13,7 @@ use wallet_common::{
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         serialization::Base64Bytes,
         signed::SignedDouble,
-        AccountServerClient, WalletCertificate, WalletCertificateClaims,
+        WalletCertificate, WalletCertificateClaims,
     },
     utils::{random_bytes, random_string},
 };
@@ -40,15 +40,6 @@ struct RegistrationChallengeClaims {
 
 impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
-}
-
-impl AccountServerClient for AccountServer {
-    fn registration_challenge(&self) -> Result<Vec<u8>> {
-        AccountServer::registration_challenge(self)
-    }
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
-        AccountServer::register(self, registration_message)
-    }
 }
 
 impl AccountServer {
