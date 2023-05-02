@@ -9,11 +9,10 @@ use sha2::Digest;
 
 use wallet_common::{
     account::{
-        instructions::Registration,
+        auth::{Registration, WalletCertificate, WalletCertificateClaims},
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         serialization::Base64Bytes,
         signed::SignedDouble,
-        WalletCertificate, WalletCertificateClaims,
     },
     utils::{random_bytes, random_string},
 };

@@ -1,7 +1,10 @@
 pub mod remote;
 
 use anyhow::Result;
-use wallet_common::account::{instructions::Registration, signed::SignedDouble, WalletCertificate};
+use wallet_common::account::{
+    auth::{Registration, WalletCertificate},
+    signed::SignedDouble,
+};
 
 pub trait AccountServerClient {
     fn registration_challenge(&self) -> Result<Vec<u8>>;

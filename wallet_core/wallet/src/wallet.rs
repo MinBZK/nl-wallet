@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Result};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::{instructions::Registration, jwt::EcdsaDecodingKey, WalletCertificate};
+use wallet_common::account::{
+    auth::{Registration, WalletCertificate},
+    jwt::EcdsaDecodingKey,
+};
 
 use crate::{
     account_server::AccountServerClient,

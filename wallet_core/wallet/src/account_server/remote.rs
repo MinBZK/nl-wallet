@@ -1,6 +1,7 @@
 use anyhow::Result;
 use wallet_common::account::{
-    instructions::Registration, signed::SignedDouble, Certificate, Challenge, WalletCertificate,
+    auth::{Certificate, Challenge, Registration, WalletCertificate},
+    signed::SignedDouble,
 };
 
 use super::AccountServerClient;

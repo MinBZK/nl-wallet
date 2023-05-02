@@ -15,7 +15,10 @@ use rand::rngs::OsRng;
 use tower_http::trace::TraceLayer;
 
 use wallet_common::{
-    account::{instructions::Registration, signed::SignedDouble, Certificate, Challenge},
+    account::{
+        auth::{Certificate, Challenge, Registration},
+        signed::SignedDouble,
+    },
     utils::random_bytes,
 };
 
