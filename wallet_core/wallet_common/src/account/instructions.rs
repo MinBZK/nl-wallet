@@ -51,9 +51,9 @@ impl Registration {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+
+    use super::*;
 
     #[test]
     fn registration() -> Result<()> {

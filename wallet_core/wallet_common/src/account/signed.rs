@@ -173,9 +173,9 @@ impl<T, S: Into<String>> From<S> for Signed<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+
+    use super::*;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct ToyMessage {
