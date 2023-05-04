@@ -26,6 +26,8 @@ pub enum StorageState {
 pub enum StorageError {
     #[error("Storage database is not opened")]
     NotOpened,
+    #[error("Storage database is already opened")]
+    AlreadyOpened,
 }
 
 #[async_trait::async_trait]

@@ -92,6 +92,10 @@ impl Storage for DatabaseStorage {
 
     // Load a database, creating a new key file and database file if necessary.
     async fn open(&mut self) -> Result<()> {
+        if self.database.is_some() {
+            return Err(anyhow::Error::new(StorageError::AlreadyOpened));
+        }
+
         let database =
             open_encrypted_database::<preferred::PlatformEncryptionKey, preferred::PlatformUtilities>(DATABASE_NAME)
                 .await?;
