@@ -124,7 +124,7 @@ build-android-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:5d1565690ad926995b6a06be731445595d3e236f9c3b01d28552a4372dcd3804"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:90e9dd0184337f3d8ce231b198a1b3178d45da3ca2b679812fe5162ffad131ba"
   artifacts:
     name: "wallet-android"
     paths:
