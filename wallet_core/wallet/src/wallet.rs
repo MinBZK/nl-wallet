@@ -116,7 +116,7 @@ where
 
         // Save the registration data in storage
         let registration = data::Registration {
-            pin_salt,
+            pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
         self.storage.insert_registration(&registration).await?;
@@ -178,7 +178,7 @@ mod tests {
         let mut wallet = create_wallet(Some(MockStorage {
             state: StorageState::Unopened,
             registration: Some(data::Registration {
-                pin_salt: pin_salt.clone(),
+                pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
         }));
@@ -191,7 +191,7 @@ mod tests {
         assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
 
         // The registration data should now be available.
-        assert_eq!(wallet.registration.data().unwrap().pin_salt, pin_salt);
+        assert_eq!(wallet.registration.data().unwrap().pin_salt.0, pin_salt);
     }
 
     #[tokio::test]

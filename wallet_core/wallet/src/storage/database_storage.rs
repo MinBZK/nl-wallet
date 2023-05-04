@@ -184,7 +184,7 @@ mod tests {
     #[tokio::test]
     async fn test_database_storage() {
         let registration = Registration {
-            pin_salt: vec![1, 2, 3, 4],
+            pin_salt: vec![1, 2, 3, 4].into(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
@@ -214,7 +214,7 @@ mod tests {
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
-        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
+        assert_eq!(fetched_registration.pin_salt.0, registration.pin_salt.0);
         assert_eq!(
             fetched_registration.wallet_certificate.0,
             registration.wallet_certificate.0
