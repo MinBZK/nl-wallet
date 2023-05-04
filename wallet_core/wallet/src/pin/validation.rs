@@ -48,7 +48,7 @@ fn pin_should_contain_enough_unique_digits(digits: &[u8]) -> Result<(), PinValid
     let count: [u8; RADIX] = {
         let mut count: [u8; RADIX] = [0; RADIX];
         for d in digits.iter() {
-            count[(*d as usize)] += 1;
+            count[*d as usize] += 1;
         }
         count
     };
