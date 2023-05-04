@@ -1,16 +1,28 @@
-use anyhow::{anyhow, Result};
+use std::collections::HashMap;
 
-use super::{data::Registration, Storage, StorageError, StorageState};
+use anyhow::{anyhow, Result};
+use serde::{de::DeserializeOwned, Serialize};
+
+use super::{
+    data::{Keyed, Registration},
+    Storage, StorageError, StorageState,
+};
 
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub registration: Option<Registration>,
+    pub data: HashMap<&'static str, String>,
 }
 
 impl MockStorage {
     pub fn new(state: StorageState, registration: Option<Registration>) -> Self {
-        MockStorage { state, registration }
+        let mut data = HashMap::new();
+
+        if let Some(registration) = registration {
+            data.insert(Registration::KEY, serde_json::to_string(&registration).unwrap());
+        }
+
+        MockStorage { state, data }
     }
 }
 
@@ -38,26 +50,26 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn registration(&self) -> Result<Option<Registration>> {
+    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }
 
-        let registration = self.registration.clone();
+        let data = self.data.get(D::KEY).map(|m| serde_json::from_str::<D>(m).unwrap());
 
-        Ok(registration)
+        Ok(data)
     }
 
-    async fn insert_registration(&mut self, registration: &Registration) -> Result<()> {
+    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }
 
-        if self.registration.is_some() {
+        if self.data.contains_key(D::KEY) {
             return Err(anyhow!("Registration already present"));
         }
 
-        self.registration = Some(registration.clone());
+        self.data.insert(D::KEY, serde_json::to_string(data).unwrap());
 
         Ok(())
     }

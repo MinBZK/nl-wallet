@@ -8,8 +8,9 @@ mod sql_cipher_key;
 mod mock_storage;
 
 use anyhow::Result;
+use serde::{de::DeserializeOwned, Serialize};
 
-use self::data::Registration;
+use self::data::Keyed;
 
 pub use self::database_storage::DatabaseStorage;
 #[cfg(test)]
@@ -33,8 +34,10 @@ pub enum StorageError {
 #[async_trait::async_trait]
 pub trait Storage {
     async fn state(&self) -> Result<StorageState>;
+
     async fn open(&mut self) -> Result<()>;
     async fn clear(&mut self) -> Result<()>;
-    async fn registration(&self) -> Result<Option<Registration>>;
-    async fn insert_registration(&mut self, registration: &Registration) -> Result<()>;
+
+    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>>;
+    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()>;
 }

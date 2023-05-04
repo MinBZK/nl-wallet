@@ -78,7 +78,7 @@ where
         }
 
         // Finally, fetch the registration.
-        let registration = self.storage.registration().await?;
+        let registration = self.storage.fetch_data::<data::Registration>().await?;
         let has_registration = registration.is_some();
 
         self.registration = RegistrationData::Loaded(registration);
@@ -119,7 +119,7 @@ where
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
-        self.storage.insert_registration(&registration).await?;
+        self.storage.insert_data(&registration).await?;
         self.registration = RegistrationData::Loaded(Some(registration));
 
         Ok(())
@@ -161,10 +161,7 @@ mod tests {
         ));
 
         // Test with a wallet with a database file, no registration.
-        let mut wallet = create_wallet(Some(MockStorage {
-            state: StorageState::Unopened,
-            registration: None,
-        }));
+        let mut wallet = create_wallet(Some(MockStorage::new(StorageState::Unopened, None)));
 
         let has_registration = wallet.load_registration().await.expect("Could not load registration");
 
@@ -175,13 +172,13 @@ mod tests {
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = new_pin_salt();
-        let mut wallet = create_wallet(Some(MockStorage {
-            state: StorageState::Unopened,
-            registration: Some(data::Registration {
+        let mut wallet = create_wallet(Some(MockStorage::new(
+            StorageState::Unopened,
+            Some(data::Registration {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
-        }));
+        )));
 
         let has_registration = wallet.load_registration().await.expect("Could not load registration");
 

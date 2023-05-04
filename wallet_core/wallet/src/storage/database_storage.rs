@@ -2,13 +2,14 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::{fs, try_join};
 
 use entity::keyed_data;
 use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
 
 use super::{
-    data::Registration,
+    data::Keyed,
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
@@ -18,8 +19,6 @@ use super::{
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
-
-const REGISTRATION_KEY: &str = "registration";
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
@@ -122,26 +121,26 @@ impl Storage for DatabaseStorage {
         .map(|_| ())
     }
 
-    // Get the Registration entry from the key-value table, if present.
-    async fn registration(&self) -> Result<Option<Registration>> {
+    // Get data entry from the key-value table, if present.
+    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>> {
         let database = self.database()?;
 
-        let registration = keyed_data::Entity::find_by_id(REGISTRATION_KEY)
+        let data = keyed_data::Entity::find_by_id(D::KEY)
             .one(database.connection())
             .await?
-            .map(|m| serde_json::from_value::<Registration>(m.data))
+            .map(|m| serde_json::from_value::<D>(m.data))
             .transpose()?;
 
-        Ok(registration)
+        Ok(data)
     }
 
-    // Insert a new Registration in the key-value table, which will return an error when one is already present.
-    async fn insert_registration(&mut self, registration: &Registration) -> Result<()> {
+    // Insert data entry in the key-value table, which will return an error when one is already present.
+    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
-            key: Set(REGISTRATION_KEY.to_string()),
-            data: Set(serde_json::to_value(registration)?),
+            key: Set(D::KEY.to_string()),
+            data: Set(serde_json::to_value(data)?),
         }
         .insert(database.connection())
         .await?;
@@ -154,7 +153,10 @@ impl Storage for DatabaseStorage {
 mod tests {
     use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
     use tokio::fs;
+
     use wallet_common::{account::WalletCertificate, utils::random_bytes};
+
+    use crate::storage::data::Registration;
 
     use super::*;
 
@@ -205,17 +207,23 @@ mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Try to fetch the registration, none should be there.
-        let no_registration = storage.registration().await.expect("Could not get registration");
+        let no_registration = storage
+            .fetch_data::<Registration>()
+            .await
+            .expect("Could not get registration");
 
         assert!(no_registration.is_none());
 
         // Save the registration and fetch it again.
         storage
-            .insert_registration(&registration)
+            .insert_data(&registration)
             .await
             .expect("Could not save registration");
 
-        let fetched_registration = storage.registration().await.expect("Could not get registration");
+        let fetched_registration = storage
+            .fetch_data::<Registration>()
+            .await
+            .expect("Could not get registration");
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
@@ -226,7 +234,7 @@ mod tests {
         );
 
         // Save the registration again, should result in an error.
-        let save_result = storage.insert_registration(&registration).await;
+        let save_result = storage.insert_data(&registration).await;
 
         assert!(save_result.is_err());
 
