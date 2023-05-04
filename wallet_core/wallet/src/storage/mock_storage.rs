@@ -48,7 +48,7 @@ impl Storage for MockStorage {
         Ok(registration)
     }
 
-    async fn save_registration(&mut self, registration: &Registration) -> Result<()> {
+    async fn insert_registration(&mut self, registration: &Registration) -> Result<()> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }

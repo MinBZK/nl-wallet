@@ -34,5 +34,5 @@ pub trait Storage {
     async fn open(&mut self) -> Result<()>;
     async fn clear(&mut self) -> Result<()>;
     async fn get_registration(&self) -> Result<Option<Registration>>;
-    async fn save_registration(&mut self, registration: &Registration) -> Result<()>;
+    async fn insert_registration(&mut self, registration: &Registration) -> Result<()>;
 }

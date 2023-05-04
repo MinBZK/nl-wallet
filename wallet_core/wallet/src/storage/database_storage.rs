@@ -130,8 +130,8 @@ impl Storage for DatabaseStorage {
         Ok(registration)
     }
 
-    // Save a new Registration in the key-value table, which will return an error when one is already present.
-    async fn save_registration(&mut self, registration: &Registration) -> Result<()> {
+    // Insert a new Registration in the key-value table, which will return an error when one is already present.
+    async fn insert_registration(&mut self, registration: &Registration) -> Result<()> {
         let database = self.get_database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -206,7 +206,7 @@ mod tests {
 
         // Save the registration and fetch it again.
         storage
-            .save_registration(&registration)
+            .insert_registration(&registration)
             .await
             .expect("Could not save registration");
 
@@ -221,7 +221,7 @@ mod tests {
         );
 
         // Save the registration again, should result in an error.
-        let save_result = storage.save_registration(&registration).await;
+        let save_result = storage.insert_registration(&registration).await;
 
         assert!(save_result.is_err());
 

@@ -119,7 +119,7 @@ where
             pin_salt,
             wallet_certificate: cert,
         };
-        self.storage.save_registration(&registration).await?;
+        self.storage.insert_registration(&registration).await?;
         self.registration = RegistrationData::Loaded(Some(registration));
 
         Ok(())
