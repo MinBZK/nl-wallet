@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use anyhow::Result;
 use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
 use tokio::fs;
-use wallet_migration::{Migrator, MigratorTrait};
+
+use migration::{Migrator, MigratorTrait};
 
 use super::sql_cipher_key::SqlCipherKey;
 
@@ -170,7 +171,8 @@ mod tests {
     async fn test_entities_database() {
         use sea_orm::{prelude::*, Set};
         use serde::{Deserialize, Serialize};
-        use wallet_entity::keyed_data;
+
+        use entity::keyed_data;
 
         // Define example JSON data
         #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]

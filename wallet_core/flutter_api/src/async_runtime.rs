@@ -25,7 +25,7 @@ mod tests {
         left + right
     }
 
-    #[flutter_api_macros::async_runtime]
+    #[macros::async_runtime]
     async fn add(left: i32, right: i32) -> i32 {
         plus(left, right).await
     }

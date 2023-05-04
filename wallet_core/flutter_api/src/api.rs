@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use flutter_api_macros::async_runtime;
+use macros::async_runtime;
 use wallet::pin::validation::validate_pin;
 
 use crate::{models::pin::PinValidationResult, wallet::WALLET};

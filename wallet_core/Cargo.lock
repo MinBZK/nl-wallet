@@ -656,6 +656,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "entity"
+version = "0.1.0"
+dependencies = [
+ "sea-orm",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -720,22 +727,14 @@ dependencies = [
  "anyhow",
  "bincode",
  "const_format",
- "flutter_api_macros",
  "flutter_rust_bridge",
+ "macros",
  "once_cell",
  "serde",
  "serde-generate",
  "serde-reflection",
  "tokio",
  "wallet",
-]
-
-[[package]]
-name = "flutter_api_macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn 2.0.11",
 ]
 
 [[package]]
@@ -1320,6 +1319,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.11",
+]
+
+[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1339,6 +1346,13 @@ name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+
+[[package]]
+name = "migration"
+version = "0.1.0"
+dependencies = [
+ "sea-orm-migration",
+]
 
 [[package]]
 name = "mime"
@@ -3072,7 +3086,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "entity",
  "libsqlite3-sys",
+ "migration",
  "p256",
  "platform_support",
  "reqwest",
@@ -3084,8 +3100,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "wallet_common",
- "wallet_entity",
- "wallet_migration",
  "wallet_provider",
 ]
 
@@ -3100,20 +3114,6 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "wallet_entity"
-version = "0.1.0"
-dependencies = [
- "sea-orm",
-]
-
-[[package]]
-name = "wallet_migration"
-version = "0.1.0"
-dependencies = [
- "sea-orm-migration",
 ]
 
 [[package]]

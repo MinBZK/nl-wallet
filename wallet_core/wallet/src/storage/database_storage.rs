@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tokio::{fs, try_join};
-use wallet_entity::keyed_data;
+
+use entity::keyed_data;
+use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
 
 use super::{
     data::Registration,
