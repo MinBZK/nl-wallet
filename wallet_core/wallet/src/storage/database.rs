@@ -69,7 +69,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_connection(&self) -> &impl ConnectionTrait {
+    pub fn connection(&self) -> &impl ConnectionTrait {
         &self.connection
     }
 }
@@ -195,13 +195,13 @@ mod tests {
             data: Set(serde_json::to_value(&configuration).unwrap()),
         };
         configuration_model
-            .insert(db.get_connection())
+            .insert(db.connection())
             .await
             .expect("Could not insert keyed data");
 
         // Fetch all keyed data and check if our example data is present.
         let all_keyed_data = keyed_data::Entity::find()
-            .all(db.get_connection())
+            .all(db.connection())
             .await
             .expect("Could not query keyed data");
 

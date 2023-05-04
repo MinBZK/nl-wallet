@@ -63,7 +63,7 @@ where
             return Ok(registration.is_some());
         }
 
-        let storage_state = self.storage.get_state().await?;
+        let storage_state = self.storage.state().await?;
 
         // If there is no database file, we can already conclude that we are not registered.
         if matches!(storage_state, StorageState::Uninitialized) {
@@ -78,7 +78,7 @@ where
         }
 
         // Finally, fetch the registration.
-        let registration = self.storage.get_registration().await?;
+        let registration = self.storage.registration().await?;
         let has_registration = registration.is_some();
 
         self.registration = RegistrationData::Loaded(registration);
@@ -109,7 +109,7 @@ where
         }
 
         // If the storage datbase does not exist, create it now
-        let storage_state = self.storage.get_state().await?;
+        let storage_state = self.storage.state().await?;
         if !matches!(storage_state, StorageState::Opened) {
             self.storage.open().await?;
         }
@@ -156,7 +156,7 @@ mod tests {
         assert!(!has_registration);
         assert!(matches!(wallet.registration, RegistrationData::Loaded(None)));
         assert!(matches!(
-            wallet.storage.get_state().await.unwrap(),
+            wallet.storage.state().await.unwrap(),
             StorageState::Uninitialized
         ));
 
@@ -171,10 +171,7 @@ mod tests {
         // We should be informed that there is no registration, the database should be opened.
         assert!(!has_registration);
         assert!(matches!(wallet.registration, RegistrationData::Loaded(None)));
-        assert!(matches!(
-            wallet.storage.get_state().await.unwrap(),
-            StorageState::Opened
-        ));
+        assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = new_pin_salt();
@@ -191,10 +188,7 @@ mod tests {
         // We should be informed that there is a registration, the database should be opened.
         assert!(has_registration);
         assert!(matches!(wallet.registration, RegistrationData::Loaded(Some(_))));
-        assert!(matches!(
-            wallet.storage.get_state().await.unwrap(),
-            StorageState::Opened
-        ));
+        assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
 
         // The registration data should now be available.
         assert_eq!(wallet.registration.data().unwrap().pin_salt, pin_salt);

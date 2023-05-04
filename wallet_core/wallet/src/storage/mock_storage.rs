@@ -22,7 +22,7 @@ impl Default for MockStorage {
 
 #[async_trait::async_trait]
 impl Storage for MockStorage {
-    async fn get_state(&self) -> Result<StorageState> {
+    async fn state(&self) -> Result<StorageState> {
         Ok(self.state)
     }
 
@@ -38,7 +38,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn get_registration(&self) -> Result<Option<Registration>> {
+    async fn registration(&self) -> Result<Option<Registration>> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }

@@ -58,7 +58,7 @@ impl DatabaseStorage {
     }
 
     // Helper method, should be called before accessing database.
-    fn get_database(&self) -> Result<&Database> {
+    fn database(&self) -> Result<&Database> {
         self.database
             .as_ref()
             .ok_or(anyhow::Error::new(StorageError::NotOpened))
@@ -76,7 +76,7 @@ impl Default for DatabaseStorage {
 impl Storage for DatabaseStorage {
     // Indiciate whether there is no database on disk, there is one but it is unopened
     // or the database is currently open.
-    async fn get_state(&self) -> Result<StorageState> {
+    async fn state(&self) -> Result<StorageState> {
         if self.database.is_some() {
             return Ok(StorageState::Opened);
         }
@@ -118,11 +118,11 @@ impl Storage for DatabaseStorage {
     }
 
     // Get the Registration entry from the key-value table, if present.
-    async fn get_registration(&self) -> Result<Option<Registration>> {
-        let database = self.get_database()?;
+    async fn registration(&self) -> Result<Option<Registration>> {
+        let database = self.database()?;
 
         let registration = keyed_data::Entity::find_by_id(REGISTRATION_KEY)
-            .one(database.get_connection())
+            .one(database.connection())
             .await?
             .map(|m| serde_json::from_value::<Registration>(m.data))
             .transpose()?;
@@ -132,13 +132,13 @@ impl Storage for DatabaseStorage {
 
     // Insert a new Registration in the key-value table, which will return an error when one is already present.
     async fn insert_registration(&mut self, registration: &Registration) -> Result<()> {
-        let database = self.get_database()?;
+        let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
             key: Set(REGISTRATION_KEY.to_string()),
             data: Set(serde_json::to_value(registration)?),
         }
-        .insert(database.get_connection())
+        .insert(database.connection())
         .await?;
 
         Ok(())
@@ -196,11 +196,11 @@ mod tests {
         let mut storage = DatabaseStorage::new(Some(database));
 
         // State should be Opened.
-        let state = storage.get_state().await.unwrap();
+        let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
         // Try to fetch the registration, none should be there.
-        let no_registration = storage.get_registration().await.expect("Could not get registration");
+        let no_registration = storage.registration().await.expect("Could not get registration");
 
         assert!(no_registration.is_none());
 
@@ -210,7 +210,7 @@ mod tests {
             .await
             .expect("Could not save registration");
 
-        let fetched_registration = storage.get_registration().await.expect("Could not get registration");
+        let fetched_registration = storage.registration().await.expect("Could not get registration");
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
@@ -229,7 +229,7 @@ mod tests {
 
         storage.clear().await.expect("Could not clear storage");
 
-        let state = storage.get_state().await.unwrap();
+        let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));
     }
 }

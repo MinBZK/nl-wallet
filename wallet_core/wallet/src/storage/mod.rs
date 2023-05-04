@@ -30,9 +30,9 @@ pub enum StorageError {
 
 #[async_trait::async_trait]
 pub trait Storage {
-    async fn get_state(&self) -> Result<StorageState>;
+    async fn state(&self) -> Result<StorageState>;
     async fn open(&mut self) -> Result<()>;
     async fn clear(&mut self) -> Result<()>;
-    async fn get_registration(&self) -> Result<Option<Registration>>;
+    async fn registration(&self) -> Result<Option<Registration>>;
     async fn insert_registration(&mut self, registration: &Registration) -> Result<()>;
 }
