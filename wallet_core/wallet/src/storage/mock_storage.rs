@@ -1,25 +1,24 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use anyhow::{anyhow, Result};
-use serde::{de::DeserializeOwned, Serialize};
 
 use super::{
-    data::{Keyed, Registration},
+    data::{KeyedData, Registration},
     Storage, StorageError, StorageState,
 };
 
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub data: HashMap<&'static str, String>,
+    pub data: HashMap<&'static str, Box<dyn Any + Send + Sync>>,
 }
 
 impl MockStorage {
     pub fn new(state: StorageState, registration: Option<Registration>) -> Self {
-        let mut data = HashMap::new();
+        let mut data: HashMap<&str, Box<dyn Any + Send + Sync>> = HashMap::new();
 
         if let Some(registration) = registration {
-            data.insert(Registration::KEY, serde_json::to_string(&registration).unwrap());
+            data.insert(Registration::KEY, Box::new(registration));
         }
 
         MockStorage { state, data }
@@ -50,17 +49,19 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }
 
-        let data = self.data.get(D::KEY).map(|m| serde_json::from_str::<D>(m).unwrap());
+        // Assume that self.data holds the type we need, keyed by the data key.
+        // Downcast it to our type using the Any trait, then return a cloned result.
+        let data = self.data.get(D::KEY).map(|m| m.downcast_ref::<D>().unwrap()).cloned();
 
         Ok(data)
     }
 
-    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(anyhow::Error::new(StorageError::NotOpened));
         }
@@ -69,7 +70,7 @@ impl Storage for MockStorage {
             return Err(anyhow!("Registration already present"));
         }
 
-        self.data.insert(D::KEY, serde_json::to_string(data).unwrap());
+        self.data.insert(D::KEY, Box::new(data.clone()));
 
         Ok(())
     }

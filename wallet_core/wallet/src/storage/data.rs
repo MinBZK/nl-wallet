@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wallet_common::account::{serialization::Base64Bytes, WalletCertificate};
 
-pub trait Keyed {
+pub trait KeyedData: Serialize + DeserializeOwned + Clone + Send + Sync + 'static {
     const KEY: &'static str;
 }
 
@@ -11,6 +11,6 @@ pub struct Registration {
     pub wallet_certificate: WalletCertificate,
 }
 
-impl Keyed for Registration {
+impl KeyedData for Registration {
     const KEY: &'static str = "registration";
 }

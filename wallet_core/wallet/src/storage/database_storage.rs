@@ -2,14 +2,13 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serde::{de::DeserializeOwned, Serialize};
 use tokio::{fs, try_join};
 
 use entity::keyed_data;
 use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
 
 use super::{
-    data::Keyed,
+    data::KeyedData,
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
@@ -122,7 +121,7 @@ impl Storage for DatabaseStorage {
     }
 
     // Get data entry from the key-value table, if present.
-    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
         let database = self.database()?;
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
@@ -135,7 +134,7 @@ impl Storage for DatabaseStorage {
     }
 
     // Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {

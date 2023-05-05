@@ -8,9 +8,8 @@ mod sql_cipher_key;
 mod mock_storage;
 
 use anyhow::Result;
-use serde::{de::DeserializeOwned, Serialize};
 
-use self::data::Keyed;
+use self::data::KeyedData;
 
 pub use self::database_storage::DatabaseStorage;
 #[cfg(test)]
@@ -38,6 +37,6 @@ pub trait Storage {
     async fn open(&mut self) -> Result<()>;
     async fn clear(&mut self) -> Result<()>;
 
-    async fn fetch_data<D: Keyed + DeserializeOwned>(&self) -> Result<Option<D>>;
-    async fn insert_data<D: Keyed + Serialize + Send + Sync>(&mut self, data: &D) -> Result<()>;
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()>;
 }
