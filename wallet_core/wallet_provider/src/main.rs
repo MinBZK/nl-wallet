@@ -1,7 +1,3 @@
-// Prevent dead code warnings because AccountServer::new_stub is not used in the bin.
-// TODO: remove this when the wallet_provider is not a dependency of the wallet.
-#![allow(dead_code)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 

@@ -58,6 +58,7 @@ impl AccountServer {
         })
     }
 
+    #[allow(dead_code)] // This constructor is used for tests in the "wallet" crate
     pub fn new_stub() -> AccountServer {
         let account_server_privkey = SigningKey::random(&mut OsRng);
         AccountServer::new(
