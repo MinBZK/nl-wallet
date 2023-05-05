@@ -34,6 +34,14 @@ pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<dat
     Ok(registration)
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum WalletRegistrationError {
+    #[error("Wallet is already registered")]
+    AlreadyRegistered,
+    #[error("Public key received from account server does not match the hardware public key")]
+    PublicKeyMismatch,
+}
+
 pub struct Wallet<A, S, K> {
     account_server: A,
     account_server_pubkey: EcdsaDecodingKey,
@@ -81,7 +89,7 @@ where
     pub async fn register(&mut self, pin: String) -> Result<()> {
         // Registration is only allowed if we do not currently have a registration on record.
         if self.has_registration() {
-            return Err(anyhow!("Wallet is already registered"));
+            return Err(anyhow!(WalletRegistrationError::AlreadyRegistered));
         }
 
         // Make sure the PIN adheres to the requirements.
@@ -96,7 +104,7 @@ where
 
         let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
         if cert_claims.hw_pubkey.0 != self.hw_privkey.verifying_key()? {
-            return Err(anyhow!("hardware pubkey did not match"));
+            return Err(anyhow!(WalletRegistrationError::PublicKeyMismatch));
         }
 
         // If the storage datbase does not exist, create it now
