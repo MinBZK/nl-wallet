@@ -7,6 +7,7 @@ use super::{
     Storage, StorageError, StorageState,
 };
 
+/// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,

@@ -32,6 +32,9 @@ fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf> {
     Ok(database_path)
 }
 
+/// This helper function uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
+/// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
+/// instance.
 async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(name: &str) -> Result<Database> {
     let key_file_alias = key_file_alias_for_name(name);
     let database_path = database_path_for_name::<U>(name)?;
@@ -46,6 +49,14 @@ async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>
     Ok(database)
 }
 
+/// This is the implemtation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
+///
+/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with
+///   encrypted key files. This also includes deleting the database and key file when the [`clear`]
+///   method is called.
+/// * Communicating the current state of the database through the [`state`] method.
+/// * Executing queries on the database by accepting / returning data structures that are used by
+///   [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage {
     database: Option<Database>,
@@ -73,8 +84,8 @@ impl Default for DatabaseStorage {
 
 #[async_trait::async_trait]
 impl Storage for DatabaseStorage {
-    // Indiciate whether there is no database on disk, there is one but it is unopened
-    // or the database is currently open.
+    /// Indiciate whether there is no database on disk, there is one but it is unopened
+    /// or the database is currently open.
     async fn state(&self) -> Result<StorageState> {
         if self.database.is_some() {
             return Ok(StorageState::Opened);
@@ -89,7 +100,7 @@ impl Storage for DatabaseStorage {
         Ok(StorageState::Uninitialized)
     }
 
-    // Load a database, creating a new key file and database file if necessary.
+    /// Load a database, creating a new key file and database file if necessary.
     async fn open(&mut self) -> Result<()> {
         if self.database.is_some() {
             return Err(anyhow::Error::new(StorageError::AlreadyOpened));
@@ -103,7 +114,7 @@ impl Storage for DatabaseStorage {
         Ok(())
     }
 
-    // Clear the contents of the database by closing it and removing both database and key file.
+    /// Clear the contents of the database by closing it and removing both database and key file.
     async fn clear(&mut self) -> Result<()> {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
         let database = self
@@ -120,7 +131,7 @@ impl Storage for DatabaseStorage {
         .map(|_| ())
     }
 
-    // Get data entry from the key-value table, if present.
+    /// Get data entry from the key-value table, if present.
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
         let database = self.database()?;
 
@@ -133,7 +144,7 @@ impl Storage for DatabaseStorage {
         Ok(data)
     }
 
-    // Insert data entry in the key-value table, which will return an error when one is already present.
+    /// Insert data entry in the key-value table, which will return an error when one is already present.
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
         let database = self.database()?;
 

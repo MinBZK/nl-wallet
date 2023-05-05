@@ -15,10 +15,14 @@ pub use self::database_storage::DatabaseStorage;
 #[cfg(test)]
 pub use self::mock_storage::MockStorage;
 
+/// This represents the current start of [`Storage`].
 #[derive(Debug, Clone, Copy)]
 pub enum StorageState {
+    /// There is no database connection and no file on disk.
     Uninitialized,
+    /// There is no database connection, but there is a file on disk.
     Unopened,
+    /// There is an open database connection.
     Opened,
 }
 
@@ -30,6 +34,7 @@ pub enum StorageError {
     AlreadyOpened,
 }
 
+/// This trait abstracts the persistent storage for the wallet.
 #[async_trait::async_trait]
 pub trait Storage {
     async fn state(&self) -> Result<StorageState>;

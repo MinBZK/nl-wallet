@@ -10,12 +10,16 @@ use super::sql_cipher_key::SqlCipherKey;
 
 const PRAGMA_KEY: &str = "key";
 
+/// This represents a URL to a SQLite database, either on the filesystem on in memory.
 #[derive(Debug)]
 pub enum SqliteUrl {
     File(PathBuf),
     InMemory,
 }
 
+/// For some reason Sea-ORM requires the URL to the database as a string intermediary,
+/// rather that programmatically. This URL string is encoded by implementing the [`From`] trait.
+/// for [`String`] (and conversely the [`Into`] trait for [`SqliteUrl`]).
 impl From<&SqliteUrl> for String {
     fn from(value: &SqliteUrl) -> Self {
         match value {
@@ -31,6 +35,13 @@ impl From<SqliteUrl> for String {
     }
 }
 
+/// This struct wraps a SQLite database connection, it has the following responsibilities:
+///
+/// * Setting up a connection to an encrypted databae, based on a [`SqliteUrl`] and [`SqlCipherKey`]
+/// * Tearing down a connection to the database, either by falling out of scope or by having
+///   [`close_and_delete`] called on it in order to also delete the database file.
+/// * Exposing a reference to the database connection as [`ConnectionTrait`], so that a consumer
+///   of this struct can run queries on the database.
 #[derive(Debug)]
 pub struct Database {
     pub url: SqliteUrl,
