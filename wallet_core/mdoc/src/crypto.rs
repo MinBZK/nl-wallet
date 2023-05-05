@@ -1,6 +1,5 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
-use anyhow::{anyhow, bail, Context, Result};
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
 use p256::{ecdh, NistP256};
@@ -10,7 +9,23 @@ use serde::Serialize;
 use sha2::Digest;
 use x509_parser::nom::AsBytes;
 
-use crate::{cose::CoseKey, serialization::cbor_serialize};
+use crate::{cose::CoseKey, serialization::cbor_serialize, Error, Result};
+
+#[derive(thiserror::Error, Debug)]
+pub enum KeyError {
+    #[error("missing x coordinate")]
+    MissingCoordinateX,
+    #[error("missing y coordinate")]
+    MissingCoordinateY,
+    #[error("wrong key type")]
+    WrongKeyType,
+    #[error("missing key ID")]
+    MissingKeyID,
+    #[error("unexpected COSE_Key label")]
+    UnepectedCoseLabel,
+    #[error("parse failure")]
+    ParseFailure,
+}
 
 pub fn sha256(bts: &[u8]) -> Vec<u8> {
     sha2::Sha256::digest(bts).to_vec()
@@ -48,19 +63,19 @@ pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) 
 
     salt.extract(input_key_material)
         .expand(&[info.as_bytes()], HkdfLen(len))
-        .map_err(|e| anyhow!("hkdf expand failed: {e}"))?
+        .map_err(|_| Error::Hkdf)?
         .fill(bts.as_mut_slice())
-        .map_err(|e| anyhow!("hkdf fill failed: {e}"))?;
+        .map_err(|_| Error::Hkdf)?;
 
     Ok(hmac::Key::new(hmac::HMAC_SHA256, bts.as_slice()))
 }
 
 impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(key: &ecdsa::VerifyingKey<NistP256>) -> std::result::Result<Self, Self::Error> {
         let encoded_point = key.to_encoded_point(false);
-        let x = encoded_point.x().ok_or_else(|| anyhow!("missing x"))?.to_vec();
-        let y = encoded_point.y().ok_or_else(|| anyhow!("missing y"))?.to_vec();
+        let x = encoded_point.x().ok_or(KeyError::MissingCoordinateX)?.to_vec();
+        let y = encoded_point.y().ok_or(KeyError::MissingCoordinateY)?.to_vec();
 
         Ok(CoseKey(
             CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y).build(),
@@ -69,38 +84,33 @@ impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
 }
 
 impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
-    type Error = anyhow::Error;
-    fn try_from(key: &CoseKey) -> std::result::Result<Self, Self::Error> {
+    type Error = Error;
+    fn try_from(key: &CoseKey) -> Result<Self> {
         if key.0.kty != coset::RegisteredLabel::Assigned(iana::KeyType::EC2) {
-            bail!("wrong keytype")
+            return Err(KeyError::WrongKeyType.into());
         }
 
-        let keyid = key.0.params.get(0).ok_or_else(|| anyhow!("missing keyid parameter"))?;
+        let keyid = key.0.params.get(0).ok_or(KeyError::MissingKeyID)?;
         if *keyid != (Label::Int(-1), Value::Integer(1.into())) {
-            bail!("wrong keyid")
+            return Err(KeyError::WrongKeyType.into());
         }
 
-        let x = key.0.params.get(1).ok_or_else(|| anyhow!("missing x parameter"))?;
+        let x = key.0.params.get(1).ok_or(KeyError::MissingCoordinateX)?;
         if x.0 != Label::Int(-2) {
-            bail!("unexpected label")
+            return Err(KeyError::UnepectedCoseLabel.into());
         }
-        let y = key.0.params.get(2).ok_or_else(|| anyhow!("missing y parameter"))?;
+        let y = key.0.params.get(2).ok_or(KeyError::MissingCoordinateY)?;
         if y.0 != Label::Int(-3) {
-            bail!("unexpected label")
+            return Err(KeyError::UnepectedCoseLabel.into());
         }
 
-        ecdsa::VerifyingKey::<NistP256>::from_encoded_point(&ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
-            x.1.as_bytes()
-                .ok_or_else(|| anyhow!("failed to parse x parameter as bytes"))?
-                .as_bytes()
-                .into(),
-            y.1.as_bytes()
-                .ok_or_else(|| anyhow!("failed to parse y parameter as bytes"))?
-                .as_bytes()
-                .into(),
-            false,
-        ))
-        .context("failed to instantiate public key")
+        Ok(ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
+            &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
+                x.1.as_bytes().ok_or(KeyError::ParseFailure)?.as_bytes().into(),
+                y.1.as_bytes().ok_or(KeyError::ParseFailure)?.as_bytes().into(),
+                false,
+            ),
+        )?)
     }
 }
 

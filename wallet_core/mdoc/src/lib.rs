@@ -11,8 +11,11 @@ pub mod issuer_shared;
 pub mod cose;
 pub mod serialization;
 
+pub mod errors;
+
 mod crypto;
 
+pub use errors::*;
 pub use iso::*;
 
 // TODO: check expiry of all certificates and credentials

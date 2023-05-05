@@ -1,13 +1,14 @@
-use anyhow::{bail, Result};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
 use ecdsa::SigningKey;
 use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer};
 use indexmap::IndexMap;
 use p256::NistP256;
 use serde_bytes::ByteBuf;
+
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::X509Certificate;
 
+use crate::Error;
 use crate::{
     basic_sa_ext::{
         DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
@@ -18,7 +19,20 @@ use crate::{
     iso::*,
     serialization::{cbor_serialize, TaggedBytes},
     verifier::X509Subject,
+    Result,
 };
+
+#[derive(thiserror::Error, Debug)]
+pub enum HolderError {
+    #[error("unsatisfiable request: DocType {0} not in wallet")]
+    UnsatisfiableRequest(DocType),
+    #[error("CBOR deserialization failed")]
+    Deserialization(#[from] ciborium::de::Error<std::io::Error>),
+    #[error("readerAuth not present for all documents")]
+    ReaderAuthMissing,
+    #[error("document requests were signed by different readers")]
+    ReaderAuthsInconsistent,
+}
 
 /// Mdoc credentials of the holder. This data structure supports storing:
 /// - mdocs with different doctypes, through the map over `DocType`,
@@ -34,7 +48,7 @@ impl Default for Credentials {
     }
 }
 impl<const N: usize> TryFrom<[Credential; N]> for Credentials {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(value: [Credential; N]) -> Result<Self> {
         let mut creds = Credentials::new();
@@ -120,10 +134,7 @@ impl Credentials {
         for doc_request in &device_request.doc_requests {
             let items_request = &doc_request.items_request.0;
             if !self.0.contains_key(&items_request.doc_type) {
-                bail!(
-                    "unsatisfiable request: DocType {} not in wallet",
-                    &items_request.doc_type
-                )
+                return Err(HolderError::UnsatisfiableRequest(items_request.doc_type.clone()).into());
             }
 
             // This takes any mdoc of the specified doctype. TODO: allow user choice.
@@ -191,7 +202,7 @@ impl Credential {
 
     /// Hash of the credential, acting as an identifier for the credential that takes into account its doctype
     /// and all of its attributes. Computed schematically as `SHA256(CBOR(doctype, attributes))`.
-    fn hash(&self) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
+    fn hash(&self) -> Result<Vec<u8>> {
         Ok(sha256(&cbor_serialize(&(
             &self.doc_type,
             &self
@@ -267,7 +278,7 @@ impl SparseIssuerSigned {
         let issuer_auth = self
             .sparse_issuer_auth
             .issuer_auth
-            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(anyhow::Error::msg)?);
+            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso))?);
 
         let issuer_signed = IssuerSigned {
             name_spaces: Some(name_spaces),
@@ -328,7 +339,8 @@ impl DeviceSigned {
         reader_pub_key: &ecdsa::VerifyingKey<p256::NistP256>,
         challenge: &[u8],
     ) -> Result<DeviceSigned> {
-        let device_auth: DeviceAuthenticationBytes = ciborium::de::from_reader(challenge)?;
+        let device_auth: DeviceAuthenticationBytes =
+            ciborium::de::from_reader(challenge).map_err(HolderError::Deserialization)?;
         let key = dh_hmac_key(
             private_key,
             reader_pub_key,
@@ -363,7 +375,7 @@ impl DeviceRequest {
             return Ok(None);
         }
         if self.doc_requests.iter().any(|d| d.reader_auth.is_none()) {
-            bail!("readerAuth not present for all documents")
+            return Err(HolderError::ReaderAuthMissing.into());
         }
 
         let mut reader: Option<X509Subject> = None;
@@ -377,7 +389,7 @@ impl DeviceRequest {
             if reader.is_none() {
                 reader.replace(found);
             } else if *reader.as_ref().unwrap() != found {
-                bail!("document requests were signed by different readers")
+                return Err(HolderError::ReaderAuthsInconsistent.into());
             }
         }
 

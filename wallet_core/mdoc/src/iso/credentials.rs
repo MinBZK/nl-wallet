@@ -9,9 +9,9 @@ use crate::{
     cose::CoseKey,
     crypto::{cbor_digest, random_bytes},
     serialization::TaggedBytes,
+    Error, Result,
 };
 
-use anyhow::Result;
 use chrono::Utc;
 use ciborium::{tag, value::Value};
 use ecdsa::VerifyingKey;
@@ -29,14 +29,14 @@ pub type DigestID = u64;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
 impl TryFrom<&Attributes> for DigestIDs {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(val: &Attributes) -> Result<Self> {
         Ok(DigestIDs(
             val.0
                 .iter()
                 .enumerate()
                 .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
-                .collect::<Result<IndexMap<_, _>, anyhow::Error>>()?,
+                .collect::<Result<IndexMap<_, _>>>()?,
         ))
     }
 }
@@ -45,12 +45,12 @@ impl TryFrom<&Attributes> for DigestIDs {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self> {
         Ok(ValueDigests(
             val.iter()
                 .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
-                .collect::<Result<IndexMap<_, _>, anyhow::Error>>()?,
+                .collect::<Result<IndexMap<_, _>>>()?,
         ))
     }
 }
@@ -80,7 +80,7 @@ pub struct DeviceKeyInfo {
 }
 
 impl TryFrom<VerifyingKey<p256::NistP256>> for DeviceKeyInfo {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(value: VerifyingKey<p256::NistP256>) -> Result<Self> {
         Ok(DeviceKeyInfo {
             device_key: (&value).try_into()?,
@@ -146,18 +146,18 @@ impl From<Vec<IssuerSignedItemBytes>> for Attributes {
     }
 }
 impl TryFrom<IndexMap<String, Value>> for Attributes {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(val: IndexMap<String, Value>) -> Result<Self> {
         Ok(Attributes(
             val.into_iter()
                 .enumerate()
                 .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u64, key, val)?.into()))
-                .collect::<Result<Vec<_>, anyhow::Error>>()?,
+                .collect::<Result<Vec<_>>>()?,
         ))
     }
 }
 impl TryFrom<Vec<Entry>> for Attributes {
-    type Error = anyhow::Error;
+    type Error = Error;
     fn try_from(attrs: Vec<Entry>) -> std::result::Result<Self, Self::Error> {
         Attributes::try_from(
             attrs

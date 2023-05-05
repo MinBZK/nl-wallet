@@ -1,4 +1,3 @@
-use anyhow::{bail, Result};
 use coset::Header;
 use serde_bytes::ByteBuf;
 
@@ -9,7 +8,22 @@ use crate::{
     },
     cose::{ClonePayload, CoseKey, MdocCose},
     serialization::cbor_serialize,
+    DocType, Result, SessionId,
 };
+
+#[derive(thiserror::Error, Debug)]
+pub enum IssuanceError {
+    #[error(
+        "session IDs did not match: received {}, expected {}",
+        hex::encode(received),
+        hex::encode(expected)
+    )]
+    MismatchedSessionIds { received: SessionId, expected: SessionId },
+    #[error("received too many responses: {received}, max was {max}")]
+    TooManyResponses { received: u64, max: u64 },
+    #[error("received response for wrong doctype: {received}, expected {expected}")]
+    WrongDocType { received: DocType, expected: DocType },
+}
 
 impl Response {
     fn sign(challenge: &ByteBuf, key: &ecdsa::SigningKey<p256::NistP256>) -> Result<Response> {
@@ -36,7 +50,11 @@ impl Response {
 impl KeyGenerationResponseMessage {
     pub fn verify(&self, request: &RequestKeyGenerationMessage) -> Result<()> {
         if self.e_session_id != request.e_session_id {
-            bail!("session IDs did not match")
+            return Err(IssuanceError::MismatchedSessionIds {
+                received: self.e_session_id.clone(),
+                expected: request.e_session_id.clone(),
+            }
+            .into());
         }
 
         self.mdoc_responses
@@ -49,7 +67,7 @@ impl KeyGenerationResponseMessage {
     pub fn new(
         request: &RequestKeyGenerationMessage,
         keys: &[Vec<ecdsa::SigningKey<p256::NistP256>>],
-    ) -> anyhow::Result<KeyGenerationResponseMessage> {
+    ) -> Result<KeyGenerationResponseMessage> {
         let responses = keys
             .iter()
             .zip(&request.unsigned_mdocs)
@@ -74,10 +92,18 @@ impl KeyGenerationResponseMessage {
 
 fn check_responses(doctype_responses: &MdocResponses, unsigned_mdoc: &UnsignedMdoc, challenge: &ByteBuf) -> Result<()> {
     if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
-        bail!("too many responses")
+        return Err(IssuanceError::TooManyResponses {
+            received: doctype_responses.responses.len() as u64,
+            max: unsigned_mdoc.count,
+        }
+        .into());
     }
     if doctype_responses.doc_type != unsigned_mdoc.doc_type {
-        bail!("wrong doctype")
+        return Err(IssuanceError::WrongDocType {
+            received: doctype_responses.doc_type.clone(),
+            expected: unsigned_mdoc.doc_type.clone(),
+        }
+        .into());
     }
 
     doctype_responses

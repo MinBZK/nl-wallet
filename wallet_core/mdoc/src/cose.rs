@@ -1,8 +1,7 @@
 //! Cose objects, keys, parsing, and verification.
 
-use crate::{serialization::cbor_serialize, verifier::X509Subject};
+use crate::{serialization::cbor_serialize, verifier::X509Subject, Result};
 
-use anyhow::{anyhow, Result};
 use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
 use ecdsa::{
@@ -13,7 +12,10 @@ use p256::NistP256;
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use std::marker::PhantomData;
-use x509_parser::{certificate::X509Certificate, prelude::FromDer};
+use x509_parser::{
+    certificate::X509Certificate,
+    prelude::{FromDer, X509Error},
+};
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -21,6 +23,30 @@ pub trait Cose {
     fn payload(&self) -> &Option<Vec<u8>>;
     fn unprotected(&self) -> &Header;
     fn verify(&self, key: &Self::Key) -> Result<()>;
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum CoseError {
+    #[error("verification failed")]
+    VerificationFailed,
+    #[error("missing payload")]
+    MissingPayload,
+    #[error("missing label {0:?}")]
+    MissingLabel(Label),
+    #[error("ECDSA error")]
+    EcdsaError(#[from] ecdsa::Error),
+    #[error("CBOR deserialization failed")]
+    Deserialization(#[from] ciborium::de::Error<std::io::Error>),
+    #[error("CBOR serialization failed")]
+    Serialization(#[from] ciborium::ser::Error<std::io::Error>),
+    #[error("signing certificate header did not contain bytes")]
+    CertificateUnexpectedHeaderType,
+    #[error("certificate failed to validate against CA certificate")]
+    CertificateInvalid(#[from] X509Error),
+    #[error("failed to parse certificate public key")]
+    CertificateKeyParsingFailed(p256::pkcs8::spki::Error),
+    #[error("failed to parse certificate")]
+    CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
 }
 
 impl Cose for CoseSign1 {
@@ -47,9 +73,9 @@ impl Cose for CoseMac0 {
         &self.unprotected
     }
     fn verify(&self, key: &hmac::Key) -> Result<()> {
-        self.verify_tag(b"", |tag, data| {
-            hmac::verify(key, data, tag).map_err(|_| anyhow!("verification failed"))
-        })
+        Ok(self.verify_tag(b"", |tag, data| {
+            hmac::verify(key, data, tag).map_err(|_| CoseError::VerificationFailed)
+        })?)
     }
 }
 
@@ -70,9 +96,10 @@ where
             self.0
                 .payload()
                 .as_ref()
-                .ok_or_else(|| anyhow!("can't parse: no cose payload"))?
+                .ok_or_else(|| CoseError::MissingPayload)?
                 .as_slice(),
-        )?)
+        )
+        .map_err(CoseError::Deserialization)?)
     }
 
     /// Verify the Cose using the specified key.
@@ -94,7 +121,7 @@ where
             .rest
             .iter()
             .find(|(l, _)| l == label)
-            .ok_or_else(|| anyhow!("item not found in cose header"))?
+            .ok_or_else(|| CoseError::MissingLabel(label.clone()))?
             .1)
     }
 }
@@ -132,15 +159,19 @@ impl<T> MdocCose<CoseSign1, T> {
         let issuer_cert_bts = self
             .unprotected_header_item(&Label::Int(33))?
             .as_bytes()
-            .ok_or_else(|| anyhow!("signing certificate header did not contain bytes"))?;
-        let issuer_cert = X509Certificate::from_der(issuer_cert_bts)?.1;
+            .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
+        let issuer_cert = X509Certificate::from_der(issuer_cert_bts)
+            .map_err(CoseError::CertificateParsingFailed)?
+            .1;
 
         // Verify the certificate against the CA
-        ca_cert.verify_signature(None)?;
-        issuer_cert.verify_signature(Some(ca_cert.public_key()))?;
+        ca_cert.verify_signature(None).map_err(CoseError::CertificateInvalid)?;
+        issuer_cert
+            .verify_signature(Some(ca_cert.public_key()))
+            .map_err(CoseError::CertificateInvalid)?;
 
         let issuer_pk = ecdsa::VerifyingKey::from_public_key_der(issuer_cert.public_key().raw)
-            .map_err(|e| anyhow!("failed to parse certificate public key: {e}"))?;
+            .map_err(CoseError::CertificateKeyParsingFailed)?;
 
         // Grab the certificate's public key and verify the Cose
         let parsed = self.verify_and_parse(&issuer_pk)?;

@@ -1,9 +1,11 @@
-use crate::cose::ClonePayload;
-use crate::crypto::{cbor_digest, dh_hmac_key};
-use crate::iso::*;
-use crate::serialization::{cbor_serialize, TaggedBytes};
+use crate::{
+    cose::ClonePayload,
+    crypto::{cbor_digest, dh_hmac_key},
+    iso::*,
+    serialization::{cbor_serialize, TaggedBytes},
+    Result,
+};
 
-use anyhow::{anyhow, bail, Context, Result};
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use p256::NistP256;
@@ -12,6 +14,28 @@ use x509_parser::nom::AsBytes;
 
 type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, Value>>;
 type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum VerificationError {
+    #[error("CBOR deserialization failed")]
+    Deserialization(#[from] ciborium::de::Error<std::io::Error>),
+    #[error("errors in device response: {0:#?}")]
+    DeviceResponseErrors(Vec<DocumentError>),
+    #[error("unexpected status: {0}")]
+    UnexpectedStatus(u64),
+    #[error("no documents found")]
+    NoDocuments,
+    #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
+    WrongDocType { document: DocType, mso: DocType },
+    #[error("namespace {0} not found in mso")]
+    MissingNamespace(NameSpace),
+    #[error("digest ID {0} not found in mso")]
+    MissingDigestID(DigestID),
+    #[error("attribute verification failed")]
+    AttributeVerificationFailure,
+    #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
+    EphemeralKeyMissing,
+}
 
 impl DeviceResponse {
     #[allow(dead_code)] // TODO use this in verifier
@@ -22,18 +46,19 @@ impl DeviceResponse {
         ca_cert: &X509Certificate,
     ) -> Result<DisclosedAttributes> {
         if let Some(errors) = &self.document_errors {
-            bail!("errors in device response: {errors:#?}");
+            return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
         if self.status != 0 {
             // TODO section 8.3.2.1.2.3
-            bail!("status was {}", self.status)
+            return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
         if self.documents.is_none() {
-            bail!("no documents found")
+            return Err(VerificationError::NoDocuments.into());
         }
 
         let device_authentication: DeviceAuthenticationBytes =
-            ciborium::de::from_reader(device_authentication_bts.as_slice())?;
+            ciborium::de::from_reader(device_authentication_bts.as_slice())
+                .map_err(VerificationError::Deserialization)?;
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
@@ -44,11 +69,11 @@ impl DeviceResponse {
                 ca_cert,
             )?;
             if doc_type != doc.doc_type {
-                bail!(
-                    "wrong doc_type {} in device response: found {} in MSO",
-                    doc.doc_type,
-                    doc_type,
-                )
+                return Err(VerificationError::WrongDocType {
+                    document: doc.doc_type.clone(),
+                    mso: doc_type,
+                }
+                .into());
             }
             attrs.insert(doc_type, doc_attrs);
         }
@@ -75,13 +100,13 @@ impl IssuerSigned {
                         .value_digests
                         .0
                         .get(namespace)
-                        .ok_or_else(|| anyhow!("namespace {namespace} not found in mso"))?;
+                        .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?;
                     let digest = digest_ids
                         .0
                         .get(&digest_id)
-                        .ok_or_else(|| anyhow!("digest ID {digest_id} not found in mso"))?;
+                        .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
                     if *digest != cbor_digest(item)? {
-                        bail!("attribute verification failed")
+                        return Err(VerificationError::AttributeVerificationFailure.into());
                     }
                     namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
                 }
@@ -106,21 +131,18 @@ impl Document {
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
                 sig.clone_with_payload(device_authentication_bts.to_vec())
-                    .verify(&device_key)
-                    .context("mdoc validation failed")?;
+                    .verify(&device_key)?;
             }
             DeviceAuth::DeviceMac(mac) => {
                 let mac_key = dh_hmac_key(
-                    eph_reader_key
-                        .ok_or_else(|| anyhow!("DeviceAuth::DeviceMac found but no ephemeral reader key specified"))?,
+                    eph_reader_key.ok_or_else(|| VerificationError::EphemeralKeyMissing)?,
                     &device_key,
                     device_authentication.0.session_transcript_bts()?.as_bytes(),
                     "EMacKey",
                     32,
                 )?;
                 mac.clone_with_payload(device_authentication_bts.to_vec())
-                    .verify(&mac_key)
-                    .context("mdoc validation failed")?;
+                    .verify(&mac_key)?;
             }
         }
 

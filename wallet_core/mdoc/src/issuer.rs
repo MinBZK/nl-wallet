@@ -1,17 +1,16 @@
-use anyhow::Result;
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 
-use crate::cose::MdocCose;
 use crate::{
     basic_sa_ext::{
         DataToIssueMessage, KeyGenerationResponseMessage, MdocResponses, MobileIDDocuments,
         RequestKeyGenerationMessage, Response, SparseIssuerAuth, SparseIssuerSigned, UnsignedMdoc,
     },
-    cose::ClonePayload,
+    cose::{ClonePayload, MdocCose},
     iso::*,
     serialization::TaggedBytes,
+    Result,
 };
 
 pub struct Issuer {
