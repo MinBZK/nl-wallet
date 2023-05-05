@@ -52,7 +52,7 @@ impl Storage for MockStorage {
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(anyhow::Error::new(StorageError::NotOpened));
+            return Err(anyhow!(StorageError::NotOpened));
         }
 
         // Assume that self.data holds the type we need, keyed by the data key.
@@ -64,7 +64,7 @@ impl Storage for MockStorage {
 
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(anyhow::Error::new(StorageError::NotOpened));
+            return Err(anyhow!(StorageError::NotOpened));
         }
 
         if self.data.contains_key(D::KEY) {

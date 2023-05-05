@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tokio::{fs, try_join};
 
@@ -69,9 +69,7 @@ impl DatabaseStorage {
 
     // Helper method, should be called before accessing database.
     fn database(&self) -> Result<&Database> {
-        self.database
-            .as_ref()
-            .ok_or(anyhow::Error::new(StorageError::NotOpened))
+        self.database.as_ref().ok_or(anyhow!(StorageError::NotOpened))
     }
 }
 
@@ -103,7 +101,7 @@ impl Storage for DatabaseStorage {
     /// Load a database, creating a new key file and database file if necessary.
     async fn open(&mut self) -> Result<()> {
         if self.database.is_some() {
-            return Err(anyhow::Error::new(StorageError::AlreadyOpened));
+            return Err(anyhow!(StorageError::AlreadyOpened));
         }
 
         let database =
@@ -117,10 +115,7 @@ impl Storage for DatabaseStorage {
     /// Clear the contents of the database by closing it and removing both database and key file.
     async fn clear(&mut self) -> Result<()> {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        let database = self
-            .database
-            .take()
-            .ok_or(anyhow::Error::new(StorageError::NotOpened))?;
+        let database = self.database.take().ok_or(anyhow!(StorageError::NotOpened))?;
         let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
 
         // Delete the database and key file in parallel
