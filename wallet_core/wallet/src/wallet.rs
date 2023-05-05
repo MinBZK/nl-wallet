@@ -13,21 +13,25 @@ use crate::{
 
 const WALLET_KEY_ID: &str = "wallet";
 
-#[derive(Debug)]
-enum RegistrationData {
-    Unloaded,
-    Loaded(Option<data::Registration>),
-}
+/// If the wallet was registered with the wallet provider before,
+/// fetch the regisration from storage.
+pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<data::Registration>> {
+    let storage_state = storage.state().await?;
 
-impl RegistrationData {
-    #[allow(dead_code)] // TODO: remove when this is by future Wallet methods
-    fn data(&self) -> Option<&data::Registration> {
-        if let RegistrationData::Loaded(data) = self {
-            return data.as_ref();
-        }
-
-        None
+    // If there is no database file, we can conclude early that there is no registration.
+    if matches!(storage_state, StorageState::Uninitialized) {
+        return Ok(None);
     }
+
+    // Open the database, if necessary.
+    if matches!(storage_state, StorageState::Unopened) {
+        storage.open().await?;
+    }
+
+    // Finally, fetch the registration.
+    let registration = storage.fetch_data::<data::Registration>().await?;
+
+    Ok(registration)
 }
 
 pub struct Wallet<A, S, K> {
@@ -35,7 +39,7 @@ pub struct Wallet<A, S, K> {
     account_server_pubkey: EcdsaDecodingKey,
     storage: S,
     hw_privkey: K,
-    registration: RegistrationData,
+    registration: Option<data::Registration>,
 }
 
 impl<A, S, K> Wallet<A, S, K>
@@ -44,52 +48,39 @@ where
     S: Storage,
     K: PlatformEcdsaKey,
 {
-    pub fn new(account_server: A, account_server_pubkey: EcdsaDecodingKey, storage: S) -> Wallet<A, S, K> {
+    fn new(
+        account_server: A,
+        account_server_pubkey: EcdsaDecodingKey,
+        storage: S,
+        hw_privkey: K,
+        registration: Option<data::Registration>,
+    ) -> Self {
         Wallet {
             account_server,
             account_server_pubkey,
             storage,
-            hw_privkey: K::new(WALLET_KEY_ID),
-            registration: RegistrationData::Unloaded,
+            hw_privkey,
+            registration,
         }
     }
 
-    /// If the wallet was registered with the wallet provider before,
-    /// load the regisration from storage. Returns a boolean indicating
-    /// whether we have have a registration.
-    pub async fn load_registration(&mut self) -> Result<bool> {
-        // Return early if the registration was previously loaded.
-        if let RegistrationData::Loaded(registration) = &self.registration {
-            return Ok(registration.is_some());
-        }
+    // Initialize the wallet by loading initial state.
+    pub async fn init(account_server: A, account_server_pubkey: EcdsaDecodingKey, mut storage: S) -> Result<Self> {
+        let registration = fetch_registration(&mut storage).await?;
+        let hw_privkey = K::new(WALLET_KEY_ID);
 
-        let storage_state = self.storage.state().await?;
+        let wallet = Wallet::new(account_server, account_server_pubkey, storage, hw_privkey, registration);
 
-        // If there is no database file, we can already conclude that we are not registered.
-        if matches!(storage_state, StorageState::Uninitialized) {
-            self.registration = RegistrationData::Loaded(None);
+        Ok(wallet)
+    }
 
-            return Ok(false);
-        }
-
-        // Open the database, if necessary.
-        if matches!(storage_state, StorageState::Unopened) {
-            self.storage.open().await?;
-        }
-
-        // Finally, fetch the registration.
-        let registration = self.storage.fetch_data::<data::Registration>().await?;
-        let has_registration = registration.is_some();
-
-        self.registration = RegistrationData::Loaded(registration);
-
-        Ok(has_registration)
+    pub fn has_registration(&self) -> bool {
+        self.registration.is_some()
     }
 
     pub async fn register(&mut self, pin: String) -> Result<()> {
         // Registration is only allowed if we do not currently have a registration on record.
-        // If the registration data was not loaded from storage before, do so now.
-        if self.load_registration().await? {
+        if self.has_registration() {
             return Err(anyhow!("Wallet is already registered"));
         }
 
@@ -120,7 +111,7 @@ where
             wallet_certificate: cert,
         };
         self.storage.insert_data(&registration).await?;
-        self.registration = RegistrationData::Loaded(Some(registration));
+        self.registration = Some(registration);
 
         Ok(())
     }
@@ -135,68 +126,63 @@ mod tests {
 
     use super::*;
 
-    fn create_wallet(storage: Option<MockStorage>) -> Wallet<AccountServer, MockStorage, SoftwareEcdsaKey> {
+    async fn init_wallet(storage: Option<MockStorage>) -> Result<Wallet<AccountServer, MockStorage, SoftwareEcdsaKey>> {
         let account_server = AccountServer::new_stub();
         let pubkey = account_server.pubkey.clone();
 
-        Wallet::new(account_server, pubkey, storage.unwrap_or_default())
+        Wallet::init(account_server, pubkey, storage.unwrap_or_default()).await
     }
 
     #[tokio::test]
-    async fn test_load_registration() {
+    async fn test_init() {
         // Test with a wallet without a database file.
-        let mut wallet = create_wallet(None);
+        let wallet = init_wallet(None).await.expect("Could not initialize wallet");
 
-        // No registration should be loaded initially.
-        assert!(matches!(wallet.registration, RegistrationData::Unloaded));
-
-        let has_registration = wallet.load_registration().await.expect("Could not load registration");
-
-        // We should be informed that there is no registration, and no database should be opened.
-        assert!(!has_registration);
-        assert!(matches!(wallet.registration, RegistrationData::Loaded(None)));
+        // The wallet should have no registration, and no database should be opened.
+        assert!(wallet.registration.is_none());
+        assert!(!wallet.has_registration());
         assert!(matches!(
             wallet.storage.state().await.unwrap(),
             StorageState::Uninitialized
         ));
 
         // Test with a wallet with a database file, no registration.
-        let mut wallet = create_wallet(Some(MockStorage::new(StorageState::Unopened, None)));
+        let wallet = init_wallet(Some(MockStorage::new(StorageState::Unopened, None)))
+            .await
+            .expect("Could not initialize wallet");
 
-        let has_registration = wallet.load_registration().await.expect("Could not load registration");
-
-        // We should be informed that there is no registration, the database should be opened.
-        assert!(!has_registration);
-        assert!(matches!(wallet.registration, RegistrationData::Loaded(None)));
+        // The wallet should have no registration, the database should be opened.
+        assert!(wallet.registration.is_none());
+        assert!(!wallet.has_registration());
         assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = new_pin_salt();
-        let mut wallet = create_wallet(Some(MockStorage::new(
+        let wallet = init_wallet(Some(MockStorage::new(
             StorageState::Unopened,
             Some(data::Registration {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
-        )));
+        )))
+        .await
+        .expect("Could not initialize wallet");
 
-        let has_registration = wallet.load_registration().await.expect("Could not load registration");
-
-        // We should be informed that there is a registration, the database should be opened.
-        assert!(has_registration);
-        assert!(matches!(wallet.registration, RegistrationData::Loaded(Some(_))));
+        // The wallet should have a registration, the database should be opened.
+        assert!(wallet.registration.is_some());
+        assert!(wallet.has_registration());
         assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
 
         // The registration data should now be available.
-        assert_eq!(wallet.registration.data().unwrap().pin_salt.0, pin_salt);
+        assert_eq!(wallet.registration.unwrap().pin_salt.0, pin_salt);
     }
 
     #[tokio::test]
     async fn test_register() {
-        let mut wallet = create_wallet(None);
+        let mut wallet = init_wallet(None).await.expect("Could not initialize wallet");
 
         // No registration should be loaded initially.
-        assert!(matches!(wallet.registration, RegistrationData::Unloaded));
+        assert!(!wallet.has_registration());
 
         // An invalid PIN should result in an error.
         assert!(wallet.register("123456".to_owned()).await.is_err());
@@ -208,7 +194,7 @@ mod tests {
             .expect("Could not register wallet");
 
         // The registration should now be loaded.
-        assert!(matches!(wallet.registration, RegistrationData::Loaded(Some(_))));
+        assert!(wallet.has_registration());
 
         // Registering again should result in an error.
         assert!(wallet.register("112233".to_owned()).await.is_err());

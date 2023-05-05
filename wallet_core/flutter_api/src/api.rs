@@ -23,13 +23,16 @@ pub fn init() -> Result<bool> {
 
     _ = WALLET.get_or_try_init(|| {
         runtime.block_on(async {
-            let mut wallet = init_wallet();
-            has_registration.replace(wallet.load_registration().await?);
+            // This block will only be called if WALLET is currently empty.
+            let wallet = init_wallet().await?;
+            has_registration.replace(wallet.has_registration());
 
             Ok(Mutex::new(wallet))
         })
     })?;
 
+    // Read has_registration, which is only None if the async block above
+    // did not execute. This implies that init() was called more than once.
     Ok(has_registration.expect("Wallet may only be initialized once."))
 }
 
