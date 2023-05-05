@@ -8,6 +8,7 @@ use crate::{
     basic_sa_ext::Entry,
     cose::CoseKey,
     crypto::{cbor_digest, random_bytes},
+    holder::HolderError,
     serialization::TaggedBytes,
     Error, Result,
 };
@@ -35,7 +36,12 @@ impl TryFrom<&Attributes> for DigestIDs {
             val.0
                 .iter()
                 .enumerate()
-                .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
+                .map(|(i, attr)| {
+                    Ok((
+                        i as u64,
+                        ByteBuf::from(cbor_digest(attr).map_err(HolderError::CborError)?),
+                    ))
+                })
                 .collect::<Result<IndexMap<_, _>>>()?,
         ))
     }

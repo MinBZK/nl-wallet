@@ -2,7 +2,7 @@ use crate::{
     cose::ClonePayload,
     crypto::{cbor_digest, dh_hmac_key},
     iso::*,
-    serialization::{cbor_serialize, TaggedBytes},
+    serialization::{cbor_deserialize, cbor_serialize, CborError, TaggedBytes},
     Result,
 };
 
@@ -17,8 +17,6 @@ type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
-    #[error("CBOR deserialization failed")]
-    Deserialization(#[from] ciborium::de::Error<std::io::Error>),
     #[error("errors in device response: {0:#?}")]
     DeviceResponseErrors(Vec<DocumentError>),
     #[error("unexpected status: {0}")]
@@ -35,6 +33,8 @@ pub enum VerificationError {
     AttributeVerificationFailure,
     #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
     EphemeralKeyMissing,
+    #[error(transparent)]
+    CborError(#[from] CborError),
 }
 
 impl DeviceResponse {
@@ -57,8 +57,7 @@ impl DeviceResponse {
         }
 
         let device_authentication: DeviceAuthenticationBytes =
-            ciborium::de::from_reader(device_authentication_bts.as_slice())
-                .map_err(VerificationError::Deserialization)?;
+            cbor_deserialize(device_authentication_bts.as_slice()).map_err(VerificationError::CborError)?;
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
@@ -105,7 +104,7 @@ impl IssuerSigned {
                         .0
                         .get(&digest_id)
                         .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
-                    if *digest != cbor_digest(item)? {
+                    if *digest != cbor_digest(item).map_err(VerificationError::CborError)? {
                         return Err(VerificationError::AttributeVerificationFailure.into());
                     }
                     namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
@@ -155,6 +154,6 @@ impl DeviceAuthentication {
     // TODO: maybe grab this from the DeviceAuthenticationBytes instead, so we can avoid deserialize -> serialize sequence
     pub fn session_transcript_bts(&self) -> Result<Vec<u8>> {
         let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
-        Ok(cbor_serialize(&tagged)?)
+        Ok(cbor_serialize(&tagged).map_err(VerificationError::CborError)?)
     }
 }

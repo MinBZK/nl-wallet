@@ -14,7 +14,19 @@ use std::borrow::Cow;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
-pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, ciborium::ser::Error<std::io::Error>> {
+#[derive(thiserror::Error, Debug)]
+pub enum CborError {
+    #[error("CBOR deserialization failed")]
+    Deserialization(#[from] ciborium::de::Error<std::io::Error>),
+    #[error("CBOR serialization failed")]
+    Serialization(#[from] ciborium::ser::Error<std::io::Error>),
+}
+
+pub fn cbor_deserialize<'de, T: de::Deserialize<'de>, R: std::io::Read>(reader: R) -> Result<T, CborError> {
+    Ok(ciborium::de::from_reader(reader)?)
+}
+
+pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;
     Ok(bts)
