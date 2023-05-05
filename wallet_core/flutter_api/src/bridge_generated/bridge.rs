@@ -21,14 +21,14 @@ use std::sync::Arc;
 
 // Section: wire functions
 
-fn wire_init_async_impl(port_: MessagePort) {
+fn wire_init_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "init_async",
+            debug_name: "init",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| Ok(init_async()),
+        move || move |task_callback| init(),
     )
 }
 fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -42,16 +42,6 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
             let api_pin = pin.wire2api();
             move |task_callback| Ok(is_valid_pin(api_pin))
         },
-    )
-}
-fn wire_is_registered_impl(port_: MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
-        WrapInfo {
-            debug_name: "is_registered",
-            port: Some(port_),
-            mode: FfiCallMode::Normal,
-        },
-        move || move |task_callback| is_registered(),
     )
 }
 fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {

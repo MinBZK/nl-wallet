@@ -2,18 +2,13 @@ use super::*;
 // Section: wire functions
 
 #[no_mangle]
-pub extern "C" fn wire_init_async(port_: i64) {
-    wire_init_async_impl(port_)
+pub extern "C" fn wire_init(port_: i64) {
+    wire_init_impl(port_)
 }
 
 #[no_mangle]
 pub extern "C" fn wire_is_valid_pin(port_: i64, pin: *mut wire_uint_8_list) {
     wire_is_valid_pin_impl(port_, pin)
-}
-
-#[no_mangle]
-pub extern "C" fn wire_is_registered(port_: i64) {
-    wire_is_registered_impl(port_)
 }
 
 #[no_mangle]

@@ -1,12 +1,36 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
+use once_cell::sync::OnceCell;
+use tokio::sync::{Mutex, MutexGuard};
 
 use macros::async_runtime;
-use wallet::pin::validation::validate_pin;
+use wallet::{init_wallet, pin::validation::validate_pin, Wallet};
 
-use crate::{models::pin::PinValidationResult, wallet::WALLET};
+use crate::{async_runtime::get_or_try_init_async, models::pin::PinValidationResult};
 
-pub fn init_async() {
-    crate::async_runtime::try_init_async().expect("CORE may only be initialized once.");
+static WALLET: OnceCell<Mutex<Wallet>> = OnceCell::new();
+
+async fn lock_wallet() -> MutexGuard<'static, Wallet> {
+    WALLET
+        .get()
+        .expect("Wallet must be initialized. Please execute `init()` first.")
+        .lock()
+        .await
+}
+
+pub fn init() -> Result<bool> {
+    let runtime = get_or_try_init_async()?;
+    let mut has_registration: Option<bool> = None;
+
+    _ = WALLET.get_or_try_init(|| {
+        runtime.block_on(async {
+            let mut wallet = init_wallet();
+            has_registration.replace(wallet.load_registration().await?);
+
+            Ok(Mutex::new(wallet))
+        })
+    })?;
+
+    Ok(has_registration.expect("Wallet may only be initialized once."))
 }
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
@@ -15,14 +39,9 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 }
 
 #[async_runtime]
-pub async fn is_registered() -> Result<bool> {
-    WALLET.lock().await.load_registration().await
-}
-
-#[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
     // TODO return differentiated errors?
-    WALLET.lock().await.register(pin).await
+    lock_wallet().await.register(pin).await
 }
 
 #[cfg(test)]

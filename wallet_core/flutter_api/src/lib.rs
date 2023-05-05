@@ -6,4 +6,3 @@ mod bridge_generated;
 
 mod async_runtime;
 mod models;
-mod wallet;
