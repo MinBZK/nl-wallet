@@ -15,6 +15,7 @@ use ciborium::value::Value;
 use fieldnames_derive::FieldNames;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
@@ -55,6 +56,7 @@ pub struct NFCHandover {
 pub type DeviceEngagement = CborIntMap<DeviceEngagementKeyed>;
 
 // TODO: support remaining fields
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceEngagementKeyed {
     pub version: String,

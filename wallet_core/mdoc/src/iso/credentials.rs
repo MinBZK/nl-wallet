@@ -18,6 +18,7 @@ use ecdsa::VerifyingKey;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 pub type NameSpace = String;
@@ -61,6 +62,7 @@ pub type AuthorizedDataElements = IndexMap<NameSpace, DataElementsArray>;
 pub type DataElementsArray = Vec<DataElementIdentifier>;
 pub type DataElementIdentifier = String;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAuthorizations {
@@ -68,6 +70,7 @@ pub struct KeyAuthorizations {
     pub data_elements: Option<AuthorizedDataElements>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceKeyInfo {
@@ -110,6 +113,7 @@ pub struct MobileSecurityObject {
     pub validity_info: ValidityInfo,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {

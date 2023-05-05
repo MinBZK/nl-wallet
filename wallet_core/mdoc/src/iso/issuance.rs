@@ -2,7 +2,9 @@ use ciborium::value::Value;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use serde_with::skip_serializing_none;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct ServiceEngagement {
@@ -29,6 +31,7 @@ pub enum OptionsKey {
 
 pub type SessionId = ByteBuf;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "StartProvisioning")]
 #[serde(tag = "messageType")]
@@ -55,6 +58,7 @@ pub struct RequestEndSessionMessage {
     e_session_id: SessionId,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "foo.bar.EndSession")]
 #[serde(tag = "messageType")]

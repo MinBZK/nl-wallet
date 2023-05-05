@@ -11,6 +11,7 @@ use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,6 +35,7 @@ impl DeviceRequest {
     }
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DocRequest {
@@ -54,6 +56,7 @@ pub struct ReaderAuthenticationKeyed {
 
 pub type ItemsRequestBytes = TaggedBytes<ItemsRequest>;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemsRequest {

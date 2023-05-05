@@ -13,8 +13,10 @@ use ciborium::value::Value;
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
@@ -26,6 +28,7 @@ pub struct DeviceResponse {
 
 pub type DocumentError = IndexMap<DocType, ErrorCode>;
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Document {
@@ -37,6 +40,7 @@ pub struct Document {
 
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes
 /// (i.e. [`IssuerSignedItem`]s) contained in the credential.
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSigned {
