@@ -95,13 +95,20 @@ where
         // Make sure the PIN adheres to the requirements.
         validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight
 
+        // Retrieve a challenge from the account server
         let challenge = self.account_server.registration_challenge()?;
+
+        // Generate a new PIN salt and derrive the private key from the provided PIN
         let pin_salt = new_pin_salt();
         let pin_key = PinKey::new(&pin, &pin_salt);
 
+        // Create a registration message and double sign it with the challenge,
+        // send that to the account server and receive the wallet certificate in response.
         let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message)?;
 
+        // Double check that the public key returned in the wallet certificate
+        // matches that of our hardware key.
         let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
         if cert_claims.hw_pubkey.0 != self.hw_privkey.verifying_key()? {
             return Err(anyhow!(WalletRegistrationError::PublicKeyMismatch));
