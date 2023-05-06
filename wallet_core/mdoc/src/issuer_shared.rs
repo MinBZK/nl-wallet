@@ -24,7 +24,7 @@ pub enum IssuanceError {
     #[error("received response for wrong doctype: {received}, expected {expected}")]
     WrongDocType { received: DocType, expected: DocType },
     #[error(transparent)]
-    CborError(#[from] CborError),
+    Cbor(#[from] CborError),
 }
 
 impl Response {
@@ -44,7 +44,7 @@ impl Response {
     pub fn verify(&self, challenge: &ByteBuf) -> Result<()> {
         let expected_payload = &ResponseSignaturePayload::new(challenge.to_vec());
         self.signature
-            .clone_with_payload(cbor_serialize(&expected_payload).map_err(IssuanceError::CborError)?)
+            .clone_with_payload(cbor_serialize(&expected_payload).map_err(IssuanceError::Cbor)?)
             .verify(&(&self.public_key).try_into()?)
     }
 }

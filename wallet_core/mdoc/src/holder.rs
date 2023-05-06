@@ -32,7 +32,7 @@ pub enum HolderError {
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
     #[error(transparent)]
-    CborError(#[from] CborError),
+    Cbor(#[from] CborError),
 }
 
 /// Mdoc credentials of the holder. This data structure supports storing:
@@ -216,7 +216,7 @@ impl Credential {
                     .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
                     .collect::<IndexMap<_, _>>(),
             ))
-            .map_err(HolderError::CborError)?,
+            .map_err(HolderError::Cbor)?,
         ))
     }
 
@@ -282,7 +282,7 @@ impl SparseIssuerSigned {
         let issuer_auth = self
             .sparse_issuer_auth
             .issuer_auth
-            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(HolderError::CborError)?);
+            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(HolderError::Cbor)?);
 
         let issuer_signed = IssuerSigned {
             name_spaces: Some(name_spaces),
@@ -343,7 +343,7 @@ impl DeviceSigned {
         reader_pub_key: &ecdsa::VerifyingKey<p256::NistP256>,
         challenge: &[u8],
     ) -> Result<DeviceSigned> {
-        let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge).map_err(HolderError::CborError)?;
+        let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge).map_err(HolderError::Cbor)?;
         let key = dh_hmac_key(
             private_key,
             reader_pub_key,

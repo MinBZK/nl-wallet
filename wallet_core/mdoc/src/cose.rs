@@ -38,9 +38,9 @@ pub enum CoseError {
     #[error("missing label {0:?}")]
     MissingLabel(Label),
     #[error("ECDSA error: {0}")]
-    EcdsaError(#[from] ecdsa::Error),
+    Ecdsa(#[from] ecdsa::Error),
     #[error(transparent)]
-    CborError(#[from] CborError),
+    Cbor(#[from] CborError),
     #[error("signing certificate header did not contain bytes")]
     CertificateUnexpectedHeaderType,
     #[error("certificate failed to validate against CA certificate: {0}")]
@@ -64,9 +64,9 @@ impl Cose for CoseSign1 {
             Ok(key
                 .verify(
                     data,
-                    &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::EcdsaError)?,
+                    &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::Ecdsa)?,
                 )
-                .map_err(CoseError::EcdsaError)?)
+                .map_err(CoseError::Ecdsa)?)
         })
     }
 }
@@ -106,7 +106,7 @@ where
                 .ok_or_else(|| CoseError::MissingPayload)?
                 .as_slice(),
         )
-        .map_err(CoseError::CborError)?)
+        .map_err(CoseError::Cbor)?)
     }
 
     /// Verify the Cose using the specified key.
@@ -149,7 +149,7 @@ impl<T> MdocCose<CoseSign1, T> {
         T: Clone + Serialize,
     {
         Ok(CoseSign1Builder::new()
-            .payload(cbor_serialize(obj).map_err(CoseError::CborError)?)
+            .payload(cbor_serialize(obj).map_err(CoseError::Cbor)?)
             .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .unprotected(unprotected_header)
             .create_signature(&[], |data| private_key.sign(data).to_vec())

@@ -36,12 +36,7 @@ impl TryFrom<&Attributes> for DigestIDs {
             val.0
                 .iter()
                 .enumerate()
-                .map(|(i, attr)| {
-                    Ok((
-                        i as u64,
-                        ByteBuf::from(cbor_digest(attr).map_err(HolderError::CborError)?),
-                    ))
-                })
+                .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr).map_err(HolderError::Cbor)?))))
                 .collect::<Result<IndexMap<_, _>>>()?,
         ))
     }
