@@ -37,17 +37,17 @@ pub enum CoseError {
     MissingPayload,
     #[error("missing label {0:?}")]
     MissingLabel(Label),
-    #[error("ECDSA error")]
+    #[error("ECDSA error: {0}")]
     EcdsaError(#[from] ecdsa::Error),
     #[error(transparent)]
     CborError(#[from] CborError),
     #[error("signing certificate header did not contain bytes")]
     CertificateUnexpectedHeaderType,
-    #[error("certificate failed to validate against CA certificate")]
+    #[error("certificate failed to validate against CA certificate: {0}")]
     CertificateInvalid(#[from] X509Error),
-    #[error("failed to parse certificate public key")]
+    #[error("failed to parse certificate public key: {0}")]
     CertificateKeyParsingFailed(p256::pkcs8::spki::Error),
-    #[error("failed to parse certificate")]
+    #[error("failed to parse certificate: {0}")]
     CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
 }
 

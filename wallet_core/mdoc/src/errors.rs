@@ -7,14 +7,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("cryptographic error")]
+    #[error("cryptographic error: {0}")]
     CryptoError(#[from] CryptoError),
-    #[error("COSE error")]
+    #[error("COSE error: {0}")]
     CoseError(#[from] CoseError),
-    #[error("holder error")]
+    #[error("holder error: {0}")]
     HolderError(#[from] HolderError),
-    #[error("issuance error")]
+    #[error("issuance error: {0}")]
     IssuanceError(#[from] IssuanceError),
-    #[error("verification error")]
+    #[error("verification error: {0}")]
     VerificationError(#[from] VerificationError),
 }

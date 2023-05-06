@@ -31,7 +31,7 @@ pub enum CryptoError {
     KeyUnepectedCoseLabel,
     #[error("coordinate parse failure")]
     KeyCoordinateParseFailure,
-    #[error("key parse failure")]
+    #[error("key parse failure: {0}")]
     KeyParseFailure(#[from] ecdsa::Error),
 }
 
