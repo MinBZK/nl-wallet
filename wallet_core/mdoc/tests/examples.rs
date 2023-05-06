@@ -3,12 +3,14 @@
 
 use anyhow::{bail, Context, Result};
 use hex_literal::hex;
-use nl_wallet_mdoc::{
-    serialization::cbor_serialize, DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
-};
 use p256::NistP256;
 use serde::{Deserialize, Serialize};
 use x509_parser::{certificate::X509Certificate, prelude::FromDer};
+
+use nl_wallet_mdoc::{
+    serialization::{cbor_deserialize, cbor_serialize},
+    DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
+};
 
 // This requires the type name twice in impls, see below.
 // If we could use Deserialize as a supertrait instead that would not be necesarry, but that seems impossible.
@@ -24,7 +26,7 @@ where
 
     fn example() -> T {
         let bts = Self::example_bts();
-        let deserialized = ciborium::de::from_reader(bts.as_slice()).expect("example deserialization failed");
+        let deserialized = cbor_deserialize(bts.as_slice()).expect("example deserialization failed");
 
         // Re-serializing it should result in the original example bytes
         let serialized = cbor_serialize(&deserialized).unwrap();

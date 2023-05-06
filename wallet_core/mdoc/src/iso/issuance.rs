@@ -73,7 +73,7 @@ pub struct EndSessionMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::serialization::cbor_serialize;
+    use crate::serialization::{cbor_deserialize, cbor_serialize};
 
     use super::*;
 
@@ -95,7 +95,7 @@ mod tests {
 
         // Check that we can deserialize to the same value
         let serialized = cbor_serialize(&map).unwrap();
-        let deserialized: Options = ciborium::de::from_reader(serialized.as_slice()).unwrap();
+        let deserialized: Options = cbor_deserialize(serialized.as_slice()).unwrap();
         assert_eq!(map, deserialized);
     }
 }

@@ -22,6 +22,7 @@ pub enum CborError {
     Serialization(#[from] ciborium::ser::Error<std::io::Error>),
 }
 
+// Wrapper for [`ciborium::de::from_reader`] returning our own error type.
 pub fn cbor_deserialize<'de, T: de::Deserialize<'de>, R: std::io::Read>(reader: R) -> Result<T, CborError> {
     Ok(ciborium::de::from_reader(reader)?)
 }
@@ -57,9 +58,7 @@ where
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let buf = tag::Required::<ByteBuf, CBOR_TAG_ENC_CBOR>::deserialize(deserializer)?.0;
-        Ok(TaggedBytes(
-            ciborium::de::from_reader(buf.as_ref()).map_err(de::Error::custom)?,
-        ))
+        Ok(TaggedBytes(cbor_deserialize(buf.as_ref()).map_err(de::Error::custom)?))
     }
 }
 
@@ -332,7 +331,7 @@ impl RequiredValueTrait for ReaderAuthenticationString {
 
 #[cfg(test)]
 mod tests {
-    use crate::serialization::{cbor_serialize, TaggedBytes};
+    use crate::serialization::{cbor_deserialize, cbor_serialize, TaggedBytes};
     use hex_literal::hex;
 
     #[test]
@@ -341,7 +340,7 @@ mod tests {
         let encoded = cbor_serialize(&original).unwrap();
         assert_eq!(encoded, hex!("D81845830001182A"));
 
-        let decoded: TaggedBytes<Vec<u8>> = ciborium::de::from_reader(encoded.as_slice()).unwrap();
+        let decoded: TaggedBytes<Vec<u8>> = cbor_deserialize(encoded.as_slice()).unwrap();
         assert_eq!(original.0, decoded.0);
     }
 }
