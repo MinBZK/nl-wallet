@@ -1,3 +1,9 @@
+use ciborium::value::Value;
+use indexmap::IndexMap;
+use p256::NistP256;
+use x509_parser::certificate::X509Certificate;
+use x509_parser::nom::AsBytes;
+
 use crate::{
     cose::ClonePayload,
     crypto::{cbor_digest, dh_hmac_key},
@@ -5,12 +11,6 @@ use crate::{
     serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     Result,
 };
-
-use ciborium::value::Value;
-use indexmap::IndexMap;
-use p256::NistP256;
-use x509_parser::certificate::X509Certificate;
-use x509_parser::nom::AsBytes;
 
 type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, Value>>;
 type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;

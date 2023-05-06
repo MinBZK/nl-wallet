@@ -1,18 +1,18 @@
 //! Data structures with which a verifier requests attributes from a holder.
 
-use crate::{
-    cose::MdocCose,
-    iso::{credentials::*, device_authentication::*},
-    serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
-};
-use fieldnames_derive::FieldNames;
-
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+
+use crate::{
+    cose::MdocCose,
+    iso::{credentials::*, device_authentication::*},
+    serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
+};
+use fieldnames_derive::FieldNames;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

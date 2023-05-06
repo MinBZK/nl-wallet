@@ -1,10 +1,6 @@
 //! Cose objects, keys, parsing, and verification.
 
-use crate::{
-    serialization::{cbor_deserialize, cbor_serialize, CborError},
-    verifier::X509Subject,
-    Result,
-};
+use std::marker::PhantomData;
 
 use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
@@ -15,10 +11,15 @@ use ecdsa::{
 use p256::NistP256;
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
-use std::marker::PhantomData;
 use x509_parser::{
     certificate::X509Certificate,
     prelude::{FromDer, X509Error},
+};
+
+use crate::{
+    serialization::{cbor_deserialize, cbor_serialize, CborError},
+    verifier::X509Subject,
+    Result,
 };
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).

@@ -5,18 +5,18 @@
 //! NB. "Device authentication" is not to be confused with the [`DeviceAuth`] data structure in the
 //! [`disclosure`] module (which contains the holder's signature over [`DeviceAuthentication`] defined here).
 
-use crate::{
-    cose::CoseKey,
-    iso::{credentials::*, disclosure::*},
-    serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
-};
-
 use ciborium::value::Value;
 use fieldnames_derive::FieldNames;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+
+use crate::{
+    cose::CoseKey,
+    iso::{credentials::*, disclosure::*},
+    serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
+};
 
 pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
 

@@ -1,9 +1,5 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
 
-use crate::cose::{CoseKey, MdocCose};
-use crate::iso::*;
-use fieldnames::FieldNames;
-
 use ciborium::{tag, value::Value};
 use core::fmt::Debug;
 use coset::AsCborValue;
@@ -11,6 +7,12 @@ use indexmap::IndexMap;
 use serde::{de, de::Deserializer, ser, ser::Serializer, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
+
+use crate::{
+    cose::{CoseKey, MdocCose},
+    iso::*,
+};
+use fieldnames::FieldNames;
 
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 

@@ -1,12 +1,9 @@
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
-use ecdsa::SigningKey;
-use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer};
+use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer, SigningKey};
 use indexmap::IndexMap;
 use p256::NistP256;
 use serde_bytes::ByteBuf;
-
-use x509_parser::nom::AsBytes;
-use x509_parser::prelude::X509Certificate;
+use x509_parser::{nom::AsBytes, prelude::X509Certificate};
 
 use crate::{
     basic_sa_ext::{

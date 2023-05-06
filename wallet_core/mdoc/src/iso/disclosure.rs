@@ -3,18 +3,18 @@
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
 //! verification, and [`IssuerSigned`], which contains the entire issuer-signed credential and the disclosed attributes.
 
-use crate::{
-    cose::MdocCose,
-    iso::credentials::*,
-    serialization::{NullCborValue, RequiredValue, TaggedBytes},
-};
-
 use ciborium::value::Value;
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+
+use crate::{
+    cose::MdocCose,
+    iso::credentials::*,
+    serialization::{NullCborValue, RequiredValue, TaggedBytes},
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]

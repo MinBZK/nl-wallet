@@ -4,14 +4,6 @@
 //! This data structure does not directly contain the attributes ([`IssuerSignedItem`]) but instead only their digests,
 //! to enable selective disclosure.
 
-use crate::{
-    basic_sa_ext::Entry,
-    cose::CoseKey,
-    crypto::{cbor_digest, random_bytes},
-    serialization::TaggedBytes,
-    Error, Result,
-};
-
 use chrono::Utc;
 use ciborium::{tag, value::Value};
 use ecdsa::VerifyingKey;
@@ -20,6 +12,14 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+
+use crate::{
+    basic_sa_ext::Entry,
+    cose::CoseKey,
+    crypto::{cbor_digest, random_bytes},
+    serialization::TaggedBytes,
+    Error, Result,
+};
 
 pub type NameSpace = String;
 
