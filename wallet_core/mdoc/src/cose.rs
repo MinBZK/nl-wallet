@@ -31,14 +31,16 @@ pub trait Cose {
 
 #[derive(thiserror::Error, Debug)]
 pub enum CoseError {
-    #[error("verification failed")]
-    VerificationFailed,
     #[error("missing payload")]
     MissingPayload,
     #[error("missing label {0:?}")]
     MissingLabel(Label),
-    #[error("ECDSA error: {0}")]
-    Ecdsa(#[from] ecdsa::Error),
+    #[error("ECDSA signature parsing failed: {0}")]
+    EcdsaSignatureParsingFailed(ecdsa::Error),
+    #[error("ECDSA signature verification failed: {0}")]
+    EcdsaSignatureVerificationFailed(ecdsa::Error),
+    #[error("MAC verification failed")]
+    MacVerificationFailed,
     #[error(transparent)]
     Cbor(#[from] CborError),
     #[error("signing certificate header did not contain bytes")]
@@ -61,12 +63,10 @@ impl Cose for CoseSign1 {
     }
     fn verify(&self, key: &ecdsa::VerifyingKey<NistP256>) -> Result<()> {
         self.verify_signature(b"", |sig, data| {
+            let sig = &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::EcdsaSignatureParsingFailed)?;
             Ok(key
-                .verify(
-                    data,
-                    &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::Ecdsa)?,
-                )
-                .map_err(CoseError::Ecdsa)?)
+                .verify(data, sig)
+                .map_err(CoseError::EcdsaSignatureVerificationFailed)?)
         })
     }
 }
@@ -81,7 +81,7 @@ impl Cose for CoseMac0 {
     }
     fn verify(&self, key: &hmac::Key) -> Result<()> {
         Ok(self.verify_tag(b"", |tag, data| {
-            hmac::verify(key, data, tag).map_err(|_| CoseError::VerificationFailed)
+            hmac::verify(key, data, tag).map_err(|_| CoseError::MacVerificationFailed)
         })?)
     }
 }
