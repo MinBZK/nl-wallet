@@ -19,10 +19,8 @@ use crate::{
 pub enum CryptoError {
     #[error("HKDF failed")]
     Hkdf,
-    #[error("missing x coordinate")]
-    KeyMissingCoordinateX,
-    #[error("missing y coordinate")]
-    KeyMissingCoordinateY,
+    #[error("missing coordinate")]
+    KeyMissingCoordinate,
     #[error("wrong key type")]
     KeyWrongType,
     #[error("missing key ID")]
@@ -82,8 +80,8 @@ impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
     type Error = Error;
     fn try_from(key: &ecdsa::VerifyingKey<NistP256>) -> std::result::Result<Self, Self::Error> {
         let encoded_point = key.to_encoded_point(false);
-        let x = encoded_point.x().ok_or(CryptoError::KeyMissingCoordinateX)?.to_vec();
-        let y = encoded_point.y().ok_or(CryptoError::KeyMissingCoordinateY)?.to_vec();
+        let x = encoded_point.x().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
+        let y = encoded_point.y().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
 
         Ok(CoseKey(
             CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y).build(),
@@ -103,11 +101,11 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
             return Err(CryptoError::KeyWrongType.into());
         }
 
-        let x = key.0.params.get(1).ok_or(CryptoError::KeyMissingCoordinateX)?;
+        let x = key.0.params.get(1).ok_or(CryptoError::KeyMissingCoordinate)?;
         if x.0 != Label::Int(-2) {
             return Err(CryptoError::KeyUnepectedCoseLabel.into());
         }
-        let y = key.0.params.get(2).ok_or(CryptoError::KeyMissingCoordinateY)?;
+        let y = key.0.params.get(2).ok_or(CryptoError::KeyMissingCoordinate)?;
         if y.0 != Label::Int(-3) {
             return Err(CryptoError::KeyUnepectedCoseLabel.into());
         }
