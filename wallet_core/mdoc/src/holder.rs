@@ -8,8 +8,6 @@ use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::X509Certificate;
 
-use crate::serialization::{cbor_deserialize, CborError};
-use crate::Error;
 use crate::{
     basic_sa_ext::{
         DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
@@ -18,9 +16,9 @@ use crate::{
     cose::ClonePayload,
     crypto::{dh_hmac_key, sha256},
     iso::*,
-    serialization::{cbor_serialize, TaggedBytes},
+    serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     verifier::X509Subject,
-    Result,
+    Error, Result,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -31,8 +29,6 @@ pub enum HolderError {
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
-    #[error(transparent)]
-    Cbor(#[from] CborError),
 }
 
 /// Mdoc credentials of the holder. This data structure supports storing:
@@ -204,20 +200,17 @@ impl Credential {
     /// Hash of the credential, acting as an identifier for the credential that takes into account its doctype
     /// and all of its attributes. Computed schematically as `SHA256(CBOR(doctype, attributes))`.
     fn hash(&self) -> Result<Vec<u8>> {
-        Ok(sha256(
-            &cbor_serialize(&(
-                &self.doc_type,
-                &self
-                    .issuer_signed
-                    .name_spaces
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
-                    .collect::<IndexMap<_, _>>(),
-            ))
-            .map_err(HolderError::Cbor)?,
-        ))
+        Ok(sha256(&cbor_serialize(&(
+            &self.doc_type,
+            &self
+                .issuer_signed
+                .name_spaces
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
+                .collect::<IndexMap<_, _>>(),
+        ))?))
     }
 
     pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
@@ -282,7 +275,7 @@ impl SparseIssuerSigned {
         let issuer_auth = self
             .sparse_issuer_auth
             .issuer_auth
-            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso)).map_err(HolderError::Cbor)?);
+            .clone_with_payload(cbor_serialize(&TaggedBytes::from(mso))?);
 
         let issuer_signed = IssuerSigned {
             name_spaces: Some(name_spaces),
@@ -343,7 +336,7 @@ impl DeviceSigned {
         reader_pub_key: &ecdsa::VerifyingKey<p256::NistP256>,
         challenge: &[u8],
     ) -> Result<DeviceSigned> {
-        let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge).map_err(HolderError::Cbor)?;
+        let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge)?;
         let key = dh_hmac_key(
             private_key,
             reader_pub_key,

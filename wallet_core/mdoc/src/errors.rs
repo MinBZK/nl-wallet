@@ -1,5 +1,5 @@
 use crate::{
-    cose::CoseError, crypto::CryptoError, holder::HolderError, issuer_shared::IssuanceError,
+    cose::CoseError, crypto::CryptoError, holder::HolderError, issuer_shared::IssuanceError, serialization::CborError,
     verifier::VerificationError,
 };
 
@@ -11,6 +11,8 @@ pub enum Error {
     Crypto(#[from] CryptoError),
     #[error("COSE error: {0}")]
     Cose(#[from] CoseError),
+    #[error("CBOR error: {0}")]
+    Cbor(#[from] CborError),
     #[error("holder error: {0}")]
     Holder(#[from] HolderError),
     #[error("issuance error: {0}")]

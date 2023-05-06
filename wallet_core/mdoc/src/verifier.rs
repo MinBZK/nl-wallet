@@ -2,7 +2,7 @@ use crate::{
     cose::ClonePayload,
     crypto::{cbor_digest, dh_hmac_key},
     iso::*,
-    serialization::{cbor_deserialize, cbor_serialize, CborError, TaggedBytes},
+    serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     Result,
 };
 
@@ -33,8 +33,6 @@ pub enum VerificationError {
     AttributeVerificationFailed,
     #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
     EphemeralKeyMissing,
-    #[error(transparent)]
-    Cbor(#[from] CborError),
 }
 
 impl DeviceResponse {
@@ -56,8 +54,7 @@ impl DeviceResponse {
             return Err(VerificationError::NoDocuments.into());
         }
 
-        let device_authentication: DeviceAuthenticationBytes =
-            cbor_deserialize(device_authentication_bts.as_slice()).map_err(VerificationError::Cbor)?;
+        let device_authentication: DeviceAuthenticationBytes = cbor_deserialize(device_authentication_bts.as_slice())?;
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
@@ -104,7 +101,7 @@ impl IssuerSigned {
                         .0
                         .get(&digest_id)
                         .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
-                    if *digest != cbor_digest(item).map_err(VerificationError::Cbor)? {
+                    if *digest != cbor_digest(item)? {
                         return Err(VerificationError::AttributeVerificationFailed.into());
                     }
                     namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
@@ -154,6 +151,6 @@ impl DeviceAuthentication {
     // TODO: maybe grab this from the DeviceAuthenticationBytes instead, so we can avoid deserialize -> serialize sequence
     pub fn session_transcript_bts(&self) -> Result<Vec<u8>> {
         let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
-        Ok(cbor_serialize(&tagged).map_err(VerificationError::Cbor)?)
+        Ok(cbor_serialize(&tagged)?)
     }
 }

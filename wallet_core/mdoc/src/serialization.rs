@@ -16,9 +16,9 @@ const CBOR_TAG_ENC_CBOR: u64 = 24;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CborError {
-    #[error("CBOR deserialization failed")]
+    #[error("deserialization failed")]
     Deserialization(#[from] ciborium::de::Error<std::io::Error>),
-    #[error("CBOR serialization failed")]
+    #[error("serialization failed")]
     Serialization(#[from] ciborium::ser::Error<std::io::Error>),
 }
 

@@ -7,7 +7,7 @@ use crate::{
         UnsignedMdoc,
     },
     cose::{ClonePayload, CoseKey, MdocCose},
-    serialization::{cbor_serialize, CborError},
+    serialization::cbor_serialize,
     DocType, Result, SessionId,
 };
 
@@ -23,8 +23,6 @@ pub enum IssuanceError {
     TooManyResponses { received: u64, max: u64 },
     #[error("received response for wrong doctype: {received}, expected {expected}")]
     WrongDocType { received: DocType, expected: DocType },
-    #[error(transparent)]
-    Cbor(#[from] CborError),
 }
 
 impl Response {
@@ -44,7 +42,7 @@ impl Response {
     pub fn verify(&self, challenge: &ByteBuf) -> Result<()> {
         let expected_payload = &ResponseSignaturePayload::new(challenge.to_vec());
         self.signature
-            .clone_with_payload(cbor_serialize(&expected_payload).map_err(IssuanceError::Cbor)?)
+            .clone_with_payload(cbor_serialize(&expected_payload)?)
             .verify(&(&self.public_key).try_into()?)
     }
 }
