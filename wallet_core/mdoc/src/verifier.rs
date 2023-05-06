@@ -30,7 +30,7 @@ pub enum VerificationError {
     #[error("digest ID {0} not found in mso")]
     MissingDigestID(DigestID),
     #[error("attribute verification failed: did not hash to the value in the MSO")]
-    AttributeVerificationFailure,
+    AttributeVerificationFailed,
     #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
     EphemeralKeyMissing,
     #[error(transparent)]
@@ -105,7 +105,7 @@ impl IssuerSigned {
                         .get(&digest_id)
                         .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
                     if *digest != cbor_digest(item).map_err(VerificationError::Cbor)? {
-                        return Err(VerificationError::AttributeVerificationFailure.into());
+                        return Err(VerificationError::AttributeVerificationFailed.into());
                     }
                     namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
                 }

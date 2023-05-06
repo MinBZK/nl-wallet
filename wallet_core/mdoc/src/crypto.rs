@@ -29,10 +29,10 @@ pub enum CryptoError {
     KeyMissingKeyID,
     #[error("unexpected COSE_Key label")]
     KeyUnepectedCoseLabel,
-    #[error("coordinate parse failure")]
-    KeyCoordinateParseFailure,
-    #[error("key parse failure: {0}")]
-    KeyParseFailure(#[from] ecdsa::Error),
+    #[error("coordinate parse failed")]
+    KeyCoordinateParseFailed,
+    #[error("key parse failed: {0}")]
+    KeyParseFailed(#[from] ecdsa::Error),
 }
 
 pub fn sha256(bts: &[u8]) -> Vec<u8> {
@@ -115,17 +115,17 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
         Ok(ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
             &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
                 x.1.as_bytes()
-                    .ok_or(CryptoError::KeyCoordinateParseFailure)?
+                    .ok_or(CryptoError::KeyCoordinateParseFailed)?
                     .as_bytes()
                     .into(),
                 y.1.as_bytes()
-                    .ok_or(CryptoError::KeyCoordinateParseFailure)?
+                    .ok_or(CryptoError::KeyCoordinateParseFailed)?
                     .as_bytes()
                     .into(),
                 false,
             ),
         )
-        .map_err(CryptoError::KeyParseFailure)?)
+        .map_err(CryptoError::KeyParseFailed)?)
     }
 }
 
