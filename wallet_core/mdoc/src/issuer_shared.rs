@@ -13,11 +13,7 @@ use crate::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum IssuanceError {
-    #[error(
-        "session IDs did not match: received {}, expected {}",
-        hex::encode(received),
-        hex::encode(expected)
-    )]
+    #[error("session IDs did not match: received {}, expected {}", received, expected)]
     MismatchedSessionIds { received: SessionId, expected: SessionId },
     #[error("received too many responses: {received}, max was {max}")]
     TooManyResponses { received: u64, max: u64 },

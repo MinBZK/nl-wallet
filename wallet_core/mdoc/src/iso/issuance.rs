@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -29,7 +31,18 @@ pub enum OptionsKey {
     Tstr(String),
 }
 
-pub type SessionId = ByteBuf;
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct SessionId(ByteBuf);
+impl From<ByteBuf> for SessionId {
+    fn from(value: ByteBuf) -> Self {
+        SessionId(value)
+    }
+}
+impl Display for SessionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", hex::encode(&self.0))
+    }
+}
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]

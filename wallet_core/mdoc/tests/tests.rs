@@ -133,7 +133,7 @@ const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name
 
 fn new_issuance_request() -> RequestKeyGenerationMessage {
     RequestKeyGenerationMessage {
-        e_session_id: ByteBuf::from("e_session_id"),
+        e_session_id: ByteBuf::from("e_session_id").into(),
         challenge: ByteBuf::from("challenge"),
         unsigned_mdocs: vec![UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
