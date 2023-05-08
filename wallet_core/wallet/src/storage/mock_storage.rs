@@ -55,8 +55,9 @@ impl Storage for MockStorage {
             return Err(anyhow!(StorageError::NotOpened));
         }
 
-        // Assume that self.data holds the type we need, keyed by the data key.
-        // Downcast it to our type using the Any trait, then return a cloned result.
+        // If self.data contains the key for the requested type,
+        // assume that its value is of that specific type.
+        // Downcast it to the type using the Any trait, then return a cloned result.
         let data = self.data.get(D::KEY).map(|m| m.downcast_ref::<D>().unwrap()).cloned();
 
         Ok(data)

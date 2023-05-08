@@ -13,8 +13,8 @@ use crate::{
 
 const WALLET_KEY_ID: &str = "wallet";
 
-/// If the wallet was registered with the wallet provider before,
-/// fetch the regisration from storage.
+/// Attempts to fetch the registration from storage,
+/// without creating a database if there is none.
 pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<data::Registration>> {
     match storage.state().await? {
         // If there is no database file, we can conclude early that there is no registration.
