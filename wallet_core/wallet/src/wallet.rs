@@ -16,16 +16,12 @@ const WALLET_KEY_ID: &str = "wallet";
 /// If the wallet was registered with the wallet provider before,
 /// fetch the regisration from storage.
 pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<data::Registration>> {
-    let storage_state = storage.state().await?;
-
-    // If there is no database file, we can conclude early that there is no registration.
-    if matches!(storage_state, StorageState::Uninitialized) {
-        return Ok(None);
-    }
-
-    // Open the database, if necessary.
-    if matches!(storage_state, StorageState::Unopened) {
-        storage.open().await?;
+    match storage.state().await? {
+        // If there is no database file, we can conclude early that there is no registration.
+        StorageState::Uninitialized => return Ok(None),
+        // Open the database, if necessary.
+        StorageState::Unopened => storage.open().await?,
+        _ => (),
     }
 
     // Finally, fetch the registration.
