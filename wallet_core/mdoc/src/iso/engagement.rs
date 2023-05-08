@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use crate::{
     cose::CoseKey,
     iso::{credentials::*, disclosure::*},
-    serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
+    serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, RequiredValueTrait, TaggedBytes},
 };
 
 pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
@@ -101,17 +101,29 @@ pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
-    pub typ: u64,
-    pub version: u64,
-    pub retrieval_options: ConnectionOptions,
+    #[serde(rename = "type")]
+    pub typ: RequiredValue<RestApiType>,
+    pub version: RequiredValue<RestApiOptionsVersion>,
+    pub connection_options: CborSeq<RestApiOptionsKeyed>,
 }
 
-// Called RetrievalOptions in ISO 18013-5
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ConnectionOptions {
-    WifiOptions, // TODO
-    BleOptions,
-    NfcOptions,
+#[derive(Debug, Clone)]
+pub struct RestApiType {}
+impl RequiredValueTrait for RestApiType {
+    type Type = u64;
+    const REQUIRED_VALUE: Self::Type = 4;
+}
+
+#[derive(Debug, Clone)]
+pub struct RestApiOptionsVersion {}
+impl RequiredValueTrait for RestApiOptionsVersion {
+    type Type = u64;
+    const REQUIRED_VALUE: Self::Type = 1;
+}
+
+#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+pub struct RestApiOptionsKeyed {
+    uri: String,
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
