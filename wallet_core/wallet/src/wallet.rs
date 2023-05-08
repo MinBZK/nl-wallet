@@ -56,28 +56,18 @@ where
     S: Storage,
     K: PlatformEcdsaKey,
 {
-    fn new(
-        account_server: A,
-        account_server_pubkey: EcdsaDecodingKey,
-        storage: S,
-        hw_privkey: K,
-        registration: Option<data::Registration>,
-    ) -> Self {
-        Wallet {
+    // Initialize the wallet by loading initial state.
+    pub async fn new(account_server: A, account_server_pubkey: EcdsaDecodingKey, mut storage: S) -> Result<Self> {
+        let registration = fetch_registration(&mut storage).await?;
+        let hw_privkey = K::new(WALLET_KEY_ID);
+
+        let wallet = Wallet {
             account_server,
             account_server_pubkey,
             storage,
             hw_privkey,
             registration,
-        }
-    }
-
-    // Initialize the wallet by loading initial state.
-    pub async fn init(account_server: A, account_server_pubkey: EcdsaDecodingKey, mut storage: S) -> Result<Self> {
-        let registration = fetch_registration(&mut storage).await?;
-        let hw_privkey = K::new(WALLET_KEY_ID);
-
-        let wallet = Wallet::new(account_server, account_server_pubkey, storage, hw_privkey, registration);
+        };
 
         Ok(wallet)
     }
@@ -145,7 +135,7 @@ mod tests {
         let account_server = AccountServer::new_stub();
         let pubkey = account_server.pubkey.clone();
 
-        Wallet::init(account_server, pubkey, storage.unwrap_or_default()).await
+        Wallet::new(account_server, pubkey, storage.unwrap_or_default()).await
     }
 
     #[tokio::test]

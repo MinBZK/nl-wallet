@@ -16,5 +16,5 @@ pub async fn init_wallet() -> Result<Wallet> {
     let storage = DatabaseStorage::default();
     let pubkey = account_server.pubkey.clone();
 
-    Wallet::init(account_server, pubkey, storage).await
+    Wallet::new(account_server, pubkey, storage).await
 }
