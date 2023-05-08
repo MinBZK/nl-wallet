@@ -735,5 +735,9 @@
   "walletPersonalizeScreenTitle": "Create wallet",
   "walletPersonalizeSuccessPageContinueCta": "To my Wallet",
   "walletPersonalizeSuccessPageDescription": "Your cards have been added!",
+  "walletPersonalizeDataIncorrectScreenTitle": "Something is not correct",
+  "walletPersonalizeDataIncorrectScreenSubhead": "Is the data incorrect?",
+  "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, this can lead to issues. Report your issue to MFO.\n\nIt can take a moment before your data is updated, once the updates are processed you can create your Wallet.",
+  "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
   "walletPersonalizeSuccessPageTitle": "Success!"
 }
