@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,7 +11,6 @@ import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
-import '../../../../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
 import '../../../../wallet_constants.dart';
 
 part 'wallet_personalize_event.dart';
@@ -18,14 +18,12 @@ part 'wallet_personalize_state.dart';
 
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
   final GetPidIssuanceResponseUseCase getPidIssuanceResponseUseCase;
-  final GetMyGovernmentIssuanceResponsesUseCase getDemoWalletCardsIssuanceResponsesUseCase;
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
 
   WalletPersonalizeBloc(
     this.getPidIssuanceResponseUseCase,
     this.walletAddIssuedCardsUseCase,
-    this.getDemoWalletCardsIssuanceResponsesUseCase,
     this.getWalletCardsUseCase,
   ) : super(WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
@@ -42,8 +40,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onLoginWithDigidSucceeded(event, emit) async {
     try {
       final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-      final card = issuanceResponse.cards.first;
-      emit(WalletPersonalizeCheckData(availableAttributes: card.attributes.toList()));
+      final allAttributes = issuanceResponse.cards.map((e) => e.attributes).flattened;
+      emit(WalletPersonalizeCheckData(availableAttributes: allAttributes.toList()));
     } catch (ex, stack) {
       Fimber.e('Failed to get PID', ex: ex, stacktrace: stack);
       emit(WalletPersonalizeFailure());

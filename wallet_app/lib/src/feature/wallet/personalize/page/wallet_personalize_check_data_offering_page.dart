@@ -8,11 +8,11 @@ import '../../../common/widget/sliver_sized_box.dart';
 import '../wallet_personalize_data_incorrect_screen.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
-  final VoidCallback onAccept;
+  final VoidCallback onAcceptPressed;
   final List<UiAttribute> attributes;
 
   const WalletPersonalizeCheckDataOfferingPage({
-    required this.onAccept,
+    required this.onAcceptPressed,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -69,8 +69,8 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return ConfirmButtons(
-      onDecline: () => WalletPersonalizeDataIncorrectScreen.show(context),
-      onAccept: onAccept,
+      onDeclinePressed: () => WalletPersonalizeDataIncorrectScreen.show(context),
+      onAcceptPressed: onAcceptPressed,
       acceptText: locale.walletPersonalizeCheckDataOfferingPageAcceptCta,
       declineText: locale.walletPersonalizeCheckDataOfferingPageDeclineCta,
     );

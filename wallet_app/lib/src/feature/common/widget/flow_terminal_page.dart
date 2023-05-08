@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'button/link_button.dart';
 import 'status_icon.dart';
 import 'button/text_icon_button.dart';
 
@@ -68,7 +69,8 @@ class FlowTerminalPage extends StatelessWidget {
             ),
           ),
           if (tertiaryButtonCta != null)
-            TextIconButton(
+            LinkButton(
+              customPadding: const EdgeInsets.symmetric(horizontal: 16),
               onPressed: onTertiaryButtonPressed,
               child: Text(tertiaryButtonCta!),
             ),

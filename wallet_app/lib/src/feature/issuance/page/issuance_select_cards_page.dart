@@ -115,8 +115,8 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         children: [
           if (showNoSelectionError) _buildNoSelectionRow(context),
           ConfirmButtons(
-            onDecline: onStopPressed,
-            onAccept: onAddSelectedPressed,
+            onDeclinePressed: onStopPressed,
+            onAcceptPressed: onAddSelectedPressed,
             acceptText: locale.issuanceSelectCardsPageAddCta,
             declineText: locale.issuanceSelectCardsPageStopCta,
             acceptIcon: Icons.arrow_forward,

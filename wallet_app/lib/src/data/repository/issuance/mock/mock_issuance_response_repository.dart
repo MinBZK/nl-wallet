@@ -4,6 +4,7 @@ import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
+import '../../../source/mock/mock_organization_datasource.dart';
 import '../../../source/organization_datasource.dart';
 import '../../../source/wallet_datasource.dart';
 import '../issuance_response_repository.dart';
@@ -24,7 +25,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
           organization: (await organizationDataSource.read(_kMockPidWalletCard.issuerId))!,
           requestedAttributes: [],
           policy: _kMockIssuancePolicy,
-          cards: [_kMockPidWalletCard],
+          cards: [_kMockPidWalletCard, _kMockAddressWalletCard],
         );
       case _kDiplomaId:
         return IssuanceResponse(

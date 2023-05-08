@@ -9,6 +9,7 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/icon_row.dart';
+import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../verification/model/organization.dart';
@@ -29,8 +30,11 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   final String title;
 
+  final VoidCallback? onDataIncorrectPressed;
+
   const OrganizationDetailScreen({
     required this.title,
+    this.onDataIncorrectPressed,
     Key? key,
   }) : super(key: key);
 
@@ -86,19 +90,25 @@ class OrganizationDetailScreen extends StatelessWidget {
               child: _buildInfoSection(context, state.organization),
             ),
           ),
-          const SliverSizedBox(height: 12),
-          const SliverToBoxAdapter(child: Divider(height: 24)),
-          SliverToBoxAdapter(
-            child: Container(
-              alignment: Alignment.centerLeft,
-              child: LinkButton(
-                onPressed: () => PlaceholderScreen.show(context),
-                customPadding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(AppLocalizations.of(context).organizationDetailScreenDataIncorrectCta),
-              ),
-            ),
-          ),
-          const SliverSizedBox(height: 12),
+          const SliverSizedBox(height: 24),
+          onDataIncorrectPressed == null
+              ? const SliverSizedBox()
+              : SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      LinkButton(
+                        onPressed: () => onDataIncorrectPressed?.call(),
+                        customPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(AppLocalizations.of(context).organizationDetailScreenDataIncorrectCta),
+                      ),
+                      const Divider(height: 24),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
         ],
       ),
     );
@@ -111,7 +121,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       children: [
         Row(
           children: [
-            Image.asset(organization.logoUrl),
+            OrganizationLogo(image: AssetImage(organization.logoUrl), size: 40),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -205,7 +215,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.apartment),
-          text: Text(organization.shortName),
+          text: Text(organization.category),
           padding: const EdgeInsets.symmetric(vertical: 8),
         ),
         if (organization.department != null)
@@ -234,7 +244,8 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context, String organizationId, String pageTitle) {
+  static Future<void> show(BuildContext context, String organizationId, String pageTitle,
+      {VoidCallback? onDataIncorrectPressed}) {
     return Navigator.push(
       context,
       SecuredPageRoute(
@@ -244,7 +255,7 @@ class OrganizationDetailScreen extends StatelessWidget {
               ..add(
                 OrganizationLoadTriggered(organizationId: organizationId),
               ),
-            child: OrganizationDetailScreen(title: pageTitle),
+            child: OrganizationDetailScreen(title: pageTitle, onDataIncorrectPressed: onDataIncorrectPressed),
           );
         },
       ),

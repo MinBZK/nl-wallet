@@ -90,7 +90,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     return WalletPersonalizeCheckDataOfferingPage(
-      onAccept: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
+      onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
       attributes: PidAttributeMapper.map(state.availableAttributes),
     );
   }

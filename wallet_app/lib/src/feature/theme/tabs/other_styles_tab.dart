@@ -186,11 +186,13 @@ class OtherStylesTab extends StatelessWidget {
           attribute: InteractionTimelineAttribute(
             dateTime: DateTime.now(),
             organization: const Organization(
-                id: 'id',
-                name: 'Organization Name',
-                shortName: 'This is a TimelineAttributeRow',
-                description: 'Organization description',
-                logoUrl: 'logo'),
+              id: 'id',
+              name: 'Organization Name',
+              category: 'Category',
+              shortName: 'This is a TimelineAttributeRow',
+              description: 'Organization description',
+              logoUrl: 'logo',
+            ),
             dataAttributes: const [],
             status: InteractionStatus.success,
             policy: const Policy(

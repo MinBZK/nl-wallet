@@ -104,11 +104,13 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, VerificationCheckOrganization state) {
     return OrganizationApprovePage(
-      onDecline: () => _stopVerification(context),
-      onAccept: () => context.read<VerificationBloc>().add(const VerificationOrganizationApproved()),
+      onDeclinePressed: () => _stopVerification(context),
+      onAcceptPressed: () => context.read<VerificationBloc>().add(const VerificationOrganizationApproved()),
       organization: state.flow.organization,
       isFirstInteractionWithOrganization: !state.flow.hasPreviouslyInteractedWithOrganization,
       purpose: ApprovalPurpose.verification,
+      dataPurpose: state.flow.requestPurpose,
+      onDataIncorrectPressed: () => _onDataIncorrectPressed(context, _resolveReportingOptionsForState(context)),
     );
   }
 
@@ -121,8 +123,9 @@ class VerificationScreen extends StatelessWidget {
 
   Widget _buildConfirmDataAttributesPage(BuildContext context, VerificationConfirmDataAttributes state) {
     return VerificationConfirmDataAttributesPage(
-      onDecline: () => _stopVerification(context),
-      onAccept: () => context.read<VerificationBloc>().add(const VerificationShareRequestedAttributesApproved()),
+      onDeclinePressed: () => _stopVerification(context),
+      onAcceptPressed: () => context.read<VerificationBloc>().add(const VerificationShareRequestedAttributesApproved()),
+      onReportIssuePressed: () => _onDataIncorrectPressed(context, _resolveReportingOptionsForState(context)),
       flow: state.flow,
     );
   }
@@ -165,7 +168,7 @@ class VerificationScreen extends StatelessWidget {
       final stopPressed = await StopVerificationSheet.show(
         context,
         organizationName: organizationName,
-        onTapDataIncorrect: availableReportOptions.isEmpty
+        onDataIncorrectPressed: availableReportOptions.isEmpty
             ? null
             : () {
                 Navigator.pop(context); //Close the StopVerificationSheet

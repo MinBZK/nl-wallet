@@ -8,13 +8,13 @@ import '../../common/widget/confirm_action_sheet.dart';
 /// when the user is requesting to stop the verification flow.
 class StopVerificationSheet extends StatelessWidget {
   final String organizationName;
-  final VoidCallback? onTapDataIncorrect;
+  final VoidCallback? onDataIncorrectPressed;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
   const StopVerificationSheet({
     required this.organizationName,
-    this.onTapDataIncorrect,
+    this.onDataIncorrectPressed,
     required this.onCancel,
     required this.onConfirm,
     Key? key,
@@ -32,10 +32,10 @@ class StopVerificationSheet extends StatelessWidget {
       onCancel: onCancel,
       onConfirm: onConfirm,
       confirmIcon: Icons.not_interested,
-      extraContent: onTapDataIncorrect == null
+      extraContent: onDataIncorrectPressed == null
           ? null
           : LinkButton(
-              onPressed: onTapDataIncorrect,
+              onPressed: onDataIncorrectPressed,
               customPadding: const EdgeInsets.all(16),
               child: Text(locale.stopVerificationSheetDataIncorrectCta),
             ),
@@ -45,7 +45,7 @@ class StopVerificationSheet extends StatelessWidget {
   static Future<bool> show(
     BuildContext context, {
     required String organizationName,
-    VoidCallback? onTapDataIncorrect,
+    VoidCallback? onDataIncorrectPressed,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -53,7 +53,7 @@ class StopVerificationSheet extends StatelessWidget {
       builder: (BuildContext context) {
         return StopVerificationSheet(
           organizationName: organizationName,
-          onTapDataIncorrect: onTapDataIncorrect,
+          onDataIncorrectPressed: onDataIncorrectPressed,
           onConfirm: () => Navigator.pop(context, true),
           onCancel: () => Navigator.pop(context, false),
         );
