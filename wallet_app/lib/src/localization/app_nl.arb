@@ -144,6 +144,10 @@
   "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
   "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
   "dataIncorrectScreenTitle": "Gegevens ophalen",
+  "forgotPinScreenCta": "Wallet wissen",
+  "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+  "forgotPinScreenHeadline": "Code vergeten?",
+  "forgotPinScreenTitle": "Toegangscode vergeten",
   "generalBottomBackCta": "Terug",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {

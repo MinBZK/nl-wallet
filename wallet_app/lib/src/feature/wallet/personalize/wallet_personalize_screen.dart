@@ -17,7 +17,7 @@ import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_digid_error_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
-import 'page/wallet_personalize_no_digid_page.dart';
+import 'wallet_personalize_no_digid_screen.dart';
 import 'page/wallet_personalize_success_page.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
@@ -121,7 +121,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildWalletIntroPage(BuildContext context) {
     return WalletPersonalizeIntroPage(
       onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onNoDigidPressed: () => WalletPersonalizeNoDigidPage.show(context),
+      onNoDigidPressed: () => WalletPersonalizeNoDigidScreen.show(context),
     );
   }
 
