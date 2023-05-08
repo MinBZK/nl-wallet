@@ -43,10 +43,12 @@ class HistoryOverviewScreen extends StatelessWidget {
     final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
 
     List<Widget> slivers = [
-      ...sections.map((section) => TimelineSectionSliver(
-            section: section,
-            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
-          )),
+      ...sections.map(
+        (section) => TimelineSectionSliver(
+          section: section,
+          onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
+        ),
+      ),
     ];
 
     return Column(
