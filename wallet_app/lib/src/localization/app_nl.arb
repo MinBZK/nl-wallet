@@ -124,6 +124,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
+  "dataAttributeSectionTitle": "Bron: {source}",
+  "@dataAttributeSectionTitle": {
+    "placeholders": {
+      "source": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Title of the DataAttributeSection widget, indicating the source of the listed attributes"
+  },
   "dataIncorrectScreenApproveCta": "Kaart toch toevoegen",
   "dataIncorrectScreenApproveDescription": "De kaart nu toevoegen en updaten als de gegevens zijn aangepast.",
   "dataIncorrectScreenApproveTitle": "Kaart toevoegen",
@@ -202,15 +212,30 @@
     "description": "App version and build number"
   },
   "generalWCAGBack": "Terug",
-  "historyDetailScreenInteractionAttributesTitle": "Gedeelde gegevens",
+  "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
+  "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
+  "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, =0 {Geen gegevens gedeeld} =1 {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
+  "@historyDetailScreenInteractionAttributesTitle": {
+    "placeholders": {
+      "attributes": {
+        "example": "4",
+        "type": "int"
+      }
+    },
+    "description": "Number of attributes shared"
+  },
   "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
   "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenIssueSubtitle": "Over de gegevens, het verzoek of de ontvanger",
+  "historyDetailScreenIssueTitle": "Meld een probleem",
   "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
   "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
   "historyDetailScreenOperationStatusIssuedDescription": "Kaart aangemaakt",
   "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
   "historyDetailScreenSigningAttributesTitle": "Ondertekend",
   "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
+  "historyDetailScreenTermsSubtitle": "Hoe gaat de ontvanger om met jouw gegevens",
+  "historyDetailScreenTermsTitle": "Voorwaarden",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Gebruiksgeschiedenis",
   "homeScreenBottomNavBarCardsCta": "Kaarten",

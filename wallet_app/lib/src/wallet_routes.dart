@@ -274,7 +274,7 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
     return BlocProvider<HistoryDetailBloc>(
-      create: (BuildContext context) => HistoryDetailBloc(context.read())
+      create: (BuildContext context) => HistoryDetailBloc(context.read(), context.read())
         ..add(HistoryDetailLoadTriggered(
           attributeId: argument.timelineAttributeId,
           cardId: argument.cardId,

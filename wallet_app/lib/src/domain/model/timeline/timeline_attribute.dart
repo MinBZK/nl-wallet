@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../feature/verification/model/organization.dart';
 import '../attribute/data_attribute.dart';
+import 'package:collection/collection.dart';
 
 abstract class TimelineAttribute extends Equatable {
   final TimelineType type;
@@ -17,6 +18,8 @@ abstract class TimelineAttribute extends Equatable {
     required this.organization,
     required this.dataAttributes,
   });
+
+  Map<String, List<DataAttribute>> get attributesByCardId => groupBy(dataAttributes, (attr) => attr.sourceCardId);
 
   @override
   List<Object?> get props => [type, dateTime, organization, dataAttributes];

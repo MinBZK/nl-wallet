@@ -124,6 +124,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Do you want to sign using this information",
+  "dataAttributeSectionTitle": "Source: {source}",
+  "@dataAttributeSectionTitle": {
+    "placeholders": {
+      "source": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Title of the DataAttributeSection widget, indicating the source of the listed attributes"
+  },
   "dataIncorrectScreenApproveCta": "Add card",
   "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
   "dataIncorrectScreenApproveTitle": "Add card",
@@ -202,15 +212,30 @@
     "description": "App version and build number"
   },
   "generalWCAGBack": "Back",
-  "historyDetailScreenInteractionAttributesTitle": "Shared data",
+  "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
+  "historyDetailScreenHelpdeskTitle": "Open helpdesk",
+  "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, =0 {No attributes shared} =1 {Shared 1 attribute} other {Shared {attributes} attributes}}",
+  "@historyDetailScreenInteractionAttributesTitle": {
+    "placeholders": {
+      "attributes": {
+        "example": "4",
+        "type": "int"
+      }
+    },
+    "description": "Number of attributes shared"
+  },
   "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
   "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
+  "historyDetailScreenIssueTitle": "Report an issue",
   "historyDetailScreenOperationAttributesTitle": "Retrieved data",
   "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
   "historyDetailScreenOperationStatusIssuedDescription": "Card added",
   "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
   "historyDetailScreenSigningAttributesTitle": "Signed",
   "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
+  "historyDetailScreenTermsSubtitle": "How the organization processes your data",
+  "historyDetailScreenTermsTitle": "Terms and Conditions",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Usage history",
   "homeScreenBottomNavBarCardsCta": "Cards",
