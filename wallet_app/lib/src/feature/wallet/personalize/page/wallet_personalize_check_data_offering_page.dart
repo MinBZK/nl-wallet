@@ -4,8 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
 import '../../../common/widget/button/confirm_buttons.dart';
-import '../../../common/widget/placeholder_screen.dart';
 import '../../../common/widget/sliver_sized_box.dart';
+import '../wallet_personalize_data_incorrect_screen.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAccept;
@@ -69,7 +69,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return ConfirmButtons(
-      onDecline: () => PlaceholderScreen.show(context),
+      onDecline: () => WalletPersonalizeDataIncorrectScreen.show(context),
       onAccept: onAccept,
       acceptText: locale.walletPersonalizeCheckDataOfferingPageAcceptCta,
       declineText: locale.walletPersonalizeCheckDataOfferingPageDeclineCta,

@@ -735,5 +735,9 @@
   "walletPersonalizeScreenTitle": "Wallet aanmaken",
   "walletPersonalizeSuccessPageContinueCta": "Naar mijn Wallet",
   "walletPersonalizeSuccessPageDescription": "Je kaarten zijn toegevoegd!",
+  "walletPersonalizeDataIncorrectScreenTitle": "Er klopt iets niet",
+  "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
+  "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Meld je fout bij het Meldpunt Fouten in Overheidsregistraties (MFO).\n\nHet kan even duren voordat je gegevens zijn aangepast. Als je gegevens zijn aangepast kan je je Wallet aanmaken.",
+  "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
   "walletPersonalizeSuccessPageTitle": "Gelukt!"
 }
