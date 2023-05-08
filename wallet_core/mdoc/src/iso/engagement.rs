@@ -33,7 +33,7 @@ pub struct DeviceAuthenticationKeyed {
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: DeviceEngagementBytes,
-    pub ereader_key_bytes: EReaderKeyBytes,
+    pub ereader_key_bytes: ESenderKeyBytes,
     pub handover: Handover,
 }
 
@@ -53,15 +53,14 @@ pub struct NFCHandover {
     pub handover_request_message: Option<ByteBuf>,
 }
 
-pub type DeviceEngagement = CborIntMap<DeviceEngagementKeyed>;
+pub type DeviceEngagement = CborIntMap<Engagement>;
 
-// TODO: support remaining fields
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
-pub struct DeviceEngagementKeyed {
+pub struct Engagement {
     pub version: String,
     pub security: Security,
-    pub device_retrieval_methods: Option<DeviceRetrievalMethods>,
+    pub connection_methods: Option<ConnectionMethods>,
     pub server_retrieval_methods: Option<ServerRetrievalMethods>,
     pub protocol_info: Option<ProtocolInfo>,
 }
@@ -71,10 +70,11 @@ pub type Security = CborSeq<SecurityKeyed>;
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: u64,
-    pub e_device_key_bytes: EDeviceKeyBytes,
+    pub e_sender_key_bytes: ESenderKeyBytes,
 }
 
-pub type DeviceRetrievalMethods = Vec<DeviceRetrievalMethod>;
+// Called DeviceRetrievalMethods in ISO 18013-5
+pub type ConnectionMethods = Vec<ConnectionMethod>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -96,23 +96,22 @@ pub struct WebSessionInfo {
 
 pub type ProtocolInfo = Value;
 
-pub type DeviceRetrievalMethod = CborSeq<DeviceRetrievalMethodKeyed>;
+// Called DeviceRetrievalMethod in ISO 18013-5
+pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
-pub struct DeviceRetrievalMethodKeyed {
+pub struct ConnectionMethodKeyed {
     pub typ: u64,
     pub version: u64,
-    pub retrieval_options: RetrievalOptions,
+    pub retrieval_options: ConnectionOptions,
 }
 
+// Called RetrievalOptions in ISO 18013-5
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum RetrievalOptions {
+pub enum ConnectionOptions {
     WifiOptions, // TODO
     BleOptions,
     NfcOptions,
 }
 
-pub type EReaderKeyBytes = TaggedBytes<EReaderKey>;
-pub type EReaderKey = CoseKey;
-pub type EDeviceKeyBytes = TaggedBytes<EDeviceKey>;
-pub type EDeviceKey = CoseKey;
+pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
