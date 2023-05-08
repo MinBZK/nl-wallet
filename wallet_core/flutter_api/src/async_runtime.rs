@@ -4,10 +4,10 @@ use tokio::runtime::{Builder, Runtime};
 
 static ASYNC_RUNTIME: OnceCell<Runtime> = OnceCell::new();
 
-pub fn get_or_try_init_async() -> Result<&'static Runtime> {
-    let runtime = ASYNC_RUNTIME.get_or_try_init(|| Builder::new_multi_thread().enable_all().build())?;
+pub fn init_async_runtime() -> Result<()> {
+    _ = ASYNC_RUNTIME.get_or_try_init(|| Builder::new_multi_thread().enable_all().build())?;
 
-    Ok(runtime)
+    Ok(())
 }
 
 pub fn get_async_runtime() -> &'static Runtime {
@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn can_invoke_async_function_in_core() {
-        let _ = crate::async_runtime::get_or_try_init_async();
+        let _ = crate::async_runtime::init_async_runtime();
         let result = add(2, 2);
         assert_eq!(result, 4);
     }

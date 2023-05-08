@@ -5,7 +5,7 @@ use tokio::sync::{Mutex, MutexGuard};
 use macros::async_runtime;
 use wallet::{init_wallet, pin::validation::validate_pin, Wallet};
 
-use crate::{async_runtime::get_or_try_init_async, models::pin::PinValidationResult};
+use crate::{async_runtime::init_async_runtime, models::pin::PinValidationResult};
 
 static WALLET: OnceCell<Mutex<Wallet>> = OnceCell::new();
 
@@ -18,22 +18,34 @@ async fn lock_wallet() -> MutexGuard<'static, Wallet> {
 }
 
 pub fn init() -> Result<bool> {
-    let runtime = get_or_try_init_async()?;
-    let mut has_registration: Option<bool> = None;
+    // Initialize the async runtime so the #[async_runtime] macro can be used.
+    // As creating the wallet below could fail and init() could be called again,
+    // init_async_runtime() should not fail when being called more than once.
+    init_async_runtime()?;
+
+    let mut created_has_registration: Option<bool> = None;
 
     _ = WALLET.get_or_try_init(|| {
-        runtime.block_on(async {
-            // This block will only be called if WALLET is currently empty.
-            let wallet = init_wallet().await?;
-            has_registration.replace(wallet.has_registration());
+        // This closure will only be called if WALLET is currently empty.
+        let (wallet, has_registration) = create_wallet()?;
+        created_has_registration.replace(has_registration);
 
-            Ok(Mutex::new(wallet))
-        })
+        Ok(wallet)
     })?;
 
-    // Read has_registration, which is only None if the async block above
-    // did not execute. This implies that init() was called more than once.
-    Ok(has_registration.expect("Wallet may only be initialized once."))
+    // Read created_has_registration, which is only None if the async block above
+    // did not execute. This implies that init() was called successfully more than once.
+    let has_registration = created_has_registration.expect("Wallet may only be initialized once.");
+
+    Ok(has_registration)
+}
+
+#[async_runtime]
+async fn create_wallet() -> Result<(Mutex<Wallet>, bool)> {
+    let wallet = init_wallet().await?;
+    let has_registration = wallet.has_registration();
+
+    Ok((Mutex::new(wallet), has_registration))
 }
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
