@@ -100,7 +100,10 @@ class OrganizationDetailScreen extends StatelessWidget {
                       const Divider(height: 1),
                       const SizedBox(height: 12),
                       LinkButton(
-                        onPressed: () => onDataIncorrectPressed?.call(),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onDataIncorrectPressed?.call();
+                        },
                         customPadding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(AppLocalizations.of(context).organizationDetailScreenDataIncorrectCta),
                       ),

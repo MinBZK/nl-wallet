@@ -89,7 +89,10 @@ class PolicyScreen extends StatelessWidget {
       children: [
         const Divider(height: 1),
         LinkButton(
-          onPressed: onReportIssuePressed!,
+          onPressed: () {
+            Navigator.pop(context);
+            onReportIssuePressed?.call();
+          },
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Text(locale.policyScreenReportIssueCta),
         ),

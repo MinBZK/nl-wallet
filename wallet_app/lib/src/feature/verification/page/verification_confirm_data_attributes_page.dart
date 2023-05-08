@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/duration_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/info_row.dart';
@@ -8,7 +9,6 @@ import '../../common/widget/sliver_sized_box.dart';
 import '../../policy/policy_screen.dart';
 import '../model/verification_flow.dart';
 import '../widget/card_attribute_row.dart';
-import '../../../util/extension/duration_extension.dart';
 
 const _kStorageDurationInMonthsFallback = 3;
 
@@ -44,7 +44,14 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
             child: InfoRow(
               icon: Icons.remove_red_eye_outlined,
               title: locale.verificationConfirmDataAttributesCheckAttributesCta,
-              onTap: () => CheckAttributesScreen.show(context, flow.resolvedAttributes),
+              onTap: () => CheckAttributesScreen.show(
+                context,
+                flow.availableAttributes,
+                onDataIncorrectPressed: () {
+                  Navigator.pop(context);
+                  onReportIssuePressed?.call();
+                },
+              ),
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
@@ -97,10 +104,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
       onTap: () => PolicyScreen.show(
         context,
         flow.policy,
-        onReportIssuePressed: () {
-          Navigator.pop(context);
-          onReportIssuePressed?.call();
-        },
+        onReportIssuePressed: onReportIssuePressed,
       ),
     );
   }

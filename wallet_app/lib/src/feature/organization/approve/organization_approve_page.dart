@@ -62,10 +62,7 @@ class OrganizationApprovePage extends StatelessWidget {
                 context,
                 organization.id,
                 AppLocalizations.of(context).verificationScreenTitle,
-                onDataIncorrectPressed: () {
-                  Navigator.pop(context);
-                  onDataIncorrectPressed?.call();
-                },
+                onDataIncorrectPressed: onDataIncorrectPressed,
               ),
               organizationName: organization.category,
             ),
