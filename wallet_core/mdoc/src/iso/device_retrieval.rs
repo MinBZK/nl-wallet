@@ -9,7 +9,7 @@ use std::fmt::Debug;
 
 use crate::{
     cose::MdocCose,
-    iso::{credentials::*, device_authentication::*},
+    iso::{credentials::*, engagement::*},
     serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
 };
 use fieldnames_derive::FieldNames;

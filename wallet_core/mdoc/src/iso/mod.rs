@@ -12,13 +12,13 @@
 
 pub mod basic_sa_ext;
 pub mod credentials;
-pub mod device_authentication;
 pub mod device_retrieval;
 pub mod disclosure;
+pub mod engagement;
 pub mod issuance;
 
 pub use credentials::*;
-pub use device_authentication::*;
 pub use device_retrieval::*;
 pub use disclosure::*;
+pub use engagement::*;
 pub use issuance::*;
