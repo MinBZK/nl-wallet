@@ -5,6 +5,9 @@ edition.workspace = true
 
 [lib]
 
+[features]
+mock = []
+
 [dependencies]
 anyhow = "1.0.66"
 base64 = "0.21.0"

@@ -6,6 +6,7 @@ import '../../domain/model/timeline/signing_timeline_attribute.dart';
 import '../../domain/model/timeline/timeline_attribute.dart';
 
 const _kErrorIconData = Icons.error_outline;
+const _kRejectIconData = Icons.block_outlined;
 
 class TimelineAttributeErrorStatusIconMapper {
   static IconData? map(TimelineAttribute attribute) {
@@ -20,7 +21,7 @@ class InteractionErrorStatusIconMapper {
   static IconData? map(InteractionStatus status) {
     switch (status) {
       case InteractionStatus.rejected:
-        return _kErrorIconData;
+        return _kRejectIconData;
       case InteractionStatus.failed:
         return _kErrorIconData;
       default:
@@ -33,7 +34,7 @@ class SigningErrorStatusIconMapper {
   static IconData? map(SigningStatus status) {
     switch (status) {
       case SigningStatus.rejected:
-        return _kErrorIconData;
+        return _kRejectIconData;
       default:
         return null;
     }

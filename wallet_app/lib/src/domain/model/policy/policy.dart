@@ -1,8 +1,13 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../feature/policy/policy_screen.dart';
+
 class Policy extends Equatable {
   final Duration? storageDuration;
   final String? dataPurpose;
+
+  /// Optional custom description, shown on the [PolicyScreen].
+  final String? dataPurposeDescription;
   final bool dataIsShared;
   final bool dataIsSignature;
   final bool dataContainsSingleViewProfilePhoto;
@@ -11,7 +16,8 @@ class Policy extends Equatable {
 
   const Policy({
     required this.storageDuration,
-    required this.dataPurpose,
+    this.dataPurpose,
+    this.dataPurposeDescription,
     required this.dataIsShared,
     required this.dataIsSignature,
     required this.dataContainsSingleViewProfilePhoto,
@@ -23,6 +29,7 @@ class Policy extends Equatable {
   List<Object?> get props => [
         storageDuration,
         dataPurpose,
+        dataPurposeDescription,
         dataIsShared,
         dataIsSignature,
         dataContainsSingleViewProfilePhoto,

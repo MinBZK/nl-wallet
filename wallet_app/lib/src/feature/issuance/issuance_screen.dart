@@ -125,8 +125,8 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
     return OrganizationApprovePage(
-      onDecline: () => _stopIssuance(context),
-      onAccept: () => context.bloc.add(const IssuanceOrganizationApproved()),
+      onDeclinePressed: () => _stopIssuance(context),
+      onAcceptPressed: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
     );
@@ -134,8 +134,8 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
     return IssuanceProofIdentityPage(
-      onDecline: () => _stopIssuance(context),
-      onAccept: () => context.bloc.add(const IssuanceShareRequestedAttributesApproved()),
+      onDeclinePressed: () => _stopIssuance(context),
+      onAcceptPressed: () => context.bloc.add(const IssuanceShareRequestedAttributesApproved()),
       flow: state.flow,
       isRefreshFlow: state.isRefreshFlow,
     );
@@ -149,7 +149,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckDataOfferingPage(BuildContext context, IssuanceCheckDataOffering state) {
     return IssuanceCheckDataOfferingPage(
-      onDecline: () async {
+      onDeclinePressed: () async {
         final bloc = context.bloc;
         final result = await DataIncorrectScreen.show(context);
         if (result == null) return;
@@ -162,7 +162,7 @@ class IssuanceScreen extends StatelessWidget {
             break;
         }
       },
-      onAccept: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
+      onAcceptPressed: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
       attributes: state.flow.cards.first.attributes,
     );
   }
@@ -231,8 +231,8 @@ class IssuanceScreen extends StatelessWidget {
     return IssuanceCheckCardPage(
       key: ValueKey(state.cardToCheck.id),
       card: state.cardToCheck,
-      onAccept: () => context.bloc.add(IssuanceCardApproved(state.cardToCheck)),
-      onDecline: () async {
+      onAcceptPressed: () => context.bloc.add(IssuanceCardApproved(state.cardToCheck)),
+      onDeclinePressed: () async {
         final bloc = context.bloc;
         final result = await DataIncorrectScreen.show(context);
         if (result == null) return; //Screen dismissed without explicit action.

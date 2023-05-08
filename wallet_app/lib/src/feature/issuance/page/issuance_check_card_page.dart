@@ -6,16 +6,16 @@ import '../../common/widget/check_data_offering_page.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 
 class IssuanceCheckCardPage extends StatelessWidget {
-  final VoidCallback onDecline;
-  final VoidCallback onAccept;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onAcceptPressed;
   final WalletCard card;
 
   // Provide information needed to generate the overline, i.e. 'Card x of y'
   final int totalNrOfCards, currentCardIndex;
 
   const IssuanceCheckCardPage({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.card,
     required this.totalNrOfCards,
     required this.currentCardIndex,
@@ -38,8 +38,8 @@ class IssuanceCheckCardPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return ConfirmButtons(
-      onDecline: onDecline,
-      onAccept: onAccept,
+      onDeclinePressed: onDeclinePressed,
+      onAcceptPressed: onAcceptPressed,
       acceptText: locale.issuanceCheckCardPageConfirmCta,
       declineText: locale.issuanceCheckCardPageRejectCta,
     );

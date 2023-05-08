@@ -124,6 +124,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Do you want to sign using this information",
+  "dataAttributeSectionTitle": "Source: {source}",
+  "@dataAttributeSectionTitle": {
+    "placeholders": {
+      "source": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Title of the DataAttributeSection widget, indicating the source of the listed attributes"
+  },
   "dataIncorrectScreenApproveCta": "Add card",
   "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
   "dataIncorrectScreenApproveTitle": "Add card",
@@ -134,6 +144,10 @@
   "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
   "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
   "dataIncorrectScreenTitle": "Retrieve data",
+  "forgotPinScreenCta": "Clear Wallet",
+  "forgotPinScreenDescription": "When you forget your pin you can no longer use your Wallet.\n\nTo continue using the Wallet you have to start over. Clear your wallet and select a new pin.",
+  "forgotPinScreenHeadline": "Forgot your pin?",
+  "forgotPinScreenTitle": "Forgot pin",
   "generalBottomBackCta": "Back",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
@@ -202,15 +216,30 @@
     "description": "App version and build number"
   },
   "generalWCAGBack": "Back",
-  "historyDetailScreenInteractionAttributesTitle": "Shared data",
+  "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
+  "historyDetailScreenHelpdeskTitle": "Open helpdesk",
+  "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, =0 {No attributes shared} =1 {Shared 1 attribute} other {Shared {attributes} attributes}}",
+  "@historyDetailScreenInteractionAttributesTitle": {
+    "placeholders": {
+      "attributes": {
+        "example": "4",
+        "type": "int"
+      }
+    },
+    "description": "Number of attributes shared"
+  },
   "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
   "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
+  "historyDetailScreenIssueTitle": "Report an issue",
   "historyDetailScreenOperationAttributesTitle": "Retrieved data",
   "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
   "historyDetailScreenOperationStatusIssuedDescription": "Card added",
   "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
   "historyDetailScreenSigningAttributesTitle": "Signed",
   "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
+  "historyDetailScreenTermsSubtitle": "How the organization processes your data",
+  "historyDetailScreenTermsTitle": "Terms and Conditions",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Usage history",
   "homeScreenBottomNavBarCardsCta": "Cards",
@@ -446,20 +475,35 @@
   "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
   "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "You can request data deletion",
+  "policyScreenDataCanBeDeletedDescription": "This organizations allows you to delete your data.",
   "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
+  "policyScreenDataCanNotBeDeletedDescription": "This organizations does not allow you to delete your data.",
   "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
-  "policyScreenDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "policyScreenDataPurposeDescription": "Your information is not used for anything besides the stated purpose.",
+  "policyScreenDataRetentionDuration": "{months, plural, =0 {Data is not stored} =1 {Data is stored for {months} month} other {Data is stored for {months} months}}",
   "@policyScreenDataRetentionDuration": {
     "placeholders": {
-      "days": {
+      "months": {
         "example": "30",
         "type": "int"
       }
     },
     "description": "Duration that data will be stored by the verifier"
   },
+  "policyScreenDataRetentionDurationDescription": "{months, plural, =0 {Your data is not stored anywhere.} =1 {Your data is stored for {months} month. After that it will be deleted automatically.} other {Your data is stored for {months} months. After that it will be deleted automatically.}}",
+  "@policyScreenDataRetentionDurationDescription": {
+    "placeholders": {
+      "months": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
   "policyScreenDataWillBeShared": "Your information will be shared with third parties",
+  "policyScreenDataWillBeSharedDescription": "Data is shared with other companies and/or organizations.",
   "policyScreenDataWillNotBeShared": "Your information will not be shared with third parties",
+  "policyScreenDataWillNotBeSharedDescription": "Data is not shared with other companies and/or organizations.",
   "policyScreenErrorDescription": "The policy could not be loaded",
   "policyScreenPolicySectionPolicyCta": "privacy policy",
   "policyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
@@ -473,6 +517,7 @@
     "description": "Text showing the user where to find the privacy policy"
   },
   "policyScreenPolicySectionTitle": "Want to know more?",
+  "policyScreenReportIssueCta": "Report an issue",
   "policyScreenRetryCta": "Try again",
   "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "How does my QR-code work?",
@@ -584,15 +629,6 @@
   "stopVerificationSheetNegativeCta": "No",
   "stopVerificationSheetPositiveCta": "Yes, stop",
   "stopVerificationSheetTitle": "Are you sure you want to stop?",
-  "termsAndConditionsScreenDeleteTitle": "Conditions related to data deletion...",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "View the ",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacy policy",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart3": " for more information on how your data will be processed.",
-  "termsAndConditionsScreenDiscoverMoreTitle": "Discover more?",
-  "termsAndConditionsScreenPurposeTitle": "Conditions related to purpose...",
-  "termsAndConditionsScreenShareTitle": "Conditions related to data processing...",
-  "termsAndConditionsScreenStorageTitle": "Conditions related to storage period...",
-  "termsAndConditionsScreenTitle": "Terms and Conditions",
   "verificationConfirmDataAttributesCheckAttributesCta": "Check your data",
   "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
@@ -735,5 +771,9 @@
   "walletPersonalizeScreenTitle": "Create wallet",
   "walletPersonalizeSuccessPageContinueCta": "To my Wallet",
   "walletPersonalizeSuccessPageDescription": "Your cards have been added!",
+  "walletPersonalizeDataIncorrectScreenTitle": "Something is not correct",
+  "walletPersonalizeDataIncorrectScreenSubhead": "Is the data incorrect?",
+  "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, this can lead to issues. Report your issue to MFO.\n\nIt can take a moment before your data is updated, once the updates are processed you can create your Wallet.",
+  "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
   "walletPersonalizeSuccessPageTitle": "Success!"
 }

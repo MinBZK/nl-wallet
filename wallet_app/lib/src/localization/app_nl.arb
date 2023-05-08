@@ -124,6 +124,16 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
+  "dataAttributeSectionTitle": "Bron: {source}",
+  "@dataAttributeSectionTitle": {
+    "placeholders": {
+      "source": {
+        "example": "Persoonsgegevens",
+        "type": "String"
+      }
+    },
+    "description": "Title of the DataAttributeSection widget, indicating the source of the listed attributes"
+  },
   "dataIncorrectScreenApproveCta": "Kaart toch toevoegen",
   "dataIncorrectScreenApproveDescription": "De kaart nu toevoegen en updaten als de gegevens zijn aangepast.",
   "dataIncorrectScreenApproveTitle": "Kaart toevoegen",
@@ -134,6 +144,10 @@
   "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
   "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
   "dataIncorrectScreenTitle": "Gegevens ophalen",
+  "forgotPinScreenCta": "Wallet wissen",
+  "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+  "forgotPinScreenHeadline": "Code vergeten?",
+  "forgotPinScreenTitle": "Toegangscode vergeten",
   "generalBottomBackCta": "Terug",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
@@ -202,15 +216,30 @@
     "description": "App version and build number"
   },
   "generalWCAGBack": "Terug",
-  "historyDetailScreenInteractionAttributesTitle": "Gedeelde gegevens",
+  "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
+  "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
+  "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, =0 {Geen gegevens gedeeld} =1 {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
+  "@historyDetailScreenInteractionAttributesTitle": {
+    "placeholders": {
+      "attributes": {
+        "example": "4",
+        "type": "int"
+      }
+    },
+    "description": "Number of attributes shared"
+  },
   "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
   "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenIssueSubtitle": "Over de gegevens, het verzoek of de ontvanger",
+  "historyDetailScreenIssueTitle": "Meld een probleem",
   "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
   "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
   "historyDetailScreenOperationStatusIssuedDescription": "Kaart aangemaakt",
   "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
   "historyDetailScreenSigningAttributesTitle": "Ondertekend",
   "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
+  "historyDetailScreenTermsSubtitle": "Hoe gaat de ontvanger om met jouw gegevens",
+  "historyDetailScreenTermsTitle": "Voorwaarden",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Gebruiksgeschiedenis",
   "homeScreenBottomNavBarCardsCta": "Kaarten",
@@ -446,20 +475,35 @@
   "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
   "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "policyScreenDataCanBeDeletedDescription": "De partij biedt een manier aan om je opgeslagen gegevens te laten verwijderen.",
   "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "policyScreenDataCanNotBeDeletedDescription": "De partij biedt geen manier aan om je opgeslagen gegevens te laten verwijderen.",
   "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-  "policyScreenDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doeleinden gebruikt.",
+  "policyScreenDataRetentionDuration": "{months, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
   "@policyScreenDataRetentionDuration": {
     "placeholders": {
-      "days": {
+      "months": {
         "example": "30",
         "type": "int"
       }
     },
     "description": "Duration that data will be stored by the verifier"
   },
+  "policyScreenDataRetentionDurationDescription": "{months, plural, =0 {Je gegevens worden niet bewaard in je dossier.} =1 {Je gegevens worden {months} maand bewaard in je dossier. Daarna zullen deze automatisch worden verwijderd.} other {Je gegevens worden {months} maanden bewaard in je dossier. Daarna zullen deze automatisch worden verwijderd.}}",
+  "@policyScreenDataRetentionDurationDescription": {
+    "placeholders": {
+      "months": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
   "policyScreenDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "policyScreenDataWillBeSharedDescription": "Gegevens worden gedeeld met andere bedrijven of organisaties.",
   "policyScreenDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
+  "policyScreenDataWillNotBeSharedDescription": "Gegevens worden niet gedeeld met andere bedrijven of organisaties.",
   "policyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
   "policyScreenPolicySectionPolicyCta": "privacybeleid",
   "policyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
@@ -473,6 +517,7 @@
     "description": "Text showing the user where to find the privacy policy"
   },
   "policyScreenPolicySectionTitle": "Meer weten?",
+  "policyScreenReportIssueCta": "Een probleem melden",
   "policyScreenRetryCta": "Probeer opnieuw",
   "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
@@ -584,15 +629,6 @@
   "stopVerificationSheetNegativeCta": "Nee",
   "stopVerificationSheetPositiveCta": "Ja, stoppen",
   "stopVerificationSheetTitle": "Weet je zeker dat je wilt stoppen?",
-  "termsAndConditionsScreenDeleteTitle": "Voorwaarde over verwijderen...",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "Bekijk het ",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacybeleid",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart3": " voor meer informatie over hoe je gegevens gebruikt gaan worden.",
-  "termsAndConditionsScreenDiscoverMoreTitle": "Meer weten?",
-  "termsAndConditionsScreenPurposeTitle": "Voorwaarde over doel...",
-  "termsAndConditionsScreenShareTitle": "Voorwaarde over delen met derden...",
-  "termsAndConditionsScreenStorageTitle": "Voorwaarde over bewaartermijn...",
-  "termsAndConditionsScreenTitle": "Voorwaarden",
   "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
   "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
@@ -735,5 +771,9 @@
   "walletPersonalizeScreenTitle": "Wallet aanmaken",
   "walletPersonalizeSuccessPageContinueCta": "Naar mijn Wallet",
   "walletPersonalizeSuccessPageDescription": "Je kaarten zijn toegevoegd!",
+  "walletPersonalizeDataIncorrectScreenTitle": "Er klopt iets niet",
+  "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
+  "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Meld je fout bij het Meldpunt Fouten in Overheidsregistraties (MFO).\n\nHet kan even duren voordat je gegevens zijn aangepast. Als je gegevens zijn aangepast kan je je Wallet aanmaken.",
+  "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
   "walletPersonalizeSuccessPageTitle": "Gelukt!"
 }

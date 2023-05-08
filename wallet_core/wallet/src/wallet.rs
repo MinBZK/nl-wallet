@@ -1,9 +1,10 @@
 use anyhow::{anyhow, Result};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::{instructions::Registration, jwt::EcdsaDecodingKey, AccountServerClient};
+use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
 
 use crate::{
+    account_server::AccountServerClient,
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,

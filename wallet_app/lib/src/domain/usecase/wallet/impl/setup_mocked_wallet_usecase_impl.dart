@@ -26,23 +26,24 @@ class SetupMockedWalletUseCaseImpl implements SetupMockedWalletUseCase {
     walletRepository.unlockWallet('000000');
 
     // Add cards + history
-    const cardIds = ['PID_1', 'DRIVING_LICENSE'];
-    for (String cardId in cardIds) {
+    const issuanceIds = ['PID_1'];
+    for (String issuanceId in issuanceIds) {
+      final IssuanceResponse issuanceResponse = await issuanceResponseRepository.read(issuanceId);
       // Add card
-      final IssuanceResponse issuanceResponse = await issuanceResponseRepository.read(cardId);
-      final card = issuanceResponse.cards.first;
-      walletCardRepository.create(card);
+      for (final card in issuanceResponse.cards) {
+        walletCardRepository.create(card);
 
-      // Add history
-      timelineAttributeRepository.create(
-        OperationTimelineAttribute(
-          status: OperationStatus.issued,
-          dateTime: DateTime.now(),
-          cardTitle: card.front.title,
-          organization: issuanceResponse.organization,
-          dataAttributes: card.attributes,
-        ),
-      );
+        // Add history
+        timelineAttributeRepository.create(
+          OperationTimelineAttribute(
+            status: OperationStatus.issued,
+            dateTime: DateTime.now(),
+            cardTitle: card.front.title,
+            organization: issuanceResponse.organization,
+            dataAttributes: card.attributes,
+          ),
+        );
+      }
     }
   }
 }

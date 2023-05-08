@@ -21,13 +21,11 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.check,
       title: locale.walletPersonalizeSuccessPageTitle,
-      content: Column(
+      content: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
           const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: StackedWalletCards(cards: cards),
-          ),
+          StackedWalletCards(cards: cards),
         ],
       ),
       description: locale.walletPersonalizeSuccessPageDescription,

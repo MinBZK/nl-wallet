@@ -3,22 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/timeline/signing_timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
-import '../../common/widget/attribute/data_attribute_row.dart';
+import '../../../util/formatter/history_details_time_formatter.dart';
+import '../../common/widget/attribute/data_attribute_section.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/document_section.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/info_row.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/policy/policy_section.dart';
+import '../../common/widget/sliver_divider.dart';
+import '../../common/widget/sliver_sized_box.dart';
+import '../../organization/detail/organization_detail_screen.dart';
+import '../../organization/widget/organization_row.dart';
+import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
-import 'widget/history_detail_header.dart';
 import 'widget/history_detail_timeline_attribute_row.dart';
 
 class HistoryDetailScreen extends StatelessWidget {
@@ -60,6 +63,7 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
+    final locale = AppLocalizations.of(context);
     final TimelineAttribute timelineAttribute = state.timelineAttribute;
     final bool showTimelineStatusRow = _showTimelineStatusRow(timelineAttribute);
     final bool showDataAttributesSection = _showDataAttributesSection(timelineAttribute);
@@ -69,26 +73,39 @@ class HistoryDetailScreen extends StatelessWidget {
     // Header
     slivers.addAll([
       SliverToBoxAdapter(
-        child: HistoryDetailHeader(
-          organization: timelineAttribute.organization,
-          dateTime: timelineAttribute.dateTime,
+        child: OrganizationRow(
+          onTap: () => OrganizationDetailScreen.show(
+            context,
+            timelineAttribute.organization.id,
+            timelineAttribute.organization.shortName,
+          ),
+          organizationName: timelineAttribute.organization.shortName,
+          logoUrl: timelineAttribute.organization.logoUrl,
         ),
       ),
-      const SliverToBoxAdapter(child: Divider(height: 1)),
+      const SliverDivider(),
     ]);
 
     // Interaction/operation type
     if (showTimelineStatusRow) {
       slivers.addAll([
-        SliverToBoxAdapter(child: HistoryDetailTimelineAttributeRow(attribute: timelineAttribute)),
-        const SliverToBoxAdapter(child: Divider(height: 1)),
+        SliverToBoxAdapter(
+          child: HistoryDetailTimelineAttributeRow(
+            attribute: timelineAttribute,
+          ),
+        ),
+        const SliverDivider(),
       ]);
     }
 
     // Data attributes
     if (showDataAttributesSection) {
       // Section title
-      slivers.add(SliverToBoxAdapter(child: _buildDataAttributesSectionTitle(context, timelineAttribute)));
+      slivers.add(
+        SliverToBoxAdapter(
+          child: _buildDataAttributesSectionTitle(context, timelineAttribute),
+        ),
+      );
 
       // Signed contract (optional)
       if (showContractSection) {
@@ -96,36 +113,73 @@ class HistoryDetailScreen extends StatelessWidget {
         slivers.addAll([
           SliverToBoxAdapter(
             child: DocumentSection(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.only(left: 56, right: 16),
               document: signingAttribute.document,
               organization: signingAttribute.organization,
             ),
           ),
-          const SliverToBoxAdapter(child: Divider(height: 32)),
+          const SliverDivider(height: 32),
+          const SliverSizedBox(height: 8),
         ]);
       }
 
       // Data attributes
-      for (DataAttribute dataAttribute in timelineAttribute.dataAttributes) {
-        slivers.add(SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: DataAttributeRow(attribute: dataAttribute),
+      for (final entry in state.attributesByCard.entries) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 56, bottom: 8, right: 16),
+              child: DataAttributeSection(
+                sourceCardTitle: entry.key.front.title,
+                attributes: entry.value,
+              ),
+            ),
           ),
-        ));
+        );
       }
+      slivers.add(const SliverSizedBox(height: 16));
+      slivers.add(const SliverDivider());
 
       // Policy section
       final Policy? policy = _getPolicyToDisplay(timelineAttribute);
       if (policy != null) {
-        slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
-        slivers.add(SliverToBoxAdapter(child: PolicySection(policy)));
+        slivers.add(
+          SliverToBoxAdapter(
+            child: InfoRow(
+              title: locale.historyDetailScreenTermsTitle,
+              subtitle: locale.historyDetailScreenTermsSubtitle,
+              leading: Icon(Icons.policy_outlined, color: Theme.of(context).colorScheme.primary),
+              onTap: () => PolicyScreen.show(context, policy),
+            ),
+          ),
+        );
       }
 
       // Incorrect button
-      slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
-      slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
-      slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
+      slivers.add(const SliverDivider());
+      slivers.add(
+        SliverToBoxAdapter(
+          child: InfoRow(
+            title: locale.historyDetailScreenIssueTitle,
+            subtitle: locale.historyDetailScreenIssueSubtitle,
+            leading: Icon(Icons.gpp_maybe_outlined, color: Theme.of(context).colorScheme.primary),
+            onTap: () => PlaceholderScreen.show(context),
+          ),
+        ),
+      );
+      slivers.add(const SliverDivider());
+      slivers.add(
+        SliverToBoxAdapter(
+          child: InfoRow(
+            title: locale.historyDetailScreenHelpdeskTitle,
+            subtitle: locale.historyDetailScreenHelpdeskSubtitle,
+            leading: Icon(Icons.comment_outlined, color: Theme.of(context).colorScheme.primary),
+            onTap: () => PlaceholderScreen.show(context),
+          ),
+        ),
+      );
+      slivers.add(const SliverDivider());
+      slivers.add(const SliverSizedBox(height: 32));
     }
 
     return Column(
@@ -138,7 +192,7 @@ class HistoryDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-        const BottomBackButton(),
+        const BottomBackButton(showDivider: true),
       ],
     );
   }
@@ -179,7 +233,7 @@ class HistoryDetailScreen extends StatelessWidget {
 
     String title = '';
     if (attribute is InteractionTimelineAttribute) {
-      title = locale.historyDetailScreenInteractionAttributesTitle;
+      title = locale.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
     } else if (attribute is OperationTimelineAttribute) {
       title = locale.historyDetailScreenOperationAttributesTitle;
     } else if (attribute is SigningTimelineAttribute) {
@@ -188,27 +242,30 @@ class HistoryDetailScreen extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.displaySmall,
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: Image.asset('assets/images/ic_card_share.png'),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                HistoryDetailsTimeFormatter.format(locale, attribute.dateTime),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildIncorrectButton(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: LinkButton(
-          child: Text(AppLocalizations.of(context).cardDataScreenIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context),
-        ),
       ),
     );
   }

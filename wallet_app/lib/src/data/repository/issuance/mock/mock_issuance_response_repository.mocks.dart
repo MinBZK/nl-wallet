@@ -11,15 +11,23 @@ const _kMockGender = 'Vrouw';
 const _kPidId = 'PID_1';
 const _kMockPidWalletCard = WalletCard(
   id: _kPidId,
-  issuerId: 'rvig',
+  issuerId: kRvigId,
   front: _kMockPidCardFront,
   attributes: _kMockPidDataAttributes,
+);
+
+const _kAddressId = 'ADDRESS_1';
+const _kMockAddressWalletCard = WalletCard(
+  id: _kAddressId,
+  issuerId: kRvigId,
+  front: _kMockAddressCardFront,
+  attributes: _kMockAddressDataAttributes,
 );
 
 const _kDiplomaId = 'DIPLOMA_1';
 const _kMockDiplomaWalletCard = WalletCard(
   id: _kDiplomaId,
-  issuerId: 'duo',
+  issuerId: kDuoId,
   front: _kMockDiplomaCardFront,
   attributes: _kMockDiplomaDataAttributes,
 );
@@ -28,7 +36,7 @@ const _kMultiDiplomaId = 'MULTI_DIPLOMA';
 const _kMasterDiplomaId = 'DIPLOMA_2';
 const _kMockMasterDiplomaWalletCard = WalletCard(
   id: _kMasterDiplomaId,
-  issuerId: 'duo',
+  issuerId: kDuoId,
   front: _kMockMasterDiplomaCardFront,
   attributes: _kMockMasterDiplomaDataAttributes,
 );
@@ -36,7 +44,7 @@ const _kMockMasterDiplomaWalletCard = WalletCard(
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
 final _kMockDrivingLicenseWalletCard = WalletCard(
   id: _kDrivingLicenseId,
-  issuerId: 'rdw',
+  issuerId: kRdwId,
   front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
 );
@@ -44,7 +52,7 @@ final _kMockDrivingLicenseWalletCard = WalletCard(
 const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
 final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
   id: _kDrivingLicenseId, // Same id as initial license! Used to mock 'renewal' a.k.a. card update
-  issuerId: 'rdw',
+  issuerId: kRdwId,
   front: _kMockDrivingLicenseRenewedCardFront,
   attributes: _kMockDrivingLicenseRenewedDataAttributes,
 );
@@ -52,7 +60,7 @@ final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
 const _kMockHealthInsuranceWalletCard = WalletCard(
   id: _kHealthInsuranceId,
-  issuerId: 'health_insurer_1',
+  issuerId: kHealthInsuranceId,
   front: _kMockHealthInsuranceCardFront,
   attributes: _kMockHealthInsuranceDataAttributes,
 );
@@ -60,7 +68,7 @@ const _kMockHealthInsuranceWalletCard = WalletCard(
 const _kVOGId = 'VOG';
 const _kMockVOGWalletCard = WalletCard(
   id: _kVOGId,
-  issuerId: 'justis',
+  issuerId: kJusticeId,
   front: _kMockVOGCardFront,
   attributes: _kMockVOGDataAttributes,
 );
@@ -76,6 +84,15 @@ const _kMockPidCardFront = CardFront(
   holoImage: 'assets/svg/rijks_card_holo.svg',
   backgroundImage: 'assets/svg/rijks_card_bg_light.svg',
   theme: CardFrontTheme.light,
+);
+
+const _kMockAddressCardFront = CardFront(
+  title: 'Adres',
+  subtitle: "'s-Gravenhage",
+  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+  holoImage: 'assets/svg/rijks_card_holo.svg',
+  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
+  theme: CardFrontTheme.dark,
 );
 
 const _kMockDiplomaCardFront = CardFront(
@@ -195,31 +212,34 @@ const _kMockPidDataAttributes = [
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
+    label: 'Nationaliteit',
+    value: 'Nederlands',
+    type: AttributeType.nationality,
+    sourceCardId: _kPidId,
+  ),
+];
+
+const _kMockAddressDataAttributes = [
+  DataAttribute(
+    valueType: AttributeValueType.text,
     label: 'Woonplaats',
     value: 'Den Haag',
     type: AttributeType.city,
-    sourceCardId: _kPidId,
+    sourceCardId: _kAddressId,
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Postcode',
     value: '2511 DP',
     type: AttributeType.postalCode,
-    sourceCardId: _kPidId,
+    sourceCardId: _kAddressId,
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Straatnaam',
     value: 'Turfmarkt 147',
     type: AttributeType.street,
-    sourceCardId: _kPidId,
-  ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
-    label: 'Nationaliteit',
-    value: 'Nederlands',
-    type: AttributeType.nationality,
-    sourceCardId: _kPidId,
+    sourceCardId: _kAddressId,
   ),
 ];
 

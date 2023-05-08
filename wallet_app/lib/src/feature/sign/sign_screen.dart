@@ -106,8 +106,8 @@ class SignScreen extends StatelessWidget {
 
   Widget _buildCheckOrganization(BuildContext context, SignCheckOrganization state) {
     return OrganizationApprovePage(
-      onDecline: () => _stopSigning(context),
-      onAccept: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
+      onDeclinePressed: () => _stopSigning(context),
+      onAcceptPressed: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
       organization: state.flow.organization,
       purpose: ApprovalPurpose.sign,
     );
@@ -127,8 +127,8 @@ class SignScreen extends StatelessWidget {
     }
     return ConfirmAgreementPage(
       flow: state.flow,
-      onDecline: () => _stopSigning(context),
-      onAccept: () => context.read<SignBloc>().add(const SignAgreementApproved()),
+      onDeclinePressed: () => _stopSigning(context),
+      onAcceptPressed: () => context.read<SignBloc>().add(const SignAgreementApproved()),
     );
   }
 

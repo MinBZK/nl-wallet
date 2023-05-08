@@ -9,6 +9,7 @@ migration = { path = "migration" }
 wallet_common = { path = "../wallet_common" }
 anyhow = "1.0.66"
 async-trait = "0.1.68"
+base64 = "0.21.0"
 libsqlite3-sys = { version = "0.24.2", features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -28,9 +29,6 @@ serde = { version = "1.0.156", features = ["derive"] }
 serde_json = { version = "1.0.92" }
 thiserror = "1.0.39"
 
-# TODO: find a proper way to talk to the wallet provider instead of this
-wallet_provider = { path = "../wallet_provider" }
-
 # enable the "hardware" feature for platform_support when building for either Android or iOS
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 platform_support = { path = "../platform_support", features = ["hardware"] }
@@ -42,6 +40,7 @@ platform_support = { path = "../platform_support", features = ["software"] }
 # enable the "software-integration-test" feature for platform_support when running tests,
 # which includes the "software" feature
 [dev-dependencies]
+wallet_provider = { path = "../wallet_provider" }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }

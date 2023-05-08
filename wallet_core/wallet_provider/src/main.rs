@@ -1,7 +1,3 @@
-// Prevent dead code warnings because AccountServer::new_stub is not used in the bin.
-// TODO: remove this when the wallet_provider is not a dependency of the wallet.
-#![allow(dead_code)]
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -15,7 +11,10 @@ use rand::rngs::OsRng;
 use tower_http::trace::TraceLayer;
 
 use wallet_common::{
-    account::{instructions::Registration, signed::SignedDouble, Certificate, Challenge},
+    account::{
+        auth::{Certificate, Challenge, Registration},
+        signed::SignedDouble,
+    },
     utils::random_bytes,
 };
 
@@ -44,6 +43,12 @@ async fn main() {
             .verifying_key()
             .to_public_key_der()
             .unwrap()
+            .as_bytes()
+    ));
+    dbg!(STANDARD.encode(
+        account_server_privkey
+            .verifying_key()
+            .to_encoded_point(false)
             .as_bytes()
     ));
 

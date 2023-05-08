@@ -21,7 +21,7 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
     final String descriptionText = TimelineAttributeStatusDescriptionTextMapper.map(locale, attribute);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+      padding: const EdgeInsets.only(top: 24.0, bottom: 24.0, right: 16.0, left: 56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

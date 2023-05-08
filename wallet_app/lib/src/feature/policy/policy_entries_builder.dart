@@ -4,6 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../domain/model/policy/policy.dart';
+import '../../util/extension/duration_extension.dart';
 import 'model/policy_entry.dart';
 
 /// Helper class to organize all the provided policy attributes into a render-able list of [PolicyEntry]s
@@ -21,12 +22,12 @@ class PolicyEntriesBuilder {
     final privacyPolicyUrl = interactionPolicy.privacyPolicyUrl;
 
     if (dataPurpose != null) {
-      results.add(_buildDataPurposeEntry(dataPurpose));
+      results.add(_buildDataPurposeEntry(dataPurpose, interactionPolicy.dataPurposeDescription));
     }
+    results.add(_buildDataSharingPolicy(interactionPolicy));
     if (storageDuration != null) {
       results.add(_buildStorageDurationPolicy(storageDuration));
     }
-    results.add(_buildDataSharingPolicy(interactionPolicy));
     if (interactionPolicy.dataIsSignature) {
       results.add(_buildSignaturePolicy());
     }
@@ -40,10 +41,10 @@ class PolicyEntriesBuilder {
     return results;
   }
 
-  PolicyEntry _buildDataPurposeEntry(String dataPurpose) {
+  PolicyEntry _buildDataPurposeEntry(String dataPurpose, String? dataPurposeDescription) {
     return PolicyEntry(
       title: TextSpan(text: dataPurpose),
-      description: const TextSpan(text: _kLoremIpsum),
+      description: TextSpan(text: dataPurposeDescription ?? locale.policyScreenDataPurposeDescription),
       icon: Icons.task_outlined,
     );
   }
@@ -51,11 +52,9 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildStorageDurationPolicy(Duration storageDuration) {
     return PolicyEntry(
       title: TextSpan(
-        text: locale.policyScreenDataRetentionDuration(
-          storageDuration.inDays,
-        ),
+        text: locale.policyScreenDataRetentionDuration(storageDuration.inMonths),
       ),
-      description: const TextSpan(text: _kLoremIpsumShort),
+      description: TextSpan(text: locale.policyScreenDataRetentionDurationDescription(storageDuration.inMonths)),
       icon: Icons.access_time_outlined,
     );
   }
@@ -67,7 +66,11 @@ class PolicyEntriesBuilder {
             ? locale.policyScreenDataWillBeShared
             : locale.policyScreenDataWillNotBeShared,
       ),
-      description: const TextSpan(text: _kLoremIpsum),
+      description: TextSpan(
+        text: interactionPolicy.dataIsShared
+            ? locale.policyScreenDataWillBeSharedDescription
+            : locale.policyScreenDataWillNotBeSharedDescription,
+      ),
       icon: Icons.share_outlined,
     );
   }
@@ -85,7 +88,10 @@ class PolicyEntriesBuilder {
       title: TextSpan(
         text: deletionCanBeRequested ? locale.policyScreenDataCanBeDeleted : locale.policyScreenDataCanNotBeDeleted,
       ),
-      description: const TextSpan(text: _kLoremIpsumShort),
+      description:
+      TextSpan(
+        text: deletionCanBeRequested ? locale.policyScreenDataCanBeDeletedDescription : locale.policyScreenDataCanNotBeDeletedDescription,
+      ),
       icon: Icons.delete_outline,
     );
   }
@@ -116,5 +122,3 @@ class PolicyEntriesBuilder {
 
 const _kLoremIpsum =
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.';
-const _kLoremIpsumShort =
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';

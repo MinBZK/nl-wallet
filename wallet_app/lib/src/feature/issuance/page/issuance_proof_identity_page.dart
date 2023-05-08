@@ -10,14 +10,14 @@ import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
-  final VoidCallback onDecline;
-  final VoidCallback onAccept;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onAcceptPressed;
   final IssuanceFlow flow;
   final bool isRefreshFlow;
 
   const IssuanceProofIdentityPage({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.flow,
     required this.isRefreshFlow,
     Key? key,
@@ -47,9 +47,9 @@ class IssuanceProofIdentityPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAccept: onAccept,
+                onAcceptPressed: onAcceptPressed,
                 acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
-                onDecline: onDecline,
+                onDeclinePressed: onDeclinePressed,
                 declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
                 acceptIcon: Icons.arrow_forward,
               ),

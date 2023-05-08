@@ -13,8 +13,8 @@ const _kButtonIconSpacing = 8.0;
 const _kButtonIconHorizontalSpace = _kButtonIconSize + _kButtonIconSpacing;
 
 class ConfirmButtons extends StatelessWidget {
-  final VoidCallback onDecline;
-  final VoidCallback onAccept;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onAcceptPressed;
   final String acceptText;
   final String declineText;
   final IconData? acceptIcon;
@@ -22,8 +22,8 @@ class ConfirmButtons extends StatelessWidget {
   final bool forceVertical;
 
   const ConfirmButtons({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.acceptText,
     required this.declineText,
     this.forceVertical = false,
@@ -74,7 +74,7 @@ class ConfirmButtons extends StatelessWidget {
         child: _buildButtonContainer(
           context,
           ConfirmButtonType.outlined,
-          onDecline,
+          onDeclinePressed,
           declineIcon,
           declineText,
         ),
@@ -85,7 +85,7 @@ class ConfirmButtons extends StatelessWidget {
         child: _buildButtonContainer(
           context,
           ConfirmButtonType.elevated,
-          onAccept,
+          onAcceptPressed,
           acceptIcon,
           acceptText,
         ),

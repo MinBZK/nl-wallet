@@ -9,11 +9,10 @@ use sha2::Digest;
 
 use wallet_common::{
     account::{
-        instructions::Registration,
+        auth::{Registration, WalletCertificate, WalletCertificateClaims},
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         serialization::Base64Bytes,
         signed::SignedDouble,
-        AccountServerClient, WalletCertificate, WalletCertificateClaims,
     },
     utils::{random_bytes, random_string},
 };
@@ -42,15 +41,6 @@ impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
-impl AccountServerClient for AccountServer {
-    fn registration_challenge(&self) -> Result<Vec<u8>> {
-        AccountServer::registration_challenge(self)
-    }
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
-        AccountServer::register(self, registration_message)
-    }
-}
-
 impl AccountServer {
     pub fn new(privkey: Vec<u8>, pin_hash_salt: Vec<u8>, name: String) -> Result<AccountServer> {
         let pubkey = EcdsaDecodingKey::from_sec1(
@@ -68,6 +58,7 @@ impl AccountServer {
         })
     }
 
+    #[allow(dead_code)] // This constructor is used for tests in the "wallet" crate
     pub fn new_stub() -> AccountServer {
         let account_server_privkey = SigningKey::random(&mut OsRng);
         AccountServer::new(
@@ -152,4 +143,36 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
     let mut buf = Vec::<u8>::with_capacity(payload.encoded_len()?.try_into()?);
     payload.encode_to_vec(&mut buf)?;
     Ok(buf)
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_account_server() {
+        // Setup account server
+        let account_server = AccountServer::new_stub();
+
+        // Set up keys
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        // Register
+        let challenge = account_server
+            .registration_challenge()
+            .expect("Could not get registration challenge");
+        let registration_message =
+            Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).expect("Could not sign new registration");
+        let cert = account_server
+            .register(registration_message)
+            .expect("Could not process registration message at account server");
+
+        // Verify the certificate
+        let cert_data = cert
+            .parse_and_verify(&account_server.pubkey)
+            .expect("Could not parse and verify wallet certificate");
+        assert_eq!(cert_data.iss, account_server.name);
+        assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
+    }
 }

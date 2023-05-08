@@ -50,9 +50,9 @@ class CheckAgreementPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAccept: onAccept,
+                onAcceptPressed: onAccept,
                 acceptText: AppLocalizations.of(context).checkAgreementPageConfirmCta,
-                onDecline: onDecline,
+                onDeclinePressed: onDecline,
                 declineText: AppLocalizations.of(context).checkAgreementPageCancelCta,
               ),
             ),

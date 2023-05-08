@@ -12,13 +12,13 @@ import '../model/sign_flow.dart';
 const _kContextIllustration = 'assets/non-free/images/sign_illustration_2.png';
 
 class ConfirmAgreementPage extends StatelessWidget {
-  final VoidCallback onDecline;
-  final VoidCallback onAccept;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onAcceptPressed;
   final SignFlow flow;
 
   const ConfirmAgreementPage({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.flow,
     Key? key,
   }) : super(key: key);
@@ -46,9 +46,9 @@ class ConfirmAgreementPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAccept: onAccept,
+                onAcceptPressed: onAcceptPressed,
                 acceptText: locale.confirmAgreementPageConfirmCta,
-                onDecline: onDecline,
+                onDeclinePressed: onDeclinePressed,
                 declineText: locale.confirmAgreementPageCancelCta,
               ),
             ),
