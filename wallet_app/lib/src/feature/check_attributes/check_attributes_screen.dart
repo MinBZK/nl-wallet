@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/attribute/data_attribute.dart';
-import '../common/widget/attribute/attribute_row.dart';
+import '../../domain/model/wallet_card.dart';
+import '../common/widget/attribute/data_attribute_section.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
-import '../common/widget/placeholder_screen.dart';
 import '../common/widget/sliver_sized_box.dart';
 
 class CheckAttributesScreen extends StatelessWidget {
-  final List<DataAttribute> attributes;
+  final Map<WalletCard, List<DataAttribute>> cardsToAttributes;
+  final VoidCallback? onDataIncorrectPressed;
 
-  const CheckAttributesScreen({required this.attributes, Key? key}) : super(key: key);
+  const CheckAttributesScreen({
+    required this.cardsToAttributes,
+    this.onDataIncorrectPressed,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +28,7 @@ class CheckAttributesScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(child: _buildContent(context)),
-          const Divider(height: 1),
-          const BottomBackButton(),
+          const BottomBackButton(showDivider: true),
         ],
       ),
     );
@@ -35,19 +39,7 @@ class CheckAttributesScreen extends StatelessWidget {
       thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
-          const SliverSizedBox(height: 32),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final attr = attributes[index];
-                return Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
-                  child: AttributeRow(attribute: attr),
-                );
-              },
-              childCount: attributes.length,
-            ),
-          ),
+          ..._generateDataSectionSlivers(),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 32),
         ],
@@ -55,14 +47,32 @@ class CheckAttributesScreen extends StatelessWidget {
     );
   }
 
+  List<Widget> _generateDataSectionSlivers() {
+    final dataSections = cardsToAttributes.entries.map(
+      (cardToAttributes) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24),
+            child: DataAttributeSection(
+              sourceCardTitle: cardToAttributes.key.front.title,
+              attributes: cardToAttributes.value,
+            ),
+          ),
+          const Divider(height: 1),
+        ],
+      ),
+    );
+    return dataSections.map((e) => SliverToBoxAdapter(child: e)).toList();
+  }
+
   Widget _buildDataIncorrectButton(BuildContext context) {
+    if (onDataIncorrectPressed == null) return const SizedBox.shrink();
     final locale = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(height: 1),
         LinkButton(
-          onPressed: () => PlaceholderScreen.show(context),
+          onPressed: () => onDataIncorrectPressed!(),
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Text(locale.checkAttributesScreenDataIncorrectCta),
         ),
@@ -71,10 +81,19 @@ class CheckAttributesScreen extends StatelessWidget {
     );
   }
 
-  static void show(BuildContext context, List<DataAttribute> attributes) {
+  static void show(
+    BuildContext context,
+    Map<WalletCard, List<DataAttribute>> cardsToAttributes, {
+    VoidCallback? onDataIncorrectPressed,
+  }) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (c) => CheckAttributesScreen(attributes: attributes)),
+      MaterialPageRoute(
+        builder: (c) => CheckAttributesScreen(
+          cardsToAttributes: cardsToAttributes,
+          onDataIncorrectPressed: onDataIncorrectPressed,
+        ),
+      ),
     );
   }
 }
