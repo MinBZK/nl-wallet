@@ -9,14 +9,22 @@ class VerificationRequest extends Equatable {
   final Organization organization;
   final List<RequestedAttribute> requestedAttributes;
   final Policy interactionPolicy;
+  final String purpose;
 
   const VerificationRequest({
     required this.id,
     required this.organization,
     required this.requestedAttributes,
     required this.interactionPolicy,
+    required this.purpose,
   });
 
   @override
-  List<Object?> get props => [id, organization, requestedAttributes, interactionPolicy];
+  List<Object?> get props => [
+        id,
+        organization,
+        requestedAttributes,
+        interactionPolicy,
+        purpose,
+      ];
 }

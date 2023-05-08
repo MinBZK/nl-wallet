@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/icon_row.dart';
+import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../verification/model/organization.dart';
 import '../detail/organization_detail_screen.dart';
@@ -10,10 +11,13 @@ import '../widget/organization_row.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
-  final VoidCallback onAccept;
+  final VoidCallback onAcceptPressed;
 
   /// Callback that is triggered when the user declines the request
-  final VoidCallback onDecline;
+  final VoidCallback onDeclinePressed;
+
+  /// Callback that is triggered when the user indicates data is incorrect
+  final VoidCallback? onDataIncorrectPressed;
 
   /// The organization that user is interacting with
   final Organization organization;
@@ -21,14 +25,19 @@ class OrganizationApprovePage extends StatelessWidget {
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
   final ApprovalPurpose purpose;
 
+  /// Inform the user what the purpose is of this request
+  final String? dataPurpose;
+
   /// If true, the 'first interaction' banner will be shown.
   final bool isFirstInteractionWithOrganization;
 
   const OrganizationApprovePage({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.organization,
     required this.purpose,
+    this.dataPurpose,
+    this.onDataIncorrectPressed,
     this.isFirstInteractionWithOrganization = true,
     Key? key,
   }) : super(key: key);
@@ -53,8 +62,12 @@ class OrganizationApprovePage extends StatelessWidget {
                 context,
                 organization.id,
                 AppLocalizations.of(context).verificationScreenTitle,
+                onDataIncorrectPressed: () {
+                  Navigator.pop(context);
+                  onDataIncorrectPressed?.call();
+                },
               ),
-              organizationName: organization.shortName,
+              organizationName: organization.category,
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
@@ -65,10 +78,10 @@ class OrganizationApprovePage extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
                 forceVertical: true,
-                onAccept: onAccept,
+                onAcceptPressed: onAcceptPressed,
                 acceptIcon: Icons.arrow_forward,
                 acceptText: _approveButtonText(context),
-                onDecline: onDecline,
+                onDeclinePressed: onDeclinePressed,
                 declineText: _declineButtonText(context),
               ),
             ),
@@ -85,14 +98,7 @@ class OrganizationApprovePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6.4),
-              child: Image.asset(organization.logoUrl),
-            ),
-          ),
+          OrganizationLogo(image: AssetImage(organization.logoUrl), size: 64),
           const SizedBox(height: 24),
           Text(
             _headerTitleText(context),
@@ -108,11 +114,11 @@ class OrganizationApprovePage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.organizationApprovePageReceiveFromTitle(organization.shortName);
+        return locale.organizationApprovePageReceiveFromTitle(organization.name);
       case ApprovalPurpose.verification:
-        return locale.organizationApprovePageShareWithTitle(organization.shortName);
+        return locale.organizationApprovePageShareWithTitle(organization.name);
       case ApprovalPurpose.sign:
-        return locale.organizationApprovePageSignWithTitle(organization.shortName);
+        return locale.organizationApprovePageSignWithTitle(organization.name);
     }
   }
 
@@ -133,8 +139,7 @@ class OrganizationApprovePage extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           text: Text(
-            //TODO: Replace [purpose.name] with the actual purpose once the mocks are updated.
-            locale.organizationApprovePagePurpose(purpose.name),
+            locale.organizationApprovePagePurpose(dataPurpose ?? purpose.name),
           ),
         ),
       ],

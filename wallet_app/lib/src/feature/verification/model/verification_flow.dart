@@ -14,6 +14,7 @@ class VerificationFlow extends Equatable {
   final Map<WalletCard, List<DataAttribute>> availableAttributes;
   final List<RequestedAttribute> requestedAttributes;
   final Policy policy;
+  final String requestPurpose;
 
   const VerificationFlow({
     required this.id,
@@ -22,6 +23,7 @@ class VerificationFlow extends Equatable {
     required this.availableAttributes,
     required this.requestedAttributes,
     required this.policy,
+    required this.requestPurpose,
   });
 
   List<DataAttribute> get resolvedAttributes => availableAttributes.values.flattened.toList();
@@ -40,5 +42,6 @@ class VerificationFlow extends Equatable {
         availableAttributes,
         requestedAttributes,
         policy,
+        requestPurpose
       ];
 }

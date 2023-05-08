@@ -19,7 +19,7 @@ import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../../organization/widget/organization_row.dart';
-import '../../terms_and_conditions/terms_and_conditions_screen.dart';
+import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/history_detail_timeline_attribute_row.dart';
@@ -149,7 +149,7 @@ class HistoryDetailScreen extends StatelessWidget {
               title: locale.historyDetailScreenTermsTitle,
               subtitle: locale.historyDetailScreenTermsSubtitle,
               leading: Icon(Icons.policy_outlined, color: Theme.of(context).colorScheme.primary),
-              onTap: () => TermsAndConditionsScreen.show(context, policy),
+              onTap: () => PolicyScreen.show(context, policy),
             ),
           ),
         );

@@ -6,13 +6,13 @@ import '../../common/widget/check_data_offering_page.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
-  final VoidCallback onDecline;
-  final VoidCallback onAccept;
+  final VoidCallback onDeclinePressed;
+  final VoidCallback onAcceptPressed;
   final List<DataAttribute> attributes;
 
   const IssuanceCheckDataOfferingPage({
-    required this.onDecline,
-    required this.onAccept,
+    required this.onDeclinePressed,
+    required this.onAcceptPressed,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -31,9 +31,9 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return ConfirmButtons(
-      onAccept: onAccept,
+      onAcceptPressed: onAcceptPressed,
       acceptText: locale.issuanceCheckDataOfferingPagePositiveCta,
-      onDecline: onDecline,
+      onDeclinePressed: onDeclinePressed,
       declineText: locale.issuanceCheckDataOfferingPageNegativeCta,
       acceptIcon: Icons.check,
     );

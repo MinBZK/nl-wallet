@@ -475,20 +475,35 @@
   "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
   "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "You can request data deletion",
+  "policyScreenDataCanBeDeletedDescription": "This organizations allows you to delete your data.",
   "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
+  "policyScreenDataCanNotBeDeletedDescription": "This organizations does not allow you to delete your data.",
   "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
-  "policyScreenDataRetentionDuration": "{days, plural, =0 {Data is not stored} =1 {Data is stored for {days} day} other {Data is stored for {days} days}}",
+  "policyScreenDataPurposeDescription": "Your information is not used for anything besides the stated purpose.",
+  "policyScreenDataRetentionDuration": "{months, plural, =0 {Data is not stored} =1 {Data is stored for {months} month} other {Data is stored for {months} months}}",
   "@policyScreenDataRetentionDuration": {
     "placeholders": {
-      "days": {
+      "months": {
         "example": "30",
         "type": "int"
       }
     },
     "description": "Duration that data will be stored by the verifier"
   },
+  "policyScreenDataRetentionDurationDescription": "{months, plural, =0 {Your data is not stored anywhere.} =1 {Your data is stored for {months} month. After that it will be deleted automatically.} other {Your data is stored for {months} months. After that it will be deleted automatically.}}",
+  "@policyScreenDataRetentionDurationDescription": {
+    "placeholders": {
+      "months": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
   "policyScreenDataWillBeShared": "Your information will be shared with third parties",
+  "policyScreenDataWillBeSharedDescription": "Data is shared with other companies and/or organizations.",
   "policyScreenDataWillNotBeShared": "Your information will not be shared with third parties",
+  "policyScreenDataWillNotBeSharedDescription": "Data is not shared with other companies and/or organizations.",
   "policyScreenErrorDescription": "The policy could not be loaded",
   "policyScreenPolicySectionPolicyCta": "privacy policy",
   "policyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
@@ -502,6 +517,7 @@
     "description": "Text showing the user where to find the privacy policy"
   },
   "policyScreenPolicySectionTitle": "Want to know more?",
+  "policyScreenReportIssueCta": "Report an issue",
   "policyScreenRetryCta": "Try again",
   "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "How does my QR-code work?",
@@ -613,15 +629,6 @@
   "stopVerificationSheetNegativeCta": "No",
   "stopVerificationSheetPositiveCta": "Yes, stop",
   "stopVerificationSheetTitle": "Are you sure you want to stop?",
-  "termsAndConditionsScreenDeleteTitle": "Conditions related to data deletion...",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "View the ",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacy policy",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart3": " for more information on how your data will be processed.",
-  "termsAndConditionsScreenDiscoverMoreTitle": "Discover more?",
-  "termsAndConditionsScreenPurposeTitle": "Conditions related to purpose...",
-  "termsAndConditionsScreenShareTitle": "Conditions related to data processing...",
-  "termsAndConditionsScreenStorageTitle": "Conditions related to storage period...",
-  "termsAndConditionsScreenTitle": "Terms and Conditions",
   "verificationConfirmDataAttributesCheckAttributesCta": "Check your data",
   "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",

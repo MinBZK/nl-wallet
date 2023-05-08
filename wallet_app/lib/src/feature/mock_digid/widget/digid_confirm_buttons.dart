@@ -13,8 +13,8 @@ class DigidConfirmButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return ConfirmButtons(
-      onAccept: onAccept ?? () {},
-      onDecline: onDecline ?? () {},
+      onAcceptPressed: onAccept ?? () {},
+      onDeclinePressed: onDecline ?? () {},
       acceptText: locale.mockDigidScreenAcceptCta,
       declineText: locale.mockDigidScreenDeclineCta,
     );

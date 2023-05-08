@@ -475,20 +475,35 @@
   "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
   "placeholderScreenTitle": "Placeholder",
   "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+  "policyScreenDataCanBeDeletedDescription": "De partij biedt een manier aan om je opgeslagen gegevens te laten verwijderen.",
   "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+  "policyScreenDataCanNotBeDeletedDescription": "De partij biedt geen manier aan om je opgeslagen gegevens te laten verwijderen.",
   "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-  "policyScreenDataRetentionDuration": "{days, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+  "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doeleinden gebruikt.",
+  "policyScreenDataRetentionDuration": "{months, plural, =0 {Gegevens worden niet bewaard} =1 {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
   "@policyScreenDataRetentionDuration": {
     "placeholders": {
-      "days": {
+      "months": {
         "example": "30",
         "type": "int"
       }
     },
     "description": "Duration that data will be stored by the verifier"
   },
+  "policyScreenDataRetentionDurationDescription": "{months, plural, =0 {Je gegevens worden niet bewaard in je dossier.} =1 {Je gegevens worden {months} maand bewaard in je dossier. Daarna zullen deze automatisch worden verwijderd.} other {Je gegevens worden {months} maanden bewaard in je dossier. Daarna zullen deze automatisch worden verwijderd.}}",
+  "@policyScreenDataRetentionDurationDescription": {
+    "placeholders": {
+      "months": {
+        "example": "3",
+        "type": "int"
+      }
+    },
+    "description": "Duration that data will be stored by the verifier"
+  },
   "policyScreenDataWillBeShared": "Je gegevens worden gedeeld met derden",
+  "policyScreenDataWillBeSharedDescription": "Gegevens worden gedeeld met andere bedrijven of organisaties.",
   "policyScreenDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
+  "policyScreenDataWillNotBeSharedDescription": "Gegevens worden niet gedeeld met andere bedrijven of organisaties.",
   "policyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
   "policyScreenPolicySectionPolicyCta": "privacybeleid",
   "policyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
@@ -502,6 +517,7 @@
     "description": "Text showing the user where to find the privacy policy"
   },
   "policyScreenPolicySectionTitle": "Meer weten?",
+  "policyScreenReportIssueCta": "Een probleem melden",
   "policyScreenRetryCta": "Probeer opnieuw",
   "policyScreenTitle": "Voorwaarden",
   "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
@@ -613,15 +629,6 @@
   "stopVerificationSheetNegativeCta": "Nee",
   "stopVerificationSheetPositiveCta": "Ja, stoppen",
   "stopVerificationSheetTitle": "Weet je zeker dat je wilt stoppen?",
-  "termsAndConditionsScreenDeleteTitle": "Voorwaarde over verwijderen...",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart1": "Bekijk het ",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart2": "privacybeleid",
-  "termsAndConditionsScreenDiscoverMoreSubtitlePart3": " voor meer informatie over hoe je gegevens gebruikt gaan worden.",
-  "termsAndConditionsScreenDiscoverMoreTitle": "Meer weten?",
-  "termsAndConditionsScreenPurposeTitle": "Voorwaarde over doel...",
-  "termsAndConditionsScreenShareTitle": "Voorwaarde over delen met derden...",
-  "termsAndConditionsScreenStorageTitle": "Voorwaarde over bewaartermijn...",
-  "termsAndConditionsScreenTitle": "Voorwaarden",
   "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
   "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",

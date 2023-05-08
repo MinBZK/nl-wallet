@@ -5,8 +5,25 @@ const _kMarketplaceLoginId = 'MARKETPLACE_LOGIN';
 const _kBarId = 'BAR';
 const _kCarRental = 'CAR_RENTAL';
 const _kFirstAid = 'FIRST_AID';
+const _kConfirmAppointment = 'CONFIRM_APPOINTMENT';
+const _kOpenBankAccount = 'OPEN_BANK_ACCOUNT';
+const _kProvideContractDetails = 'PROVIDE_CONTRACT_DETAILS';
+const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 
 // region RequestedAttributes
+
+const _kFirstAndLastNameRequest = [
+  RequestedAttribute(
+    name: 'Voornamen',
+    type: AttributeType.firstNames,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Achternaam',
+    type: AttributeType.lastName,
+    valueType: AttributeValueType.text,
+  ),
+];
 
 const _kJobApplicationRequestedAttributes = [
   RequestedAttribute(
@@ -27,24 +44,15 @@ const _kJobApplicationRequestedAttributes = [
 ];
 
 const _kMarketplaceLoginRequestedAttributes = [
+  ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Voornamen',
-    type: AttributeType.firstNames,
-    valueType: AttributeValueType.text,
-  ),
-  RequestedAttribute(
-    name: 'Achternaam',
-    type: AttributeType.lastName,
+    name: 'Geboortedatum',
+    type: AttributeType.birthDate,
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
     name: 'Postcode',
     type: AttributeType.postalCode,
-    valueType: AttributeValueType.text,
-  ),
-  RequestedAttribute(
-    name: 'Woonplaats',
-    type: AttributeType.city,
     valueType: AttributeValueType.text,
   ),
 ];
@@ -63,16 +71,7 @@ const _kBarRequestedAttributes = [
 ];
 
 const _kCarRentalRequestedAttributes = [
-  RequestedAttribute(
-    name: 'Voornamen',
-    type: AttributeType.firstNames,
-    valueType: AttributeValueType.text,
-  ),
-  RequestedAttribute(
-    name: 'Achternaam',
-    type: AttributeType.lastName,
-    valueType: AttributeValueType.text,
-  ),
+  ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     name: 'Geboortedatum',
     type: AttributeType.birthDate,
@@ -91,16 +90,7 @@ const _kFirstAidRequestedAttributes = [
     type: AttributeType.profilePhoto,
     valueType: AttributeValueType.image,
   ),
-  RequestedAttribute(
-    name: 'Voornamen',
-    type: AttributeType.firstNames,
-    valueType: AttributeValueType.text,
-  ),
-  RequestedAttribute(
-    name: 'Achternaam',
-    type: AttributeType.lastName,
-    valueType: AttributeValueType.text,
-  ),
+  ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     name: 'Geslacht',
     type: AttributeType.gender,
@@ -129,6 +119,81 @@ const _kFirstAidRequestedAttributes = [
   RequestedAttribute(
     name: 'Verloopdatum',
     type: AttributeType.healthInsuranceExpiryDate,
+    valueType: AttributeValueType.text,
+  ),
+];
+
+const _kConfirmAppointmentRequestedAttributes = [
+  RequestedAttribute(
+    name: 'Postcode',
+    type: AttributeType.postalCode,
+    valueType: AttributeValueType.text,
+  ),
+];
+
+const _kOpenBankAccountRequestedAttributes = [
+  ..._kFirstAndLastNameRequest,
+  RequestedAttribute(
+    name: 'Geboortedatum',
+    type: AttributeType.birthDate,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Nationaliteit',
+    type: AttributeType.nationality,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Burgerservicenummer',
+    type: AttributeType.citizenshipNumber,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Adres',
+    type: AttributeType.street,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Postcode',
+    type: AttributeType.postalCode,
+    valueType: AttributeValueType.text,
+  ),
+];
+
+const _kProvideContractDetailsRequestedAttributes = [
+  ..._kFirstAndLastNameRequest,
+  RequestedAttribute(
+    name: 'Geboortedatum',
+    type: AttributeType.birthDate,
+    valueType: AttributeValueType.text,
+  ),
+];
+
+const _kCreateMbAccountRequestedAttributes = [
+  ..._kFirstAndLastNameRequest,
+  RequestedAttribute(
+    name: 'Geboortedatum',
+    type: AttributeType.birthDate,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Nationaliteit',
+    type: AttributeType.nationality,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Adres',
+    type: AttributeType.street,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Postcode',
+    type: AttributeType.postalCode,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Woonplaats',
+    type: AttributeType.city,
     valueType: AttributeValueType.text,
   ),
 ];
@@ -181,6 +246,47 @@ const _kMockFirstAidPolicy = Policy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Zorgverlening',
   dataIsShared: false,
+  dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+const _kMockMunicipalityDelftPolicy = Policy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  dataIsShared: false,
+  dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+const _kMockBankPolicy = Policy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  dataIsShared: false,
+  dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+const _kMockHousingCorpPolicy = Policy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
+  dataIsShared: false,
+  dataIsSignature: false,
+  dataContainsSingleViewProfilePhoto: false,
+  deletionCanBeRequested: true,
+  privacyPolicyUrl: 'https://www.example.org',
+);
+
+const _kMonkeyBikePolicy = Policy(
+  storageDuration: Duration(days: 90),
+  dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
+  dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
+  dataIsShared: true,
   dataIsSignature: false,
   dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,

@@ -51,6 +51,7 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
               availableAttributes: await getRequestedAttributesWithCardUseCase.invoke(request.requestedAttributes),
               requestedAttributes: request.requestedAttributes,
               policy: request.interactionPolicy,
+              requestPurpose: request.purpose,
             ),
           ),
         );

@@ -4,6 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/policy/policy.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/link_button.dart';
+import '../common/widget/sliver_sized_box.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
@@ -20,8 +22,9 @@ class PolicyScreen extends StatelessWidget {
   }
 
   final Policy policy;
+  final VoidCallback? onReportIssuePressed;
 
-  const PolicyScreen({required this.policy, Key? key}) : super(key: key);
+  const PolicyScreen({required this.policy, this.onReportIssuePressed, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,14 @@ class PolicyScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).policyScreenTitle),
       ),
-      body: _buildBody(context),
+      body: Column(
+        children: [
+          Expanded(child: _buildBody(context)),
+          const BottomBackButton(
+            showDivider: true,
+          ),
+        ],
+      ),
     );
   }
 
@@ -43,16 +53,12 @@ class PolicyScreen extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
-        restorationId: 'policy_list',
         slivers: [
           SliverList(
             delegate: _getPolicyEntriesDelegate(policyBuilder.build(policy)),
           ),
-          const SliverFillRemaining(
-            hasScrollBody: false,
-            fillOverscroll: true,
-            child: BottomBackButton(),
-          )
+          SliverToBoxAdapter(child: _buildReportIssueButton(context)),
+          const SliverSizedBox(height: 32),
         ],
       ),
     );
@@ -63,18 +69,44 @@ class PolicyScreen extends StatelessWidget {
       (context, index) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: PolicyEntryRow(
-              icon: entries[index].icon,
-              title: Text.rich(entries[index].title),
-              description: Text.rich(entries[index].description),
-            ),
+          PolicyEntryRow(
+            icon: entries[index].icon,
+            title: Text.rich(entries[index].title),
+            description: Text.rich(entries[index].description),
           ),
           const Divider(height: 1),
         ],
       ),
       childCount: entries.length,
+    );
+  }
+
+  Widget _buildReportIssueButton(BuildContext context) {
+    if (onReportIssuePressed == null) return const SizedBox.shrink();
+    final locale = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        LinkButton(
+          onPressed: onReportIssuePressed!,
+          customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Text(locale.policyScreenReportIssueCta),
+        ),
+        const Divider(height: 1),
+      ],
+    );
+  }
+
+  static void show(BuildContext context, Policy policy, {VoidCallback? onReportIssuePressed}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (c) => PolicyScreen(
+          policy: policy,
+          onReportIssuePressed: onReportIssuePressed,
+        ),
+      ),
     );
   }
 }

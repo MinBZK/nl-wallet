@@ -61,8 +61,8 @@ class ConfirmActionSheet extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(height: 1),
             ConfirmButtons(
-              onDecline: () => onCancel?.call(),
-              onAccept: () => onConfirm?.call(),
+              onDeclinePressed: () => onCancel?.call(),
+              onAcceptPressed: () => onConfirm?.call(),
               acceptText: confirmButtonText,
               acceptIcon: confirmIcon,
               declineText: cancelButtonText,

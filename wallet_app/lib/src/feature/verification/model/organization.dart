@@ -4,6 +4,7 @@ class Organization extends Equatable {
   final String id;
   final String name;
   final String shortName;
+  final String category;
   final String description;
   final String logoUrl;
   final String? webUrl;
@@ -14,6 +15,7 @@ class Organization extends Equatable {
     required this.id,
     required this.name,
     required this.shortName,
+    required this.category,
     required this.description,
     required this.logoUrl,
     this.webUrl,
@@ -22,5 +24,5 @@ class Organization extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, name, shortName, description, logoUrl, webUrl, location, department];
+  List<Object?> get props => [id, name, shortName, category, description, logoUrl, webUrl, location, department];
 }
