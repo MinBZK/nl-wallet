@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../common/widget/placeholder_screen.dart';
-import '../../../common/widget/button/text_icon_button.dart';
+import '../../common/widget/placeholder_screen.dart';
+import '../../common/widget/button/text_icon_button.dart';
 
 const _kDigidLogoPath = 'assets/images/digid_logo.png';
 
-class WalletPersonalizeNoDigidPage extends StatelessWidget {
-  const WalletPersonalizeNoDigidPage({Key? key}) : super(key: key);
+class WalletPersonalizeNoDigidScreen extends StatelessWidget {
+  const WalletPersonalizeNoDigidScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class WalletPersonalizeNoDigidPage extends StatelessWidget {
   static void show(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (c) => const WalletPersonalizeNoDigidPage()),
+      MaterialPageRoute(builder: (c) => const WalletPersonalizeNoDigidScreen()),
     );
   }
 }

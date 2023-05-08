@@ -4,9 +4,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
-import '../common/widget/placeholder_screen.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/wallet_logo.dart';
+import '../forgot_pin/forgot_pin_screen.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
@@ -166,7 +166,7 @@ class PinPage extends StatelessWidget {
       builder: (context, state) {
         final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
         return TextIconButton(
-          onPressed: buttonEnabled ? () => PlaceholderScreen.show(context, secured: false) : null,
+          onPressed: buttonEnabled ? () => ForgotPinScreen.show(context) : null,
           child: Text(AppLocalizations.of(context).pinScreenForgotPinCta),
         );
       },

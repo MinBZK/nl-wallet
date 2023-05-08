@@ -144,6 +144,10 @@
   "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
   "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
   "dataIncorrectScreenTitle": "Retrieve data",
+  "forgotPinScreenCta": "Clear Wallet",
+  "forgotPinScreenDescription": "When you forget your pin you can no longer use your Wallet.\n\nTo continue using the Wallet you have to start over. Clear your wallet and select a new pin.",
+  "forgotPinScreenHeadline": "Forgot your pin?",
+  "forgotPinScreenTitle": "Forgot pin",
   "generalBottomBackCta": "Back",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
