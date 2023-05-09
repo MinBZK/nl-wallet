@@ -5,6 +5,8 @@ use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilit
 use tokio::fs;
 use wallet_common::utils::random_bytes;
 
+const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
+
 pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtilities>(
     alias: &str,
     byte_length: usize,
@@ -12,7 +14,7 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtiliti
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
     let path = path_for_key_file::<U>(alias)?;
-    let encryption_key = K::new(&format!("keyfile_{}", alias));
+    let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
 
     // Decrypt file at path, create key and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await

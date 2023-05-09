@@ -8,7 +8,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 // JWT type, using `<T>` and `Phantomdata<T>` in the same way and for the same reason as `SignedDouble<T>`; see the
 // comment there.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {

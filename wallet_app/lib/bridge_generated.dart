@@ -11,9 +11,9 @@ import 'package:uuid/uuid.dart';
 import 'dart:ffi' as ffi;
 
 abstract class WalletCore {
-  Future<void> initAsync({dynamic hint});
+  Future<bool> init({dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kInitAsyncConstMeta;
+  FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
@@ -31,18 +31,18 @@ class WalletCoreImpl implements WalletCore {
   /// Only valid on web/WASM platforms.
   factory WalletCoreImpl.wasm(FutureOr<WasmModule> module) => WalletCoreImpl(module as ExternalLibrary);
   WalletCoreImpl.raw(this._platform);
-  Future<void> initAsync({dynamic hint}) {
+  Future<bool> init({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_init_async(port_),
-      parseSuccessData: _wire2api_unit,
-      constMeta: kInitAsyncConstMeta,
+      callFfi: (port_) => _platform.inner.wire_init(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
     ));
   }
 
-  FlutterRustBridgeTaskConstMeta get kInitAsyncConstMeta => const FlutterRustBridgeTaskConstMeta(
-        debugName: "init_async",
+  FlutterRustBridgeTaskConstMeta get kInitConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "init",
         argNames: [],
       );
 
@@ -82,6 +82,10 @@ class WalletCoreImpl implements WalletCore {
     _platform.dispose();
   }
 // Section: wire2api
+
+  bool _wire2api_bool(dynamic raw) {
+    return raw as bool;
+  }
 
   int _wire2api_u8(dynamic raw) {
     return raw as int;
@@ -205,16 +209,16 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.IntPtr Function(ffi.Pointer<ffi.Void>)>>('init_frb_dart_api_dl');
   late final _init_frb_dart_api_dl = _init_frb_dart_api_dlPtr.asFunction<int Function(ffi.Pointer<ffi.Void>)>();
 
-  void wire_init_async(
+  void wire_init(
     int port_,
   ) {
-    return _wire_init_async(
+    return _wire_init(
       port_,
     );
   }
 
-  late final _wire_init_asyncPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_init_async');
-  late final _wire_init_async = _wire_init_asyncPtr.asFunction<void Function(int)>();
+  late final _wire_initPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_init');
+  late final _wire_init = _wire_initPtr.asFunction<void Function(int)>();
 
   void wire_is_valid_pin(
     int port_,

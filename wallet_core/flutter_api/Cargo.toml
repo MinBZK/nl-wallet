@@ -19,8 +19,8 @@ serde_reflection_codegen = [
 ]
 
 [dependencies]
+macros = { path = "macros" }
 wallet = { path = "../wallet" }
-flutter_api_macros = { path = "../flutter_api_macros" }
 anyhow = "1.0.69"
 bincode = "1.3.3"
 const_format = { version = "0.2.30", optional = true }

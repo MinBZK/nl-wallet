@@ -1,5 +1,5 @@
 [package]
-name = "flutter_api_macros"
+name = "macros"
 version.workspace = true
 edition.workspace = true
 description = "Support macros for flutter_api."

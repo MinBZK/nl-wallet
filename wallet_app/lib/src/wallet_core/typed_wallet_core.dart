@@ -9,9 +9,9 @@ class TypedWalletCore {
   final WalletCore _walletCore;
 
   TypedWalletCore(this._walletCore) {
-    // Initialize the Asynchronous runtime of the Rust core module.
-    // This is required to be able to execute asynchronous Rust functions.
-    _walletCore.initAsync();
+    // Initialize the Asynchronous runtime and the wallet itself.
+    // This is required to call any subsequent API function on the wallet.
+    _walletCore.init();
   }
 
   Future<PinValidationResult> isValidPin(String pin) async {

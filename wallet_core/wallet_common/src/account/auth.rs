@@ -14,7 +14,7 @@ use super::{
 /// Message that the wallet sends (signed) to the wallet provider during registration.
 /// This does not implement IsInstruction because it not get sent as an [`Instruction<Registration>`]. because there is
 /// no certificate yet at this point.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
     pub pin_pubkey: DerVerifyingKey,
     pub hw_pubkey: DerVerifyingKey,
@@ -42,7 +42,7 @@ impl Registration {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletCertificateClaims {
     pub wallet_id: String,
     pub hw_pubkey: DerVerifyingKey,
@@ -59,12 +59,12 @@ impl JwtClaims for WalletCertificateClaims {
 
 pub type WalletCertificate = Jwt<WalletCertificateClaims>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
     pub challenge: Base64Bytes,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Certificate {
     pub certificate: WalletCertificate,
 }

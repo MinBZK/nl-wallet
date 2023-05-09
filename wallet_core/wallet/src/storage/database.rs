@@ -1,112 +1,133 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use anyhow::Result;
-use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
-use rusqlite::Connection;
-use tokio::{fs, task::block_in_place};
+use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
+use tokio::fs;
 
-use super::{
-    key_file::{delete_key_file, get_or_create_key_file},
-    sql_cipher_key::SqlCipherKey,
-};
+use migration::{Migrator, MigratorTrait};
+
+use super::sql_cipher_key::SqlCipherKey;
 
 const PRAGMA_KEY: &str = "key";
 
+/// This represents a URL to a SQLite database, either on the filesystem on in memory.
+#[derive(Debug)]
+pub enum SqliteUrl {
+    File(PathBuf),
+    InMemory,
+}
+
+/// For some reason Sea-ORM requires the URL to the database as a string intermediary,
+/// rather that programmatically. This URL string is encoded by implementing the [`From`] trait.
+/// for [`String`] (and conversely the [`Into`] trait for [`SqliteUrl`]).
+impl From<&SqliteUrl> for String {
+    fn from(value: &SqliteUrl) -> Self {
+        match value {
+            SqliteUrl::File(path) => format!("sqlite://{}?mode=rwc", path.to_string_lossy()),
+            SqliteUrl::InMemory => "sqlite::memory:".to_string(),
+        }
+    }
+}
+
+impl From<SqliteUrl> for String {
+    fn from(value: SqliteUrl) -> Self {
+        Self::from(&value)
+    }
+}
+
+/// This struct wraps a SQLite database connection, it has the following responsibilities:
+///
+/// * Setting up a connection to an encrypted databae, based on a [`SqliteUrl`] and [`SqlCipherKey`]
+/// * Tearing down a connection to the database, either by falling out of scope or by having
+///   [`close_and_delete`] called on it in order to also delete the database file.
+/// * Exposing a reference to the database connection as [`ConnectionTrait`], so that a consumer
+///   of this struct can run queries on the database.
+#[derive(Debug)]
 pub struct Database {
-    pub name: String,
-    connection: Connection,
+    pub url: SqliteUrl,
+    connection: DatabaseConnection,
 }
 
 impl Database {
-    fn new(name: String, connection: Connection) -> Self {
-        Database { name, connection }
+    fn new(url: SqliteUrl, connection: DatabaseConnection) -> Self {
+        Database { url, connection }
     }
 
-    pub async fn open<K: PlatformEncryptionKey, U: PlatformUtilities>(name: impl Into<String>) -> Result<Self> {
-        let name = name.into();
-        // Get path to database, stored as "<storage_path>/<name>.db"
-        let path = U::storage_path()?.join(format!("{}.db", &name));
-        // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes = get_or_create_key_file::<K, U>(&name, SqlCipherKey::size_with_salt()).await?;
-        let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
-        // Open database connection
-        let connection = block_in_place(|| Connection::open(path))?;
+    pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self> {
+        // Open database connection and set database key
+        let connection_options = ConnectOptions::new((&url).into());
+        let connection = sea_orm::Database::connect(connection_options).await?;
 
         // Set database password using PRAGMA statement
-        block_in_place(|| connection.pragma_update(None, PRAGMA_KEY, key))?;
+        connection
+            .execute_unprepared(&format!(r#"PRAGMA {} = "{}";"#, PRAGMA_KEY, String::from(key)))
+            .await?;
 
-        Ok(Self::new(name, connection))
+        // Execute all migrations
+        Migrator::up(&connection, None).await?;
+
+        Ok(Self::new(url, connection))
     }
 
-    /// If the database could not be closed for some reason, this will return
-    /// another instance of [`Database`] as the first entry of the Result error tuple.
-    /// Closing and deleting the database may then be tried at another point in time.
-    pub async fn close_and_delete<U: PlatformUtilities>(
-        self,
-    ) -> std::result::Result<(), (Option<Self>, anyhow::Error)> {
-        // Get the path from the database connection, assume it has one.
-        let path = PathBuf::from_str(self.connection.path().unwrap()).unwrap();
+    pub async fn close_and_delete(self) -> Result<()> {
+        // Close the database connection
+        self.connection.close().await?;
 
-        // Close the database connection, return a new Database instance if we could not close.
-        let result = block_in_place(|| self.connection.close());
-        if result.is_err() {
-            return result
-                .map_err(|(connection, error)| (Some(Self::new(self.name, connection)), anyhow::Error::new(error)));
+        // Remove the database file (if there is one) and ignore any errors.
+        if let SqliteUrl::File(path) = self.url {
+            _ = fs::remove_file(path).await;
         }
 
-        // Remove the database file and ignore any errors.
-        _ = fs::remove_file(&path).await;
-
-        // Delete the password file and remap errors (note that deletion errors will be ignored).
-        delete_key_file::<U>(&self.name).await.map_err(|e| (None, e))?;
-
         Ok(())
+    }
+
+    pub fn connection(&self) -> &impl ConnectionTrait {
+        &self.connection
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
-    use rusqlite::params;
+    use wallet_common::utils::random_bytes;
 
     use super::*;
 
-    async fn delete_database<U: PlatformUtilities>(name: &str) -> Result<()> {
-        let path = U::storage_path()?.join(format!("{}.db", name));
-        _ = fs::remove_file(&path).await;
-        delete_key_file::<U>(name).await?;
-
-        Ok(())
+    #[test]
+    fn test_sqlite_url() {
+        assert_eq!(
+            String::from(SqliteUrl::File(PathBuf::from("/foo/bar/database.db"))),
+            "sqlite:///foo/bar/database.db?mode=rwc"
+        );
+        assert_eq!(String::from(SqliteUrl::InMemory), "sqlite::memory:");
     }
 
-    struct Person {
-        id: i32,
-        name: String,
-        data: Option<Vec<u8>>,
-    }
+    #[tokio::test]
+    async fn test_raw_sql_database() {
+        use sea_orm::{Statement, Value};
 
-    #[tokio::test(flavor = "multi_thread")]
-    async fn test_database() {
-        let db_name = "test_db";
-
-        // Make sure we start with a clean slate.
-        delete_database::<SoftwareUtilities>(db_name).await.unwrap();
+        #[derive(Debug, PartialEq, Eq)]
+        struct Person {
+            id: i32,
+            name: String,
+            data: Option<Vec<u8>>,
+        }
 
         // Create a new (encrypted) database.
-        let db = Database::open::<SoftwareEncryptionKey, SoftwareUtilities>(db_name)
+        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size()).as_slice()).unwrap();
+        let db = Database::open(SqliteUrl::InMemory, key)
             .await
             .expect("Could not open database");
 
         // Create a table for our [Person] model.
         db.connection
-            .execute(
+            .execute_unprepared(
                 "CREATE TABLE person (
                     id    INTEGER PRIMARY KEY,
                     name  TEXT NOT NULL,
                     data  BLOB
                 )",
-                [],
             )
+            .await
             .expect("Could not create table");
 
         // Create and insert our test Person.
@@ -116,51 +137,100 @@ mod tests {
             data: None,
         };
         db.connection
-            .execute(
-                "INSERT INTO person (id, name, data) VALUES (?1, ?2, ?3)",
-                params![&me.id, &me.name, &me.data],
-            )
+            .execute(Statement::from_sql_and_values(
+                db.connection.get_database_backend(),
+                "INSERT INTO person (id, name, data) VALUES ($1, $2, $3)",
+                [
+                    me.id.into(),
+                    me.name.clone().into(),
+                    Value::Bytes(me.data.clone().map(Box::new)),
+                ],
+            ))
+            .await
             .expect("Could not insert person");
 
-        // Start a new context, because the prepared statement below borrows the connection.
-        // Calling the close_and_delete() method consumes the Database instance, which owns
-        // the connection, meaning there can be no more borrows present. The context limits
-        // the lifetime of the statement appropriately.
-        {
-            // Query our person table for any [Person]s.
-            let mut stmt = db
-                .connection
-                .prepare("SELECT id, name, data FROM person")
-                .expect("Could not execute select statement");
-
-            // Map our query results back to our [Person] model.
-            let person_iter = stmt
-                .query_map([], |row| {
-                    Ok(Person {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                        data: row.get(2)?,
-                    })
-                })
-                .expect("Could not create iterator");
-
-            // Verify our test [Person] was correctly inserted.
-            let mut person_count = 0;
-            for person in person_iter {
-                let result = person.unwrap();
-                assert_eq!(1337, result.id);
-                assert_eq!("Willeke", result.name);
-                assert_eq!(None, result.data);
-                person_count += 1;
-            }
-
-            // Verify we really checked our test person (and did not loop over empty iterator).
-            assert_eq!(person_count, 1);
-        }
-
-        db.close_and_delete::<SoftwareUtilities>()
+        // Query our person table for any [Person]s.
+        let person_query_results = db
+            .connection
+            .query_all(Statement::from_string(
+                db.connection.get_database_backend(),
+                "SELECT id, name, data FROM person".to_string(),
+            ))
             .await
-            .map_err(|(_, e)| e)
+            .expect("Could not execute select statement");
+
+        // Map our query results back to our [Person] model.
+        let persons: Vec<Person> = person_query_results
+            .into_iter()
+            .map(|row| Person {
+                id: row.try_get("", "id").unwrap(),
+                name: row.try_get("", "name").unwrap(),
+                data: row.try_get("", "data").unwrap(),
+            })
+            .collect();
+
+        // Verify our test [Person] was correctly inserted.
+        assert_eq!(persons, [me]);
+
+        // Finally, delete the test database.
+        db.close_and_delete()
+            .await
+            .expect("Could not close and delete database");
+    }
+
+    #[tokio::test]
+    async fn test_entities_database() {
+        use sea_orm::{prelude::*, Set};
+        use serde::{Deserialize, Serialize};
+
+        use entity::keyed_data;
+
+        // Define example JSON data
+        #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+        struct Configuration {
+            id: u32,
+            name: String,
+        }
+        let configuration = Configuration {
+            id: 1234,
+            name: "My wallet app".to_string(),
+        };
+
+        // Create a new (encrypted) database.
+        let key = SqlCipherKey::try_from(random_bytes(SqlCipherKey::size_with_salt()).as_slice()).unwrap();
+        let db = Database::open(SqliteUrl::InMemory, key)
+            .await
+            .expect("Could not open database");
+
+        // Insert example data.
+        let configuration_model = keyed_data::ActiveModel {
+            key: Set("config".to_string()),
+            data: Set(serde_json::to_value(&configuration).unwrap()),
+        };
+        configuration_model
+            .insert(db.connection())
+            .await
+            .expect("Could not insert keyed data");
+
+        // Fetch all keyed data and check if our example data is present.
+        let all_keyed_data = keyed_data::Entity::find()
+            .all(db.connection())
+            .await
+            .expect("Could not query keyed data");
+
+        assert_eq!(all_keyed_data.len(), 1);
+
+        let keyed_data = all_keyed_data.into_iter().last().unwrap();
+
+        assert_eq!(keyed_data.key, "config");
+        assert_eq!(
+            serde_json::from_value::<Configuration>(keyed_data.data).unwrap(),
+            configuration
+        );
+
+        // Finally, delete the test database.
+        db.close_and_delete()
+            .await
             .expect("Could not close and delete database");
     }
 }
