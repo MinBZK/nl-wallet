@@ -14,7 +14,7 @@ analyze-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9ca719afd0f3a3041334ba62eb8c91f0cd61031f4a59697d98260105cc9a2eaf"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -28,7 +28,7 @@ test-flutter:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9ca719afd0f3a3041334ba62eb8c91f0cd61031f4a59697d98260105cc9a2eaf"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -60,7 +60,7 @@ test-rust:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:9fc55037587a8bee2d1b572c2f88020f27e6a694914108445f0053a6f9bf588b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
   script:
     - set -euxo pipefail
     - cargo test --manifest-path wallet_core/Cargo.toml
@@ -93,7 +93,7 @@ test-rust-analyze:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:9fc55037587a8bee2d1b572c2f88020f27e6a694914108445f0053a6f9bf588b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
   script:
     - set -euxo pipefail
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
@@ -109,7 +109,7 @@ test-codegen:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5d1565690ad926995b6a06be731445595d3e236f9c3b01d28552a4372dcd3804"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:40be71808f60718d32956cb9461361d8354beeb2cd9b9a808787e90e5650453b"
   script:
     - set -euxo pipefail
     - flutter pub get $FLUTTER_APP_PROJECT_DIR
@@ -124,7 +124,7 @@ build-android-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:90e9dd0184337f3d8ce231b198a1b3178d45da3ca2b679812fe5162ffad131ba"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:20c2046010b2b23f1ebd62fac130f27741657d00ec1a8ca54a790df4fb6d10e5"
   artifacts:
     name: "wallet-android"
     paths:
@@ -148,7 +148,7 @@ deploy-android-app:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:236dcbd0e901b377f37beac891555561b52656e3c20a96f6c44cdd1d223d51e0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-android-app
   dependencies:
@@ -170,7 +170,7 @@ upload-browserstack-android-app:
   only:
     - main
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:236dcbd0e901b377f37beac891555561b52656e3c20a96f6c44cdd1d223d51e0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-android-app
   dependencies:
@@ -237,7 +237,7 @@ upload-browserstack-ios-app:
   only:
     - main
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:236dcbd0e901b377f37beac891555561b52656e3c20a96f6c44cdd1d223d51e0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-ios-app
   dependencies:
