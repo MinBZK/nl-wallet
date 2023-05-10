@@ -17,6 +17,7 @@ class PlaceholderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('placeholderScreenKey'),
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).placeholderScreenTitle),
       ),

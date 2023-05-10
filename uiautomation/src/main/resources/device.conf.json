@@ -1,6 +1,6 @@
 {
-  "device": "emulator-5554",
-  "remoteOrLocal": "local",
+  "device": "Google Pixel 3",
+  "remoteOrLocal": "remote",
   "appPackage": "nl.rijksoverheid.edi.wallet",
   "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
   "bundleId": "nl.ictu.edi.wallet.latest",

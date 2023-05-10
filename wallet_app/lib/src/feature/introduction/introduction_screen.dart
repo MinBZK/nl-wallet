@@ -152,7 +152,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       iconPosition: IconPosition.start,
       onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
       centerChild: false,
-      child: Text(AppLocalizations.of(context).introductionLanguageSelectCta),
+      child: Text(
+          AppLocalizations.of(context).introductionLanguageSelectCta,
+          key: const Key('introductionLanguageSelectCtaText')),
     );
     //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
     //FIXME: setup that allows us to configure the app with (custom) mock data.

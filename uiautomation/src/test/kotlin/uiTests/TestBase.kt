@@ -2,6 +2,7 @@ package uiTests
 
 import com.codeborne.selenide.Configuration
 import com.codeborne.selenide.Selenide
+import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import com.codeborne.selenide.logevents.SelenideLogger
 import config.TestDataConfig.RemoteOrLocal
 import config.TestDataConfig.Companion.testDataConfig
@@ -14,14 +15,20 @@ import io.qameta.allure.selenide.AllureSelenide
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInfo
+
 import server.AppiumServiceProvider
+import util.setupTestTagHandler.Companion.handleTestTags
+import java.time.Duration
 
 open class TestBase {
 
     @BeforeEach
-    fun startDriver() {
+    fun startDriver(testInfo: TestInfo) {
+        handleTestTags(testInfo)
         SelenideLogger.addListener("AllureSelenide", AllureSelenide())
         Selenide.open()
+        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
     }
 
     @AfterEach
