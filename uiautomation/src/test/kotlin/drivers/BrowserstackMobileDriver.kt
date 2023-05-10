@@ -9,6 +9,8 @@ import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
+import util.setupTestTagHandler
+
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -33,7 +35,8 @@ class BrowserstackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:automationName", "Flutter")
         caps.setCapability("appium:platformVersion", remoteDevice.platformVersion)
         caps.setCapability("appium:deviceName", remoteDevice.deviceName)
-
+        caps.setCapability("appium:language", setupTestTagHandler.language)
+        caps.setCapability("appium:locale", setupTestTagHandler.locale)
         // Set URL of the application under test
         caps.setCapability(
             "appium:app", when (remoteDevice.platformName) {

@@ -8,6 +8,7 @@ import io.appium.java_client.ios.options.XCUITestOptions
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import server.AppiumServiceProvider
+import util.setupTestTagHandler
 
 class LocalMobileDriver : WebDriverProvider {
 
@@ -35,7 +36,8 @@ class LocalMobileDriver : WebDriverProvider {
         options.setPlatformName(localDevice.platformName)
         options.setDeviceName(localDevice.deviceName)
         options.setPlatformVersion(localDevice.platformVersion)
-
+        options.setLanguage(setupTestTagHandler.language)
+        options.setLocale(setupTestTagHandler.locale)
         // Initialise the local Webdriver
         // and desired capabilities defined above
         return AppiumDriver(AppiumServiceProvider.server?.url, options)

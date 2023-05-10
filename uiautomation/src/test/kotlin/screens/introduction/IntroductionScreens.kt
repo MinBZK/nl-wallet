@@ -1,21 +1,21 @@
 package screens.introduction
 
-
-import com.codeborne.selenide.Selenide
-import com.codeborne.selenide.WebDriverRunner.getWebDriver
-import io.appium.java_client.AppiumBy
+import com.codeborne.selenide.WebDriverRunner
 import io.github.ashwith.flutter.FlutterFinder
+
 import io.qameta.allure.Step
 import org.openqa.selenium.remote.RemoteWebDriver
 
-object IntroductionScreens {
-    private val find = FlutterFinder(getWebDriver() as RemoteWebDriver)
-    private val nextButton = Selenide.`$`(find.byValueKey("introductionNextPageCta"))
+import util.MobileActions
 
-    //TODO: accessibilityId should be changed
-    private val welcomeText = Selenide.`$`(AppiumBy.accessibilityId("Welcome to the NL Wallet Demo"))
-    private val changeLanguageButton = Selenide.`$`(find.byValueKey("English"))
-    private val privacyPolicyButton = Selenide.`$`(find.byValueKey("introductionPrivacyPolicyCta"))
+class IntroductionScreens : MobileActions(){
+
+    private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
+    private val nextButton = find.byValueKey("introductionNextPageCta")
+    private val changeLanguageButton = find.byValueKey("introductionLanguageSelectCta")
+    private val changeLanguageButtonText = find.byValueKey("introductionLanguageSelectCtaText")
+    private val privacyPolicyButton = find.byValueKey("introductionPrivacyPolicyCta")
+    private val backButton = find.byValueKey("introductionBackCta")
 
     @Step("click next button")
     fun clickNextButton() {
@@ -27,13 +27,18 @@ object IntroductionScreens {
         changeLanguageButton.click()
     }
 
+    @Step("verify if the privacy policy button is visible")
+    fun verifyPrivacyPolicyButtonIsVisible(): Boolean {
+        return privacyPolicyButton.isDisplayed
+    }
+
     @Step("click privacy policy button")
     fun clickPrivacyPolicyButton() {
         privacyPolicyButton.click()
     }
 
-    @Step("verify welcome text")
-    fun verifyWelcomeTextIsVisible(): Boolean {
-        return welcomeText.isDisplayed
+    @Step("verify if selected language")
+    fun verifySelectedLanguage() : String? {
+        return changeLanguageButtonText.text
     }
 }

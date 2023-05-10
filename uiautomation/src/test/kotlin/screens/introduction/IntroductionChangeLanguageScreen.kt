@@ -1,11 +1,19 @@
 package screens.introduction
 
-import com.codeborne.selenide.Selenide
-import io.appium.java_client.AppiumBy
-import io.qameta.allure.Step
+import com.codeborne.selenide.WebDriverRunner
+import io.github.ashwith.flutter.FlutterFinder
 
-object IntroductionChangeLanguageScreen {
-    private val changeLanguageScreenBackButton = Selenide.`$`(AppiumBy.accessibilityId("changeLanguageScreenBackCta"))
+import io.qameta.allure.Step
+import org.openqa.selenium.remote.RemoteWebDriver
+
+import util.MobileActions
+
+class IntroductionChangeLanguageScreen {
+
+    private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
+    private val changeLanguageScreenBackButton = find.byValueKey("changeLanguageScreenBackCta")
+    private val selectEnglishLanguage = find.byText("English")
+    private val selectDutchLanguage = find.byText("Nederlands")
 
     @Step("click back button")
     fun clickBackButton() {
@@ -14,6 +22,12 @@ object IntroductionChangeLanguageScreen {
 
     @Step("select english language option")
     fun selectEnglishLanguageOption() {
-        changeLanguageScreenBackButton.click()
+        selectEnglishLanguage.click()
     }
+
+    @Step("select dutch language option")
+    fun selectDutchLanguageOption() {
+        selectDutchLanguage.click()
+    }
+
 }
