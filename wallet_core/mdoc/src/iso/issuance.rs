@@ -73,7 +73,7 @@ pub struct RequestEndSessionMessage {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename = "foo.bar.EndSession")]
+#[serde(rename = "EndSession")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct EndSessionMessage {
