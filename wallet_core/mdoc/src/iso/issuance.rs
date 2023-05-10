@@ -10,11 +10,11 @@ use serde_with::skip_serializing_none;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct ServiceEngagement {
-    id: String,
-    url: Option<ServerUrl>,
-    pc: Option<ProvisioningCode>,
+    pub id: String,
+    pub url: Option<ServerUrl>,
+    pub pc: Option<ProvisioningCode>,
     #[serde(rename = "Opt")]
-    opt: Option<Options>,
+    pub opt: Option<Options>,
 }
 
 pub type ProvisioningCode = String;
@@ -50,7 +50,7 @@ impl Display for SessionId {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct StartProvisioningMessage {
-    provisioning_code: Option<String>,
+    pub provisioning_code: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,7 +58,7 @@ pub struct StartProvisioningMessage {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct ReadyToProvisionMessage {
-    e_session_id: SessionId,
+    pub e_session_id: SessionId,
 }
 
 // Session termination
@@ -68,7 +68,7 @@ pub struct ReadyToProvisionMessage {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct RequestEndSessionMessage {
-    e_session_id: SessionId,
+    pub e_session_id: SessionId,
 }
 
 #[skip_serializing_none]
@@ -77,11 +77,11 @@ pub struct RequestEndSessionMessage {
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
 pub struct EndSessionMessage {
-    e_session_id: SessionId,
-    reason: String, // "known values include success, failed, restart"
-    delay: Option<u64>,
+    pub e_session_id: SessionId,
+    pub reason: String, // "known values include success, failed, restart"
+    pub delay: Option<u64>,
     #[serde(rename = "SED")]
-    sed: String, // "e.g. new SED to be used by mdoc app to resume session"
+    pub sed: Option<String>, // "e.g. new SED to be used by mdoc app to resume session"
 }
 
 #[cfg(test)]
