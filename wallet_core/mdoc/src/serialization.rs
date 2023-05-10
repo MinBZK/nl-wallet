@@ -333,8 +333,11 @@ impl RequiredValueTrait for ReaderAuthenticationString {
 
 #[cfg(test)]
 mod tests {
-    use crate::serialization::{cbor_deserialize, cbor_serialize, TaggedBytes};
+    use ciborium::value::Value;
     use hex_literal::hex;
+    use serde_bytes::ByteBuf;
+
+    use crate::serialization::*;
 
     #[test]
     fn tagged_bytes() {
@@ -344,5 +347,25 @@ mod tests {
 
         let decoded: TaggedBytes<Vec<u8>> = cbor_deserialize(encoded.as_slice()).unwrap();
         assert_eq!(original.0, decoded.0);
+    }
+
+    #[test]
+    fn message_type() {
+        // Use `RequestEndSessionMessage` as an example of a message that should have a `messageType` field
+        let msg = RequestEndSessionMessage {
+            e_session_id: ByteBuf::from("session_id").into(),
+        };
+
+        // Explicitly assert CBOR structure of the serialized data
+        assert_eq!(
+            Value::serialized(&msg).unwrap(),
+            Value::Map(vec![
+                (
+                    Value::Text("messageType".into()),
+                    Value::Text(REQUEST_END_SESSION_MSG_TYPE.into()),
+                ),
+                (Value::Text("eSessionId".into()), Value::Bytes(b"session_id".to_vec())),
+            ])
+        );
     }
 }
