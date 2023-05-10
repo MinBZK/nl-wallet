@@ -253,3 +253,28 @@ upload-browserstack-ios-app:
   script:
     - bundle install
     - bundle exec fastlane ios ci_browserstack
+
+run-automation-tests:
+  stage: test
+  only:
+    - main
+  when: manual  
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:cee3ea4a60a040a2bfd2c493b97c79b3461f443ff69bc38a6061669e7a29c015"
+  artifacts:
+    when: always
+    paths:
+      - uiautomation/build/test-results
+      - uiautomation/build/reports
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+     namespace: ${K8S_NAMESPACE}
+  script:
+    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - set -euxo pipefail
+    - java -version
+    - cd uiautomation
+    - gradle wrapper --gradle-version=7.3.3
+    - ./gradlew --debug --stacktrace test --tests uiTests.IntroductionScreenTests.verifyIntroductionScreens
