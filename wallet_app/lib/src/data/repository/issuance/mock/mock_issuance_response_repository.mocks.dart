@@ -222,9 +222,9 @@ const _kMockPidDataAttributes = [
 const _kMockAddressDataAttributes = [
   DataAttribute(
     valueType: AttributeValueType.text,
-    label: 'Woonplaats',
-    value: 'Den Haag',
-    type: AttributeType.city,
+    label: 'Straatnaam',
+    value: 'Turfmarkt 147',
+    type: AttributeType.street,
     sourceCardId: _kAddressId,
   ),
   DataAttribute(
@@ -236,9 +236,9 @@ const _kMockAddressDataAttributes = [
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
-    label: 'Straatnaam',
-    value: 'Turfmarkt 147',
-    type: AttributeType.street,
+    label: 'Woonplaats',
+    value: 'Den Haag',
+    type: AttributeType.city,
     sourceCardId: _kAddressId,
   ),
 ];
