@@ -83,7 +83,7 @@ where
         validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight
 
         // Retrieve a challenge from the account server
-        let challenge = self.account_server.registration_challenge()?;
+        let challenge = self.account_server.registration_challenge().await?;
 
         // Generate a new PIN salt and derrive the private key from the provided PIN
         let pin_salt = new_pin_salt();
@@ -92,7 +92,7 @@ where
         // Create a registration message and double sign it with the challenge,
         // send that to the account server and receive the wallet certificate in response.
         let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
-        let cert = self.account_server.register(registration_message)?;
+        let cert = self.account_server.register(registration_message).await?;
 
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
