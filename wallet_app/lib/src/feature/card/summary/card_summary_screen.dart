@@ -68,6 +68,8 @@ class CardSummaryScreen extends StatelessWidget {
 
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
     final locale = AppLocalizations.of(context);
+    final card = summary.card;
+
     return Column(
       children: [
         Expanded(
@@ -78,7 +80,7 @@ class CardSummaryScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 8.0),
                 SizedCardFront(
-                  cardFront: summary.card.front,
+                  cardFront: card.front,
                   displayWidth: MediaQuery.of(context).size.width - (_kCardDisplayPaddingHorizontal * 2),
                 ),
                 const SizedBox(height: 32.0),
@@ -87,29 +89,31 @@ class CardSummaryScreen extends StatelessWidget {
                   icon: Icons.description_outlined,
                   title: locale.cardSummaryScreenCardDataCta,
                   subtitle: locale.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
-                  onTap: () => _onCardDataPressed(context, summary.card),
+                  onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
                 TappableIconListRow(
                   icon: Icons.history_outlined,
                   title: locale.cardSummaryScreenCardHistoryCta,
                   subtitle: _createInteractionText(context, summary.latestSuccessInteraction),
-                  onTap: () => _onCardHistoryPressed(context, summary.card.id),
+                  onTap: () => _onCardHistoryPressed(context, card.id),
                 ),
                 const Divider(height: 1),
                 TappableIconListRow(
                   icon: Icons.replay_outlined,
                   title: locale.cardSummaryScreenCardUpdateCta,
                   subtitle: _createOperationText(context, summary.latestIssuedOperation),
-                  onTap: () => _onCardUpdatePressed(context, summary.card),
+                  onTap: () => _onCardUpdatePressed(context, card),
                 ),
                 const Divider(height: 1),
-                TappableIconListRow(
-                  icon: Icons.delete_outline_rounded,
-                  title: locale.cardSummaryScreenCardDeleteCta,
-                  onTap: () => _onCardDeletePressed(context),
-                ),
-                const Divider(height: 1),
+                if (card.config.removable) ...[
+                  TappableIconListRow(
+                    icon: Icons.delete_outline_rounded,
+                    title: locale.cardSummaryScreenCardDeleteCta,
+                    onTap: () => _onCardDeletePressed(context),
+                  ),
+                  const Divider(height: 1)
+                ],
               ],
             ),
           ),

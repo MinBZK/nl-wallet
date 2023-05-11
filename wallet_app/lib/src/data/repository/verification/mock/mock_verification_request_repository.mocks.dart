@@ -125,6 +125,11 @@ const _kFirstAidRequestedAttributes = [
 
 const _kConfirmAppointmentRequestedAttributes = [
   RequestedAttribute(
+    name: 'Straat',
+    type: AttributeType.street,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
     name: 'Postcode',
     type: AttributeType.postalCode,
     valueType: AttributeValueType.text,

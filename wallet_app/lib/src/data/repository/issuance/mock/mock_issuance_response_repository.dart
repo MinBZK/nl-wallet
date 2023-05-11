@@ -1,5 +1,6 @@
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/card_config.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
 import '../../../../domain/model/policy/policy.dart';
