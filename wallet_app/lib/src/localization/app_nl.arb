@@ -27,7 +27,6 @@
   "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
   "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
   "cardHistoryTimelineSigningSuccess": "Ondertekend",
-  "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
   "cardOverviewScreenTitle": "Mijn kaarten",
   "cardSummaryScreenCardDataCta": "Gegevens",
   "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",

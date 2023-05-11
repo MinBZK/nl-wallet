@@ -9,7 +9,6 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../wallet_routes.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/placeholder_screen.dart';
 import '../summary/argument/card_summary_screen_argument.dart';
 import 'bloc/card_overview_bloc.dart';
 
@@ -35,12 +34,6 @@ class CardOverviewScreen extends StatelessWidget {
         onPressed: () => context.read<CardOverviewBloc>().add(CardOverviewLockWalletPressed()),
       ),
       title: Text(AppLocalizations.of(context).cardOverviewScreenTitle),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: () => _onCardCreatePressed(context),
-        ),
-      ],
     );
   }
 
@@ -67,27 +60,8 @@ class CardOverviewScreen extends StatelessWidget {
       crossAxisCount: crossAxisCount,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      itemCount: cards.length + 1,
-      itemBuilder: (context, index) {
-        if (index < cards.length) {
-          return _buildCardListItem(context, cards[index]);
-        } else {
-          return _buildFooterButton(context);
-        }
-      },
-    );
-  }
-
-  Widget _buildFooterButton(BuildContext context) {
-    return TextButton(
-      onPressed: () => _onCardCreatePressed(context),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.add),
-          Text(AppLocalizations.of(context).cardOverviewScreenAddCardCta),
-        ],
-      ),
+      itemCount: cards.length,
+      itemBuilder: (context, index) => _buildCardListItem(context, cards[index]),
     );
   }
 
@@ -96,10 +70,6 @@ class CardOverviewScreen extends StatelessWidget {
       front: walletCard.front,
       onPressed: () => _onCardPressed(context, walletCard),
     );
-  }
-
-  void _onCardCreatePressed(BuildContext context) {
-    PlaceholderScreen.show(context);
   }
 
   void _onCardPressed(BuildContext context, WalletCard walletCard) {

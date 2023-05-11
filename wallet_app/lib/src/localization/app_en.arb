@@ -27,7 +27,6 @@
   "cardHistoryTimelineOperationRenewed": "Card updated",
   "cardHistoryTimelineSigningRejected": "Signing stopped",
   "cardHistoryTimelineSigningSuccess": "Signed",
-  "cardOverviewScreenAddCardCta": "Add data",
   "cardOverviewScreenTitle": "My cards",
   "cardSummaryScreenCardDataCta": "Data",
   "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
