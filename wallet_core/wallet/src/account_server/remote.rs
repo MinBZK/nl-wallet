@@ -7,14 +7,14 @@ use wallet_common::account::{
 
 use super::AccountServerClient;
 
-pub struct RemoteAccountServer {
+pub struct RemoteAccountServerClient {
     url: String,
     client: Client,
 }
 
-impl RemoteAccountServer {
-    pub fn new(url: String) -> RemoteAccountServer {
-        RemoteAccountServer {
+impl RemoteAccountServerClient {
+    pub fn new(url: String) -> Self {
+        Self {
             url,
             client: Client::new(),
         }
@@ -22,7 +22,7 @@ impl RemoteAccountServer {
 }
 
 #[async_trait::async_trait]
-impl AccountServerClient for RemoteAccountServer {
+impl AccountServerClient for RemoteAccountServerClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>> {
         let challenge = self
             .client
