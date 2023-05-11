@@ -39,7 +39,7 @@ platform_support = { path = "../platform_support", features = ["software"] }
 # enable the "software-integration-test" feature for platform_support when running tests,
 # which includes the "software" feature
 [dev-dependencies]
-wallet_provider = { path = "../wallet_provider" }
+wallet_provider = { path = "../wallet_provider", features = ["stub"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }

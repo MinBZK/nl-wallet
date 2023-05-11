@@ -122,14 +122,14 @@ where
 #[cfg(test)]
 mod tests {
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
-    use wallet_provider::account_server::AccountServer;
+    use wallet_provider::account_server::{stub, AccountServer};
 
     use crate::storage::MockStorage;
 
     use super::*;
 
     async fn init_wallet(storage: Option<MockStorage>) -> Result<Wallet<AccountServer, MockStorage, SoftwareEcdsaKey>> {
-        let account_server = AccountServer::new_stub();
+        let account_server = stub::account_server();
         let pubkey = account_server.pubkey.clone();
 
         Wallet::new(account_server, pubkey, storage.unwrap_or_default()).await

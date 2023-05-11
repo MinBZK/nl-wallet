@@ -3,12 +3,13 @@ name = "wallet_provider"
 version.workspace = true
 edition.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
 
 [[bin]]
 name = "wallet_provider"
+
+[features]
+stub = []
 
 [dependencies]
 wallet_common = { path = "../wallet_common" }
