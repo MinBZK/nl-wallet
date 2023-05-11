@@ -87,7 +87,7 @@ const _kMockPidCardFront = CardFront(
 );
 
 const _kMockAddressCardFront = CardFront(
-  title: 'Adres',
+  title: 'Woonadres',
   subtitle: "'s-Gravenhage",
   logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
   holoImage: 'assets/svg/rijks_card_holo.svg',
