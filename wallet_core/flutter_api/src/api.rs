@@ -1,20 +1,17 @@
 use anyhow::{Ok, Result};
-use once_cell::sync::OnceCell;
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{OnceCell, RwLock};
 
 use macros::async_runtime;
 use wallet::{init_wallet, pin::validation::validate_pin, Wallet};
 
 use crate::{async_runtime::init_async_runtime, models::pin::PinValidationResult};
 
-static WALLET: OnceCell<Mutex<Wallet>> = OnceCell::new();
+static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
-async fn lock_wallet() -> MutexGuard<'static, Wallet> {
+fn wallet() -> &'static RwLock<Wallet> {
     WALLET
         .get()
         .expect("Wallet must be initialized. Please execute `init()` first.")
-        .lock()
-        .await
 }
 
 pub fn init() -> Result<bool> {
@@ -23,29 +20,31 @@ pub fn init() -> Result<bool> {
     // init_async_runtime() should not fail when being called more than once.
     init_async_runtime()?;
 
-    let mut created_has_registration: Option<bool> = None;
-
-    _ = WALLET.get_or_try_init(|| {
-        // This closure will only be called if WALLET is currently empty.
-        let (wallet, has_registration) = create_wallet()?;
-        created_has_registration.replace(has_registration);
-
-        Ok(wallet)
-    })?;
-
-    // Read created_has_registration, which is only None if the async block above
-    // did not execute. This implies that init() was called successfully more than once.
-    let has_registration = created_has_registration.expect("Wallet may only be initialized once.");
+    // Panic if create_wallet() returns None.
+    let has_registration = create_wallet()?.expect("Wallet may only be initialized once.");
 
     Ok(has_registration)
 }
 
+/// This is called by the public [`init()`] function above.
+/// The returned `Option<bool>` is `None` if the wallet was already initialized,
+/// otherwise it indicates if the wallet contains a previously saved registration.
 #[async_runtime]
-async fn create_wallet() -> Result<(Mutex<Wallet>, bool)> {
-    let wallet = init_wallet().await?;
-    let has_registration = wallet.has_registration();
+async fn create_wallet() -> Result<Option<bool>> {
+    let mut created_has_registration: Option<bool> = None;
 
-    Ok((Mutex::new(wallet), has_registration))
+    _ = WALLET
+        .get_or_try_init(|| async {
+            // This closure will only be called if WALLET is currently empty.
+            let wallet = init_wallet().await?;
+            created_has_registration.replace(wallet.has_registration());
+
+            Ok(RwLock::new(wallet))
+        })
+        .await?;
+
+    // This will be None if the async block above did not execute.
+    Ok(created_has_registration)
 }
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
@@ -56,7 +55,7 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
     // TODO return differentiated errors?
-    lock_wallet().await.register(pin).await
+    wallet().write().await.register(pin).await
 }
 
 #[cfg(test)]
