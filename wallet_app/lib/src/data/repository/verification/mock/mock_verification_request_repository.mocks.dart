@@ -125,7 +125,7 @@ const _kFirstAidRequestedAttributes = [
 
 const _kConfirmAppointmentRequestedAttributes = [
   RequestedAttribute(
-    name: 'Straat',
+    name: 'Straatnaam',
     type: AttributeType.street,
     valueType: AttributeValueType.text,
   ),
