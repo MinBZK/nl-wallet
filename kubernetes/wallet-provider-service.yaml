@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-provider
+  labels:
+    service: wallet-provider
+spec:
+  selector:
+    app: wallet-provider
+    tier: vertrouwd
+  ports:
+    - name: wallet-provider-http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP

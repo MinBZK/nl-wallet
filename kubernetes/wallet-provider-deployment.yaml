@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-provider
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: wallet-provider
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: wallet-provider
+        tier: vertrouwd
+        egress-frontoffice-policy: allow
+        ingress-controller-frontoffice-policy: allow
+        db-cluster-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: wallet-provider
+          image: {{WALLET_PROVIDER_IMAGE}}
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: wallet-provider-config
+          env:
+            - name: WALLET_PROVIDER_SIGNING_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-provider-signing-key
+                  key: private

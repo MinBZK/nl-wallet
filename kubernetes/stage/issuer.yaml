@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nl-wallet-letsencrypt-staging-issuer
+spec:
+  acme:
+    email: # Add email to which Let's Encrypt can send info on certificate expiry etc.
+    server: https://acme-staging-v02.api.letsencrypt.org/directory # Let's Encrypt ACME test server
+    privateKeySecretRef:
+      name: nl-wallet-letsencrypt-staging-issuer-key # Generated and implicitly used by Certmanager/ACME test server
+    solvers:
+      - http01: # https://cert-manager.io/docs/configuration/acme/#creating-a-basic-acme-issuer
+          ingress: # Temporary Ingress on which the http01 resolver Pod will be reached
+            class: nginx
+            podTemplate: # https://cert-manager.io/docs/configuration/acme/http01/#podtemplate
+              metadata:
+                labels:
+                  ingress-controller-frontoffice-policy: allow
+                  egress-frontoffice-policy: allow
