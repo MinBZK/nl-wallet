@@ -3,11 +3,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use p256::{
-    ecdsa::SigningKey,
-    pkcs8::{EncodePrivateKey, EncodePublicKey},
-};
-use rand::rngs::OsRng;
+use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use tower_http::trace::TraceLayer;
 
 use wallet_common::{
@@ -21,6 +17,7 @@ use wallet_common::{
 use crate::account_server::AccountServer;
 
 mod account_server;
+mod settings;
 
 struct AppState {
     account_server: AccountServer,
@@ -30,23 +27,20 @@ struct AppState {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let account_server_privkey = SigningKey::random(&mut OsRng);
+    let settings = settings::Settings::new().unwrap();
+
+    let account_server_privkey = settings.signing_private_key;
+
     let account_server = AccountServer::new(
-        account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
+        account_server_privkey.0.clone(),
         random_bytes(32),
         "stub_account_server".into(),
     )
     .unwrap();
 
     dbg!(STANDARD.encode(
-        account_server_privkey
-            .verifying_key()
-            .to_public_key_der()
+        SigningKey::from_pkcs8_der(&account_server_privkey.0)
             .unwrap()
-            .as_bytes()
-    ));
-    dbg!(STANDARD.encode(
-        account_server_privkey
             .verifying_key()
             .to_encoded_point(false)
             .as_bytes()
@@ -54,7 +48,7 @@ async fn main() {
 
     let app = app(account_server);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
 }

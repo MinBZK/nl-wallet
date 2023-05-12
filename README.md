@@ -167,7 +167,7 @@ easiest way to do so is:
     3. Check latest 'NDK (Side by side)' in the list (>= v25.2.9519653)
     4. Hit 'apply' to install
 3. Add `export ANDROID_HOME="$HOME/Library/Android/sdk"` to your `~/.bash_profile` or
-   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically 
+   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically
    picks up the NDK version you installed in the previous step
 4. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
    e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
@@ -176,6 +176,10 @@ easiest way to do so is:
 #### iOS
 
 Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
+
+#### Wallet provider
+
+See [wallet_core/wallet_provider/README.md](./wallet_core/wallet_provider/README.md#setup-development-environment)
 
 ### Validate
 

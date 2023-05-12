@@ -1,10 +1,41 @@
 variables:
   FLUTTER_APP_PROJECT_DIR: "wallet_app"
+  RENEW_ON_LETSENCRYPT_STAGING:
+    value: "false"
+    description: "Try to renew the wallet_provider server certificate from the Let's encrypt staging environment."
+  RENEW_ON_LETSENCRYPT_LIVE:
+    value: "false"
+    description: "Try to renew the wallet_provider server certificate from the Let's encrypt live environment."
 
 stages:
   - test
   - build
   - deploy
+
+.docker-sp:
+  environment:
+    name: ${K8S_CLUSTER}
+    action: prepare
+
+.env-sp:
+  environment:
+    name: ${K8S_CLUSTER}
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+
+.deploy-sp:
+  extends: .env-sp
+  dependencies: [ ]
+  image: $HARBOR_REGISTRY/$DOCKER_HUB_PROXY/bitnami/kubectl@sha256:ebace7799e1fcf6abc4080c7026d1c549310b2d4c6a37a1937773d5fd9d559b7 # 1.23.15
+  resource_group: testcluster
+
+.kaniko:
+  extends: .docker-sp
+  before_script:
+    - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
 
 # Working directory is 'wallet_app' directory
 analyze-app:
@@ -13,6 +44,8 @@ analyze-app:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
@@ -20,13 +53,15 @@ analyze-app:
     - flutter --version
     - flutter pub get $FLUTTER_APP_PROJECT_DIR
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
-    
+
 test-flutter:
   stage: test
   only:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
@@ -40,6 +75,8 @@ test-flutter-ui:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   when: manual
   tags:
     - macos
@@ -59,6 +96,8 @@ test-rust:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
   script:
@@ -71,6 +110,8 @@ test-ios:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   when: manual
   tags:
     - macos
@@ -92,6 +133,8 @@ test-rust-analyze:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
   script:
@@ -108,6 +151,8 @@ test-codegen:
     - merge_requests
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:40be71808f60718d32956cb9461361d8354beeb2cd9b9a808787e90e5650453b"
   script:
@@ -118,21 +163,33 @@ test-codegen:
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
+build-wp-image:
+  extends: .kaniko
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
 build-android-app:
+  extends: .env-sp
   stage: build
   only:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:20c2046010b2b23f1ebd62fac130f27741657d00ec1a8ca54a790df4fb6d10e5"
   artifacts:
     name: "wallet-android"
     paths:
       - "*.aab"
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -143,20 +200,19 @@ build-android-app:
     - bundle exec fastlane android ci_build
 
 deploy-android-app:
+  extends: .env-sp
   stage: deploy
   only:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-android-app
   dependencies:
     - build-android-app
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -166,19 +222,18 @@ deploy-android-app:
     - bundle exec fastlane android ci_deploy
 
 upload-browserstack-android-app:
+  extends: .env-sp
   stage: deploy
   only:
     - main
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-android-app
   dependencies:
     - build-android-app
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -188,10 +243,13 @@ upload-browserstack-android-app:
     - bundle exec fastlane android ci_browserstack
 
 build-ios-app:
+  extends: .env-sp
   stage: build
   only:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   when: manual
   tags:
     - macos
@@ -199,10 +257,6 @@ build-ios-app:
     name: "wallet-ios"
     paths:
       - "*.ipa"
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
@@ -211,20 +265,19 @@ build-ios-app:
     - bundle exec fastlane ios ci_build
 
 deploy-ios-app:
+  extends: .env-sp
   stage: deploy
   only:
     - main
     - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+  except:
+    - schedules
   needs:
     - build-ios-app
   dependencies:
     - build-ios-app
   tags:
     - macos
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
@@ -233,19 +286,18 @@ deploy-ios-app:
     - bundle exec fastlane ios ci_deploy
 
 upload-browserstack-ios-app:
+  extends: .env-sp
   stage: deploy
   only:
     - main
+  except:
+    - schedules
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
     - build-ios-app
   dependencies:
     - build-ios-app
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-      namespace: ${K8S_NAMESPACE}
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -254,11 +306,52 @@ upload-browserstack-ios-app:
     - bundle install
     - bundle exec fastlane ios ci_browserstack
 
+deploy-wallet-provider:
+  extends: .deploy-sp
+  stage: deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+  dependencies:
+    - build-wp-image
+  script:
+    - cat kubernetes/servicemonitors.yaml
+      | sed "s;{{K8S_NAMESPACE}};${K8S_NAMESPACE};g"
+      | kubectl apply -f -
+    - cat kubernetes/wallet-provider-configmap.yaml | kubectl apply -f -
+    - cat kubernetes/wallet-provider-deployment.yaml
+      | sed "s;{{WALLET_PROVIDER_IMAGE}};${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA};g"
+      | kubectl apply -f -
+    - cat kubernetes/wallet-provider-ingress.yaml
+      | sed "s;{{INTERNAL_HOSTNAME}};${WALLET_PROVIDER_INTERNAL_HOSTNAME};g"
+      | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g"
+      | sed "s;{{EXTERNAL_CONTEXT_PATH}};${WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH};g"
+      | kubectl apply -f -
+    - cat kubernetes/wallet-provider-service.yaml | kubectl apply -f -
+    - kubectl rollout status deployment/wallet-provider
+
+deploy-wallet-provider-staging-cert:
+  extends: .deploy-sp
+  stage: deploy
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+  script:
+    - cat kubernetes/stage/cert.yaml | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g" | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/stage/cert.yaml
+
+deploy-wallet-provider-live-cert:
+  extends: .deploy-sp
+  stage: deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
+  script:
+    - cat kubernetes/live/cert.yaml | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g" | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/live/cert.yaml
+
 run-automation-tests:
   stage: test
   only:
     - main
-  when: manual  
+  when: manual
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:cee3ea4a60a040a2bfd2c493b97c79b3461f443ff69bc38a6061669e7a29c015"
   artifacts:
