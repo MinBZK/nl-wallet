@@ -534,9 +534,8 @@
   "qrScreenMyCodeTabTitle": "My code",
   "qrScreenScanTabTitle": "Scan",
   "qrScreenTitle": "QR-code",
-  "reportIssueScreenHeaderSubtitle": "Geef aan wat er niet klopt. De partij wordt gecontroleerd. Een melding is altijd anoniem.",
-  "reportIssueScreenHeaderTitle": "Een melding maken",
-  "reportIssueScreenTitle": "Klopt er iets niet?",
+  "reportIssueScreenHeaderTitle": "Welk probleem wil je melden? Je melding wordt anoniem verstuurd.",
+  "reportIssueScreenTitle": "Report problem",
   "reportOptionImpersonatingOrganization": "Deze partij doet zich voor als een ander",
   "reportOptionOverAskingOrganization": "Deze partij vraagt te veel gegevens",
   "reportOptionRequestNotInitiated": "Ik ben dit verzoek niet gestart",
@@ -615,7 +614,7 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
-  "stopVerificationSheetDataIncorrectCta": "Something not right?",
+  "stopVerificationSheetReportIssueCta": "Report a problem",
   "stopVerificationSheetDescription": "If you stop, no data will be shared with {organization}.",
   "@stopVerificationSheetDescription": {
     "placeholders": {

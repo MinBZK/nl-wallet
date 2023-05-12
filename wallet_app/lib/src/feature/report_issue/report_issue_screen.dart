@@ -45,17 +45,12 @@ class ReportIssueScreen extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             locale.reportIssueScreenHeaderTitle,
-            style: Theme.of(context).textTheme.displayMedium,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            locale.reportIssueScreenHeaderSubtitle,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
@@ -71,7 +66,10 @@ class ReportIssueScreen extends StatelessWidget {
           InkWell(
             onTap: () => Navigator.pop(context, options[index]),
             child: IconRow(
-              icon: const Icon(Icons.gpp_maybe_outlined),
+              icon: Icon(
+                Icons.gpp_maybe_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               text: Text(ReportingOptionTitleMapper.map(locale, options[index])),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             ),

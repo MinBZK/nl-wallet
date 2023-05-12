@@ -8,15 +8,15 @@ import '../../common/widget/confirm_action_sheet.dart';
 /// when the user is requesting to stop the verification flow.
 class StopVerificationSheet extends StatelessWidget {
   final String organizationName;
-  final VoidCallback? onDataIncorrectPressed;
-  final VoidCallback onConfirm;
-  final VoidCallback onCancel;
+  final VoidCallback? onReportIssuePressed;
+  final VoidCallback onCancelPressed;
+  final VoidCallback onConfirmPressed;
 
   const StopVerificationSheet({
     required this.organizationName,
-    this.onDataIncorrectPressed,
-    required this.onCancel,
-    required this.onConfirm,
+    this.onReportIssuePressed,
+    required this.onCancelPressed,
+    required this.onConfirmPressed,
     Key? key,
   }) : super(key: key);
 
@@ -29,15 +29,15 @@ class StopVerificationSheet extends StatelessWidget {
       cancelButtonText: locale.stopVerificationSheetNegativeCta,
       confirmButtonText: locale.stopVerificationSheetPositiveCta,
       confirmButtonColor: Theme.of(context).colorScheme.error,
-      onCancel: onCancel,
-      onConfirm: onConfirm,
+      onCancelPressed: onCancelPressed,
+      onConfirmPressed: onConfirmPressed,
       confirmIcon: Icons.not_interested,
-      extraContent: onDataIncorrectPressed == null
+      extraContent: onReportIssuePressed == null
           ? null
           : LinkButton(
-              onPressed: onDataIncorrectPressed,
+              onPressed: onReportIssuePressed,
               customPadding: const EdgeInsets.all(16),
-              child: Text(locale.stopVerificationSheetDataIncorrectCta),
+              child: Text(locale.stopVerificationSheetReportIssueCta),
             ),
     );
   }
@@ -45,7 +45,7 @@ class StopVerificationSheet extends StatelessWidget {
   static Future<bool> show(
     BuildContext context, {
     required String organizationName,
-    VoidCallback? onDataIncorrectPressed,
+    VoidCallback? onReportIssuePressed,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -53,9 +53,9 @@ class StopVerificationSheet extends StatelessWidget {
       builder: (BuildContext context) {
         return StopVerificationSheet(
           organizationName: organizationName,
-          onDataIncorrectPressed: onDataIncorrectPressed,
-          onConfirm: () => Navigator.pop(context, true),
-          onCancel: () => Navigator.pop(context, false),
+          onReportIssuePressed: onReportIssuePressed,
+          onConfirmPressed: () => Navigator.pop(context, true),
+          onCancelPressed: () => Navigator.pop(context, false),
         );
       },
     );

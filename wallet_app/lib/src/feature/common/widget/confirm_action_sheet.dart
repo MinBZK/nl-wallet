@@ -4,8 +4,8 @@ import 'bottom_sheet_drag_handle.dart';
 import 'button/confirm_buttons.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
-  final VoidCallback? onCancel;
-  final VoidCallback? onConfirm;
+  final VoidCallback? onCancelPressed;
+  final VoidCallback? onConfirmPressed;
   final String title;
   final String description;
   final String cancelButtonText;
@@ -16,8 +16,8 @@ class ConfirmActionSheet extends StatelessWidget {
   final Widget? extraContent;
 
   const ConfirmActionSheet({
-    this.onCancel,
-    this.onConfirm,
+    this.onCancelPressed,
+    this.onConfirmPressed,
     this.confirmButtonColor,
     required this.title,
     required this.description,
@@ -57,12 +57,17 @@ class ConfirmActionSheet extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
-            if (extraContent != null) extraContent!,
+            if (extraContent != null) ...[
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              extraContent!,
+            ],
             const SizedBox(height: 16),
             const Divider(height: 1),
             ConfirmButtons(
-              onDeclinePressed: () => onCancel?.call(),
-              onAcceptPressed: () => onConfirm?.call(),
+              onDeclinePressed: () => onCancelPressed?.call(),
+              onAcceptPressed: () => onConfirmPressed?.call(),
               acceptText: confirmButtonText,
               acceptIcon: confirmIcon,
               declineText: cancelButtonText,
@@ -92,8 +97,8 @@ class ConfirmActionSheet extends StatelessWidget {
           description: description,
           cancelButtonText: cancelButtonText,
           confirmButtonText: confirmButtonText,
-          onConfirm: () => Navigator.pop(context, true),
-          onCancel: () => Navigator.pop(context, false),
+          onConfirmPressed: () => Navigator.pop(context, true),
+          onCancelPressed: () => Navigator.pop(context, false),
           confirmButtonColor: confirmButtonColor,
           extraContent: extraContent,
         );
