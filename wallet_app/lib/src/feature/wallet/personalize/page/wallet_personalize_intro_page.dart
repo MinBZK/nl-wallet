@@ -37,8 +37,14 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
-          const Spacer(),
-          Image.asset(_kIllustrationPath),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: Image.asset(
+              _kIllustrationPath,
+              fit: BoxFit.fitWidth,
+            ),
+          ),
           const Spacer(flex: 3),
           ElevatedButton(
             onPressed: onLoginWithDigidPressed,
