@@ -398,6 +398,7 @@
   "mockDigidScreenForgotPinCta": "Forgot pin",
   "mockDigidScreenHeaderSubtitle": "You are logging in at:",
   "mockDigidScreenHeaderTitle": "Login",
+  "mockDigidScreenSignInOrganization": "Rijksdienst voor Identiteitsgegevens",
   "mockDigidScreenTitle": "Securely login with DigiD",
   "organizationApprovePageApproveCta": "Yes, next",
   "organizationApprovePageDenyCta": "No, decline",

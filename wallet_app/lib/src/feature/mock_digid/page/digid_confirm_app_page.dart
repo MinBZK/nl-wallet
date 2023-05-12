@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widget/digid_confirm_buttons.dart';
 import '../widget/digid_sign_in_with_header.dart';
-import '../widget/digid_sign_in_with_wallet.dart';
+import '../widget/digid_sign_in_with_organization.dart';
 
 class DigidConfirmAppPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -28,7 +28,7 @@ class DigidConfirmAppPage extends StatelessWidget {
             ),
             const DigidSignInWithHeader(),
             const Spacer(),
-            const Center(child: DigidSignInWithWallet()),
+            const DigidSignInWithOrganization(),
             const Spacer(),
             DigidConfirmButtons(
               onAccept: onConfirmPressed,
