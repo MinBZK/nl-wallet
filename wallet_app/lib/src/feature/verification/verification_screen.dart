@@ -2,7 +2,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'widget/stop_verification_sheet.dart';
 
 import '../../wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
@@ -15,10 +14,11 @@ import 'bloc/verification_bloc.dart';
 import 'page/verification_confirm_data_attributes_page.dart';
 import 'page/verification_confirm_pin_page.dart';
 import 'page/verification_generic_error_page.dart';
-import 'page/verification_report_submitted_page.dart';
 import 'page/verification_missing_attributes_page.dart';
+import 'page/verification_report_submitted_page.dart';
 import 'page/verification_stopped_page.dart';
 import 'page/verification_success_page.dart';
+import 'widget/stop_verification_sheet.dart';
 
 class VerificationScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -110,7 +110,7 @@ class VerificationScreen extends StatelessWidget {
       isFirstInteractionWithOrganization: !state.flow.hasPreviouslyInteractedWithOrganization,
       purpose: ApprovalPurpose.verification,
       dataPurpose: state.flow.requestPurpose,
-      onDataIncorrectPressed: () => _onDataIncorrectPressed(context, _resolveReportingOptionsForState(context)),
+      onDataIncorrectPressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
   }
 
@@ -125,7 +125,7 @@ class VerificationScreen extends StatelessWidget {
     return VerificationConfirmDataAttributesPage(
       onDeclinePressed: () => _stopVerification(context),
       onAcceptPressed: () => context.read<VerificationBloc>().add(const VerificationShareRequestedAttributesApproved()),
-      onReportIssuePressed: () => _onDataIncorrectPressed(context, _resolveReportingOptionsForState(context)),
+      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
       flow: state.flow,
     );
   }
@@ -168,11 +168,11 @@ class VerificationScreen extends StatelessWidget {
       final stopPressed = await StopVerificationSheet.show(
         context,
         organizationName: organizationName,
-        onDataIncorrectPressed: availableReportOptions.isEmpty
+        onReportIssuePressed: availableReportOptions.isEmpty
             ? null
             : () {
                 Navigator.pop(context); //Close the StopVerificationSheet
-                _onDataIncorrectPressed(context, availableReportOptions);
+                _onReportIssuePressed(context, availableReportOptions);
               },
       );
       if (stopPressed) bloc.add(VerificationStopRequested(flow: bloc.state.flow));
@@ -181,7 +181,7 @@ class VerificationScreen extends StatelessWidget {
     }
   }
 
-  void _onDataIncorrectPressed(BuildContext context, List<ReportingOption> optionsToShow) async {
+  void _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
     final bloc = context.read<VerificationBloc>();
     final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
     if (selectedOption != null) {
