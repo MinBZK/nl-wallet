@@ -398,6 +398,7 @@
   "mockDigidScreenForgotPinCta": "Pincode vergeten",
   "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
   "mockDigidScreenHeaderTitle": "Inloggen",
+  "mockDigidScreenSignInOrganization": "Rijksdienst voor Identiteitsgegevens",
   "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
   "organizationApprovePageApproveCta": "Ja, volgende",
   "organizationApprovePageDenyCta": "Nee",

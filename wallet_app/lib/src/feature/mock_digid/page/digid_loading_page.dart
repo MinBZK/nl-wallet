@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../widget/digid_confirm_buttons.dart';
 import '../widget/digid_sign_in_with_header.dart';
-import '../widget/digid_sign_in_with_wallet.dart';
+import '../widget/digid_sign_in_with_organization.dart';
 
 class DigidLoadingPage extends StatelessWidget {
   final Duration mockDelay;
@@ -43,7 +43,7 @@ class DigidLoadingPage extends StatelessWidget {
         ),
         DigidSignInWithHeader(),
         Spacer(),
-        Center(child: DigidSignInWithWallet()),
+        Center(child: DigidSignInWithOrganization()),
         Spacer(),
         DigidConfirmButtons(),
       ],
