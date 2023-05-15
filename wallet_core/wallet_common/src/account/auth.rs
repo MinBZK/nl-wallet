@@ -1,14 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::account::{
-    signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
-    {serialization::DerVerifyingKey, signed::SignedDouble},
-};
-
 use super::{
     jwt::{Jwt, JwtClaims},
     serialization::Base64Bytes,
+    signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
+    {serialization::DerVerifyingKey, signed::SignedDouble},
 };
 
 /// Message that the wallet sends (signed) to the wallet provider during registration.

@@ -5,6 +5,7 @@ pub mod hardware;
 pub mod software;
 
 use std::path::PathBuf;
+
 use thiserror::Error;
 
 // implementation of UtilitiesError from UDL, only with "hardware" flag

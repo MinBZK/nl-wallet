@@ -2,6 +2,7 @@ use p256::{
     ecdsa::{signature::Signer, Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
+
 use wallet_common::account::signing_key::{EcdsaKey, SecureEcdsaKey};
 
 use super::{

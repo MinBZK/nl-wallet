@@ -1,3 +1,7 @@
+mod account_server;
+mod app;
+mod settings;
+
 use std::net::SocketAddr;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -6,10 +10,6 @@ use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use wallet_common::utils::random_bytes;
 
 use crate::account_server::AccountServer;
-
-mod account_server;
-mod app;
-mod settings;
 
 #[tokio::main]
 async fn main() {
