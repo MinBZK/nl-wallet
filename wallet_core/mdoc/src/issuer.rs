@@ -31,24 +31,17 @@ enum SessionState {
     Cancelled,
 }
 
+use SessionState::*;
+
 impl SessionState {
     fn update(&mut self, new_state: SessionState) {
         match self {
-            SessionState::Created => assert!(matches!(
-                new_state,
-                SessionState::Started | SessionState::Done | SessionState::Failed | SessionState::Cancelled
-            )),
-            SessionState::Started => assert!(matches!(
-                new_state,
-                SessionState::WaitingForResponse | SessionState::Done | SessionState::Failed | SessionState::Cancelled
-            )),
-            SessionState::WaitingForResponse => assert!(matches!(
-                new_state,
-                SessionState::Done | SessionState::Failed | SessionState::Cancelled
-            )),
-            SessionState::Done => panic!("can't update final state"),
-            SessionState::Failed => panic!("can't update final state"),
-            SessionState::Cancelled => panic!("can't update final state"),
+            Created => assert!(matches!(new_state, Started | Done | Failed | Cancelled)),
+            Started => assert!(matches!(new_state, WaitingForResponse | Done | Failed | Cancelled)),
+            WaitingForResponse => assert!(matches!(new_state, Done | Failed | Cancelled)),
+            Done => panic!("can't update final state"),
+            Failed => panic!("can't update final state"),
+            Cancelled => panic!("can't update final state"),
         }
         *self = new_state;
     }
@@ -62,28 +55,28 @@ struct Session {
 /// An issuance session. The `process_` methods process specific issuance protocol messages from the holder.
 impl Session {
     fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
-        self.state.update(SessionState::Started);
+        self.state.update(Started);
         ReadyToProvisionMessage {
             e_session_id: self.issuer.request.e_session_id.clone(),
         }
     }
 
     fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
-        self.state.update(SessionState::WaitingForResponse);
+        self.state.update(WaitingForResponse);
         self.issuer.request.clone()
     }
 
     fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         let issuance_result = self.issuer.issue(&device_response);
         match issuance_result {
-            Ok(_) => self.state.update(SessionState::Done),
-            Err(_) => self.state.update(SessionState::Failed),
+            Ok(_) => self.state.update(Done),
+            Err(_) => self.state.update(Failed),
         }
         issuance_result
     }
 
     fn process_cancel(&mut self) -> EndSessionMessage {
-        self.state.update(SessionState::Cancelled);
+        self.state.update(Cancelled);
         EndSessionMessage {
             e_session_id: self.issuer.request.e_session_id.clone(),
             reason: "success".to_string(),
@@ -121,7 +114,7 @@ impl Server {
         self.sessions.insert(
             session_id.clone(),
             Session {
-                state: SessionState::Created,
+                state: Created,
                 issuer: Issuer {
                     private_key,
                     cert_bts,
@@ -188,15 +181,15 @@ impl Server {
         }
 
         match session.state {
-            SessionState::Created => {
+            Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
                 Ok(Box::new(session.process_start(cbor_deserialize(&msg[..])?)))
             }
-            SessionState::Started => {
+            Started => {
                 Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
                 Ok(Box::new(session.process_get_request(cbor_deserialize(&msg[..])?)))
             }
-            SessionState::WaitingForResponse => {
+            WaitingForResponse => {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
                 Ok(Box::new(session.process_response(cbor_deserialize(&msg[..])?)?))
             }
