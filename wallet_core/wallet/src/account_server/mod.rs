@@ -6,9 +6,10 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
+#[async_trait::async_trait]
 pub trait AccountServerClient {
-    fn registration_challenge(&self) -> Result<Vec<u8>>;
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
+    async fn registration_challenge(&self) -> Result<Vec<u8>>;
+    async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
 }
 
 #[cfg(test)]
@@ -17,11 +18,13 @@ mod mock {
 
     use super::*;
 
+    #[async_trait::async_trait]
     impl AccountServerClient for AccountServer {
-        fn registration_challenge(&self) -> Result<Vec<u8>> {
+        async fn registration_challenge(&self) -> Result<Vec<u8>> {
             AccountServer::registration_challenge(self)
         }
-        fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
+
+        async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
             AccountServer::register(self, registration_message)
         }
     }

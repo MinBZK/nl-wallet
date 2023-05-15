@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
-    pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey},
+    pkcs8::{DecodePrivateKey, EncodePublicKey},
 };
-use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -56,17 +55,6 @@ impl AccountServer {
             name,
             pubkey,
         })
-    }
-
-    #[allow(dead_code)] // This constructor is used for tests in the "wallet" crate
-    pub fn new_stub() -> AccountServer {
-        let account_server_privkey = SigningKey::random(&mut OsRng);
-        AccountServer::new(
-            account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
-            random_bytes(32),
-            "stub_account_server".into(),
-        )
-        .unwrap()
     }
 
     // Only used for registration. When a registered user sends an instruction, we should store
@@ -145,14 +133,38 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
     Ok(buf)
 }
 
+#[cfg(any(test, feature = "stub"))]
+pub mod stub {
+    use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+    use rand::rngs::OsRng;
+
+    use wallet_common::utils::random_bytes;
+
+    use super::AccountServer;
+
+    #[allow(dead_code)] // Clippy does not seem to understand that this is used during testing
+    pub fn account_server() -> AccountServer {
+        let account_server_privkey = SigningKey::random(&mut OsRng);
+
+        AccountServer::new(
+            account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
+            random_bytes(32),
+            "stub_account_server".into(),
+        )
+        .unwrap()
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
+    use rand::rngs::OsRng;
+
     use super::*;
 
     #[test]
     fn test_account_server() {
         // Setup account server
-        let account_server = AccountServer::new_stub();
+        let account_server = stub::account_server();
 
         // Set up keys
         let hw_privkey = SigningKey::random(&mut OsRng);

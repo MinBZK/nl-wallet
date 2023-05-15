@@ -1,4 +1,5 @@
 use anyhow::Result;
+use reqwest::Client;
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
     signed::SignedDouble,
@@ -6,41 +7,47 @@ use wallet_common::account::{
 
 use super::AccountServerClient;
 
-pub struct RemoteAccountServer {
+pub struct RemoteAccountServerClient {
     url: String,
-    client: reqwest::blocking::Client,
+    client: Client,
 }
 
-impl RemoteAccountServer {
-    pub fn new(url: String) -> RemoteAccountServer {
-        RemoteAccountServer {
+impl RemoteAccountServerClient {
+    pub fn new(url: String) -> Self {
+        Self {
             url,
-            client: reqwest::blocking::Client::new(),
+            client: Client::new(),
         }
     }
 }
 
-impl AccountServerClient for RemoteAccountServer {
-    fn registration_challenge(&self) -> Result<Vec<u8>> {
+#[async_trait::async_trait]
+impl AccountServerClient for RemoteAccountServerClient {
+    async fn registration_challenge(&self) -> Result<Vec<u8>> {
         let challenge = self
             .client
             .post(format!("{}/api/v1/enroll", self.url))
-            .body("")
-            .send()?
-            .json::<Challenge>()?
+            .send()
+            .await?
+            .json::<Challenge>()
+            .await?
             .challenge
             .0;
+
         Ok(challenge)
     }
 
-    fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
+    async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
         let cert = self
             .client
             .post(format!("{}/api/v1/createwallet", self.url))
             .json(&registration_message)
-            .send()?
-            .json::<Certificate>()?
+            .send()
+            .await?
+            .json::<Certificate>()
+            .await?
             .certificate;
+
         Ok(cert)
     }
 }
