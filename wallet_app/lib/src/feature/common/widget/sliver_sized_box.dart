@@ -2,8 +2,14 @@ import 'package:flutter/cupertino.dart';
 
 class SliverSizedBox extends StatelessWidget {
   final double? width, height;
+  final Widget? child;
 
-  const SliverSizedBox({this.width, this.height, Key? key}) : super(key: key);
+  const SliverSizedBox({
+    this.width,
+    this.height,
+    this.child,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +17,7 @@ class SliverSizedBox extends StatelessWidget {
       child: SizedBox(
         width: width,
         height: height,
+        child: child,
       ),
     );
   }

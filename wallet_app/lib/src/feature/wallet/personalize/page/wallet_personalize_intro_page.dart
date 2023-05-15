@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../common/widget/button/text_icon_button.dart';
+import '../../../common/widget/sliver_sized_box.dart';
 
 const _kIllustrationPath = 'assets/images/personalize_wallet_intro_illustration.png';
 const _kDigidLogoPath = 'assets/images/digid_logo.png';
@@ -19,53 +20,75 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Text(
-            locale.walletPersonalizeIntroPageTitle,
-            textAlign: TextAlign.start,
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            locale.walletPersonalizeIntroPageDescription,
-            textAlign: TextAlign.start,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: Image.asset(
-              _kIllustrationPath,
-              fit: BoxFit.fitWidth,
+    return Scrollbar(
+      thumbVisibility: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: CustomScrollView(
+          slivers: [
+            const SliverSizedBox(height: 36),
+            SliverToBoxAdapter(
+              child: Text(
+                locale.walletPersonalizeIntroPageTitle,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
             ),
-          ),
-          const Spacer(flex: 3),
-          ElevatedButton(
-            onPressed: onLoginWithDigidPressed,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(_kDigidLogoPath),
-                const SizedBox(width: 12),
-                Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
-              ],
+            const SliverSizedBox(height: 8),
+            SliverToBoxAdapter(
+              child: Text(
+                locale.walletPersonalizeIntroPageDescription,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextIconButton(
-              onPressed: onNoDigidPressed,
-              child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+            const SliverSizedBox(height: 32),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                width: double.infinity,
+                child: Image.asset(
+                  _kIllustrationPath,
+                  fit: BoxFit.fitWidth,
+                ),
+              ),
             ),
-          ),
-        ],
+            const SliverSizedBox(height: 32),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: _buildBottomSection(context),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ElevatedButton(
+          onPressed: onLoginWithDigidPressed,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(_kDigidLogoPath),
+              const SizedBox(width: 12),
+              Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextIconButton(
+            onPressed: onNoDigidPressed,
+            child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }

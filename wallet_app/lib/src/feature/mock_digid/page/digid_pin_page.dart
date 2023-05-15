@@ -25,63 +25,126 @@ class DigidPinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            const SizedBox(height: 32),
-            Center(
-              child: Image.asset(
-                _kDigidLogoPath,
-                scale: 0.7,
-              ),
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          switch (orientation) {
+            case Orientation.portrait:
+              return _buildPortrait(context);
+            case Orientation.landscape:
+              return _buildLandscape(context);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildPortrait(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          const SizedBox(height: 32),
+          Center(
+            child: Image.asset(
+              _kDigidLogoPath,
+              scale: 0.7,
             ),
-            const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context).mockDigidScreenEnterPin,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+          ),
+          const SizedBox(height: 32),
+          _buildEnterPinInfoSection(context),
+          const Spacer(),
+          _buildPinSection(context),
+          const Spacer(),
+          _buildForgotPinCta(context),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          PinKeyboard(
+            onKeyPressed: onKeyPressed,
+            onBackspacePressed: onBackspacePressed,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandscape(BuildContext context) {
+    return SafeArea(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const Spacer(),
+                Center(
+                  child: Image.asset(
+                    _kDigidLogoPath,
+                    scale: 0.7,
                   ),
-                  const Icon(Icons.help, size: 20),
-                ],
-              ),
+                ),
+                const SizedBox(height: 32),
+                _buildEnterPinInfoSection(context),
+                const Spacer(),
+                _buildPinSection(context),
+                const Spacer(),
+                _buildForgotPinCta(context),
+                const Spacer(),
+              ],
             ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(_kDigidPinCount, (index) {
-                  return _buildPinField(context, index == selectedIndex, index < selectedIndex);
-                }),
-              ),
-            ),
-            const Spacer(),
-            Center(
-              child: Text(
-                AppLocalizations.of(context).mockDigidScreenForgotPinCta,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(height: 1),
-            PinKeyboard(
+          ),
+          Expanded(
+            child: PinKeyboard(
               onKeyPressed: onKeyPressed,
               onBackspacePressed: onBackspacePressed,
             ),
-          ],
-        ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnterPinInfoSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).mockDigidScreenEnterPin,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          const Icon(Icons.help, size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPinSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(_kDigidPinCount, (index) {
+          return _buildPinField(context, index == selectedIndex, index < selectedIndex);
+        }),
+      ),
+    );
+  }
+
+  Widget _buildForgotPinCta(BuildContext context) {
+    return Center(
+      child: Text(
+        AppLocalizations.of(context).mockDigidScreenForgotPinCta,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+            ),
       ),
     );
   }
