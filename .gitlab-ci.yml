@@ -349,11 +349,13 @@ deploy-wallet-provider-live-cert:
 
 run-automation-tests:
   stage: test
-  only:
-    - main
-  when: manual
+  rules:
+    - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
+      when: manual
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:cee3ea4a60a040a2bfd2c493b97c79b3461f443ff69bc38a6061669e7a29c015"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:3cc0a5f36cd3a006350777254bbce025b67873d07dc2f71574f30e6ba92f9322"
   artifacts:
     when: always
     paths:
