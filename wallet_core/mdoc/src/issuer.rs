@@ -193,7 +193,7 @@ impl Server {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
                 Ok(Box::new(session.process_response(cbor_deserialize(&msg[..])?)?))
             }
-            _ => Err(IssuanceError::SessionEnded.into()),
+            Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
         }
     }
 }
