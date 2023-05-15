@@ -3,6 +3,9 @@ name = "wallet"
 version.workspace = true
 edition.workspace = true
 
+[features]
+mock = []
+
 [dependencies]
 entity = { path = "entity" }
 migration = { path = "migration" }

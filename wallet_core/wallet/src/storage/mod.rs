@@ -4,7 +4,7 @@ mod database_storage;
 mod key_file;
 mod sql_cipher_key;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
 use anyhow::Result;
@@ -12,7 +12,7 @@ use anyhow::Result;
 use self::data::KeyedData;
 
 pub use self::database_storage::DatabaseStorage;
-#[cfg(test)]
+#[cfg(any(test, feature = "mock"))]
 pub use self::mock_storage::MockStorage;
 
 /// This represents the current start of [`Storage`].

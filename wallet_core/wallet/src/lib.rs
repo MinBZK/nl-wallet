@@ -1,6 +1,6 @@
-mod account_server;
+pub mod account_server;
 pub mod pin;
-mod storage;
+pub mod storage;
 pub mod wallet;
 
 use anyhow::Result;
