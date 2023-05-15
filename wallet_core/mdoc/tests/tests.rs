@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use ciborium::value::Value;
 use core::fmt::Debug;
 use indexmap::IndexMap;
@@ -7,15 +8,17 @@ use p256::pkcs8::{
     DecodePrivateKey, ObjectIdentifier,
 };
 use rcgen::{BasicConstraints, Certificate, CertificateParams, CustomExtension, DnType, IsCa};
-use serde_bytes::ByteBuf;
+use serde::{de::DeserializeOwned, Serialize};
 use std::ops::Add;
 use x509_parser::prelude::{FromDer, X509Certificate};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
+    basic_sa_ext::{Entry, UnsignedMdoc},
     holder::*,
     iso::*,
     issuer::*,
+    serialization::{cbor_deserialize, cbor_serialize},
+    Error,
 };
 
 mod examples;
@@ -131,53 +134,94 @@ const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-fn new_issuance_request() -> RequestKeyGenerationMessage {
-    RequestKeyGenerationMessage {
-        e_session_id: ByteBuf::from("e_session_id").into(),
-        challenge: ByteBuf::from("challenge"),
-        unsigned_mdocs: vec![UnsignedMdoc {
-            doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            count: 2,
-            valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
-            attributes: IndexMap::from([(
-                ISSUANCE_NAME_SPACE.to_string(),
-                ISSUANCE_ATTRS
-                    .iter()
-                    .map(|(key, val)| Entry {
-                        name: key.to_string(),
-                        value: Value::Text(val.to_string()),
-                    })
-                    .collect(),
-            )]),
-        }],
+fn new_issuance_request() -> Vec<UnsignedMdoc> {
+    vec![UnsignedMdoc {
+        doc_type: ISSUANCE_DOC_TYPE.to_string(),
+        count: 2,
+        valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
+        attributes: IndexMap::from([(
+            ISSUANCE_NAME_SPACE.to_string(),
+            ISSUANCE_ATTRS
+                .iter()
+                .map(|(key, val)| Entry {
+                    name: key.to_string(),
+                    value: Value::Text(val.to_string()),
+                })
+                .collect(),
+        )]),
+    }]
+}
+
+struct MockHttpClient<'a> {
+    issuance_server: &'a Server,
+    session_id: SessionId,
+}
+
+#[async_trait]
+impl HttpClient for MockHttpClient<'_> {
+    async fn post<R, V>(&self, val: &V) -> Result<R, Error>
+    where
+        V: Serialize + Sync,
+        R: DeserializeOwned,
+    {
+        let response = self
+            .issuance_server
+            .process_message(self.session_id.clone(), cbor_serialize(val).unwrap())
+            .unwrap();
+
+        // Hacky way to cast `response`, which is a `Box<dyn IssuerResponse>`, to the requested type:
+        // serialoze to CBOR and back
+        Ok(cbor_deserialize(cbor_serialize(&response).unwrap().as_slice()).unwrap())
+    }
+}
+
+struct MockHttpClientBuilder<'a> {
+    issuance_server: &'a Server,
+}
+
+impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a> {
+    type Client = MockHttpClient<'a>;
+    fn build(&self, engagement: ServiceEngagement) -> Self::Client {
+        MockHttpClient {
+            issuance_server: self.issuance_server,
+            session_id: hex::decode(engagement.url.unwrap()).unwrap().into(),
+        }
     }
 }
 
 #[test]
 fn issuance_and_disclosure() {
-    // Issuer data
+    // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
-    dbg!(DebugCollapseBts(&cert_bts));
     let ca_bts = ca.serialize_der().unwrap();
-    let ca_cert = X509Certificate::from_der(ca_bts.as_slice()).unwrap().1;
 
+    // Setup session and issuer
     let request = new_issuance_request();
-    let issuer = Issuer::new(request.clone(), privkey, cert_bts);
+    let mut issuance_server = Server::new();
+    let session_id = issuance_server.new_session(request, privkey, cert_bts);
+    let service_engagement = ServiceEngagement {
+        url: session_id.to_string().into(),
+        ..Default::default()
+    };
 
-    // User data
-    let mut wallet = Credentials::new();
+    // Setup holder
+    let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
+    let wallet = Credentials::new();
 
     // Do issuance
-    let wallet_issuance_state = Credentials::issuance_start(&request).unwrap();
-    println!(
-        "wallet response: {:#?}",
-        DebugCollapseBts(&wallet_issuance_state.response)
-    );
-    let issuer_response = issuer.issue(&wallet_issuance_state.response).unwrap();
-    println!("issuer response: {:#?}", DebugCollapseBts(&issuer_response));
-    let creds = Credentials::issuance_finish(wallet_issuance_state, issuer_response, &ca_cert).unwrap();
-    wallet.add(creds.into_iter().flatten()).unwrap();
+    let client_builder = MockHttpClientBuilder {
+        issuance_server: &issuance_server,
+    };
+    tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap()
+        .block_on(async {
+            wallet
+                .do_issuance(service_engagement, client_builder, &trusted_issuer_certs)
+                .await
+                .unwrap();
+        });
 
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {
@@ -191,6 +235,8 @@ fn issuance_and_disclosure() {
 
     let challenge = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet.disclose(&request, challenge.as_ref()).unwrap();
+
+    let ca_cert = X509Certificate::from_der(ca_bts.as_slice()).unwrap().1;
     println!(
         "Disclosure: {:#?}",
         DebugCollapseBts(disclosed.verify(None, &challenge, &ca_cert).unwrap())

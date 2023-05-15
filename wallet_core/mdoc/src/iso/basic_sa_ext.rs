@@ -11,6 +11,8 @@ use crate::{
     DocType, MobileSecurityObject, NameSpace, Tdate, ValidityInfo,
 };
 
+pub const START_ISSUING_MSG_TYPE: &str = "nl.referencewallet.issuance.StartIssuing";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "nl.referencewallet.issuance.StartIssuing")]
 #[serde(tag = "messageType")]
@@ -44,6 +46,8 @@ pub struct Entry {
     pub name: String,
     pub value: Value,
 }
+
+pub const KEY_GEN_RESP_MSG_TYPE: &str = "nl.referencewallet.issuance.KeyGenerationResponse";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "nl.referencewallet.issuance.KeyGenerationResponse")]

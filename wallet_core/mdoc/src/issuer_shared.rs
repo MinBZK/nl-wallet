@@ -13,12 +13,20 @@ use crate::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum IssuanceError {
+    #[error("missing session ID")]
+    MissingSessionId,
     #[error("session IDs did not match: received {}, expected {}", received, expected)]
     MismatchedSessionIds { received: SessionId, expected: SessionId },
     #[error("received too many responses: {received}, max was {max}")]
     TooManyResponses { received: u64, max: u64 },
     #[error("received response for wrong doctype: {received}, expected {expected}")]
     WrongDocType { received: DocType, expected: DocType },
+    #[error("unknown session ID: {0}")]
+    UnknownSessionId(SessionId),
+    #[error("cannot process holder input: session has ended")]
+    SessionEnded,
+    #[error("unexpected message type: {received}, expected {expected}")]
+    UnexpectedMessageType { received: String, expected: String },
 }
 
 impl Response {

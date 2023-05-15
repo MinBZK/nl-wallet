@@ -26,6 +26,10 @@ chrono = "0.4.23"
 sha2 = "0.10.6"
 serde_with = "3.0.0"
 thiserror = "1.0.40"
+typetag = "0.2.8"
+dashmap = "5.4.0"
+tokio = { version = "1.28.1", features = ["macros", "rt"] }
+async-trait = "0.1.68"
 
 [dev-dependencies]
 anyhow = "1.0.66"

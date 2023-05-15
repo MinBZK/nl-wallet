@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
 use ciborium::value::Value;
 use indexmap::IndexMap;
@@ -6,15 +6,24 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
+use crate::serialization::{RequiredValue, RequiredValueTrait};
+
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub struct ServiceEngagement {
-    pub id: String,
+    pub id: RequiredValue<ServiceEngagementID>,
     pub url: Option<ServerUrl>,
     pub pc: Option<ProvisioningCode>,
     #[serde(rename = "Opt")]
     pub opt: Option<Options>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ServiceEngagementID;
+impl RequiredValueTrait for ServiceEngagementID {
+    type Type = Cow<'static, str>;
+    const REQUIRED_VALUE: Self::Type = Cow::Borrowed("org.iso.23220-3-1.0");
 }
 
 pub type ProvisioningCode = String;
@@ -31,11 +40,16 @@ pub enum OptionsKey {
     Tstr(String),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionId(ByteBuf);
 impl From<ByteBuf> for SessionId {
     fn from(value: ByteBuf) -> Self {
         SessionId(value)
+    }
+}
+impl From<Vec<u8>> for SessionId {
+    fn from(value: Vec<u8>) -> Self {
+        ByteBuf::from(value).into()
     }
 }
 impl Display for SessionId {
@@ -44,11 +58,14 @@ impl Display for SessionId {
     }
 }
 
+pub const START_PROVISIONING_MSG_TYPE: &str = "StartProvisioning";
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "StartProvisioning")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
+#[derive(Default)]
 pub struct StartProvisioningMessage {
     pub provisioning_code: Option<String>,
 }
@@ -62,6 +79,8 @@ pub struct ReadyToProvisionMessage {
 }
 
 // Session termination
+
+pub const REQUEST_END_SESSION_MSG_TYPE: &str = "RequestEndSession";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "RequestEndSession")]

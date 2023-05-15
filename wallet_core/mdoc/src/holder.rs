@@ -1,14 +1,20 @@
+use async_trait::async_trait;
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
+use dashmap::DashMap;
 use ecdsa::{elliptic_curve::rand_core::OsRng, signature::Signer, SigningKey};
 use indexmap::IndexMap;
 use p256::NistP256;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
-use x509_parser::{nom::AsBytes, prelude::X509Certificate};
+use x509_parser::{
+    nom::AsBytes,
+    prelude::{FromDer, X509Certificate, X509Error},
+};
 
 use crate::{
     basic_sa_ext::{
         DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
-        UnsignedMdoc,
+        StartIssuingMessage, UnsignedMdoc,
     },
     cose::ClonePayload,
     crypto::{dh_hmac_key, sha256},
@@ -26,6 +32,52 @@ pub enum HolderError {
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
+    #[error("issuer not trusted for doctype {0}")]
+    UntrustedIssuer(DocType),
+    #[error("failed to parse certificate: {0}")]
+    CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
+}
+
+// TODO: support multiple certs per doctype, to allow key rollover.
+// We might consider using https://docs.rs/owning_ref/latest/owning_ref/index.html to make the certificates owned.
+/// Trusted CA certificates of issuers authorized to issue a doctype.
+#[derive(Debug, Clone, Default)]
+pub struct TrustedIssuerCerts<'a>(IndexMap<DocType, X509Certificate<'a>>);
+
+impl<'a> From<IndexMap<DocType, X509Certificate<'a>>> for TrustedIssuerCerts<'a> {
+    fn from(value: IndexMap<DocType, X509Certificate<'a>>) -> Self {
+        Self(value)
+    }
+}
+
+impl<'a, const N: usize> TryFrom<[(DocType, &'a [u8]); N]> for TrustedIssuerCerts<'a> {
+    type Error = Error;
+
+    fn try_from(value: [(DocType, &'a [u8]); N]) -> Result<Self> {
+        Ok(value
+            .iter()
+            .map(|(doc_type, bts)| Ok((doc_type.clone(), Self::parse(bts)?)))
+            .collect::<Result<IndexMap<_, _>>>()?
+            .into())
+    }
+}
+
+impl<'a> TrustedIssuerCerts<'a> {
+    pub fn new() -> Self {
+        IndexMap::new().into()
+    }
+
+    pub fn parse(cert_bts: &'a [u8]) -> Result<X509Certificate<'a>> {
+        Ok(X509Certificate::from_der(cert_bts)
+            .map_err(HolderError::CertificateParsingFailed)?
+            .1)
+    }
+
+    pub fn get(&self, doc_type: &DocType) -> Result<&X509Certificate> {
+        self.0
+            .get(doc_type)
+            .ok_or(Error::from(HolderError::UntrustedIssuer(doc_type.clone())))
+    }
 }
 
 /// Mdoc credentials of the holder. This data structure supports storing:
@@ -33,43 +85,127 @@ pub enum HolderError {
 /// - multiple mdocs having the same doctype but distinct attributes, through the map over `Vec<u8>` which is computed
 ///   with [`Credential::hash()`] (see its rustdoc for details),
 /// - multiple mdocs having the same doctype and the same attributes, through the `CredentialCopies` data structure.
-#[derive(Debug, Clone)]
-pub struct Credentials(pub IndexMap<DocType, IndexMap<Vec<u8>, CredentialCopies>>);
+#[derive(Debug, Clone, Default)]
+pub struct Credentials(DashMap<DocType, DashMap<Vec<u8>, CredentialCopies>>);
 
-impl Default for Credentials {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 impl<const N: usize> TryFrom<[Credential; N]> for Credentials {
     type Error = Error;
 
     fn try_from(value: [Credential; N]) -> Result<Self> {
-        let mut creds = Credentials::new();
+        let creds = Credentials(DashMap::new());
         creds.add(value.into_iter())?;
         Ok(creds)
     }
 }
 
+impl Credentials {
+    pub async fn do_issuance<T: HttpClientBuilder>(
+        &self,
+        service_engagement: ServiceEngagement,
+        client_builder: T,
+        trusted_issuer_certs: &TrustedIssuerCerts<'_>,
+    ) -> Result<()> {
+        let client = client_builder.build(service_engagement);
+
+        // Start issuance protocol
+        let ready_msg: ReadyToProvisionMessage = client.post(&StartProvisioningMessage::default()).await?;
+        let session_id = ready_msg.e_session_id;
+
+        // Fetch the issuance details: challenge and the to-be-issued credentials
+        let request: RequestKeyGenerationMessage = client
+            .post(&StartIssuingMessage {
+                e_session_id: session_id.clone(),
+                version: 1, // TODO magic number
+            })
+            .await?;
+
+        // Compute responses
+        let state = IssuanceState::issuance_start(request)?;
+
+        // Finish issuance protocol
+        let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
+
+        // Process issuer response to obtain and save new credentials
+        let creds = IssuanceState::issuance_finish(state, issuer_response, trusted_issuer_certs)?;
+        self.add(creds.into_iter().flatten())
+    }
+}
+
+/// Used during a session to construct a HTTP client to interface with the server.
+/// Can be used to pass information to the client that it needs during the session.
+pub trait HttpClientBuilder {
+    type Client: HttpClient;
+    fn build(&self, service_engagement: ServiceEngagement) -> Self::Client;
+}
+
+#[async_trait]
+pub trait HttpClient {
+    async fn post<R, V>(&self, val: &V) -> Result<R>
+    where
+        V: Serialize + Sync,
+        R: DeserializeOwned;
+}
+
 #[derive(Debug)]
-pub struct IssuanceState<'a> {
-    pub request: &'a RequestKeyGenerationMessage,
+pub struct IssuanceState {
+    pub request: RequestKeyGenerationMessage,
     pub response: KeyGenerationResponseMessage,
 
     /// Private keys grouped by distinct credentials, and then per copies of each distinct credential.
     pub private_keys: Vec<Vec<SigningKey<NistP256>>>,
 }
 
-impl Credentials {
-    pub fn new() -> Credentials {
-        Credentials(IndexMap::new())
+impl IssuanceState {
+    pub fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState> {
+        let private_keys = request
+            .unsigned_mdocs
+            .iter()
+            .map(|unsigned| Credentials::generate_keys(unsigned.count))
+            .collect::<Vec<_>>();
+        let response = KeyGenerationResponseMessage::new(&request, &private_keys)?;
+
+        Ok(IssuanceState {
+            request,
+            private_keys,
+            response,
+        })
     }
 
-    pub fn add(&mut self, creds: impl Iterator<Item = Credential>) -> Result<()> {
+    pub fn issuance_finish(
+        state: IssuanceState,
+        issuer_response: DataToIssueMessage,
+        trusted_issuer_certs: &TrustedIssuerCerts,
+    ) -> Result<Vec<CredentialCopies>> {
+        issuer_response
+            .mobile_id_documents
+            .iter()
+            .zip(&state.request.unsigned_mdocs)
+            .zip(&state.private_keys)
+            .map(|((doc, unsigned), keys)| {
+                Ok(doc
+                    .sparse_issuer_signed
+                    .iter()
+                    .zip(keys)
+                    .map(|(iss_signature, key)| {
+                        iss_signature.to_credential(key.clone(), unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
+                    })
+                    .collect::<Result<Vec<_>>>()?
+                    .into())
+            })
+            .collect()
+    }
+}
+
+impl Credentials {
+    pub fn new() -> Credentials {
+        Credentials(DashMap::new())
+    }
+
+    pub fn add(&self, creds: impl Iterator<Item = Credential>) -> Result<()> {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
-                .or_insert(IndexMap::new())
+                .or_insert(DashMap::new())
                 .entry(cred.hash()?)
                 .or_insert(CredentialCopies::new())
                 .creds
@@ -85,54 +221,27 @@ impl Credentials {
             .collect()
     }
 
-    pub fn issuance_start(request: &RequestKeyGenerationMessage) -> Result<IssuanceState> {
-        let private_keys = request
-            .unsigned_mdocs
-            .iter()
-            .map(|unsigned| Credentials::generate_keys(unsigned.count))
-            .collect::<Vec<_>>();
-        let response = KeyGenerationResponseMessage::new(request, &private_keys)?;
-
-        Ok(IssuanceState {
-            request,
-            private_keys,
-            response,
-        })
-    }
-
-    pub fn issuance_finish(
-        state: IssuanceState,
-        issuer_response: DataToIssueMessage,
-        issuer_cert: &X509Certificate,
-    ) -> Result<Vec<CredentialCopies>> {
-        issuer_response
-            .mobile_id_documents
-            .iter()
-            .zip(&state.request.unsigned_mdocs)
-            .zip(&state.private_keys)
-            .map(|((doc, unsigned), keys)| {
-                Ok(doc
-                    .sparse_issuer_signed
-                    .iter()
-                    .zip(keys)
-                    .map(|(iss_signature, key)| iss_signature.to_credential(key.clone(), unsigned, issuer_cert))
-                    .collect::<Result<Vec<_>>>()?
-                    .into())
-            })
-            .collect()
-    }
-
     pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
         let mut docs: Vec<Document> = Vec::new();
 
         for doc_request in &device_request.doc_requests {
             let items_request = &doc_request.items_request.0;
-            if !self.0.contains_key(&items_request.doc_type) {
-                return Err(HolderError::UnsatisfiableRequest(items_request.doc_type.clone()).into());
-            }
 
             // This takes any mdoc of the specified doctype. TODO: allow user choice.
-            let cred = &self.0[&items_request.doc_type].values().next().unwrap().creds[0];
+            let creds = self
+                .0
+                .get(&items_request.doc_type)
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?;
+            let cred = &creds
+                .value()
+                .iter()
+                .next()
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?
+                .creds[0];
             docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
