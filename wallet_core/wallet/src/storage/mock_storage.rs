@@ -1,6 +1,7 @@
 use std::{any::Any, collections::HashMap};
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 
 use super::{
     data::{KeyedData, Registration},
@@ -32,7 +33,7 @@ impl Default for MockStorage {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Storage for MockStorage {
     async fn state(&self) -> Result<StorageState> {
         Ok(self.state)

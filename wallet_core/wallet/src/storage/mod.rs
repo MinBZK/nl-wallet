@@ -8,6 +8,7 @@ mod sql_cipher_key;
 mod mock_storage;
 
 use anyhow::Result;
+use async_trait::async_trait;
 
 use self::data::KeyedData;
 
@@ -35,7 +36,7 @@ pub enum StorageError {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[async_trait::async_trait]
+#[async_trait]
 pub trait Storage {
     async fn state(&self) -> Result<StorageState>;
 

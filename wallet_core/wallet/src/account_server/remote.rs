@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use reqwest::Client;
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
@@ -21,7 +22,7 @@ impl RemoteAccountServerClient {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl AccountServerClient for RemoteAccountServerClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>> {
         let challenge = self

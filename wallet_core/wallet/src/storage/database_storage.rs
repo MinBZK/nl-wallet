@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tokio::{fs, try_join};
 
@@ -80,7 +81,7 @@ impl Default for DatabaseStorage {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Storage for DatabaseStorage {
     /// Indiciate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.

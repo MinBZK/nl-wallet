@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use axum_test_helper::TestClient;
 
 use platform_support::hw_keystore::software::SoftwareEcdsaKey;
@@ -23,7 +24,7 @@ impl WalletTestClient {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl AccountServerClient for WalletTestClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>> {
         let challenge = self
