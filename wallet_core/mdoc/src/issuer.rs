@@ -125,7 +125,7 @@ impl Server {
         session_id
     }
 
-    /// Read the following fields from the CBOR-endoced holder message:
+    /// Read the following fields from the CBOR-encoded holder message:
     /// - `messageType`: should be present in every message
     /// - `eSessionId`: should be present in every message except the first
     fn inspect_message(msg: &[u8]) -> Result<(String, Option<SessionId>)> {
