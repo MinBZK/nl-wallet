@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Ok, Result};
-use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use tokio::fs;
+
+use platform_support::{hw_keystore::PlatformEncryptionKey, utils::PlatformUtilities};
 use wallet_common::utils::random_bytes;
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";

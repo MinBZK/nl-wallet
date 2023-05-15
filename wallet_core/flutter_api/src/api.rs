@@ -2,7 +2,7 @@ use anyhow::{Ok, Result};
 use tokio::sync::{OnceCell, RwLock};
 
 use macros::async_runtime;
-use wallet::{init_wallet, pin::validation::validate_pin, Wallet};
+use wallet::{init_wallet, validate_pin, Wallet};
 
 use crate::{async_runtime::init_async_runtime, models::pin::PinValidationResult};
 

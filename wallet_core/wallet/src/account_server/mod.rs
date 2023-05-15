@@ -1,11 +1,14 @@
-pub mod remote;
+mod remote;
 
 use anyhow::Result;
 use async_trait::async_trait;
+
 use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
+
+pub use self::remote::RemoteAccountServerClient;
 
 #[async_trait]
 pub trait AccountServerClient {

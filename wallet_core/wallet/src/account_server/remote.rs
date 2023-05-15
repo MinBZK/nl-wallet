@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
+
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
     signed::SignedDouble,

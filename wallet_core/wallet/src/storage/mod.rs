@@ -1,4 +1,4 @@
-pub mod data;
+mod data;
 mod database;
 mod database_storage;
 mod key_file;
@@ -10,9 +10,11 @@ mod mock_storage;
 use anyhow::Result;
 use async_trait::async_trait;
 
-use self::data::KeyedData;
+pub use self::{
+    data::{KeyedData, Registration},
+    database_storage::DatabaseStorage,
+};
 
-pub use self::database_storage::DatabaseStorage;
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock_storage::MockStorage;
 

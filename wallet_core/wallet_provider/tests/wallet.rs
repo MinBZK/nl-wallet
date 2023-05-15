@@ -3,7 +3,10 @@ use async_trait::async_trait;
 use axum_test_helper::TestClient;
 
 use platform_support::hw_keystore::software::SoftwareEcdsaKey;
-use wallet::{account_server::AccountServerClient, storage::MockStorage, wallet::Wallet};
+use wallet::{
+    mock::MockStorage,
+    wallet::{AccountServerClient, Wallet},
+};
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
     signed::SignedDouble,
