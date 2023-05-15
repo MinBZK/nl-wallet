@@ -47,18 +47,8 @@ public reference wallet at the end of 2023 and to make it available in phases fo
     * [Setup development environment](#setup-development-environment)
 - [File structure](#file-structure)
     * [Code](#code)
-    * [Assets](#assets)
-    * [Localization](#localization)
-- [Architecture](#architecture)
-    * [UI Layer](#ui-layer)
-    * [Domain Layer](#domain-layer)
-    * [Data Layer](#data-layer)
-    * [Motivation](#motivation)
 - [Conventions](#conventions)
     * [Git](#git)
-    * [Dart](#dart)
-    * [Naming](#naming)
-    * [Testing](#testing)
 - [Distribution](#distribution)
 - [Troubleshooting](#troubleshooting)
 
@@ -124,6 +114,8 @@ Note that all commits should be signed using a GPG key.
 
 # Getting started
 
+This section contains the general setup requirements of the project. For more details on configuration of the [wallet app](./wallet_app/README.md), the [wallet core](./wallet_core/README.md) and the [wallet_provider](./wallet_core/wallet_provider/README.md), please see the corresponding README files.
+
 ## Setup development environment
 
 The app's UI is build using Flutter, but to avoid tying the app to Flutter & Dart, all core business
@@ -177,10 +169,6 @@ easiest way to do so is:
 
 Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
 
-#### Wallet provider
-
-See [wallet_core/wallet_provider/README.md](./wallet_core/wallet_provider/README.md#setup-development-environment)
-
 ### Validate
 
 After doing the above `flutter doctor` should report that at least the following are installed
@@ -212,94 +200,6 @@ cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
 
 The generated code is currently checked in, so that generation only has to be performed when the API changes.
 
-## Assets
-
-All files used by the project (like images, fonts, etc.), go into the `assets/` directory and their
-appropriate sub-directories.
-
-Note; the `assets/images/` directory
-contains [resolution-aware images](https://flutter.dev/docs/development/ui/assets-and-images#resolution-aware)
-.
-
-> Copyright note: place all non free (copyrighted) assets used under the `non-free/` directory inside the appropriate asset sub-directory.
-
-## Localization
-
-Text localization is enabled; currently supporting English & Dutch, with English set as primary (
-fallback) language. Localized messages are generated based on `ARB` files found in
-the `lib/src/localization` directory.
-
-To support additional languages, please visit the tutorial
-on [Internationalizing Flutter apps](https://flutter.dev/docs/development/accessibility-and-localization/internationalization)
-.
-
-Internally, this project uses the commercial Lokalise service to manage translations. This service
-is currently not accessible for external contributors. For contributors with access, please
-see [documentation/lokalise.md](./documentation/lokalise.md) for documentation.
-
-# Architecture
-
-The project uses the [flutter_bloc](https://pub.dev/packages/flutter_bloc) package to handle state
-management.
-
-On top of that it follows the [BLoC Architecture](https://bloclibrary.dev/#/architecture) guide,
-with a slightly fleshed out domain layer.
-
-This architecture relies on three conceptual layers, namely:
-
-- [UI Layer](#ui-layer)
-- [Domain Layer](#domain-layer)
-- [Data Layer](#data-layer)
-
-![Architecture Overview](./architecture_overview.png)
-
-## UI Layer
-
-Responsible for displaying the application data on screen.
-
-In the above diagram the **UI** node likely represents a `Widget`, e.g. in the form of a `xyzScreen`
-, that observes the Bloc using one of the `flutter_bloc` provided Widgets. E.g. `BlocBuilder`.
-
-When the user interacts with the UI, the UI is responsible for sending a corresponding `Event` to
-the associated BLoC. The BLoC than processes this event and emits an updated `State` to the UI,
-causing the UI to rebuild and render the new state.
-
-## Domain Layer
-
-Encapsulate business logic to make it reusable. UseCases are likely to be used by BLoCs to interact
-with data, allowing the BLoCs to be concise and keep their focus on converting events into new
-states.
-
-Naming convention `verb in present tense + noun/what (optional) + UseCase` e.g. LogoutUserUseCase.
-
-## Data Layer
-
-Exposes application data to the rest of the application. Responsible for any CRUD like operations or
-network interactions, likely through other classes in the form of DataSources.
-
-## Motivation
-
-The reason we opted for this BLoC layered approach with the intermediary domain layer is to optimize
-for: Re-usability, Testability and Readability.
-
-**Re-usable** because the usecases in the domain layer are focused on a single task, making them
-convenient to re-use in multiple blocs when the same data or interaction is required on multiple (
-ui) screens.
-
-**Testable** because with the abstraction to other layers in the form of dependencies of a class,
-the dependencies can be easily swapped out by mock implementations, allowing us to create small,
-non-flaky unit tests of all individual components.
-
-**Readable** because with there is a clear separation of concerns between the layers, the UI is
-driven by data models (not by state living in UI components) and can thus be easily inspected, there
-is a single source of truth for the data in the data layer and there is a unidirectional data flow
-in the ui layer making it easier to reason about the transitions between different states.
-
-Finally, since while we are developing the initial Proof of Concept it is unlikely that we will be
-working with real datasources, this abstraction allows us to get started now, and in theory quickly
-migrate to a fully functional app (once the data comes online) by replacing our MockRepositories /
-MockDataSources with the actual implementations, without touching anything in the Domain or UI
-Layer.
 
 # Conventions
 
@@ -319,47 +219,6 @@ See [commit message](#commit-message).
 ### PR merge
 
 - Default to squash merge (combined with PR title conventions)
-
-## Dart
-
-* Max. line length is set to 120 (Dart defaults to 80)
-* Relative imports for all project files below `src` folder; for
-  example: `import 'bloc/wallet_bloc.dart';`
-* Trailing commas are added by default; unless it compromises readability
-
-## Naming
-
-* Folder naming is `singular` for folders below `src`; for example: `src/feature/wallet/widget/...`
-
-## Testing
-
-### Unit tests
-
-* Test file name follows the convention: `{class_name}_test.dart`
-* Test description follows the convention: `should {do something} when {some condition}`
-* Tests are grouped* by the method they are testing
-
-** Grouping tests by method is not required, but recommended when testing a specific method.
-
-### UI / Golden tests
-
-* UI Tests are part of the normal test files
-* UI Tests are grouped in `Golden Tests`
-
-Even though they run headless, UI tests are slower to run. The main goal of these tests are to:
-- Verify correct accessibility behaviour on different configurations (orientation/display scaling/font scaling/theming)
-- Detect unexpected UI changes
-
-As such we aim to keep the UI tests minimal, focusing on testing the most important states for a
-screen. This can be done by providing a mocked bloc with the state manually configured in the test.
-
-Note that the UI renders slightly differ per platform, causing small diffs (and failing tests) when
-verifying on a different host platform (e.g. mac vs linux). To circumvent this issue, we opted to
-only run UI tests on mac hosts for now. Because of this it is vital to only generate
-new goldens on a mac host. This can be done with `flutter test --update-goldens --tags=golden <optional_path_to_single_test_file>`.
-
-- To only verify goldens use `flutter test --tags=golden`
-- To only verify other tests use `flutter test --exclude-tags=golden`
 
 # Distribution
 
