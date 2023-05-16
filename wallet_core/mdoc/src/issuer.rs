@@ -254,7 +254,7 @@ impl Issuer {
         let signed = SparseIssuerSigned {
             randoms: attrs
                 .into_iter()
-                .map(|(namespace, attrs)| (namespace, attrs.0.into_iter().map(|attr| attr.0.random).collect()))
+                .map(|(namespace, attrs)| (namespace, Self::attr_randoms(attrs)))
                 .collect(),
             sparse_issuer_auth: SparseIssuerAuth {
                 version: "1.0".to_string(),
@@ -264,6 +264,10 @@ impl Issuer {
             },
         };
         Ok(signed)
+    }
+
+    fn attr_randoms(attrs: Attributes) -> Vec<ByteBuf> {
+        attrs.0.into_iter().map(|attr| attr.0.random).collect()
     }
 
     fn issue_creds(

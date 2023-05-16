@@ -153,19 +153,26 @@ impl IssuanceState {
             .iter()
             .zip(&state.request.unsigned_mdocs)
             .zip(&state.private_keys)
-            .map(|((doc, unsigned), keys)| {
-                let cred_copies = doc
-                    .sparse_issuer_signed
-                    .iter()
-                    .zip(keys)
-                    .map(|(iss_signature, key)| {
-                        iss_signature.to_credential(key.clone(), unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
-                    })
-                    .collect::<Result<Vec<_>>>()?
-                    .into();
-                Ok(cred_copies)
-            })
+            .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trusted_issuer_certs))
             .collect()
+    }
+
+    fn create_cred_copies(
+        doc: &basic_sa_ext::MobileIDDocuments,
+        unsigned: &UnsignedMdoc,
+        keys: &Vec<SigningKey<NistP256>>,
+        trusted_issuer_certs: &TrustedIssuerCerts,
+    ) -> Result<CredentialCopies> {
+        let cred_copies = doc
+            .sparse_issuer_signed
+            .iter()
+            .zip(keys)
+            .map(|(iss_signature, key)| {
+                iss_signature.to_credential(key.clone(), unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into();
+        Ok(cred_copies)
     }
 }
 
@@ -179,17 +186,7 @@ impl SparseIssuerSigned {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
-            .map(|(namespace, attrs)| {
-                (
-                    namespace.clone(),
-                    attrs
-                        .iter()
-                        .enumerate()
-                        .map(|(index, attr)| attr.to_issuer_signed_item(index, self.randoms[namespace][index].to_vec()))
-                        .collect::<Vec<_>>()
-                        .into(),
-                )
-            })
+            .map(|(namespace, entries)| (namespace.clone(), Self::create_attrs(namespace, entries, &self.randoms)))
             .collect();
 
         let mso = MobileSecurityObject {
@@ -217,6 +214,15 @@ impl SparseIssuerSigned {
             doc_type: unsigned.doc_type.clone(),
         };
         Ok(cred)
+    }
+
+    fn create_attrs(namespace: &NameSpace, attrs: &[Entry], randoms: &IndexMap<NameSpace, Vec<ByteBuf>>) -> Attributes {
+        attrs
+            .iter()
+            .enumerate()
+            .map(|(index, attr)| attr.to_issuer_signed_item(index, randoms[namespace][index].to_vec()))
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 

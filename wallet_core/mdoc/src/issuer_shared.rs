@@ -1,4 +1,6 @@
 use coset::Header;
+use ecdsa::SigningKey;
+use p256::NistP256;
 use serde_bytes::ByteBuf;
 
 use crate::{
@@ -64,7 +66,36 @@ impl KeyGenerationResponseMessage {
         self.mdoc_responses
             .iter()
             .zip(&request.unsigned_mdocs)
-            .find_map(|(responses, unsigned_mdoc)| check_responses(responses, unsigned_mdoc, &request.challenge).err())
+            .find_map(|(responses, unsigned_mdoc)| {
+                Self::check_responses(responses, unsigned_mdoc, &request.challenge).err()
+            })
+            .map_or(Ok(()), Err)
+    }
+
+    fn check_responses(
+        doctype_responses: &MdocResponses,
+        unsigned_mdoc: &UnsignedMdoc,
+        challenge: &ByteBuf,
+    ) -> Result<()> {
+        if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
+            return Err(IssuanceError::TooManyResponses {
+                received: doctype_responses.responses.len() as u64,
+                max: unsigned_mdoc.count,
+            }
+            .into());
+        }
+        if doctype_responses.doc_type != unsigned_mdoc.doc_type {
+            return Err(IssuanceError::WrongDocType {
+                received: doctype_responses.doc_type.clone(),
+                expected: unsigned_mdoc.doc_type.clone(),
+            }
+            .into());
+        }
+
+        doctype_responses
+            .responses
+            .iter()
+            .find_map(|response| response.verify(challenge).err())
             .map_or(Ok(()), Err)
     }
 
@@ -75,16 +106,7 @@ impl KeyGenerationResponseMessage {
         let responses = keys
             .iter()
             .zip(&request.unsigned_mdocs)
-            .map(|(keys, unsigned)| {
-                let responses = MdocResponses {
-                    doc_type: unsigned.doc_type.clone(),
-                    responses: keys
-                        .iter()
-                        .map(|key| Response::sign(&request.challenge, key))
-                        .collect::<Result<Vec<_>>>()?,
-                };
-                Ok(responses)
-            })
+            .map(|(keys, unsigned)| Self::create_responses(keys, unsigned, &request.challenge))
             .collect::<Result<Vec<MdocResponses>>>()?;
 
         let response = KeyGenerationResponseMessage {
@@ -93,27 +115,19 @@ impl KeyGenerationResponseMessage {
         };
         Ok(response)
     }
-}
 
-fn check_responses(doctype_responses: &MdocResponses, unsigned_mdoc: &UnsignedMdoc, challenge: &ByteBuf) -> Result<()> {
-    if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
-        return Err(IssuanceError::TooManyResponses {
-            received: doctype_responses.responses.len() as u64,
-            max: unsigned_mdoc.count,
-        }
-        .into());
+    fn create_responses(
+        keys: &[SigningKey<NistP256>],
+        unsigned: &UnsignedMdoc,
+        challenge: &ByteBuf,
+    ) -> Result<MdocResponses> {
+        let responses = MdocResponses {
+            doc_type: unsigned.doc_type.clone(),
+            responses: keys
+                .iter()
+                .map(|key| Response::sign(challenge, key))
+                .collect::<Result<Vec<_>>>()?,
+        };
+        Ok(responses)
     }
-    if doctype_responses.doc_type != unsigned_mdoc.doc_type {
-        return Err(IssuanceError::WrongDocType {
-            received: doctype_responses.doc_type.clone(),
-            expected: unsigned_mdoc.doc_type.clone(),
-        }
-        .into());
-    }
-
-    doctype_responses
-        .responses
-        .iter()
-        .find_map(|response| response.verify(challenge).err())
-        .map_or(Ok(()), Err)
 }
