@@ -84,7 +84,7 @@ lane :disable_flutter_analytics do
 end
 
 platform :android do
-  desc "Build Android app from GitLab CI"
+  desc "Build release and profile versions of Android app from GitLab CI"
   lane :ci_build do
     build = ci_get_build
     app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
@@ -92,20 +92,25 @@ platform :android do
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "wallet_app/android/upload-keystore.jks")
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "wallet_app/android/key.properties")
 
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix)
+    # TODO: do not sign profile build
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, build_mode: "release")
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, build_mode: "profile")
   end
 
   desc "Deploy Android app from GitLab CI"
   lane :ci_deploy do
     key_file = "play-store-key.json"
+    
     app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+    local_version, local_build = get_local_version_and_build
 
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: key_file)
 
     upload_to_play_store(
       package_name: app_identifier,
       track: "internal",
-      json_key: key_file
+      json_key: key_file,
+      aab: "#{app_identifier}-#{version || local_version}-release.aab"
     )
 
     Dir.chdir("..") do
@@ -115,13 +120,19 @@ platform :android do
 
   desc "Upload Android app to BrowserStack from GitLab CI"
   lane :ci_browserstack do
-    aab_file = get_newest_file(extension: "aab")
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+    local_version, local_build = get_local_version_and_build
+
     credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
 
-    browserstack(aab_file: aab_file, user: credentials["user"], key: credentials["key"])
+    browserstack(
+      aab_file: "#{app_identifier}-#{version || local_version}-profile.aab",
+      user: credentials["user"],
+      key: credentials["key"]
+    )
   end
 
-  desc "Build Android app without signing"
+  desc "Build and sign Android app"
   lane :build do |options|
     package_name = options[:package_name] || get_app_identifier
     UI.user_error!("No app_identifier or package_name option set") unless package_name
@@ -130,6 +141,9 @@ platform :android do
     build = options[:build] || local_build
     version = options[:version] || local_version
     name_suffix = options[:name_suffix]
+    build_mode = options[:build_mode] || "release"
+
+    UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
     Dir.chdir("../wallet_app") do
       sh("flutter", "pub", "get")
@@ -137,8 +151,8 @@ platform :android do
       sh("flutter", "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
       sh("flutter", "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
-      sh("flutter", "build", "appbundle", "--build-number", build.to_s, "--build-name", version.to_s)
-      sh("mv", "build/app/outputs/bundle/release/app-release.aab", "../#{package_name}-#{version}.aab")
+      sh("flutter", "build", "appbundle", "--build-number", build.to_s, "--build-name", version.to_s, "--#{build_mode}")
+      sh("mv", "build/app/outputs/bundle/#{build_mode}/app-#{build_mode}.aab", "../#{package_name}-#{version}-#{build_mode}.aab")
     end
   end
 
