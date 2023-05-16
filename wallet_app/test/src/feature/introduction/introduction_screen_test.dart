@@ -61,7 +61,7 @@ void main() {
 Future<void> _skipPage(Key scenarioWidgetKey, WidgetTester tester) async {
   final finder = find.descendant(
     of: find.byKey(scenarioWidgetKey),
-    matching: find.byIcon(Icons.arrow_forward),
+    matching: find.byKey(const Key('introductionNextPageCta')),
   );
   expect(finder, findsOneWidget);
 

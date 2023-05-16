@@ -6,12 +6,12 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
-import '../../util/extension/num_extensions.dart';
 import '../../wallet_constants.dart';
 import '../../wallet_routes.dart';
-import '../common/widget/placeholder_screen.dart';
 import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/placeholder_screen.dart';
 import 'page/introduction_page.dart';
+import 'page/introduction_privacy_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 
 const int _kNrOfPages = 4;
@@ -65,10 +65,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         PageView(
           controller: _pageController,
           children: [
-            _buildAppDisclaimerPage(context),
             _buildAppIntroductionPage(context),
             _buildAppBenefitsPage(context),
             _buildAppSecurityPage(context),
+            _buildAppPrivacyPage(context),
           ],
         ),
         Semantics(
@@ -76,33 +76,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           explicitChildNodes: true,
           child: _buildBackButton(),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Row(
-            children: [
-              if (MediaQuery.of(context).orientation == Orientation.landscape) const Spacer(),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildProgressStepper(_currentPage),
-                    const SizedBox(height: 24),
-                    _buildSecondaryCta(context),
-                    _buildNextButton(context),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
-    );
-  }
-
-  Widget _buildAppDisclaimerPage(BuildContext context) {
-    return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_introduction_app_disclaimer.png'),
-      title: AppLocalizations.of(context).introductionAppDisclaimerPageTitle,
     );
   }
 
@@ -110,6 +84,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_introduction.png'),
       title: AppLocalizations.of(context).introductionAppIntroPageTitle,
+      subtitle: AppLocalizations.of(context).introductionAppIntroPageSubtitle,
+      header: _buildProgressStepper(_currentPage),
+      footer: _buildBottomSection(context),
     );
   }
 
@@ -117,6 +94,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_benefits.png'),
       title: AppLocalizations.of(context).introductionAppBenefitsPageTitle,
+      subtitle: AppLocalizations.of(context).introductionAppBenefitsPageSubtitle,
+      header: _buildProgressStepper(_currentPage),
+      footer: _buildBottomSection(context),
     );
   }
 
@@ -124,74 +104,29 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_security.png'),
       title: AppLocalizations.of(context).introductionAppSecurityPageTitle,
+      subtitle: AppLocalizations.of(context).introductionAppSecurityPageSubtitle,
+      header: _buildProgressStepper(_currentPage),
+      footer: _buildBottomSection(context),
     );
+  }
+
+  Widget _buildAppPrivacyPage(BuildContext context) {
+    return IntroductionPrivacyPage(footer: _buildPrivacyBottomSection(context));
   }
 
   Widget _buildProgressStepper(double currentStep) {
-    return IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages);
-  }
-
-  Widget _buildSecondaryCta(BuildContext context) {
-    final mainVisiblePage = (_currentPage + 0.5).floor();
-    if (mainVisiblePage == 0 /* _buildAppDisclaimerPage */) {
-      final opacity = 1.0 - _currentPage.clamp(0, 0.5).normalize(0, 0.5);
-      return _buildLanguageButton(opacity);
-    } else if (mainVisiblePage == 3 /* _buildAppSecurityPage */) {
-      final opacity = _currentPage.clamp(2.5, 3).normalize(2.5, 3);
-      return _buildPrivacyPolicyCta(context, opacity.toDouble());
-    }
-    // Empty button, to make sure content above the 'secondary' button doesn't move around.
-    return const ExcludeSemantics(child: TextButton(onPressed: null, child: Text('')));
-  }
-
-  Widget _buildLanguageButton(double opacity) {
-    final Widget result;
-    var languageButton = TextIconButton(
-      key: const Key('introductionLanguageSelectCta'),
-      icon: Icons.language,
-      iconPosition: IconPosition.start,
-      onPressed: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
-      centerChild: false,
-      child: Text(
-          AppLocalizations.of(context).introductionLanguageSelectCta,
-          key: const Key('introductionLanguageSelectCtaText')),
+    return Padding(
+      padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
+      child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
     );
-    //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
-    //FIXME: setup that allows us to configure the app with (custom) mock data.
-    if (kDebugMode && !Environment.isTest) {
-      result = Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          languageButton,
-          const SizedBox(width: 16),
-          TextIconButton(
-            icon: Icons.skip_next,
-            iconPosition: IconPosition.start,
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              await context.read<SetupMockedWalletUseCase>().invoke();
-              navigator.pushReplacementNamed(WalletRoutes.homeRoute);
-            },
-            centerChild: false,
-            child: const Text('SKIP (DEV)'),
-          ),
-        ],
-      );
-    } else {
-      result = languageButton;
-    }
-    return Opacity(opacity: opacity, child: result);
   }
 
-  Widget _buildPrivacyPolicyCta(BuildContext context, double opacity) {
-    return Opacity(
-      opacity: opacity,
-      child: TextIconButton(
-        key: const Key('introductionPrivacyPolicyCta'),
-        icon: Icons.arrow_forward,
-        onPressed: () => PlaceholderScreen.show(context, secured: false),
-        child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
-      ),
+  Widget _buildPrivacyPolicyCta(BuildContext context) {
+    return TextIconButton(
+      key: const Key('introductionPrivacyPolicyCta'),
+      icon: Icons.arrow_forward,
+      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
     );
   }
 
@@ -204,24 +139,87 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     }
   }
 
+  void _onSkipPressed(BuildContext context) => _pageController.jumpToPage(_kNrOfPages - 1);
+
   void _onBackPressed(BuildContext context) {
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
   }
 
-  Widget _buildNextButton(BuildContext context) {
+  Widget _buildBottomSection(BuildContext context) {
+    Widget skipButton = TextIconButton(
+      iconPosition: IconPosition.start,
+      centerChild: false,
+      onPressed: () => _onSkipPressed(context),
+      child: Text(AppLocalizations.of(context).introductionSkipCta),
+    );
+
+    //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
+    //FIXME: setup that allows us to configure the app with (custom) mock data.
+    if (kDebugMode && !Environment.isTest) {
+      // Inject the skip setup button
+      skipButton = Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          skipButton,
+          TextIconButton(
+            iconPosition: IconPosition.start,
+            centerChild: false,
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await context.read<SetupMockedWalletUseCase>().invoke();
+              navigator.pushReplacementNamed(WalletRoutes.homeRoute);
+            },
+            child: const Text('Skip Setup (Dev)'),
+          ),
+        ],
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: ElevatedButton(
-        key: const Key('introductionNextPageCta'),
-        onPressed: () => _onNextPressed(context),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.arrow_forward, size: 16),
-            const SizedBox(width: 8),
-            Text(AppLocalizations.of(context).introductionNextPageCta),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            key: const Key('introductionNextPageCta'),
+            onPressed: () => _onNextPressed(context),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.arrow_forward, size: 16),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context).introductionNextPageCta),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          skipButton,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacyBottomSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildPrivacyPolicyCta(context),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            key: const Key('introductionNextPageCta'),
+            onPressed: () => _onNextPressed(context),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.arrow_forward, size: 16),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context).introductionNextPageCta),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
