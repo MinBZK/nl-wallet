@@ -33,13 +33,17 @@ class PolicyScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).policyScreenTitle),
       ),
-      body: Column(
-        children: [
-          Expanded(child: _buildBody(context)),
-          const BottomBackButton(
-            showDivider: true,
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: _buildBody(context),
+            ),
+            const BottomBackButton(
+              showDivider: true,
+            ),
+          ],
+        ),
       ),
     );
   }

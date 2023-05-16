@@ -35,14 +35,19 @@ class HomeScreen extends StatelessWidget {
         if (state.tab == HomeTab.menu) context.read<MenuBloc>().add(MenuHomePressed());
       },
       builder: (context, state) {
+        final Widget tab;
         switch (state.tab) {
           case HomeTab.cards:
-            return const CardOverviewScreen();
+            tab = const CardOverviewScreen();
+            break;
           case HomeTab.qr:
-            return const QrScreen();
+            tab = const QrScreen();
+            break;
           case HomeTab.menu:
-            return const MenuScreen();
+            tab = const MenuScreen();
+            break;
         }
+        return SafeArea(child: tab);
       },
     );
   }

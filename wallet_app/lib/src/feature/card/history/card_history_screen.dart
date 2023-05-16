@@ -31,7 +31,9 @@ class CardHistoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).cardHistoryScreenTitle),
       ),
-      body: _buildBody(context),
+      body: SafeArea(
+        child: _buildBody(context),
+      ),
     );
   }
 
