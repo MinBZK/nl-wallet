@@ -190,6 +190,7 @@ build-android-app:
     name: "wallet-android"
     paths:
       - "*.aab"
+      - "*.apk"
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
