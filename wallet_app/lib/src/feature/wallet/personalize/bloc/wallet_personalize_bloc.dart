@@ -61,11 +61,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {
         final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-        final card = issuanceResponse.cards.first;
+        final allAttributes = issuanceResponse.cards.map((e) => e.attributes).flattened;
         emit(
           WalletPersonalizeCheckData(
             didGoBack: true,
-            availableAttributes: card.attributes.toList(),
+            availableAttributes: allAttributes.toList(),
           ),
         );
       }

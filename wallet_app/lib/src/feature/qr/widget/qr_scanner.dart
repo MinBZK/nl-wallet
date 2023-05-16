@@ -7,7 +7,9 @@ import 'flashlight_state_proxy.dart';
 import 'qr_scanner_frame.dart';
 
 class QrScanner extends StatelessWidget {
-  final MobileScannerController cameraController = MobileScannerController(formats: [BarcodeFormat.qrCode]);
+  final MobileScannerController cameraController = MobileScannerController(
+    formats: [BarcodeFormat.qrCode],
+  );
 
   QrScanner({Key? key}) : super(key: key);
 
@@ -18,9 +20,8 @@ class QrScanner extends StatelessWidget {
         controller: cameraController,
         child: MobileScanner(
           controller: cameraController,
-          allowDuplicates: false,
-          onDetect: (Barcode barcode, MobileScannerArguments? args) {
-            context.read<QrScanBloc>().add(QrScanCodeDetected(barcode));
+          onDetect: (capture) {
+            context.read<QrScanBloc>().add(QrScanCodeDetected(capture.barcodes.first));
           },
         ),
       ),

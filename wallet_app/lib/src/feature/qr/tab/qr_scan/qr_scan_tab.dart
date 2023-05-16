@@ -5,10 +5,10 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../domain/model/qr/qr_request.dart';
 import '../../../../wallet_routes.dart';
-import '../../../common/widget/centered_loading_indicator.dart';
-import '../../../common/widget/utility/check_permission_on_resume.dart';
-import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/button/text_icon_button.dart';
+import '../../../common/widget/centered_loading_indicator.dart';
+import '../../../common/widget/explanation_sheet.dart';
+import '../../../common/widget/utility/check_permission_on_resume.dart';
 import '../../../issuance/argument/issuance_screen_argument.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
@@ -26,10 +26,9 @@ class QrScanTab extends StatelessWidget {
       listener: (context, state) {
         if (state is QrScanSuccess) _handleScanSuccess(context, state);
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          const SizedBox(height: 8),
           BlocBuilder<QrScanBloc, QrScanState>(
             builder: (context, state) {
               if (state is QrScanInitial) return _buildInitialState(context);

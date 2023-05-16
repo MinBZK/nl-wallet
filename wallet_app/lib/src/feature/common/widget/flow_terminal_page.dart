@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'button/link_button.dart';
-import 'status_icon.dart';
 import 'button/text_icon_button.dart';
+import 'status_icon.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/verification flow.
 class FlowTerminalPage extends StatelessWidget {
@@ -35,10 +35,20 @@ class FlowTerminalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildScrollableSection(context),
+        const SizedBox(height: 16),
+        _buildBottomSection(context),
+      ],
+    );
+  }
+
+  Widget _buildScrollableSection(BuildContext context) {
+    return Expanded(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         children: [
           const SizedBox(height: 24),
           Padding(
@@ -74,22 +84,33 @@ class FlowTerminalPage extends StatelessWidget {
               onPressed: onTertiaryButtonPressed,
               child: Text(tertiaryButtonCta!),
             ),
-          content != null ? Expanded(child: content!) : const Spacer(),
-          if (secondaryButtonCta != null)
-            TextIconButton(
-              onPressed: onSecondaryButtonPressed,
-              child: Text(secondaryButtonCta!),
-            ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton(
-              onPressed: onClosePressed,
-              child: Text(closeButtonCta),
-            ),
-          ),
+          if (content != null) content!,
         ],
       ),
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    Widget? secondaryButton;
+    if (secondaryButtonCta != null) {
+      secondaryButton = TextIconButton(
+        onPressed: onSecondaryButtonPressed,
+        child: Text(secondaryButtonCta!),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (secondaryButton != null) secondaryButton,
+        if (secondaryButton != null) const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ElevatedButton(
+            onPressed: onClosePressed,
+            child: Text(closeButtonCta),
+          ),
+        ),
+      ],
     );
   }
 }

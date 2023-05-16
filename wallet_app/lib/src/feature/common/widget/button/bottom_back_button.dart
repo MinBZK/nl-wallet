@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import 'text_icon_button.dart';
 
 const _kButtonHeight = 72.0;
+const _kLandscapeButtonHeight = 56.0;
 
 class BottomBackButton extends StatelessWidget {
   final bool showDivider;
@@ -23,7 +25,7 @@ class BottomBackButton extends StatelessWidget {
         children: [
           if (showDivider) const Divider(height: 1),
           SizedBox(
-            height: _kButtonHeight,
+            height: context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight,
             width: double.infinity,
             child: Theme(
               data: themeData.copyWith(

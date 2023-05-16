@@ -16,11 +16,11 @@ void main() {
 
   group('Wallet Management', () {
     test('mock wallet is not initialized by default', () async {
-      expect(await walletRepository.isInitializedStream.first, false);
+      expect(await walletRepository.isRegistered(), false);
     });
     test('wallet should be initialized after creation', () async {
       await walletRepository.createWallet(kMockPin);
-      expect(await walletRepository.isInitializedStream.first, true);
+      expect(await walletRepository.isRegistered(), true);
     });
     test('destroy wallet should throw when it was not initialized', () async {
       expect(() async => await walletRepository.destroyWallet(), throwsA(isA<UnsupportedError>()));
@@ -28,7 +28,7 @@ void main() {
     test('wallet should not be initialized after destruction', () async {
       await walletRepository.createWallet(kMockPin);
       await walletRepository.destroyWallet();
-      expect(await walletRepository.isInitializedStream.first, false);
+      expect(await walletRepository.isRegistered(), false);
     });
     test('wallet is locked by default', () async {
       expect(await walletRepository.isLockedStream.first, true);
@@ -63,11 +63,11 @@ void main() {
     test('wallet is destroyed after too many invalid lock attempts', () async {
       await walletRepository.createWallet(kMockPin);
       walletRepository.unlockWallet('invalid');
-      expect(await walletRepository.isInitializedStream.first, true);
+      expect(await walletRepository.isRegistered(), true);
       walletRepository.unlockWallet('invalid');
-      expect(await walletRepository.isInitializedStream.first, true);
+      expect(await walletRepository.isRegistered(), true);
       walletRepository.unlockWallet('invalid');
-      expect(await walletRepository.isInitializedStream.first, false);
+      expect(await walletRepository.isRegistered(), false);
     });
     test('attempts are reset after creating a new wallet', () async {
       await walletRepository.createWallet(kMockPin);
@@ -102,11 +102,11 @@ void main() {
       await walletRepository.createWallet(kMockPin);
       walletRepository.unlockWallet(kMockPin); //Make sure wallet is unlocked before confirmation
       walletRepository.confirmTransaction('invalid');
-      expect(await walletRepository.isInitializedStream.first, true);
+      expect(await walletRepository.isRegistered(), true);
       walletRepository.confirmTransaction('invalid');
-      expect(await walletRepository.isInitializedStream.first, true);
+      expect(await walletRepository.isRegistered(), true);
       walletRepository.confirmTransaction('invalid');
-      expect(await walletRepository.isInitializedStream.first, false);
+      expect(await walletRepository.isRegistered(), false);
     });
     test('attempts are reset after successfully confirming a transaction', () async {
       await walletRepository.createWallet(kMockPin);

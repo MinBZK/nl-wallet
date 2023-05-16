@@ -16,8 +16,10 @@ class SplashScreen extends StatelessWidget {
       listenWhen: (prev, current) => current is SplashLoaded,
       listener: (context, state) {
         if (state is SplashLoaded) {
-          if (state.isInitialized) {
-            Navigator.restorablePushReplacementNamed(context, WalletRoutes.pinRoute);
+          if (state.hasPid && state.isRegistered) {
+            Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute);
+          } else if (state.isRegistered) {
+            Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
           } else {
             Navigator.restorablePushReplacementNamed(context, WalletRoutes.introductionRoute);
           }

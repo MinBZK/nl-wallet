@@ -69,7 +69,7 @@ import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_useca
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/is_wallet_initialized_with_pid.dart';
+import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
@@ -85,8 +85,8 @@ class WalletUseCaseProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<CheckIsAppInitializedUseCase>(
-          create: (context) => CheckIsAppInitializedUseCaseImpl(context.read()),
+        RepositoryProvider<IsWalletInitializedUseCase>(
+          create: (context) => IsWalletInitializedUseCaseImpl(context.read()),
         ),
         RepositoryProvider<UnlockWalletWithPinUseCase>(
           create: (context) => UnlockWalletWithPinUseCaseImpl(context.read()),
@@ -187,8 +187,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<DecodeDeeplinkUseCase>(
           create: (context) => DecodeDeeplinkUseCaseImpl(),
         ),
-        RepositoryProvider<IsWalletInitializedWithPid>(
-          create: (context) => IsWalletInitializedWithPidImpl(context.read(), context.read()),
+        RepositoryProvider<IsWalletInitializedWithPidUseCase>(
+          create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<HasPreviouslyInteractedWithOrganizationUseCase>(
           create: (context) => HasPreviouslyInteractedWithOrganizationUseCaseImpl(context.read()),

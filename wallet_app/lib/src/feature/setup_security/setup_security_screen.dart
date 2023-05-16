@@ -93,7 +93,7 @@ class SetupSecurityScreen extends StatelessWidget {
         if (state is SetupSecurityCompleted) result = _buildSetupCompletedPage(context, state);
         if (state is SetupSecurityFailure) result = _buildSetupFailed(context);
         if (result == null) throw UnsupportedError('Unknown state: $state');
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
+        return SafeArea(child: FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result));
       },
     );
   }

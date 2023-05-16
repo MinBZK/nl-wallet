@@ -1,13 +1,11 @@
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../check_is_app_initialized_usecase.dart';
 
-class CheckIsAppInitializedUseCaseImpl implements CheckIsAppInitializedUseCase {
+class IsWalletInitializedUseCaseImpl implements IsWalletInitializedUseCase {
   final WalletRepository walletRepository;
 
-  CheckIsAppInitializedUseCaseImpl(this.walletRepository);
+  IsWalletInitializedUseCaseImpl(this.walletRepository);
 
   @override
-  Future<bool> isInitialized() async {
-    return walletRepository.isInitializedStream.first;
-  }
+  Future<bool> invoke() => walletRepository.isRegistered();
 }

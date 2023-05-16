@@ -36,7 +36,9 @@ class CardDataScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(cardTitle),
       ),
-      body: _buildBody(),
+      body: SafeArea(
+        child: _buildBody(),
+      ),
     );
   }
 

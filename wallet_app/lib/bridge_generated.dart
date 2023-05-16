@@ -11,13 +11,17 @@ import 'package:uuid/uuid.dart';
 import 'dart:ffi' as ffi;
 
 abstract class WalletCore {
-  Future<bool> init({dynamic hint});
+  Future<void> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
+
+  Future<bool> hasRegistration({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta;
 
   Future<void> register({required String pin, dynamic hint});
 
@@ -31,10 +35,10 @@ class WalletCoreImpl implements WalletCore {
   /// Only valid on web/WASM platforms.
   factory WalletCoreImpl.wasm(FutureOr<WasmModule> module) => WalletCoreImpl(module as ExternalLibrary);
   WalletCoreImpl.raw(this._platform);
-  Future<bool> init({dynamic hint}) {
+  Future<void> init({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_init(port_),
-      parseSuccessData: _wire2api_bool,
+      parseSuccessData: _wire2api_unit,
       constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
@@ -60,6 +64,21 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "is_valid_pin",
         argNames: ["pin"],
+      );
+
+  Future<bool> hasRegistration({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_has_registration(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kHasRegistrationConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "has_registration",
+        argNames: [],
       );
 
   Future<void> register({required String pin, dynamic hint}) {
@@ -233,6 +252,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_is_valid_pin');
   late final _wire_is_valid_pin = _wire_is_valid_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_has_registration(
+    int port_,
+  ) {
+    return _wire_has_registration(
+      port_,
+    );
+  }
+
+  late final _wire_has_registrationPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_has_registration');
+  late final _wire_has_registration = _wire_has_registrationPtr.asFunction<void Function(int)>();
 
   void wire_register(
     int port_,

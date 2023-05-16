@@ -14,42 +14,47 @@ fn wallet() -> &'static RwLock<Wallet> {
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
-pub fn init() -> Result<bool> {
+pub fn init() -> Result<()> {
     // Initialize the async runtime so the #[async_runtime] macro can be used.
     // As creating the wallet below could fail and init() could be called again,
     // init_async_runtime() should not fail when being called more than once.
     init_async_runtime()?;
 
-    // Panic if create_wallet() returns None.
-    let has_registration = create_wallet()?.expect("Wallet may only be initialized once.");
+    let created = create_wallet()?;
+    assert!(created, "Wallet can only be initialized once");
 
-    Ok(has_registration)
+    Ok(())
 }
 
 /// This is called by the public [`init()`] function above.
-/// The returned `Option<bool>` is `None` if the wallet was already initialized,
-/// otherwise it indicates if the wallet contains a previously saved registration.
+/// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
+/// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn create_wallet() -> Result<Option<bool>> {
-    let mut created_has_registration: Option<bool> = None;
+async fn create_wallet() -> Result<bool> {
+    let mut created = false;
 
     _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET is currently empty.
             let wallet = init_wallet().await?;
-            created_has_registration.replace(wallet.has_registration());
+            created = true;
 
             Ok(RwLock::new(wallet))
         })
         .await?;
 
-    // This will be None if the async block above did not execute.
-    Ok(created_has_registration)
+    Ok(created)
 }
 
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()
+}
+
+#[async_runtime]
+pub async fn has_registration() -> Result<bool> {
+    let has_registration = wallet().read().await.has_registration();
+    Ok(has_registration)
 }
 
 #[async_runtime]

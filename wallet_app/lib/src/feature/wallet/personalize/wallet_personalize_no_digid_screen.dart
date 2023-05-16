@@ -16,8 +16,8 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(locale.walletPersonalizeNoDigidPageTitle),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      body: SafeArea(
+        minimum: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
