@@ -19,6 +19,7 @@ stages:
 
 .env-sp:
   environment:
+    action: prepare
     name: ${K8S_CLUSTER}
     kubernetes:
       namespace: ${K8S_NAMESPACE}
@@ -28,6 +29,8 @@ stages:
   dependencies: [ ]
   image: $HARBOR_REGISTRY/$DOCKER_HUB_PROXY/bitnami/kubectl@sha256:ebace7799e1fcf6abc4080c7026d1c549310b2d4c6a37a1937773d5fd9d559b7 # 1.23.15
   resource_group: testcluster
+  environment:
+      action: start
 
 .kaniko:
   extends: .docker-sp
@@ -353,7 +356,7 @@ run-automation-tests:
   rules:
     - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:3cc0a5f36cd3a006350777254bbce025b67873d07dc2f71574f30e6ba92f9322"
