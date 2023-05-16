@@ -13,10 +13,16 @@ import 'src/di/wallet_usecase_provider.dart';
 import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
+import 'src/wallet_error_handler.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  // Propagate uncaught errors
+  final errorHandler = WalletErrorHandler();
+  FlutterError.onError = (details) => errorHandler.handleErrorDetails(details);
+  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
+
   // Appium specific setup
   if (kProfileMode || kDebugMode) {
     enableFlutterDriverExtension();

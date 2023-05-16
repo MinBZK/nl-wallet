@@ -4,17 +4,17 @@ import 'package:uni_links/uni_links.dart';
 
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
-import '../../domain/usecase/wallet/is_wallet_initialized_with_pid.dart';
+import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../wallet_routes.dart';
 
 class DeeplinkService {
   final GlobalKey<NavigatorState> _key;
   final DecodeDeeplinkUseCase _decodeDeeplinkUseCase;
-  final IsWalletInitializedWithPid _isWalletInitializedWithPid;
+  final IsWalletInitializedWithPidUseCase _isWalletInitializedWithPidUseCase;
 
   NavigationRequest? _queuedRequest;
 
-  DeeplinkService(this._key, this._decodeDeeplinkUseCase, this._isWalletInitializedWithPid) {
+  DeeplinkService(this._key, this._decodeDeeplinkUseCase, this._isWalletInitializedWithPidUseCase) {
     getInitialUri().then((uri) => _processUri(uri));
     uriLinkStream.listen((uri) => _processUri(uri));
   }
@@ -35,7 +35,7 @@ class DeeplinkService {
     }
   }
 
-  Future<bool> _canNavigate() => _isWalletInitializedWithPid.invoke();
+  Future<bool> _canNavigate() => _isWalletInitializedWithPidUseCase.invoke();
 
   void _navigate(NavigationRequest request) {
     _key.currentState?.restorablePushNamedAndRemoveUntil(

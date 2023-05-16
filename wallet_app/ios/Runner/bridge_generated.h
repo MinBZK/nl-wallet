@@ -30,6 +30,8 @@ void wire_init(int64_t port_);
 
 void wire_is_valid_pin(int64_t port_, struct wire_uint_8_list *pin);
 
+void wire_has_registration(int64_t port_);
+
 void wire_register(int64_t port_, struct wire_uint_8_list *pin);
 
 struct wire_uint_8_list *new_uint_8_list_0(int32_t len);
@@ -40,6 +42,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) wire_init);
     dummy_var ^= ((int64_t) (void*) wire_is_valid_pin);
+    dummy_var ^= ((int64_t) (void*) wire_has_registration);
     dummy_var ^= ((int64_t) (void*) wire_register);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
     dummy_var ^= ((int64_t) (void*) free_WireSyncReturn);

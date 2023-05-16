@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:core_domain/core_domain.dart';
+import 'package:fimber/fimber.dart';
 
 import 'wallet_core.dart';
 
@@ -11,7 +14,13 @@ class TypedWalletCore {
   TypedWalletCore(this._walletCore) {
     // Initialize the Asynchronous runtime and the wallet itself.
     // This is required to call any subsequent API function on the wallet.
-    _walletCore.init();
+    _walletCore.init().then(
+      (_) => Fimber.d('WalletCore initialized!'),
+      onError: (ex) {
+        Fimber.e('WalletCore failed to initialize!', ex: ex);
+        throw ex; //Delegate to [WalletErrorHandler]
+      },
+    );
   }
 
   Future<PinValidationResult> isValidPin(String pin) async {
@@ -19,7 +28,7 @@ class TypedWalletCore {
     return PinValidationResultExtension.bincodeDeserialize(bytes);
   }
 
-  Future<void> register(String pin) async {
-    await _walletCore.register(pin: pin);
-  }
+  Future<void> register(String pin) => _walletCore.register(pin: pin);
+
+  Future<bool> isRegistered() => _walletCore.hasRegistration();
 }

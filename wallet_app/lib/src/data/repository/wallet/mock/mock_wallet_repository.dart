@@ -21,7 +21,7 @@ class MockWalletRepository implements WalletRepository {
   void lockWallet() => _locked.add(true);
 
   @override
-  void unlockWallet(String pin) {
+  Future<void> unlockWallet(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     if (_pin != null && pin == _pin) {
       _locked.add(false);
@@ -67,10 +67,12 @@ class MockWalletRepository implements WalletRepository {
     _locked.add(true);
   }
 
-  @override
   Stream<bool> get isInitializedStream => _isInitialized.stream.distinct();
 
   bool get isInitialized => _isInitialized.value;
+
+  @override
+  Future<bool> isRegistered() async => isInitialized;
 
   bool get isLocked => _locked.value;
 
