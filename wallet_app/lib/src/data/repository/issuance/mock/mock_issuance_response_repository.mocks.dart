@@ -224,8 +224,15 @@ const _kMockAddressDataAttributes = [
   DataAttribute(
     valueType: AttributeValueType.text,
     label: 'Straatnaam',
-    value: 'Turfmarkt 147',
-    type: AttributeType.street,
+    value: 'Turfmarkt',
+    type: AttributeType.streetName,
+    sourceCardId: _kAddressId,
+  ),
+  DataAttribute(
+    valueType: AttributeValueType.text,
+    label: 'Huisnummer',
+    value: '147',
+    type: AttributeType.houseNumber,
     sourceCardId: _kAddressId,
   ),
   DataAttribute(

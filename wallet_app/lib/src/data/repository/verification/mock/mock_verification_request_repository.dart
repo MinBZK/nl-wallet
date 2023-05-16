@@ -56,13 +56,13 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
           interactionPolicy: _kMockFirstAidPolicy,
           purpose: 'Gegevens & Verzekering controle',
         );
-      case _kConfirmAppointment:
+      case _kParkingPermit:
         return VerificationRequest(
-          id: _kConfirmAppointment,
+          id: _kParkingPermit,
           organization: (await organizationDataSource.read(kMunicipalityDelftId))!,
-          requestedAttributes: _kConfirmAppointmentRequestedAttributes,
+          requestedAttributes: _kParkingPermitRequestedAttributes,
           interactionPolicy: _kMockMunicipalityDelftPolicy,
-          purpose: 'Afspraak bevestigen',
+          purpose: 'Parkeervergunning',
         );
       case _kOpenBankAccount:
         return VerificationRequest(
