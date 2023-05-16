@@ -7,7 +7,7 @@ use crate::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
     },
-    storage::{Registration as RegistrationData, StorageState},
+    storage::{RegistrationData, StorageState},
 };
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -110,12 +110,12 @@ where
         }
 
         // Save the registration data in storage
-        let registration = RegistrationData {
+        let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
-        self.storage.insert_data(&registration).await?;
-        self.registration = Some(registration);
+        self.storage.insert_data(&registration_data).await?;
+        self.registration = Some(registration_data);
 
         Ok(())
     }

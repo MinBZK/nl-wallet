@@ -162,7 +162,7 @@ mod tests {
 
     use wallet_common::{account::auth::WalletCertificate, utils::random_bytes};
 
-    use crate::storage::data::Registration;
+    use crate::storage::data::RegistrationData;
 
     use super::*;
 
@@ -196,7 +196,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_database_storage() {
-        let registration = Registration {
+        let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4].into(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
@@ -214,7 +214,7 @@ mod tests {
 
         // Try to fetch the registration, none should be there.
         let no_registration = storage
-            .fetch_data::<Registration>()
+            .fetch_data::<RegistrationData>()
             .await
             .expect("Could not get registration");
 
@@ -227,7 +227,7 @@ mod tests {
             .expect("Could not save registration");
 
         let fetched_registration = storage
-            .fetch_data::<Registration>()
+            .fetch_data::<RegistrationData>()
             .await
             .expect("Could not get registration");
 

@@ -11,7 +11,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 
 pub use self::{
-    data::{KeyedData, Registration},
+    data::{KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
 };
 
