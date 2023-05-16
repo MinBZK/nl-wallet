@@ -5,7 +5,7 @@ const _kMarketplaceLoginId = 'MARKETPLACE_LOGIN';
 const _kBarId = 'BAR';
 const _kCarRental = 'CAR_RENTAL';
 const _kFirstAid = 'FIRST_AID';
-const _kConfirmAppointment = 'CONFIRM_APPOINTMENT';
+const _kParkingPermit = 'PARKING_PERMIT';
 const _kOpenBankAccount = 'OPEN_BANK_ACCOUNT';
 const _kProvideContractDetails = 'PROVIDE_CONTRACT_DETAILS';
 const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
@@ -123,15 +123,20 @@ const _kFirstAidRequestedAttributes = [
   ),
 ];
 
-const _kConfirmAppointmentRequestedAttributes = [
+const _kParkingPermitRequestedAttributes = [
   RequestedAttribute(
-    name: 'Straatnaam',
-    type: AttributeType.street,
+    name: 'Achternaam',
+    type: AttributeType.lastName,
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
     name: 'Postcode',
     type: AttributeType.postalCode,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Huisnummer',
+    type: AttributeType.houseNumber,
     valueType: AttributeValueType.text,
   ),
 ];
@@ -154,8 +159,13 @@ const _kOpenBankAccountRequestedAttributes = [
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Adres',
-    type: AttributeType.street,
+    name: 'Straatnaam',
+    type: AttributeType.streetName,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Huisnummer',
+    type: AttributeType.houseNumber,
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
@@ -187,8 +197,13 @@ const _kCreateMbAccountRequestedAttributes = [
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Adres',
-    type: AttributeType.street,
+    name: 'Straatnaam',
+    type: AttributeType.streetName,
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    name: 'Huisnummer',
+    type: AttributeType.houseNumber,
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(

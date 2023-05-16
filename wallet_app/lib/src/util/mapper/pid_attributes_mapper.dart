@@ -79,10 +79,11 @@ class PidAttributeMapper {
   static UiAttribute _resolveAddressAttribute(List<DataAttribute> attributes) {
     final city = attributes.firstWhere((element) => element.type == AttributeType.city);
     final postalCode = attributes.firstWhere((element) => element.type == AttributeType.postalCode);
-    final street = attributes.firstWhere((element) => element.type == AttributeType.street);
+    final streetName = attributes.firstWhere((element) => element.type == AttributeType.streetName);
+    final houseNumber = attributes.firstWhere((element) => element.type == AttributeType.houseNumber);
     return UiAttribute(
       label: 'Adres',
-      value: '${street.value}, ${postalCode.value} ${city.value}',
+      value: '${streetName.value} ${houseNumber.value}, ${postalCode.value} ${city.value}',
       icon: Icons.cottage_outlined,
     );
   }
