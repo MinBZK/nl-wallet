@@ -1,37 +1,53 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-const _kCoverHeaderImageDesiredHeight = 400.0;
-const _kCoverHeaderImageMaxFraction = 0.5;
+const _kCoverHeaderImageDesiredHeight = 250.0;
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
 
 class IntroductionPage extends StatelessWidget {
   final ImageProvider image;
-  final String title;
+  final Widget? header, footer;
+  final String title, subtitle;
 
   const IntroductionPage({
     required this.image,
+    this.header,
+    this.footer,
     required this.title,
+    required this.subtitle,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(builder: (context, orientation) {
-      if (orientation == Orientation.portrait) {
-        return _buildPortrait(context);
-      } else {
-        return _buildLandscape(context);
-      }
-    });
+    return PrimaryScrollController(
+      controller: ScrollController(),
+      child: OrientationBuilder(builder: (context, orientation) {
+        if (orientation == Orientation.portrait) {
+          return _buildPortrait(context);
+        } else {
+          return _buildLandscape(context);
+        }
+      }),
+    );
   }
 
   Widget _buildPortrait(BuildContext context) {
     return Column(
       children: [
-        _buildPortraitImage(context),
-        _buildTextHeadline(context),
+        Expanded(
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildPortraitImage(context),
+                header != null ? header! : const SizedBox.shrink(),
+                _buildInfoSection(context),
+              ],
+            ),
+          ),
+        ),
+        if (footer != null) footer!,
       ],
     );
   }
@@ -39,14 +55,22 @@ class IntroductionPage extends StatelessWidget {
   Widget _buildLandscape(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: _buildLandscapeImage(),
-        ),
+        Expanded(child: _buildLandscapeImage()),
         Expanded(
           child: SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: _buildTextHeadline(context),
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: _buildInfoSection(context),
+                    ),
+                  ),
+                  if (footer != null) footer!,
+                ],
+              ),
             ),
           ),
         ),
@@ -76,14 +100,11 @@ class IntroductionPage extends StatelessWidget {
   }
 
   Widget _buildPortraitImage(BuildContext context) {
-    final textScaleFactor = MediaQuery.of(context).textScaleFactor;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final maxFractionHeight = screenHeight * _kCoverHeaderImageMaxFraction;
     return Stack(
       children: [
         SizedBox(
           width: double.infinity,
-          height: min(_kCoverHeaderImageDesiredHeight, maxFractionHeight) / textScaleFactor,
+          height: _kCoverHeaderImageDesiredHeight,
           child: Image(image: image, fit: BoxFit.cover),
         ),
         Align(
@@ -94,14 +115,26 @@ class IntroductionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextHeadline(BuildContext context) {
+  Widget _buildInfoSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.displayLarge,
-        textAlign: TextAlign.center,
-        textScaleFactor: 1,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.displayLarge,
+            textAlign: TextAlign.start,
+            textScaleFactor: 1,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.start,
+          ),
+        ],
       ),
     );
   }
