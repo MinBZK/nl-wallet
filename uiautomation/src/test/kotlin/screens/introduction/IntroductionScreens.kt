@@ -8,28 +8,16 @@ import org.openqa.selenium.remote.RemoteWebDriver
 
 import util.MobileActions
 
-class IntroductionScreens : MobileActions(){
+class IntroductionScreens : MobileActions() {
 
     private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
-    private val nextButton = find.byValueKey("introductionNextPageCta")
-    private val changeLanguageButton = find.byValueKey("introductionLanguageSelectCta")
-    private val changeLanguageButtonText = find.byValueKey("introductionLanguageSelectCtaText")
+    private val nextButtonText = find.byValueKey("introductionNextPageCtaText")
     private val privacyPolicyButton = find.byValueKey("introductionPrivacyPolicyCta")
     private val backButton = find.byValueKey("introductionBackCta")
 
     @Step("click next button")
     fun clickNextButton() {
-        nextButton.click()
-    }
-
-    @Step("click change language button")
-    fun clickChangeLanguageButton() {
-        changeLanguageButton.click()
-    }
-
-    @Step("verify if the privacy policy button is visible")
-    fun verifyPrivacyPolicyButtonIsVisible(): Boolean {
-        return privacyPolicyButton.isDisplayed
+        nextButtonText.click()
     }
 
     @Step("click privacy policy button")
@@ -37,8 +25,8 @@ class IntroductionScreens : MobileActions(){
         privacyPolicyButton.click()
     }
 
-    @Step("verify if selected language")
-    fun verifySelectedLanguage() : String? {
-        return changeLanguageButtonText.text
+    @Step("verify if next button text")
+    fun verifyNextButtonText(): String? {
+        return nextButtonText.text
     }
 }

@@ -181,14 +181,16 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ElevatedButton(
-            key: const Key('introductionNextPageCta'),
             onPressed: () => _onNextPressed(context),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.arrow_forward, size: 16),
                 const SizedBox(width: 8),
-                Text(AppLocalizations.of(context).introductionNextPageCta),
+                Text(
+                  AppLocalizations.of(context).introductionNextPageCta,
+                  key: const Key('introductionNextPageCtaText'),
+                ),
               ],
             ),
           ),
@@ -208,7 +210,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           _buildPrivacyPolicyCta(context),
           const SizedBox(height: 16),
           ElevatedButton(
-            key: const Key('introductionNextPageCta'),
             onPressed: () => _onNextPressed(context),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
