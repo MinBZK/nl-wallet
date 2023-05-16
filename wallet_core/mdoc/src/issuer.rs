@@ -36,8 +36,8 @@ use SessionState::*;
 impl SessionState {
     fn update(&mut self, new_state: SessionState) {
         match self {
-            Created => assert!(matches!(new_state, Started | Done | Failed | Cancelled)),
-            Started => assert!(matches!(new_state, WaitingForResponse | Done | Failed | Cancelled)),
+            Created => assert!(matches!(new_state, Started | Failed | Cancelled)),
+            Started => assert!(matches!(new_state, WaitingForResponse | Failed | Cancelled)),
             WaitingForResponse => assert!(matches!(new_state, Done | Failed | Cancelled)),
             Done => panic!("can't update final state"),
             Failed => panic!("can't update final state"),
