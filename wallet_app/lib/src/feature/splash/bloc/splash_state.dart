@@ -10,10 +10,11 @@ class SplashInitial extends SplashState {
 }
 
 class SplashLoaded extends SplashState {
-  final bool isInitialized;
+  final bool isRegistered;
+  final bool hasPid;
 
-  const SplashLoaded(this.isInitialized);
+  const SplashLoaded({required this.isRegistered, required this.hasPid});
 
   @override
-  List<Object> get props => [isInitialized];
+  List<Object> get props => [isRegistered, hasPid];
 }

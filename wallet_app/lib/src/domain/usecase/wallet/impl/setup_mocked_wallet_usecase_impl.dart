@@ -23,7 +23,7 @@ class SetupMockedWalletUseCaseImpl implements SetupMockedWalletUseCase {
   Future<void> invoke() async {
     // Create wallet
     await walletRepository.createWallet('000000');
-    walletRepository.unlockWallet('000000');
+    await walletRepository.unlockWallet('000000');
 
     // Add cards + history
     const issuanceIds = ['PID_1'];

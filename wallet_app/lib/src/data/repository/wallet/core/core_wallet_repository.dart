@@ -10,6 +10,9 @@ class CoreWalletRepository implements WalletRepository {
   final TypedWalletCore _walletCore;
   final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
+  //TODO: This should be moved into the rust core
+  final BehaviorSubject<bool> _locked = BehaviorSubject<bool>.seeded(true);
+
   CoreWalletRepository(this._walletCore, this._pinValidationErrorMapper);
 
   @override
@@ -23,43 +26,33 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<void> createWallet(String pin) async {
-    _walletCore.register(pin);
-  }
+  Future<void> createWallet(String pin) async => await _walletCore.register(pin);
 
   @override
-  Future<bool> confirmTransaction(String pin) {
-    // TODO: implement confirmTransaction
-    throw UnimplementedError();
-  }
+  // TODO: implement confirmTransaction
+  Future<bool> confirmTransaction(String pin) => throw UnimplementedError();
 
   @override
-  // TODO: implement isInitializedStream (default to false until createWallet is implemented)
-  Stream<bool> get isInitializedStream => BehaviorSubject.seeded(false);
+  Future<bool> isRegistered() => _walletCore.isRegistered();
 
   @override
-  // TODO: implement isLockedStream
-  Stream<bool> get isLockedStream => throw UnimplementedError();
+  Stream<bool> get isLockedStream => _locked;
 
   @override
   // TODO: implement leftoverPinAttempts
   int get leftoverPinAttempts => throw UnimplementedError();
 
   @override
-  void lockWallet() {
-    // TODO: implement lockWallet
-    throw UnimplementedError();
+  void lockWallet() => _locked.add(true);
+
+  @override
+  Future<void> unlockWallet(String pin) async {
+    if (await isRegistered() == false) throw UnsupportedError('Wallet not yet registered!');
+
+    ///TODO: Check [pin] with _walletCore and update [_locked] stream.
   }
 
   @override
-  void unlockWallet(String pin) {
-    // TODO: implement unlockWallet
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> destroyWallet() {
-    // TODO: implement destroyWallet
-    throw UnimplementedError();
-  }
+  // TODO: implement destroyWallet
+  Future<void> destroyWallet() => throw UnimplementedError();
 }

@@ -10,7 +10,7 @@ class UnlockWalletWithPinUseCaseImpl extends UnlockWalletWithPinUseCase {
   @override
   Future<bool> invoke(String pin) async {
     await Future.delayed(kDefaultMockDelay);
-    walletRepository.unlockWallet(pin);
+    await walletRepository.unlockWallet(pin);
     return await walletRepository.isLockedStream.first == false;
   }
 }
