@@ -84,17 +84,18 @@ impl Credential {
         ca_cert: &X509Certificate,
     ) -> Result<Credential> {
         let (_, mso) = issuer_signed.verify(ca_cert)?;
-        Ok(Credential {
+        let cred = Credential {
             private_key,
             issuer_signed,
             doc_type: mso.doc_type,
-        })
+        };
+        Ok(cred)
     }
 
     /// Hash of the credential, acting as an identifier for the credential that takes into account its doctype
     /// and all of its attributes. Computed schematically as `SHA256(CBOR(doctype, attributes))`.
     fn hash(&self) -> Result<Vec<u8>> {
-        Ok(sha256(&cbor_serialize(&(
+        let digest = sha256(&cbor_serialize(&(
             &self.doc_type,
             &self
                 .issuer_signed
@@ -104,6 +105,7 @@ impl Credential {
                 .iter()
                 .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
                 .collect::<IndexMap<_, _>>(),
-        ))?))
+        ))?);
+        Ok(digest)
     }
 }

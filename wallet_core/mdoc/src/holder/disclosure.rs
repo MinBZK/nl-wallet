@@ -35,12 +35,13 @@ impl Credentials {
             docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
-        Ok(DeviceResponse {
+        let response = DeviceResponse {
             version: "1.0".to_string(),
             documents: Some(docs),
             document_errors: None,
             status: 0,
-        })
+        };
+        Ok(response)
     }
 }
 
@@ -61,7 +62,7 @@ impl Credential {
             })
             .collect();
 
-        Ok(Document {
+        let doc = Document {
             doc_type: items_request.doc_type.clone(),
             issuer_signed: IssuerSigned {
                 name_spaces: Some(disclosed_namespaces),
@@ -69,7 +70,8 @@ impl Credential {
             },
             device_signed: DeviceSigned::new_signature(&self.private_key, challenge),
             errors: None,
-        })
+        };
+        Ok(doc)
     }
 }
 
@@ -110,10 +112,11 @@ impl DeviceSigned {
             .build()
             .clone_without_payload();
 
-        Ok(DeviceSigned {
+        let device_signed = DeviceSigned {
             name_spaces: IndexMap::new().into(),
             device_auth: DeviceAuth::DeviceMac(cose.into()),
-        })
+        };
+        Ok(device_signed)
     }
 }
 

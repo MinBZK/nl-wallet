@@ -31,13 +31,14 @@ pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
 impl TryFrom<&Attributes> for DigestIDs {
     type Error = Error;
     fn try_from(val: &Attributes) -> Result<Self> {
-        Ok(DigestIDs(
+        let ids = DigestIDs(
             val.0
                 .iter()
                 .enumerate()
                 .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
                 .collect::<Result<IndexMap<_, _>>>()?,
-        ))
+        );
+        Ok(ids)
     }
 }
 
@@ -47,11 +48,12 @@ pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = Error;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self> {
-        Ok(ValueDigests(
+        let digests = ValueDigests(
             val.iter()
                 .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
                 .collect::<Result<IndexMap<_, _>>>()?,
-        ))
+        );
+        Ok(digests)
     }
 }
 
@@ -82,11 +84,12 @@ pub struct DeviceKeyInfo {
 impl TryFrom<VerifyingKey<p256::NistP256>> for DeviceKeyInfo {
     type Error = Error;
     fn try_from(value: VerifyingKey<p256::NistP256>) -> Result<Self> {
-        Ok(DeviceKeyInfo {
+        let key_info = DeviceKeyInfo {
             device_key: (&value).try_into()?,
             key_authorizations: None,
             key_info: None,
-        })
+        };
+        Ok(key_info)
     }
 }
 impl From<CoseKey> for DeviceKeyInfo {
@@ -148,12 +151,13 @@ impl From<Vec<IssuerSignedItemBytes>> for Attributes {
 impl TryFrom<IndexMap<String, Value>> for Attributes {
     type Error = Error;
     fn try_from(val: IndexMap<String, Value>) -> Result<Self> {
-        Ok(Attributes(
+        let attrs = Attributes(
             val.into_iter()
                 .enumerate()
                 .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u64, key, val)?.into()))
                 .collect::<Result<Vec<_>>>()?,
-        ))
+        );
+        Ok(attrs)
     }
 }
 impl TryFrom<Vec<Entry>> for Attributes {
@@ -196,11 +200,12 @@ pub struct IssuerSignedItem {
 impl IssuerSignedItem {
     pub fn new(digest_id: u64, element_identifier: String, element_value: Value) -> Result<IssuerSignedItem> {
         let random = ByteBuf::from(random_bytes(32));
-        Ok(IssuerSignedItem {
+        let item = IssuerSignedItem {
             digest_id,
             random,
             element_identifier,
             element_value,
-        })
+        };
+        Ok(item)
     }
 }

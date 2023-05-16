@@ -171,7 +171,8 @@ impl HttpClient for MockHttpClient<'_> {
 
         // Hacky way to cast `response`, which is a `Box<dyn IssuerResponse>`, to the requested type:
         // serialoze to CBOR and back
-        Ok(cbor_deserialize(cbor_serialize(&response).unwrap().as_slice()).unwrap())
+        let response = cbor_deserialize(cbor_serialize(&response).unwrap().as_slice()).unwrap();
+        Ok(response)
     }
 }
 

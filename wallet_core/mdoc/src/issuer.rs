@@ -177,21 +177,25 @@ impl Server {
             .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?;
 
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
-            return Ok(Box::new(session.process_cancel()));
+            let response = session.process_cancel();
+            return Ok(Box::new(response));
         }
 
         match session.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
-                Ok(Box::new(session.process_start(cbor_deserialize(&msg[..])?)))
+                let response = session.process_start(cbor_deserialize(&msg[..])?);
+                Ok(Box::new(response))
             }
             Started => {
                 Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
-                Ok(Box::new(session.process_get_request(cbor_deserialize(&msg[..])?)))
+                let response = session.process_get_request(cbor_deserialize(&msg[..])?);
+                Ok(Box::new(response))
             }
             WaitingForResponse => {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
-                Ok(Box::new(session.process_response(cbor_deserialize(&msg[..])?)?))
+                let response = session.process_response(cbor_deserialize(&msg[..])?)?;
+                Ok(Box::new(response))
             }
             Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
         }
@@ -247,7 +251,7 @@ impl Issuer {
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso.into(), headers, &self.private_key)?;
 
-        Ok(SparseIssuerSigned {
+        let signed = SparseIssuerSigned {
             randoms: attrs
                 .into_iter()
                 .map(|(namespace, attrs)| (namespace, attrs.0.into_iter().map(|attr| attr.0.random).collect()))
@@ -258,7 +262,8 @@ impl Issuer {
                 validity_info: validity,
                 issuer_auth: cose.clone_without_payload(),
             },
-        })
+        };
+        Ok(signed)
     }
 
     fn issue_creds(
@@ -281,17 +286,19 @@ impl Issuer {
             .iter()
             .zip(&self.request.unsigned_mdocs)
             .map(|(responses, unsigned)| {
-                Ok(MobileIDDocuments {
+                let docs = MobileIDDocuments {
                     doc_type: unsigned.doc_type.clone(),
                     sparse_issuer_signed: self.issue_creds(responses, unsigned)?,
-                })
+                };
+                Ok(docs)
             })
             .collect::<Result<Vec<MobileIDDocuments>>>()?;
 
-        Ok(DataToIssueMessage {
+        let response = DataToIssueMessage {
             e_session_id: self.request.e_session_id.clone(),
             mobile_id_documents: docs,
-        })
+        };
+        Ok(response)
     }
 }
 

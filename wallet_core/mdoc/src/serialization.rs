@@ -26,7 +26,8 @@ pub enum CborError {
 
 // Wrapper for [`ciborium::de::from_reader`] returning our own error type.
 pub fn cbor_deserialize<'de, T: de::Deserialize<'de>, R: std::io::Read>(reader: R) -> Result<T, CborError> {
-    Ok(ciborium::de::from_reader(reader)?)
+    let deserialized = ciborium::de::from_reader(reader)?;
+    Ok(deserialized)
 }
 
 pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
@@ -60,7 +61,8 @@ where
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let buf = tag::Required::<ByteBuf, CBOR_TAG_ENC_CBOR>::deserialize(deserializer)?.0;
-        Ok(TaggedBytes(cbor_deserialize(buf.as_ref()).map_err(de::Error::custom)?))
+        let result = TaggedBytes(cbor_deserialize(buf.as_ref()).map_err(de::Error::custom)?);
+        Ok(result)
     }
 }
 
@@ -82,7 +84,8 @@ impl Serialize for CoseKey {
 }
 impl<'de> Deserialize<'de> for CoseKey {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(deserialize_as_cbor_value::<coset::CoseKey, _>(deserializer)?.into())
+        let key = deserialize_as_cbor_value::<coset::CoseKey, _>(deserializer)?.into();
+        Ok(key)
     }
 }
 
@@ -101,7 +104,8 @@ where
     C: AsCborValue,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(deserialize_as_cbor_value::<C, _>(deserializer)?.into())
+        let cose = deserialize_as_cbor_value::<C, _>(deserializer)?.into();
+        Ok(cose)
     }
 }
 
@@ -287,13 +291,11 @@ where
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         let found = T::Type::deserialize(deserializer)?;
         if found == T::REQUIRED_VALUE {
-            Ok(RequiredValue::<T>(T::REQUIRED_VALUE))
+            let val = RequiredValue::<T>(T::REQUIRED_VALUE);
+            Ok(val)
         } else {
-            Err(de::Error::custom(format!(
-                "value was {:?}, expected {:?}",
-                found,
-                T::REQUIRED_VALUE
-            )))
+            let err = de::Error::custom(format!("value was {:?}, expected {:?}", found, T::REQUIRED_VALUE));
+            Err(err)
         }
     }
 }

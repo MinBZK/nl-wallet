@@ -65,9 +65,9 @@ impl Cose for CoseSign1 {
     fn verify(&self, key: &ecdsa::VerifyingKey<NistP256>) -> Result<()> {
         self.verify_signature(b"", |sig, data| {
             let sig = &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::EcdsaSignatureParsingFailed)?;
-            Ok(key
-                .verify(data, sig)
-                .map_err(CoseError::EcdsaSignatureVerificationFailed)?)
+            key.verify(data, sig)
+                .map_err(CoseError::EcdsaSignatureVerificationFailed)?;
+            Ok(())
         })
     }
 }
@@ -81,9 +81,10 @@ impl Cose for CoseMac0 {
         &self.unprotected
     }
     fn verify(&self, key: &hmac::Key) -> Result<()> {
-        Ok(self.verify_tag(b"", |tag, data| {
+        self.verify_tag(b"", |tag, data| {
             hmac::verify(key, data, tag).map_err(|_| CoseError::MacVerificationFailed)
-        })?)
+        })?;
+        Ok(())
     }
 }
 
@@ -100,14 +101,15 @@ where
     /// DANGEROUS: this ignores the Cose signature/mac entirely, so the authenticity of the Cose and
     /// its payload is in no way guaranteed. Use [`MdocCose::verify_and_parse()`] instead if possible.
     fn dangerous_parse_unverified(&self) -> Result<T> {
-        Ok(cbor_deserialize(
+        let payload = cbor_deserialize(
             self.0
                 .payload()
                 .as_ref()
                 .ok_or_else(|| CoseError::MissingPayload)?
                 .as_slice(),
         )
-        .map_err(CoseError::Cbor)?)
+        .map_err(CoseError::Cbor)?;
+        Ok(payload)
     }
 
     /// Verify the Cose using the specified key.
@@ -123,14 +125,15 @@ where
     }
 
     pub fn unprotected_header_item(&self, label: &Label) -> Result<&Value> {
-        Ok(&self
+        let header_item = &self
             .0
             .unprotected()
             .rest
             .iter()
             .find(|(l, _)| l == label)
             .ok_or_else(|| CoseError::MissingLabel(label.clone()))?
-            .1)
+            .1;
+        Ok(header_item)
     }
 }
 
@@ -149,13 +152,14 @@ impl<T> MdocCose<CoseSign1, T> {
     where
         T: Clone + Serialize,
     {
-        Ok(CoseSign1Builder::new()
+        let cose = CoseSign1Builder::new()
             .payload(cbor_serialize(obj).map_err(CoseError::Cbor)?)
             .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .unprotected(unprotected_header)
             .create_signature(&[], |data| private_key.sign(data).to_vec())
             .build()
-            .into())
+            .into();
+        Ok(cose)
     }
 
     pub fn verify_against_cert(&self, ca_cert: &X509Certificate) -> Result<(T, X509Subject)>
@@ -264,7 +268,8 @@ impl From<coset::CoseKey> for CoseKey {
 
 impl coset::AsCborValue for CoseKey {
     fn from_cbor_value(value: Value) -> coset::Result<Self> {
-        Ok(coset::CoseKey::from_cbor_value(value)?.into())
+        let deserialized = coset::CoseKey::from_cbor_value(value)?.into();
+        Ok(deserialized)
     }
     fn to_cbor_value(self) -> coset::Result<Value> {
         self.0.to_cbor_value()

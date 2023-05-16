@@ -39,7 +39,8 @@ pub fn sha256(bts: &[u8]) -> Vec<u8> {
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
 pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborError> {
-    Ok(sha256(cbor_serialize(val)?.as_ref()))
+    let digest = sha256(cbor_serialize(val)?.as_ref());
+    Ok(digest)
 }
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
@@ -73,7 +74,8 @@ pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) 
         .fill(bts.as_mut_slice())
         .map_err(|_| CryptoError::Hkdf)?;
 
-    Ok(hmac::Key::new(hmac::HMAC_SHA256, bts.as_slice()))
+    let key = hmac::Key::new(hmac::HMAC_SHA256, bts.as_slice());
+    Ok(key)
 }
 
 impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
@@ -83,9 +85,8 @@ impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
         let x = encoded_point.x().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
         let y = encoded_point.y().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
 
-        Ok(CoseKey(
-            CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y).build(),
-        ))
+        let key = CoseKey(CoseKeyBuilder::new_ec2_pub_key(iana::EllipticCurve::P_256, x, y).build());
+        Ok(key)
     }
 }
 
@@ -110,7 +111,7 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
             return Err(CryptoError::KeyUnepectedCoseLabel.into());
         }
 
-        Ok(ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
+        let key = ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
             &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
                 x.1.as_bytes()
                     .ok_or(CryptoError::KeyCoordinateParseFailed)?
@@ -123,7 +124,8 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
                 false,
             ),
         )
-        .map_err(CryptoError::KeyParseFailed)?)
+        .map_err(CryptoError::KeyParseFailed)?;
+        Ok(key)
     }
 }
 

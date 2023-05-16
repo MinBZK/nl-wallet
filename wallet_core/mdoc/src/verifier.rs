@@ -151,6 +151,7 @@ impl DeviceAuthentication {
     // TODO: maybe grab this from the DeviceAuthenticationBytes instead, so we can avoid deserialize -> serialize sequence
     pub fn session_transcript_bts(&self) -> Result<Vec<u8>> {
         let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
-        Ok(cbor_serialize(&tagged)?)
+        let bts = cbor_serialize(&tagged)?;
+        Ok(bts)
     }
 }

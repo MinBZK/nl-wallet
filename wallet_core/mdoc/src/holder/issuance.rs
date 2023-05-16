@@ -35,11 +35,12 @@ impl<'a, const N: usize> TryFrom<[(DocType, &'a [u8]); N]> for TrustedIssuerCert
     type Error = Error;
 
     fn try_from(value: [(DocType, &'a [u8]); N]) -> Result<Self> {
-        Ok(value
+        let certs = value
             .iter()
             .map(|(doc_type, bts)| Ok((doc_type.clone(), Self::parse(bts)?)))
             .collect::<Result<IndexMap<_, _>>>()?
-            .into())
+            .into();
+        Ok(certs)
     }
 }
 
@@ -49,9 +50,10 @@ impl<'a> TrustedIssuerCerts<'a> {
     }
 
     pub fn parse(cert_bts: &'a [u8]) -> Result<X509Certificate<'a>> {
-        Ok(X509Certificate::from_der(cert_bts)
+        let cert = X509Certificate::from_der(cert_bts)
             .map_err(HolderError::CertificateParsingFailed)?
-            .1)
+            .1;
+        Ok(cert)
     }
 
     pub fn get(&self, doc_type: &DocType) -> Result<&X509Certificate> {
@@ -127,11 +129,12 @@ impl IssuanceState {
             .collect::<Vec<_>>();
         let response = KeyGenerationResponseMessage::new(&request, &private_keys)?;
 
-        Ok(IssuanceState {
+        let state = IssuanceState {
             request,
             private_keys,
             response,
-        })
+        };
+        Ok(state)
     }
 
     pub fn generate_keys(count: u64) -> Vec<SigningKey<p256::NistP256>> {
@@ -151,7 +154,7 @@ impl IssuanceState {
             .zip(&state.request.unsigned_mdocs)
             .zip(&state.private_keys)
             .map(|((doc, unsigned), keys)| {
-                Ok(doc
+                let cred_copies = doc
                     .sparse_issuer_signed
                     .iter()
                     .zip(keys)
@@ -159,7 +162,8 @@ impl IssuanceState {
                         iss_signature.to_credential(key.clone(), unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
                     })
                     .collect::<Result<Vec<_>>>()?
-                    .into())
+                    .into();
+                Ok(cred_copies)
             })
             .collect()
     }
@@ -207,11 +211,12 @@ impl SparseIssuerSigned {
         };
         issuer_signed.verify(iss_cert)?;
 
-        Ok(Credential {
+        let cred = Credential {
             private_key,
             issuer_signed,
             doc_type: unsigned.doc_type.clone(),
-        })
+        };
+        Ok(cred)
     }
 }
 

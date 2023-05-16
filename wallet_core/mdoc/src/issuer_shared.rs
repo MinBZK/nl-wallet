@@ -76,13 +76,14 @@ impl KeyGenerationResponseMessage {
             .iter()
             .zip(&request.unsigned_mdocs)
             .map(|(keys, unsigned)| {
-                Ok(MdocResponses {
+                let responses = MdocResponses {
                     doc_type: unsigned.doc_type.clone(),
                     responses: keys
                         .iter()
                         .map(|key| Response::sign(&request.challenge, key))
                         .collect::<Result<Vec<_>>>()?,
-                })
+                };
+                Ok(responses)
             })
             .collect::<Result<Vec<MdocResponses>>>()?;
 
