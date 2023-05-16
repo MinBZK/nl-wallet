@@ -1,22 +1,24 @@
 use anyhow::{anyhow, Result};
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
 
 use crate::{
-    account_server::AccountServerClient,
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
     },
-    storage::{data, Storage, StorageState},
+    storage::{RegistrationData, StorageState},
 };
+
+pub use platform_support::hw_keystore::PlatformEcdsaKey;
+
+pub use crate::{account_server::AccountServerClient, storage::Storage};
 
 const WALLET_KEY_ID: &str = "wallet";
 
 /// Attempts to fetch the registration from storage,
 /// without creating a database if there is none.
-pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<data::Registration>> {
+async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<RegistrationData>> {
     match storage.state().await? {
         // If there is no database file, we can conclude early that there is no registration.
         StorageState::Uninitialized => return Ok(None),
@@ -26,7 +28,7 @@ pub async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<dat
     }
 
     // Finally, fetch the registration.
-    let registration = storage.fetch_data::<data::Registration>().await?;
+    let registration = storage.fetch_data::<RegistrationData>().await?;
 
     Ok(registration)
 }
@@ -44,7 +46,7 @@ pub struct Wallet<A, S, K> {
     account_server_pubkey: EcdsaDecodingKey,
     storage: S,
     hw_privkey: K,
-    registration: Option<data::Registration>,
+    registration: Option<RegistrationData>,
 }
 
 impl<A, S, K> Wallet<A, S, K>
@@ -108,12 +110,12 @@ where
         }
 
         // Save the registration data in storage
-        let registration = data::Registration {
+        let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
-        self.storage.insert_data(&registration).await?;
-        self.registration = Some(registration);
+        self.storage.insert_data(&registration_data).await?;
+        self.registration = Some(registration_data);
 
         Ok(())
     }
@@ -162,7 +164,7 @@ mod tests {
         let pin_salt = new_pin_salt();
         let wallet = init_wallet(Some(MockStorage::new(
             StorageState::Unopened,
-            Some(data::Registration {
+            Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),

@@ -5,6 +5,7 @@ pub mod hardware;
 pub mod software;
 
 use thiserror::Error;
+
 use wallet_common::account::signing_key::SecureEcdsaKey;
 
 #[derive(Debug, Error)]

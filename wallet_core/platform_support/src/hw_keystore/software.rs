@@ -1,3 +1,5 @@
+use std::{collections::HashMap, sync::Mutex};
+
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -5,7 +7,7 @@ use aes_gcm::{
 use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
-use std::{collections::HashMap, sync::Mutex};
+
 use wallet_common::{
     account::signing_key::{EcdsaKey, SecureEcdsaKey},
     utils::random_bytes,

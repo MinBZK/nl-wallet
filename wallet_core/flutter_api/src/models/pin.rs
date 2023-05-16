@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use wallet::pin::validation::PinValidationError;
+
+use wallet::PinValidationError;
 
 impl From<Result<(), PinValidationError>> for PinValidationResult {
     fn from(source: Result<(), PinValidationError>) -> Self {

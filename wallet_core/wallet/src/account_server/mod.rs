@@ -1,12 +1,16 @@
-pub mod remote;
+mod remote;
 
 use anyhow::Result;
+use async_trait::async_trait;
+
 use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
 
-#[async_trait::async_trait]
+pub use self::remote::RemoteAccountServerClient;
+
+#[async_trait]
 pub trait AccountServerClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>>;
     async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
@@ -18,7 +22,7 @@ mod mock {
 
     use super::*;
 
-    #[async_trait::async_trait]
+    #[async_trait]
     impl AccountServerClient for AccountServer {
         async fn registration_challenge(&self) -> Result<Vec<u8>> {
             AccountServer::registration_challenge(self)

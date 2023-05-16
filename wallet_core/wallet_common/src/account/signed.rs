@@ -8,7 +8,7 @@ use p256::ecdsa::{
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::account::{
+use super::{
     serialization::{Base64Bytes, DerSignature},
     signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
 };

@@ -156,7 +156,7 @@ pub mod stub {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use rand::rngs::OsRng;
 
     use super::*;

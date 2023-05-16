@@ -1,5 +1,6 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
+
 use wallet_common::account::serialization::Base64Bytes;
 
 #[derive(Debug, Deserialize)]

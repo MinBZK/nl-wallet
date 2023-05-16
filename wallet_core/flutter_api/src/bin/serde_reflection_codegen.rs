@@ -1,10 +1,11 @@
 #[path = "../models/mod.rs"]
 mod models;
 
+use std::{env, path::PathBuf};
+
 use anyhow::Result;
 use const_format::formatcp;
 use serde_reflection::{Registry, Tracer, TracerConfig};
-use std::{env, path::PathBuf};
 
 use self::models::pin::PinValidationResult;
 

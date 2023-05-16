@@ -29,4 +29,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
+platform_support = { path = "../platform_support", features = ["software"] }
+wallet = { path = "../wallet", features = ["mock"] }
 wallet_common = { path = "../wallet_common", features = ["mock"] }
+# stub feature is required for integration tests
+wallet_provider = { path = "../wallet_provider", features = ["stub"] }
+async-trait = "0.1.68"
+axum-test-helper = "0.2.0"

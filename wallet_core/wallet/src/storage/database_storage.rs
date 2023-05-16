@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tokio::{fs, try_join};
 
@@ -80,7 +81,7 @@ impl Default for DatabaseStorage {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Storage for DatabaseStorage {
     /// Indiciate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -161,7 +162,7 @@ mod tests {
 
     use wallet_common::{account::auth::WalletCertificate, utils::random_bytes};
 
-    use crate::storage::data::Registration;
+    use crate::storage::data::RegistrationData;
 
     use super::*;
 
@@ -195,7 +196,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_database_storage() {
-        let registration = Registration {
+        let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4].into(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
@@ -213,7 +214,7 @@ mod tests {
 
         // Try to fetch the registration, none should be there.
         let no_registration = storage
-            .fetch_data::<Registration>()
+            .fetch_data::<RegistrationData>()
             .await
             .expect("Could not get registration");
 
@@ -226,7 +227,7 @@ mod tests {
             .expect("Could not save registration");
 
         let fetched_registration = storage
-            .fetch_data::<Registration>()
+            .fetch_data::<RegistrationData>()
             .await
             .expect("Could not get registration");
 

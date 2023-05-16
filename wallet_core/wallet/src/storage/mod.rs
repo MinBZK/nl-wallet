@@ -1,18 +1,21 @@
-pub mod data;
+mod data;
 mod database;
 mod database_storage;
 mod key_file;
 mod sql_cipher_key;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
 use anyhow::Result;
+use async_trait::async_trait;
 
-use self::data::KeyedData;
+pub use self::{
+    data::{KeyedData, RegistrationData},
+    database_storage::DatabaseStorage,
+};
 
-pub use self::database_storage::DatabaseStorage;
-#[cfg(test)]
+#[cfg(any(test, feature = "mock"))]
 pub use self::mock_storage::MockStorage;
 
 /// This represents the current start of [`Storage`].
@@ -35,7 +38,7 @@ pub enum StorageError {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[async_trait::async_trait]
+#[async_trait]
 pub trait Storage {
     async fn state(&self) -> Result<StorageState>;
 

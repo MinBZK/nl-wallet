@@ -1,9 +1,10 @@
 use std::{any::Any, collections::HashMap};
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 
 use super::{
-    data::{KeyedData, Registration},
+    data::{KeyedData, RegistrationData},
     Storage, StorageError, StorageState,
 };
 
@@ -15,11 +16,11 @@ pub struct MockStorage {
 }
 
 impl MockStorage {
-    pub fn new(state: StorageState, registration: Option<Registration>) -> Self {
+    pub fn new(state: StorageState, registration: Option<RegistrationData>) -> Self {
         let mut data: HashMap<&str, Box<dyn Any + Send + Sync>> = HashMap::new();
 
         if let Some(registration) = registration {
-            data.insert(Registration::KEY, Box::new(registration));
+            data.insert(RegistrationData::KEY, Box::new(registration));
         }
 
         MockStorage { state, data }
@@ -32,7 +33,7 @@ impl Default for MockStorage {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Storage for MockStorage {
     async fn state(&self) -> Result<StorageState> {
         Ok(self.state)
