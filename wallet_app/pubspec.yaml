@@ -19,7 +19,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.17.0
-  mobile_scanner: ^2.0.0
+  mobile_scanner: ^3.2.0
   permission_handler: ^10.2.0
   rxdart: ^0.27.5
   flutter_sticky_header: ^0.6.4
