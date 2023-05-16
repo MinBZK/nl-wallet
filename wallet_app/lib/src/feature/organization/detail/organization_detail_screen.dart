@@ -45,22 +45,27 @@ class OrganizationDetailScreen extends StatelessWidget {
         title: Text(title),
         leading: const BackButton(),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<OrganizationDetailBloc, OrganizationDetailState>(
-              builder: (context, state) {
-                if (state is OrganizationDetailInitial) return const CenteredLoadingIndicator();
-                if (state is OrganizationDetailSuccess) return _buildOrganizationDetailLoaded(context, state);
-                if (state is OrganizationDetailFailure) return _buildOrganizationDetailFailure(context, state);
-                throw UnsupportedError('Unknown state: $state');
-              },
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: _buildBody(),
             ),
-          ),
-          const Divider(height: 1),
-          const BottomBackButton(),
-        ],
+            const BottomBackButton(showDivider: true),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    return BlocBuilder<OrganizationDetailBloc, OrganizationDetailState>(
+      builder: (context, state) {
+        if (state is OrganizationDetailInitial) return const CenteredLoadingIndicator();
+        if (state is OrganizationDetailSuccess) return _buildOrganizationDetailLoaded(context, state);
+        if (state is OrganizationDetailFailure) return _buildOrganizationDetailFailure(context, state);
+        throw UnsupportedError('Unknown state: $state');
+      },
     );
   }
 

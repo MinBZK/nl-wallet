@@ -25,11 +25,15 @@ class CheckAttributesScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(locale.checkAttributesScreenTitle),
       ),
-      body: Column(
-        children: [
-          Expanded(child: _buildContent(context)),
-          const BottomBackButton(showDivider: true),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: _buildContent(context),
+            ),
+            const BottomBackButton(showDivider: true),
+          ],
+        ),
       ),
     );
   }

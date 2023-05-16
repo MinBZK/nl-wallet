@@ -43,7 +43,9 @@ class HistoryDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).historyDetailScreenTitle),
       ),
-      body: _buildBody(context),
+      body: SafeArea(
+        child: _buildBody(context),
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_routes.dart';
 import 'button/bottom_back_button.dart';
 
@@ -21,7 +22,9 @@ class PlaceholderScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).placeholderScreenTitle),
       ),
-      body: _buildBody(context),
+      body: SafeArea(
+        child: _buildBody(context),
+      ),
     );
   }
 
@@ -29,7 +32,10 @@ class PlaceholderScreen extends StatelessWidget {
     return Column(
       children: [
         const Spacer(),
-        Image.asset(_imageAssetName()),
+        Image.asset(
+          _imageAssetName(),
+          scale: context.isLandscape ? 1.5 : 1,
+        ),
         const SizedBox(height: 48),
         Padding(
           padding: const EdgeInsets.all(16),

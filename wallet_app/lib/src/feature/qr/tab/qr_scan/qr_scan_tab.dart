@@ -26,10 +26,9 @@ class QrScanTab extends StatelessWidget {
       listener: (context, state) {
         if (state is QrScanSuccess) _handleScanSuccess(context, state);
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          const SizedBox(height: 8),
           BlocBuilder<QrScanBloc, QrScanState>(
             builder: (context, state) {
               if (state is QrScanInitial) return _buildInitialState(context);

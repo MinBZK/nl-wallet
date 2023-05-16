@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/utility/max_brightness.dart';
 import '../../../common/widget/button/text_icon_button.dart';
+
+const _kLandscapeQrSize = 200.0;
 
 class MyQrTab extends StatelessWidget {
   const MyQrTab({Key? key}) : super(key: key);
@@ -12,12 +15,12 @@ class MyQrTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaxBrightness(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: ListView(
         children: [
-          Padding(
+          Container(
+            alignment: Alignment.center,
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            height: context.isLandscape ? _kLandscapeQrSize : null,
             child: QrImage(
               padding: EdgeInsets.zero,
               data: '{"id": ${DateTime.now().millisecondsSinceEpoch}',
@@ -28,6 +31,7 @@ class MyQrTab extends StatelessWidget {
             child: Text(AppLocalizations.of(context).qrMyCodeTabHowToCta),
             onPressed: () => _showHowToSheet(context),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );

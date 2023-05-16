@@ -55,7 +55,11 @@ class VerificationScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildStepper(),
-            Expanded(child: _buildPage()),
+            Expanded(
+              child: SafeArea(
+                child: _buildPage(),
+              ),
+            ),
           ],
         ),
       ),

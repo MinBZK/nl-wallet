@@ -48,7 +48,9 @@ class CardSummaryScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(cardTitle),
       ),
-      body: _buildBody(context),
+      body: SafeArea(
+        child: _buildBody(context),
+      ),
     );
   }
 
