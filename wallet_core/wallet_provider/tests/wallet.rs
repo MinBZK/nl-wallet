@@ -12,7 +12,7 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-use wallet_provider::{account_server, app};
+use wallet_provider::{account_server::stub::account_server, app};
 
 /// This struct acts as a client for [`Wallet`] by implementing [`AccountServerClient`]
 /// and using [`TestClient`]. It can access the routes of the Wallet Provider without
@@ -60,7 +60,7 @@ impl AccountServerClient for WalletTestClient {
 
 /// Create an instance of [`Wallet`] with appropriate mocks, including [`WalletTestClient`].
 async fn create_test_wallet() -> Wallet<WalletTestClient, MockStorage, SoftwareEcdsaKey> {
-    let account_server = account_server::stub::account_server();
+    let account_server = account_server();
     let pubkey = account_server.pubkey.clone();
     let app = app::router(account_server);
     let test_client = WalletTestClient::new(TestClient::new(app));
@@ -72,7 +72,7 @@ async fn create_test_wallet() -> Wallet<WalletTestClient, MockStorage, SoftwareE
 }
 
 #[tokio::test]
-async fn test_registration() {
+async fn test_wallet_registration() {
     let mut wallet = create_test_wallet().await;
 
     // No registration should be loaded initially.
