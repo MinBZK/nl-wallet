@@ -352,6 +352,7 @@ deploy-wallet-provider-live-cert:
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/live/cert.yaml
 
 run-automation-tests:
+  extends: .env-sp
   stage: test
   rules:
     - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -365,10 +366,6 @@ run-automation-tests:
     paths:
       - uiautomation/build/test-results
       - uiautomation/build/reports
-  environment:
-    name: ${K8S_CLUSTER}
-    kubernetes:
-     namespace: ${K8S_NAMESPACE}
   script:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
