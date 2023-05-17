@@ -22,6 +22,24 @@ use crate::{
     Error, Result,
 };
 
+pub struct IssuancePrivateKey {
+    private_key: ecdsa::SigningKey<p256::NistP256>,
+    cert_bts: Vec<u8>,
+}
+
+impl IssuancePrivateKey {
+    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> IssuancePrivateKey {
+        IssuancePrivateKey { private_key, cert_bts }
+    }
+}
+
+pub trait IssuanceKeyring {
+    fn private_key(&self, doctype: &DocType) -> Option<&IssuancePrivateKey>;
+    fn contains_key(&self, doctype: &DocType) -> bool {
+        self.private_key(doctype).is_some()
+    }
+}
+
 #[derive(Debug)]
 enum SessionState {
     Created,
@@ -45,64 +63,6 @@ impl SessionState {
             Cancelled => panic!("can't update final state"),
         }
         *self = new_state;
-    }
-}
-
-struct Session<T> {
-    request: RequestKeyGenerationMessage,
-    state: SessionState,
-    keys: Arc<T>,
-}
-
-/// An issuance session. The `process_` methods process specific issuance protocol messages from the holder.
-impl<T: IssuanceKeyring> Session<T> {
-    fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
-        self.state.update(Started);
-        ReadyToProvisionMessage {
-            e_session_id: self.request.e_session_id.clone(),
-        }
-    }
-
-    fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
-        self.state.update(WaitingForResponse);
-        self.request.clone()
-    }
-
-    fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        let issuance_result = self.issue(&device_response);
-        match issuance_result {
-            Ok(_) => self.state.update(Done),
-            Err(_) => self.state.update(Failed),
-        }
-        issuance_result
-    }
-
-    fn process_cancel(&mut self) -> EndSessionMessage {
-        self.state.update(Cancelled);
-        EndSessionMessage {
-            e_session_id: self.request.e_session_id.clone(),
-            reason: "success".to_string(),
-            delay: None,
-            sed: None,
-        }
-    }
-}
-
-pub struct IssuancePrivateKey {
-    private_key: ecdsa::SigningKey<p256::NistP256>,
-    cert_bts: Vec<u8>,
-}
-
-impl IssuancePrivateKey {
-    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> IssuancePrivateKey {
-        IssuancePrivateKey { private_key, cert_bts }
-    }
-}
-
-pub trait IssuanceKeyring {
-    fn private_key(&self, doctype: &DocType) -> Option<&IssuancePrivateKey>;
-    fn contains_key(&self, doctype: &DocType) -> bool {
-        self.private_key(doctype).is_some()
     }
 }
 
@@ -151,6 +111,43 @@ impl<T: IssuanceKeyring> Server<T> {
         Ok(())
     }
 
+    /// Process a CBOR-encoded issuance protocol message from the holder.
+    pub fn process_message(&self, id: SessionId, msg: Vec<u8>) -> Result<Box<dyn IssuerResponse>> {
+        let (msg_type, session_id) = Self::inspect_message(&msg)?;
+        if msg_type != START_PROVISIONING_MSG_TYPE {
+            Self::expect_session_id(&session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?, &id)?;
+        }
+
+        let mut session = self
+            .sessions
+            .get_mut(&id)
+            .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?;
+
+        if msg_type == REQUEST_END_SESSION_MSG_TYPE {
+            let response = session.process_cancel();
+            return Ok(Box::new(response));
+        }
+
+        match session.state {
+            Created => {
+                Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
+                let response = session.process_start(cbor_deserialize(&msg[..])?);
+                Ok(Box::new(response))
+            }
+            Started => {
+                Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
+                let response = session.process_get_request(cbor_deserialize(&msg[..])?);
+                Ok(Box::new(response))
+            }
+            WaitingForResponse => {
+                Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
+                let response = session.process_response(cbor_deserialize(&msg[..])?)?;
+                Ok(Box::new(response))
+            }
+            Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
+        }
+    }
+
     /// Read the following fields from the CBOR-encoded holder message:
     /// - `messageType`: should be present in every message
     /// - `eSessionId`: should be present in every message except the first
@@ -189,46 +186,47 @@ impl<T: IssuanceKeyring> Server<T> {
             .into())
         }
     }
-
-    /// Process a CBOR-encoded issuance protocol message from the holder.
-    pub fn process_message(&self, id: SessionId, msg: Vec<u8>) -> Result<Box<dyn IssuerResponse>> {
-        let (msg_type, session_id) = Self::inspect_message(&msg)?;
-        if msg_type != START_PROVISIONING_MSG_TYPE {
-            Self::expect_session_id(&session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?, &id)?;
-        }
-
-        let mut session = self
-            .sessions
-            .get_mut(&id)
-            .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?;
-
-        if msg_type == REQUEST_END_SESSION_MSG_TYPE {
-            let response = session.process_cancel();
-            return Ok(Box::new(response));
-        }
-
-        match session.state {
-            Created => {
-                Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
-                let response = session.process_start(cbor_deserialize(&msg[..])?);
-                Ok(Box::new(response))
-            }
-            Started => {
-                Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
-                let response = session.process_get_request(cbor_deserialize(&msg[..])?);
-                Ok(Box::new(response))
-            }
-            WaitingForResponse => {
-                Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
-                let response = session.process_response(cbor_deserialize(&msg[..])?)?;
-                Ok(Box::new(response))
-            }
-            Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
-        }
-    }
 }
 
+struct Session<T> {
+    request: RequestKeyGenerationMessage,
+    state: SessionState,
+    keys: Arc<T>,
+}
+
+// The `process_` methods process specific issuance protocol messages from the holder.
 impl<T: IssuanceKeyring> Session<T> {
+    fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
+        self.state.update(Started);
+        ReadyToProvisionMessage {
+            e_session_id: self.request.e_session_id.clone(),
+        }
+    }
+
+    fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
+        self.state.update(WaitingForResponse);
+        self.request.clone()
+    }
+
+    fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+        let issuance_result = self.issue(&device_response);
+        match issuance_result {
+            Ok(_) => self.state.update(Done),
+            Err(_) => self.state.update(Failed),
+        }
+        issuance_result
+    }
+
+    fn process_cancel(&mut self) -> EndSessionMessage {
+        self.state.update(Cancelled);
+        EndSessionMessage {
+            e_session_id: self.request.e_session_id.clone(),
+            reason: "success".to_string(),
+            delay: None,
+            sed: None,
+        }
+    }
+
     fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
         let attrs = unsigned_mdoc
             .attributes

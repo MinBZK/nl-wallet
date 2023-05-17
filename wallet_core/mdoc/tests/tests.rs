@@ -203,9 +203,9 @@ impl IssuanceKeyring for MockIssuanceKeyring {
 fn issuance_and_disclosure() {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
+    let ca_bts = ca.serialize_der().unwrap();
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
     let issuance_key = IssuancePrivateKey::new(privkey, cert_bts);
-    let ca_bts = ca.serialize_der().unwrap();
 
     // Setup session and issuer
     let request = new_issuance_request();
