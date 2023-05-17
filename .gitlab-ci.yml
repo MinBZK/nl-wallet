@@ -337,7 +337,7 @@ deploy-wallet-provider-staging-cert:
   extends: .deploy-sp
   stage: deploy
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
   script:
     - cat kubernetes/stage/cert.yaml | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g" | kubectl apply -f -
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/stage/cert.yaml
@@ -359,6 +359,7 @@ run-automation-tests:
       when: always
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
+      allow_failure: true
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:3cc0a5f36cd3a006350777254bbce025b67873d07dc2f71574f30e6ba92f9322"
   artifacts:
