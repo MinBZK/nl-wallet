@@ -1,4 +1,5 @@
 use core::panic;
+use std::sync::Arc;
 
 use chrono::Utc;
 use ciborium::value::Value;
@@ -47,27 +48,28 @@ impl SessionState {
     }
 }
 
-struct Session {
-    issuer: Issuer,
+struct Session<T> {
+    request: RequestKeyGenerationMessage,
     state: SessionState,
+    keys: Arc<T>,
 }
 
 /// An issuance session. The `process_` methods process specific issuance protocol messages from the holder.
-impl Session {
+impl<T: IssuanceKeyring> Session<T> {
     fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
         self.state.update(Started);
         ReadyToProvisionMessage {
-            e_session_id: self.issuer.request.e_session_id.clone(),
+            e_session_id: self.request.e_session_id.clone(),
         }
     }
 
     fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
         self.state.update(WaitingForResponse);
-        self.issuer.request.clone()
+        self.request.clone()
     }
 
     fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        let issuance_result = self.issuer.issue(&device_response);
+        let issuance_result = self.issue(&device_response);
         match issuance_result {
             Ok(_) => self.state.update(Done),
             Err(_) => self.state.update(Failed),
@@ -78,7 +80,7 @@ impl Session {
     fn process_cancel(&mut self) -> EndSessionMessage {
         self.state.update(Cancelled);
         EndSessionMessage {
-            e_session_id: self.issuer.request.e_session_id.clone(),
+            e_session_id: self.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
@@ -86,24 +88,40 @@ impl Session {
     }
 }
 
-#[derive(Default)]
-pub struct Server {
-    sessions: DashMap<SessionId, Session>,
+pub struct IssuancePrivateKey {
+    private_key: ecdsa::SigningKey<p256::NistP256>,
+    cert_bts: Vec<u8>,
 }
 
-impl Server {
-    pub fn new() -> Self {
+impl IssuancePrivateKey {
+    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> IssuancePrivateKey {
+        IssuancePrivateKey { private_key, cert_bts }
+    }
+}
+
+pub trait IssuanceKeyring {
+    fn private_key(&self, doctype: &DocType) -> Option<&IssuancePrivateKey>;
+    fn contains_key(&self, doctype: &DocType) -> bool {
+        self.private_key(doctype).is_some()
+    }
+}
+
+pub struct Server<T> {
+    keys: Arc<T>,
+    sessions: DashMap<SessionId, Session<T>>,
+}
+
+impl<T: IssuanceKeyring> Server<T> {
+    pub fn new(keys: T) -> Self {
         Server {
+            keys: keys.into(),
             sessions: DashMap::new(),
         }
     }
 
-    pub fn new_session(
-        &mut self,
-        docs: Vec<UnsignedMdoc>,
-        private_key: ecdsa::SigningKey<p256::NistP256>,
-        cert_bts: Vec<u8>,
-    ) -> SessionId {
+    pub fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<SessionId> {
+        self.check_keys(&docs)?;
+
         let challenge = ByteBuf::from(random_bytes(32));
         let session_id: SessionId = ByteBuf::from(random_bytes(32)).into();
         let request = RequestKeyGenerationMessage {
@@ -111,18 +129,26 @@ impl Server {
             challenge,
             unsigned_mdocs: docs,
         };
+
         self.sessions.insert(
             session_id.clone(),
             Session {
                 state: Created,
-                issuer: Issuer {
-                    private_key,
-                    cert_bts,
-                    request,
-                },
+                keys: self.keys.clone(),
+                request,
             },
         );
-        session_id
+
+        Ok(session_id)
+    }
+
+    fn check_keys(&self, docs: &[UnsignedMdoc]) -> Result<()> {
+        for doc in docs {
+            if !self.keys.contains_key(&doc.doc_type) {
+                return Err(IssuanceError::MissingPrivateKey(doc.doc_type.clone()).into());
+            }
+        }
+        Ok(())
     }
 
     /// Read the following fields from the CBOR-encoded holder message:
@@ -202,25 +228,7 @@ impl Server {
     }
 }
 
-pub struct Issuer {
-    private_key: ecdsa::SigningKey<p256::NistP256>,
-    cert_bts: Vec<u8>,
-    request: RequestKeyGenerationMessage,
-}
-
-impl Issuer {
-    pub fn new(
-        request: RequestKeyGenerationMessage,
-        private_key: ecdsa::SigningKey<p256::NistP256>,
-        cert_bts: Vec<u8>,
-    ) -> Issuer {
-        Issuer {
-            request,
-            cert_bts,
-            private_key,
-        }
-    }
-
+impl<T: IssuanceKeyring> Session<T> {
     fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
         let attrs = unsigned_mdoc
             .attributes
@@ -245,11 +253,14 @@ impl Issuer {
             validity_info: validity.clone(),
         };
 
+        // Presence of the key in the keyring has already been checked by new_session().
+        let key = self.keys.private_key(&unsigned_mdoc.doc_type).unwrap();
+
         let headers = HeaderBuilder::new()
-            .value(33, Value::Bytes(self.cert_bts.clone()))
+            .value(33, Value::Bytes(key.cert_bts.clone()))
             .build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso.into(), headers, &self.private_key)?;
+            MdocCose::sign(&mso.into(), headers, &key.private_key)?;
 
         let signed = SparseIssuerSigned {
             randoms: attrs

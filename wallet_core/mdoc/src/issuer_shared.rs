@@ -29,6 +29,8 @@ pub enum IssuanceError {
     SessionEnded,
     #[error("unexpected message type: {received}, expected {expected}")]
     UnexpectedMessageType { received: String, expected: String },
+    #[error("missing private key for doctype {0}")]
+    MissingPrivateKey(DocType),
 }
 
 impl Response {

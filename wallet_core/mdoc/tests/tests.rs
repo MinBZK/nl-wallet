@@ -152,13 +152,13 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
-struct MockHttpClient<'a> {
-    issuance_server: &'a Server,
+struct MockHttpClient<'a, T> {
+    issuance_server: &'a Server<T>,
     session_id: SessionId,
 }
 
 #[async_trait]
-impl HttpClient for MockHttpClient<'_> {
+impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring> {
     async fn post<R, V>(&self, val: &V) -> Result<R, Error>
     where
         V: Serialize + Sync,
@@ -176,12 +176,12 @@ impl HttpClient for MockHttpClient<'_> {
     }
 }
 
-struct MockHttpClientBuilder<'a> {
-    issuance_server: &'a Server,
+struct MockHttpClientBuilder<'a, T> {
+    issuance_server: &'a Server<T>,
 }
 
-impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a> {
-    type Client = MockHttpClient<'a>;
+impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring> {
+    type Client = MockHttpClient<'a, MockIssuanceKeyring>;
     fn build(&self, engagement: ServiceEngagement) -> Self::Client {
         MockHttpClient {
             issuance_server: self.issuance_server,
@@ -190,17 +190,27 @@ impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a> {
     }
 }
 
+struct MockIssuanceKeyring {
+    key: IssuancePrivateKey,
+}
+impl IssuanceKeyring for MockIssuanceKeyring {
+    fn private_key(&self, _: &DocType) -> Option<&IssuancePrivateKey> {
+        Some(&self.key)
+    }
+}
+
 #[test]
 fn issuance_and_disclosure() {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
+    let issuance_key = IssuancePrivateKey::new(privkey, cert_bts);
     let ca_bts = ca.serialize_der().unwrap();
 
     // Setup session and issuer
     let request = new_issuance_request();
-    let mut issuance_server = Server::new();
-    let session_id = issuance_server.new_session(request, privkey, cert_bts);
+    let issuance_server = Server::new(MockIssuanceKeyring { key: issuance_key });
+    let session_id = issuance_server.new_session(request).unwrap();
     let service_engagement = ServiceEngagement {
         url: session_id.to_string().into(),
         ..Default::default()
