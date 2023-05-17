@@ -170,7 +170,7 @@ build-wp-image:
   extends: .kaniko
   stage: build
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - /kaniko/executor
       --context wallet_core
@@ -314,7 +314,7 @@ deploy-wallet-provider:
   extends: .deploy-sp
   stage: deploy
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   dependencies:
     - build-wp-image
   script:
