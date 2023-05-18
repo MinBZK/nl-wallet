@@ -40,7 +40,7 @@ pub trait IssuanceKeyring {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum SessionState {
     Created,
     Started,
@@ -68,7 +68,7 @@ impl SessionState {
 
 pub struct Server<T> {
     keys: Arc<T>,
-    sessions: DashMap<SessionId, Session<T>>,
+    sessions: DashMap<SessionId, SessionData>,
 }
 
 impl<T: IssuanceKeyring> Server<T> {
@@ -92,10 +92,10 @@ impl<T: IssuanceKeyring> Server<T> {
 
         self.sessions.insert(
             session_id.clone(),
-            Session {
-                state: Created,
-                keys: self.keys.clone(),
+            SessionData {
                 request,
+                state: Created,
+                id: session_id.clone(),
             },
         );
 
@@ -118,17 +118,24 @@ impl<T: IssuanceKeyring> Server<T> {
             Self::expect_session_id(&session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?, &id)?;
         }
 
-        let mut session = self
+        let mut session_data = self
             .sessions
-            .get_mut(&id)
-            .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?;
+            .get(&id)
+            .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?
+            .clone();
+        let mut session = Session {
+            sessions: &self.sessions,
+            session_data: &mut session_data,
+            updated: false,
+            keys: self.keys.clone(),
+        };
 
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
             let response = session.process_cancel();
             return Ok(Box::new(response));
         }
 
-        match session.state {
+        match session.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
                 let response = session.process_start(cbor_deserialize(&msg[..])?);
@@ -188,39 +195,62 @@ impl<T: IssuanceKeyring> Server<T> {
     }
 }
 
-struct Session<T> {
-    request: RequestKeyGenerationMessage,
-    state: SessionState,
+#[derive(Debug)]
+struct Session<'a, T> {
+    sessions: &'a DashMap<SessionId, SessionData>,
+    session_data: &'a mut SessionData,
+    updated: bool,
     keys: Arc<T>,
 }
 
+impl<'a, T> Drop for Session<'a, T> {
+    fn drop(&mut self) {
+        if self.updated {
+            self.sessions
+                .insert(self.session_data.id.clone(), self.session_data.clone());
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SessionData {
+    request: RequestKeyGenerationMessage,
+    state: SessionState,
+    id: SessionId,
+}
+
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<T: IssuanceKeyring> Session<T> {
+impl<'a, T: IssuanceKeyring> Session<'a, T> {
+    fn update_state(&mut self, new_state: SessionState) {
+        self.session_data.state.update(new_state);
+        self.updated = true;
+    }
+
     fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
-        self.state.update(Started);
+        self.update_state(Started);
         ReadyToProvisionMessage {
-            e_session_id: self.request.e_session_id.clone(),
+            e_session_id: self.session_data.request.e_session_id.clone(),
         }
     }
 
     fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
-        self.state.update(WaitingForResponse);
-        self.request.clone()
+        self.update_state(WaitingForResponse);
+        self.session_data.request.clone()
     }
 
     fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         let issuance_result = self.issue(&device_response);
         match issuance_result {
-            Ok(_) => self.state.update(Done),
-            Err(_) => self.state.update(Failed),
+            Ok(_) => self.update_state(Done),
+            Err(_) => self.update_state(Failed),
         }
         issuance_result
     }
 
     fn process_cancel(&mut self) -> EndSessionMessage {
-        self.state.update(Cancelled);
+        self.update_state(Cancelled);
         EndSessionMessage {
-            e_session_id: self.request.e_session_id.clone(),
+            e_session_id: self.session_data.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
@@ -292,12 +322,12 @@ impl<T: IssuanceKeyring> Session<T> {
     }
 
     pub fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        device_response.verify(&self.request)?;
+        device_response.verify(&self.session_data.request)?;
 
         let docs = device_response
             .mdoc_responses
             .iter()
-            .zip(&self.request.unsigned_mdocs)
+            .zip(&self.session_data.request.unsigned_mdocs)
             .map(|(responses, unsigned)| {
                 let docs = MobileIDDocuments {
                     doc_type: unsigned.doc_type.clone(),
@@ -308,7 +338,7 @@ impl<T: IssuanceKeyring> Session<T> {
             .collect::<Result<Vec<MobileIDDocuments>>>()?;
 
         let response = DataToIssueMessage {
-            e_session_id: self.request.e_session_id.clone(),
+            e_session_id: self.session_data.request.e_session_id.clone(),
             mobile_id_documents: docs,
         };
         Ok(response)
