@@ -152,8 +152,8 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
-struct MockHttpClient<'a, T, S> {
-    issuance_server: &'a Server<T, S>,
+struct MockHttpClient<'a, K, S> {
+    issuance_server: &'a Server<K, S>,
     session_id: SessionId,
 }
 
@@ -176,8 +176,8 @@ impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> 
     }
 }
 
-struct MockHttpClientBuilder<'a, T, S> {
-    issuance_server: &'a Server<T, S>,
+struct MockHttpClientBuilder<'a, K, S> {
+    issuance_server: &'a Server<K, S>,
 }
 
 impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, MemorySessionStore> {

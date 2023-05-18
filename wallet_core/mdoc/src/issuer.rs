@@ -98,13 +98,13 @@ impl SessionStore for MemorySessionStore {
     }
 }
 
-pub struct Server<T, S> {
-    keys: T,
+pub struct Server<K, S> {
+    keys: K,
     sessions: S,
 }
 
-impl<T: IssuanceKeyring, S: SessionStore> Server<T, S> {
-    pub fn new(keys: T, session_store: S) -> Self {
+impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
+    pub fn new(keys: K, session_store: S) -> Self {
         Server {
             keys,
             sessions: session_store,
@@ -221,14 +221,14 @@ impl<T: IssuanceKeyring, S: SessionStore> Server<T, S> {
 }
 
 #[derive(Debug)]
-struct Session<'a, T, S: SessionStore> {
+struct Session<'a, K, S: SessionStore> {
     sessions: &'a S,
     session_data: &'a mut SessionData,
-    keys: &'a T,
+    keys: &'a K,
     updated: bool,
 }
 
-impl<'a, T, S: SessionStore> Drop for Session<'a, T, S> {
+impl<'a, K, S: SessionStore> Drop for Session<'a, K, S> {
     fn drop(&mut self) {
         if self.updated {
             self.sessions.write(self.session_data);
@@ -244,7 +244,7 @@ pub struct SessionData {
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<'a, T: IssuanceKeyring, S: SessionStore> Session<'a, T, S> {
+impl<'a, K: IssuanceKeyring, S: SessionStore> Session<'a, K, S> {
     fn update_state(&mut self, new_state: SessionState) {
         self.session_data.state.update(new_state);
         self.updated = true;
