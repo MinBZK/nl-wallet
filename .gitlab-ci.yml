@@ -102,7 +102,7 @@ test-rust:
   except:
     - schedules
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:71f9d83281aba918cc47bce4113b1d5d694ca997f3c361795082294fc638f691"
   script:
     - set -euxo pipefail
     - cargo test --manifest-path wallet_core/Cargo.toml
@@ -139,7 +139,7 @@ test-rust-analyze:
   except:
     - schedules
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:ddb2ed35c98e1d30809307da8a5ec17f356f09c0be934773fc6ae95ae31f43b3"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:71f9d83281aba918cc47bce4113b1d5d694ca997f3c361795082294fc638f691"
   script:
     - set -euxo pipefail
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
