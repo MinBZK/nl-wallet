@@ -4,7 +4,7 @@ use tokio::sync::{OnceCell, RwLock};
 use macros::async_runtime;
 use wallet::{init_wallet, validate_pin, Wallet};
 
-use crate::{async_runtime::init_async_runtime, models::pin::PinValidationResult};
+use crate::{async_runtime::init_async_runtime, logging::init_logging, models::pin::PinValidationResult};
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
@@ -15,9 +15,13 @@ fn wallet() -> &'static RwLock<Wallet> {
 }
 
 pub fn init() -> Result<()> {
-    // Initialize the async runtime so the #[async_runtime] macro can be used.
+    // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
-    // init_async_runtime() should not fail when being called more than once.
+    // init_logging() should not fail when being called more than once.
+    init_logging();
+
+    // Initialize the async runtime so the #[async_runtime] macro can be used.
+    // This function may also be called safely more than once.
     init_async_runtime()?;
 
     let created = create_wallet()?;

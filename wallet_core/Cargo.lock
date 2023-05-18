@@ -773,10 +773,13 @@ dependencies = [
  "flutter_rust_bridge",
  "macros",
  "once_cell",
+ "oslog",
  "serde",
  "serde-generate",
  "serde-reflection",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "wallet",
 ]
 
@@ -1568,6 +1571,15 @@ checksum = "ccd746e37177e1711c20dd619a1620f34f5c8b569c53590a72dedd5344d8924a"
 dependencies = [
  "dlv-list",
  "hashbrown",
+]
+
+[[package]]
+name = "oslog"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d2043d1f61d77cb2f4b1f7b7b2295f40507f5f8e9d1c8bf10a1ca5f97a3969"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
