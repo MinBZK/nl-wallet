@@ -3274,6 +3274,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tracing",
  "wallet_common",
  "wallet_provider",
 ]
