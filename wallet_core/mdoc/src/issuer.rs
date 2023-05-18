@@ -1,5 +1,4 @@
 use core::panic;
-use std::sync::Arc;
 
 use chrono::Utc;
 use ciborium::value::Value;
@@ -66,16 +65,42 @@ impl SessionState {
     }
 }
 
-pub struct Server<T> {
-    keys: Arc<T>,
+#[derive(Debug)]
+pub struct SessionStore {
     sessions: DashMap<SessionId, SessionData>,
+}
+
+impl SessionStore {
+    fn new() -> Self {
+        Self {
+            sessions: DashMap::new(),
+        }
+    }
+
+    fn get(&self, id: &SessionId) -> Result<SessionData> {
+        let data = self
+            .sessions
+            .get(id)
+            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(id.clone())))?
+            .clone();
+        Ok(data)
+    }
+
+    fn write(&self, session: &SessionData) {
+        self.sessions.insert(session.id.clone(), session.clone());
+    }
+}
+
+pub struct Server<T> {
+    keys: T,
+    sessions: SessionStore,
 }
 
 impl<T: IssuanceKeyring> Server<T> {
     pub fn new(keys: T) -> Self {
         Server {
-            keys: keys.into(),
-            sessions: DashMap::new(),
+            keys,
+            sessions: SessionStore::new(),
         }
     }
 
@@ -90,14 +115,11 @@ impl<T: IssuanceKeyring> Server<T> {
             unsigned_mdocs: docs,
         };
 
-        self.sessions.insert(
-            session_id.clone(),
-            SessionData {
-                request,
-                state: Created,
-                id: session_id.clone(),
-            },
-        );
+        self.sessions.write(&SessionData {
+            request,
+            state: Created,
+            id: session_id.clone(),
+        });
 
         Ok(session_id)
     }
@@ -118,16 +140,12 @@ impl<T: IssuanceKeyring> Server<T> {
             Self::expect_session_id(&session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?, &id)?;
         }
 
-        let mut session_data = self
-            .sessions
-            .get(&id)
-            .ok_or(Error::from(IssuanceError::UnknownSessionId(id)))?
-            .clone();
+        let mut session_data = self.sessions.get(&id)?;
         let mut session = Session {
             sessions: &self.sessions,
             session_data: &mut session_data,
+            keys: &self.keys,
             updated: false,
-            keys: self.keys.clone(),
         };
 
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
@@ -197,17 +215,16 @@ impl<T: IssuanceKeyring> Server<T> {
 
 #[derive(Debug)]
 struct Session<'a, T> {
-    sessions: &'a DashMap<SessionId, SessionData>,
+    sessions: &'a SessionStore,
     session_data: &'a mut SessionData,
+    keys: &'a T,
     updated: bool,
-    keys: Arc<T>,
 }
 
 impl<'a, T> Drop for Session<'a, T> {
     fn drop(&mut self) {
         if self.updated {
-            self.sessions
-                .insert(self.session_data.id.clone(), self.session_data.clone());
+            self.sessions.write(self.session_data);
         }
     }
 }
