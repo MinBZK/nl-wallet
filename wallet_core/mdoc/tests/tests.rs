@@ -152,13 +152,13 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
-struct MockHttpClient<'a, T> {
-    issuance_server: &'a Server<T>,
+struct MockHttpClient<'a, T, S> {
+    issuance_server: &'a Server<T, S>,
     session_id: SessionId,
 }
 
 #[async_trait]
-impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring> {
+impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> {
     async fn post<R, V>(&self, val: &V) -> Result<R, Error>
     where
         V: Serialize + Sync,
@@ -176,12 +176,12 @@ impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring> {
     }
 }
 
-struct MockHttpClientBuilder<'a, T> {
-    issuance_server: &'a Server<T>,
+struct MockHttpClientBuilder<'a, T, S> {
+    issuance_server: &'a Server<T, S>,
 }
 
-impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring> {
-    type Client = MockHttpClient<'a, MockIssuanceKeyring>;
+impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, MemorySessionStore> {
+    type Client = MockHttpClient<'a, MockIssuanceKeyring, MemorySessionStore>;
     fn build(&self, engagement: ServiceEngagement) -> Self::Client {
         MockHttpClient {
             issuance_server: self.issuance_server,
@@ -191,11 +191,11 @@ impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring> {
 }
 
 struct MockIssuanceKeyring {
-    key: IssuancePrivateKey,
+    issuance_key: IssuancePrivateKey,
 }
 impl IssuanceKeyring for MockIssuanceKeyring {
     fn private_key(&self, _: &DocType) -> Option<&IssuancePrivateKey> {
-        Some(&self.key)
+        Some(&self.issuance_key)
     }
 }
 
@@ -209,7 +209,7 @@ fn issuance_and_disclosure() {
 
     // Setup session and issuer
     let request = new_issuance_request();
-    let issuance_server = Server::new(MockIssuanceKeyring { key: issuance_key });
+    let issuance_server = Server::new(MockIssuanceKeyring { issuance_key }, MemorySessionStore::new());
     let session_id = issuance_server.new_session(request).unwrap();
     let service_engagement = ServiceEngagement {
         url: session_id.to_string().into(),

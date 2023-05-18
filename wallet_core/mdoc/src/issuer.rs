@@ -65,18 +65,25 @@ impl SessionState {
     }
 }
 
-#[derive(Debug)]
-pub struct SessionStore {
+pub trait SessionStore {
+    fn get(&self, id: &SessionId) -> Result<SessionData>;
+    fn write(&self, session: &SessionData);
+}
+
+#[derive(Debug, Default)]
+pub struct MemorySessionStore {
     sessions: DashMap<SessionId, SessionData>,
 }
 
-impl SessionStore {
-    fn new() -> Self {
+impl MemorySessionStore {
+    pub fn new() -> Self {
         Self {
             sessions: DashMap::new(),
         }
     }
+}
 
+impl SessionStore for MemorySessionStore {
     fn get(&self, id: &SessionId) -> Result<SessionData> {
         let data = self
             .sessions
@@ -91,16 +98,16 @@ impl SessionStore {
     }
 }
 
-pub struct Server<T> {
+pub struct Server<T, S> {
     keys: T,
-    sessions: SessionStore,
+    sessions: S,
 }
 
-impl<T: IssuanceKeyring> Server<T> {
-    pub fn new(keys: T) -> Self {
+impl<T: IssuanceKeyring, S: SessionStore> Server<T, S> {
+    pub fn new(keys: T, session_store: S) -> Self {
         Server {
             keys,
-            sessions: SessionStore::new(),
+            sessions: session_store,
         }
     }
 
@@ -214,14 +221,14 @@ impl<T: IssuanceKeyring> Server<T> {
 }
 
 #[derive(Debug)]
-struct Session<'a, T> {
-    sessions: &'a SessionStore,
+struct Session<'a, T, S: SessionStore> {
+    sessions: &'a S,
     session_data: &'a mut SessionData,
     keys: &'a T,
     updated: bool,
 }
 
-impl<'a, T> Drop for Session<'a, T> {
+impl<'a, T, S: SessionStore> Drop for Session<'a, T, S> {
     fn drop(&mut self) {
         if self.updated {
             self.sessions.write(self.session_data);
@@ -230,14 +237,14 @@ impl<'a, T> Drop for Session<'a, T> {
 }
 
 #[derive(Debug, Clone)]
-struct SessionData {
+pub struct SessionData {
     request: RequestKeyGenerationMessage,
     state: SessionState,
     id: SessionId,
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<'a, T: IssuanceKeyring> Session<'a, T> {
+impl<'a, T: IssuanceKeyring, S: SessionStore> Session<'a, T, S> {
     fn update_state(&mut self, new_state: SessionState) {
         self.session_data.state.update(new_state);
         self.updated = true;
