@@ -8,8 +8,11 @@ static LOGGING: Once = Once::new();
 pub fn init_logging() {
     // Make sure this initializer can be called multiple times, but executes only once.
     LOGGING.call_once(|| {
-        // For release builds, set the log level to ERROR.
-        let builder = SubscriberBuilder::default().with_max_level(Level::ERROR);
+        let builder = SubscriberBuilder::default();
+
+        // For release builds, set the log level to WARN and remove timestamps.
+        #[cfg(not(debug_assertions))]
+        let builder = builder.with_max_level(Level::WARN).without_time();
 
         // For debug builds, set the log level to DEBUG.
         #[cfg(debug_assertions)]
