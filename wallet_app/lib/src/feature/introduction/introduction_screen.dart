@@ -7,7 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../wallet_constants.dart';
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/placeholder_screen.dart';
 import 'page/introduction_page.dart';

@@ -5,7 +5,7 @@ import 'package:uni_links/uni_links.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 
 class DeeplinkService {
   final GlobalKey<NavigatorState> _key;

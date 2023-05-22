@@ -4,7 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../domain/model/qr/qr_request.dart';
-import '../../../../wallet_routes.dart';
+import '../../../../navigation/wallet_routes.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/explanation_sheet.dart';

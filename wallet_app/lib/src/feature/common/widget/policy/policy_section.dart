@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/policy/policy.dart';
-import '../../../../wallet_routes.dart';
+import '../../../../navigation/wallet_routes.dart';
 import '../button/link_button.dart';
 import 'policy_row.dart';
 

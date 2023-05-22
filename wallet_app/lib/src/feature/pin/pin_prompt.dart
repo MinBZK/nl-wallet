@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/usecase/pin/confirm_transaction_usecase.dart';
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
