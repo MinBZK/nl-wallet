@@ -139,7 +139,11 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     }
   }
 
-  void _onSkipPressed(BuildContext context) => _pageController.jumpToPage(_kNrOfPages - 1);
+  void _onSkipPressed(BuildContext context) => _pageController.animateToPage(
+        _kNrOfPages - 1,
+        duration: kDefaultAnimationDuration,
+        curve: Curves.easeOutCubic,
+      );
 
   void _onBackPressed(BuildContext context) {
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
