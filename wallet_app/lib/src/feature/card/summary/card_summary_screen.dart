@@ -12,7 +12,7 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
-import '../../../wallet_routes.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/sized_card_front.dart';
 import '../../common/widget/centered_loading_indicator.dart';

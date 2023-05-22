@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../wallet_routes.dart';
 import 'button/bottom_back_button.dart';
 
 const _kPlaceholderGenericIllustration = 'assets/non-free/images/placeholder_generic_illustration.png';

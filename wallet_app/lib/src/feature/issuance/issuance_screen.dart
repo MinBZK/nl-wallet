@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/wallet_card.dart';
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -109,7 +109,13 @@ class IssuanceScreen extends StatelessWidget {
         if (state is IssuanceGenericError) result = _buildGenericErrorPage(context, state);
         if (state is IssuanceIdentityValidationFailure) result = _buildIdentityValidationFailedPage(context, state);
         if (result == null) throw UnsupportedError('Unknown state: $state');
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
+
+        final skipAnim = !state.didGoBack && state is IssuanceCheckOrganization;
+        return FakePagingAnimatedSwitcher(
+          animateBackwards: state.didGoBack,
+          animate: !skipAnim,
+          child: result,
+        );
       },
     );
   }

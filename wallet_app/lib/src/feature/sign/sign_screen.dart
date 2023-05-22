@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -95,7 +95,13 @@ class SignScreen extends StatelessWidget {
         if (state is SignStopped) result = _buildStopped(context, state);
         if (state is SignSuccess) result = _buildSuccess(context, state);
         if (result == null) throw UnsupportedError('Unhandled state: $state');
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
+
+        final skipAnim = !state.didGoBack && state is SignCheckOrganization;
+        return FakePagingAnimatedSwitcher(
+          animateBackwards: state.didGoBack,
+          animate: !skipAnim,
+          child: result,
+        );
       },
     );
   }

@@ -47,7 +47,6 @@ class OrganizationApprovePage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
-        controller: ScrollController(),
         restorationId: 'approve_organization_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 32),

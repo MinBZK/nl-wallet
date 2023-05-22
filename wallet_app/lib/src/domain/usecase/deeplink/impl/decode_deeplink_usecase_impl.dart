@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:fimber/fimber.dart';
 
 import '../../../../feature/issuance/argument/issuance_screen_argument.dart';
-import '../../../../wallet_routes.dart';
+import '../../../../navigation/wallet_routes.dart';
 import '../../../model/navigation/navigation_request.dart';
 import '../../../model/qr/edi_qr_code.dart';
 import '../decode_deeplink_usecase.dart';

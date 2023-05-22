@@ -4,7 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'localization/preferred_locale_cubit.dart';
 import 'theme/wallet_theme.dart';
-import 'wallet_routes.dart';
+import 'navigation/wallet_routes.dart';
 
 class WalletApp extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;

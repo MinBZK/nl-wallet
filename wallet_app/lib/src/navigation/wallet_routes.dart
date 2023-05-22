@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'secured_page_route.dart';
 
-import 'domain/model/policy/policy.dart';
-import 'domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
-import 'feature/card/data/argument/card_data_screen_argument.dart';
-import 'feature/card/data/bloc/card_data_bloc.dart';
-import 'feature/card/data/card_data_screen.dart';
-import 'feature/card/history/bloc/card_history_bloc.dart';
-import 'feature/card/history/card_history_screen.dart';
-import 'feature/card/overview/bloc/card_overview_bloc.dart';
-import 'feature/card/summary/argument/card_summary_screen_argument.dart';
-import 'feature/card/summary/bloc/card_summary_bloc.dart';
-import 'feature/card/summary/card_summary_screen.dart';
-import 'feature/change_language/bloc/change_language_bloc.dart';
-import 'feature/change_language/change_language_screen.dart';
-import 'feature/common/widget/utility/do_on_init.dart';
-import 'feature/history/detail/argument/history_detail_screen_argument.dart';
-import 'feature/history/detail/bloc/history_detail_bloc.dart';
-import 'feature/history/detail/history_detail_screen.dart';
-import 'feature/history/overview/bloc/history_overview_bloc.dart';
-import 'feature/history/overview/history_overview_screen.dart';
-import 'feature/home/bloc/home_bloc.dart';
-import 'feature/home/home_screen.dart';
-import 'feature/introduction/introduction_screen.dart';
-import 'feature/issuance/argument/issuance_screen_argument.dart';
-import 'feature/issuance/bloc/issuance_bloc.dart';
-import 'feature/issuance/issuance_screen.dart';
-import 'feature/menu/bloc/menu_bloc.dart';
-import 'feature/navigation/deeplink_service.dart';
-import 'feature/organization/detail/argument/organization_detail_screen_argument.dart';
-import 'feature/organization/detail/bloc/organization_detail_bloc.dart';
-import 'feature/organization/detail/organization_detail_screen.dart';
-import 'feature/pin/bloc/pin_bloc.dart';
-import 'feature/pin/pin_overlay.dart';
-import 'feature/pin/pin_prompt.dart';
-import 'feature/pin/pin_screen.dart';
-import 'feature/policy/policy_screen.dart';
-import 'feature/setup_security/bloc/setup_security_bloc.dart';
-import 'feature/setup_security/setup_security_screen.dart';
-import 'feature/sign/bloc/sign_bloc.dart';
-import 'feature/sign/sign_screen.dart';
-import 'feature/splash/bloc/splash_bloc.dart';
-import 'feature/splash/splash_screen.dart';
-import 'feature/theme/theme_screen.dart';
-import 'feature/verification/bloc/verification_bloc.dart';
-import 'feature/verification/verification_screen.dart';
-import 'feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
-import 'feature/wallet/personalize/wallet_personalize_screen.dart';
+import '../domain/model/policy/policy.dart';
+import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import '../feature/card/data/argument/card_data_screen_argument.dart';
+import '../feature/card/data/bloc/card_data_bloc.dart';
+import '../feature/card/data/card_data_screen.dart';
+import '../feature/card/history/bloc/card_history_bloc.dart';
+import '../feature/card/history/card_history_screen.dart';
+import '../feature/card/overview/bloc/card_overview_bloc.dart';
+import '../feature/card/summary/argument/card_summary_screen_argument.dart';
+import '../feature/card/summary/bloc/card_summary_bloc.dart';
+import '../feature/card/summary/card_summary_screen.dart';
+import '../feature/change_language/bloc/change_language_bloc.dart';
+import '../feature/change_language/change_language_screen.dart';
+import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/history/detail/argument/history_detail_screen_argument.dart';
+import '../feature/history/detail/bloc/history_detail_bloc.dart';
+import '../feature/history/detail/history_detail_screen.dart';
+import '../feature/history/overview/bloc/history_overview_bloc.dart';
+import '../feature/history/overview/history_overview_screen.dart';
+import '../feature/home/bloc/home_bloc.dart';
+import '../feature/home/home_screen.dart';
+import '../feature/introduction/introduction_screen.dart';
+import '../feature/issuance/argument/issuance_screen_argument.dart';
+import '../feature/issuance/bloc/issuance_bloc.dart';
+import '../feature/issuance/issuance_screen.dart';
+import '../feature/menu/bloc/menu_bloc.dart';
+import '../feature/navigation/deeplink_service.dart';
+import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
+import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
+import '../feature/organization/detail/organization_detail_screen.dart';
+import '../feature/pin/bloc/pin_bloc.dart';
+import '../feature/pin/pin_prompt.dart';
+import '../feature/pin/pin_screen.dart';
+import '../feature/policy/policy_screen.dart';
+import '../feature/setup_security/bloc/setup_security_bloc.dart';
+import '../feature/setup_security/setup_security_screen.dart';
+import '../feature/sign/bloc/sign_bloc.dart';
+import '../feature/sign/sign_screen.dart';
+import '../feature/splash/bloc/splash_bloc.dart';
+import '../feature/splash/splash_screen.dart';
+import '../feature/theme/theme_screen.dart';
+import '../feature/verification/bloc/verification_bloc.dart';
+import '../feature/verification/verification_screen.dart';
+import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
+import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -86,10 +86,22 @@ class WalletRoutes {
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
+    final pageTransition = _resolvePageTransition(settings);
     if (publicRoutes.contains(settings.name)) {
       return MaterialPageRoute(builder: builder, settings: settings);
     } else {
-      return SecuredPageRoute(builder: builder, settings: settings);
+      return SecuredPageRoute(builder: builder, settings: settings, transition: pageTransition);
+    }
+  }
+
+  static SecuredPageTransition _resolvePageTransition(RouteSettings settings) {
+    switch (settings.name) {
+      case WalletRoutes.verificationRoute:
+      case WalletRoutes.issuanceRoute:
+      case WalletRoutes.signRoute:
+        return SecuredPageTransition.slideInFromBottom;
+      default:
+        return SecuredPageTransition.platform;
     }
   }
 
@@ -301,9 +313,4 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
       child: OrganizationDetailScreen(title: argument.title),
     );
   };
-}
-
-class SecuredPageRoute<T> extends MaterialPageRoute<T> {
-  SecuredPageRoute({required WidgetBuilder builder, super.settings})
-      : super(builder: (context) => PinOverlay(child: builder(context)));
 }
