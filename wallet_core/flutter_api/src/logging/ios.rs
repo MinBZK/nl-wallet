@@ -4,8 +4,7 @@ use oslog::OsLog;
 use tracing::{Level, Metadata};
 use tracing_subscriber::fmt::MakeWriter;
 
-#[derive(Default)]
-pub struct WriterMaker();
+const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 
 /// We need something that implements the [`WriterMaker`] trait in order to have different
 /// [`LogWriter`] instances per debug level.
@@ -15,19 +14,48 @@ pub struct WriterMaker();
 /// * For any message that is [`Level::INFO`] or below, use the default logging function.
 ///   This is necessary, because Flutter will not show output on the console for the info
 ///   and debug logging functions.
+pub struct WriterMaker {
+    default_writer: LogWriter,
+    error_writer: LogWriter,
+    fault_writer: LogWriter,
+}
+
+impl WriterMaker {
+    fn new() -> Self {
+        WriterMaker {
+            default_writer: LogWriter::default(),
+            error_writer: LogWriter::error(),
+            fault_writer: LogWriter::fault(),
+        }
+    }
+
+    /// Map the tracing level to the writer with the appropriate log level.
+    fn writer(&self, level: &Level) -> &LogWriter {
+        match *level {
+            Level::ERROR => &self.fault_writer,
+            Level::WARN => &self.error_writer,
+            _ => &self.default_writer,
+        }
+    }
+}
+
+impl Default for WriterMaker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> MakeWriter<'a> for WriterMaker {
-    type Writer = LogWriter;
+    type Writer = &'a LogWriter;
 
     fn make_writer(&'a self) -> Self::Writer {
-        LogWriter::default()
+        // This method may never get called (as there should normally be metadata present),
+        // but if it does we should just return the default writer.
+        self.writer(DEFAULT_LEVEL)
     }
 
     fn make_writer_for(&'a self, meta: &Metadata<'_>) -> Self::Writer {
-        match *meta.level() {
-            Level::ERROR => LogWriter::fault(),
-            Level::WARN => LogWriter::error(),
-            _ => LogWriter::default(),
-        }
+        self.writer(meta.level())
     }
 }
 
@@ -64,10 +92,9 @@ impl Default for LogWriter {
     }
 }
 
-impl Write for LogWriter {
+impl Write for &LogWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        let fun = self.fun;
-        fun(&self.log, String::from_utf8_lossy(buf).as_ref());
+        (self.fun)(&self.log, String::from_utf8_lossy(buf).as_ref());
 
         Ok(buf.len())
     }
