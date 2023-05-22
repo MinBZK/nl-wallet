@@ -1,10 +1,14 @@
-use std::{backtrace::Backtrace, panic};
+use std::panic;
+
+use backtrace::Backtrace;
 
 use tracing::error;
 
 pub fn init_panic_logger() {
     panic::set_hook(Box::new(|panic_info| {
-        let backtrace = Backtrace::force_capture();
+        // Unfortunately, std::backtrace::Backtrace does not work on Android.
+        // This is why we use the "backtrace" crate instead.
+        let backtrace = Backtrace::new();
 
         // The payload may either be a reference to a [`String`] or a `&'static str`.
         let payload = panic_info.payload();
@@ -21,8 +25,7 @@ pub fn init_panic_logger() {
         // Note that we need to use string formatting to prevent
         // the [`error!`] macro from printing the variable name.
         error!("Panic occurred: {}", message.unwrap_or("UNKNOWN"));
-        backtrace
-            .to_string()
+        format!("{:?}", backtrace)
             .split('\n')
             .filter(|backtrace_line| !backtrace_line.is_empty())
             .for_each(|backtrace_line| error!("{}", backtrace_line));

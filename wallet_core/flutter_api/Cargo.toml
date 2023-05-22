@@ -22,6 +22,7 @@ serde_reflection_codegen = [
 macros = { path = "macros" }
 wallet = { path = "../wallet" }
 anyhow = "1.0.69"
+backtrace = "0.3.67"
 bincode = "1.3.3"
 const_format = { version = "0.2.30", optional = true }
 flutter_rust_bridge = "1.70.0"

@@ -111,12 +111,12 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
 
 // Register tasks to build the Rust code and copy the resulting library files
 [
-        Debug  : null,
-        Profile: '--release',
-        Release: '--release'
+        Debug  : [false, null],
+        Profile: [true, '--release'],
+        Release: [true, '--release']
 ].each {
     def taskPostfix = it.key
-    def profileMode = it.value
+    def (doStrip, profileMode) = it.value
     tasks.whenTaskAdded { task ->
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
@@ -130,9 +130,12 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
-                '-o', jniTargetDir,
-                'build',
-                '-p', 'flutter_api'
+                '-o', jniTargetDir
+        if (!doStrip) {
+            args '--no-strip'
+        }
+        args 'build',
+             '-p', 'flutter_api'
         if (profileMode != null) {
             args profileMode
         }
