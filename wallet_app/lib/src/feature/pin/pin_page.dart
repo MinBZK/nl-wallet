@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/wallet_logo.dart';
 import '../forgot_pin/forgot_pin_screen.dart';

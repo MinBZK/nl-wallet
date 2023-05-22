@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../wallet_routes.dart';
+import '../../navigation/wallet_routes.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -99,7 +99,13 @@ class VerificationScreen extends StatelessWidget {
         if (state is VerificationSuccess) result = _buildSuccessPage(context, state);
         if (state is VerificationGenericError) result = _buildGenericErrorPage(context, state);
         if (result == null) throw UnsupportedError('Unknown state: $state');
-        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
+
+        final skipAnim = !state.didGoBack && state is VerificationCheckOrganization;
+        return FakePagingAnimatedSwitcher(
+          animateBackwards: state.didGoBack,
+          animate: !skipAnim,
+          child: result,
+        );
       },
     );
   }

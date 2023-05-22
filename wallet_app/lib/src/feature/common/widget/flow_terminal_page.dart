@@ -48,6 +48,7 @@ class FlowTerminalPage extends StatelessWidget {
   Widget _buildScrollableSection(BuildContext context) {
     return Expanded(
       child: ListView(
+        primary: false /* Avoid PrimaryScrollController clash */,
         padding: const EdgeInsets.symmetric(vertical: 24),
         children: [
           const SizedBox(height: 24),
@@ -110,6 +111,7 @@ class FlowTerminalPage extends StatelessWidget {
             child: Text(closeButtonCta),
           ),
         ),
+        const SizedBox(height: 16),
       ],
     );
   }

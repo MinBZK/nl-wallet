@@ -13,7 +13,6 @@ import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../../../util/extension/set_extensions.dart';
-import '../../../wallet_constants.dart';
 import '../../verification/model/organization.dart';
 
 part 'issuance_event.dart';
@@ -78,7 +77,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuanceLoadTriggered(IssuanceLoadTriggered event, emit) async {
     emit(IssuanceLoadInProgress(event.isRefreshFlow));
 
-    await Future.delayed(kDefaultMockDelay);
     final response = await getIssuanceResponseUseCase.invoke(event.sessionId);
     final attributes = await getRequestedAttributesFromWalletUseCase.invoke(response.requestedAttributes);
     final IssuanceFlow flow = IssuanceFlow(

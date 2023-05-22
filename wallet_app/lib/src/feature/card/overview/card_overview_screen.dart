@@ -6,7 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../../domain/model/wallet_card.dart';
-import '../../../wallet_routes.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../summary/argument/card_summary_screen_argument.dart';
