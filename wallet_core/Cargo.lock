@@ -851,7 +851,6 @@ dependencies = [
  "const_format",
  "cstr",
  "flutter_rust_bridge",
- "log",
  "macros",
  "once_cell",
  "oslog",
