@@ -7,7 +7,7 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 use crate::{account_server::RemoteAccountServerClient, storage::DatabaseStorage};
 
 // TODO: make these configurable
-const ACCOUNT_SERVER_URL: &str = "https://localhost:3000";
+const ACCOUNT_SERVER_URL: &str = "http://localhost:3000";
 const ACCOUNT_SERVER_PUB: &str = ""; // insert WP public key here
 
 pub type Wallet = crate::wallet::Wallet<RemoteAccountServerClient, DatabaseStorage, preferred::PlatformEcdsaKey>;
