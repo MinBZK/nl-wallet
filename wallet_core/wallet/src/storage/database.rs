@@ -5,6 +5,7 @@ use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
 use tokio::fs;
 
 use migration::{Migrator, MigratorTrait};
+use tracing::log::LevelFilter;
 
 use super::sql_cipher_key::SqlCipherKey;
 
@@ -55,7 +56,8 @@ impl Database {
 
     pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self> {
         // Open database connection and set database key
-        let connection_options = ConnectOptions::new((&url).into());
+        let mut connection_options = ConnectOptions::new((&url).into());
+        connection_options.sqlx_logging_level(LevelFilter::Trace);
         let connection = sea_orm::Database::connect(connection_options).await?;
 
         // Set database password using PRAGMA statement
