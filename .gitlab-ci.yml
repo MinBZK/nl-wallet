@@ -40,6 +40,12 @@ stages:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
 
+.default-sonar:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
+
 .default-branch:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -153,13 +159,10 @@ test-rust-analyze:
       - audit.json
 
 sonar-rust:
-  stage: test
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  extends: .default-sonar
   needs:
     - test-rust
     - test-rust-analyze
-  image:
-    name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
   before_script:
     - cd wallet_core
   script:
@@ -176,6 +179,20 @@ sonar-flutter:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
     - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-flutter -Dsonar.exclusions="android/**,ios/**"
+
+sonar-ios:
+  extends: .default-sonar
+  before_script:
+    - cd wallet_core/platform_support/ios
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-ios -Dsonar.exclusions="*Tests*/**" -Dsonar.c.file.suffixes=- -Dsonar.cpp.file.suffixes=- -Dsonar.objc.file.suffixes=-
+
+sonar-android:
+  extends: .default-sonar
+  before_script:
+    - cd wallet_core/platform_support/android
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-android -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**" -Dsonar.findbugs.allowuncompiledcode=true
 
 test-codegen:
   stage: test
