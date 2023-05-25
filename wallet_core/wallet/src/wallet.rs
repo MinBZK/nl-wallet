@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use tracing::{info, instrument};
 
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
 
@@ -75,17 +76,26 @@ where
         self.registration.is_some()
     }
 
+    #[instrument(skip_all)]
     pub async fn register(&mut self, pin: String) -> Result<()> {
+        info!("Checking if already registered");
+
         // Registration is only allowed if we do not currently have a registration on record.
         if self.has_registration() {
             return Err(anyhow!(WalletRegistrationError::AlreadyRegistered));
         }
 
+        info!("Validating PIN");
+
         // Make sure the PIN adheres to the requirements.
         validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight
 
+        info!("Requesting challenge from account server");
+
         // Retrieve a challenge from the account server
         let challenge = self.account_server.registration_challenge().await?;
+
+        info!("Challenge received from account server, signing and sending registration to account server");
 
         // Generate a new PIN salt and derrive the private key from the provided PIN
         let pin_salt = new_pin_salt();
@@ -96,12 +106,16 @@ where
         let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
         let cert = self.account_server.register(registration_message).await?;
 
+        info!("Certificate received from account server, verifying contents");
+
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
         if cert_claims.hw_pubkey.0 != self.hw_privkey.verifying_key()? {
             return Err(anyhow!(WalletRegistrationError::PublicKeyMismatch));
         }
+
+        info!("Storing received registration");
 
         // If the storage datbase does not exist, create it now
         let storage_state = self.storage.state().await?;
