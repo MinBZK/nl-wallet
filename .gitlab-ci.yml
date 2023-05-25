@@ -30,7 +30,7 @@ stages:
   image: $HARBOR_REGISTRY/$DOCKER_HUB_PROXY/bitnami/kubectl@sha256:ebace7799e1fcf6abc4080c7026d1c549310b2d4c6a37a1937773d5fd9d559b7 # 1.23.15
   resource_group: testcluster
   environment:
-      action: start
+    action: start
 
 .kaniko:
   extends: .docker-sp
@@ -40,15 +40,32 @@ stages:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
 
+.default-sonar:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
+
+.default-branch:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.default-or-release:
+  rules:
+    - !reference [ .default-branch, rules ]
+    - if: $CI_COMMIT_BRANCH =~ /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+
+.default-or-release-or-merge-request:
+  rules:
+    - !reference [ .default-or-release, rules ]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 # Working directory is 'wallet_app' directory
 analyze-app:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
@@ -59,27 +76,20 @@ analyze-app:
 
 test-flutter:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
   script:
     - set -euxo pipefail
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden)
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage)
+  artifacts:
+    paths:
+      - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
 
 test-flutter-ui:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   when: manual
   tags:
     - macos
@@ -95,26 +105,26 @@ test-flutter-ui:
 
 test-rust:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:71f9d83281aba918cc47bce4113b1d5d694ca997f3c361795082294fc638f691"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:d2d609bb6e8814d68c9045a56bbf5c5219e1b69e4935502a444d47dbcb306c41"
+  before_script:
+    - cd wallet_core
   script:
     - set -euxo pipefail
-    - cargo test --manifest-path wallet_core/Cargo.toml
+    - cargo llvm-cov test --lcov --output-path lcov.info
+    - cargo llvm-cov report --cobertura --output-path coverage.xml
+  artifacts:
+    reports:
+      coverage_report:
+        path: wallet_core/coverage.xml
+        coverage_format: cobertura
+    paths:
+      - wallet_core/lcov.info
 
 test-ios:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   when: manual
   tags:
     - macos
@@ -132,14 +142,9 @@ test-ios:
 
 test-rust-analyze:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:71f9d83281aba918cc47bce4113b1d5d694ca997f3c361795082294fc638f691"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:d2d609bb6e8814d68c9045a56bbf5c5219e1b69e4935502a444d47dbcb306c41"
   script:
     - set -euxo pipefail
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
@@ -147,15 +152,51 @@ test-rust-analyze:
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
     - cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
+    # do not let the result of cargo audit fail the job (for now)
+    - cargo audit --file wallet_core/Cargo.lock --json > audit.json || true
+  artifacts:
+    paths:
+      - audit.json
+
+sonar-rust:
+  extends: .default-sonar
+  needs:
+    - test-rust
+    - test-rust-analyze
+  before_script:
+    - cd wallet_core
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-rust -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
+
+sonar-flutter:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  needs:
+    - test-flutter
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:ead1449a563306a6ef6b277f22fae7eebed1a288d951e213649f62e4922fae0c"
+  before_script:
+    - cd $FLUTTER_APP_PROJECT_DIR
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-flutter -Dsonar.exclusions="android/**,ios/**"
+
+sonar-ios:
+  extends: .default-sonar
+  before_script:
+    - cd wallet_core/platform_support/ios
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-ios -Dsonar.exclusions="*Tests*/**" -Dsonar.c.file.suffixes=- -Dsonar.cpp.file.suffixes=- -Dsonar.objc.file.suffixes=-
+
+sonar-android:
+  extends: .default-sonar
+  before_script:
+    - cd wallet_core/platform_support/android
+  script:
+    - sonar-scanner -Dsonar.projectKey=nl-wallet-demo-app-android -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**" -Dsonar.findbugs.allowuncompiledcode=true
 
 test-codegen:
   stage: test
-  only:
-    - merge_requests
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:40be71808f60718d32956cb9461361d8354beeb2cd9b9a808787e90e5650453b"
   script:
@@ -169,8 +210,7 @@ test-codegen:
 build-wp-image:
   extends: .kaniko
   stage: build
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  rules: !reference [ .default-or-release, rules ]
   script:
     - /kaniko/executor
       --context wallet_core
@@ -182,11 +222,7 @@ build-wp-image:
 build-android-app:
   extends: .env-sp
   stage: build
-  only:
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:20c2046010b2b23f1ebd62fac130f27741657d00ec1a8ca54a790df4fb6d10e5"
   artifacts:
@@ -206,11 +242,7 @@ build-android-app:
 deploy-android-app:
   extends: .env-sp
   stage: deploy
-  only:
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
@@ -228,10 +260,7 @@ deploy-android-app:
 upload-browserstack-android-app:
   extends: .env-sp
   stage: deploy
-  only:
-    - main
-  except:
-    - schedules
+  rules: !reference [ .default-branch, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
@@ -249,11 +278,7 @@ upload-browserstack-android-app:
 build-ios-app:
   extends: .env-sp
   stage: build
-  only:
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release, rules ]
   when: manual
   tags:
     - macos
@@ -271,11 +296,7 @@ build-ios-app:
 deploy-ios-app:
   extends: .env-sp
   stage: deploy
-  only:
-    - main
-    - /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-  except:
-    - schedules
+  rules: !reference [ .default-or-release, rules ]
   needs:
     - build-ios-app
   dependencies:
@@ -292,10 +313,7 @@ deploy-ios-app:
 upload-browserstack-ios-app:
   extends: .env-sp
   stage: deploy
-  only:
-    - main
-  except:
-    - schedules
+  rules: !reference [ .default-branch, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-fastlane@sha256:bacbe75f2e5a7b8cc556dfd320a884a2efd2ccd96a049a06bad8dceb6cbd70b2"
   needs:
@@ -313,9 +331,9 @@ upload-browserstack-ios-app:
 deploy-wallet-provider:
   extends: .deploy-sp
   stage: deploy
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  dependencies:
+  rules: !reference [ .default-branch, rules ]
+  when: manual
+  needs:
     - build-wp-image
   script:
     - cat kubernetes/servicemonitors.yaml

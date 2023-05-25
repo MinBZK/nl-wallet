@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../wallet_constants.dart';
 
 class FakePagingAnimatedSwitcher extends StatelessWidget {
-
   /// The [child] contained by the FakePagingAnimatedSwitcher.
   final Widget child;
 
@@ -47,7 +46,17 @@ class FakePagingAnimatedSwitcher extends StatelessWidget {
           child: child,
         );
       },
-      child: child,
+
+      /// Wrapping the child with [PrimaryScrollController] to fix (potential) crashes that are caused by
+      /// concurrent use of the same [ScrollController].
+      /// Without this explicit [PrimaryScrollController] any child using the [PrimaryScrollController]
+      /// relies on the same [ScrollController], which can be problematic since the [FakePagingAnimatedSwitcher]
+      /// (by design) can render multiple [child]s at the same time, causing a conflict.
+      child: PrimaryScrollController(
+        controller: ScrollController(),
+        key: ObjectKey(child),
+        child: child,
+      ),
     );
   }
 }
