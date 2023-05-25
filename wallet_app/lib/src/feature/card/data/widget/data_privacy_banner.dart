@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../util/extension/string_extension.dart';
+
 class DataPrivacyBanner extends StatelessWidget {
   final VoidCallback? onPressed;
 
@@ -22,7 +24,7 @@ class DataPrivacyBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Text.rich(
             TextSpan(
-              text: locale.cardDataScreenDataPrivacyBannerTitle,
+              text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix(),
               children: [
                 TextSpan(
                   text: locale.cardDataScreenDataPrivacyBannerReadMore,

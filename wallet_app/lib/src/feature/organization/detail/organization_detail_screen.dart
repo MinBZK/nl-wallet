@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../navigation/secured_page_route.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -168,7 +169,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.unpublished_outlined),
           text: Text.rich(
             TextSpan(
-              text: locale.organizationDetailScreenOrganizationNotChecked,
+              text: locale.organizationDetailScreenOrganizationNotChecked.addSpaceSuffix(),
               children: [
                 TextSpan(
                   text: locale.organizationDetailScreenOrganizationNotCheckedReadMore,
@@ -184,7 +185,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.policy_outlined),
           text: Text.rich(
             TextSpan(
-              text: locale.organizationDetailScreenViewTerms,
+              text: locale.organizationDetailScreenViewTerms.addSpaceSuffix(),
               children: [
                 TextSpan(
                   text: locale.organizationDetailScreenPrivacyPolicy,

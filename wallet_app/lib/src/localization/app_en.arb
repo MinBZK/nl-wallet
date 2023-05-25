@@ -13,7 +13,7 @@
     "description": "Shows from which card the attributes were retrieved"
   },
   "cardDataScreenDataPrivacyBannerReadMore": "Read more",
-  "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you. ",
+  "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you.",
   "cardDataScreenDataPrivacySheetClose": "Close",
   "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function.",
   "cardDataScreenDataPrivacySheetTitle": "View of your data",
@@ -457,11 +457,11 @@
   "organizationDetailScreenDataIncorrectCta": "Something not right?",
   "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
   "organizationDetailScreenInfoHeader": "Info",
-  "organizationDetailScreenOrganizationNotChecked": "This organization is not verified. ",
+  "organizationDetailScreenOrganizationNotChecked": "This organization is not verified.",
   "organizationDetailScreenOrganizationNotCheckedReadMore": "Read more",
   "organizationDetailScreenPrivacyHeader": "Privacy",
   "organizationDetailScreenPrivacyPolicy": "privacy statement",
-  "organizationDetailScreenViewTerms": "View the ",
+  "organizationDetailScreenViewTerms": "View the",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "select",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
@@ -621,7 +621,6 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
-  "stopVerificationSheetReportIssueCta": "Report a problem",
   "stopVerificationSheetDescription": "If you stop, no data will be shared with {organization}.",
   "@stopVerificationSheetDescription": {
     "placeholders": {
@@ -634,6 +633,7 @@
   },
   "stopVerificationSheetNegativeCta": "No",
   "stopVerificationSheetPositiveCta": "Yes, stop",
+  "stopVerificationSheetReportIssueCta": "Report a problem",
   "stopVerificationSheetTitle": "Are you sure you want to stop?",
   "verificationConfirmDataAttributesCheckAttributesCta": "Check your data",
   "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
