@@ -185,6 +185,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ElevatedButton(
+            key: const Key('introductionNextPageCta'),
             onPressed: () => _onNextPressed(context),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
