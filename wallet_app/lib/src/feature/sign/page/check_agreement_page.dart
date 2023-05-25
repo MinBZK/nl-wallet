@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../common/widget/button/confirm_buttons.dart';
-import '../../common/widget/document_section.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/document_section.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/sign_flow.dart';
@@ -27,7 +27,6 @@ class CheckAgreementPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
-        controller: ScrollController(),
         slivers: <Widget>[
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),

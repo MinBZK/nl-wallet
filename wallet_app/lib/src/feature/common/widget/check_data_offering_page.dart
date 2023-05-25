@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import 'attribute/data_attribute_row.dart';
-import 'card/wallet_card_item.dart';
 import 'button/link_button.dart';
+import 'card/wallet_card_item.dart';
 import 'placeholder_screen.dart';
 import 'sliver_sized_box.dart';
 
@@ -35,7 +35,6 @@ class CheckDataOfferingPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
-        controller: ScrollController(),
         restorationId: 'check_data_offering_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 32),

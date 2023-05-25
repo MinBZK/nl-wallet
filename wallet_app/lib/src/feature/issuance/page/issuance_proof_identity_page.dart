@@ -28,7 +28,6 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     return Scrollbar(
       thumbVisibility: true,
       child: CustomScrollView(
-        controller: ScrollController(),
         restorationId: 'proof_identity_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 32),
