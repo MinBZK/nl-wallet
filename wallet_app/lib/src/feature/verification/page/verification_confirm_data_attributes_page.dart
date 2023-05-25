@@ -132,10 +132,11 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
+    final entries = flow.availableAttributes.entries.toList();
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: CardAttributeRow(entry: flow.availableAttributes.entries.toList()[index]),
+        child: CardAttributeRow(entry: entries[index]),
       ),
       childCount: flow.availableAttributes.length,
     );

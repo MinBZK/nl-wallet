@@ -13,7 +13,7 @@
     "description": "Shows from which card the attributes were retrieved"
   },
   "cardDataScreenDataPrivacyBannerReadMore": "Lees meer",
-  "cardDataScreenDataPrivacyBannerTitle": "Dit overzicht is alleen voor jou. ",
+  "cardDataScreenDataPrivacyBannerTitle": "Dit overzicht is alleen voor jou.",
   "cardDataScreenDataPrivacySheetClose": "Sluiten",
   "cardDataScreenDataPrivacySheetDescription": "In dit overzicht kun jij je gegevens controleren. Hou dit overzicht verborgen voor anderen. Op die manier bescherm je jouw privacy.\n\nWil je gegevens delen met een organisatie? Gebruik dan de QR-code functie.",
   "cardDataScreenDataPrivacySheetTitle": "Zicht op jouw gegevens",
@@ -457,11 +457,11 @@
   "organizationDetailScreenDataIncorrectCta": "Klopt er iets niet?",
   "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
   "organizationDetailScreenInfoHeader": "Info",
-  "organizationDetailScreenOrganizationNotChecked": "Deze organisatie wordt niet gecontroleerd. ",
+  "organizationDetailScreenOrganizationNotChecked": "Deze organisatie wordt niet gecontroleerd.",
   "organizationDetailScreenOrganizationNotCheckedReadMore": "Lees meer",
   "organizationDetailScreenPrivacyHeader": "Privacy",
   "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
-  "organizationDetailScreenViewTerms": "Bekijk de algemene ",
+  "organizationDetailScreenViewTerms": "Bekijk de algemene",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "invoer",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
@@ -621,8 +621,7 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
-  "stopVerificationSheetReportIssueCta": "Een probleem melden",
-  "stopVerificationSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
+  "stopVerificationSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
   "@stopVerificationSheetDescription": {
     "placeholders": {
       "organization": {
@@ -634,6 +633,7 @@
   },
   "stopVerificationSheetNegativeCta": "Nee",
   "stopVerificationSheetPositiveCta": "Ja, stoppen",
+  "stopVerificationSheetReportIssueCta": "Een probleem melden",
   "stopVerificationSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
   "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",

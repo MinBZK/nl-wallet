@@ -24,12 +24,15 @@ class ColorStylesTab extends StatelessWidget {
           ),
           text: const Text('colorScheme.primaryContainer'),
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: Theme.of(context).colorScheme.onPrimary,
+        Container(
+          color: Theme.of(context).colorScheme.primary,
+          child: IconRow(
+            icon: Icon(
+              Icons.circle,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            text: const Text('colorScheme.onPrimary'),
           ),
-          text: const Text('colorScheme.onPrimary'),
         ),
         IconRow(
           icon: Icon(

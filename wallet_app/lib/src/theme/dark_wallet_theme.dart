@@ -56,7 +56,7 @@ class DarkWalletTheme {
     ),
   );
 
-  static final outlinedButtonTHeme = OutlinedButtonThemeData(
+  static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: BaseWalletTheme.outlinedButtonTheme.style?.copyWith(
       side: MaterialStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),

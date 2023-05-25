@@ -9,7 +9,10 @@ const _kCardShareAsset = 'assets/images/ic_card_share.png';
 class CardAttributeRow extends StatelessWidget {
   final MapEntry<WalletCard, List<DataAttribute>> entry;
 
-  const CardAttributeRow({required this.entry, Key? key}) : super(key: key);
+  const CardAttributeRow({
+    required this.entry,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +26,14 @@ class CardAttributeRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(locale.cardAttributeRowTitle(entry.key.front.title), style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                locale.cardAttributeRowTitle(entry.key.front.title),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
               ...entry.value.map(
-                (attrib) => Text(
-                  attrib.label,
+                (attribute) => Text(
+                  attribute.label,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),

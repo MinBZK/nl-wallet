@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 
@@ -25,7 +26,7 @@ class StopVerificationSheet extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     return ConfirmActionSheet(
       title: locale.stopVerificationSheetTitle,
-      description: locale.stopVerificationSheetDescription(organizationName),
+      description: locale.stopVerificationSheetDescription(organizationName).addSpaceSuffix(),
       cancelButtonText: locale.stopVerificationSheetNegativeCta,
       confirmButtonText: locale.stopVerificationSheetPositiveCta,
       confirmButtonColor: Theme.of(context).colorScheme.error,
