@@ -25,11 +25,15 @@ mod mock {
     #[async_trait]
     impl AccountServerClient for AccountServer {
         async fn registration_challenge(&self) -> Result<Vec<u8>> {
-            AccountServer::registration_challenge(self)
+            let challenge = AccountServer::registration_challenge(self)?;
+
+            Ok(challenge)
         }
 
         async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
-            AccountServer::register(self, registration_message)
+            let cert = AccountServer::register(self, registration_message)?;
+
+            Ok(cert)
         }
     }
 }
