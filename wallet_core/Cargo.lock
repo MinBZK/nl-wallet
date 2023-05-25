@@ -3395,13 +3395,13 @@ dependencies = [
 name = "wallet_common"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "base64 0.21.0",
  "jsonwebtoken",
  "p256",
  "rand",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

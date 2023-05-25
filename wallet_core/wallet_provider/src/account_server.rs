@@ -75,7 +75,9 @@ impl AccountServer {
     }
 
     fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
-        Jwt::parse_and_verify(&String::from_utf8(challenge.to_owned())?.into(), &self.pubkey)
+        let claims = Jwt::parse_and_verify(&String::from_utf8(challenge.to_owned())?.into(), &self.pubkey)?;
+
+        Ok(claims)
     }
 
     pub fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
@@ -123,7 +125,9 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, &self.privkey)
+        let signed_cert = Jwt::sign(&cert, &self.privkey)?;
+
+        Ok(signed_cert)
     }
 }
 

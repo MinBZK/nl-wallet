@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use anyhow::{bail, Result};
 use p256::ecdsa::{
     signature::{Signer, Verifier},
     Signature, VerifyingKey,
@@ -9,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use super::{
+    errors::{Error, Result},
     serialization::{Base64Bytes, DerSignature},
     signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
@@ -50,15 +50,20 @@ pub enum SignedType {
 fn verify_signed(signed: &str, challenge: &[u8], typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
     let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
     let json = msg.signed.get().as_bytes();
-    pubkey.verify(json, &msg.signature.0)?;
+    pubkey
+        .verify(json, &msg.signature.0)
+        .map_err(|e| Error::ValidationFailed(e.into()))?;
 
     if msg.typ != typ {
-        bail!("incorrect type")
+        return Err(Error::TypeMismatch {
+            expected: typ,
+            received: msg.typ,
+        });
     }
 
     let signed: SignedPayload<&RawValue> = serde_json::from_slice(json)?;
     if challenge != signed.challenge.0 {
-        bail!("incorrect challenge")
+        return Err(Error::ChallengeMismatch);
     }
 
     Ok(())
@@ -76,7 +81,10 @@ fn sign<T: Serialize>(
         challenge: challenge.to_vec().into(),
         serial_number,
     })?;
-    let signature = privkey.try_sign(signed.as_bytes())?.into();
+    let signature = privkey
+        .try_sign(signed.as_bytes())
+        .map_err(|e| Error::SigningFailed(e.into()))?
+        .into();
     let signed_message = serde_json::to_string(&SignedMessage {
         signed: &RawValue::from_string(signed)?,
         signature,
@@ -121,7 +129,9 @@ where
 {
     fn verify(&self, challenge: &[u8], hw_pubkey: &VerifyingKey, pin_pubkey: &VerifyingKey) -> Result<()> {
         let outer: SignedMessage<&RawValue> = serde_json::from_str(&self.0)?;
-        hw_pubkey.verify(outer.signed.get().as_bytes(), &outer.signature.0)?;
+        hw_pubkey
+            .verify(outer.signed.get().as_bytes(), &outer.signature.0)
+            .map_err(|e| Error::ValidationFailed(e.into()))?;
         verify_signed(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
     }
 
@@ -150,7 +160,9 @@ where
         pin_privkey: &impl EphemeralEcdsaKey,
     ) -> Result<SignedDouble<T>> {
         let inner = sign(payload, challenge, serial_number, SignedType::Pin, pin_privkey)?.0;
-        let signature = hw_privkey.try_sign(inner.as_bytes())?;
+        let signature = hw_privkey
+            .try_sign(inner.as_bytes())
+            .map_err(|e| Error::SigningFailed(e.into()))?;
         let signed_message = serde_json::to_string(&SignedMessage {
             signed: RawValue::from_string(inner)?,
             signature: signature.into(),
