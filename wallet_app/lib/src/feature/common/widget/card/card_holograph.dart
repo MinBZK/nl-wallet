@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foil/foil.dart';
 
+import '../../../../../environment.dart';
 import '../svg_or_image.dart';
 
 final Color _kWhite0 = Colors.white.withOpacity(0);
@@ -22,39 +23,44 @@ class CardHolograph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final offsetCrinkle = Crinkle(
-      transform: (x, y) => const TranslateGradient(percentX: 0, percentY: -.8),
-    );
+    // We avoid the [Roll] with the shimmer offset in tests, as it's animation never settles causing the tests to fail.
+    if (Environment.isTest) return _buildFoils();
     return Roll(
-      crinkle: offsetCrinkle,
-      gradient: _generateHoloGradient(),
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          Foil(
-            blendMode: BlendMode.modulate,
-            child: SvgOrImage(
-              asset: holograph,
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-            ),
+      crinkle: Crinkle(
+        transform: (x, y) => const TranslateGradient(percentX: 0, percentY: -.8),
+      ),
+      child: _buildFoils(),
+    );
+  }
+
+  Widget _buildFoils() {
+    return Stack(
+      alignment: Alignment.centerRight,
+      children: [
+        Foil(
+          blendMode: BlendMode.modulate,
+          gradient: _generateHoloGradient(),
+          child: SvgOrImage(
+            asset: holograph,
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
           ),
-          Foil(
-            blendMode: BlendMode.modulate,
-            gradient: _generateOutlineGradient(),
-            child: Container(
-              width: 132,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1,
-                ),
+        ),
+        Foil(
+          blendMode: BlendMode.modulate,
+          gradient: _generateOutlineGradient(),
+          child: Container(
+            width: 132,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 1,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
