@@ -167,7 +167,6 @@ fn u384_to_u256(x: &U384) -> U256 {
 mod tests {
     use super::*;
 
-    use anyhow::Result;
     use p256::{
         ecdsa::signature::Verifier,
         elliptic_curve::{
@@ -195,33 +194,34 @@ mod tests {
     }
 
     #[test]
-    fn test_pin_private_key() -> Result<()> {
+    fn test_pin_private_key() {
         let salt = new_pin_salt();
 
-        let privkey = pin_private_key(salt.as_slice(), "123456")?;
-        let same = pin_private_key(salt.as_slice(), "123456")?;
-        let different_salt = pin_private_key(random_bytes(32).as_slice(), "123456")?;
-        let different_pin = pin_private_key(salt.as_slice(), "654321")?;
+        let privkey = pin_private_key(salt.as_slice(), "123456").expect("Cannot create private key from PIN");
+        let same = pin_private_key(salt.as_slice(), "123456").expect("Cannot create private key from PIN");
+        let different_salt =
+            pin_private_key(random_bytes(32).as_slice(), "123456").expect("Cannot create private key from PIN");
+        let different_pin = pin_private_key(salt.as_slice(), "654321").expect("Cannot create private key from PIN");
 
         assert_eq!(privkey, same);
         assert_ne!(privkey, different_salt);
         assert_ne!(privkey, different_pin);
-
-        Ok(())
     }
 
     #[test]
-    fn it_works() -> Result<()> {
+    fn it_works() {
         let pin = "123456";
         let salt = new_pin_salt();
         let challenge = b"challenge";
 
         let pin_key = PinKey::new(pin, &salt);
-        let public_key = pin_key.verifying_key()?;
-        let response = pin_key.try_sign(challenge)?;
+        let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
+        let response = pin_key
+            .try_sign(challenge)
+            .expect("Cannot sign challenge using PIN key");
 
-        public_key.verify(challenge, &response)?;
-
-        Ok(())
+        public_key
+            .verify(challenge, &response)
+            .expect("Cannot verify challenge using PIN public key");
     }
 }
