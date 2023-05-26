@@ -16,7 +16,7 @@ use wallet_common::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum AccountServerError {
+pub enum AccountServerInitError {
     // Do not format original error to prevent potentially leaking key material
     #[error("Server private key decoding error")]
     PrivateKeyDecoding(#[from] p256::pkcs8::Error),
@@ -73,7 +73,11 @@ impl JwtClaims for RegistrationChallengeClaims {
 }
 
 impl AccountServer {
-    pub fn new(privkey: Vec<u8>, pin_hash_salt: Vec<u8>, name: String) -> Result<AccountServer, AccountServerError> {
+    pub fn new(
+        privkey: Vec<u8>,
+        pin_hash_salt: Vec<u8>,
+        name: String,
+    ) -> Result<AccountServer, AccountServerInitError> {
         let pubkey = EcdsaDecodingKey::from_sec1(
             SigningKey::from_pkcs8_der(&privkey)?
                 .verifying_key()
