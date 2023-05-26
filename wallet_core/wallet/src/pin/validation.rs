@@ -1,6 +1,4 @@
-use thiserror::Error;
-
-#[derive(Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum PinValidationError {
     #[error("PIN contains characters that are not digits")]
     NonDigits,

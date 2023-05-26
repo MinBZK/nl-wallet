@@ -4,11 +4,9 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
-use thiserror::Error;
-
 use wallet_common::account::signing_key::SecureEcdsaKey;
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
     #[error(transparent)]
     KeyStoreError(#[from] KeyStoreError),
@@ -17,7 +15,7 @@ pub enum HardwareKeyStoreError {
 }
 
 // implementation of KeyStoreError from UDL, only with "hardware" flag
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum KeyStoreError {
     #[error("Key error: {reason}")]
     KeyError { reason: String },

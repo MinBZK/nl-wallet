@@ -6,10 +6,8 @@ pub mod software;
 
 use std::path::PathBuf;
 
-use thiserror::Error;
-
 // implementation of UtilitiesError from UDL, only with "hardware" flag
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum UtilitiesError {
     #[error("Platform error: {reason}")]
     PlatformError { reason: String },
