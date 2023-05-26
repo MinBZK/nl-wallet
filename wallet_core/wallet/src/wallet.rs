@@ -1,26 +1,29 @@
 use tracing::{info, instrument};
 
-use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
+use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey, signing_key::EcdsaKeyError};
 
 use crate::{
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
     },
-    storage::{RegistrationData, StorageState},
+    storage::{RegistrationData, StorageError, StorageState},
     PinValidationError,
 };
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
 
-pub use crate::{account_server::AccountServerClient, storage::Storage};
+pub use crate::{
+    account_server::{AccountServerClient, AccountServerClientError},
+    storage::Storage,
+};
 
 const WALLET_KEY_ID: &str = "wallet";
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
     #[error("Could not initialize database: {0}")]
-    Database(#[source] Box<dyn std::error::Error + Send + Sync>),
+    Database(#[from] StorageError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -30,24 +33,24 @@ pub enum WalletRegistrationError {
     #[error("PIN provided for registration does not adhere to requirements: {0}")]
     InvalidPin(#[from] PinValidationError),
     #[error("Could not request registration challenge from Wallet Provider: {0}")]
-    ChallengeRequest(#[source] Box<dyn std::error::Error + Send + Sync>),
+    ChallengeRequest(#[source] AccountServerClientError),
     #[error("Could not sign registration message: {0}")]
     Signing(#[source] wallet_common::account::errors::Error),
     #[error("Could not request registration from Wallet Provider: {0}")]
-    RegistrationRequest(#[source] Box<dyn std::error::Error + Send + Sync>),
+    RegistrationRequest(#[source] AccountServerClientError),
     #[error("Could not validate registration certificate received from Wallet Provider: {0}")]
     Validation(#[source] wallet_common::account::errors::Error),
     #[error("Could not get hardware public key: {0}")]
-    HardwarePublicKey(#[source] Box<dyn std::error::Error + Send + Sync>),
+    HardwarePublicKey(#[from] EcdsaKeyError),
     #[error("Public key in registration certificate received from Wallet Provider does not match hardware public key")]
     PublicKeyMismatch,
     #[error("Could not store registration certificate in database: {0}")]
-    StoreCertificate(#[source] Box<dyn std::error::Error + Send + Sync>),
+    StoreCertificate(#[from] StorageError),
 }
 
 /// Attempts to fetch the registration from storage,
 /// without creating a database if there is none.
-async fn fetch_registration<S: Storage>(storage: &mut S) -> Result<Option<RegistrationData>, S::Error> {
+async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<RegistrationData>, StorageError> {
     match storage.state().await? {
         // If there is no database file, we can conclude early that there is no registration.
         StorageState::Uninitialized => return Ok(None),
@@ -60,22 +63,6 @@ async fn fetch_registration<S: Storage>(storage: &mut S) -> Result<Option<Regist
     let registration = storage.fetch_data::<RegistrationData>().await?;
 
     Ok(registration)
-}
-
-async fn store_registration_data<S: Storage>(
-    storage: &mut S,
-    registration_data: &RegistrationData,
-) -> Result<(), S::Error> {
-    // If the storage datbase does not exist, create it now
-    let storage_state = storage.state().await?;
-    if !matches!(storage_state, StorageState::Opened) {
-        storage.open().await?;
-    }
-
-    // Save the registration data in storage
-    storage.insert_data(registration_data).await?;
-
-    Ok(())
 }
 
 pub struct Wallet<A, S, K> {
@@ -98,9 +85,7 @@ where
         account_server_pubkey: EcdsaDecodingKey,
         mut storage: S,
     ) -> Result<Self, WalletInitError> {
-        let registration = fetch_registration(&mut storage)
-            .await
-            .map_err(|e| WalletInitError::Database(e.into()))?;
+        let registration = fetch_registration(&mut storage).await?;
         let hw_privkey = K::new(WALLET_KEY_ID);
 
         let wallet = Wallet {
@@ -139,7 +124,7 @@ where
             .account_server
             .registration_challenge()
             .await
-            .map_err(|e| WalletRegistrationError::ChallengeRequest(e.into()))?;
+            .map_err(WalletRegistrationError::ChallengeRequest)?;
 
         info!("Challenge received from account server, signing and sending registration to account server");
 
@@ -155,7 +140,7 @@ where
             .account_server
             .register(registration_message)
             .await
-            .map_err(|e| WalletRegistrationError::RegistrationRequest(e.into()))?;
+            .map_err(WalletRegistrationError::RegistrationRequest)?;
 
         info!("Certificate received from account server, verifying contents");
 
@@ -164,23 +149,27 @@ where
         let cert_claims = cert
             .parse_and_verify(&self.account_server_pubkey)
             .map_err(WalletRegistrationError::Validation)?;
-        let hw_pubkey = self
-            .hw_privkey
-            .verifying_key()
-            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
+        let hw_pubkey = self.hw_privkey.verifying_key()?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
         }
 
         info!("Storing received registration");
 
+        // If the storage datbase does not exist, create it now.
+        let storage_state = self.storage.state().await?;
+        if !matches!(storage_state, StorageState::Opened) {
+            self.storage.open().await?;
+        }
+
+        // Save the registration data in storage.
         let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
-        store_registration_data(&mut self.storage, &registration_data)
-            .await
-            .map_err(|e| WalletRegistrationError::StoreCertificate(e.into()))?;
+        self.storage.insert_data(&registration_data).await?;
+
+        // Keep the registration data in memory.
         self.registration = Some(registration_data);
 
         Ok(())

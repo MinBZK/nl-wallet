@@ -14,13 +14,15 @@ use wallet_common::account::{
 
 pub use self::remote::RemoteAccountServerClient;
 
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct AccountServerClientError(#[from] pub Box<dyn Error + Send + Sync>);
+
 #[async_trait]
 pub trait AccountServerClient {
-    type Error: Error + Send + Sync + 'static;
-
-    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error>;
+    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError>;
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, Self::Error>;
+    ) -> Result<WalletCertificate, AccountServerClientError>;
 }

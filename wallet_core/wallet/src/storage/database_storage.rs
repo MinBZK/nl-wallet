@@ -17,7 +17,7 @@ use super::{
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file, KeyFileError},
     sql_cipher_key::SqlCipherKey,
-    Storage, StorageOpenedError, StorageState,
+    Storage, StorageError, StorageState,
 };
 
 const DATABASE_NAME: &str = "wallet";
@@ -26,8 +26,6 @@ const DATABASE_FILE_EXT: &str = "db";
 
 #[derive(Debug, thiserror::Error)]
 pub enum DatabaseStorageError {
-    #[error(transparent)]
-    StorageOpened(#[from] StorageOpenedError),
     #[error("Storage database I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Storage database error: {0}")]
@@ -40,6 +38,12 @@ pub enum DatabaseStorageError {
     KeyFile(#[from] KeyFileError),
     #[error("Storage database platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
+}
+
+impl From<DatabaseStorageError> for StorageError {
+    fn from(value: DatabaseStorageError) -> Self {
+        StorageError::Other(value.into())
+    }
 }
 
 fn key_file_alias_for_name(database_name: &str) -> String {
@@ -93,8 +97,8 @@ impl DatabaseStorage {
     }
 
     // Helper method, should be called before accessing database.
-    fn database(&self) -> Result<&Database, StorageOpenedError> {
-        self.database.as_ref().ok_or(StorageOpenedError::NotOpened)
+    fn database(&self) -> Result<&Database, StorageError> {
+        self.database.as_ref().ok_or(StorageError::NotOpened)
     }
 }
 
@@ -107,18 +111,20 @@ impl Default for DatabaseStorage {
 
 #[async_trait]
 impl Storage for DatabaseStorage {
-    type Error = DatabaseStorageError;
-
     /// Indiciate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
-    async fn state(&self) -> Result<StorageState, Self::Error> {
+    async fn state(&self) -> Result<StorageState, StorageError> {
         if self.database.is_some() {
             return Ok(StorageState::Opened);
         }
 
-        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME)?;
+        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME)
+            .map_err(DatabaseStorageError::from)?;
 
-        if fs::try_exists(database_path).await? {
+        if fs::try_exists(database_path)
+            .await
+            .map_err(DatabaseStorageError::from)?
+        {
             return Ok(StorageState::Unopened);
         }
 
@@ -126,9 +132,9 @@ impl Storage for DatabaseStorage {
     }
 
     /// Load a database, creating a new key file and database file if necessary.
-    async fn open(&mut self) -> Result<(), Self::Error> {
+    async fn open(&mut self) -> Result<(), StorageError> {
         if self.database.is_some() {
-            return Err(StorageOpenedError::AlreadyOpened.into());
+            return Err(StorageError::AlreadyOpened);
         }
 
         let database =
@@ -140,42 +146,47 @@ impl Storage for DatabaseStorage {
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
-    async fn clear(&mut self) -> Result<(), Self::Error> {
+    async fn clear(&mut self) -> Result<(), StorageError> {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        let database = self.database.take().ok_or(StorageOpenedError::NotOpened)?;
+        let database = self.database.take().ok_or(StorageError::NotOpened)?;
         let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
 
         // Delete the database and key file in parallel
         try_join!(
-            database.close_and_delete().map_err(Self::Error::from),
-            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(Self::Error::from)
+            database.close_and_delete().map_err(DatabaseStorageError::from),
+            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(DatabaseStorageError::from)
         )
-        .map(|_| ())
+        .map(|_| ())?;
+
+        Ok(())
     }
 
     /// Get data entry from the key-value table, if present.
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, Self::Error> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
         let database = self.database()?;
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
             .one(database.connection())
-            .await?
+            .await
+            .map_err(DatabaseStorageError::from)?
             .map(|m| serde_json::from_value::<D>(m.data))
-            .transpose()?;
+            .transpose()
+            .map_err(DatabaseStorageError::from)?;
 
         Ok(data)
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), Self::Error> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
             key: Set(D::KEY.to_string()),
-            data: Set(serde_json::to_value(data)?),
+            data: Set(serde_json::to_value(data).map_err(DatabaseStorageError::from)?),
         }
         .insert(database.connection())
-        .await?;
+        .await
+        .map_err(DatabaseStorageError::from)?;
 
         Ok(())
     }

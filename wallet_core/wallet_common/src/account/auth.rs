@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    errors::{Error, Result},
+    errors::{Result, ValidationError},
     jwt::{Jwt, JwtClaims},
     serialization::Base64Bytes,
     signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -23,8 +23,8 @@ impl Registration {
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = pin_privkey.verifying_key().map_err(|e| Error::Validation(e.into()))?;
-        let hw_pubkey = hw_privkey.verifying_key().map_err(|e| Error::Validation(e.into()))?;
+        let pin_pubkey = pin_privkey.verifying_key().map_err(ValidationError::from)?;
+        let hw_pubkey = hw_privkey.verifying_key().map_err(ValidationError::from)?;
 
         SignedDouble::sign(
             Registration {

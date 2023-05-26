@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use super::errors::{Error, Result};
+use super::errors::{Result, SigningError, ValidationError};
 
 // TODO implement keyring and use kid header item for key rollover
 
@@ -53,7 +53,7 @@ where
         validation_options.sub = T::SUB.to_owned().into();
 
         let payload = jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &pubkey.0, &validation_options)
-            .map_err(|e| Error::Validation(e.into()))?
+            .map_err(ValidationError::from)?
             .claims
             .payload;
         Ok(payload)
@@ -72,7 +72,7 @@ where
             },
             &jsonwebtoken::EncodingKey::from_ec_der(privkey),
         )
-        .map_err(|e| Error::Signing(e.into()))?;
+        .map_err(SigningError::from)?;
 
         Ok(message.into())
     }

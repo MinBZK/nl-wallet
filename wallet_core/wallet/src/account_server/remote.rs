@@ -6,7 +6,13 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-use super::AccountServerClient;
+use super::{AccountServerClient, AccountServerClientError};
+
+impl From<reqwest::Error> for AccountServerClientError {
+    fn from(value: reqwest::Error) -> Self {
+        AccountServerClientError(value.into())
+    }
+}
 
 pub struct RemoteAccountServerClient {
     url: String,
@@ -24,9 +30,7 @@ impl RemoteAccountServerClient {
 
 #[async_trait]
 impl AccountServerClient for RemoteAccountServerClient {
-    type Error = reqwest::Error;
-
-    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error> {
+    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
             .post(format!("{}/api/v1/enroll", self.url))
@@ -43,7 +47,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, Self::Error> {
+    ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
             .post(format!("{}/api/v1/createwallet", self.url))

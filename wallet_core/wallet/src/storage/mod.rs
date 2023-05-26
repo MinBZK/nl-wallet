@@ -31,23 +31,23 @@ pub enum StorageState {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum StorageOpenedError {
+pub enum StorageError {
     #[error("Storage database is not opened")]
     NotOpened,
     #[error("Storage database is already opened")]
     AlreadyOpened,
+    #[error(transparent)]
+    Other(#[from] Box<dyn Error + Send + Sync>),
 }
 
 /// This trait abstracts the persistent storage for the wallet.
 #[async_trait]
 pub trait Storage {
-    type Error: Error + Send + Sync + 'static;
+    async fn state(&self) -> Result<StorageState, StorageError>;
 
-    async fn state(&self) -> Result<StorageState, Self::Error>;
+    async fn open(&mut self) -> Result<(), StorageError>;
+    async fn clear(&mut self) -> Result<(), StorageError>;
 
-    async fn open(&mut self) -> Result<(), Self::Error>;
-    async fn clear(&mut self) -> Result<(), Self::Error>;
-
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, Self::Error>;
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), Self::Error>;
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError>;
 }

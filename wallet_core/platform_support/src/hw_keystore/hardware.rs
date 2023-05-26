@@ -3,7 +3,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::account::signing_key::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::account::signing_key::{EcdsaKey, EcdsaKeyError, SecureEcdsaKey};
 
 use super::{
     ConstructableWithIdentifier, HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey,
@@ -32,11 +32,11 @@ impl Signer<Signature> for HardwareEcdsaKey {
     }
 }
 impl EcdsaKey for HardwareEcdsaKey {
-    type Error = HardwareKeyStoreError;
-
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let public_key_bytes = get_signing_key_bridge().public_key(self.identifier.to_owned())?;
-        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
+    fn verifying_key(&self) -> Result<VerifyingKey, EcdsaKeyError> {
+        let public_key_bytes = get_signing_key_bridge()
+            .public_key(self.identifier.to_owned())
+            .map_err(|e| EcdsaKeyError(e.into()))?;
+        let public_key = VerifyingKey::from_public_key_der(&public_key_bytes).map_err(|e| EcdsaKeyError(e.into()))?;
 
         Ok(public_key)
     }

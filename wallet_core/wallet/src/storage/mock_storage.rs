@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use super::{
     data::{KeyedData, RegistrationData},
-    Storage, StorageOpenedError, StorageState,
+    Storage, StorageError, StorageState,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -34,27 +34,25 @@ impl Default for MockStorage {
 
 #[async_trait]
 impl Storage for MockStorage {
-    type Error = StorageOpenedError;
-
-    async fn state(&self) -> Result<StorageState, Self::Error> {
+    async fn state(&self) -> Result<StorageState, StorageError> {
         Ok(self.state)
     }
 
-    async fn open(&mut self) -> Result<(), Self::Error> {
+    async fn open(&mut self) -> Result<(), StorageError> {
         self.state = StorageState::Opened;
 
         Ok(())
     }
 
-    async fn clear(&mut self) -> Result<(), Self::Error> {
+    async fn clear(&mut self) -> Result<(), StorageError> {
         self.state = StorageState::Uninitialized;
 
         Ok(())
     }
 
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, Self::Error> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(StorageOpenedError::NotOpened);
+            return Err(StorageError::NotOpened);
         }
 
         // If self.data contains the key for the requested type,
@@ -65,9 +63,9 @@ impl Storage for MockStorage {
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), Self::Error> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(StorageOpenedError::NotOpened);
+            return Err(StorageError::NotOpened);
         }
 
         if self.data.contains_key(D::KEY) {

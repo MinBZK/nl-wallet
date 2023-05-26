@@ -5,7 +5,7 @@ use axum_test_helper::TestClient;
 use platform_support::hw_keystore::software::SoftwareEcdsaKey;
 use wallet::{
     mock::MockStorage,
-    wallet::{AccountServerClient, Wallet},
+    wallet::{AccountServerClient, AccountServerClientError, Wallet},
 };
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
@@ -29,9 +29,7 @@ impl WalletTestClient {
 
 #[async_trait]
 impl AccountServerClient for WalletTestClient {
-    type Error = std::convert::Infallible;
-
-    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error> {
+    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
             .post("/api/v1/enroll")
@@ -48,7 +46,7 @@ impl AccountServerClient for WalletTestClient {
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, Self::Error> {
+    ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
             .post("/api/v1/createwallet")
