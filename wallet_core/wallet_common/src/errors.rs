@@ -1,4 +1,4 @@
-use super::{signed::SignedType, signing_key::EcdsaKeyError};
+use crate::account::{signed::SignedType, signing_key::EcdsaKeyError};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

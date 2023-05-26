@@ -25,7 +25,7 @@ pub enum AccountServerError {
 #[derive(Debug, thiserror::Error)]
 pub enum ChallengeError {
     #[error("Challenge signing error: {0}")]
-    ChallengeSigning(#[source] wallet_common::account::errors::Error),
+    ChallengeSigning(#[source] wallet_common::errors::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,11 +33,11 @@ pub enum RegistrationError {
     #[error("Registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[from] std::string::FromUtf8Error),
     #[error("Registration challenge validation error: {0}")]
-    ChallengeValidation(#[source] wallet_common::account::errors::Error),
+    ChallengeValidation(#[source] wallet_common::errors::Error),
     #[error("Registration message parsing error: {0}")]
-    MessageParsing(#[source] wallet_common::account::errors::Error),
+    MessageParsing(#[source] wallet_common::errors::Error),
     #[error("Registration message validation error: {0}")]
-    MessageValidation(#[source] wallet_common::account::errors::Error),
+    MessageValidation(#[source] wallet_common::errors::Error),
     #[error("Incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("Registration PIN public key decoding error: {0}")]
@@ -45,7 +45,7 @@ pub enum RegistrationError {
     #[error("Registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[from] der::Error),
     #[error("Registration JWT signing error: {0}")]
-    JwtSigning(#[source] wallet_common::account::errors::Error),
+    JwtSigning(#[source] wallet_common::errors::Error),
 }
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;

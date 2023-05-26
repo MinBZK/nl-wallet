@@ -35,11 +35,11 @@ pub enum WalletRegistrationError {
     #[error("Could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountServerClientError),
     #[error("Could not sign registration message: {0}")]
-    Signing(#[source] wallet_common::account::errors::Error),
+    Signing(#[source] wallet_common::errors::Error),
     #[error("Could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountServerClientError),
     #[error("Could not validate registration certificate received from Wallet Provider: {0}")]
-    Validation(#[source] wallet_common::account::errors::Error),
+    Validation(#[source] wallet_common::errors::Error),
     #[error("Could not get hardware public key: {0}")]
     HardwarePublicKey(#[from] EcdsaKeyError),
     #[error("Public key in registration certificate received from Wallet Provider does not match hardware public key")]

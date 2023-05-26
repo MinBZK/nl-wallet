@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    errors::{Result, ValidationError},
     jwt::{Jwt, JwtClaims},
     serialization::Base64Bytes,
     signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
     {serialization::DerVerifyingKey, signed::SignedDouble},
 };
+use crate::errors::{Result, ValidationError};
 
 /// Message that the wallet sends (signed) to the wallet provider during registration.
 /// This does not implement IsInstruction because it not get sent as an [`Instruction<Registration>`]. because there is

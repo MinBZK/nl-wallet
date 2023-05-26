@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use super::errors::{Result, SigningError, ValidationError};
+use crate::errors::{Result, SigningError, ValidationError};
 
 // TODO implement keyring and use kid header item for key rollover
 
