@@ -23,12 +23,8 @@ impl Registration {
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = pin_privkey
-            .verifying_key()
-            .map_err(|e| Error::ValidationFailed(e.into()))?;
-        let hw_pubkey = hw_privkey
-            .verifying_key()
-            .map_err(|e| Error::ValidationFailed(e.into()))?;
+        let pin_pubkey = pin_privkey.verifying_key().map_err(|e| Error::Validation(e.into()))?;
+        let hw_pubkey = hw_privkey.verifying_key().map_err(|e| Error::Validation(e.into()))?;
 
         SignedDouble::sign(
             Registration {

@@ -53,7 +53,7 @@ where
         validation_options.sub = T::SUB.to_owned().into();
 
         let payload = jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &pubkey.0, &validation_options)
-            .map_err(|e| Error::ValidationFailed(e.into()))?
+            .map_err(|e| Error::Validation(e.into()))?
             .claims
             .payload;
         Ok(payload)
@@ -72,7 +72,7 @@ where
             },
             &jsonwebtoken::EncodingKey::from_ec_der(privkey),
         )
-        .map_err(|e| Error::SigningFailed(e.into()))?;
+        .map_err(|e| Error::Signing(e.into()))?;
 
         Ok(message.into())
     }

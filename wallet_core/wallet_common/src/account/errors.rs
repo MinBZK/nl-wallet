@@ -11,7 +11,7 @@ pub enum Error {
     #[error("JSON parsing error: {0}")]
     JsonParsing(#[from] serde_json::Error),
     #[error("Message validation failed: {0}")]
-    ValidationFailed(#[source] Box<dyn std::error::Error + Send + Sync>),
+    Validation(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("Message signing failed")] // Do not format original error to prevent potentially leaking key material
-    SigningFailed(#[source] Box<dyn std::error::Error + Send + Sync>),
+    Signing(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
