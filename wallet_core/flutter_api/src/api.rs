@@ -63,8 +63,9 @@ pub async fn has_registration() -> Result<bool> {
 
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
-    // TODO return differentiated errors?
-    wallet().write().await.register(pin).await
+    wallet().write().await.register(pin).await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

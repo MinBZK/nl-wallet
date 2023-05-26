@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use tracing::{info, instrument};
 
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
@@ -9,6 +8,7 @@ use crate::{
         validation::validate_pin,
     },
     storage::{RegistrationData, StorageState},
+    PinValidationError,
 };
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -17,9 +17,37 @@ pub use crate::{account_server::AccountServerClient, storage::Storage};
 
 const WALLET_KEY_ID: &str = "wallet";
 
+#[derive(Debug, thiserror::Error)]
+pub enum WalletInitError {
+    #[error("Could not initialize database: {0}")]
+    Database(#[source] Box<dyn std::error::Error + Send + Sync>),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WalletRegistrationError {
+    #[error("Wallet is already registered")]
+    AlreadyRegistered,
+    #[error("PIN provided for registration does not adhere to requirements: {0}")]
+    InvalidPin(#[from] PinValidationError),
+    #[error("Could not request registration challenge from Wallet Provider: {0}")]
+    ChallengeRequest(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("Could not sign registration message: {0}")]
+    Signing(#[source] wallet_common::account::errors::Error),
+    #[error("Could not request registration from Wallet Provider: {0}")]
+    RegistrationRequest(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("Could not validate registration certificate received from Wallet Provider: {0}")]
+    Validation(#[source] wallet_common::account::errors::Error),
+    #[error("Could not get hardware public key: {0}")]
+    HardwarePublicKey(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("Public key in registration certificate received from Wallet Provider does not match hardware public key")]
+    PublicKeyMismatch,
+    #[error("Could not store registration certificate in database: {0}")]
+    StoreCertificate(#[source] Box<dyn std::error::Error + Send + Sync>),
+}
+
 /// Attempts to fetch the registration from storage,
 /// without creating a database if there is none.
-async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<RegistrationData>> {
+async fn fetch_registration<S: Storage>(storage: &mut S) -> Result<Option<RegistrationData>, S::Error> {
     match storage.state().await? {
         // If there is no database file, we can conclude early that there is no registration.
         StorageState::Uninitialized => return Ok(None),
@@ -34,12 +62,20 @@ async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<Registr
     Ok(registration)
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum WalletRegistrationError {
-    #[error("Wallet is already registered")]
-    AlreadyRegistered,
-    #[error("Public key received from account server does not match the hardware public key")]
-    PublicKeyMismatch,
+async fn store_registration_data<S: Storage>(
+    storage: &mut S,
+    registration_data: &RegistrationData,
+) -> Result<(), S::Error> {
+    // If the storage datbase does not exist, create it now
+    let storage_state = storage.state().await?;
+    if !matches!(storage_state, StorageState::Opened) {
+        storage.open().await?;
+    }
+
+    // Save the registration data in storage
+    storage.insert_data(registration_data).await?;
+
+    Ok(())
 }
 
 pub struct Wallet<A, S, K> {
@@ -57,8 +93,14 @@ where
     K: PlatformEcdsaKey,
 {
     // Initialize the wallet by loading initial state.
-    pub async fn new(account_server: A, account_server_pubkey: EcdsaDecodingKey, mut storage: S) -> Result<Self> {
-        let registration = fetch_registration(&mut storage).await?;
+    pub async fn new(
+        account_server: A,
+        account_server_pubkey: EcdsaDecodingKey,
+        mut storage: S,
+    ) -> Result<Self, WalletInitError> {
+        let registration = fetch_registration(&mut storage)
+            .await
+            .map_err(|e| WalletInitError::Database(e.into()))?;
         let hw_privkey = K::new(WALLET_KEY_ID);
 
         let wallet = Wallet {
@@ -77,12 +119,12 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn register(&mut self, pin: String) -> Result<()> {
+    pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError> {
         info!("Checking if already registered");
 
         // Registration is only allowed if we do not currently have a registration on record.
         if self.has_registration() {
-            return Err(anyhow!(WalletRegistrationError::AlreadyRegistered));
+            return Err(WalletRegistrationError::AlreadyRegistered);
         }
 
         info!("Validating PIN");
@@ -93,7 +135,11 @@ where
         info!("Requesting challenge from account server");
 
         // Retrieve a challenge from the account server
-        let challenge = self.account_server.registration_challenge().await?;
+        let challenge = self
+            .account_server
+            .registration_challenge()
+            .await
+            .map_err(|e| WalletRegistrationError::ChallengeRequest(e.into()))?;
 
         info!("Challenge received from account server, signing and sending registration to account server");
 
@@ -103,32 +149,38 @@ where
 
         // Create a registration message and double sign it with the challenge,
         // send that to the account server and receive the wallet certificate in response.
-        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)?;
-        let cert = self.account_server.register(registration_message).await?;
+        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)
+            .map_err(WalletRegistrationError::Signing)?;
+        let cert = self
+            .account_server
+            .register(registration_message)
+            .await
+            .map_err(|e| WalletRegistrationError::RegistrationRequest(e.into()))?;
 
         info!("Certificate received from account server, verifying contents");
 
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
-        let cert_claims = cert.parse_and_verify(&self.account_server_pubkey)?;
-        if cert_claims.hw_pubkey.0 != self.hw_privkey.verifying_key()? {
-            return Err(anyhow!(WalletRegistrationError::PublicKeyMismatch));
+        let cert_claims = cert
+            .parse_and_verify(&self.account_server_pubkey)
+            .map_err(WalletRegistrationError::Validation)?;
+        let hw_pubkey = self
+            .hw_privkey
+            .verifying_key()
+            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
+        if cert_claims.hw_pubkey.0 != hw_pubkey {
+            return Err(WalletRegistrationError::PublicKeyMismatch);
         }
 
         info!("Storing received registration");
 
-        // If the storage datbase does not exist, create it now
-        let storage_state = self.storage.state().await?;
-        if !matches!(storage_state, StorageState::Opened) {
-            self.storage.open().await?;
-        }
-
-        // Save the registration data in storage
         let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
         };
-        self.storage.insert_data(&registration_data).await?;
+        store_registration_data(&mut self.storage, &registration_data)
+            .await
+            .map_err(|e| WalletRegistrationError::StoreCertificate(e.into()))?;
         self.registration = Some(registration_data);
 
         Ok(())
@@ -144,7 +196,9 @@ mod tests {
 
     use super::*;
 
-    async fn init_wallet(storage: Option<MockStorage>) -> Result<Wallet<AccountServer, MockStorage, SoftwareEcdsaKey>> {
+    async fn init_wallet(
+        storage: Option<MockStorage>,
+    ) -> Result<Wallet<AccountServer, MockStorage, SoftwareEcdsaKey>, WalletInitError> {
         let account_server = stub::account_server();
         let pubkey = account_server.pubkey.clone();
 
