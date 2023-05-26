@@ -1,4 +1,3 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
 
@@ -25,7 +24,9 @@ impl RemoteAccountServerClient {
 
 #[async_trait]
 impl AccountServerClient for RemoteAccountServerClient {
-    async fn registration_challenge(&self) -> Result<Vec<u8>> {
+    type Error = reqwest::Error;
+
+    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error> {
         let challenge = self
             .client
             .post(format!("{}/api/v1/enroll", self.url))
@@ -39,7 +40,10 @@ impl AccountServerClient for RemoteAccountServerClient {
         Ok(challenge)
     }
 
-    async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
+    async fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate, Self::Error> {
         let cert = self
             .client
             .post(format!("{}/api/v1/createwallet", self.url))

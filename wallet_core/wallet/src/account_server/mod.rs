@@ -1,6 +1,10 @@
 mod remote;
 
-use anyhow::Result;
+#[cfg(test)]
+mod mock;
+
+use std::error::Error;
+
 use async_trait::async_trait;
 
 use wallet_common::account::{
@@ -12,28 +16,11 @@ pub use self::remote::RemoteAccountServerClient;
 
 #[async_trait]
 pub trait AccountServerClient {
-    async fn registration_challenge(&self) -> Result<Vec<u8>>;
-    async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate>;
-}
+    type Error: Error + Send + Sync + 'static;
 
-#[cfg(test)]
-mod mock {
-    use wallet_provider::account_server::AccountServer;
-
-    use super::*;
-
-    #[async_trait]
-    impl AccountServerClient for AccountServer {
-        async fn registration_challenge(&self) -> Result<Vec<u8>> {
-            let challenge = AccountServer::registration_challenge(self)?;
-
-            Ok(challenge)
-        }
-
-        async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
-            let cert = AccountServer::register(self, registration_message)?;
-
-            Ok(cert)
-        }
-    }
+    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error>;
+    async fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate, Self::Error>;
 }

@@ -29,7 +29,9 @@ impl WalletTestClient {
 
 #[async_trait]
 impl AccountServerClient for WalletTestClient {
-    async fn registration_challenge(&self) -> Result<Vec<u8>> {
+    type Error = std::convert::Infallible;
+
+    async fn registration_challenge(&self) -> Result<Vec<u8>, Self::Error> {
         let challenge = self
             .client
             .post("/api/v1/enroll")
@@ -43,7 +45,10 @@ impl AccountServerClient for WalletTestClient {
         Ok(challenge)
     }
 
-    async fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
+    async fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate, Self::Error> {
         let cert = self
             .client
             .post("/api/v1/createwallet")
