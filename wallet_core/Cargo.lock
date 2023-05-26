@@ -3374,6 +3374,7 @@ dependencies = [
  "async-trait",
  "base64 0.21.0",
  "entity",
+ "futures",
  "libsqlite3-sys",
  "migration",
  "p256",

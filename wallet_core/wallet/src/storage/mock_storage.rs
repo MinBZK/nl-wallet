@@ -1,11 +1,10 @@
 use std::{any::Any, collections::HashMap};
 
-use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
 use super::{
     data::{KeyedData, RegistrationData},
-    Storage, StorageError, StorageState,
+    Storage, StorageOpenedError, StorageState,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -35,25 +34,27 @@ impl Default for MockStorage {
 
 #[async_trait]
 impl Storage for MockStorage {
-    async fn state(&self) -> Result<StorageState> {
+    type Error = StorageOpenedError;
+
+    async fn state(&self) -> Result<StorageState, Self::Error> {
         Ok(self.state)
     }
 
-    async fn open(&mut self) -> Result<()> {
+    async fn open(&mut self) -> Result<(), Self::Error> {
         self.state = StorageState::Opened;
 
         Ok(())
     }
 
-    async fn clear(&mut self) -> Result<()> {
+    async fn clear(&mut self) -> Result<(), Self::Error> {
         self.state = StorageState::Uninitialized;
 
         Ok(())
     }
 
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, Self::Error> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(anyhow!(StorageError::NotOpened));
+            return Err(StorageOpenedError::NotOpened);
         }
 
         // If self.data contains the key for the requested type,
@@ -64,13 +65,13 @@ impl Storage for MockStorage {
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), Self::Error> {
         if !matches!(self.state, StorageState::Opened) {
-            return Err(anyhow!(StorageError::NotOpened));
+            return Err(StorageOpenedError::NotOpened);
         }
 
         if self.data.contains_key(D::KEY) {
-            return Err(anyhow!("Registration already present"));
+            panic!("Registration already present");
         }
 
         self.data.insert(D::KEY, Box::new(data.clone()));
