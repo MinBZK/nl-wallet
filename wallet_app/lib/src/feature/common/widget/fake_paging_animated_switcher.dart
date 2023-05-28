@@ -52,9 +52,11 @@ class FakePagingAnimatedSwitcher extends StatelessWidget {
       /// Without this explicit [PrimaryScrollController] any child using the [PrimaryScrollController]
       /// relies on the same [ScrollController], which can be problematic since the [FakePagingAnimatedSwitcher]
       /// (by design) can render multiple [child]s at the same time, causing a conflict.
+      /// Key is set to differentiate between different [child]s and is based on a combination of the [child]'s
+      /// runtime type and it's (custom) key.
       child: PrimaryScrollController(
         controller: ScrollController(),
-        key: ObjectKey(child),
+        key: ValueKey('${child.runtimeType}-${child.key}'),
         child: child,
       ),
     );
