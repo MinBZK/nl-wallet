@@ -34,6 +34,8 @@ dependencies {
     testImplementation("io.rest-assured:rest-assured:5.3.0")
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
     testImplementation("org.slf4j:slf4j-simple:2.0.6")
+    // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite-engine
+    testImplementation("org.junit.platform:junit-platform-suite-engine:1.9.3")
 }
 
 tasks.test {
