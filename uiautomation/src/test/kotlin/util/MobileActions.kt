@@ -16,4 +16,10 @@ open class MobileActions {
     open fun waitForFirstFrame() {
         driver.executeScript("flutter:waitForFirstFrame")
     }
+
+    fun tapElement(element: FlutterElement) {
+        driver.executeScript("flutter:setFrameSync", true, 5000)
+        element.click()
+        driver.executeScript("flutter:setFrameSync", false, 5000)
+    }
 }

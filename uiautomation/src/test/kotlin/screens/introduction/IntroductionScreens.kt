@@ -17,12 +17,12 @@ class IntroductionScreens : MobileActions() {
 
     @Step("click next button")
     fun clickNextButton() {
-        nextButtonText.click()
+        tapElement(nextButtonText)
     }
 
     @Step("click privacy policy button")
     fun clickPrivacyPolicyButton() {
-        privacyPolicyButton.click()
+        tapElement(privacyPolicyButton)
     }
 
     @Step("verify if next button text")

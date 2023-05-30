@@ -28,19 +28,19 @@
 ## Appium Setup:
 
 - <b>`Install Appium`</b> - to install Appium 2.0<br>
-``` 
-  npm install -g appium@next 
+```
+  npm install -g appium@next
 ```
 - <b>`xcuitest`</b> -  driver is used to run automation test on iOS devices. <br>
-``` 
+```
   appium driver install xcuitest
 ```
 - <b>`uiautomator2`</b> - driver is used to run automation test on Android devices.<br>
-``` 
+```
   appium driver install uiautomator2
 ```
 - <b>`Appium Doctor`</b> - which is used to see if the appium setup is correctly done or not. Run it and fix the issues.<br>
-``` 
+```
   npm install -g appium-doctor
   appium-doctor
 ```
@@ -49,13 +49,13 @@
 ### Precondition:
 - Run Android emulator with API level 33
 - Create an apk using `cd wallet_app && flutter pub get` followed by `flutter build apk --debug`
-    
+
 ### Steps
 1. Make sure that you are in the correct directory: `uiautomation` where the Gradle project is located.
-2. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it 
+2. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it
 by running: `gradle wrapper`.
-3. After generating the Gradle Wrapper script, you can run the example test using the following command:
-``` 
-  ./gradlew test --tests uiTests.IntroductionScreenTests.verifyIntroductionScreens
+3. After generating the Gradle Wrapper script, you can run the test suite using the following command:
+```
+  ./gradlew test --tests suite.RunTests
 ```
 This will run the verifyIntroductionScreens test and output the results to the console.
