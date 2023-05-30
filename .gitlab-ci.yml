@@ -392,4 +392,4 @@ run-automation-tests:
     - java -version
     - cd uiautomation
     - gradle wrapper --gradle-version=7.3.3
-    - ./gradlew --debug --stacktrace test --tests uiTests.IntroductionScreenTests.verifyIntroductionScreens
+    - ./gradlew --debug --stacktrace test --tests suite.RunTests
