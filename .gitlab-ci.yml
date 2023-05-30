@@ -172,18 +172,6 @@ dependency-check-rust:
     paths:
       - audit.json
 
-sonar-dependencies:
-  extends: .default-sonar
-  needs:
-    - job: dependency-check
-      artifacts: true
-  script:
-    - sonar-scanner
-      -Dsonar.projectKey=nl-wallet-demo-app-dependencies
-      -Dsonar.exclusions="**/**"
-      -Dsonar.dependencyCheck.htmlReportPath=dependency-check-report.html
-      -Dsonar.dependencyCheck.jsonReportPath=dependency-check-report.json
-
 sonar-rust:
   extends: .default-sonar
   needs:
@@ -202,14 +190,18 @@ sonar-flutter:
   needs:
     - job: test-flutter
       artifacts: true
+    - job: dependency-check
+      artifacts: true
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:ead1449a563306a6ef6b277f22fae7eebed1a288d951e213649f62e4922fae0c"
   before_script:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
     - sonar-scanner
-      -Dsonar.projectKey=nl-wallet-demo-app-flutter
+      -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.exclusions="android/**,ios/**"
+      -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
+      -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
 
 sonar-ios:
   extends: .default-sonar
@@ -217,7 +209,7 @@ sonar-ios:
     - cd wallet_core/platform_support/ios
   script:
     - sonar-scanner
-      -Dsonar.projectKey=nl-wallet-demo-app-ios
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
       -Dsonar.exclusions="*Tests*/**"
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
@@ -229,7 +221,7 @@ sonar-android:
     - cd wallet_core/platform_support/android
   script:
     - sonar-scanner
-      -Dsonar.projectKey=nl-wallet-demo-app-android
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
       -Dsonar.findbugs.allowuncompiledcode=true
 
@@ -283,7 +275,7 @@ deploy-android-app:
   stage: deploy
   rules: !reference [ .default-or-release, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:172570037acfa4aa44d1a5e03f69c183c6b83d4e307807a292ce1d8bce7aab92"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
     - build-android-app
   dependencies:
@@ -301,7 +293,7 @@ upload-browserstack-android-app:
   stage: deploy
   rules: !reference [ .default-branch, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:172570037acfa4aa44d1a5e03f69c183c6b83d4e307807a292ce1d8bce7aab92"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
     - build-android-app
   dependencies:
@@ -354,7 +346,7 @@ upload-browserstack-ios-app:
   stage: deploy
   rules: !reference [ .default-branch, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:172570037acfa4aa44d1a5e03f69c183c6b83d4e307807a292ce1d8bce7aab92"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
     - build-ios-app
   dependencies:
