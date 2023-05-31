@@ -9,6 +9,8 @@ import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
+import uiTests.TestBase
+
 import util.setupTestTagHandler
 
 import java.net.MalformedURLException
@@ -27,7 +29,8 @@ class BrowserstackMobileDriver : WebDriverProvider {
         browserstackOptions["projectName"] = testDataConfig.browserStackCapabilities.project
         browserstackOptions["appiumVersion"] = "2.0.0"
         browserstackOptions["disableAnimations"] = "true"
-
+        browserstackOptions["buildName"] = Browserstack.buildName
+        browserstackOptions["sessionName"] = TestBase.sessionName
         caps.setCapability("bstack:options", browserstackOptions)
 
         // Specify device and os_version for testing
@@ -37,6 +40,7 @@ class BrowserstackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:deviceName", remoteDevice.deviceName)
         caps.setCapability("appium:language", setupTestTagHandler.language)
         caps.setCapability("appium:locale", setupTestTagHandler.locale)
+        caps.setCapability("appium:retryBackoffTime", 500)
         // Set URL of the application under test
         caps.setCapability(
             "appium:app", when (remoteDevice.platformName) {

@@ -11,6 +11,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 object Attach {
+    private val driver = WebDriverRunner.getWebDriver() as RemoteWebDriver
     // Attaches the given message to the test report
     @Attachment(value = "{attachName}", type = "text/plain")
     fun attachAsText(attachName: String?, message: String): String {
@@ -19,8 +20,9 @@ object Attach {
 
     // Returns the page source of the current WebDriver session
     @Attachment(value = "Page source", type = "text/plain")
-    fun pageSource(): ByteArray {
-        return WebDriverRunner.getWebDriver().pageSource.toByteArray(StandardCharsets.UTF_8)
+    fun pageSource(): Any? {
+        driver.executeScript("flutter:getRenderTree")
+        return driver.executeScript("flutter:getRenderTree")
     }
 
     // Takes a screenshot and attaches it to the test report as a PNG image
