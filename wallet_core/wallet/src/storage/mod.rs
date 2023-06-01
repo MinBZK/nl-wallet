@@ -7,10 +7,9 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
-use std::error::Error;
-
 use async_trait::async_trait;
 
+use self::key_file::KeyFileError;
 pub use self::{
     data::{KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
@@ -36,8 +35,18 @@ pub enum StorageError {
     NotOpened,
     #[error("storage database is already opened")]
     AlreadyOpened,
+    #[error("storage database I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("storage database error: {0}")]
+    Database(#[from] sea_orm::error::DbErr),
+    #[error("storage database JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("storage database SQLCipher key error: {0}")]
+    SqlCipherKey(#[from] std::array::TryFromSliceError),
     #[error(transparent)]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    KeyFile(#[from] KeyFileError),
+    #[error("storage database platform utilities error: {0}")]
+    PlatformUtilities(#[from] platform_support::utils::UtilitiesError),
 }
 
 /// This trait abstracts the persistent storage for the wallet.

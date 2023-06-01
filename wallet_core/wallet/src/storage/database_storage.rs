@@ -15,7 +15,7 @@ use platform_support::{
 use super::{
     data::KeyedData,
     database::{Database, SqliteUrl},
-    key_file::{delete_key_file, get_or_create_key_file, KeyFileError},
+    key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
     Storage, StorageError, StorageState,
 };
@@ -23,28 +23,6 @@ use super::{
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
-
-#[derive(Debug, thiserror::Error)]
-pub enum DatabaseStorageError {
-    #[error("storage database I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("storage database error: {0}")]
-    Database(#[from] sea_orm::error::DbErr),
-    #[error("storage database JSON error: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("storage database SQLCipher key error: {0}")]
-    SqlCipherKey(#[from] std::array::TryFromSliceError),
-    #[error(transparent)]
-    KeyFile(#[from] KeyFileError),
-    #[error("storage database platform utilities error: {0}")]
-    PlatformUtilities(#[from] UtilitiesError),
-}
-
-impl From<DatabaseStorageError> for StorageError {
-    fn from(value: DatabaseStorageError) -> Self {
-        StorageError::Other(value.into())
-    }
-}
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
@@ -64,7 +42,7 @@ fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf, U
 /// instance.
 async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(
     name: &str,
-) -> Result<Database, DatabaseStorageError> {
+) -> Result<Database, StorageError> {
     let key_file_alias = key_file_alias_for_name(name);
     let database_path = database_path_for_name::<U>(name)?;
 
@@ -118,13 +96,9 @@ impl Storage for DatabaseStorage {
             return Ok(StorageState::Opened);
         }
 
-        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME)
-            .map_err(DatabaseStorageError::from)?;
+        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME)?;
 
-        if fs::try_exists(database_path)
-            .await
-            .map_err(DatabaseStorageError::from)?
-        {
+        if fs::try_exists(database_path).await? {
             return Ok(StorageState::Unopened);
         }
 
@@ -153,12 +127,10 @@ impl Storage for DatabaseStorage {
 
         // Delete the database and key file in parallel
         try_join!(
-            database.close_and_delete().map_err(DatabaseStorageError::from),
-            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(DatabaseStorageError::from)
+            database.close_and_delete().map_err(StorageError::from),
+            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(StorageError::from)
         )
-        .map(|_| ())?;
-
-        Ok(())
+        .map(|_| ())
     }
 
     /// Get data entry from the key-value table, if present.
@@ -167,11 +139,9 @@ impl Storage for DatabaseStorage {
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
             .one(database.connection())
-            .await
-            .map_err(DatabaseStorageError::from)?
+            .await?
             .map(|m| serde_json::from_value::<D>(m.data))
-            .transpose()
-            .map_err(DatabaseStorageError::from)?;
+            .transpose()?;
 
         Ok(data)
     }
@@ -182,11 +152,10 @@ impl Storage for DatabaseStorage {
 
         let _ = keyed_data::ActiveModel {
             key: Set(D::KEY.to_string()),
-            data: Set(serde_json::to_value(data).map_err(DatabaseStorageError::from)?),
+            data: Set(serde_json::to_value(data)?),
         }
         .insert(database.connection())
-        .await
-        .map_err(DatabaseStorageError::from)?;
+        .await?;
 
         Ok(())
     }
