@@ -123,7 +123,7 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
-  "dataAttributeSectionTitle": "Bron: {source}",
+  "dataAttributeSectionTitle": "Uit {source}",
   "@dataAttributeSectionTitle": {
     "placeholders": {
       "source": {
@@ -227,17 +227,72 @@
     },
     "description": "Number of attributes shared"
   },
-  "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld, want er is iets misgegaan.",
-  "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het delen gestopt.",
+  "historyDetailScreenInteractionRequestPurposeTitle": "Reden voor delen",
+  "historyDetailScreenInteractionStatusFailedDescription": "Er zijn geen gegevens gedeeld met {organization}, want er is iets misgegaan.",
+  "@historyDetailScreenInteractionStatusFailedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
+  "historyDetailScreenInteractionStatusRejectedDescription": "Er zijn geen gegevens gedeeld met {organization}, want je hebt het delen gestopt.",
+  "@historyDetailScreenInteractionStatusRejectedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "historyDetailScreenIssueSubtitle": "Over de gegevens, het verzoek of de ontvanger",
   "historyDetailScreenIssueTitle": "Meld een probleem",
   "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
   "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
   "historyDetailScreenOperationStatusIssuedDescription": "Kaart aangemaakt",
   "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
+  "historyDetailScreenOrganizationNameAndStatus": "{status} {organization}",
+  "@historyDetailScreenOrganizationNameAndStatus": {
+    "placeholders": {
+      "status": {
+        "example": "Shared with",
+        "type": "String"
+      },
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "TimelineAttribute status and organization name"
+  },
+  "historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess": "Over",
+  "historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess": "Gedeeld met",
+  "historyDetailScreenOrganizationNamePrefixOperationStatusAll": "Uitgever",
+  "historyDetailScreenOrganizationNamePrefixSigningStatusAll": "Over",
   "historyDetailScreenSigningAttributesTitle": "Ondertekend",
-  "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld, want je hebt het ondertekenen gestopt.",
-  "historyDetailScreenTermsSubtitle": "Hoe gaat de ontvanger om met jouw gegevens",
+  "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld met {organization}, want je hebt het ondertekenen gestopt.",
+  "@historyDetailScreenSigningStatusRejectedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
+  "historyDetailScreenTermsSubtitle": "Zo gaat {organization} met jouw gegevens om",
+  "@historyDetailScreenTermsSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "historyDetailScreenTermsTitle": "Voorwaarden",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Gebruiksgeschiedenis",

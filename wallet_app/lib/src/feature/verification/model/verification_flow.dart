@@ -13,8 +13,8 @@ class VerificationFlow extends Equatable {
   final bool hasPreviouslyInteractedWithOrganization;
   final Map<WalletCard, List<DataAttribute>> availableAttributes;
   final List<RequestedAttribute> requestedAttributes;
-  final Policy policy;
   final String requestPurpose;
+  final Policy policy;
 
   const VerificationFlow({
     required this.id,
@@ -22,8 +22,8 @@ class VerificationFlow extends Equatable {
     required this.hasPreviouslyInteractedWithOrganization,
     required this.availableAttributes,
     required this.requestedAttributes,
-    required this.policy,
     required this.requestPurpose,
+    required this.policy,
   });
 
   List<DataAttribute> get resolvedAttributes => availableAttributes.values.flattened.toList();
@@ -41,7 +41,7 @@ class VerificationFlow extends Equatable {
         hasPreviouslyInteractedWithOrganization,
         availableAttributes,
         requestedAttributes,
+        requestPurpose,
         policy,
-        requestPurpose
       ];
 }

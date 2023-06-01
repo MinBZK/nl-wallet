@@ -7,22 +7,22 @@ import '../../domain/model/timeline/timeline_attribute.dart';
 
 class TimelineAttributeStatusDescriptionTextMapper {
   static String map(AppLocalizations locale, TimelineAttribute attribute) {
-    if (attribute is InteractionTimelineAttribute) return InteractionStatusTextFormatter.map(locale, attribute.status);
+    if (attribute is InteractionTimelineAttribute) return InteractionStatusTextFormatter.map(locale, attribute);
     if (attribute is OperationTimelineAttribute) return OperationStatusTextFormatter.map(locale, attribute.status);
-    if (attribute is SigningTimelineAttribute) return SigningStatusTextFormatter.map(locale, attribute.status);
+    if (attribute is SigningTimelineAttribute) return SigningStatusTextFormatter.map(locale, attribute);
     throw ('Unsupported attribute: $attribute');
   }
 }
 
 class InteractionStatusTextFormatter {
-  static String map(AppLocalizations locale, InteractionStatus status) {
-    switch (status) {
+  static String map(AppLocalizations locale, InteractionTimelineAttribute attribute) {
+    switch (attribute.status) {
       case InteractionStatus.success:
         return '';
       case InteractionStatus.rejected:
-        return locale.historyDetailScreenInteractionStatusRejectedDescription;
+        return locale.historyDetailScreenInteractionStatusRejectedDescription(attribute.organization.shortName);
       case InteractionStatus.failed:
-        return locale.historyDetailScreenInteractionStatusFailedDescription;
+        return locale.historyDetailScreenInteractionStatusFailedDescription(attribute.organization.shortName);
     }
   }
 }
@@ -41,12 +41,12 @@ class OperationStatusTextFormatter {
 }
 
 class SigningStatusTextFormatter {
-  static String map(AppLocalizations locale, SigningStatus status) {
-    switch (status) {
+  static String map(AppLocalizations locale, SigningTimelineAttribute attribute) {
+    switch (attribute.status) {
       case SigningStatus.success:
         return '';
       case SigningStatus.rejected:
-        return locale.historyDetailScreenSigningStatusRejectedDescription;
+        return locale.historyDetailScreenSigningStatusRejectedDescription(attribute.organization.shortName);
     }
   }
 }

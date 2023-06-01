@@ -8,17 +8,17 @@ import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
-import '../../../navigation/wallet_routes.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/sized_card_front.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/explanation_sheet.dart';
+import '../../common/widget/info_row.dart';
 import '../../common/widget/placeholder_screen.dart';
-import '../../common/widget/row/tappable_icon_list_row.dart';
 import '../../issuance/argument/issuance_screen_argument.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_summary_screen_argument.dart';
@@ -78,7 +78,7 @@ class CardSummaryScreen extends StatelessWidget {
           child: Scrollbar(
             thumbVisibility: true,
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              padding: const EdgeInsets.only(top: 24.0),
               children: [
                 const SizedBox(height: 8.0),
                 SizedCardFront(
@@ -87,21 +87,21 @@ class CardSummaryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32.0),
                 const Divider(height: 1),
-                TappableIconListRow(
+                InfoRow(
                   icon: Icons.description_outlined,
                   title: locale.cardSummaryScreenCardDataCta,
                   subtitle: locale.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
                   onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
-                TappableIconListRow(
+                InfoRow(
                   icon: Icons.history_outlined,
                   title: locale.cardSummaryScreenCardHistoryCta,
                   subtitle: _createInteractionText(context, summary.latestSuccessInteraction),
                   onTap: () => _onCardHistoryPressed(context, card.id),
                 ),
                 const Divider(height: 1),
-                TappableIconListRow(
+                InfoRow(
                   icon: Icons.replay_outlined,
                   title: locale.cardSummaryScreenCardUpdateCta,
                   subtitle: _createOperationText(context, summary.latestIssuedOperation),
@@ -109,7 +109,7 @@ class CardSummaryScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 if (card.config.removable) ...[
-                  TappableIconListRow(
+                  InfoRow(
                     icon: Icons.delete_outline_rounded,
                     title: locale.cardSummaryScreenCardDeleteCta,
                     onTap: () => _onCardDeletePressed(context),
@@ -120,8 +120,7 @@ class CardSummaryScreen extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1),
-        const BottomBackButton(),
+        const BottomBackButton(showDivider: true),
       ],
     );
   }
