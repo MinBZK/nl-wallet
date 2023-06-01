@@ -151,6 +151,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   Widget _buildBottomSection(BuildContext context) {
     Widget skipButton = TextIconButton(
+      key: const Key('introductionSkipCta'),
       iconPosition: IconPosition.start,
       centerChild: false,
       onPressed: () => _onSkipPressed(context),
@@ -221,7 +222,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               children: [
                 const Icon(Icons.arrow_forward, size: 16),
                 const SizedBox(width: 8),
-                Text(AppLocalizations.of(context).introductionNextPageCta),
+                Text(
+                  AppLocalizations.of(context).introductionNextPageCta,
+                  key: const Key('introductionNextPageCtaText'),
+                ),
               ],
             ),
           ),
