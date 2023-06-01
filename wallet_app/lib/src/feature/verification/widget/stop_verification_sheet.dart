@@ -26,7 +26,7 @@ class StopVerificationSheet extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     return ConfirmActionSheet(
       title: locale.stopVerificationSheetTitle,
-      description: locale.stopVerificationSheetDescription(organizationName).addSpaceSuffix(),
+      description: locale.stopVerificationSheetDescription(organizationName).addSpaceSuffix,
       cancelButtonText: locale.stopVerificationSheetNegativeCta,
       confirmButtonText: locale.stopVerificationSheetPositiveCta,
       confirmButtonColor: Theme.of(context).colorScheme.error,
