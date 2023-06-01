@@ -123,7 +123,7 @@
     "description": "Text to inform which third party is used to sign documents"
   },
   "confirmAgreementPageTitle": "Do you want to sign using this information",
-  "dataAttributeSectionTitle": "Source: {source}",
+  "dataAttributeSectionTitle": "From {source}",
   "@dataAttributeSectionTitle": {
     "placeholders": {
       "source": {
@@ -227,17 +227,72 @@
     },
     "description": "Number of attributes shared"
   },
-  "historyDetailScreenInteractionStatusFailedDescription": "No data has been shared, because something went wrong.",
-  "historyDetailScreenInteractionStatusRejectedDescription": "No data has been shared, because you stopped the interaction.",
+  "historyDetailScreenInteractionRequestPurposeTitle": "Sharing reason",
+  "historyDetailScreenInteractionStatusFailedDescription": "No data has been shared with {organization}, because something went wrong.",
+  "@historyDetailScreenInteractionStatusFailedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
+  "historyDetailScreenInteractionStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the interaction.",
+  "@historyDetailScreenInteractionStatusRejectedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
   "historyDetailScreenIssueTitle": "Report an issue",
   "historyDetailScreenOperationAttributesTitle": "Retrieved data",
   "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
   "historyDetailScreenOperationStatusIssuedDescription": "Card added",
   "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
+  "historyDetailScreenOrganizationNameAndStatus": "{status} {organization}",
+  "@historyDetailScreenOrganizationNameAndStatus": {
+    "placeholders": {
+      "status": {
+        "example": "Shared with",
+        "type": "String"
+      },
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "TimelineAttribute status and organization name"
+  },
+  "historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess": "About",
+  "historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess": "Shared with",
+  "historyDetailScreenOrganizationNamePrefixOperationStatusAll": "Publisher",
+  "historyDetailScreenOrganizationNamePrefixSigningStatusAll": "About",
   "historyDetailScreenSigningAttributesTitle": "Signed",
-  "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared, because you stopped the signing process.",
-  "historyDetailScreenTermsSubtitle": "How the organization processes your data",
+  "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the signing process.",
+  "@historyDetailScreenSigningStatusRejectedDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
+  "historyDetailScreenTermsSubtitle": "This is how {organization} processes your data",
+  "@historyDetailScreenTermsSubtitle": {
+    "placeholders": {
+      "organization": {
+        "example": "RvIG",
+        "type": "String"
+      }
+    },
+    "description": "The organization's name"
+  },
   "historyDetailScreenTermsTitle": "Terms and Conditions",
   "historyDetailScreenTitle": "Details",
   "historyOverviewScreenTitle": "Usage history",

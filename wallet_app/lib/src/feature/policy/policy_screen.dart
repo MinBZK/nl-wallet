@@ -5,7 +5,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../domain/model/policy/policy.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
-import '../common/widget/sliver_sized_box.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
@@ -62,7 +61,6 @@ class PolicyScreen extends StatelessWidget {
             delegate: _getPolicyEntriesDelegate(policyBuilder.build(policy)),
           ),
           SliverToBoxAdapter(child: _buildReportIssueButton(context)),
-          const SliverSizedBox(height: 32),
         ],
       ),
     );

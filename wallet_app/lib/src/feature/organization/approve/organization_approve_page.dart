@@ -26,7 +26,7 @@ class OrganizationApprovePage extends StatelessWidget {
   final ApprovalPurpose purpose;
 
   /// Inform the user what the purpose is of this request
-  final String? dataPurpose;
+  final String? requestPurpose;
 
   /// If true, the 'first interaction' banner will be shown.
   final bool isFirstInteractionWithOrganization;
@@ -36,7 +36,7 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.onAcceptPressed,
     required this.organization,
     required this.purpose,
-    this.dataPurpose,
+    this.requestPurpose,
     this.onDataIncorrectPressed,
     this.isFirstInteractionWithOrganization = true,
     Key? key,
@@ -135,7 +135,7 @@ class OrganizationApprovePage extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
           ),
           text: Text(
-            locale.organizationApprovePagePurpose(dataPurpose ?? purpose.name),
+            locale.organizationApprovePagePurpose(requestPurpose ?? purpose.name),
           ),
         ),
       ],

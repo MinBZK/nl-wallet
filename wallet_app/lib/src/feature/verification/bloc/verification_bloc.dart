@@ -50,8 +50,8 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
                   await hasPreviouslyInteractedWithOrganizationUseCase.invoke(request.organization.id),
               availableAttributes: await getRequestedAttributesWithCardUseCase.invoke(request.requestedAttributes),
               requestedAttributes: request.requestedAttributes,
+              requestPurpose: request.requestPurpose,
               policy: request.interactionPolicy,
-              requestPurpose: request.purpose,
             ),
           ),
         );
@@ -112,6 +112,12 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
   }
 
   void _logCardInteraction(VerificationFlow flow, InteractionStatus status) {
-    logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, flow.resolvedAttributes);
+    logCardInteractionUseCase.invoke(
+      status: status,
+      policy: flow.policy,
+      organization: flow.organization,
+      resolvedAttributes: flow.resolvedAttributes,
+      requestPurpose: flow.requestPurpose,
+    );
   }
 }

@@ -10,12 +10,14 @@ import 'wallet_card.dart';
 class IssuanceFlow extends Equatable {
   final Organization organization;
   final List<Attribute> attributes;
+  final String requestPurpose;
   final Policy policy;
   final List<WalletCard> cards;
 
   const IssuanceFlow({
     required this.organization,
     required this.attributes,
+    required this.requestPurpose,
     required this.policy,
     required this.cards,
   });
@@ -25,5 +27,5 @@ class IssuanceFlow extends Equatable {
   List<RequestedAttribute> get missingAttributes => attributes.whereType<RequestedAttribute>().toList();
 
   @override
-  List<Object?> get props => [organization, attributes, policy, cards];
+  List<Object?> get props => [organization, attributes, requestPurpose, policy, cards];
 }

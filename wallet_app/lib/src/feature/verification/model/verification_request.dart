@@ -8,15 +8,15 @@ class VerificationRequest extends Equatable {
   final String id;
   final Organization organization;
   final List<RequestedAttribute> requestedAttributes;
+  final String requestPurpose;
   final Policy interactionPolicy;
-  final String purpose;
 
   const VerificationRequest({
     required this.id,
     required this.organization,
     required this.requestedAttributes,
+    required this.requestPurpose,
     required this.interactionPolicy,
-    required this.purpose,
   });
 
   @override
@@ -24,7 +24,7 @@ class VerificationRequest extends Equatable {
         id,
         organization,
         requestedAttributes,
+        requestPurpose,
         interactionPolicy,
-        purpose,
       ];
 }
