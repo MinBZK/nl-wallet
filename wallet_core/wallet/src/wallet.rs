@@ -39,7 +39,7 @@ pub enum WalletRegistrationError {
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountServerClientError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
-    Validation(#[source] wallet_common::errors::Error),
+    CertificateValidation(#[source] wallet_common::errors::Error),
     #[error("could not get hardware public key: {0}")]
     HardwarePublicKey(#[from] EcdsaKeyError),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
@@ -148,7 +148,7 @@ where
         // matches that of our hardware key.
         let cert_claims = cert
             .parse_and_verify(&self.account_server_pubkey)
-            .map_err(WalletRegistrationError::Validation)?;
+            .map_err(WalletRegistrationError::CertificateValidation)?;
         let hw_pubkey = self.hw_privkey.verifying_key()?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
