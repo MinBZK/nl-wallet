@@ -24,7 +24,7 @@ class DataPrivacyBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Text.rich(
             TextSpan(
-              text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix(),
+              text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
               children: [
                 TextSpan(
                   text: locale.cardDataScreenDataPrivacyBannerReadMore,

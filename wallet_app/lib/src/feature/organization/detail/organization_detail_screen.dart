@@ -169,7 +169,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.unpublished_outlined),
           text: Text.rich(
             TextSpan(
-              text: locale.organizationDetailScreenOrganizationNotChecked.addSpaceSuffix(),
+              text: locale.organizationDetailScreenOrganizationNotChecked.addSpaceSuffix,
               children: [
                 TextSpan(
                   text: locale.organizationDetailScreenOrganizationNotCheckedReadMore,
@@ -185,7 +185,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.policy_outlined),
           text: Text.rich(
             TextSpan(
-              text: locale.organizationDetailScreenViewTerms.addSpaceSuffix(),
+              text: locale.organizationDetailScreenViewTerms.addSpaceSuffix,
               children: [
                 TextSpan(
                   text: locale.organizationDetailScreenPrivacyPolicy,

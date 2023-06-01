@@ -34,7 +34,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   FutureOr<void> _onRemoveDigitEvent(event, emit) {
-    _currentPin = _currentPin.removeLastChar();
+    _currentPin = _currentPin.removeLastChar;
     emit(PinEntryInProgress(_currentPin.length));
   }
 

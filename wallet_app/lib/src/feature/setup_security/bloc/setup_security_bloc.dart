@@ -107,12 +107,12 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   }
 
   Future<void> _onSelectPinBackspaceEvent(event, emit) async {
-    _newPin = _newPin.removeLastChar();
+    _newPin = _newPin.removeLastChar;
     emit(SetupSecuritySelectPinInProgress(_newPin.length, afterBackspacePressed: true));
   }
 
   Future<void> _onConfirmPinBackspaceEvent(event, emit) async {
-    _confirmPin = _confirmPin.removeLastChar();
+    _confirmPin = _confirmPin.removeLastChar;
     emit(SetupSecurityPinConfirmationInProgress(_confirmPin.length, afterBackspacePressed: true));
   }
 
