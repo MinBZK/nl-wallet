@@ -1,6 +1,8 @@
+use std::error::Error;
+
 use tracing::{info, instrument};
 
-use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey, signing_key::EcdsaKeyError};
+use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
 
 use crate::{
     pin::{
@@ -41,7 +43,7 @@ pub enum WalletRegistrationError {
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     CertificateValidation(#[source] wallet_common::errors::Error),
     #[error("could not get hardware public key: {0}")]
-    HardwarePublicKey(#[from] EcdsaKeyError),
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]
@@ -149,7 +151,10 @@ where
         let cert_claims = cert
             .parse_and_verify(&self.account_server_pubkey)
             .map_err(WalletRegistrationError::CertificateValidation)?;
-        let hw_pubkey = self.hw_privkey.verifying_key()?;
+        let hw_pubkey = self
+            .hw_privkey
+            .verifying_key()
+            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
         }

@@ -28,7 +28,7 @@ use p256::{
 use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
 use wallet_common::{
-    account::signing_key::{EcdsaKey, EcdsaKeyError, EphemeralEcdsaKey},
+    account::signing_key::{EcdsaKey, EphemeralEcdsaKey},
     utils::random_bytes,
 };
 
@@ -84,8 +84,10 @@ impl<'a> Signer<Signature> for PinKey<'a> {
 }
 
 impl<'a> EcdsaKey for PinKey<'a> {
-    fn verifying_key(&self) -> Result<VerifyingKey, EcdsaKeyError> {
-        self.verifying_key().map_err(|e| EcdsaKeyError(e.into()))
+    type Error = PinKeyError;
+
+    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        self.verifying_key()
     }
 }
 

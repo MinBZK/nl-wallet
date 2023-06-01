@@ -1,4 +1,4 @@
-use crate::account::{signed::SignedType, signing_key::EcdsaKeyError};
+use crate::account::signed::SignedType;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -7,7 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum ValidationError {
     Jwt(#[from] jsonwebtoken::errors::Error),
     P256Ecdsa(#[from] p256::ecdsa::Error),
-    Ecdsa(#[from] EcdsaKeyError),
+    Ecdsa(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -15,7 +15,6 @@ pub enum ValidationError {
 pub enum SigningError {
     Jwt(#[from] jsonwebtoken::errors::Error),
     P256Ecdsa(#[from] p256::ecdsa::Error),
-    Ecdsa(#[from] EcdsaKeyError), // not actually used
 }
 
 #[derive(Debug, thiserror::Error)]

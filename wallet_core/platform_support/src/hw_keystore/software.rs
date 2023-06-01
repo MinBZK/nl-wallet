@@ -9,7 +9,7 @@ use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
 use wallet_common::{
-    account::signing_key::{EcdsaKey, EcdsaKeyError, SecureEcdsaKey},
+    account::signing_key::{EcdsaKey, SecureEcdsaKey},
     utils::random_bytes,
 };
 
@@ -33,7 +33,9 @@ impl Signer<Signature> for SoftwareEcdsaKey {
     }
 }
 impl EcdsaKey for SoftwareEcdsaKey {
-    fn verifying_key(&self) -> Result<VerifyingKey, EcdsaKeyError> {
+    type Error = p256::ecdsa::Error;
+
+    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         Ok(*self.signing_key.verifying_key())
     }
 }

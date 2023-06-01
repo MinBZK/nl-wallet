@@ -2,12 +2,10 @@ use std::error::Error;
 
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct EcdsaKeyError(#[from] pub Box<dyn Error + Send + Sync>);
-
 pub trait EcdsaKey: Signer<Signature> {
-    fn verifying_key(&self) -> Result<VerifyingKey, EcdsaKeyError>;
+    type Error: Error + Send + Sync + 'static;
+
+    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
 pub trait EphemeralEcdsaKey: EcdsaKey {}
@@ -20,7 +18,9 @@ mod mock {
 
     // make sure we can substitute a SigningKey instead in tests
     impl EcdsaKey for p256::ecdsa::SigningKey {
-        fn verifying_key(&self) -> Result<VerifyingKey, EcdsaKeyError> {
+        type Error = p256::ecdsa::Error;
+
+        fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
             Ok(*self.verifying_key())
         }
     }
