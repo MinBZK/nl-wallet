@@ -12,7 +12,7 @@ class TimelineSectionListFactory {
     Map<DateTime, List<TimelineAttribute>> map = {};
 
     for (TimelineAttribute attribute in attributes) {
-      final DateTime yearMonthKey = attribute.dateTime.yearMonthOnly();
+      final DateTime yearMonthKey = attribute.dateTime.yearMonth;
 
       List<TimelineAttribute>? mapEntry = map[yearMonthKey];
       if (mapEntry != null) {
