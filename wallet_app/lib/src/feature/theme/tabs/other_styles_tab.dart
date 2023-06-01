@@ -23,7 +23,6 @@ import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
-import '../../common/widget/row/tappable_icon_list_row.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
@@ -204,6 +203,7 @@ class OtherStylesTab extends StatelessWidget {
               deletionCanBeRequested: true,
               privacyPolicyUrl: 'https://www.example.org',
             ),
+            requestPurpose: 'Kaart uitgifte',
           ),
           onPressed: () {},
         ),
@@ -260,13 +260,6 @@ class OtherStylesTab extends StatelessWidget {
           onCardSelectionToggled: (_) {},
           card: const WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
           isSelected: true,
-        ),
-        const ThemeSectionSubHeader(title: 'TappableIconListRow'),
-        TappableIconListRow(
-          title: 'Sample title',
-          subtitle: 'Sample subtitle',
-          icon: Icons.add_alert_outlined,
-          onTap: () {},
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),
         const StatusIcon(icon: Icons.ac_unit),

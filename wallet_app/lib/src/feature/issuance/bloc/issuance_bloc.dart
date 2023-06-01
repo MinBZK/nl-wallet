@@ -82,6 +82,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final IssuanceFlow flow = IssuanceFlow(
       organization: response.organization,
       attributes: attributes,
+      requestPurpose: response.requestPurpose,
       policy: response.policy,
       cards: response.cards,
     );
@@ -142,7 +143,13 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) {
-    logCardInteractionUseCase.invoke(status, flow.policy, flow.organization, flow.resolvedAttributes);
+    logCardInteractionUseCase.invoke(
+      status: status,
+      policy: flow.policy,
+      requestPurpose: flow.requestPurpose,
+      organization: flow.organization,
+      resolvedAttributes: flow.resolvedAttributes,
+    );
   }
 
   FutureOr<void> _onIssuanceCardToggled(IssuanceCardToggled event, emit) {

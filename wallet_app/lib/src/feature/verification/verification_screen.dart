@@ -119,7 +119,7 @@ class VerificationScreen extends StatelessWidget {
       organization: state.flow.organization,
       isFirstInteractionWithOrganization: !state.flow.hasPreviouslyInteractedWithOrganization,
       purpose: ApprovalPurpose.verification,
-      dataPurpose: state.flow.requestPurpose,
+      requestPurpose: state.flow.requestPurpose,
       onDataIncorrectPressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
   }

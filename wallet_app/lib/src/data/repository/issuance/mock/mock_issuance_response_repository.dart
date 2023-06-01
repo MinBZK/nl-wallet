@@ -12,6 +12,8 @@ import '../issuance_response_repository.dart';
 
 part 'mock_issuance_response_repository.mocks.dart';
 
+const _kMockRequestPurpose = 'Kaart uitgifte';
+
 class MockIssuanceResponseRepository extends IssuanceResponseRepository {
   final WalletDataSource walletDataSource;
   final OrganizationDataSource organizationDataSource;
@@ -25,6 +27,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockPidWalletCard.issuerId))!,
           requestedAttributes: [],
+          requestPurpose: '',
           policy: _kMockIssuancePolicy,
           cards: [_kMockPidWalletCard, _kMockAddressWalletCard],
         );
@@ -32,6 +35,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockDiplomaWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard],
         );
@@ -39,6 +43,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockDiplomaWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
         );
@@ -46,6 +51,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockDrivingLicenseWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseWalletCard],
         );
@@ -53,6 +59,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockDrivingLicenseRenewedWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockDrivingLicenseRenewedWalletCard],
         );
@@ -60,6 +67,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockHealthInsuranceWalletCard.issuerId))!,
           requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockHealthInsuranceWalletCard],
         );
@@ -67,6 +75,7 @@ class MockIssuanceResponseRepository extends IssuanceResponseRepository {
         return IssuanceResponse(
           organization: (await organizationDataSource.read(_kMockVOGWalletCard.issuerId))!,
           requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+          requestPurpose: _kMockRequestPurpose,
           policy: _kMockIssuancePolicy,
           cards: [_kMockVOGWalletCard],
         );

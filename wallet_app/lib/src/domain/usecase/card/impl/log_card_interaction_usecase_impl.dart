@@ -11,18 +11,20 @@ class LogCardInteractionUseCaseImpl implements LogCardInteractionUseCase {
   LogCardInteractionUseCaseImpl(this.timelineAttributeRepository);
 
   @override
-  Future<void> invoke(
-    InteractionStatus status,
-    Policy policy,
-    Organization organization,
-    List<DataAttribute> resolvedAttributes,
-  ) async {
+  Future<void> invoke({
+    required InteractionStatus status,
+    required Policy policy,
+    required Organization organization,
+    required List<DataAttribute> resolvedAttributes,
+    required String requestPurpose,
+  }) async {
     final interaction = InteractionTimelineAttribute(
       status: status,
       policy: policy,
       dateTime: DateTime.now(),
       organization: organization,
       dataAttributes: resolvedAttributes,
+      requestPurpose: requestPurpose,
     );
     await timelineAttributeRepository.create(interaction);
   }
