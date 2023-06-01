@@ -8,12 +8,6 @@ use wallet_common::account::{
 
 use super::{AccountServerClient, AccountServerClientError};
 
-impl From<reqwest::Error> for AccountServerClientError {
-    fn from(value: reqwest::Error) -> Self {
-        AccountServerClientError(value.into())
-    }
-}
-
 pub struct RemoteAccountServerClient {
     url: String,
     client: Client,

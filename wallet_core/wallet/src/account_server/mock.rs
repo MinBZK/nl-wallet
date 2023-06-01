@@ -13,13 +13,14 @@ use super::{AccountServerClient, AccountServerClientError};
 #[async_trait]
 impl AccountServerClient for AccountServer {
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
-        AccountServer::registration_challenge(self).map_err(|e| AccountServerClientError(e.into()))
+        AccountServer::registration_challenge(self).map_err(|e| AccountServerClientError::AccountServer(e.into()))
     }
 
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError> {
-        AccountServer::register(self, registration_message).map_err(|e| AccountServerClientError(e.into()))
+        AccountServer::register(self, registration_message)
+            .map_err(|e| AccountServerClientError::AccountServer(e.into()))
     }
 }

@@ -3,8 +3,6 @@ mod remote;
 #[cfg(test)]
 mod mock;
 
-use std::error::Error;
-
 use async_trait::async_trait;
 
 use wallet_common::account::{
@@ -14,9 +12,18 @@ use wallet_common::account::{
 
 pub use self::remote::RemoteAccountServerClient;
 
+// TODO: Make this error more distinctive when specific HTTP error
+//       response codes get added to the Wallet Provider.
 #[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct AccountServerClientError(#[from] pub Box<dyn Error + Send + Sync>);
+pub enum AccountServerClientError {
+    #[error("networking error: {0}")]
+    Networking(#[from] reqwest::Error),
+    /// This error variant only exist for the mock implementation of [`AccountServerClient`]
+    /// by [`wallet_provider::account_server::AccountServer`].
+    #[cfg(test)]
+    #[error(transparent)]
+    AccountServer(#[from] Box<dyn std::error::Error + Send + Sync>),
+}
 
 #[async_trait]
 pub trait AccountServerClient {
