@@ -18,33 +18,33 @@ use wallet_common::{
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {
     // Do not format original error to prevent potentially leaking key material
-    #[error("Server private key decoding error")]
+    #[error("server private key decoding error")]
     PrivateKeyDecoding(#[from] p256::pkcs8::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ChallengeError {
-    #[error("Challenge signing error: {0}")]
+    #[error("challenge signing error: {0}")]
     ChallengeSigning(#[source] wallet_common::errors::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationError {
-    #[error("Registration challenge UTF-8 decoding error: {0}")]
+    #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[from] std::string::FromUtf8Error),
-    #[error("Registration challenge validation error: {0}")]
+    #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] wallet_common::errors::Error),
-    #[error("Registration message parsing error: {0}")]
+    #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::errors::Error),
-    #[error("Registration message validation error: {0}")]
+    #[error("registration message validation error: {0}")]
     MessageValidation(#[source] wallet_common::errors::Error),
-    #[error("Incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
+    #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
-    #[error("Registration PIN public key decoding error: {0}")]
+    #[error("registration PIN public key decoding error: {0}")]
     PinPubKeyDecoding(#[from] p256::pkcs8::spki::Error),
-    #[error("Registration PIN public key DER encoding error: {0}")]
+    #[error("registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[from] der::Error),
-    #[error("Registration JWT signing error: {0}")]
+    #[error("registration JWT signing error: {0}")]
     JwtSigning(#[source] wallet_common::errors::Error),
 }
 

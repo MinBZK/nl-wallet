@@ -9,9 +9,9 @@ use std::path::PathBuf;
 // implementation of UtilitiesError from UDL, only with "hardware" flag
 #[derive(Debug, thiserror::Error)]
 pub enum UtilitiesError {
-    #[error("Platform error: {reason}")]
+    #[error("platform error: {reason}")]
     PlatformError { reason: String },
-    #[error("Bridging error: {reason}")]
+    #[error("bridging error: {reason}")]
     BridgingError { reason: String },
 }
 

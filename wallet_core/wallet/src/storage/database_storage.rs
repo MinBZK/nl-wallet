@@ -26,17 +26,17 @@ const DATABASE_FILE_EXT: &str = "db";
 
 #[derive(Debug, thiserror::Error)]
 pub enum DatabaseStorageError {
-    #[error("Storage database I/O error: {0}")]
+    #[error("storage database I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Storage database error: {0}")]
+    #[error("storage database error: {0}")]
     Database(#[from] sea_orm::error::DbErr),
-    #[error("Storage database JSON error: {0}")]
+    #[error("storage database JSON error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Storage database SQLCipher key error: {0}")]
+    #[error("storage database SQLCipher key error: {0}")]
     SqlCipherKey(#[from] std::array::TryFromSliceError),
     #[error(transparent)]
     KeyFile(#[from] KeyFileError),
-    #[error("Storage database platform utilities error: {0}")]
+    #[error("storage database platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
 }
 

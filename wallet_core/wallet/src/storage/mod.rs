@@ -32,9 +32,9 @@ pub enum StorageState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
-    #[error("Storage database is not opened")]
+    #[error("storage database is not opened")]
     NotOpened,
-    #[error("Storage database is already opened")]
+    #[error("storage database is already opened")]
     AlreadyOpened,
     #[error(transparent)]
     Other(#[from] Box<dyn Error + Send + Sync>),

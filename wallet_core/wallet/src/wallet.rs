@@ -22,29 +22,29 @@ const WALLET_KEY_ID: &str = "wallet";
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
-    #[error("Could not initialize database: {0}")]
+    #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletRegistrationError {
-    #[error("Wallet is already registered")]
+    #[error("wallet is already registered")]
     AlreadyRegistered,
     #[error("PIN provided for registration does not adhere to requirements: {0}")]
     InvalidPin(#[from] PinValidationError),
-    #[error("Could not request registration challenge from Wallet Provider: {0}")]
+    #[error("could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountServerClientError),
-    #[error("Could not sign registration message: {0}")]
+    #[error("could not sign registration message: {0}")]
     Signing(#[source] wallet_common::errors::Error),
-    #[error("Could not request registration from Wallet Provider: {0}")]
+    #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountServerClientError),
-    #[error("Could not validate registration certificate received from Wallet Provider: {0}")]
+    #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     Validation(#[source] wallet_common::errors::Error),
-    #[error("Could not get hardware public key: {0}")]
+    #[error("could not get hardware public key: {0}")]
     HardwarePublicKey(#[from] EcdsaKeyError),
-    #[error("Public key in registration certificate received from Wallet Provider does not match hardware public key")]
+    #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
     PublicKeyMismatch,
-    #[error("Could not store registration certificate in database: {0}")]
+    #[error("could not store registration certificate in database: {0}")]
     StoreCertificate(#[from] StorageError),
 }
 

@@ -12,11 +12,11 @@ const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
 #[derive(Debug, thiserror::Error)]
 pub enum KeyFileError {
-    #[error("Key file I/O error: {0}")]
+    #[error("key file I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Key file platform utilities error: {0}")]
+    #[error("key file platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
-    #[error("Key file platform key store error: {0}")]
+    #[error("key file platform key store error: {0}")]
     PlatformKeyStore(#[from] HardwareKeyStoreError),
 }
 

@@ -10,16 +10,16 @@ use wallet_common::account::signing_key::SecureEcdsaKey;
 pub enum HardwareKeyStoreError {
     #[error(transparent)]
     KeyStoreError(#[from] KeyStoreError),
-    #[error("Error decoding public key from hardware: {0}")]
+    #[error("error decoding public key from hardware: {0}")]
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
 
 // implementation of KeyStoreError from UDL, only with "hardware" flag
 #[derive(Debug, thiserror::Error)]
 pub enum KeyStoreError {
-    #[error("Key error: {reason}")]
+    #[error("key error: {reason}")]
     KeyError { reason: String },
-    #[error("Bridging error: {reason}")]
+    #[error("bridging error: {reason}")]
     BridgingError { reason: String },
 }
 
