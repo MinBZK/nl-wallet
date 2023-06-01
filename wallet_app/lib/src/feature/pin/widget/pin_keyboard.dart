@@ -36,30 +36,31 @@ class PinKeyboard extends StatelessWidget {
               children: [
                 KeyboardRow(
                   children: [
-                    KeyboardDigitKey(digit: 1, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 2, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 3, onKeyPressed: onKeyPressed),
+                    KeyboardDigitKey(digit: 1, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#1')),
+                    KeyboardDigitKey(digit: 2, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#2')),
+                    KeyboardDigitKey(digit: 3, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#3')),
                   ],
                 ),
                 KeyboardRow(
                   children: [
-                    KeyboardDigitKey(digit: 4, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 5, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 6, onKeyPressed: onKeyPressed),
+                    KeyboardDigitKey(digit: 4, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#4')),
+                    KeyboardDigitKey(digit: 5, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#5')),
+                    KeyboardDigitKey(digit: 6, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#6')),
                   ],
                 ),
                 KeyboardRow(
                   children: [
-                    KeyboardDigitKey(digit: 7, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 8, onKeyPressed: onKeyPressed),
-                    KeyboardDigitKey(digit: 9, onKeyPressed: onKeyPressed),
+                    KeyboardDigitKey(digit: 7, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#7')),
+                    KeyboardDigitKey(digit: 8, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#8')),
+                    KeyboardDigitKey(digit: 9, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#9')),
                   ],
                 ),
                 KeyboardRow(
                   children: [
                     const Spacer(),
-                    KeyboardDigitKey(digit: 0, onKeyPressed: onKeyPressed),
-                    KeyboardBackspaceKey(onBackspacePressed: onBackspacePressed),
+                    KeyboardDigitKey(digit: 0, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#0')),
+                    KeyboardBackspaceKey(
+                        onBackspacePressed: onBackspacePressed, key: const Key('keyboardKeyBackspace')),
                   ],
                 )
               ],

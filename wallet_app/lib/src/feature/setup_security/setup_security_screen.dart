@@ -145,11 +145,13 @@ class SetupSecurityScreen extends StatelessWidget {
           children: [
             Text(
               errorTitle,
+              key: const Key('setupSecurityPinPageSimpleErrorMessageTitle'),
               style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
               textAlign: TextAlign.center,
             ),
             Text(
               errorDescription,
+              key: const Key('setupSecurityPinPageSimpleErrorMessageDescription'),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
               textAlign: TextAlign.center,
             ),
@@ -186,11 +188,13 @@ class SetupSecurityScreen extends StatelessWidget {
       content = Column(
         children: [
           Text(
+            key: const Key('setupSecurityConfirmationErrorPageTitle'),
             locale.setupSecurityConfirmationErrorPageTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
+            key: const Key('setupSecurityConfirmationErrorPageDescription'),
             locale.setupSecurityConfirmationErrorPageDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
@@ -201,17 +205,20 @@ class SetupSecurityScreen extends StatelessWidget {
       content = Column(
         children: [
           Text(
+            key: const Key('setupSecurityConfirmationErrorPageFatalTitle'),
             locale.setupSecurityConfirmationErrorPageFatalTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
+            key: const Key('setupSecurityConfirmationErrorPageFatalDescription'),
             locale.setupSecurityConfirmationErrorPageFatalDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           TextIconButton(
+            key: const Key('setupSecurityConfirmationErrorPageFatalCta'),
             child: Text(locale.setupSecurityConfirmationErrorPageFatalCta),
             onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
           ),
@@ -233,6 +240,7 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
+      key: const Key('setupSecurityCompletedPageKey'),
       onSetupWalletPressed: () =>
           Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
     );
