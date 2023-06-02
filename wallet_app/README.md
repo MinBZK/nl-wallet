@@ -31,6 +31,30 @@ To run the app you need to configure Flutter, Rust, the Android SDK and the iOS 
 
 After setting up your environment, launch an Android emulator or the iOS simulator and execute `flutter run`.
 
+## Building
+
+The easiest way to build the app locally is to use [fastlane](https://docs.fastlane.tools/getting-started/ios/setup/).
+
+### iOS
+
+To build the iOS app use: `fastlane ios build`. Note that password for fastlane match repository will be requested while building,
+this repository is not public. Alternatively you can build the app using `flutter build ios`, which will rely on your own certificate.
+
+### Android
+To build the Android app use: `fastlane android build`. Note that this requires you to configure a local signing key.
+To do so:
+1. Generate a new key: `keytool -genkey -v -keystore local_key.jks -alias wallet -keyalg RSA -keysize 2048 -validity 10000`
+2. Provide some details through the cli, in this example I opted to use `nl-wallet` as the password.
+3. Move the key to `/wallet_app/android/local_key.jks`.
+4. Create the file `/wallet_app/android/key.properties` and add the following contents:
+    ```text
+    storePassword=nl-wallet
+    keyPassword=nl-wallet
+    keyAlias=wallet
+    storeFile=local_key.jks
+    ```
+5. That's it! Building release builds, e.g. with `fastlane android build` should now work.
+
 ## App Configuration
 
 We are currently maintaining two 'flavours' of the app, a *mock* and an *implementation* version.
