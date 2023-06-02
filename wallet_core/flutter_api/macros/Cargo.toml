@@ -1,8 +1,9 @@
 [package]
 name = "macros"
+description = "Support macros for flutter_api."
 version.workspace = true
 edition.workspace = true
-description = "Support macros for flutter_api."
+rust-version.workspace = true
 
 [lib]
 proc-macro = true

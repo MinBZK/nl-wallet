@@ -2,6 +2,7 @@
 name = "flutter_rust_bridge_codegen"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.69"
 
 [dependencies]
 flutter_rust_bridge_codegen = "1.70.0"

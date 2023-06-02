@@ -2,6 +2,7 @@
 name = "platform_support"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [features]
 hardware = ["dep:once_cell", "dep:uniffi"]
