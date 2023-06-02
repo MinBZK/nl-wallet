@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
 
-use anyhow::{Context, Result};
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+use crate::errors::{Result, SigningError, ValidationError};
 
 // TODO implement keyring and use kid header item for key rollover
 
@@ -65,14 +66,14 @@ where
         validation_options.sub = T::SUB.to_owned().into();
 
         let payload = jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &pubkey.0, &validation_options)
-            .context("Wallet certificate JWT validation failed")?
+            .map_err(ValidationError::from)?
             .claims
             .payload;
         Ok(payload)
     }
 
     pub fn sign(payload: &T, privkey: &[u8]) -> Result<Jwt<T>> {
-        jsonwebtoken::encode(
+        let message = jsonwebtoken::encode(
             &Header {
                 alg: Algorithm::ES256,
                 kid: "0".to_owned().into(),
@@ -84,8 +85,9 @@ where
             },
             &jsonwebtoken::EncodingKey::from_ec_der(privkey),
         )
-        .context("JWT signing failed")
-        .map(Jwt::from)
+        .map_err(SigningError::from)?;
+
+        Ok(message.into())
     }
 }
 

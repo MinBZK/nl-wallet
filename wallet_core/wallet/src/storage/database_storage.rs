@@ -1,12 +1,16 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use futures::TryFutureExt;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tokio::{fs, try_join};
 
 use entity::keyed_data;
-use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
+use platform_support::{
+    hw_keystore::PlatformEncryptionKey,
+    preferred,
+    utils::{PlatformUtilities, UtilitiesError},
+};
 
 use super::{
     data::KeyedData,
@@ -25,7 +29,7 @@ fn key_file_alias_for_name(database_name: &str) -> String {
     format!("{}{}", database_name, KEY_FILE_SUFFIX)
 }
 
-fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf> {
+fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf, UtilitiesError> {
     // Get path to database as "<storage_path>/<name>.db"
     let storage_path = U::storage_path()?;
     let database_path = storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT));
@@ -36,7 +40,9 @@ fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf> {
 /// This helper function uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
 /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
 /// instance.
-async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(name: &str) -> Result<Database> {
+async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(
+    name: &str,
+) -> Result<Database, StorageError> {
     let key_file_alias = key_file_alias_for_name(name);
     let database_path = database_path_for_name::<U>(name)?;
 
@@ -69,8 +75,8 @@ impl DatabaseStorage {
     }
 
     // Helper method, should be called before accessing database.
-    fn database(&self) -> Result<&Database> {
-        self.database.as_ref().ok_or(anyhow!(StorageError::NotOpened))
+    fn database(&self) -> Result<&Database, StorageError> {
+        self.database.as_ref().ok_or(StorageError::NotOpened)
     }
 }
 
@@ -85,7 +91,7 @@ impl Default for DatabaseStorage {
 impl Storage for DatabaseStorage {
     /// Indiciate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
-    async fn state(&self) -> Result<StorageState> {
+    async fn state(&self) -> Result<StorageState, StorageError> {
         if self.database.is_some() {
             return Ok(StorageState::Opened);
         }
@@ -100,9 +106,9 @@ impl Storage for DatabaseStorage {
     }
 
     /// Load a database, creating a new key file and database file if necessary.
-    async fn open(&mut self) -> Result<()> {
+    async fn open(&mut self) -> Result<(), StorageError> {
         if self.database.is_some() {
-            return Err(anyhow!(StorageError::AlreadyOpened));
+            return Err(StorageError::AlreadyOpened);
         }
 
         let database =
@@ -114,21 +120,21 @@ impl Storage for DatabaseStorage {
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
-    async fn clear(&mut self) -> Result<()> {
+    async fn clear(&mut self) -> Result<(), StorageError> {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        let database = self.database.take().ok_or(anyhow!(StorageError::NotOpened))?;
+        let database = self.database.take().ok_or(StorageError::NotOpened)?;
         let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
 
         // Delete the database and key file in parallel
         try_join!(
-            database.close_and_delete(),
-            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias)
+            database.close_and_delete().map_err(StorageError::from),
+            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(StorageError::from)
         )
         .map(|_| ())
     }
 
     /// Get data entry from the key-value table, if present.
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>> {
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
         let database = self.database()?;
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
@@ -141,7 +147,7 @@ impl Storage for DatabaseStorage {
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {

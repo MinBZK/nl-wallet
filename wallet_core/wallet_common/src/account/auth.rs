@@ -1,4 +1,3 @@
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -7,6 +6,7 @@ use super::{
     signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
     {serialization::DerVerifyingKey, signed::SignedDouble},
 };
+use crate::errors::{Result, ValidationError};
 
 /// Message that the wallet sends (signed) to the wallet provider during registration.
 /// This does not implement IsInstruction because it not get sent as an [`Instruction<Registration>`]. because there is
@@ -23,8 +23,12 @@ impl Registration {
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = pin_privkey.verifying_key()?;
-        let hw_pubkey = hw_privkey.verifying_key()?;
+        let pin_pubkey = pin_privkey
+            .verifying_key()
+            .map_err(|e| ValidationError::Ecdsa(e.into()))?;
+        let hw_pubkey = hw_privkey
+            .verifying_key()
+            .map_err(|e| ValidationError::Ecdsa(e.into()))?;
 
         SignedDouble::sign(
             Registration {

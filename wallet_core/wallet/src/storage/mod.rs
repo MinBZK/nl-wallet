@@ -7,9 +7,9 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
-use anyhow::Result;
 use async_trait::async_trait;
 
+use self::key_file::KeyFileError;
 pub use self::{
     data::{KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
@@ -31,20 +31,32 @@ pub enum StorageState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
-    #[error("Storage database is not opened")]
+    #[error("storage database is not opened")]
     NotOpened,
-    #[error("Storage database is already opened")]
+    #[error("storage database is already opened")]
     AlreadyOpened,
+    #[error("storage database I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("storage database error: {0}")]
+    Database(#[from] sea_orm::error::DbErr),
+    #[error("storage database JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("storage database SQLCipher key error: {0}")]
+    SqlCipherKey(#[from] std::array::TryFromSliceError),
+    #[error(transparent)]
+    KeyFile(#[from] KeyFileError),
+    #[error("storage database platform utilities error: {0}")]
+    PlatformUtilities(#[from] platform_support::utils::UtilitiesError),
 }
 
 /// This trait abstracts the persistent storage for the wallet.
 #[async_trait]
 pub trait Storage {
-    async fn state(&self) -> Result<StorageState>;
+    async fn state(&self) -> Result<StorageState, StorageError>;
 
-    async fn open(&mut self) -> Result<()>;
-    async fn clear(&mut self) -> Result<()>;
+    async fn open(&mut self) -> Result<(), StorageError>;
+    async fn clear(&mut self) -> Result<(), StorageError>;
 
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>>;
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<()>;
+    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError>;
 }

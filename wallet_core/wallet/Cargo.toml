@@ -10,9 +10,9 @@ mock = []
 entity = { path = "entity" }
 migration = { path = "migration" }
 wallet_common = { path = "../wallet_common" }
-anyhow = "1.0.66"
 async-trait = "0.1.68"
 base64 = "0.21.0"
+futures = { version = "0.3.28", default-features = false }
 libsqlite3-sys = { version = "0.24.2", features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }

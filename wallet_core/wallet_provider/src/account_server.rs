@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, EncodePublicKey},
@@ -15,6 +14,39 @@ use wallet_common::{
     },
     utils::{random_bytes, random_string},
 };
+
+#[derive(Debug, thiserror::Error)]
+pub enum AccountServerInitError {
+    // Do not format original error to prevent potentially leaking key material
+    #[error("server private key decoding error")]
+    PrivateKeyDecoding(#[from] p256::pkcs8::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ChallengeError {
+    #[error("challenge signing error: {0}")]
+    ChallengeSigning(#[source] wallet_common::errors::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RegistrationError {
+    #[error("registration challenge UTF-8 decoding error: {0}")]
+    ChallengeDecoding(#[from] std::string::FromUtf8Error),
+    #[error("registration challenge validation error: {0}")]
+    ChallengeValidation(#[source] wallet_common::errors::Error),
+    #[error("registration message parsing error: {0}")]
+    MessageParsing(#[source] wallet_common::errors::Error),
+    #[error("registration message validation error: {0}")]
+    MessageValidation(#[source] wallet_common::errors::Error),
+    #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
+    SerialNumberMismatch { expected: u64, received: u64 },
+    #[error("registration PIN public key decoding error: {0}")]
+    PinPubKeyDecoding(#[from] p256::pkcs8::spki::Error),
+    #[error("registration PIN public key DER encoding error: {0}")]
+    PinPubKeyEncoding(#[from] der::Error),
+    #[error("registration JWT signing error: {0}")]
+    JwtSigning(#[source] wallet_common::errors::Error),
+}
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -41,10 +73,13 @@ impl JwtClaims for RegistrationChallengeClaims {
 }
 
 impl AccountServer {
-    pub fn new(privkey: Vec<u8>, pin_hash_salt: Vec<u8>, name: String) -> Result<AccountServer> {
+    pub fn new(
+        privkey: Vec<u8>,
+        pin_hash_salt: Vec<u8>,
+        name: String,
+    ) -> Result<AccountServer, AccountServerInitError> {
         let pubkey = EcdsaDecodingKey::from_sec1(
-            SigningKey::from_pkcs8_der(&privkey)
-                .map_err(anyhow::Error::msg)?
+            SigningKey::from_pkcs8_der(&privkey)?
                 .verifying_key()
                 .to_encoded_point(false)
                 .as_bytes(),
@@ -59,7 +94,7 @@ impl AccountServer {
 
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
-    pub fn registration_challenge(&self) -> Result<Vec<u8>> {
+    pub fn registration_challenge(&self) -> Result<Vec<u8>, ChallengeError> {
         let challenge = Jwt::sign(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
@@ -67,31 +102,46 @@ impl AccountServer {
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
             &self.privkey,
-        )?
+        )
+        .map_err(ChallengeError::ChallengeSigning)?
         .0
         .as_bytes()
         .to_vec();
         Ok(challenge)
     }
 
-    fn verify_registration_challenge(&self, challenge: &[u8]) -> Result<RegistrationChallengeClaims> {
+    fn verify_registration_challenge(
+        &self,
+        challenge: &[u8],
+    ) -> Result<RegistrationChallengeClaims, RegistrationError> {
         Jwt::parse_and_verify(&String::from_utf8(challenge.to_owned())?.into(), &self.pubkey)
+            .map_err(RegistrationError::ChallengeValidation)
     }
 
-    pub fn register(&self, registration_message: SignedDouble<Registration>) -> Result<WalletCertificate> {
+    pub fn register(
+        &self,
+        registration_message: SignedDouble<Registration>,
+    ) -> Result<WalletCertificate, RegistrationError> {
         // We don't have the public keys yet against which to verify the message, as those are contained within the
         // message (like in X509 certificate requests). So first parse it to grab the public keys from it.
-        let unverified = registration_message.dangerous_parse_unverified()?;
+        let unverified = registration_message
+            .dangerous_parse_unverified()
+            .map_err(RegistrationError::MessageParsing)?;
 
         let challenge = &unverified.challenge.0;
         let wallet_id = self.verify_registration_challenge(challenge)?.wallet_id;
 
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
-        let signed = registration_message.parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)?;
+        let signed = registration_message
+            .parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)
+            .map_err(RegistrationError::MessageValidation)?;
 
         if signed.serial_number != 0 {
-            return Err(anyhow!("serial_number was {}, expected 0", signed.serial_number));
+            return Err(RegistrationError::SerialNumberMismatch {
+                expected: 0,
+                received: signed.serial_number,
+            });
         }
 
         self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)
@@ -104,14 +154,10 @@ impl AccountServer {
         wallet_id: String,
         wallet_hw_pubkey: VerifyingKey,
         wallet_pin_pubkey: VerifyingKey,
-    ) -> Result<WalletCertificate> {
-        let pin_pubkey_bts = wallet_pin_pubkey
-            .to_public_key_der()
-            .map_err(|e| anyhow!("failed to convert pin pubkey to DER bytes: {e}"))?
-            .to_vec();
+    ) -> Result<WalletCertificate, RegistrationError> {
+        let pin_pubkey_bts = wallet_pin_pubkey.to_public_key_der()?.to_vec();
 
-        let pin_pubkey_tohash = der_encode(vec![self.pin_hash_salt.clone(), pin_pubkey_bts])
-            .map_err(|e| anyhow!("failed to DER-encode pin pubkey: {e}"))?;
+        let pin_pubkey_tohash = der_encode(vec![self.pin_hash_salt.clone(), pin_pubkey_bts])?;
 
         let cert = WalletCertificateClaims {
             wallet_id,
@@ -123,7 +169,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, &self.privkey)
+        Jwt::sign(&cert, &self.privkey).map_err(RegistrationError::JwtSigning)
     }
 }
 
