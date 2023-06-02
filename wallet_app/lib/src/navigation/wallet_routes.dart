@@ -28,7 +28,7 @@ import '../feature/issuance/argument/issuance_screen_argument.dart';
 import '../feature/issuance/bloc/issuance_bloc.dart';
 import '../feature/issuance/issuance_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
-import '../feature/navigation/deeplink_service.dart';
+import '../data/service/deeplink_service.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
@@ -269,7 +269,13 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 
 Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
   return BlocProvider<WalletPersonalizeBloc>(
-    create: (BuildContext context) => WalletPersonalizeBloc(context.read(), context.read(), context.read()),
+    create: (BuildContext context) => WalletPersonalizeBloc(
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+      context.read(),
+    ),
     child: const WalletPersonalizeScreen(),
   );
 }

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../data/mapper/pin/pin_validation_error_mapper.dart';
+import '../data/repository/authentication/digid_auth_repository.dart';
+import '../data/repository/authentication/impl/digid_auth_repository_impl.dart';
 import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
 import '../data/repository/card/impl/timeline_attribute_repository_impl.dart';
@@ -75,6 +77,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<LanguageRepository>(
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
+        ),
+        RepositoryProvider<DigidAuthRepository>(
+          create: (context) => DigidAuthRepositoryImpl(context.read()),
         ),
       ],
       child: child,

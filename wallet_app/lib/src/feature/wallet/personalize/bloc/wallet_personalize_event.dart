@@ -9,6 +9,8 @@ abstract class WalletPersonalizeEvent extends Equatable {
 
 class WalletPersonalizeLoginWithDigidClicked extends WalletPersonalizeEvent {}
 
+class WalletPersonalizeAuthInProgress extends WalletPersonalizeEvent {}
+
 class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {}

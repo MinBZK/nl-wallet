@@ -26,7 +26,10 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<void> createWallet(String pin) async => await _walletCore.register(pin);
+  Future<void> createWallet(String pin) async {
+    await _walletCore.register(pin);
+    _locked.value = false; // Unlock on creation
+  }
 
   @override
   // TODO: implement confirmTransaction
@@ -47,9 +50,11 @@ class CoreWalletRepository implements WalletRepository {
 
   @override
   Future<void> unlockWallet(String pin) async {
+    if (_locked.value == false) return; // Already unlocked
     if (await isRegistered() == false) throw UnsupportedError('Wallet not yet registered!');
 
-    ///TODO: Check [pin] with _walletCore and update [_locked] stream.
+    ///TODO: Actually check the pin
+    _locked.add(false);
   }
 
   @override

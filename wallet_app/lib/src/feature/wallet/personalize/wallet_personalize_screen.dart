@@ -1,15 +1,19 @@
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../../environment.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
-import '../../../navigation/wallet_routes.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
+import '../../common/widget/flow_terminal_page.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -17,8 +21,8 @@ import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_digid_error_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
-import 'wallet_personalize_no_digid_screen.dart';
 import 'page/wallet_personalize_success_page.dart';
+import 'wallet_personalize_no_digid_screen.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
   const WalletPersonalizeScreen({Key? key}) : super(key: key);
@@ -74,12 +78,13 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildPage() {
     return BlocConsumer<WalletPersonalizeBloc, WalletPersonalizeState>(
-      listenWhen: (prev, current) => current is WalletPersonalizeLoadingPid,
-      listener: (context, state) => _loginWithDigid(context),
+      listenWhen: (prev, current) => current is WalletPersonalizeConnectDigid,
+      listener: (context, state) => _loginWithDigid(context, (state as WalletPersonalizeConnectDigid).authUrl),
       builder: (context, state) {
         Widget? result;
         if (state is WalletPersonalizeInitial) result = _buildWalletIntroPage(context);
-        if (state is WalletPersonalizeLoadingPid) result = _buildLoading(context);
+        if (state is WalletPersonalizeConnectDigid) result = _buildAuthenticatingWithDigid(context);
+        if (state is WalletPersonalizeAuthenticating) result = _buildAuthenticatingWithDigid(context);
         if (state is WalletPersonalizeLoadInProgress) result = _buildLoading(context);
         if (state is WalletPersonalizeCheckData) result = _buildCheckDataOfferingPage(context, state);
         if (state is WalletPersonalizeConfirmPin) result = _buildConfirmPinPage(context, state);
@@ -99,7 +104,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading(BuildContext context) {
+  Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
     final locale = AppLocalizations.of(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -118,8 +123,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const CenteredLoadingIndicator(),
+        if (onCancel != null) ...[
+          const SizedBox(height: 48),
+          TextButton(
+            onPressed: onCancel,
+            child: Text(locale.generalCancelCta),
+          ),
+        ],
       ],
     );
+  }
+
+  Widget _buildAuthenticatingWithDigid(BuildContext context) {
+    return _buildLoading(context, onCancel: () => context.bloc.add(WalletPersonalizeLoginWithDigidFailed()));
   }
 
   Widget _buildWalletIntroPage(BuildContext context) {
@@ -129,14 +145,24 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  void _loginWithDigid(BuildContext context) async {
+  void _loginWithDigid(BuildContext context, String authUrl) async {
     final bloc = context.bloc;
-    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
-    await Future.delayed(kDefaultMockDelay);
-    if (loginSucceeded) {
-      bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+    if (Environment.mockRepositories) {
+      // Perform the mock DigiD flow
+      final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
+      await Future.delayed(kDefaultMockDelay);
+      if (loginSucceeded) {
+        bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
+      } else {
+        bloc.add(WalletPersonalizeLoginWithDigidFailed());
+      }
     } else {
-      bloc.add(WalletPersonalizeLoginWithDigidFailed());
+      try {
+        launchUrlString(authUrl, mode: LaunchMode.externalApplication);
+      } catch (ex) {
+        Fimber.e('Failed to open auth url: $authUrl', ex: ex);
+        bloc.add(WalletPersonalizeLoginWithDigidFailed());
+      }
     }
   }
 
@@ -148,15 +174,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildErrorPage(BuildContext context) {
-    return Center(
-      child: IconButton(
-        iconSize: 64,
-        onPressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
-        icon: Icon(
-          Icons.error,
-          color: Theme.of(context).colorScheme.error,
-        ),
-      ),
+    final locale = AppLocalizations.of(context);
+    return FlowTerminalPage(
+      icon: Icons.not_interested,
+      iconColor: Theme.of(context).primaryColorDark,
+      title: locale.walletPersonalizeScreenErrorTitle,
+      description: locale.walletPersonalizeScreenErrorDescription,
+      closeButtonCta: locale.walletPersonalizeScreenErrorRetryCta,
+      onClosePressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
     );
   }
 

@@ -67,6 +67,29 @@ fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSaf
         },
     )
 }
+fn wire_get_digid_auth_url_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "get_digid_auth_url",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| get_digid_auth_url(),
+    )
+}
+fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "process_uri",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || {
+            let api_uri = uri.wire2api();
+            move |task_callback| process_uri(api_uri, task_callback.stream_sink())
+        },
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

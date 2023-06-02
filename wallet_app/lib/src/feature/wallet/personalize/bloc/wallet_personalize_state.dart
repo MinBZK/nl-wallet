@@ -17,10 +17,29 @@ abstract class WalletPersonalizeState extends Equatable {
 
 class WalletPersonalizeInitial extends WalletPersonalizeState {
   @override
+  final bool didGoBack;
+
+  const WalletPersonalizeInitial({this.didGoBack = false});
+
+  @override
   double get stepperProgress => 1 / _kNrOfPages;
 }
 
-class WalletPersonalizeLoadingPid extends WalletPersonalizeState {
+class WalletPersonalizeConnectDigid extends WalletPersonalizeState {
+  final String authUrl;
+
+  const WalletPersonalizeConnectDigid(this.authUrl);
+
+  @override
+  double get stepperProgress => 2 / _kNrOfPages;
+
+  @override
+  List<Object?> get props => [...super.props, authUrl];
+}
+
+class WalletPersonalizeAuthenticating extends WalletPersonalizeState {
+  const WalletPersonalizeAuthenticating();
+
   @override
   double get stepperProgress => 2 / _kNrOfPages;
 }
@@ -68,7 +87,7 @@ class WalletPersonalizeSuccess extends WalletPersonalizeState {
 
 class WalletPersonalizeFailure extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 0;
+  double get stepperProgress => 1;
 }
 
 class WalletPersonalizeDigidFailure extends WalletPersonalizeState {
