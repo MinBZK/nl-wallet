@@ -13,7 +13,7 @@ use std::ops::Add;
 use x509_parser::prelude::{FromDer, X509Certificate};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
+    basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
     holder::*,
     iso::*,
     issuer::*,
@@ -199,6 +199,15 @@ impl IssuanceKeyring for MockIssuanceKeyring {
     }
 }
 
+struct MockUserconsent;
+
+#[async_trait]
+impl UserConsentIssuance for MockUserconsent {
+    async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+        true
+    }
+}
+
 #[test]
 fn issuance_and_disclosure() {
     // Issuer CA certificate and normal certificate
@@ -229,7 +238,12 @@ fn issuance_and_disclosure() {
         .unwrap()
         .block_on(async {
             wallet
-                .do_issuance(service_engagement, client_builder, &trusted_issuer_certs)
+                .do_issuance(
+                    service_engagement,
+                    MockUserconsent,
+                    client_builder,
+                    &trusted_issuer_certs,
+                )
                 .await
                 .unwrap();
         });

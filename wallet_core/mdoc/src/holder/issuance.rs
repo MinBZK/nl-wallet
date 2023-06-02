@@ -78,11 +78,17 @@ pub trait HttpClient {
         R: DeserializeOwned;
 }
 
+#[async_trait]
+pub trait UserConsentIssuance {
+    async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
+}
+
 impl Credentials {
-    pub async fn do_issuance<T: HttpClientBuilder>(
+    pub async fn do_issuance(
         &self,
         service_engagement: ServiceEngagement,
-        client_builder: T,
+        user_consent: impl UserConsentIssuance,
+        client_builder: impl HttpClientBuilder,
         trusted_issuer_certs: &TrustedIssuerCerts<'_>,
     ) -> Result<()> {
         let client = client_builder.build(service_engagement);
@@ -98,6 +104,16 @@ impl Credentials {
                 version: 1, // TODO magic number
             })
             .await?;
+
+        if !user_consent.ask(&request).await {
+            // Inform the server we want to abourt. We don't care if an error occurs here
+            let _: Result<EndSessionMessage> = client
+                .post(&RequestEndSessionMessage {
+                    e_session_id: session_id.clone(),
+                })
+                .await;
+            return Ok(());
+        }
 
         // Compute responses
         let state = IssuanceState::issuance_start(request)?;
