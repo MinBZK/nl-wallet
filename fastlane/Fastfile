@@ -223,7 +223,7 @@ platform :ios do
     )
   end
 
-  desc "Build iOS app"
+  desc "Build and sign iOS app"
   lane :build do |options|
     bundle_id = options[:bundle_id] || get_app_identifier
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
