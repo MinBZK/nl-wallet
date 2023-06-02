@@ -148,6 +148,7 @@
   "forgotPinScreenHeadline": "Code vergeten?",
   "forgotPinScreenTitle": "Toegangscode vergeten",
   "generalBottomBackCta": "Terug",
+  "generalCancelCta": "Annuleren",
   "generalDays": "{days, plural, =1 {{days} dag} other {{days} dagen}}",
   "@generalDays": {
     "placeholders": {
@@ -827,6 +828,9 @@
   "walletPersonalizePhotoAddedPageDataIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizePhotoAddedPageSubtitle": "Je hebt je pasfoto toegevoegd",
   "walletPersonalizePhotoAddedPageTitle": "Gelukt!",
+  "walletPersonalizeScreenErrorDescription": "Er is iets mis gegaan, probeer het opnieuw",
+  "walletPersonalizeScreenErrorRetryCta": "Probeer opnieuw",
+  "walletPersonalizeScreenErrorTitle": "Personaliseren mislukt",
   "walletPersonalizeScreenExitSheetCancelCta": "Nee",
   "walletPersonalizeScreenExitSheetConfirmCta": "Ja, stoppen",
   "walletPersonalizeScreenExitSheetDescription": "Weet je zeker dat je wilt stoppen met het aanmaken van een wallet?",

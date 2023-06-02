@@ -3,6 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
+import '../domain/usecase/auth/get_digid_auth_url_usecase.dart';
+import '../domain/usecase/auth/impl/get_digid_auth_url_usecase_impl.dart';
+import '../domain/usecase/auth/impl/observe_digid_auth_status_usecase_impl.dart';
+import '../domain/usecase/auth/impl/update_digid_auth_status_usecase_impl.dart';
+import '../domain/usecase/auth/observe_digid_auth_status_usecase.dart';
+import '../domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import '../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
@@ -68,8 +74,10 @@ import '../domain/usecase/wallet/impl/get_first_name_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
+import '../domain/usecase/wallet/impl/observe_wallet_lock_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import '../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
@@ -198,6 +206,18 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetRequestedAttributesWithCardUseCase>(
           create: (context) => GetRequestedAttributesWithCardUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetDigidAuthUrlUseCase>(
+          create: (context) => GetDigidAuthUrlUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveDigidAuthStatusUseCase>(
+          create: (context) => ObserveDigidAuthStatusUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<UpdateDigidAuthStatusUseCase>(
+          create: (context) => UpdateDigidAuthStatusUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveWalletLockUseCase>(
+          create: (context) => ObserveWalletLockUseCaseImpl(context.read()),
         ),
       ],
       child: child,

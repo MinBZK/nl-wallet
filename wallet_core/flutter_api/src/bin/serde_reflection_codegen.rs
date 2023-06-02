@@ -3,6 +3,7 @@ mod models;
 
 use std::{env, path::PathBuf};
 
+use crate::models::uri_flow_event::{DigidState, UriFlowEvent};
 use anyhow::Result;
 use const_format::formatcp;
 use serde_reflection::{Registry, Tracer, TracerConfig};
@@ -15,6 +16,8 @@ const DART_OUTPUT_PATH: &str = formatcp!("{}/../../wallet_app/pub/{}", env!("CAR
 fn main() -> Result<()> {
     let mut tracer = Tracer::new(TracerConfig::default());
     tracer.trace_simple_type::<PinValidationResult>().unwrap();
+    tracer.trace_simple_type::<DigidState>().unwrap();
+    tracer.trace_simple_type::<UriFlowEvent>().unwrap();
     let registry = tracer.registry().unwrap();
 
     generate_dart(&registry)

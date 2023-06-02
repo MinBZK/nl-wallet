@@ -148,6 +148,7 @@
   "forgotPinScreenHeadline": "Forgot your pin?",
   "forgotPinScreenTitle": "Forgot pin",
   "generalBottomBackCta": "Back",
+  "generalCancelCta": "Cancel",
   "generalDays": "{days, plural, =1 {{days} day} other {{days} days}}",
   "@generalDays": {
     "placeholders": {
@@ -827,6 +828,9 @@
   "walletPersonalizePhotoAddedPageDataIncorrectCta": "Something not right?",
   "walletPersonalizePhotoAddedPageSubtitle": "Your photo has been added",
   "walletPersonalizePhotoAddedPageTitle": "Success!",
+  "walletPersonalizeScreenErrorDescription": "Something went wrong, please try again",
+  "walletPersonalizeScreenErrorRetryCta": "Try again",
+  "walletPersonalizeScreenErrorTitle": "Personalization failed",
   "walletPersonalizeScreenExitSheetCancelCta": "No",
   "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
   "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your wallet?",

@@ -34,6 +34,10 @@ void wire_has_registration(int64_t port_);
 
 void wire_register(int64_t port_, struct wire_uint_8_list *pin);
 
+void wire_get_digid_auth_url(int64_t port_);
+
+void wire_process_uri(int64_t port_, struct wire_uint_8_list *uri);
+
 struct wire_uint_8_list *new_uint_8_list_0(int32_t len);
 
 void free_WireSyncReturn(WireSyncReturn ptr);
@@ -44,6 +48,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_is_valid_pin);
     dummy_var ^= ((int64_t) (void*) wire_has_registration);
     dummy_var ^= ((int64_t) (void*) wire_register);
+    dummy_var ^= ((int64_t) (void*) wire_get_digid_auth_url);
+    dummy_var ^= ((int64_t) (void*) wire_process_uri);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
     dummy_var ^= ((int64_t) (void*) free_WireSyncReturn);
     dummy_var ^= ((int64_t) (void*) store_dart_post_cobject);

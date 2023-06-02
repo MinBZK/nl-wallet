@@ -26,6 +26,14 @@ abstract class WalletCore {
   Future<void> register({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kRegisterConstMeta;
+
+  Future<String> getDigidAuthUrl({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kGetDigidAuthUrlConstMeta;
+
+  Stream<Uint8List> processUri({required String uri, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -97,10 +105,45 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
+  Future<String> getDigidAuthUrl({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_get_digid_auth_url(port_),
+      parseSuccessData: _wire2api_String,
+      constMeta: kGetDigidAuthUrlConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kGetDigidAuthUrlConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "get_digid_auth_url",
+        argNames: [],
+      );
+
+  Stream<Uint8List> processUri({required String uri, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(uri);
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_process_uri(port_, arg0),
+      parseSuccessData: _wire2api_uint_8_list,
+      constMeta: kProcessUriConstMeta,
+      argValues: [uri],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "process_uri",
+        argNames: ["uri"],
+      );
+
   void dispose() {
     _platform.dispose();
   }
 // Section: wire2api
+
+  String _wire2api_String(dynamic raw) {
+    return raw as String;
+  }
 
   bool _wire2api_bool(dynamic raw) {
     return raw as bool;
@@ -278,6 +321,32 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_registerPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_register');
   late final _wire_register = _wire_registerPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_get_digid_auth_url(
+    int port_,
+  ) {
+    return _wire_get_digid_auth_url(
+      port_,
+    );
+  }
+
+  late final _wire_get_digid_auth_urlPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_get_digid_auth_url');
+  late final _wire_get_digid_auth_url = _wire_get_digid_auth_urlPtr.asFunction<void Function(int)>();
+
+  void wire_process_uri(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> uri,
+  ) {
+    return _wire_process_uri(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire_process_uriPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_process_uri');
+  late final _wire_process_uri = _wire_process_uriPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

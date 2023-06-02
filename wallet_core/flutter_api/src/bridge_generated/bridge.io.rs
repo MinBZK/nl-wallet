@@ -21,6 +21,16 @@ pub extern "C" fn wire_register(port_: i64, pin: *mut wire_uint_8_list) {
     wire_register_impl(port_, pin)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_get_digid_auth_url(port_: i64) {
+    wire_get_digid_auth_url_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_process_uri(port_: i64, uri: *mut wire_uint_8_list) {
+    wire_process_uri_impl(port_, uri)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

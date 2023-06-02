@@ -1,10 +1,21 @@
-use anyhow::{Ok, Result};
+use std::thread::sleep;
+use std::time::Duration;
+
+use anyhow::{anyhow, Ok, Result};
+use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 
 use macros::async_runtime;
 use wallet::{init_wallet, validate_pin, Wallet};
 
-use crate::{async_runtime::init_async_runtime, logging::init_logging, models::pin::PinValidationResult};
+use crate::{
+    async_runtime::init_async_runtime,
+    logging::init_logging,
+    models::{
+        pin::PinValidationResult,
+        uri_flow_event::{DigidState, UriFlowEvent},
+    },
+};
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
@@ -65,6 +76,40 @@ pub async fn has_registration() -> Result<bool> {
 pub async fn register(pin: String) -> Result<()> {
     wallet().write().await.register(pin).await?;
 
+    Ok(())
+}
+
+#[async_runtime]
+pub async fn get_digid_auth_url() -> Result<String> {
+    // TODO: Replace with real implementation.
+    Ok("https://example.com".to_string())
+}
+
+#[async_runtime]
+pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
+    // TODO: The code below is POC sample code, to be replace with a real implementation.
+    if uri.contains("authentication") {
+        let auth_event = UriFlowEvent::DigidAuth {
+            state: DigidState::Authenticating,
+        };
+        sink.add(bincode::serialize(&auth_event).unwrap());
+        sleep(Duration::from_secs(5));
+        if uri.contains("success") {
+            let success_event = UriFlowEvent::DigidAuth {
+                state: DigidState::Success,
+            };
+            sink.add(bincode::serialize(&success_event).unwrap());
+        } else {
+            let error_event = UriFlowEvent::DigidAuth {
+                state: DigidState::Error,
+            };
+            sink.add(bincode::serialize(&error_event).unwrap());
+        }
+    } else {
+        return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
+    }
+    // TODO: Create newtype and implement Drop trait to automate sink closure.
+    sink.close();
     Ok(())
 }
 
