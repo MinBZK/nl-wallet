@@ -79,7 +79,7 @@ pub trait HttpClient {
 }
 
 #[async_trait]
-pub trait UserConsentIssuance {
+pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
@@ -87,8 +87,8 @@ impl Credentials {
     pub async fn do_issuance(
         &self,
         service_engagement: ServiceEngagement,
-        user_consent: impl UserConsentIssuance,
-        client_builder: impl HttpClientBuilder,
+        user_consent: &impl IssuanceUserConsent,
+        client_builder: &impl HttpClientBuilder,
         trusted_issuer_certs: &TrustedIssuerCerts<'_>,
     ) -> Result<()> {
         let client = client_builder.build(service_engagement);
@@ -251,5 +251,101 @@ impl Entry {
             element_value: self.value.clone(),
         }
         .into()
+    }
+}
+
+pub use issuance_consent::*;
+
+/// This module converts [`super::UserConsentIssuance`], which uses an async trait to one ([`IssuanceSessionReceiver`])
+/// that doesn't. This API works as follows:
+/// - Implement [`IssuanceSessionReceiver`].
+/// - Pass an [`IssuanceSessionReceiver`] to [`IssuanceSessions::new()`], and use the resulting `IssuanceSessions`
+///   instance as the [`super::IssuanceUserConsent`] input parameter to [`Credentials::do_issuance()`].
+/// - When a session is started, you receive its session request (i.e. a [`&RequestKeyGenerationMessage`]) in your
+///   [`IssuanceSessionReceiver`] implementation.
+/// - When the user provides consent (or not), call `IssuanceSessions::provide_consent()` with the session ID
+///   from the session request (field `e_session_id` of `RequestKeyGenerationMessage`).
+mod issuance_consent {
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::Arc,
+        task::{Context, Poll, Waker},
+    };
+
+    use async_trait::async_trait;
+    use dashmap::DashMap;
+
+    use crate::{basic_sa_ext::RequestKeyGenerationMessage, iso::*};
+
+    use super::IssuanceUserConsent;
+
+    pub trait IssuanceSessionReceiver {
+        fn receive(&self, msg: &RequestKeyGenerationMessage);
+    }
+
+    pub struct IssuanceSessions<T> {
+        sessions: Arc<DashMap<SessionId, SessionFutureState>>,
+        sender: T,
+    }
+
+    #[derive(Default)]
+    struct SessionFutureState {
+        permission: Option<bool>,
+        waker: Option<Waker>,
+    }
+
+    struct SessionFuture {
+        sessions: Arc<DashMap<SessionId, SessionFutureState>>,
+        id: SessionId,
+    }
+
+    impl<T: Sync> IssuanceSessions<T> {
+        pub fn new(sender: T) -> Self {
+            Self {
+                sessions: DashMap::new().into(),
+                sender,
+            }
+        }
+
+        fn add(&self, id: SessionId) -> SessionFuture {
+            self.sessions.insert(id.clone(), SessionFutureState::default());
+            SessionFuture {
+                sessions: self.sessions.clone(),
+                id,
+            }
+        }
+
+        pub fn provide_consent(&self, id: &SessionId, permission: bool) {
+            let mut data = self.sessions.get_mut(id).unwrap();
+            data.permission = Some(permission);
+            if let Some(waker) = data.waker.as_ref() {
+                waker.clone().wake()
+            }
+        }
+    }
+
+    impl Future for SessionFuture {
+        type Output = bool;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            let mut data = self.sessions.get_mut(&self.id).unwrap();
+            match data.permission {
+                Some(permission) => Poll::Ready(permission),
+                None => {
+                    data.waker = Some(cx.waker().clone());
+                    Poll::Pending
+                }
+            }
+        }
+    }
+
+    #[async_trait]
+    impl<T: IssuanceSessionReceiver + Sync> IssuanceUserConsent for IssuanceSessions<T> {
+        async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool {
+            let fut = self.add(request.e_session_id.clone());
+            self.sender.receive(request);
+            fut.await
+        }
     }
 }

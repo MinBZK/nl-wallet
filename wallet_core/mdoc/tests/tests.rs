@@ -3,13 +3,14 @@ use async_trait::async_trait;
 use ciborium::value::Value;
 use core::fmt::Debug;
 use indexmap::IndexMap;
+use once_cell::sync::OnceCell;
 use p256::pkcs8::{
     der::{asn1::SequenceOf, Encode},
     DecodePrivateKey, ObjectIdentifier,
 };
 use rcgen::{BasicConstraints, Certificate, CertificateParams, CustomExtension, DnType, IsCa};
 use serde::{de::DeserializeOwned, Serialize};
-use std::ops::Add;
+use std::{ops::Add, sync::Arc};
 use x509_parser::prelude::{FromDer, X509Certificate};
 
 use nl_wallet_mdoc::{
@@ -199,17 +200,57 @@ impl IssuanceKeyring for MockIssuanceKeyring {
     }
 }
 
-struct MockUserconsent;
-
-#[async_trait]
-impl UserConsentIssuance for MockUserconsent {
-    async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
-        true
+fn user_consent_async() -> impl IssuanceUserConsent {
+    struct MockUserConsent;
+    #[async_trait]
+    impl IssuanceUserConsent for MockUserConsent {
+        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+            true
+        }
     }
+    MockUserConsent
+}
+
+fn user_consent_without_async() -> impl IssuanceUserConsent {
+    #[derive(Default, Clone)]
+    struct MockIssuanceSessionReceiver {
+        /// Keep track of the `IssuanceSessions` as we need to invoke `provide_consent()` on it.
+        /// This is a `OnceCell` because we have to instantiate this struct before the `IssuanceSessions`,
+        /// while in `receive()` below we have to refer that same `IssuanceSessions`.
+        ///
+        /// In real-world implementations of `IssuanceSessionReceiver`, receiving session requests and
+        /// providing consent for a session is expected to be be much less tightly coupled, since the latter happens by
+        /// user initiative.
+        sessions: Arc<OnceCell<IssuanceSessions<MockIssuanceSessionReceiver>>>,
+    }
+    impl IssuanceSessionReceiver for MockIssuanceSessionReceiver {
+        fn receive(&self, msg: &RequestKeyGenerationMessage) {
+            let sessions = self.sessions.get().unwrap();
+            sessions.provide_consent(&msg.e_session_id, true)
+        }
+    }
+
+    #[async_trait]
+    impl IssuanceUserConsent for MockIssuanceSessionReceiver {
+        async fn ask(&self, msg: &RequestKeyGenerationMessage) -> bool {
+            self.sessions.get().unwrap().ask(msg).await
+        }
+    }
+
+    let user_consent = MockIssuanceSessionReceiver::default();
+    let sessions = IssuanceSessions::new(user_consent.clone());
+    assert!(user_consent.sessions.set(sessions).is_ok());
+
+    user_consent
 }
 
 #[test]
 fn issuance_and_disclosure() {
+    issuance_and_disclosure_using_consent(user_consent_async());
+    issuance_and_disclosure_using_consent(user_consent_without_async());
+}
+
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
@@ -240,8 +281,8 @@ fn issuance_and_disclosure() {
             wallet
                 .do_issuance(
                     service_engagement,
-                    MockUserconsent,
-                    client_builder,
+                    &user_consent,
+                    &client_builder,
                     &trusted_issuer_certs,
                 )
                 .await
