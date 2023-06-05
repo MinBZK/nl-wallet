@@ -18,6 +18,7 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
+    issuer_shared::SessionToken,
     serialization::{cbor_deserialize, cbor_serialize},
     Error,
 };
@@ -155,7 +156,7 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
 
 struct MockHttpClient<'a, K, S> {
     issuance_server: &'a Server<K, S>,
-    session_id: SessionId,
+    session_token: SessionToken,
 }
 
 #[async_trait]
@@ -167,7 +168,7 @@ impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> 
     {
         let response = self
             .issuance_server
-            .process_message(self.session_id.clone(), cbor_serialize(val).unwrap())
+            .process_message(self.session_token.clone(), cbor_serialize(val).unwrap())
             .unwrap();
 
         // Hacky way to cast `response`, which is a `Box<dyn IssuerResponse>`, to the requested type:
@@ -186,7 +187,7 @@ impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, Me
     fn build(&self, engagement: ServiceEngagement) -> Self::Client {
         MockHttpClient {
             issuance_server: self.issuance_server,
-            session_id: hex::decode(engagement.url.unwrap()).unwrap().into(),
+            session_token: engagement.url.unwrap().into(),
         }
     }
 }

@@ -16,7 +16,7 @@ use crate::{
     cose::{ClonePayload, MdocCose},
     crypto::random_bytes,
     iso::*,
-    issuer_shared::IssuanceError,
+    issuer_shared::{IssuanceError, SessionToken},
     serialization::{cbor_deserialize, TaggedBytes},
     Error, Result,
 };
@@ -66,13 +66,13 @@ impl SessionState {
 }
 
 pub trait SessionStore {
-    fn get(&self, id: &SessionId) -> Result<SessionData>;
+    fn get(&self, id: &SessionToken) -> Result<SessionData>;
     fn write(&self, session: &SessionData);
 }
 
 #[derive(Debug, Default)]
 pub struct MemorySessionStore {
-    sessions: DashMap<SessionId, SessionData>,
+    sessions: DashMap<SessionToken, SessionData>,
 }
 
 impl MemorySessionStore {
@@ -84,17 +84,17 @@ impl MemorySessionStore {
 }
 
 impl SessionStore for MemorySessionStore {
-    fn get(&self, id: &SessionId) -> Result<SessionData> {
+    fn get(&self, token: &SessionToken) -> Result<SessionData> {
         let data = self
             .sessions
-            .get(id)
-            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(id.clone())))?
+            .get(token)
+            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?
             .clone();
         Ok(data)
     }
 
     fn write(&self, session: &SessionData) {
-        self.sessions.insert(session.id.clone(), session.clone());
+        self.sessions.insert(session.token.clone(), session.clone());
     }
 }
 
@@ -120,6 +120,7 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
 
         let challenge = ByteBuf::from(random_bytes(32));
         let session_id: SessionId = ByteBuf::from(random_bytes(32)).into();
+        let token = SessionToken::new();
         let request = RequestKeyGenerationMessage {
             e_session_id: session_id.clone(),
             challenge,
@@ -127,13 +128,14 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
         };
 
         self.sessions.write(&SessionData {
+            token: token.clone(),
             request,
             state: Created,
-            id: session_id.clone(),
+            id: session_id,
         });
 
         Ok(ServiceEngagement {
-            url: (self.url.clone() + &session_id.to_string()).into(),
+            url: (self.url.clone() + &token.0).into(),
             ..Default::default()
         })
     }
@@ -148,13 +150,10 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
     }
 
     /// Process a CBOR-encoded issuance protocol message from the holder.
-    pub fn process_message(&self, id: SessionId, msg: Vec<u8>) -> Result<Box<dyn IssuerResponse>> {
+    pub fn process_message(&self, token: SessionToken, msg: Vec<u8>) -> Result<Box<dyn IssuerResponse>> {
         let (msg_type, session_id) = Self::inspect_message(&msg)?;
-        if msg_type != START_PROVISIONING_MSG_TYPE {
-            Self::expect_session_id(&session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?, &id)?;
-        }
 
-        let mut session_data = self.sessions.get(&id)?;
+        let mut session_data = self.sessions.get(&token)?;
         let mut session = Session {
             sessions: &self.sessions,
             session_data: &mut session_data,
@@ -162,11 +161,21 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
             updated: false,
         };
 
+        // If this is not the very first protocol message, the session ID is expected in every message.
+        if msg_type != START_PROVISIONING_MSG_TYPE {
+            Self::expect_session_id(
+                &session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?,
+                &session.session_data.id,
+            )?;
+        }
+
+        // Stop the session if the user wishes.
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
             let response = session.process_cancel();
             return Ok(Box::new(response));
         }
 
+        // Process the holder's message according to the current session state.
         match session.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
@@ -248,6 +257,7 @@ pub struct SessionData {
     request: RequestKeyGenerationMessage,
     state: SessionState,
     id: SessionId,
+    token: SessionToken,
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.

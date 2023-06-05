@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use coset::Header;
 use ecdsa::SigningKey;
 use p256::NistP256;
@@ -9,6 +11,7 @@ use crate::{
         UnsignedMdoc,
     },
     cose::{ClonePayload, CoseKey, MdocCose},
+    crypto::random_string,
     serialization::cbor_serialize,
     DocType, Result, SessionId,
 };
@@ -24,13 +27,41 @@ pub enum IssuanceError {
     #[error("received response for wrong doctype: {received}, expected {expected}")]
     WrongDocType { received: DocType, expected: DocType },
     #[error("unknown session ID: {0}")]
-    UnknownSessionId(SessionId),
+    UnknownSessionId(SessionToken),
     #[error("cannot process holder input: session has ended")]
     SessionEnded,
     #[error("unexpected message type: {received}, expected {expected}")]
     UnexpectedMessageType { received: String, expected: String },
     #[error("missing private key for doctype {0}")]
     MissingPrivateKey(DocType),
+}
+
+/// Identifies an issuance session in a URL, as passed from the issuer to the holder using the `url` field of
+/// [`iso::ServiceEngagement`]).
+/// This token is distict from [`iso::SessionId`] because the `ServiceEngagement` may be transmitted over an insecure
+/// channel (e.g. a QR code). By not using the `SessionId` for this, the issuer transmits this to the holder in response
+/// to its first HTTPS request, so that it remains secret between them. Since in later protocol messages the issuer
+/// enforces that the correct session ID is present, this means that only the party that sends the first HTTP request
+/// can send later HTTP requests for the session.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct SessionToken(pub(crate) String);
+
+impl SessionToken {
+    pub fn new() -> Self {
+        random_string(32).into()
+    }
+}
+
+impl From<String> for SessionToken {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for SessionToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
 }
 
 impl Response {
