@@ -17,7 +17,7 @@
   "cardDataScreenDataPrivacySheetClose": "Close",
   "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function.",
   "cardDataScreenDataPrivacySheetTitle": "View of your data",
-  "cardDataScreenIncorrectCta": "Is something not right?",
+  "cardDataScreenIncorrectCta": "Is the data incorrect?",
   "cardHistoryScreenTitle": "Card history",
   "cardHistoryTimelineInteractionFailed": "Failed to share",
   "cardHistoryTimelineInteractionRejected": "Rejected to share",
@@ -108,7 +108,7 @@
   "checkAgreementPageSubtitle": "Check the agreement before continuing",
   "checkAgreementPageTitle": "Are you aware of the agreement?",
   "checkAttributesScreenDataIncorrectCta": "Something not right?",
-  "checkAttributesScreenTitle": "Verify",
+  "checkAttributesScreenTitle": "Your data",
   "confirmAgreementPageCancelCta": "No",
   "confirmAgreementPageConfirmCta": "Yes, sign",
   "confirmAgreementPageDataIncorrectCta": "Something not right?",
@@ -199,6 +199,7 @@
   "generalPolicyDataWillBeShared": "Your information will be shared with third parties",
   "generalPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
   "generalRetry": "Retry",
+  "generalSheetCloseCta": "Close",
   "generalTimeAgo": "ago",
   "generalTimeAgoLessThenOneMinute": "less then a minute",
   "generalVersionText": "App version: {versionName} ({versionCode})",
@@ -510,13 +511,12 @@
     "description": "Title shown at the top of the screen when signing"
   },
   "organizationButtonLabel": "About this organization",
-  "organizationDetailScreenDataIncorrectCta": "Something not right?",
   "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
   "organizationDetailScreenInfoHeader": "Info",
-  "organizationDetailScreenOrganizationNotChecked": "This organization is not verified.",
-  "organizationDetailScreenOrganizationNotCheckedReadMore": "Read more",
   "organizationDetailScreenPrivacyHeader": "Privacy",
   "organizationDetailScreenPrivacyPolicy": "privacy statement",
+  "organizationDetailScreenReportIssueCta": "Report a problem",
+  "organizationDetailScreenTitle": "About this organization",
   "organizationDetailScreenViewTerms": "View the",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "select",
@@ -608,7 +608,7 @@
   "reportOptionUntrusted": "Ik vertrouw het niet",
   "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
   "setupSecurityCompletedPageDescription": "Your security is configured.",
-  "setupSecurityCompletedPageTitle": "Success",
+  "setupSecurityCompletedPageTitle": "Success!",
   "setupSecurityConfirmationErrorPageDescription": "Try again",
   "setupSecurityConfirmationErrorPageFatalCta": "Choose new code",
   "setupSecurityConfirmationErrorPageFatalDescription": "Try again",
@@ -677,21 +677,7 @@
   },
   "signSuccessPageHistoryCta": "History",
   "signSuccessPageTitle": "Success!",
-  "stopVerificationSheetDescription": "If you stop, no data will be shared with {organization}.",
-  "@stopVerificationSheetDescription": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
-  },
-  "stopVerificationSheetNegativeCta": "No",
-  "stopVerificationSheetPositiveCta": "Yes, stop",
-  "stopVerificationSheetReportIssueCta": "Report a problem",
-  "stopVerificationSheetTitle": "Are you sure you want to stop?",
-  "verificationConfirmDataAttributesCheckAttributesCta": "Check your data",
+  "verificationConfirmDataAttributesCheckAttributesCta": "View your data",
   "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
   "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
@@ -770,6 +756,20 @@
   "verificationReportSubmittedPageSubtitle": "Your report has been sent anonymously. The organization will be checked as soon as possible.\n\nNever share any data with organizations you do not trust.",
   "verificationReportSubmittedPageTitle": "Thanks for your feedback",
   "verificationScreenTitle": "Share data",
+  "verificationStopSheetDescription": "If you stop, no data will be shared with {organization}.",
+  "@verificationStopSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "verificationStopSheetNegativeCta": "No",
+  "verificationStopSheetPositiveCta": "Yes, stop",
+  "verificationStopSheetReportIssueCta": "Report a problem",
+  "verificationStopSheetTitle": "Are you sure you want to stop?",
   "verificationStoppedPageCloseCta": "Close",
   "verificationStoppedPageDescription": "Because you have stopped, no data has been shared.",
   "verificationStoppedPageFeedbackCta": "Give Feedback",
@@ -792,7 +792,7 @@
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
   "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
-  "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add these cards to your wallet.",
+  "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",
   "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, =1 {You can try {count} more time} other {You can try {count} more times}}",
   "@walletPersonalizeConfirmPinPageErrorDescription": {
     "placeholders": {
@@ -813,7 +813,7 @@
   "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login",
   "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
   "walletPersonalizeDigidErrorPageTitle": "Login cancelled",
-  "walletPersonalizeIntroPageDescription": "You create a wallet by retrieving your personal information through DigiD",
+  "walletPersonalizeIntroPageDescription": "You create a wallet by retrieving your personal information through the DigiD app",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Login with DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "I don't have DigiD",
   "walletPersonalizeIntroPageTitle": "Login with DigiD to get started",
@@ -838,7 +838,7 @@
   "walletPersonalizeScreenLoadingSubtitle": "One moment please...",
   "walletPersonalizeScreenLoadingTitle": "Loading",
   "walletPersonalizeScreenTitle": "Create wallet",
-  "walletPersonalizeSuccessPageContinueCta": "To my Wallet",
-  "walletPersonalizeSuccessPageDescription": "Your cards have been added!",
+  "walletPersonalizeSuccessPageContinueCta": "To my cards",
+  "walletPersonalizeSuccessPageDescription": "Your data is saved as cards.",
   "walletPersonalizeSuccessPageTitle": "Success!"
 }

@@ -146,20 +146,22 @@ class HistoryDetailScreen extends StatelessWidget {
         );
       }
       slivers.add(const SliverSizedBox(height: 16));
-      slivers.add(const SliverDivider());
 
       // Policy section
       final Policy? policy = _getPolicyToDisplay(attribute);
       if (policy != null) {
-        slivers.add(
-          SliverToBoxAdapter(
-            child: InfoRow(
-              title: locale.historyDetailScreenTermsTitle,
-              subtitle: locale.historyDetailScreenTermsSubtitle(attribute.organization.shortName),
-              leading: Icon(Icons.policy_outlined, color: iconColor),
-              onTap: () => PolicyScreen.show(context, policy),
+        slivers.addAll(
+          [
+            const SliverDivider(),
+            SliverToBoxAdapter(
+              child: InfoRow(
+                title: locale.historyDetailScreenTermsTitle,
+                subtitle: locale.historyDetailScreenTermsSubtitle(attribute.organization.shortName),
+                leading: Icon(Icons.policy_outlined, color: iconColor),
+                onTap: () => PolicyScreen.show(context, policy),
+              ),
             ),
-          ),
+          ],
         );
       }
 
@@ -232,7 +234,6 @@ class HistoryDetailScreen extends StatelessWidget {
       onTap: () => OrganizationDetailScreen.show(
         context,
         organization.id,
-        organization.shortName,
       ),
     );
   }

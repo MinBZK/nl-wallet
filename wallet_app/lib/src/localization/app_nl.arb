@@ -17,7 +17,7 @@
   "cardDataScreenDataPrivacySheetClose": "Sluiten",
   "cardDataScreenDataPrivacySheetDescription": "In dit overzicht kun jij je gegevens controleren. Hou dit overzicht verborgen voor anderen. Op die manier bescherm je jouw privacy.\n\nWil je gegevens delen met een organisatie? Gebruik dan de QR-code functie.",
   "cardDataScreenDataPrivacySheetTitle": "Zicht op jouw gegevens",
-  "cardDataScreenIncorrectCta": "Klopt er iets niet?",
+  "cardDataScreenIncorrectCta": "Kloppen de gegevens niet?",
   "cardHistoryScreenTitle": "Kaartgeschiedenis",
   "cardHistoryTimelineInteractionFailed": "Delen mislukt",
   "cardHistoryTimelineInteractionRejected": "Delen gestopt",
@@ -108,7 +108,7 @@
   "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
   "checkAgreementPageTitle": "Ken je de afspraken?",
   "checkAttributesScreenDataIncorrectCta": "Klopt er iets niet?",
-  "checkAttributesScreenTitle": "Controleren",
+  "checkAttributesScreenTitle": "Jouw gegevens",
   "confirmAgreementPageCancelCta": "Nee",
   "confirmAgreementPageConfirmCta": "Ja, tekenen",
   "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
@@ -199,6 +199,7 @@
   "generalPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
   "generalPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalRetry": "Probeer opnieuw",
+  "generalSheetCloseCta": "Sluiten",
   "generalTimeAgo": "geleden",
   "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
   "generalVersionText": "App versie: {versionName} ({versionCode})",
@@ -510,13 +511,12 @@
     "description": "Title shown at the top of the screen when signing"
   },
   "organizationButtonLabel": "Over deze partij",
-  "organizationDetailScreenDataIncorrectCta": "Klopt er iets niet?",
   "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
   "organizationDetailScreenInfoHeader": "Info",
-  "organizationDetailScreenOrganizationNotChecked": "Deze organisatie wordt niet gecontroleerd.",
-  "organizationDetailScreenOrganizationNotCheckedReadMore": "Lees meer",
   "organizationDetailScreenPrivacyHeader": "Privacy",
   "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
+  "organizationDetailScreenReportIssueCta": "Een probleem melden",
+  "organizationDetailScreenTitle": "Over deze partij",
   "organizationDetailScreenViewTerms": "Bekijk de algemene",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "invoer",
@@ -608,7 +608,7 @@
   "reportOptionUntrusted": "Ik vertrouw het niet",
   "setupSecurityCompletedPageCreateWalletCta": "Mijn Wallet aanmaken",
   "setupSecurityCompletedPageDescription": "Je beveiliging is ingesteld.",
-  "setupSecurityCompletedPageTitle": "Gelukt",
+  "setupSecurityCompletedPageTitle": "Gelukt!",
   "setupSecurityConfirmationErrorPageDescription": "Probeer het opnieuw",
   "setupSecurityConfirmationErrorPageFatalCta": "Nieuwe code kiezen",
   "setupSecurityConfirmationErrorPageFatalDescription": "Begin opnieuw",
@@ -677,21 +677,7 @@
   },
   "signSuccessPageHistoryCta": "Geschiedenis",
   "signSuccessPageTitle": "Gelukt!",
-  "stopVerificationSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
-  "@stopVerificationSheetDescription": {
-    "placeholders": {
-      "organization": {
-        "example": "DUO",
-        "type": "String"
-      }
-    },
-    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
-  },
-  "stopVerificationSheetNegativeCta": "Nee",
-  "stopVerificationSheetPositiveCta": "Ja, stoppen",
-  "stopVerificationSheetReportIssueCta": "Een probleem melden",
-  "stopVerificationSheetTitle": "Weet je zeker dat je wilt stoppen?",
-  "verificationConfirmDataAttributesCheckAttributesCta": "Controleer je gegevens",
+  "verificationConfirmDataAttributesCheckAttributesCta": "Bekijk jouw gegevens",
   "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
   "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, =1 {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
   "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
@@ -770,6 +756,20 @@
   "verificationReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd. Deze partij wordt zo snel mogelijk gecontroleerd.\n\nDeel nooit je gegevens met een partij die je niet vertrouwt.",
   "verificationReportSubmittedPageTitle": "Bedankt voor je feedback",
   "verificationScreenTitle": "Gegevens delen",
+  "verificationStopSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
+  "@verificationStopSheetDescription": {
+    "placeholders": {
+      "organization": {
+        "example": "DUO",
+        "type": "String"
+      }
+    },
+    "description": "Name of the organization shown in the bottom sheet when confirming you do not want to share your data"
+  },
+  "verificationStopSheetNegativeCta": "Nee",
+  "verificationStopSheetPositiveCta": "Ja, stoppen",
+  "verificationStopSheetReportIssueCta": "Een probleem melden",
+  "verificationStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
   "verificationStoppedPageCloseCta": "Sluiten",
   "verificationStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
   "verificationStoppedPageFeedbackCta": "Geef feedback",
@@ -792,7 +792,7 @@
   "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
   "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
   "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
-  "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om de kaarten aan je Wallet toe te voegen.",
+  "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens toe te voegen aan je Wallet",
   "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, =1 {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
   "@walletPersonalizeConfirmPinPageErrorDescription": {
     "placeholders": {
@@ -809,11 +809,11 @@
   "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
   "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
   "walletPersonalizeDataIncorrectScreenTitle": "Er klopt iets niet",
-  "walletPersonalizeDigidErrorPageDescription": "Wil toch je jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
+  "walletPersonalizeDigidErrorPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
   "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
   "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
   "walletPersonalizeDigidErrorPageTitle": "Inloggen afgebroken",
-  "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoonsgegevens toe te voegen via DigiD",
+  "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoonsgegevens toe te voegen via de DigiD app",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",
   "walletPersonalizeIntroPageTitle": "Login met DigiD om te beginnen",
@@ -838,7 +838,7 @@
   "walletPersonalizeScreenLoadingSubtitle": "Wacht even...",
   "walletPersonalizeScreenLoadingTitle": "Aan het laden",
   "walletPersonalizeScreenTitle": "Wallet aanmaken",
-  "walletPersonalizeSuccessPageContinueCta": "Naar mijn Wallet",
-  "walletPersonalizeSuccessPageDescription": "Je kaarten zijn toegevoegd!",
+  "walletPersonalizeSuccessPageContinueCta": "Naar mijn kaarten",
+  "walletPersonalizeSuccessPageDescription": "Je gegevens zijn opgeslagen als kaarten.",
   "walletPersonalizeSuccessPageTitle": "Gelukt!"
 }

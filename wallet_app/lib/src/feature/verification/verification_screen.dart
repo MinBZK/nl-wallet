@@ -18,7 +18,7 @@ import 'page/verification_missing_attributes_page.dart';
 import 'page/verification_report_submitted_page.dart';
 import 'page/verification_stopped_page.dart';
 import 'page/verification_success_page.dart';
-import 'widget/stop_verification_sheet.dart';
+import 'widget/verification_stop_sheet.dart';
 
 class VerificationScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
@@ -120,7 +120,7 @@ class VerificationScreen extends StatelessWidget {
       isFirstInteractionWithOrganization: !state.flow.hasPreviouslyInteractedWithOrganization,
       purpose: ApprovalPurpose.verification,
       requestPurpose: state.flow.requestPurpose,
-      onDataIncorrectPressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
   }
 
@@ -175,7 +175,7 @@ class VerificationScreen extends StatelessWidget {
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
       final organizationName = context.read<VerificationBloc>().state.organization?.shortName ?? '-';
-      final stopPressed = await StopVerificationSheet.show(
+      final stopPressed = await VerificationStopSheet.show(
         context,
         organizationName: organizationName,
         onReportIssuePressed: availableReportOptions.isEmpty
@@ -208,8 +208,7 @@ class VerificationScreen extends StatelessWidget {
         ReportingOption.suspiciousOrganization,
         ReportingOption.impersonatingOrganization,
       ];
-    }
-    if (state is VerificationConfirmDataAttributes) {
+    } else if (state is VerificationConfirmDataAttributes || state is VerificationConfirmPin) {
       return [
         ReportingOption.untrusted,
         ReportingOption.overAskingOrganization,

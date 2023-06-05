@@ -40,9 +40,12 @@ class QrScanTab extends StatelessWidget {
               throw UnsupportedError('Unknown state: $state');
             },
           ),
-          TextIconButton(
-            onPressed: () => _showHowToScanSheet(context),
-            child: Text(AppLocalizations.of(context).qrScanTabHowToScanCta),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextIconButton(
+              onPressed: () => _showHowToScanSheet(context),
+              child: Text(AppLocalizations.of(context).qrScanTabHowToScanCta),
+            ),
           ),
         ],
       ),

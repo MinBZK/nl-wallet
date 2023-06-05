@@ -120,7 +120,7 @@ class CardDataScreen extends StatelessWidget {
       context,
       title: locale.cardDataScreenDataPrivacySheetTitle,
       description: locale.cardDataScreenDataPrivacySheetDescription,
-      closeButtonText: locale.qrScanTabHowToScanSheetCloseCta,
+      closeButtonText: locale.generalSheetCloseCta,
     );
   }
 }

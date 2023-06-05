@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'secured_page_route.dart';
 
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -47,6 +46,7 @@ import '../feature/verification/bloc/verification_bloc.dart';
 import '../feature/verification/verification_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
+import 'secured_page_route.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
 /// instantiation logic, this includes providing any optional dependencies (e.g. BLoCs).
@@ -316,7 +316,7 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
         ..add(
           OrganizationLoadTriggered(organizationId: argument.organizationId),
         ),
-      child: OrganizationDetailScreen(title: argument.title),
+      child: const OrganizationDetailScreen(),
     );
   };
 }
