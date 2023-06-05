@@ -277,7 +277,8 @@ deploy-android-app:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
-    - build-android-app
+    - job: build-android-app
+      artifacts: true
   dependencies:
     - build-android-app
   variables:
@@ -295,7 +296,8 @@ upload-browserstack-android-app:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
-    - build-android-app
+    - job: build-android-app
+      artifacts: true
   dependencies:
     - build-android-app
   variables:
@@ -329,7 +331,8 @@ deploy-ios-app:
   stage: deploy
   rules: !reference [ .default-or-release, rules ]
   needs:
-    - build-ios-app
+    - job: build-ios-app
+      artifacts: true
   dependencies:
     - build-ios-app
   tags:
@@ -348,7 +351,8 @@ upload-browserstack-ios-app:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:3f1d448aa707d4dfd958de34bb746e4a7459b6884680e8adf7e7ff0339669311"
   needs:
-    - build-ios-app
+    - job: build-ios-app
+      artifacts: true
   dependencies:
     - build-ios-app
   variables:
