@@ -99,19 +99,23 @@ impl SessionStore for MemorySessionStore {
 }
 
 pub struct Server<K, S> {
+    url: String,
     keys: K,
     sessions: S,
 }
 
 impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
-    pub fn new(keys: K, session_store: S) -> Self {
+    /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
+    /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
+    pub fn new(url: String, keys: K, session_store: S) -> Self {
         Server {
+            url,
             keys,
             sessions: session_store,
         }
     }
 
-    pub fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<SessionId> {
+    pub fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<ServiceEngagement> {
         self.check_keys(&docs)?;
 
         let challenge = ByteBuf::from(random_bytes(32));
@@ -128,7 +132,10 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
             id: session_id.clone(),
         });
 
-        Ok(session_id)
+        Ok(ServiceEngagement {
+            url: (self.url.clone() + &session_id.to_string()).into(),
+            ..Default::default()
+        })
     }
 
     fn check_keys(&self, docs: &[UnsignedMdoc]) -> Result<()> {

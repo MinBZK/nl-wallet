@@ -171,7 +171,7 @@ impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> 
             .unwrap();
 
         // Hacky way to cast `response`, which is a `Box<dyn IssuerResponse>`, to the requested type:
-        // serialoze to CBOR and back
+        // serialize to CBOR and back
         let response = cbor_deserialize(cbor_serialize(&response).unwrap().as_slice()).unwrap();
         Ok(response)
     }
@@ -259,12 +259,12 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
 
     // Setup session and issuer
     let request = new_issuance_request();
-    let issuance_server = Server::new(MockIssuanceKeyring { issuance_key }, MemorySessionStore::new());
-    let session_id = issuance_server.new_session(request).unwrap();
-    let service_engagement = ServiceEngagement {
-        url: session_id.to_string().into(),
-        ..Default::default()
-    };
+    let issuance_server = Server::new(
+        "".to_string(),
+        MockIssuanceKeyring { issuance_key },
+        MemorySessionStore::new(),
+    );
+    let service_engagement = issuance_server.new_session(request).unwrap();
 
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
