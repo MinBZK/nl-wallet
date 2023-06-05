@@ -26,7 +26,10 @@ class QrScreen extends StatelessWidget {
         child: Scaffold(
           appBar: AppBar(
             title: Text(AppLocalizations.of(context).qrScreenTitle),
-            bottom: TabBar(tabs: tabs),
+            bottom: TabBar(
+              tabs: tabs,
+              indicatorPadding: const EdgeInsets.all(1), // Fixes indicator collision with app bar and border (divider)
+            ),
             actions: const [QrScreenFlashToggle()],
           ),
           body: TabBarView(

@@ -16,8 +16,8 @@ class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user declines the request
   final VoidCallback onDeclinePressed;
 
-  /// Callback that is triggered when the user indicates data is incorrect
-  final VoidCallback? onDataIncorrectPressed;
+  /// Callback that is triggered when the user wants to report an issue
+  final VoidCallback? onReportIssuePressed;
 
   /// The organization that user is interacting with
   final Organization organization;
@@ -37,7 +37,7 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.organization,
     required this.purpose,
     this.requestPurpose,
-    this.onDataIncorrectPressed,
+    this.onReportIssuePressed,
     this.isFirstInteractionWithOrganization = true,
     Key? key,
   }) : super(key: key);
@@ -60,8 +60,7 @@ class OrganizationApprovePage extends StatelessWidget {
               onTap: () => OrganizationDetailScreen.show(
                 context,
                 organization.id,
-                AppLocalizations.of(context).verificationScreenTitle,
-                onDataIncorrectPressed: onDataIncorrectPressed,
+                onReportIssuePressed: onReportIssuePressed,
               ),
               organizationName: organization.category,
             ),

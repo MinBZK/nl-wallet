@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'bottom_sheet_drag_handle.dart';
+import 'button/text_icon_button.dart';
 
 class ExplanationSheet extends StatelessWidget {
   final String title;
@@ -36,7 +37,9 @@ class ExplanationSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Center(
-            child: TextButton(
+            child: TextIconButton(
+              icon: Icons.close,
+              iconPosition: IconPosition.start,
               child: Text(closeButtonText),
               onPressed: () => Navigator.pop(context),
             ),

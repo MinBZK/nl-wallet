@@ -29,13 +29,10 @@ class OrganizationDetailScreen extends StatelessWidget {
     }
   }
 
-  final String title;
-
-  final VoidCallback? onDataIncorrectPressed;
+  final VoidCallback? onReportIssuePressed;
 
   const OrganizationDetailScreen({
-    required this.title,
-    this.onDataIncorrectPressed,
+    this.onReportIssuePressed,
     Key? key,
   }) : super(key: key);
 
@@ -43,7 +40,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(AppLocalizations.of(context).organizationDetailScreenTitle),
         leading: const BackButton(),
       ),
       body: SafeArea(
@@ -97,7 +94,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             ),
           ),
           const SliverSizedBox(height: 24),
-          onDataIncorrectPressed == null
+          onReportIssuePressed == null
               ? const SliverSizedBox()
               : SliverToBoxAdapter(
                   child: Column(
@@ -108,13 +105,13 @@ class OrganizationDetailScreen extends StatelessWidget {
                       LinkButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          onDataIncorrectPressed?.call();
+                          onReportIssuePressed?.call();
                         },
                         customPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(AppLocalizations.of(context).organizationDetailScreenDataIncorrectCta),
+                        child: Text(AppLocalizations.of(context).organizationDetailScreenReportIssueCta),
                       ),
-                      const Divider(height: 24),
                       const SizedBox(height: 12),
+                      const Divider(height: 1),
                     ],
                   ),
                 ),
@@ -165,22 +162,6 @@ class OrganizationDetailScreen extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
-        IconRow(
-          icon: const Icon(Icons.unpublished_outlined),
-          text: Text.rich(
-            TextSpan(
-              text: locale.organizationDetailScreenOrganizationNotChecked.addSpaceSuffix,
-              children: [
-                TextSpan(
-                  text: locale.organizationDetailScreenOrganizationNotCheckedReadMore,
-                  recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-                )
-              ],
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
         IconRow(
           icon: const Icon(Icons.policy_outlined),
           text: Text.rich(
@@ -253,18 +234,15 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context, String organizationId, String pageTitle,
-      {VoidCallback? onDataIncorrectPressed}) {
+  static Future<void> show(BuildContext context, String organizationId, {VoidCallback? onReportIssuePressed}) {
     return Navigator.push(
       context,
       SecuredPageRoute(
         builder: (context) {
           return BlocProvider<OrganizationDetailBloc>(
             create: (BuildContext context) => OrganizationDetailBloc(context.read(), context.read())
-              ..add(
-                OrganizationLoadTriggered(organizationId: organizationId),
-              ),
-            child: OrganizationDetailScreen(title: pageTitle, onDataIncorrectPressed: onDataIncorrectPressed),
+              ..add(OrganizationLoadTriggered(organizationId: organizationId)),
+            child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
           );
         },
       ),
