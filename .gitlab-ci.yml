@@ -67,7 +67,7 @@ test-flutter:
   stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:78144d89bd12f3937eb9bd1cb768f15bef40bbe7415ec43c4a2cc292e8ad9d95"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:565cf0f22f27257ed9b3fb3c88e8814fa9e0201a6fb515af819cbf206c875351"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -193,7 +193,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:ead1449a563306a6ef6b277f22fae7eebed1a288d951e213649f62e4922fae0c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:4e2b78c502dd9e9537299625ce7ff28a1e51366198ec360bfb58522b2905e638"
   before_script:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
@@ -229,7 +229,7 @@ test-codegen:
   stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:40be71808f60718d32956cb9461361d8354beeb2cd9b9a808787e90e5650453b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:e7204c3c7dd2018bd1e62080707ee4471613315fd2a1b1cf17c3a1fb911a0006"
   script:
     - set -euxo pipefail
     - flutter pub get $FLUTTER_APP_PROJECT_DIR
@@ -255,7 +255,7 @@ build-android-app:
   stage: build
   rules: !reference [ .default-or-release, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:20c2046010b2b23f1ebd62fac130f27741657d00ec1a8ca54a790df4fb6d10e5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:5290167b808ea9114e2bd70e3b5740b29f046258f3b7cfef498af6330eb07e6c"
   artifacts:
     name: "wallet-android"
     paths:
