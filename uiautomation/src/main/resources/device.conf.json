@@ -1,64 +1,228 @@
 {
-  "device": "Google Pixel 3",
-  "remoteOrLocal": "remote",
-  "appPackage": "nl.rijksoverheid.edi.wallet",
-  "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
-  "bundleId": "nl.ictu.edi.wallet.latest",
-  "server": "http://hub.browserstack.com/wd/hub",
-  "sessionUrl": "https://api.browserstack.com/app-automate/sessions/%s.json",
-  "uploadedApp" : "https://api-cloud.browserstack.com/app-automate/recent_apps/",
-  "browserStackCapabilities": {
-    "project": "NL-Wallet",
-    "build": "build-101",
-    "name": "single-run"
-  },
-  "browserstackDevices": [
-    {
-      "deviceName": "Google Pixel 3",
-      "platformVersion": "9.0",
-      "platformName": "android"
+    "device": "Google Pixel 3",
+    "remoteOrLocal": "remote",
+    "appPackage": "nl.rijksoverheid.edi.wallet",
+    "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
+    "bundleId": "nl.ictu.edi.wallet.latest",
+    "server": "http://hub.browserstack.com/wd/hub",
+    "sessionUrl": "https://api.browserstack.com/app-automate/sessions/%s.json",
+    "uploadedApp": "https://api-cloud.browserstack.com/app-automate/recent_apps/",
+    "browserStackCapabilities": {
+        "project": "NL-Wallet",
+        "build": "build-101",
+        "name": "single-run"
     },
-    {
-      "deviceName": "Samsung Galaxy S10e",
-      "platformVersion": "9.0",
-      "platformName": "android"
-    },
-    {
-      "deviceName": "iPhone 13 pro",
-      "platformVersion": "15",
-      "platformName": "ios"
-    }
-  ],
-  "localDevices": [
-    {
-      "deviceName": "Mi3",
-      "platformVersion": "11",
-      "platformName": "android",
-      "udid": "8359e1fccd9c"
-    },
-    {
-      "deviceName": "SamsungGalaxyTabS8ultra",
-      "platformVersion": "12",
-      "platformName": "android",
-      "udid": "R52T4090AVM"
-    },
-    {
-      "deviceName": "OnePlus7Pro",
-      "platformVersion": "11",
-      "platformName": "android",
-      "udid": "fe3eac34"
-    },
-    {
-      "deviceName": "OnePlus10Pro",
-      "platformVersion": "13",
-      "platformName": "android",
-      "udid": "129bdc23"
-    },
-    {
-      "deviceName": "emulator-5554",
-      "platformVersion": "13",
-      "platformName": "android",
-      "udid": "emulator-5554"
-    }
-  ]
+    "browserstackDevices": [
+        {
+            "deviceName": "Google Pixel 7 Pro",
+            "platformVersion": "13.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Google Pixel 6",
+            "platformVersion": "12.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Google Pixel 3a XL",
+            "platformVersion": "9.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Xiaomi Redmi Note 11",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Xiaomi Redmi Note 9",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Xiaomi Redmi Note 8",
+            "platformVersion": "9.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "OnePlus 9",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "OnePlus 8",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "OnePlus 7",
+            "platformVersion": "9.0",
+            "platformName": "android"
+        },
+        {    "deviceName": "Motorola Moto G7 Play",
+            "platformVersion": "9.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Motorola Moto G71 5G",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Motorola Moto G9 Play",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy S23 Ultra",
+            "platformVersion": "13.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy S23",
+            "platformVersion": "13.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy Note 20 Ultra",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy A52",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy A51",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Samsung Galaxy M52",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Vivo Y21",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Oppo Reno 6",
+            "platformVersion": "11.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "Oppo Reno 3 Pro",
+            "platformVersion": "10.0",
+            "platformName": "android"
+        },
+        {
+            "deviceName": "iPhone 14 Pro",
+            "platformVersion": "16",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 13 Pro Max",
+            "platformVersion": "15",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 11 Pro Max",
+            "platformVersion": "13",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 14 Pro",
+            "platformVersion": "16",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 13 Pro",
+            "platformVersion": "15",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 11 Pro",
+            "platformVersion": "13",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 14",
+            "platformVersion": "16",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 13 Mini",
+            "platformVersion": "15",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 12 Mini",
+            "platformVersion": "14",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone XS",
+            "platformVersion": "15",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone XS",
+            "platformVersion": "14",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone XS",
+            "platformVersion": "13",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone X",
+            "platformVersion": "11",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 8",
+            "platformVersion": "15",
+            "platformName": "ios"
+        },
+        {
+            "deviceName": "iPhone 8",
+            "platformVersion": "12",
+            "platformName": "ios"
+        }
+    ],
+    "localDevices": [
+        {
+            "deviceName": "Mi3",
+            "platformVersion": "11",
+            "platformName": "android",
+            "udid": "8359e1fccd9c"
+        },
+        {
+            "deviceName": "SamsungGalaxyTabS8ultra",
+            "platformVersion": "12",
+            "platformName": "android",
+            "udid": "R52T4090AVM"
+        },
+        {
+            "deviceName": "OnePlus7Pro",
+            "platformVersion": "11",
+            "platformName": "android",
+            "udid": "fe3eac34"
+        },
+        {
+            "deviceName": "OnePlus10Pro",
+            "platformVersion": "13",
+            "platformName": "android",
+            "udid": "129bdc23"
+        },
+        {
+            "deviceName": "emulator-5554",
+            "platformVersion": "13",
+            "platformName": "android",
+            "udid": "emulator-5554"
+        }
+    ]
 }

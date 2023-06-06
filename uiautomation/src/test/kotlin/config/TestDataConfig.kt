@@ -31,7 +31,8 @@ data class TestDataConfig(
         get() = localDevices.firstOrNull { it.deviceName == device }
 
     val defaultRemoteDevice: BrowserstackDevice?
-        get() = browserstackDevices.firstOrNull { it.deviceName == device }
+        get() = browserstackDevices.firstOrNull { it.deviceName == getEnvVar("BROWSERSTACK_DEVICE") }
+            ?: browserstackDevices.firstOrNull { it.deviceName == device }
 
     data class BrowserStackCapabilities(
         @Json(name = "build") val build: String,
