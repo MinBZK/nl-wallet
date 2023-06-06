@@ -11,27 +11,27 @@ mock = []
 entity = { path = "entity" }
 migration = { path = "migration" }
 wallet_common = { path = "../wallet_common" }
-async-trait = "0.1.68"
-base64 = "0.21.0"
-futures = { version = "0.3.28", default-features = false }
-libsqlite3-sys = { version = "0.24.2", features = [
+async-trait.workspace = true
+base64.workspace = true
+futures.workspace = true
+libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
-p256 = { version = "0.12.0" }
-tokio = { version = "1.27.0", features = ["full"] }
-tracing = "0.1.37"
-reqwest = { version = "0.11.16", default-features = false, features = [
+p256.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
+tracing.workspace = true
+reqwest = { workspace = true, features = [
     "json",
     "rustls-tls-webpki-roots",
 ] }
-ring = "0.16.20"
-sea-orm = { version = "0.11.3", default-features = false, features = [
+ring.workspace = true
+sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
 ] }
-serde = { version = "1.0.156", features = ["derive"] }
-serde_json = { version = "1.0.92" }
-thiserror = "1.0.39"
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
 
 # enable the "hardware" feature for platform_support when building for either Android or iOS
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
@@ -48,4 +48,4 @@ wallet_provider = { path = "../wallet_provider", features = ["stub"] }
 platform_support = { path = "../platform_support", features = [
     "software-integration-test",
 ] }
-tempfile = "3.5.0"
+tempfile.workspace = true

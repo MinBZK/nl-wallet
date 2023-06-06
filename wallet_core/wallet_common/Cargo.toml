@@ -10,10 +10,10 @@ rust-version.workspace = true
 mock = []
 
 [dependencies]
-base64 = "0.21.0"
-jsonwebtoken = "8.2.0"
-p256 = { version = "0.12.0", features = ["pem"] }
-rand = "0.8.5"
-serde = { version = "1.0.156", features = ["derive"] }
-serde_json = { version = "1.0.92", features = ["raw_value"] }
-thiserror = "1.0.39"
+base64.workspace = true
+jsonwebtoken.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+rand.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror.workspace = true
