@@ -185,9 +185,12 @@ struct MockHttpClientBuilder<'a, K, S> {
 impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, MemorySessionStore> {
     type Client = MockHttpClient<'a, MockIssuanceKeyring, MemorySessionStore>;
     fn build(&self, engagement: ServiceEngagement) -> Self::Client {
+        // Strip off leading /
+        let url = engagement.url.unwrap()[1..].to_string();
+
         MockHttpClient {
             issuance_server: self.issuance_server,
-            session_token: engagement.url.unwrap().into(),
+            session_token: url.into(),
         }
     }
 }

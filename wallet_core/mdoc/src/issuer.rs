@@ -109,7 +109,7 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
     pub fn new(url: String, keys: K, session_store: S) -> Self {
         Server {
-            url,
+            url: if url.ends_with('/') { url } else { url + "/" },
             keys,
             sessions: session_store,
         }
