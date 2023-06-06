@@ -232,6 +232,9 @@ platform :ios do
     build = options[:build] || local_build
     version = options[:version] || local_version
     name_suffix = options[:name_suffix]
+    build_mode = options[:build_mode] || "release"
+
+    UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
     Dir.chdir("../wallet_app") do
       sh("flutter", "pub", "get")
@@ -239,7 +242,7 @@ platform :ios do
       sh("flutter", "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
       sh("flutter", "pub", "run", "rename", "--target", "ios", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
-      sh("flutter", "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign")
+      sh("flutter", "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign", "--#{build_mode}")
     end
 
     match(
