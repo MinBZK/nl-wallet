@@ -5,4 +5,4 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-sea-orm-migration = { version = "0.11.0", default-features = false }
+sea-orm-migration = { workspace = true }

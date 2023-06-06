@@ -14,21 +14,21 @@ stub = []
 
 [dependencies]
 wallet_common = { path = "../wallet_common" }
-axum = { version = "0.6.12" }
-base64 = "0.21.0"
-config = "0.13.3"
-der = { version = "0.6.1", features = ["alloc"] }
-jsonwebtoken = "8.2.0"
-p256 = { version = "0.12.0", features = ["pem"] }
-pkcs8 = { version = "0.9.0", features = ["std"] }
-rand = "0.8.5"
-serde = { version = "1.0.147", features = ["serde_derive"] }
-sha2 = "0.10.6"
-thiserror = "1.0.39"
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
-tower-http = { version = "0.4.0", features = ["trace"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum = { workspace = true }
+base64.workspace = true
+config.workspace = true
+der = { workspace = true, features = ["alloc"] }
+jsonwebtoken.workspace = true
+p256 = { workspace = true, features = ["pem"] }
+pkcs8 = { workspace = true, features = ["std"] }
+rand.workspace = true
+serde = { workspace = true, features = ["serde_derive"] }
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tower-http = { workspace = true, features = ["trace"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
@@ -36,6 +36,6 @@ wallet = { path = "../wallet", features = ["mock"] }
 wallet_common = { path = "../wallet_common", features = ["mock"] }
 # stub feature is required for integration tests
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
-anyhow = "1.0.66"
-async-trait = "0.1.68"
-axum-test-helper = "0.2.0"
+anyhow.workspace = true
+async-trait.workspace = true
+axum-test-helper.workspace = true
