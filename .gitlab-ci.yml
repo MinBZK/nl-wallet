@@ -145,13 +145,14 @@ dependency-check:
     - dependency-check.sh
       --enableExperimental
       --scan "."
-      --format "HTML" --format "JSON"
+      --format "HTML" --format "JSON" --format "XML"
       --data $CI_PROJECT_DIR/dependency_check_data
   artifacts:
     when: always
     paths:
       - dependency-check-report.json
       - dependency-check-report.html
+      - dependency-check-report.xml
   cache:
     key: "$CI_PROJECT_NAME"
     paths:
