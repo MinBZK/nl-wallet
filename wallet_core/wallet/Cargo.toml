@@ -18,7 +18,7 @@ libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
 p256.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 tracing.workspace = true
 reqwest = { workspace = true, features = [
     "json",
