@@ -27,7 +27,7 @@ mod examples;
 use examples::*;
 
 mod credentials_map;
-use credentials_map::Credentials;
+use credentials_map::CredentialsMap;
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
@@ -86,7 +86,7 @@ fn iso_examples_disclosure() {
     )
     .unwrap();
 
-    let wallet = Wallet::new(Credentials::try_from([cred]).unwrap());
+    let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
     let resp = wallet
         .disclose(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -121,7 +121,7 @@ fn iso_examples_custom_disclosure() {
     )
     .unwrap();
 
-    let wallet = Wallet::new(Credentials::try_from([cred]).unwrap());
+    let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
     let resp = wallet
         .disclose(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -263,7 +263,7 @@ fn issuance_and_disclosure() {
     assert!(wallet.list_credentials().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<Credentials>, Vec<u8>) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<CredentialsMap>, Vec<u8>) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
@@ -281,7 +281,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
 
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
-    let wallet = Wallet::new(Credentials::new());
+    let wallet = Wallet::new(CredentialsMap::new());
     assert!(wallet.list_credentials().is_empty());
 
     // Do issuance
@@ -306,7 +306,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     (wallet, ca_bts)
 }
 
-fn custom_disclosure(wallet: Wallet<Credentials>, ca: Vec<u8>) {
+fn custom_disclosure(wallet: Wallet<CredentialsMap>, ca: Vec<u8>) {
     assert!(!wallet.list_credentials().is_empty());
 
     // Disclose some attributes from our cred
