@@ -1,8 +1,10 @@
 use dashmap::DashMap;
 
+use indexmap::IndexMap;
 use nl_wallet_mdoc::{
+    basic_sa_ext::Entry,
     holder::{Credential, CredentialCopies, CredentialStorage},
-    DocType, Error,
+    DocType, Error, NameSpace,
 };
 
 /// An implementation of [`CredentialStorage`] using maps, structured as follows::
@@ -48,5 +50,20 @@ impl CredentialStorage for Credentials {
         self.0
             .get(doctype)
             .map(|v| v.value().iter().map(|entry| entry.value().clone()).collect())
+    }
+
+    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+        self.0
+            .iter()
+            .map(|allcreds| {
+                (
+                    allcreds.key().clone(),
+                    allcreds
+                        .iter()
+                        .map(|doctype_creds| doctype_creds.creds.first().unwrap().attributes())
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect()
     }
 }

@@ -5,6 +5,9 @@ use crate::{basic_sa_ext::Entry, crypto::sha256, iso::*, serialization::cbor_ser
 
 pub trait CredentialStorage {
     fn add(&self, creds: impl Iterator<Item = Credential>) -> Result<()>;
+    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
+
+    // TODO returning all copies of all credentials is very crude and should be refined.
     fn get(&self, doctype: &DocType) -> Option<Vec<CredentialCopies>>;
 }
 
@@ -12,9 +15,13 @@ pub struct Wallet<C> {
     pub(crate) credential_storage: C,
 }
 
-impl<C> Wallet<C> {
+impl<C: CredentialStorage> Wallet<C> {
     pub fn new(credential_storage: C) -> Self {
         Self { credential_storage }
+    }
+
+    pub fn list_credentials(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+        self.credential_storage.list()
     }
 }
 

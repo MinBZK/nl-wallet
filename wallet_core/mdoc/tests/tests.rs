@@ -207,15 +207,15 @@ impl IssuanceKeyring for MockIssuanceKeyring {
     }
 }
 
-fn user_consent_async() -> impl IssuanceUserConsent {
-    struct MockUserConsent;
+fn user_consent_async<const CONSENT: bool>() -> impl IssuanceUserConsent {
+    struct MockUserConsent<const CONSENT: bool>;
     #[async_trait]
-    impl IssuanceUserConsent for MockUserConsent {
+    impl<const CONSENT: bool> IssuanceUserConsent for MockUserConsent<CONSENT> {
         async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
-            true
+            CONSENT
         }
     }
-    MockUserConsent
+    MockUserConsent::<CONSENT>
 }
 
 fn user_consent_without_async() -> impl IssuanceUserConsent {
@@ -253,11 +253,17 @@ fn user_consent_without_async() -> impl IssuanceUserConsent {
 
 #[test]
 fn issuance_and_disclosure() {
-    issuance_and_disclosure_using_consent(user_consent_async());
-    issuance_and_disclosure_using_consent(user_consent_without_async());
+    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_without_async());
+    custom_disclosure(wallet, ca);
+
+    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_async::<true>());
+    custom_disclosure(wallet, ca);
+
+    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>());
+    assert!(wallet.list_credentials().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<Credentials>, Vec<u8>) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
@@ -276,6 +282,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
     let wallet = Wallet::new(Credentials::new());
+    assert!(wallet.list_credentials().is_empty());
 
     // Do issuance
     let client_builder = MockHttpClientBuilder {
@@ -296,6 +303,12 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
                 .unwrap();
         });
 
+    (wallet, ca_bts)
+}
+
+fn custom_disclosure(wallet: Wallet<Credentials>, ca: Vec<u8>) {
+    assert!(!wallet.list_credentials().is_empty());
+
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
@@ -309,7 +322,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     let challenge = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet.disclose(&request, challenge.as_ref()).unwrap();
 
-    let ca_cert = X509Certificate::from_der(ca_bts.as_slice()).unwrap().1;
+    let ca_cert = X509Certificate::from_der(ca.as_slice()).unwrap().1;
     println!(
         "Disclosure: {:#?}",
         DebugCollapseBts(disclosed.verify(None, &challenge, &ca_cert).unwrap())
