@@ -26,6 +26,9 @@ use nl_wallet_mdoc::{
 mod examples;
 use examples::*;
 
+mod credentials_map;
+use credentials_map::Credentials;
+
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
 fn iso_examples_consistency() {
@@ -83,8 +86,8 @@ fn iso_examples_disclosure() {
     )
     .unwrap();
 
-    let creds = Credentials::try_from([cred]).unwrap();
-    let resp = creds
+    let wallet = Wallet::new(Credentials::try_from([cred]).unwrap());
+    let resp = wallet
         .disclose(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
 
@@ -118,8 +121,8 @@ fn iso_examples_custom_disclosure() {
     )
     .unwrap();
 
-    let creds = Credentials::try_from([cred]).unwrap();
-    let resp = creds
+    let wallet = Wallet::new(Credentials::try_from([cred]).unwrap());
+    let resp = wallet
         .disclose(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
 
@@ -272,7 +275,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
 
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
-    let wallet = Credentials::new();
+    let wallet = Wallet::new(Credentials::new());
 
     // Do issuance
     let client_builder = MockHttpClientBuilder {

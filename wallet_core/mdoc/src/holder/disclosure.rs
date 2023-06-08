@@ -8,9 +8,9 @@ use crate::{
     Result,
 };
 
-use super::{Credential, Credentials, HolderError};
+use super::{Credential, CredentialStorage, HolderError, Wallet};
 
-impl Credentials {
+impl<C: CredentialStorage> Wallet<C> {
     pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
         let mut docs: Vec<Document> = Vec::new();
 
@@ -18,16 +18,11 @@ impl Credentials {
             let items_request = &doc_request.items_request.0;
 
             // This takes any mdoc of the specified doctype. TODO: allow user choice.
-            let creds = self
-                .0
-                .get(&items_request.doc_type)
-                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                    items_request.doc_type.clone(),
-                )))?;
+            let creds = self.credential_storage.get(&items_request.doc_type).ok_or(Error::from(
+                HolderError::UnsatisfiableRequest(items_request.doc_type.clone()),
+            ))?;
             let cred = &creds
-                .value()
-                .iter()
-                .next()
+                .first()
                 .ok_or(Error::from(HolderError::UnsatisfiableRequest(
                     items_request.doc_type.clone(),
                 )))?

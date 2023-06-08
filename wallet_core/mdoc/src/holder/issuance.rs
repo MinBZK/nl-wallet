@@ -17,7 +17,7 @@ use crate::{
     Error, Result,
 };
 
-use super::{Credential, CredentialCopies, Credentials, HolderError};
+use super::{Credential, CredentialCopies, CredentialStorage, HolderError, Wallet};
 
 // TODO: support multiple certs per doctype, to allow key rollover.
 // We might consider using https://docs.rs/owning_ref/latest/owning_ref/index.html to make the certificates owned.
@@ -83,7 +83,7 @@ pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
-impl Credentials {
+impl<C: CredentialStorage> Wallet<C> {
     pub async fn do_issuance(
         &self,
         service_engagement: ServiceEngagement,
@@ -123,7 +123,7 @@ impl Credentials {
 
         // Process issuer response to obtain and save new credentials
         let creds = IssuanceState::issuance_finish(state, issuer_response, trusted_issuer_certs)?;
-        self.add(creds.into_iter().flatten())
+        self.credential_storage.add(creds.into_iter().flatten())
     }
 }
 
