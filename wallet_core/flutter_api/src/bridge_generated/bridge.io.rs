@@ -12,6 +12,16 @@ pub extern "C" fn wire_is_valid_pin(port_: i64, pin: *mut wire_uint_8_list) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_unlock_wallet(port_: i64, pin: *mut wire_uint_8_list) {
+    wire_unlock_wallet_impl(port_, pin)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_lock_wallet(port_: i64) {
+    wire_lock_wallet_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_has_registration(port_: i64) {
     wire_has_registration_impl(port_)
 }

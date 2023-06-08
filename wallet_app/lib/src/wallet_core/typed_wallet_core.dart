@@ -8,6 +8,12 @@ abstract class TypedWalletCore {
 
   Future<bool> isRegistered();
 
+  Future<void> lockWallet();
+
+  Future<void> unlockWallet(String pin);
+
+  Stream<bool> get isLocked;
+
   Future<String> getDigidAuthUrl();
 
   Stream<UriFlowEvent> processUri(Uri uri);

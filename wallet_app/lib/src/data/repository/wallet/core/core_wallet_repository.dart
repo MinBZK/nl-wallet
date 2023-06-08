@@ -1,5 +1,7 @@
+import 'dart:io';
+
 import 'package:core_domain/core_domain.dart';
-import 'package:rxdart/rxdart.dart';
+import 'package:fimber/fimber.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../wallet_core/typed_wallet_core.dart';
@@ -9,9 +11,6 @@ import '../wallet_repository.dart';
 class CoreWalletRepository implements WalletRepository {
   final TypedWalletCore _walletCore;
   final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
-
-  //TODO: This should be moved into the rust core
-  final BehaviorSubject<bool> _locked = BehaviorSubject<bool>.seeded(true);
 
   CoreWalletRepository(this._walletCore, this._pinValidationErrorMapper);
 
@@ -28,7 +27,7 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<void> createWallet(String pin) async {
     await _walletCore.register(pin);
-    _locked.value = false; // Unlock on creation
+    await _walletCore.unlockWallet(pin);
   }
 
   @override
@@ -39,22 +38,30 @@ class CoreWalletRepository implements WalletRepository {
   Future<bool> isRegistered() => _walletCore.isRegistered();
 
   @override
-  Stream<bool> get isLockedStream => _locked;
+  Stream<bool> get isLockedStream => _walletCore.isLocked;
 
   @override
   // TODO: implement leftoverPinAttempts
-  int get leftoverPinAttempts => throw UnimplementedError();
+  int get leftoverPinAttempts => 999;
 
   @override
-  void lockWallet() => _locked.add(true);
+  void lockWallet() async {
+    try {
+      await _walletCore.lockWallet();
+    } catch (exception) {
+      Fimber.e('Failed to lock wallet', ex: exception);
+      exit(1); // Crash if locking fails
+    }
+  }
 
   @override
   Future<void> unlockWallet(String pin) async {
-    if (_locked.value == false) return; // Already unlocked
     if (await isRegistered() == false) throw UnsupportedError('Wallet not yet registered!');
-
-    ///TODO: Actually check the pin
-    _locked.add(false);
+    try {
+      await _walletCore.unlockWallet(pin);
+    } catch (exception) {
+      Fimber.e('Failed to unlock wallet', ex: exception);
+    }
   }
 
   @override

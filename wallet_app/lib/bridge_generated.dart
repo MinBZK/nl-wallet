@@ -11,13 +11,21 @@ import 'package:uuid/uuid.dart';
 import 'dart:ffi' as ffi;
 
 abstract class WalletCore {
-  Future<void> init({dynamic hint});
+  Stream<bool> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
+
+  Future<void> unlockWallet({required String pin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
+
+  Future<void> lockWallet({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta;
 
   Future<bool> hasRegistration({dynamic hint});
 
@@ -43,10 +51,10 @@ class WalletCoreImpl implements WalletCore {
   /// Only valid on web/WASM platforms.
   factory WalletCoreImpl.wasm(FutureOr<WasmModule> module) => WalletCoreImpl(module as ExternalLibrary);
   WalletCoreImpl.raw(this._platform);
-  Future<void> init({dynamic hint}) {
-    return _platform.executeNormal(FlutterRustBridgeTask(
+  Stream<bool> init({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_init(port_),
-      parseSuccessData: _wire2api_unit,
+      parseSuccessData: _wire2api_bool,
       constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
@@ -72,6 +80,37 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "is_valid_pin",
         argNames: ["pin"],
+      );
+
+  Future<void> unlockWallet({required String pin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(pin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_unlock_wallet(port_, arg0),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kUnlockWalletConstMeta,
+      argValues: [pin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "unlock_wallet",
+        argNames: ["pin"],
+      );
+
+  Future<void> lockWallet({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_lock_wallet(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kLockWalletConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "lock_wallet",
+        argNames: [],
       );
 
   Future<bool> hasRegistration({dynamic hint}) {
@@ -295,6 +334,32 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_is_valid_pin');
   late final _wire_is_valid_pin = _wire_is_valid_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_unlock_wallet(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> pin,
+  ) {
+    return _wire_unlock_wallet(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire_unlock_walletPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_unlock_wallet');
+  late final _wire_unlock_wallet =
+      _wire_unlock_walletPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_lock_wallet(
+    int port_,
+  ) {
+    return _wire_lock_wallet(
+      port_,
+    );
+  }
+
+  late final _wire_lock_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_lock_wallet');
+  late final _wire_lock_wallet = _wire_lock_walletPtr.asFunction<void Function(int)>();
 
   void wire_has_registration(
     int port_,
