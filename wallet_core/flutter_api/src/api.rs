@@ -17,15 +17,28 @@ use crate::{
     },
 };
 
-static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
-
-fn wallet() -> &'static RwLock<Wallet> {
-    WALLET
-        .get()
-        .expect("Wallet must be initialized. Please execute `init()` first.")
+struct WalletApiEnvironment {
+    wallet: RwLock<Wallet>,
+    wallet_lock_sink: StreamSink<bool>,
 }
 
-pub fn init() -> Result<()> {
+static WALLET_API_ENVIRONMENT: OnceCell<WalletApiEnvironment> = OnceCell::const_new();
+
+fn wallet() -> &'static RwLock<Wallet> {
+    &WALLET_API_ENVIRONMENT
+        .get()
+        .expect("Wallet must be initialized. Please execute `init()` first.")
+        .wallet
+}
+
+fn wallet_lock_sink() -> &'static StreamSink<bool> {
+    &WALLET_API_ENVIRONMENT
+        .get()
+        .expect("Wallet must be initialized. Please execute `init()` first.")
+        .wallet_lock_sink
+}
+
+pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
     // init_logging() should not fail when being called more than once.
@@ -35,8 +48,8 @@ pub fn init() -> Result<()> {
     // This function may also be called safely more than once.
     init_async_runtime()?;
 
-    let created = create_wallet()?;
-    assert!(created, "Wallet can only be initialized once");
+    let initialized = init_wallet_environment(wallet_lock_sink)?;
+    assert!(initialized, "Wallet can only be initialized once");
 
     Ok(())
 }
@@ -45,16 +58,19 @@ pub fn init() -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn create_wallet() -> Result<bool> {
+async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<bool> {
     let mut created = false;
 
-    _ = WALLET
+    _ = WALLET_API_ENVIRONMENT
         .get_or_try_init(|| async {
-            // This closure will only be called if WALLET is currently empty.
+            // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(RwLock::new(wallet))
+            Ok(WalletApiEnvironment {
+                wallet: RwLock::new(wallet),
+                wallet_lock_sink,
+            })
         })
         .await?;
 
@@ -64,6 +80,24 @@ async fn create_wallet() -> Result<bool> {
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()
+}
+
+#[async_runtime]
+pub async fn unlock_wallet(pin: String) -> Result<()> {
+    let mut wallet = wallet().write().await;
+    wallet.unlock(pin).await?;
+    let is_locked = wallet.is_locked();
+    wallet_lock_sink().add(is_locked);
+    Ok(())
+}
+
+#[async_runtime]
+pub async fn lock_wallet() -> Result<()> {
+    let mut wallet = wallet().write().await;
+    wallet.lock();
+    let is_locked = wallet.is_locked();
+    wallet_lock_sink().add(is_locked);
+    Ok(())
 }
 
 #[async_runtime]

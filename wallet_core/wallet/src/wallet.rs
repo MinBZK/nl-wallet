@@ -50,6 +50,12 @@ pub enum WalletRegistrationError {
     StoreCertificate(#[from] StorageError),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum WalletUnlockError {
+    #[error("PIN provided is incorrect")]
+    IncorrectPin,
+}
+
 /// Attempts to fetch the registration from storage,
 /// without creating a database if there is none.
 async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<RegistrationData>, StorageError> {
@@ -73,6 +79,7 @@ pub struct Wallet<A, S, K> {
     storage: S,
     hw_privkey: K,
     registration: Option<RegistrationData>,
+    is_locked: bool,
 }
 
 impl<A, S, K> Wallet<A, S, K>
@@ -96,6 +103,7 @@ where
             storage,
             hw_privkey,
             registration,
+            is_locked: true,
         };
 
         Ok(wallet)
@@ -103,6 +111,28 @@ where
 
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.is_locked
+    }
+
+    pub fn lock(&mut self) {
+        self.is_locked = true
+    }
+
+    #[instrument(skip_all)]
+    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
+        info!("Validating pin");
+        //TODO: Validate pin with account server
+        if pin != "000000" {
+            self.is_locked = true;
+            return Err(WalletUnlockError::IncorrectPin);
+        }
+
+        info!("Pin validated, unlocking wallet");
+        self.is_locked = false;
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -161,7 +191,7 @@ where
 
         info!("Storing received registration");
 
-        // If the storage datbase does not exist, create it now.
+        // If the storage database does not exist, create it now.
         let storage_state = self.storage.state().await?;
         if !matches!(storage_state, StorageState::Opened) {
             self.storage.open().await?;
@@ -211,6 +241,9 @@ mod tests {
             wallet.storage.state().await.unwrap(),
             StorageState::Uninitialized
         ));
+
+        // The wallet should be locked by default
+        assert!(wallet.is_locked);
 
         // Test with a wallet with a database file, no registration.
         let wallet = init_wallet(Some(MockStorage::new(StorageState::Unopened, None)))
@@ -264,5 +297,26 @@ mod tests {
 
         // Registering again should result in an error.
         assert!(wallet.register("112233".to_owned()).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_lock_mechanism() {
+        let mut wallet = init_wallet(None).await.expect("Could not initialize wallet");
+
+        // Wallet should initialize in locked state
+        assert!(wallet.is_locked());
+
+        wallet
+            .unlock("000000".to_string())
+            .await
+            .expect("Could not unlock wallet");
+
+        // Wallet should be unlocked after valid unlock attempt
+        assert!(!wallet.is_locked());
+
+        wallet.lock();
+
+        // Wallet should be locked after valid lock attempt
+        assert!(wallet.is_locked());
     }
 }

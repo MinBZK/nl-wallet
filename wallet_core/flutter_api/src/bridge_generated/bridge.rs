@@ -26,9 +26,9 @@ fn wire_init_impl(port_: MessagePort) {
         WrapInfo {
             debug_name: "init",
             port: Some(port_),
-            mode: FfiCallMode::Normal,
+            mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| init(),
+        move || move |task_callback| init(task_callback.stream_sink()),
     )
 }
 fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -42,6 +42,29 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
             let api_pin = pin.wire2api();
             move |task_callback| Ok(is_valid_pin(api_pin))
         },
+    )
+}
+fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "unlock_wallet",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.wire2api();
+            move |task_callback| unlock_wallet(api_pin)
+        },
+    )
+}
+fn wire_lock_wallet_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "lock_wallet",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| lock_wallet(),
     )
 }
 fn wire_has_registration_impl(port_: MessagePort) {

@@ -49,11 +49,12 @@ class DeeplinkService {
     this._appLifecycleService,
   ) {
     // Delay the actual processing of the (last seen) [Uri] until the app is resumed and unlocked
-    // Note: The order is important, as the apps 'locked' flag is set when the [AppLifecycleState]
+    // Note: The order and delay is important, as the apps 'locked' flag is set when the [AppLifecycleState]
     //       changes. Meaning that without that debounce the isLockedStream could produce a stale value.
     _uriController.stream
         .whereNotNull()
         .debounce((uri) => _appLifecycleService.observe().where((state) => state == AppLifecycleState.resumed))
+        .debounceTime(const Duration(milliseconds: 200))
         .debounce((uri) => _observeWalletLockUseCase.invoke().where((locked) => !locked))
         .listen(processUri);
 

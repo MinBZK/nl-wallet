@@ -72,6 +72,12 @@ class MockDigidAuthRepository extends _i1.Mock
 /// See the documentation for Mockito's code generation for more information.
 class MockTypedWalletCore extends _i1.Mock implements _i5.TypedWalletCore {
   @override
+  _i3.Stream<bool> get isLocked => (super.noSuchMethod(
+        Invocation.getter(#isLocked),
+        returnValue: _i3.Stream<bool>.empty(),
+        returnValueForMissingStub: _i3.Stream<bool>.empty(),
+      ) as _i3.Stream<bool>);
+  @override
   _i3.Future<_i4.PinValidationResult> isValidPin(String? pin) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -101,6 +107,24 @@ class MockTypedWalletCore extends _i1.Mock implements _i5.TypedWalletCore {
         returnValue: _i3.Future<bool>.value(false),
         returnValueForMissingStub: _i3.Future<bool>.value(false),
       ) as _i3.Future<bool>);
+  @override
+  _i3.Future<void> lockWallet() => (super.noSuchMethod(
+        Invocation.method(
+          #lockWallet,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+  @override
+  _i3.Future<void> unlockWallet(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #unlockWallet,
+          [pin],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
   @override
   _i3.Future<String> getDigidAuthUrl() => (super.noSuchMethod(
         Invocation.method(
