@@ -1,8 +1,6 @@
 use std::fmt::Display;
 
 use coset::Header;
-use ecdsa::SigningKey;
-use p256::NistP256;
 use serde_bytes::ByteBuf;
 
 use crate::{
@@ -13,6 +11,7 @@ use crate::{
     cose::{ClonePayload, CoseKey, MdocCose},
     crypto::random_string,
     serialization::cbor_serialize,
+    signer::SecureEcdsaKey,
     DocType, Result, SessionId,
 };
 
@@ -34,6 +33,8 @@ pub enum IssuanceError {
     UnexpectedMessageType { received: String, expected: String },
     #[error("missing private key for doctype {0}")]
     MissingPrivateKey(DocType),
+    #[error("failed to get public key from private key: {0}")]
+    PrivatePublicKeyConversion(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 /// Identifies an issuance session in a URL, as passed from the issuer to the holder using the `url` field of
@@ -65,9 +66,12 @@ impl Display for SessionToken {
 }
 
 impl Response {
-    fn sign(challenge: &ByteBuf, key: &ecdsa::SigningKey<p256::NistP256>) -> Result<Response> {
+    fn sign(challenge: &ByteBuf, key: &impl SecureEcdsaKey) -> Result<Response> {
         let response = Response {
-            public_key: CoseKey::try_from(&key.verifying_key())?,
+            public_key: CoseKey::try_from(
+                &key.verifying_key()
+                    .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?,
+            )?,
             signature: MdocCose::sign(
                 &ResponseSignaturePayload::new(challenge.to_vec()),
                 Header::default(),
@@ -134,7 +138,7 @@ impl KeyGenerationResponseMessage {
 
     pub fn new(
         request: &RequestKeyGenerationMessage,
-        keys: &[Vec<ecdsa::SigningKey<p256::NistP256>>],
+        keys: &[Vec<impl SecureEcdsaKey>],
     ) -> Result<KeyGenerationResponseMessage> {
         let responses = keys
             .iter()
@@ -150,7 +154,7 @@ impl KeyGenerationResponseMessage {
     }
 
     fn create_responses(
-        keys: &[SigningKey<NistP256>],
+        keys: &[impl SecureEcdsaKey],
         unsigned: &UnsignedMdoc,
         challenge: &ByteBuf,
     ) -> Result<MdocResponses> {

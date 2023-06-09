@@ -6,7 +6,7 @@ use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
 use ecdsa::{
     elliptic_curve::pkcs8::DecodePublicKey,
-    signature::{Signature, Signer, Verifier},
+    signature::{Signature, Verifier},
 };
 use p256::NistP256;
 use ring::hmac;
@@ -18,6 +18,7 @@ use x509_parser::{
 
 use crate::{
     serialization::{cbor_deserialize, cbor_serialize, CborError},
+    signer::SecureEcdsaKey,
     verifier::X509Subject,
     Result,
 };
@@ -147,7 +148,7 @@ impl<T> MdocCose<CoseSign1, T> {
     pub fn sign(
         obj: &T,
         unprotected_header: Header,
-        private_key: &ecdsa::SigningKey<NistP256>,
+        private_key: &impl SecureEcdsaKey,
     ) -> Result<MdocCose<CoseSign1, T>>
     where
         T: Clone + Serialize,

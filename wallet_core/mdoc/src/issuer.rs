@@ -4,6 +4,8 @@ use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
+use ecdsa::signature::Signer;
+use p256::ecdsa::Signature;
 use serde::Deserialize;
 use serde_bytes::ByteBuf;
 
@@ -18,6 +20,7 @@ use crate::{
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
     serialization::{cbor_deserialize, TaggedBytes},
+    signer::{EcdsaKey, SecureEcdsaKey},
     Error, Result,
 };
 
@@ -31,6 +34,19 @@ impl IssuancePrivateKey {
         IssuancePrivateKey { private_key, cert_bts }
     }
 }
+
+impl Signer<Signature> for IssuancePrivateKey {
+    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, ecdsa::Error> {
+        self.private_key.try_sign(msg)
+    }
+}
+impl EcdsaKey for IssuancePrivateKey {
+    type Error = ecdsa::Error;
+    fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
+        Ok(self.private_key.verifying_key())
+    }
+}
+impl SecureEcdsaKey for IssuancePrivateKey {}
 
 pub trait IssuanceKeyring {
     fn private_key(&self, doctype: &DocType) -> Option<&IssuancePrivateKey>;
@@ -328,8 +344,7 @@ impl<'a, K: IssuanceKeyring, S: SessionStore> Session<'a, K, S> {
         let headers = HeaderBuilder::new()
             .value(33, Value::Bytes(key.cert_bts.clone()))
             .build();
-        let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso.into(), headers, &key.private_key)?;
+        let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> = MdocCose::sign(&mso.into(), headers, key)?;
 
         let signed = SparseIssuerSigned {
             randoms: attrs

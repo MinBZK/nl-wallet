@@ -15,6 +15,8 @@ pub mod errors;
 
 mod crypto;
 
+pub mod signer;
+
 pub use errors::*;
 pub use iso::*;
 

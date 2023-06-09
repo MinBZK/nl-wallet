@@ -20,6 +20,7 @@ use nl_wallet_mdoc::{
     issuer::*,
     issuer_shared::SessionToken,
     serialization::{cbor_deserialize, cbor_serialize},
+    signer::SoftwareEcdsaKey,
     Error,
 };
 
@@ -79,8 +80,9 @@ fn iso_examples_disclosure() {
     );
 
     let static_device_key = Examples::static_device_key();
-    let cred = Credential::new(
-        static_device_key,
+    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
+    let cred = Credential::<SoftwareEcdsaKey>::new(
+        "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
@@ -101,7 +103,6 @@ fn iso_examples_disclosure() {
 #[test]
 fn iso_examples_custom_disclosure() {
     let ca_cert = Examples::issuer_ca_cert();
-    let static_device_key = Examples::static_device_key();
     let device_response = DeviceResponse::example();
 
     let request = DeviceRequest::new(vec![ItemsRequest {
@@ -114,8 +115,10 @@ fn iso_examples_custom_disclosure() {
     }]);
     println!("My Request: {:#?}", DebugCollapseBts(&request));
 
+    let static_device_key = Examples::static_device_key();
+    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
     let cred = Credential::new(
-        static_device_key,
+        "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
@@ -263,7 +266,9 @@ fn issuance_and_disclosure() {
     assert!(wallet.list_credentials().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<CredentialsMap>, Vec<u8>) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
+    user_consent: T,
+) -> (Wallet<SoftwareEcdsaKey, CredentialsMap>, Vec<u8>) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
@@ -306,7 +311,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     (wallet, ca_bts)
 }
 
-fn custom_disclosure(wallet: Wallet<CredentialsMap>, ca: Vec<u8>) {
+fn custom_disclosure(wallet: Wallet<SoftwareEcdsaKey, CredentialsMap>, ca: Vec<u8>) {
     assert!(!wallet.list_credentials().is_empty());
 
     // Disclose some attributes from our cred

@@ -1,7 +1,7 @@
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
-use ecdsa::{elliptic_curve::rand_core::OsRng, SigningKey};
 use indexmap::IndexMap;
-use p256::NistP256;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::prelude::{FromDer, X509Certificate};
@@ -12,8 +12,10 @@ use crate::{
         StartIssuingMessage, UnsignedMdoc,
     },
     cose::ClonePayload,
+    crypto::random_string,
     iso::*,
     serialization::{cbor_serialize, TaggedBytes},
+    signer::MdocEcdsaKey,
     Error, Result,
 };
 
@@ -83,7 +85,7 @@ pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
-impl<C: CredentialStorage> Wallet<C> {
+impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
     pub async fn do_issuance(
         &self,
         service_engagement: ServiceEngagement,
@@ -128,16 +130,16 @@ impl<C: CredentialStorage> Wallet<C> {
 }
 
 #[derive(Debug)]
-pub struct IssuanceState {
+pub struct IssuanceState<K> {
     pub request: RequestKeyGenerationMessage,
     pub response: KeyGenerationResponseMessage,
 
     /// Private keys grouped by distinct credentials, and then per copies of each distinct credential.
-    pub private_keys: Vec<Vec<SigningKey<NistP256>>>,
+    pub private_keys: Vec<Vec<K>>,
 }
 
-impl IssuanceState {
-    pub fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState> {
+impl<K: MdocEcdsaKey> IssuanceState<K> {
+    pub fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState<K>> {
         let private_keys = request
             .unsigned_mdocs
             .iter()
@@ -153,17 +155,15 @@ impl IssuanceState {
         Ok(state)
     }
 
-    pub fn generate_keys(count: u64) -> Vec<SigningKey<p256::NistP256>> {
-        (0..count)
-            .map(|_| SigningKey::<p256::NistP256>::random(OsRng))
-            .collect()
+    pub fn generate_keys<Ky: MdocEcdsaKey>(count: u64) -> Vec<Ky> {
+        (0..count).map(|_| Ky::new(&random_string(32))).collect()
     }
 
     pub fn issuance_finish(
-        state: IssuanceState,
+        state: IssuanceState<K>,
         issuer_response: DataToIssueMessage,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<Vec<CredentialCopies>> {
+    ) -> Result<Vec<CredentialCopies<K>>> {
         issuer_response
             .mobile_id_documents
             .iter()
@@ -176,15 +176,15 @@ impl IssuanceState {
     fn create_cred_copies(
         doc: &basic_sa_ext::MobileIDDocuments,
         unsigned: &UnsignedMdoc,
-        keys: &Vec<SigningKey<NistP256>>,
+        keys: &Vec<K>,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<CredentialCopies> {
+    ) -> Result<CredentialCopies<K>> {
         let cred_copies = doc
             .sparse_issuer_signed
             .iter()
             .zip(keys)
             .map(|(iss_signature, key)| {
-                iss_signature.to_credential(key.clone(), unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
+                iss_signature.to_credential(key, unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
             })
             .collect::<Result<Vec<_>>>()?
             .into();
@@ -193,12 +193,12 @@ impl IssuanceState {
 }
 
 impl SparseIssuerSigned {
-    pub(super) fn to_credential(
+    pub(super) fn to_credential<K: MdocEcdsaKey>(
         &self,
-        private_key: SigningKey<p256::NistP256>,
+        private_key: &K,
         unsigned: &UnsignedMdoc,
         iss_cert: &X509Certificate,
-    ) -> Result<Credential> {
+    ) -> Result<Credential<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
@@ -209,7 +209,7 @@ impl SparseIssuerSigned {
             version: self.sparse_issuer_auth.version.clone(),
             digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
             value_digests: (&name_spaces).try_into()?,
-            device_key_info: private_key.verifying_key().try_into()?,
+            device_key_info: private_key.verifying_key().unwrap().try_into()?, // TODO
             doc_type: unsigned.doc_type.clone(),
             validity_info: self.sparse_issuer_auth.validity_info.clone(),
         };
@@ -225,9 +225,10 @@ impl SparseIssuerSigned {
         issuer_signed.verify(iss_cert)?;
 
         let cred = Credential {
-            private_key,
+            private_key: private_key.identifier().to_string(),
             issuer_signed,
             doc_type: unsigned.doc_type.clone(),
+            phantom_data: PhantomData,
         };
         Ok(cred)
     }

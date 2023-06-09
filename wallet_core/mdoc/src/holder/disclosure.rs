@@ -1,16 +1,20 @@
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
-use ecdsa::signature::Signer;
 use indexmap::IndexMap;
 use x509_parser::{nom::AsBytes, prelude::X509Certificate};
 
 use crate::{
-    cose::ClonePayload, crypto::dh_hmac_key, iso::*, serialization::cbor_deserialize, verifier::X509Subject, Error,
-    Result,
+    cose::ClonePayload,
+    crypto::dh_hmac_key,
+    iso::*,
+    serialization::cbor_deserialize,
+    signer::{MdocEcdsaKey, SecureEcdsaKey},
+    verifier::X509Subject,
+    Error, Result,
 };
 
 use super::{Credential, CredentialStorage, HolderError, Wallet};
 
-impl<C: CredentialStorage> Wallet<C> {
+impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
     pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
         let mut docs: Vec<Document> = Vec::new();
 
@@ -40,7 +44,7 @@ impl<C: CredentialStorage> Wallet<C> {
     }
 }
 
-impl Credential {
+impl<K: MdocEcdsaKey> Credential<K> {
     pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
@@ -63,7 +67,7 @@ impl Credential {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            device_signed: DeviceSigned::new_signature(&self.private_key, challenge),
+            device_signed: DeviceSigned::new_signature(&K::new(&self.private_key), challenge),
             errors: None,
         };
         Ok(doc)
@@ -71,7 +75,7 @@ impl Credential {
 }
 
 impl DeviceSigned {
-    pub fn new_signature(private_key: &ecdsa::SigningKey<p256::NistP256>, challenge: &[u8]) -> DeviceSigned {
+    pub fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> DeviceSigned {
         let cose = CoseSign1Builder::new()
             .payload(Vec::from(challenge))
             .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())

@@ -691,6 +691,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "indexmap",
+ "nl-wallet-mdoc",
  "once_cell",
  "p256",
  "rand",
