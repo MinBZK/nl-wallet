@@ -25,10 +25,10 @@ rand.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 sha2.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["env-filter", "fmt", "std"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "parking_lot"] }
 
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }

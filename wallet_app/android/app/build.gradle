@@ -114,8 +114,8 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
 // Register tasks to build the Rust code and copy the resulting library files
 [
         Debug  : [false, null],
-        Profile: [true, '--release'],
-        Release: [true, '--release']
+        Profile: [true, ['--locked', '--release']],
+        Release: [true, ['--locked', '--release']]
 ].each {
     def taskPostfix = it.key
     def (doStrip, profileMode) = it.value

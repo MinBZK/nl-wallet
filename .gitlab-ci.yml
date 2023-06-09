@@ -101,13 +101,16 @@ test-rust:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
   script:
     - set -euxo pipefail
-    - (cd wallet_core; cargo llvm-cov test --lcov --output-path lcov.info)
-    - (cd wallet_core; cargo llvm-cov report --cobertura --output-path coverage.xml)
+    # Check Rust formatting
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
-    - cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
-    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --all-features --tests -- -Dwarnings
+    # Check clippy
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings    
+    # Run tests, generate code coverage reports
+    - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
+    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path coverage.xml)
   artifacts:
     reports:
       coverage_report:
@@ -115,6 +118,24 @@ test-rust:
         coverage_format: cobertura
     paths:
       - wallet_core/lcov.info
+
+test-rust-compilation-android-linux:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:91c89ddae9a826d2c16a2a7b768e5b17577ea2518f661fa677311d3fe7680f20"
+  script:
+    - cargo check --manifest-path wallet_core/wallet_provider/Cargo.toml --locked --release
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
+
+test-rust-compilation-ios:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  when: manual
+  tags:
+    - macos
+  script:
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --target aarch64-apple-ios --release
 
 test-ios:
   stage: test
@@ -234,8 +255,8 @@ test-codegen:
   script:
     - set -euxo pipefail
     - flutter pub get $FLUTTER_APP_PROJECT_DIR
-    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
-    - cargo run --manifest-path wallet_core/Cargo.toml --bin serde_reflection_codegen --features serde_reflection_codegen
+    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
+    - cargo run --manifest-path wallet_core/Cargo.toml --locked --bin serde_reflection_codegen --features serde_reflection_codegen
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
