@@ -94,9 +94,9 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildAttributeSection(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         ThemeSectionHeader(title: 'Attributes'),
         SizedBox(height: 12),
         ThemeSectionSubHeader(title: 'DataAttributeRow - Type Text'),
@@ -153,9 +153,9 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildCardSection(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         ThemeSectionHeader(title: 'Cards'),
         SizedBox(height: 12),
         ThemeSectionSubHeader(title: 'WalletCardItem'),
@@ -214,9 +214,9 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildPolicySection(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         ThemeSectionHeader(title: 'Policy'),
         SizedBox(height: 12),
         ThemeSectionSubHeader(title: 'PolicyRow'),

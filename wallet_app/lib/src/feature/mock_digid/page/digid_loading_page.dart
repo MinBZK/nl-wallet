@@ -33,10 +33,10 @@ class DigidLoadingPage extends StatelessWidget {
   }
 
   Widget _buildBackground() {
-    return Column(
+    return const Column(
       mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Align(
           alignment: Alignment.centerRight,
           child: Icon(Icons.close),
