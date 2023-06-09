@@ -16,7 +16,8 @@ void main() {
 
   setUp(() {
     /// Mock the uni_links package
-    const MethodChannel('uni_links/messages').setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(const MethodChannel('uni_links/messages'), (MethodCall methodCall) async {
       if (methodCall.method == 'getInitialLink') return null;
       return null;
     });

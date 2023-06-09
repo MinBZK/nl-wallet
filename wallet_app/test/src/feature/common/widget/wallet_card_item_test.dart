@@ -14,8 +14,8 @@ void _voidCallback() {}
 
 void main() {
   setUp(() {
-    const MethodChannel('dev.fluttercommunity.plus/sensors/accelerometer')
-        .setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('dev.fluttercommunity.plus/sensors/accelerometer'), (MethodCall methodCall) async {
       if (methodCall.method == 'listen') {
         return <String, dynamic>{};
       }

@@ -10,55 +10,58 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
-  equatable: ^2.0.5
+  arb_utils: ^0.6.0
   collection: ^1.16.0
+  core_domain:
+    path: ./pub/core_domain
+  equatable: ^2.0.5
+  ffi: ^2.0.1
   fimber: ^0.6.6
   flutter:
     sdk: flutter
   flutter_bloc: ^8.1.1
   flutter_localizations:
     sdk: flutter
-  intl: ^0.17.0
-  mobile_scanner: ^3.2.0
-  permission_handler: ^10.2.0
-  rxdart: ^0.27.5
-  flutter_sticky_header: ^0.6.4
-  url_launcher: ^6.1.6
-  vibration: ^1.7.6
-  json_serializable: ^6.5.4
-  json_annotation: ^4.7.0
-  arb_utils: ^0.4.1
-  qr_flutter: ^4.0.0
-  screen_brightness: ^0.2.2
-  package_info_plus: ^3.0.2
   flutter_rust_bridge: ^1.61.1
-  ffi: ^2.0.1
-  freezed_annotation: ^2.2.0
-  uni_links: ^0.5.1
-  meta: ^1.8.0
-  core_domain:
-    path: ./pub/core_domain
-  shared_preferences: ^2.0.17
-  golden_toolkit: ^0.15.0
+  flutter_staggered_grid_view: ^0.6.2
+  flutter_sticky_header: ^0.6.4
   flutter_svg: ^2.0.4
   foil: ^0.9.0+1
-  flutter_staggered_grid_view: ^0.6.2
+  freezed_annotation: ^2.2.0
+  golden_toolkit: ^0.15.0
+  json_annotation: ^4.7.0
+  json_serializable: ^6.5.4
+  meta: ^1.8.0
+  mobile_scanner: ^3.2.0
+  package_info_plus: ^4.0.2
+  permission_handler: ^10.2.0
+  qr_flutter: ^4.0.0
+  rxdart: ^0.27.5
+  screen_brightness: ^0.2.2
+  shared_preferences: ^2.0.17
+  uni_links: ^0.5.1
+  url_launcher: ^6.1.6
+  vibration: ^1.7.6
+
+dependency_overrides:
+  intl: 0.18.1 # Resolve conflict between arb_utils & flutter_localizations
+  test_api: 0.5.2 # Resolve conflict between test & flutter_test
+  vm_service: 11.6.0 # Resolve conflict between flutter_driver & arb_utils
 
 dev_dependencies:
-  flutter_lints: ^2.0.0
-  test: any
-  flutter_test:
-    sdk: flutter
-  flutter_driver:
-    sdk: flutter
-
   bloc_test: ^9.0.0
   build_runner: ^2.3.2
-  ffigen: ^7.2.4
+  ffigen: ^7.2.11 # Newer version is incompatible with flutter_rust_bridge_codegen
+  flutter_driver:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
   freezed: ^2.3.2
-  mockito: ^5.3.2
   get_it: ^7.6.0
+  mockito: ^5.3.2
   rename: ^2.1.1
+  test: ^1.24.2
 
 flutter:
   uses-material-design: true

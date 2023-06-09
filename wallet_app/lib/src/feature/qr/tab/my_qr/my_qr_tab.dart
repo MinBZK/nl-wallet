@@ -21,10 +21,17 @@ class MyQrTab extends StatelessWidget {
             alignment: Alignment.center,
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
             height: context.isLandscape ? _kLandscapeQrSize : null,
-            child: QrImage(
+            child: QrImageView(
               padding: EdgeInsets.zero,
               data: '{"id": ${DateTime.now().millisecondsSinceEpoch}',
-              foregroundColor: Theme.of(context).primaryColorDark,
+              eyeStyle: QrEyeStyle(
+                color: Theme.of(context).primaryColorDark,
+                eyeShape: QrEyeShape.square,
+              ),
+              dataModuleStyle: QrDataModuleStyle(
+                color: Theme.of(context).primaryColorDark,
+                dataModuleShape: QrDataModuleShape.square,
+              ),
             ),
           ),
           TextIconButton(
