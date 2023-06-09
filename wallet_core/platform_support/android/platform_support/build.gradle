@@ -60,12 +60,12 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
 
 // Register a task to build the Rust code and copy the resulting library files
 [
-        Debug  : null,
-        Profile: '--release',
-        Release: '--release'
+        Debug  : [false, ['--features', 'hardware-integration-test']],
+        Profile: [true, ['--locked', '--release']],
+        Release: [true, ['--locked', '--release']]
 ].each {
     def taskPostfix = it.key
-    def profileMode = it.value
+    def (doStrip, profileMode) = it.value
     tasks.whenTaskAdded { task ->
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeBindings$taskPostfix"
@@ -97,13 +97,14 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
-                '-o', jniTargetDir,
-                'build'
+                '-o', jniTargetDir
         ]
-        if(profileMode != null) {
-            args += ['--release']
-        } else {
-            args += ['--features', 'hardware-integration-test']
+        if (!doStrip) {
+            args += '--no-strip'
+        }
+        args += 'build'
+        if (profileMode != null) {
+            args += profileMode
         }
     }
 }
