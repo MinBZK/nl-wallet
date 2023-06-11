@@ -26,6 +26,13 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
     // from ConstructableWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+    fn key_type() -> PrivateKeyType;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PrivateKeyType {
+    Software,
+    Hardware,
 }
 
 //// Software ECDSA key
@@ -42,14 +49,24 @@ pub static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(||
 // so we can forward the try_sign method and verifying_key methods.
 impl Signer<Signature> for SoftwareEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
-        SIGNING_KEYS.lock().unwrap().get(&self.identifier).try_sign(msg)
+        SIGNING_KEYS
+            .lock()
+            .unwrap()
+            .get(&self.identifier)
+            .unwrap()
+            .try_sign(msg)
     }
 }
 impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(SIGNING_KEYS.lock().unwrap().get(&self.identifier).verifying_key())
+        Ok(SIGNING_KEYS
+            .lock()
+            .unwrap()
+            .get(&self.identifier)
+            .unwrap()
+            .verifying_key())
     }
 }
 impl ConstructableWithIdentifier for SoftwareEcdsaKey {
@@ -60,9 +77,9 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
         // obtain lock on SIGNING_KEYS static hashmap
         let mut signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
         // insert new random signing key, if the key is not present
-        let signing_key = signing_keys
-            .entry(identifier.to_string())
-            .or_insert_with(|| SigningKey::random(&mut OsRng));
+        if !signing_keys.contains_key(identifier) {
+            signing_keys.insert(identifier.to_string(), SigningKey::random(&mut OsRng));
+        }
 
         SoftwareEcdsaKey {
             identifier: identifier.to_string(),
@@ -78,7 +95,7 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
 mod mock {
     use p256::ecdsa::SigningKey;
 
-    use super::{EcdsaKey, MdocEcdsaKey, SecureEcdsaKey, SoftwareEcdsaKey};
+    use super::{EcdsaKey, MdocEcdsaKey, PrivateKeyType, SecureEcdsaKey, SoftwareEcdsaKey};
 
     impl EcdsaKey for SigningKey {
         type Error = p256::ecdsa::Error;
@@ -90,7 +107,11 @@ mod mock {
     impl SecureEcdsaKey for SigningKey {}
 
     impl SecureEcdsaKey for SoftwareEcdsaKey {}
-    impl MdocEcdsaKey for SoftwareEcdsaKey {}
+    impl MdocEcdsaKey for SoftwareEcdsaKey {
+        fn key_type() -> PrivateKeyType {
+            PrivateKeyType::Software
+        }
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]

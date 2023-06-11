@@ -4,7 +4,6 @@ use indexmap::IndexMap;
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Credential, CredentialCopies, CredentialStorage},
-    signer::SoftwareEcdsaKey,
     DocType, Error, NameSpace,
 };
 
@@ -14,12 +13,12 @@ use nl_wallet_mdoc::{
 ///   with [`Credential::hash()`] (see its rustdoc for details),
 /// - multiple mdocs having the same doctype and the same attributes, through the `CredentialCopies` data structure.
 #[derive(Debug, Clone, Default)]
-pub struct CredentialsMap(pub(crate) DashMap<DocType, DashMap<Vec<u8>, CredentialCopies<SoftwareEcdsaKey>>>);
+pub struct CredentialsMap(pub(crate) DashMap<DocType, DashMap<Vec<u8>, CredentialCopies>>);
 
-impl<const N: usize> TryFrom<[Credential<SoftwareEcdsaKey>; N]> for CredentialsMap {
+impl<const N: usize> TryFrom<[Credential; N]> for CredentialsMap {
     type Error = Error;
 
-    fn try_from(value: [Credential<SoftwareEcdsaKey>; N]) -> Result<Self, Self::Error> {
+    fn try_from(value: [Credential; N]) -> Result<Self, Self::Error> {
         let creds = CredentialsMap(DashMap::new());
         creds.add(value.into_iter())?;
         Ok(creds)
@@ -32,8 +31,8 @@ impl CredentialsMap {
     }
 }
 
-impl CredentialStorage<SoftwareEcdsaKey> for CredentialsMap {
-    fn add(&self, creds: impl Iterator<Item = Credential<SoftwareEcdsaKey>>) -> Result<(), Error> {
+impl CredentialStorage for CredentialsMap {
+    fn add(&self, creds: impl Iterator<Item = Credential>) -> Result<(), Error> {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
@@ -47,7 +46,7 @@ impl CredentialStorage<SoftwareEcdsaKey> for CredentialsMap {
         Ok(())
     }
 
-    fn get(&self, doctype: &DocType) -> Option<Vec<CredentialCopies<SoftwareEcdsaKey>>> {
+    fn get(&self, doctype: &DocType) -> Option<Vec<CredentialCopies>> {
         self.0
             .get(doctype)
             .map(|v| v.value().iter().map(|entry| entry.value().clone()).collect())

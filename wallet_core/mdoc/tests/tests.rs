@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
     issuer::*,
     issuer_shared::SessionToken,
     serialization::{cbor_deserialize, cbor_serialize},
-    signer::SoftwareEcdsaKey,
+    signer::{PrivateKeyType, SoftwareEcdsaKey},
     Error,
 };
 
@@ -81,8 +81,9 @@ fn iso_examples_disclosure() {
 
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Credential::<SoftwareEcdsaKey>::new(
+    let cred = Credential::new(
         "example_static_device_key".to_string(),
+        PrivateKeyType::Software,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
@@ -90,7 +91,7 @@ fn iso_examples_disclosure() {
 
     let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
     let resp = wallet
-        .disclose(&device_request, &DeviceAuthenticationBytes::example_bts())
+        .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
 
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
@@ -119,6 +120,7 @@ fn iso_examples_custom_disclosure() {
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
     let cred = Credential::new(
         "example_static_device_key".to_string(),
+        PrivateKeyType::Software,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
@@ -126,7 +128,7 @@ fn iso_examples_custom_disclosure() {
 
     let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
     let resp = wallet
-        .disclose(&request, &DeviceAuthenticationBytes::example_bts())
+        .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
 
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
@@ -266,9 +268,7 @@ fn issuance_and_disclosure() {
     assert!(wallet.list_credentials().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
-    user_consent: T,
-) -> (Wallet<SoftwareEcdsaKey, CredentialsMap>, Vec<u8>) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<CredentialsMap>, Vec<u8>) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
@@ -298,7 +298,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
         .unwrap()
         .block_on(async {
             wallet
-                .do_issuance(
+                .do_issuance::<SoftwareEcdsaKey>(
                     service_engagement,
                     &user_consent,
                     &client_builder,
@@ -311,7 +311,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
     (wallet, ca_bts)
 }
 
-fn custom_disclosure(wallet: Wallet<SoftwareEcdsaKey, CredentialsMap>, ca: Vec<u8>) {
+fn custom_disclosure(wallet: Wallet<CredentialsMap>, ca: Vec<u8>) {
     assert!(!wallet.list_credentials().is_empty());
 
     // Disclose some attributes from our cred
@@ -325,7 +325,9 @@ fn custom_disclosure(wallet: Wallet<SoftwareEcdsaKey, CredentialsMap>, ca: Vec<u
     }]);
 
     let challenge = DeviceAuthenticationBytes::example_bts();
-    let disclosed = wallet.disclose(&request, challenge.as_ref()).unwrap();
+    let disclosed = wallet
+        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref())
+        .unwrap();
 
     let ca_cert = X509Certificate::from_der(ca.as_slice()).unwrap().1;
     println!(

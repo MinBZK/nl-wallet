@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -14,6 +12,7 @@ use crate::{
     cose::ClonePayload,
     crypto::random_string,
     iso::*,
+    issuer_shared::IssuanceError,
     serialization::{cbor_serialize, TaggedBytes},
     signer::MdocEcdsaKey,
     Error, Result,
@@ -85,8 +84,8 @@ pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
-impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
-    pub async fn do_issuance(
+impl<C: CredentialStorage> Wallet<C> {
+    pub async fn do_issuance<K: MdocEcdsaKey>(
         &self,
         service_engagement: ServiceEngagement,
         user_consent: &impl IssuanceUserConsent,
@@ -118,7 +117,7 @@ impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
         }
 
         // Compute responses
-        let state = IssuanceState::issuance_start(request)?;
+        let state = IssuanceState::<K>::issuance_start(request)?;
 
         // Finish issuance protocol
         let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
@@ -155,15 +154,15 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         Ok(state)
     }
 
-    pub fn generate_keys<Ky: MdocEcdsaKey>(count: u64) -> Vec<Ky> {
-        (0..count).map(|_| Ky::new(&random_string(32))).collect()
+    pub fn generate_keys(count: u64) -> Vec<K> {
+        (0..count).map(|_| K::new(&random_string(32))).collect()
     }
 
     pub fn issuance_finish(
         state: IssuanceState<K>,
         issuer_response: DataToIssueMessage,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<Vec<CredentialCopies<K>>> {
+    ) -> Result<Vec<CredentialCopies>> {
         issuer_response
             .mobile_id_documents
             .iter()
@@ -178,7 +177,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<CredentialCopies<K>> {
+    ) -> Result<CredentialCopies> {
         let cred_copies = doc
             .sparse_issuer_signed
             .iter()
@@ -198,7 +197,7 @@ impl SparseIssuerSigned {
         private_key: &K,
         unsigned: &UnsignedMdoc,
         iss_cert: &X509Certificate,
-    ) -> Result<Credential<K>> {
+    ) -> Result<Credential> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
@@ -209,7 +208,10 @@ impl SparseIssuerSigned {
             version: self.sparse_issuer_auth.version.clone(),
             digest_algorithm: self.sparse_issuer_auth.digest_algorithm.clone(),
             value_digests: (&name_spaces).try_into()?,
-            device_key_info: private_key.verifying_key().unwrap().try_into()?, // TODO
+            device_key_info: private_key
+                .verifying_key()
+                .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?
+                .try_into()?,
             doc_type: unsigned.doc_type.clone(),
             validity_info: self.sparse_issuer_auth.validity_info.clone(),
         };
@@ -228,7 +230,7 @@ impl SparseIssuerSigned {
             private_key: private_key.identifier().to_string(),
             issuer_signed,
             doc_type: unsigned.doc_type.clone(),
-            phantom_data: PhantomData,
+            private_key_type: K::key_type(),
         };
         Ok(cred)
     }

@@ -14,8 +14,12 @@ use crate::{
 
 use super::{Credential, CredentialStorage, HolderError, Wallet};
 
-impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
-    pub fn disclose(&self, device_request: &DeviceRequest, challenge: &[u8]) -> Result<DeviceResponse> {
+impl<C: CredentialStorage> Wallet<C> {
+    pub fn disclose<K: MdocEcdsaKey>(
+        &self,
+        device_request: &DeviceRequest,
+        challenge: &[u8],
+    ) -> Result<DeviceResponse> {
         let mut docs: Vec<Document> = Vec::new();
 
         for doc_request in &device_request.doc_requests {
@@ -31,7 +35,7 @@ impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
                     items_request.doc_type.clone(),
                 )))?
                 .creds[0];
-            docs.push(cred.disclose_document(items_request, challenge)?);
+            docs.push(cred.disclose_document::<K>(items_request, challenge)?);
         }
 
         let response = DeviceResponse {
@@ -44,8 +48,12 @@ impl<K: MdocEcdsaKey, C: CredentialStorage<K>> Wallet<K, C> {
     }
 }
 
-impl<K: MdocEcdsaKey> Credential<K> {
-    pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
+impl Credential {
+    pub fn disclose_document<K: MdocEcdsaKey>(
+        &self,
+        items_request: &ItemsRequest,
+        challenge: &[u8],
+    ) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
             .name_spaces
@@ -67,7 +75,7 @@ impl<K: MdocEcdsaKey> Credential<K> {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            device_signed: DeviceSigned::new_signature(&K::new(&self.private_key), challenge),
+            device_signed: DeviceSigned::new_signature(&self.private_key::<K>()?, challenge),
             errors: None,
         };
         Ok(doc)
