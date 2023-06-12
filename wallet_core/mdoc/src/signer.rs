@@ -44,7 +44,7 @@ pub struct SoftwareEcdsaKey {
 }
 
 // static for storing identifier -> signing key mapping, will only every grow
-pub static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 // SigningKey from p256::ecdsa almost conforms to the EcdsaKey trait,
 // so we can forward the try_sign method and verifying_key methods.
@@ -52,7 +52,7 @@ impl Signer<Signature> for SoftwareEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
         SIGNING_KEYS
             .lock()
-            .unwrap()
+            .expect("Could not get lock on SIGNING_KEYS")
             .get(&self.identifier)
             .unwrap()
             .try_sign(msg)
@@ -64,7 +64,7 @@ impl EcdsaKey for SoftwareEcdsaKey {
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         Ok(SIGNING_KEYS
             .lock()
-            .unwrap()
+            .expect("Could not get lock on SIGNING_KEYS")
             .get(&self.identifier)
             .unwrap()
             .verifying_key())
@@ -96,7 +96,7 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
 mod mock {
     use p256::ecdsa::SigningKey;
 
-    use super::{EcdsaKey, MdocEcdsaKey, PrivateKeyType, SecureEcdsaKey, SoftwareEcdsaKey};
+    use super::{EcdsaKey, MdocEcdsaKey, PrivateKeyType, SecureEcdsaKey, SoftwareEcdsaKey, SIGNING_KEYS};
 
     impl EcdsaKey for SigningKey {
         type Error = p256::ecdsa::Error;
@@ -113,15 +113,15 @@ mod mock {
             PrivateKeyType::Software
         }
     }
-}
-
-#[cfg(any(test, feature = "mock"))]
-impl SoftwareEcdsaKey {
-    pub fn insert(identifier: &str, key: SigningKey) {
-        SIGNING_KEYS
-            .lock()
-            .expect("Could not get lock on SIGNING_KEYS")
-            .insert(identifier.to_string(), key);
+    /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
+    /// (e.g. with the keys in ISO 23220).
+    impl SoftwareEcdsaKey {
+        pub fn insert(identifier: &str, key: SigningKey) {
+            SIGNING_KEYS
+                .lock()
+                .expect("Could not get lock on SIGNING_KEYS")
+                .insert(identifier.to_string(), key);
+        }
     }
 }
 
