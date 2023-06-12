@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use reqwest::Client;
+use url::Url;
 
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
@@ -9,12 +10,12 @@ use wallet_common::account::{
 use super::{AccountServerClient, AccountServerClientError};
 
 pub struct RemoteAccountServerClient {
-    url: String,
+    url: Url,
     client: Client,
 }
 
 impl RemoteAccountServerClient {
-    pub fn new(url: String) -> Self {
+    pub fn new(url: Url) -> Self {
         Self {
             url,
             client: Client::new(),
@@ -27,7 +28,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
-            .post(format!("{}/api/v1/enroll", self.url))
+            .post(self.url.join("/api/v1/enroll").unwrap())
             .send()
             .await?
             .json::<Challenge>()
@@ -44,7 +45,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
-            .post(format!("{}/api/v1/createwallet", self.url))
+            .post(self.url.join("/api/v1/createwallet").unwrap())
             .json(&registration_message)
             .send()
             .await?
