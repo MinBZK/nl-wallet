@@ -23,6 +23,8 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
+/// The contract of this trait includes that a constructed type with the same
+/// identifier behaves exactly the same, i.e. has the same key material backing it.
 pub trait ConstructableWithIdentifier {
     fn new(identifier: &str) -> Self
     where
