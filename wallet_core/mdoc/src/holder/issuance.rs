@@ -123,7 +123,7 @@ impl<C: CredentialStorage> Wallet<C> {
         let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
 
         // Process issuer response to obtain and save new credentials
-        let creds = IssuanceState::issuance_finish(state, issuer_response, trusted_issuer_certs)?;
+        let creds = state.issuance_finish(issuer_response, trusted_issuer_certs)?;
         self.credential_storage.add(creds.into_iter().flatten())
     }
 }
@@ -159,15 +159,15 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
     }
 
     pub fn issuance_finish(
-        state: IssuanceState<K>,
+        self,
         issuer_response: DataToIssueMessage,
         trusted_issuer_certs: &TrustedIssuerCerts,
     ) -> Result<Vec<CredentialCopies>> {
         issuer_response
             .mobile_id_documents
             .iter()
-            .zip(&state.request.unsigned_mdocs)
-            .zip(&state.private_keys)
+            .zip(&self.request.unsigned_mdocs)
+            .zip(&self.private_keys)
             .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trusted_issuer_certs))
             .collect()
     }
