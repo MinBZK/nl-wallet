@@ -29,10 +29,7 @@ async fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<Path
     // Get path to database as "<storage_path>/<name>.db"
     let storage_path = task::spawn_blocking(|| U::storage_path())
         .await
-        .map_err(|e| match e.try_into_panic() {
-            Ok(panic) => panic::resume_unwind(panic),
-            Err(e) => e,
-        })??;
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
     let database_path = storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT));
 
     Ok(database_path)

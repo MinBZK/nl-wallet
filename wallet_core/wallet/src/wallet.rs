@@ -1,6 +1,6 @@
 use std::{error::Error, panic};
 
-use tokio::task::{self, JoinError};
+use tokio::task;
 use tracing::{info, instrument};
 
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
@@ -37,8 +37,6 @@ pub enum WalletRegistrationError {
     InvalidPin(#[from] PinValidationError),
     #[error("could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountServerClientError),
-    #[error("could not communicate with encryption hardware: {0}")]
-    HardwareEncryptionCommunication(#[from] JoinError),
     #[error("could not get hardware public key: {0}")]
     HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
@@ -184,10 +182,7 @@ where
             Ok::<_, WalletRegistrationError>((pin_salt, hw_pubkey, registration_message))
         })
         .await
-        .map_err(|e| match e.try_into_panic() {
-            Ok(panic) => panic::resume_unwind(panic),
-            Err(e) => e,
-        })??;
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
 
         // Send the registration message to the account server and receive the wallet certificate in response.
         let cert = self

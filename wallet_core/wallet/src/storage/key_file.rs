@@ -3,10 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tokio::{
-    fs,
-    task::{self, JoinError},
-};
+use tokio::{fs, task};
 
 use platform_support::{
     hw_keystore::{HardwareKeyStoreError, PlatformEncryptionKey},
@@ -20,8 +17,6 @@ const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
     Io(#[from] io::Error),
-    #[error("key file platform join error: {0}")]
-    Join(#[from] JoinError),
     #[error("key file platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
     #[error("key file platform key store error: {0}")]
@@ -53,10 +48,7 @@ pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<(), Ke
 async fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf, KeyFileError> {
     let storage_path = task::spawn_blocking(|| U::storage_path())
         .await
-        .map_err(|e| match e.try_into_panic() {
-            Ok(panic) => panic::resume_unwind(panic),
-            Err(e) => e,
-        })??;
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
     let path = storage_path.join(format!("{}.key", alias));
 
     Ok(path)

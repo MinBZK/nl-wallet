@@ -11,7 +11,6 @@ use std::{array::TryFromSliceError, io};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
-use tokio::task::JoinError;
 
 use platform_support::utils::UtilitiesError;
 
@@ -51,8 +50,6 @@ pub enum StorageError {
     SqlCipherKey(#[from] TryFromSliceError),
     #[error(transparent)]
     KeyFile(#[from] KeyFileError),
-    #[error("storage database platform utilities error: {0}")]
-    Join(#[from] JoinError),
     #[error("storage database platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
 }
