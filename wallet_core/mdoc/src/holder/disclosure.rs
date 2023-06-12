@@ -26,16 +26,19 @@ impl<C: CredentialStorage> Wallet<C> {
             let items_request = &doc_request.items_request.0;
 
             // This takes any mdoc of the specified doctype. TODO: allow user choice.
-            let creds = self.credential_storage.get(&items_request.doc_type).ok_or(Error::from(
-                HolderError::UnsatisfiableRequest(items_request.doc_type.clone()),
-            ))?;
+            let creds = self
+                .credential_storage
+                .get::<K>(&items_request.doc_type)
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?;
             let cred = &creds
                 .first()
                 .ok_or(Error::from(HolderError::UnsatisfiableRequest(
                     items_request.doc_type.clone(),
                 )))?
                 .creds[0];
-            docs.push(cred.disclose_document::<K>(items_request, challenge)?);
+            docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
         let response = DeviceResponse {
@@ -48,12 +51,8 @@ impl<C: CredentialStorage> Wallet<C> {
     }
 }
 
-impl Credential {
-    pub fn disclose_document<K: MdocEcdsaKey>(
-        &self,
-        items_request: &ItemsRequest,
-        challenge: &[u8],
-    ) -> Result<Document> {
+impl<K: MdocEcdsaKey> Credential<K> {
+    pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
             .name_spaces
@@ -75,7 +74,7 @@ impl Credential {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            device_signed: DeviceSigned::new_signature(&self.private_key::<K>()?, challenge),
+            device_signed: DeviceSigned::new_signature(&self.private_key(), challenge),
             errors: None,
         };
         Ok(doc)

@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -162,7 +164,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         self,
         issuer_response: DataToIssueMessage,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<Vec<CredentialCopies>> {
+    ) -> Result<Vec<CredentialCopies<K>>> {
         issuer_response
             .mobile_id_documents
             .iter()
@@ -177,7 +179,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<CredentialCopies> {
+    ) -> Result<CredentialCopies<K>> {
         let cred_copies = doc
             .sparse_issuer_signed
             .iter()
@@ -197,7 +199,7 @@ impl SparseIssuerSigned {
         private_key: &K,
         unsigned: &UnsignedMdoc,
         iss_cert: &X509Certificate,
-    ) -> Result<Credential> {
+    ) -> Result<Credential<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
@@ -230,7 +232,7 @@ impl SparseIssuerSigned {
             private_key: private_key.identifier().to_string(),
             issuer_signed,
             doc_type: unsigned.doc_type.clone(),
-            private_key_type: K::key_type(),
+            key_type: PhantomData,
         };
         Ok(cred)
     }

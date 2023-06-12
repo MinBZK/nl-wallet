@@ -1,6 +1,6 @@
 use x509_parser::prelude::X509Error;
 
-use crate::{iso::*, signer::PrivateKeyType};
+use crate::iso::*;
 
 pub mod credentials;
 pub mod disclosure;
@@ -22,9 +22,4 @@ pub enum HolderError {
     UntrustedIssuer(DocType),
     #[error("failed to parse certificate: {0}")]
     CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
-    #[error("private key of wrong type: expected {expected:?}, have {have:?}")]
-    PrivateKeyTypeError {
-        expected: PrivateKeyType,
-        have: PrivateKeyType,
-    },
 }

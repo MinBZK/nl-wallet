@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
     issuer::*,
     issuer_shared::SessionToken,
     serialization::{cbor_deserialize, cbor_serialize},
-    signer::{PrivateKeyType, SoftwareEcdsaKey},
+    signer::SoftwareEcdsaKey,
     Error,
 };
 
@@ -81,9 +81,8 @@ fn iso_examples_disclosure() {
 
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Credential::new(
+    let cred = Credential::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
-        PrivateKeyType::Software,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
@@ -118,9 +117,8 @@ fn iso_examples_custom_disclosure() {
 
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Credential::new(
+    let cred = Credential::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
-        PrivateKeyType::Software,
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )

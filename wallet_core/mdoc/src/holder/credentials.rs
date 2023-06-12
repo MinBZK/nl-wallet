@@ -1,23 +1,17 @@
+use std::marker::PhantomData;
+
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use x509_parser::prelude::X509Certificate;
 
-use crate::{
-    basic_sa_ext::Entry,
-    crypto::sha256,
-    iso::*,
-    serialization::cbor_serialize,
-    signer::{MdocEcdsaKey, PrivateKeyType},
-    Result,
-};
-
-use super::HolderError;
+use crate::{basic_sa_ext::Entry, crypto::sha256, iso::*, serialization::cbor_serialize, signer::MdocEcdsaKey, Result};
 
 pub trait CredentialStorage {
-    fn add(&self, creds: impl Iterator<Item = Credential>) -> Result<()>;
+    fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Credential<K>>) -> Result<()>;
     fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
 
     // TODO returning all copies of all credentials is very crude and should be refined.
-    fn get(&self, doctype: &DocType) -> Option<Vec<CredentialCopies>>;
+    fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<CredentialCopies<K>>>;
 }
 
 pub struct Wallet<C> {
@@ -38,68 +32,54 @@ impl<C: CredentialStorage> Wallet<C> {
 ///
 /// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
 /// for unlinkability.
-#[derive(Debug, Clone, Default)]
-pub struct CredentialCopies {
-    pub creds: Vec<Credential>,
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CredentialCopies<K> {
+    pub creds: Vec<Credential<K>>,
 }
 
-impl IntoIterator for CredentialCopies {
-    type Item = Credential;
-    type IntoIter = std::vec::IntoIter<Credential>;
+impl<K: MdocEcdsaKey> IntoIterator for CredentialCopies<K> {
+    type Item = Credential<K>;
+    type IntoIter = std::vec::IntoIter<Credential<K>>;
     fn into_iter(self) -> Self::IntoIter {
         self.creds.into_iter()
     }
 }
-impl From<Vec<Credential>> for CredentialCopies {
-    fn from(creds: Vec<Credential>) -> Self {
+impl<K: MdocEcdsaKey> From<Vec<Credential<K>>> for CredentialCopies<K> {
+    fn from(creds: Vec<Credential<K>>) -> Self {
         Self { creds }
     }
 }
-impl CredentialCopies {
+impl<K: MdocEcdsaKey> CredentialCopies<K> {
     pub fn new() -> Self {
-        CredentialCopies { creds: vec![] }
+        CredentialCopies::<K> { creds: vec![] }
     }
 }
 
 /// A full mdoc credential: everything needed to disclose attributes from the mdoc.
-#[derive(Debug, Clone)]
-pub struct Credential {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Credential<K> {
     pub doc_type: String,
-    pub private_key_type: PrivateKeyType,
 
-    /// Identifier of the credential's private key. Obtaining a reference to it is done with
-    /// [`Credential::private_key()`].
+    /// Identifier of the credential's private key. Obtain a reference to it with [`Credential::private_key()`].
     pub(crate) private_key: String,
     pub(crate) issuer_signed: IssuerSigned,
+    pub(crate) key_type: PhantomData<K>,
 }
 
-impl Credential {
-    pub fn new(
-        private_key: String,
-        key_type: PrivateKeyType,
-        issuer_signed: IssuerSigned,
-        ca_cert: &X509Certificate,
-    ) -> Result<Credential> {
+impl<K: MdocEcdsaKey> Credential<K> {
+    pub fn new(private_key: String, issuer_signed: IssuerSigned, ca_cert: &X509Certificate) -> Result<Credential<K>> {
         let (_, mso) = issuer_signed.verify(ca_cert)?;
-        let cred = Credential {
+        let cred = Credential::<K> {
             private_key,
             issuer_signed,
             doc_type: mso.doc_type,
-            private_key_type: key_type,
+            key_type: PhantomData,
         };
         Ok(cred)
     }
 
-    pub(crate) fn private_key<K: MdocEcdsaKey>(&self) -> Result<K> {
-        if self.private_key_type == K::key_type() {
-            Ok(K::new(&self.private_key))
-        } else {
-            Err(HolderError::PrivateKeyTypeError {
-                expected: K::key_type(),
-                have: self.private_key_type.clone(),
-            }
-            .into())
-        }
+    pub(crate) fn private_key(&self) -> K {
+        K::new(&self.private_key)
     }
 
     pub fn attributes(&self) -> IndexMap<NameSpace, Vec<Entry>> {

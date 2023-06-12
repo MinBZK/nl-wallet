@@ -26,14 +26,6 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
     // from ConstructableWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
-    fn key_type() -> PrivateKeyType;
-}
-
-/// Type of the private key. Each variant should correspond to an [`MdocEcdsaKey`] implementation whose
-/// [`MdocEcdsaKey::key_type()`] implementation returns that variant.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PrivateKeyType {
-    Software,
 }
 
 //// Software ECDSA key
@@ -96,7 +88,7 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
 mod mock {
     use p256::ecdsa::SigningKey;
 
-    use super::{EcdsaKey, MdocEcdsaKey, PrivateKeyType, SecureEcdsaKey, SoftwareEcdsaKey, SIGNING_KEYS};
+    use super::{EcdsaKey, MdocEcdsaKey, SecureEcdsaKey, SoftwareEcdsaKey, SIGNING_KEYS};
 
     impl EcdsaKey for SigningKey {
         type Error = p256::ecdsa::Error;
@@ -108,11 +100,7 @@ mod mock {
     impl SecureEcdsaKey for SigningKey {}
 
     impl SecureEcdsaKey for SoftwareEcdsaKey {}
-    impl MdocEcdsaKey for SoftwareEcdsaKey {
-        fn key_type() -> PrivateKeyType {
-            PrivateKeyType::Software
-        }
-    }
+    impl MdocEcdsaKey for SoftwareEcdsaKey {}
     /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
     /// (e.g. with the keys in ISO 23220).
     impl SoftwareEcdsaKey {
