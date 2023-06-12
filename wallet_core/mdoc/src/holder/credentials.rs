@@ -64,10 +64,13 @@ impl CredentialCopies {
 /// A full mdoc credential: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone)]
 pub struct Credential {
-    pub(crate) private_key: String,
-    pub(crate) issuer_signed: IssuerSigned,
     pub doc_type: String,
     pub private_key_type: PrivateKeyType,
+
+    /// Identifier of the credential's private key. Obtaining a reference to it is done with
+    /// [`Credential::private_key()`].
+    pub(crate) private_key: String,
+    pub(crate) issuer_signed: IssuerSigned,
 }
 
 impl Credential {

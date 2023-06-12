@@ -29,10 +29,11 @@ pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
     fn key_type() -> PrivateKeyType;
 }
 
+/// Type of the private key. Each variant should correspond to an [`MdocEcdsaKey`] implementation whose
+/// [`MdocEcdsaKey::key_type()`] implementation returns that variant.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrivateKeyType {
     Software,
-    Hardware,
 }
 
 //// Software ECDSA key
