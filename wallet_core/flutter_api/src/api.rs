@@ -12,7 +12,7 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        pin::PinValidationResult,
+        pin::PinValidation,
         uri_flow_event::{DigidState, UriFlowEvent},
     },
 };
@@ -77,9 +77,10 @@ async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<b
     Ok(created)
 }
 
-pub fn is_valid_pin(pin: String) -> Vec<u8> {
-    let pin_result = PinValidationResult::from(validate_pin(&pin));
-    bincode::serialize(&pin_result).unwrap()
+pub fn is_valid_pin(pin: String) -> Result<PinValidation> {
+    let pin_validation = validate_pin(&pin).into();
+
+    Ok(pin_validation)
 }
 
 #[async_runtime]
@@ -120,24 +121,24 @@ pub async fn get_digid_auth_url() -> Result<String> {
 }
 
 #[async_runtime]
-pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
+pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     // TODO: The code below is POC sample code, to be replace with a real implementation.
     if uri.contains("authentication") {
         let auth_event = UriFlowEvent::DigidAuth {
             state: DigidState::Authenticating,
         };
-        sink.add(bincode::serialize(&auth_event).unwrap());
+        sink.add(auth_event);
         sleep(Duration::from_secs(5));
         if uri.contains("success") {
             let success_event = UriFlowEvent::DigidAuth {
                 state: DigidState::Success,
             };
-            sink.add(bincode::serialize(&success_event).unwrap());
+            sink.add(success_event);
         } else {
             let error_event = UriFlowEvent::DigidAuth {
                 state: DigidState::Error,
             };
-            sink.add(bincode::serialize(&error_event).unwrap());
+            sink.add(error_event);
         }
     } else {
         return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
@@ -152,9 +153,10 @@ mod tests {
     use super::*;
 
     fn test_is_valid_pin(pin: &str) -> bool {
-        let serialized_pin_result = is_valid_pin(pin.to_owned());
-        let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
-        matches!(pin_result, PinValidationResult::Ok)
+        matches!(
+            is_valid_pin(pin.to_string()).expect("Could not validate PIN"),
+            PinValidation::Ok
+        )
     }
 
     #[test]
