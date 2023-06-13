@@ -263,7 +263,7 @@ fn issuance_and_disclosure() {
     custom_disclosure(wallet, ca);
 
     let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>());
-    assert!(wallet.list_credentials().is_empty())
+    assert!(wallet.list_credentials::<SoftwareEcdsaKey>().is_empty())
 }
 
 fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<CredentialsMap>, Vec<u8>) {
@@ -285,7 +285,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
     let wallet = Wallet::new(CredentialsMap::new());
-    assert!(wallet.list_credentials().is_empty());
+    assert!(wallet.list_credentials::<SoftwareEcdsaKey>().is_empty());
 
     // Do issuance
     let client_builder = MockHttpClientBuilder {
@@ -310,7 +310,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
 }
 
 fn custom_disclosure(wallet: Wallet<CredentialsMap>, ca: Vec<u8>) {
-    assert!(!wallet.list_credentials().is_empty());
+    assert!(!wallet.list_credentials::<SoftwareEcdsaKey>().is_empty());
 
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {

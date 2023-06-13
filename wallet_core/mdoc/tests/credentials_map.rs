@@ -75,7 +75,7 @@ impl CredentialStorage for CredentialsMap {
         })
     }
 
-    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+    fn list<K>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
         self.0
             .iter()
             .map(|allcreds| {

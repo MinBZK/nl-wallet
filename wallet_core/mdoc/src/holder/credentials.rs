@@ -10,7 +10,7 @@ use super::HolderError;
 
 pub trait CredentialStorage {
     fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Credential<K>>) -> Result<()>;
-    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
+    fn list<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
 
     // TODO returning all copies of all credentials is very crude and should be refined.
     fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<CredentialCopies<K>>>;
@@ -25,8 +25,8 @@ impl<C: CredentialStorage> Wallet<C> {
         Self { credential_storage }
     }
 
-    pub fn list_credentials(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
-        self.credential_storage.list()
+    pub fn list_credentials<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+        self.credential_storage.list::<K>()
     }
 }
 
