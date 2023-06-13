@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -228,12 +226,11 @@ impl SparseIssuerSigned {
         };
         issuer_signed.verify(iss_cert)?;
 
-        let cred = Credential {
-            private_key: private_key.identifier().to_string(),
+        let cred = Credential::_new(
+            unsigned.doc_type.clone(),
+            private_key.identifier().to_string(),
             issuer_signed,
-            doc_type: unsigned.doc_type.clone(),
-            key_type: PhantomData,
-        };
+        );
         Ok(cred)
     }
 

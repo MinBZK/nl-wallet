@@ -22,4 +22,6 @@ pub enum HolderError {
     UntrustedIssuer(DocType),
     #[error("failed to parse certificate: {0}")]
     CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
+    #[error("wrong private key type")]
+    PrivateKeyTypeMismatch { expected: String, have: String },
 }

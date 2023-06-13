@@ -3,6 +3,7 @@ use std::{collections::HashMap, error::Error, sync::Mutex};
 use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub trait ConstructableWithIdentifier {
     fn new(identifier: &str) -> Self
@@ -23,14 +24,16 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
-pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
+pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey + Serialize + DeserializeOwned {
+    const KEY_TYPE: &'static str;
+
     // from ConstructableWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
 //// Software ECDSA key
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
 }
@@ -100,7 +103,9 @@ mod mock {
     impl SecureEcdsaKey for SigningKey {}
 
     impl SecureEcdsaKey for SoftwareEcdsaKey {}
-    impl MdocEcdsaKey for SoftwareEcdsaKey {}
+    impl MdocEcdsaKey for SoftwareEcdsaKey {
+        const KEY_TYPE: &'static str = "software";
+    }
     /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
     /// (e.g. with the keys in ISO 23220).
     impl SoftwareEcdsaKey {

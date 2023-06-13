@@ -36,10 +36,10 @@ impl CredentialsMap {
 // `impl CredentialStorage for CredentialsMap` below requires its method to be generic over K,
 // but in these tests we want to deal only with `SoftwareEcdsaKey`. This is some ugly trickery to cast between the two,
 // which works because in fact the `Credential` type only stores the identifier string of its key.
-fn to_software_key<K>(cred: Credential<K>) -> Credential<SoftwareEcdsaKey> {
+fn to_software_key<K: MdocEcdsaKey>(cred: Credential<K>) -> Credential<SoftwareEcdsaKey> {
     cbor_deserialize::<Credential<SoftwareEcdsaKey>, _>(cbor_serialize(&cred).unwrap().as_slice()).unwrap()
 }
-fn from_software_key<K>(cred: Credential<SoftwareEcdsaKey>) -> Credential<K> {
+fn from_software_key<K: MdocEcdsaKey>(cred: Credential<SoftwareEcdsaKey>) -> Credential<K> {
     cbor_deserialize::<Credential<K>, _>(cbor_serialize(&cred).unwrap().as_slice()).unwrap()
 }
 

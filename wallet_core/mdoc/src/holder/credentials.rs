@@ -1,10 +1,12 @@
 use std::marker::PhantomData;
 
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use x509_parser::prelude::X509Certificate;
 
 use crate::{basic_sa_ext::Entry, crypto::sha256, iso::*, serialization::cbor_serialize, signer::MdocEcdsaKey, Result};
+
+use super::HolderError;
 
 pub trait CredentialStorage {
     fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Credential<K>>) -> Result<()>;
@@ -33,7 +35,8 @@ impl<C: CredentialStorage> Wallet<C> {
 /// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
 /// for unlinkability.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct CredentialCopies<K> {
+#[serde(bound = "K: MdocEcdsaKey")]
+pub struct CredentialCopies<K: MdocEcdsaKey> {
     pub creds: Vec<Credential<K>>,
 }
 
@@ -57,25 +60,63 @@ impl<K: MdocEcdsaKey> CredentialCopies<K> {
 
 /// A full mdoc credential: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(bound = "K: MdocEcdsaKey")]
 pub struct Credential<K> {
     pub doc_type: String,
 
     /// Identifier of the credential's private key. Obtain a reference to it with [`Credential::private_key()`].
     pub(crate) private_key: String,
     pub(crate) issuer_signed: IssuerSigned,
-    pub(crate) key_type: PhantomData<K>,
+    pub(crate) key_type: PrivateKeyType<K>,
+}
+
+/// Represents the type of the private key, in Rust using a generic type that implements [`MdocEcdsaKey`],
+/// and when serialized using [`MdocEcdsaKey::KEY_TYPE`]. This serializes to a &'static str associated to the type `K`,
+/// to be stored in the database that stores the credential.
+/// Deserialization fails at runtime if the corresponding string in the serialized value does not equal the `KEY_TYPE`
+/// constant from the specified type `K`.
+#[derive(Debug, Clone, Default)]
+pub struct PrivateKeyType<K>(PhantomData<K>);
+
+impl<K: MdocEcdsaKey> PrivateKeyType<K> {
+    pub fn new() -> PrivateKeyType<K> {
+        PrivateKeyType(PhantomData)
+    }
+}
+
+impl<K: MdocEcdsaKey> Serialize for PrivateKeyType<K> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        K::KEY_TYPE.serialize(serializer)
+    }
+}
+
+impl<'de, K: MdocEcdsaKey> Deserialize<'de> for PrivateKeyType<K> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let serialized_key_type = String::deserialize(deserializer)?;
+        if serialized_key_type == K::KEY_TYPE {
+            Ok(PrivateKeyType(PhantomData))
+        } else {
+            Err(serde::de::Error::custom(HolderError::PrivateKeyTypeMismatch {
+                expected: K::KEY_TYPE.to_string(),
+                have: serialized_key_type,
+            }))
+        }
+    }
 }
 
 impl<K: MdocEcdsaKey> Credential<K> {
     pub fn new(private_key: String, issuer_signed: IssuerSigned, ca_cert: &X509Certificate) -> Result<Credential<K>> {
         let (_, mso) = issuer_signed.verify(ca_cert)?;
-        let cred = Credential::<K> {
+        Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
+    }
+
+    pub(crate) fn _new(doc_type: DocType, private_key: String, issuer_signed: IssuerSigned) -> Credential<K> {
+        Credential {
+            doc_type,
             private_key,
             issuer_signed,
-            doc_type: mso.doc_type,
-            key_type: PhantomData,
-        };
-        Ok(cred)
+            key_type: PrivateKeyType::new(),
+        }
     }
 
     pub(crate) fn private_key(&self) -> K {
