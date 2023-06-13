@@ -23,9 +23,7 @@ axum = { version = "0.6.12" }
 axum-test-helper = "0.2.0"
 backtrace = "0.3.67"
 base64 = "0.21.0"
-bincode = "1.3.3"
 config = "0.13.3"
-const_format = { version = "0.2.30" }
 cstr = "0.2.11"
 der = { version = "0.6.1" }
 flutter_rust_bridge = "1.70.0"
@@ -45,9 +43,7 @@ ring = "0.16.20"
 sea-orm = { version = "0.11.3", default-features = false }
 sea-orm-migration = { version = "0.11.0", default-features = false }
 serde = { version = "1.0.147", default-features = false }
-serde-generate = { version = "0.25.0" }
 serde_json = { version = "1.0.92", default-features = false }
-serde-reflection = { version = "0.3.6" }
 sha2 = "0.10.6"
 spki = { version = "0.6.0", default-features = false }
 tempfile = "3.5.0"

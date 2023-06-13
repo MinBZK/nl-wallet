@@ -8,29 +8,14 @@ rust-version.workspace = true
 name = "wallet_core"
 crate-type = ["staticlib", "cdylib"]
 
-[[bin]]
-name = "serde_reflection_codegen"
-required-features = ["serde_reflection_codegen"]
-
-[features]
-serde_reflection_codegen = [
-    "dep:const_format",
-    "dep:serde-generate",
-    "dep:serde-reflection",
-]
-
 [dependencies]
 macros = { path = "macros" }
 wallet = { path = "../wallet" }
 anyhow.workspace = true
 backtrace.workspace = true
-bincode.workspace = true
-const_format = { workspace = true, optional = true }
 flutter_rust_bridge.workspace = true
 once_cell.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde-generate = { workspace = true, optional = true }
-serde-reflection = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
