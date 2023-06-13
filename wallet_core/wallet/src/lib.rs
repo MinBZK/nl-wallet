@@ -1,4 +1,5 @@
 mod account_server;
+mod config;
 mod init;
 mod pin;
 mod storage;

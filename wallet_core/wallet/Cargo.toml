@@ -17,13 +17,15 @@ futures.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
+once_cell.workspace = true
 p256.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
-tracing.workspace = true
-reqwest = { workspace = true, features = [
-    "json",
-    "rustls-tls-webpki-roots",
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "parking_lot",
+    "macros",
 ] }
+tracing.workspace = true
+reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
@@ -32,6 +34,7 @@ sea-orm = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
+url.workspace = true
 
 # enable the "hardware" feature for platform_support when building for either Android or iOS
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
