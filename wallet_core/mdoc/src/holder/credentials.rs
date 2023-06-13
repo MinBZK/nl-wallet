@@ -37,24 +37,24 @@ impl<C: CredentialStorage> Wallet<C> {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(bound = "K: MdocEcdsaKey")]
 pub struct CredentialCopies<K: MdocEcdsaKey> {
-    pub creds: Vec<Credential<K>>,
+    pub cred_copies: Vec<Credential<K>>,
 }
 
 impl<K: MdocEcdsaKey> IntoIterator for CredentialCopies<K> {
     type Item = Credential<K>;
     type IntoIter = std::vec::IntoIter<Credential<K>>;
     fn into_iter(self) -> Self::IntoIter {
-        self.creds.into_iter()
+        self.cred_copies.into_iter()
     }
 }
 impl<K: MdocEcdsaKey> From<Vec<Credential<K>>> for CredentialCopies<K> {
     fn from(creds: Vec<Credential<K>>) -> Self {
-        Self { creds }
+        Self { cred_copies: creds }
     }
 }
 impl<K: MdocEcdsaKey> CredentialCopies<K> {
     pub fn new() -> Self {
-        CredentialCopies::<K> { creds: vec![] }
+        CredentialCopies::<K> { cred_copies: vec![] }
     }
 }
 
@@ -65,6 +65,10 @@ pub struct Credential<K> {
     pub doc_type: String,
 
     /// Identifier of the credential's private key. Obtain a reference to it with [`Credential::private_key()`].
+    // Note that even though these fields are not `pub`, to users of this package their data is still accessible
+    // by serializing the credential and examining the serialized bytes. This is not a problem because it is essentially
+    // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
+    // credential after deserialization.
     pub(crate) private_key: String,
     pub(crate) issuer_signed: IssuerSigned,
     pub(crate) key_type: PrivateKeyType<K>,

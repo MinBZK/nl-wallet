@@ -51,7 +51,7 @@ impl CredentialStorage for CredentialsMap {
                 .or_insert(DashMap::new())
                 .entry(cred.hash()?)
                 .or_insert(CredentialCopies::new())
-                .creds
+                .cred_copies
                 .push(to_software_key(cred));
         }
 
@@ -83,7 +83,7 @@ impl CredentialStorage for CredentialsMap {
                     allcreds.key().clone(),
                     allcreds
                         .iter()
-                        .map(|doctype_creds| doctype_creds.creds.first().unwrap().attributes())
+                        .map(|doctype_creds| doctype_creds.cred_copies.first().unwrap().attributes())
                         .collect::<Vec<_>>(),
                 )
             })

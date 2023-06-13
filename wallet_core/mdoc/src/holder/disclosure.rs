@@ -37,7 +37,7 @@ impl<C: CredentialStorage> Wallet<C> {
                 .ok_or(Error::from(HolderError::UnsatisfiableRequest(
                     items_request.doc_type.clone(),
                 )))?
-                .creds[0];
+                .cred_copies[0];
             docs.push(cred.disclose_document(items_request, challenge)?);
         }
 
