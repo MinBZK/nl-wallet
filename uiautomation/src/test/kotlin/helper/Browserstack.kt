@@ -9,6 +9,7 @@ import config.TestDataConfig.Companion.testDataConfig
 import io.restassured.RestAssured
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.remote.RemoteWebDriver
+import util.EnvUtilities.getEnvVar
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -43,7 +44,9 @@ object Browserstack {
 
     private fun generateBuildName(): String {
         val currentDateTime = LocalDateTime.now()
-        val formatter = DateTimeFormatter.ofPattern("dd/MM-HH:mmss")
+        val formatter = getEnvVar("BUILD_NAME_DATE_FORMAT_OVERRIDE").takeIf { it.isNotEmpty() }
+            ?.let { DateTimeFormatter.ofPattern(it) }
+            ?: DateTimeFormatter.ofPattern("dd/MM-HH:mmss")
         val formattedDateTime = currentDateTime.format(formatter)
         return "build-$formattedDateTime"
     }

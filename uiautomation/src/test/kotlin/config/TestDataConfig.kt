@@ -5,6 +5,8 @@ import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import util.EnvUtilities.getEnvVar
+
 import java.io.File
 
 @JsonClass(generateAdapter = true)
@@ -67,10 +69,6 @@ data class TestDataConfig(
             val result = jsonAdapter.fromJson(jsonString)
 
             return result ?: throw IllegalStateException("device.conf.json could not be read")
-        }
-
-        private fun getEnvVar(name: String): String {
-            return System.getenv(name) ?: ""
         }
     }
 }

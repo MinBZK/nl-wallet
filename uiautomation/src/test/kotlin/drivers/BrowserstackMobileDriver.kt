@@ -31,6 +31,7 @@ class BrowserstackMobileDriver : WebDriverProvider {
         browserstackOptions["disableAnimations"] = "true"
         browserstackOptions["buildName"] = Browserstack.buildName
         browserstackOptions["sessionName"] = TestBase.sessionName
+        browserstackOptions["idleTimeout"] = BROWSER_STACK_IDLE_TIMEOUT_SECONDS
         caps.setCapability("bstack:options", browserstackOptions)
 
         // Specify device and os_version for testing
@@ -62,5 +63,9 @@ class BrowserstackMobileDriver : WebDriverProvider {
         } catch (e: MalformedURLException) {
             throw RuntimeException(e)
         }
+    }
+
+    companion object {
+        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 30
     }
 }
