@@ -1,6 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::{
+    io, panic,
+    path::{Path, PathBuf},
+};
 
-use tokio::fs;
+use tokio::{fs, task};
 
 use platform_support::{
     hw_keystore::{HardwareKeyStoreError, PlatformEncryptionKey},
@@ -13,7 +16,7 @@ const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 #[derive(Debug, thiserror::Error)]
 pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(#[from] io::Error),
     #[error("key file platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
     #[error("key file platform key store error: {0}")]
@@ -26,7 +29,7 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtiliti
 ) -> Result<Vec<u8>, KeyFileError> {
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
-    let path = path_for_key_file::<U>(alias)?;
+    let path = path_for_key_file::<U>(alias).await?;
     let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
 
     // Decrypt file at path, create key and write to file if needed.
@@ -34,7 +37,7 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtiliti
 }
 
 pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<(), KeyFileError> {
-    let path = path_for_key_file::<U>(alias)?;
+    let path = path_for_key_file::<U>(alias).await?;
     // Ignore any errors when removing the file,
     // as we do not want this to propagate.
     let _ = fs::remove_file(&path).await;
@@ -42,8 +45,10 @@ pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<(), Ke
     Ok(())
 }
 
-fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf, UtilitiesError> {
-    let storage_path = U::storage_path()?;
+async fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf, KeyFileError> {
+    let storage_path = task::spawn_blocking(|| U::storage_path())
+        .await
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
     let path = storage_path.join(format!("{}.key", alias));
 
     Ok(path)

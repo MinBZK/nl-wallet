@@ -20,6 +20,7 @@ static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mut
 // static for storing identifier -> aes cipher mapping, will only ever grow
 static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
+#[derive(Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
     signing_key: SigningKey,
@@ -65,6 +66,7 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
 }
 impl PlatformEcdsaKey for SoftwareEcdsaKey {}
 
+#[derive(Clone)]
 pub struct SoftwareEncryptionKey {
     identifier: String,
     cipher: Aes256Gcm,

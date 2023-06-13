@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection};
+use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection, DbErr};
 use tokio::fs;
 
 use migration::{Migrator, MigratorTrait};
@@ -53,7 +53,7 @@ impl Database {
         Database { url, connection }
     }
 
-    pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self, sea_orm::error::DbErr> {
+    pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self, DbErr> {
         // Open database connection and set database key
         let mut connection_options = ConnectOptions::new((&url).into());
         connection_options.sqlx_logging_level(LevelFilter::Trace);
@@ -70,7 +70,7 @@ impl Database {
         Ok(Self::new(url, connection))
     }
 
-    pub async fn close_and_delete(self) -> Result<(), sea_orm::error::DbErr> {
+    pub async fn close_and_delete(self) -> Result<(), DbErr> {
         // Close the database connection
         self.connection.close().await?;
 

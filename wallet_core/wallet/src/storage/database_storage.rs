@@ -1,16 +1,12 @@
-use std::path::PathBuf;
+use std::{panic, path::PathBuf};
 
 use async_trait::async_trait;
 use futures::TryFutureExt;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use tokio::{fs, try_join};
+use tokio::{fs, task};
 
 use entity::keyed_data;
-use platform_support::{
-    hw_keystore::PlatformEncryptionKey,
-    preferred,
-    utils::{PlatformUtilities, UtilitiesError},
-};
+use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
 
 use super::{
     data::KeyedData,
@@ -29,9 +25,11 @@ fn key_file_alias_for_name(database_name: &str) -> String {
     format!("{}{}", database_name, KEY_FILE_SUFFIX)
 }
 
-fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf, UtilitiesError> {
+async fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<PathBuf, StorageError> {
     // Get path to database as "<storage_path>/<name>.db"
-    let storage_path = U::storage_path()?;
+    let storage_path = task::spawn_blocking(|| U::storage_path())
+        .await
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
     let database_path = storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT));
 
     Ok(database_path)
@@ -44,7 +42,7 @@ async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>
     name: &str,
 ) -> Result<Database, StorageError> {
     let key_file_alias = key_file_alias_for_name(name);
-    let database_path = database_path_for_name::<U>(name)?;
+    let database_path = database_path_for_name::<U>(name).await?;
 
     // Get database key of the correct length including a salt, stored in encrypted file.
     let key_bytes = get_or_create_key_file::<K, U>(&key_file_alias, SqlCipherKey::size_with_salt()).await?;
@@ -96,7 +94,7 @@ impl Storage for DatabaseStorage {
             return Ok(StorageState::Opened);
         }
 
-        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME)?;
+        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME).await?;
 
         if fs::try_exists(database_path).await? {
             return Ok(StorageState::Unopened);
@@ -126,7 +124,7 @@ impl Storage for DatabaseStorage {
         let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
 
         // Delete the database and key file in parallel
-        try_join!(
+        tokio::try_join!(
             database.close_and_delete().map_err(StorageError::from),
             delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(StorageError::from)
         )
@@ -181,7 +179,7 @@ mod tests {
     async fn test_open_encrypted_database() {
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
-        let database_path = database_path_for_name::<SoftwareUtilities>(name).unwrap();
+        let database_path = database_path_for_name::<SoftwareUtilities>(name).await.unwrap();
 
         // Make sure we start with a clean slate.
         delete_key_file::<SoftwareUtilities>(&key_file_alias).await.unwrap();

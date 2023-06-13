@@ -1,5 +1,6 @@
-use std::error::Error;
+use std::{error::Error, panic};
 
+use tokio::task;
 use tracing::{info, instrument};
 
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
@@ -36,14 +37,14 @@ pub enum WalletRegistrationError {
     InvalidPin(#[from] PinValidationError),
     #[error("could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountServerClientError),
+    #[error("could not get hardware public key: {0}")]
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
     Signing(#[source] wallet_common::errors::Error),
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountServerClientError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     CertificateValidation(#[source] wallet_common::errors::Error),
-    #[error("could not get hardware public key: {0}")]
-    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]
@@ -86,7 +87,7 @@ impl<A, S, K> Wallet<A, S, K>
 where
     A: AccountServerClient,
     S: Storage,
-    K: PlatformEcdsaKey,
+    K: PlatformEcdsaKey + Clone + Send + 'static,
 {
     // Initialize the wallet by loading initial state.
     pub async fn new(
@@ -160,14 +161,30 @@ where
 
         info!("Challenge received from account server, signing and sending registration to account server");
 
-        // Generate a new PIN salt and derrive the private key from the provided PIN
-        let pin_salt = new_pin_salt();
-        let pin_key = PinKey::new(&pin, &pin_salt);
+        // Create a registration message and double sign it with the challenge.
+        // This needs to be performed within a separate thread, since this may be blocking
+        // and we are in an async context. While we are in this thread, also retrieve the
+        // hardware public key.
+        let hw_privkey = self.hw_privkey.clone();
+        let (pin_salt, hw_pubkey, registration_message) = task::spawn_blocking(move || {
+            // Generate a new PIN salt and derrive the private key from the provided PIN
+            let pin_salt = new_pin_salt();
+            let pin_key = PinKey::new(&pin, &pin_salt);
 
-        // Create a registration message and double sign it with the challenge,
-        // send that to the account server and receive the wallet certificate in response.
-        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)
-            .map_err(WalletRegistrationError::Signing)?;
+            // Retrieve the public key and sign the registration message (these calls may block).
+            let hw_pubkey = hw_privkey
+                .verifying_key()
+                .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
+            let registration_message = Registration::new_signed(&hw_privkey, &pin_key, &challenge)
+                .map_err(WalletRegistrationError::Signing)?;
+
+            // Return ownership of the pin_salt, the hardware public key and signed registration message.
+            Ok::<_, WalletRegistrationError>((pin_salt, hw_pubkey, registration_message))
+        })
+        .await
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
+
+        // Send the registration message to the account server and receive the wallet certificate in response.
         let cert = self
             .account_server
             .register(registration_message)
@@ -181,10 +198,6 @@ where
         let cert_claims = cert
             .parse_and_verify(&self.account_server_pubkey)
             .map_err(WalletRegistrationError::CertificateValidation)?;
-        let hw_pubkey = self
-            .hw_privkey
-            .verifying_key()
-            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
         }
