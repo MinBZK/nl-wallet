@@ -36,6 +36,7 @@ once_cell = { version = "1.17.1" }
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.12.0", default-features = false }
 pkcs8 = { version = "0.9.0", default-features = false }
+quote = "1.0.26"
 rand = "0.8.5"
 rand_core = { version = "0.6.4" }
 reqwest = { version = "0.11.16", default-features = false }
@@ -46,6 +47,7 @@ serde = { version = "1.0.147", default-features = false }
 serde_json = { version = "1.0.92", default-features = false }
 sha2 = "0.10.6"
 spki = { version = "0.6.0", default-features = false }
+syn = "2.0"
 tempfile = "3.5.0"
 thiserror = "1.0.39"
 tokio = { version = "1.27.0", default-features = false }
