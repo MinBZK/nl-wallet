@@ -18,11 +18,11 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
-  Future<PinValidation> isValidPin({required String pin, dynamic hint});
+  Future<PinValidationResult> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
 
-  Future<void> unlockWallet({required String pin, dynamic hint});
+  Future<UnlockResult> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
 
@@ -53,11 +53,16 @@ enum DigidState {
   Error,
 }
 
-enum PinValidation {
+enum PinValidationResult {
   Ok,
   TooFewUniqueDigits,
   SequentialDigits,
   OtherIssue,
+}
+
+enum UnlockResult {
+  Ok,
+  IncorrectPin,
 }
 
 @freezed
@@ -89,11 +94,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<PinValidation> isValidPin({required String pin, dynamic hint}) {
+  Future<PinValidationResult> isValidPin({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_is_valid_pin(port_, arg0),
-      parseSuccessData: _wire2api_pin_validation,
+      parseSuccessData: _wire2api_pin_validation_result,
       constMeta: kIsValidPinConstMeta,
       argValues: [pin],
       hint: hint,
@@ -105,11 +110,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
-  Future<void> unlockWallet({required String pin, dynamic hint}) {
+  Future<UnlockResult> unlockWallet({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_unlock_wallet(port_, arg0),
-      parseSuccessData: _wire2api_unit,
+      parseSuccessData: _wire2api_unlock_result,
       constMeta: kUnlockWalletConstMeta,
       argValues: [pin],
       hint: hint,
@@ -219,8 +224,8 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
-  PinValidation _wire2api_pin_validation(dynamic raw) {
-    return PinValidation.values[raw];
+  PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
+    return PinValidationResult.values[raw];
   }
 
   int _wire2api_u8(dynamic raw) {
@@ -233,6 +238,10 @@ class WalletCoreImpl implements WalletCore {
 
   void _wire2api_unit(dynamic raw) {
     return;
+  }
+
+  UnlockResult _wire2api_unlock_result(dynamic raw) {
+    return UnlockResult.values[raw];
   }
 
   UriFlowEvent _wire2api_uri_flow_event(dynamic raw) {

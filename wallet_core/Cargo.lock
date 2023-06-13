@@ -833,6 +833,7 @@ dependencies = [
  "once_cell",
  "oslog",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

@@ -1,13 +1,13 @@
 use wallet::PinValidationError;
 
-pub enum PinValidation {
+pub enum PinValidationResult {
     Ok,
     TooFewUniqueDigits,
     SequentialDigits,
     OtherIssue,
 }
 
-impl From<Result<(), PinValidationError>> for PinValidation {
+impl From<Result<(), PinValidationError>> for PinValidationResult {
     fn from(value: Result<(), PinValidationError>) -> Self {
         match value {
             Ok(_) => Self::Ok,

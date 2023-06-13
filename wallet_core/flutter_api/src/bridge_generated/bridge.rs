@@ -19,7 +19,8 @@ use std::sync::Arc;
 
 // Section: imports
 
-use crate::models::pin::PinValidation;
+use crate::models::pin::PinValidationResult;
+use crate::models::unlock::UnlockResult;
 use crate::models::uri_flow_event::DigidState;
 use crate::models::uri_flow_event::UriFlowEvent;
 
@@ -160,7 +161,7 @@ impl support::IntoDart for DigidState {
 }
 impl support::IntoDartExceptPrimitive for DigidState {}
 
-impl support::IntoDart for PinValidation {
+impl support::IntoDart for PinValidationResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::Ok => 0,
@@ -171,8 +172,18 @@ impl support::IntoDart for PinValidation {
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for PinValidation {}
+impl support::IntoDartExceptPrimitive for PinValidationResult {}
 
+impl support::IntoDart for UnlockResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => 0,
+            Self::IncorrectPin => 1,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for UnlockResult {}
 impl support::IntoDart for UriFlowEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {

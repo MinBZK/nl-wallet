@@ -1,41 +1,48 @@
 use std::thread::sleep;
 use std::time::Duration;
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 
 use macros::async_runtime;
-use wallet::{init_wallet, validate_pin, Wallet};
+use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
+    errors::FlutterApiError,
     logging::init_logging,
     models::{
-        pin::PinValidation,
+        pin::PinValidationResult,
+        unlock::UnlockResult,
         uri_flow_event::{DigidState, UriFlowEvent},
     },
 };
 
 struct WalletApiEnvironment {
     wallet: RwLock<Wallet>,
-    wallet_lock_sink: StreamSink<bool>,
+    lock_sink: StreamSink<bool>,
+}
+
+impl WalletApiEnvironment {
+    fn new(wallet: Wallet, lock_sink: StreamSink<bool>) -> Self {
+        WalletApiEnvironment {
+            wallet: RwLock::new(wallet),
+            lock_sink,
+        }
+    }
 }
 
 static WALLET_API_ENVIRONMENT: OnceCell<WalletApiEnvironment> = OnceCell::const_new();
 
-fn wallet() -> &'static RwLock<Wallet> {
-    &WALLET_API_ENVIRONMENT
+fn wallet_environment() -> &'static WalletApiEnvironment {
+    WALLET_API_ENVIRONMENT
         .get()
         .expect("Wallet must be initialized. Please execute `init()` first.")
-        .wallet
 }
 
-fn wallet_lock_sink() -> &'static StreamSink<bool> {
-    &WALLET_API_ENVIRONMENT
-        .get()
-        .expect("Wallet must be initialized. Please execute `init()` first.")
-        .wallet_lock_sink
+fn wallet() -> &'static RwLock<Wallet> {
+    &wallet_environment().wallet
 }
 
 pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
@@ -46,7 +53,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 
     // Initialize the async runtime so the #[async_runtime] macro can be used.
     // This function may also be called safely more than once.
-    init_async_runtime()?;
+    init_async_runtime();
 
     let initialized = init_wallet_environment(wallet_lock_sink)?;
     assert!(initialized, "Wallet can only be initialized once");
@@ -58,7 +65,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<bool> {
+async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
     let mut created = false;
 
     _ = WALLET_API_ENVIRONMENT
@@ -67,37 +74,42 @@ async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<b
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(WalletApiEnvironment {
-                wallet: RwLock::new(wallet),
-                wallet_lock_sink,
-            })
+            Ok::<_, WalletInitError>(WalletApiEnvironment::new(wallet, lock_sink))
         })
-        .await?;
+        .await
+        .map_err(FlutterApiError::from)?;
 
     Ok(created)
 }
 
-pub fn is_valid_pin(pin: String) -> Result<PinValidation> {
-    let pin_validation = validate_pin(&pin).into();
+pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
+    let result = validate_pin(&pin).into();
 
-    Ok(pin_validation)
+    Ok(result)
 }
 
 #[async_runtime]
-pub async fn unlock_wallet(pin: String) -> Result<()> {
-    let mut wallet = wallet().write().await;
-    wallet.unlock(pin).await?;
-    let is_locked = wallet.is_locked();
-    wallet_lock_sink().add(is_locked);
-    Ok(())
+pub async fn unlock_wallet(pin: String) -> Result<UnlockResult> {
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
+
+    let result = wallet.unlock(pin).await.try_into()?;
+
+    if let UnlockResult::Ok = result {
+        wallet_env.lock_sink.add(wallet.is_locked());
+    }
+
+    Ok(result)
 }
 
 #[async_runtime]
 pub async fn lock_wallet() -> Result<()> {
-    let mut wallet = wallet().write().await;
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
+
     wallet.lock();
-    let is_locked = wallet.is_locked();
-    wallet_lock_sink().add(is_locked);
+    wallet_env.lock_sink.add(wallet.is_locked());
+
     Ok(())
 }
 
@@ -109,7 +121,12 @@ pub async fn has_registration() -> Result<bool> {
 
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
-    wallet().write().await.register(pin).await?;
+    wallet()
+        .write()
+        .await
+        .register(pin)
+        .await
+        .map_err(FlutterApiError::from)?;
 
     Ok(())
 }
@@ -155,7 +172,7 @@ mod tests {
     fn test_is_valid_pin(pin: &str) -> bool {
         matches!(
             is_valid_pin(pin.to_string()).expect("Could not validate PIN"),
-            PinValidation::Ok
+            PinValidationResult::Ok
         )
     }
 
