@@ -14,6 +14,8 @@ use crate::{
 };
 use fieldnames_derive::FieldNames;
 
+/// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
+/// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
@@ -35,6 +37,8 @@ impl DeviceRequest {
     }
 }
 
+/// Requests attributes out of an mdoc of a specified doctype to be disclosed, as part of a [`DeviceRequest`].
+/// Includes reader (RP) authentication.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -54,17 +58,30 @@ pub struct ReaderAuthenticationKeyed {
     pub items_request_bytes: ItemsRequestBytes,
 }
 
+/// See [`ItemsRequest`].
 pub type ItemsRequestBytes = TaggedBytes<ItemsRequest>;
 
+/// Requests attributes out of an mdoc of a specified doctype to be disclosed, as part of a [`DocRequest`] in a
+/// [`DeviceRequest`].
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemsRequest {
     pub doc_type: DocType,
     pub name_spaces: NameSpaces,
+
+    /// Free-form additional information.
     pub request_info: Option<IndexMap<String, Value>>,
 }
 
+/// The attribute names that the RP wishes disclosed, grouped per namespace, as part of a [`ItemsRequest`].
 pub type NameSpaces = IndexMap<NameSpace, DataElements>;
+
+/// The attribute names that the RP wishes disclosed within a particular namespace, as part of a [`ItemsRequest`],
+/// along with a boolean with which the RP can claim its intention to (not) retain the attribute value after receiving
+/// and verifying it.
 pub type DataElements = IndexMap<DataElementIdentifier, IndentToRetain>;
+
+///  Claimed intention of the RP to (not) retain the attribute value after receiving and verifying it, as part of
+/// [`DataElements`] within a [`ItemsRequest`].
 pub type IndentToRetain = bool;

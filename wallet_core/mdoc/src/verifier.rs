@@ -1,4 +1,3 @@
-use ciborium::value::Value;
 use indexmap::IndexMap;
 use p256::NistP256;
 use x509_parser::certificate::X509Certificate;
@@ -12,7 +11,7 @@ use crate::{
     Result,
 };
 
-type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, Value>>;
+type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>;
 type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 #[derive(thiserror::Error, Debug)]

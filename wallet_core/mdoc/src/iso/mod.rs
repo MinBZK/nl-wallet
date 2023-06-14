@@ -11,14 +11,18 @@
 //!   For this the [`TaggedBytes`](crate::TaggedBytes) wrapper is used.
 
 pub mod basic_sa_ext;
-pub mod credentials;
-pub mod device_retrieval;
-pub mod disclosure;
-pub mod engagement;
-pub mod issuance;
 
+pub mod credentials;
 pub use credentials::*;
+
+pub mod device_retrieval;
 pub use device_retrieval::*;
+
+pub mod disclosure;
 pub use disclosure::*;
+
+pub mod engagement;
 pub use engagement::*;
+
+pub mod issuance;
 pub use issuance::*;

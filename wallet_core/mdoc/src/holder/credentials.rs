@@ -62,6 +62,8 @@ impl<K: MdocEcdsaKey> CredentialCopies<K> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(bound = "K: MdocEcdsaKey")]
 pub struct Credential<K> {
+    /// Doctype of the credential. This is also present inside the `issuer_signed`; we include it here for
+    /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
     pub doc_type: String,
 
     /// Identifier of the credential's private key. Obtain a reference to it with [`Credential::private_key()`].
@@ -127,6 +129,7 @@ impl<K: MdocEcdsaKey> Credential<K> {
         K::new(&self.private_key)
     }
 
+    /// Get a list of attributes ([`Entry`] instances) contained in the credential, mapped per [`NameSpace`].
     pub fn attributes(&self) -> IndexMap<NameSpace, Vec<Entry>> {
         self.issuer_signed
             .name_spaces
@@ -137,8 +140,13 @@ impl<K: MdocEcdsaKey> Credential<K> {
             .collect::<IndexMap<_, _>>()
     }
 
-    /// Hash of the credential, acting as an identifier for the credential that takes into account its doctype
-    /// and all of its attributes. Computed schematically as `SHA256(CBOR(doctype, attributes))`.
+    /// Hash of the credential, acting as an identifier for the credential. Takes into account its doctype
+    /// and all of its attributes, using [`Self::attributes()`].
+    /// Computed schematically as `SHA256(CBOR(doctype, attributes))`.
+    ///
+    /// Credentials having the exact same attributes
+    /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
+    /// signature; or the validity of the credential.
     pub fn hash(&self) -> Result<Vec<u8>> {
         let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
         Ok(digest)

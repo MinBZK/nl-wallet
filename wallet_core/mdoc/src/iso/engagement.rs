@@ -18,10 +18,19 @@ use crate::{
     serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, RequiredValueTrait, TaggedBytes},
 };
 
+/// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
+/// Contains a.o. transcript of the session so far, acting as the challenge in a challenge-response mechanism,
+/// and the "device-signed items" ([`DeviceNameSpaces`]): attributes that are signed only by the device, since they
+/// are part of this data structure, but not by the issuer (i.e., self asserted attributes).
+///
+/// This data structure is computed by the holder and the RP during a session, and then signed and verified
+/// respectively. It is not otherwise included in other data structures.
 pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
 
+/// See [`DeviceAuthentication`].
 pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 
+/// See [`DeviceAuthentication`].
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct DeviceAuthenticationKeyed {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,
@@ -37,6 +46,7 @@ pub struct SessionTranscriptKeyed {
     pub handover: Handover,
 }
 
+/// Transcript of the session so far. Used in [`DeviceAuthentication`].
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
 
 pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
@@ -53,6 +63,7 @@ pub struct NFCHandover {
     pub handover_request_message: Option<ByteBuf>,
 }
 
+/// Describes available methods for the holder to connect to the RP.
 pub type DeviceEngagement = CborIntMap<Engagement>;
 
 #[skip_serializing_none]

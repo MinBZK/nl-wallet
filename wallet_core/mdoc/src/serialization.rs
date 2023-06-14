@@ -265,7 +265,7 @@ impl<'de> Deserialize<'de> for Handover {
     }
 }
 
-/// Wrapper around `T`, which must implement `RequiredValueTrait`.
+/// Wrapper around `T`, representing a fixed constant. `T` which must implement `RequiredValueTrait`.
 /// Implements serde (de)serialization as follows:
 /// * During serialization, always serializes to `T::required_value()`.
 /// * During deserialization, accepts only `T::required_value()`.

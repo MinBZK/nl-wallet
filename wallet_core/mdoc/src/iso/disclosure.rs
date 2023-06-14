@@ -1,9 +1,8 @@
-//! Data structures used in disclosure, created by the holder and sent to the verifier.
+//! Data structures used in disclosure, created by the holder and sent to the RP.
 //!
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
 //! verification, and [`IssuerSigned`], which contains the entire issuer-signed credential and the disclosed attributes.
 
-use ciborium::value::Value;
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -16,6 +15,7 @@ use crate::{
     serialization::{NullCborValue, RequiredValue, TaggedBytes},
 };
 
+/// A disclosure of a holder, containing multiple [`Document`]s, containing some or all of their attributes.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +28,12 @@ pub struct DeviceResponse {
 
 pub type DocumentError = IndexMap<DocType, ErrorCode>;
 
+/// A disclosed mdoc, containing:
+/// - the MSO signed by the issuer including the mdoc's public key and the digests of the attributes,
+/// - the values and `random` bytes of the disclosed (i.e. included) attributes,
+/// - the holder signature (over the session transcript so far, which is not included here; see
+///   [`super::DeviceAuthentication`]), using the private key corresponding to the public key contained in the mdoc;
+///   this acts as challenge-response mechanism.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -38,8 +44,13 @@ pub struct Document {
     pub errors: Option<Errors>,
 }
 
-/// The issuer-signed MSO in Cose format, as well as some or all of the attributes
-/// (i.e. [`IssuerSignedItem`]s) contained in the credential.
+/// The issuer-signed MSO in Cose format, as well as some or all of the attributes including their randoms
+/// (i.e. [`IssuerSignedItem`]s) contained in the credential. This includes the public key of the MSO,
+/// but not the private key (for that, see [`Credential`](crate::holder::Credential)).
+///
+/// This data structure is used as part of credentials (in which case `name_spaces` necessarily contains all attributes
+/// of the credential), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
+/// attributes may be absent, i.e., not disclosed).
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -48,6 +59,8 @@ pub struct IssuerSigned {
     pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
 }
 
+/// The holder signature as during disclosure of an mdoc (see [`Document`]) computed with the mdoc private key, as well
+/// as any self-asserted attributes.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceSigned {
@@ -55,10 +68,18 @@ pub struct DeviceSigned {
     pub device_auth: DeviceAuth,
 }
 
-pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;
+/// Attributes included in a holder disclosure that have not been signed by the issuer, but only
+/// by the holder: self-asserted attributes. See also [`DeviceSigned`] and [`super::DeviceAuthentication`].
 pub type DeviceNameSpaces = IndexMap<NameSpace, DeviceSignedItems>;
-pub type DeviceSignedItems = IndexMap<DataElementIdentifier, Value>;
 
+/// See [`DeviceNameSpaces`].
+pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;
+
+/// Self-asserted attributes as part of an mdoc disclosure.
+pub type DeviceSignedItems = IndexMap<DataElementIdentifier, DataElementValue>;
+
+/// The signature or MAC created by the holder during disclosure of an mdoc, with the private key of the mdoc
+/// (whose public key is included in its MSO).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum DeviceAuth {

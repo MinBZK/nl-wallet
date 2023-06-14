@@ -79,12 +79,15 @@ pub trait HttpClient {
         R: DeserializeOwned;
 }
 
+/// Ask the user for consent during an issuance session, presentimg them with the [`RequestKeyGenerationMessage`]
+/// containing the to-be-received mdocs.
 #[async_trait]
 pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
 impl<C: CredentialStorage> Wallet<C> {
+    /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
     pub async fn do_issuance<K: MdocEcdsaKey>(
         &self,
         service_engagement: ServiceEngagement,
