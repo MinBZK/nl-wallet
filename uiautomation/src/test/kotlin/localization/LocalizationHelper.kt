@@ -5,8 +5,6 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import util.setupTestTagHandler.Companion.language
 import java.io.File
-import java.nio.file.Paths
-
 
 class LocalizationHelper {
 
