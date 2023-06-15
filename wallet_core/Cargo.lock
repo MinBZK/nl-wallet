@@ -828,8 +828,8 @@ dependencies = [
  "anyhow",
  "backtrace",
  "cstr",
+ "flutter_api_macros",
  "flutter_rust_bridge",
- "macros",
  "once_cell",
  "oslog",
  "serde",
@@ -838,6 +838,14 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wallet",
+]
+
+[[package]]
+name = "flutter_api_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.11",
 ]
 
 [[package]]
@@ -1430,14 +1438,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn 2.0.11",
 ]
 
 [[package]]

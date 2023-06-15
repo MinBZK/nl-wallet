@@ -9,7 +9,7 @@ name = "wallet_core"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-macros = { path = "macros" }
+flutter_api_macros = { path = "flutter_api_macros" }
 wallet = { path = "../wallet" }
 anyhow.workspace = true
 backtrace.workspace = true

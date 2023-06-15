@@ -20,11 +20,13 @@ pub fn get_async_runtime() -> &'static Runtime {
 
 #[cfg(test)]
 mod tests {
+    use flutter_api_macros::async_runtime;
+
     async fn plus(left: i32, right: i32) -> i32 {
         left + right
     }
 
-    #[macros::async_runtime]
+    #[async_runtime]
     async fn add(left: i32, right: i32) -> i32 {
         plus(left, right).await
     }

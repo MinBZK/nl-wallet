@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 
-use macros::async_runtime;
+use flutter_api_macros::async_runtime;
 use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
