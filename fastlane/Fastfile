@@ -52,6 +52,20 @@ private_lane :ci_get_basic_auth do
   Base64.strict_encode64("#{registry_user}:#{job_token}")
 end
 
+private_lane :flutter_cmd do
+  begin
+    sh("which", "fvm")
+    ["fvm", "flutter"]
+  rescue
+    begin
+      sh("which", "flutter")
+      ["flutter"]
+    rescue
+      UI.user_error!('Neither "fvm" nor "flutter" command found')
+    end
+  end
+end
+
 private_lane :ci_get_k8s_secrets do |options|
   secrets = sh("kubectl", "get", "secret", options[:name], "-o" ,"jsonpath=\"{.data}\"", log: false)
 
@@ -80,7 +94,7 @@ end
 
 lane :disable_flutter_analytics do 
   sh("dart", "--disable-analytics")
-  sh("flutter", "config", "--no-analytics")
+  sh(*flutter_cmd, "config", "--no-analytics")
 end
 
 platform :android do
@@ -151,13 +165,15 @@ platform :android do
     file_format_command = file_format == "aab" ? "appbundle" : file_format
     file_format_path = file_format == "aab" ? "bundle" : file_format
 
+    flutter = flutter_cmd
+
     Dir.chdir("../wallet_app") do
-      sh("flutter", "pub", "get")
+      sh(*flutter, "pub", "get")
 
-      sh("flutter", "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
-      sh("flutter", "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
+      sh(*flutter, "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
+      sh(*flutter, "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
-      sh("flutter", "build", file_format_command, "--build-number", build.to_s, "--build-name", version.to_s, "--#{build_mode}")
+      sh(*flutter, "build", file_format_command, "--build-number", build.to_s, "--build-name", version.to_s, "--#{build_mode}")
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
     end
   end
@@ -236,13 +252,15 @@ platform :ios do
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
+    flutter = flutter_cmd
+
     Dir.chdir("../wallet_app") do
-      sh("flutter", "pub", "get")
+      sh(*flutter, "pub", "get")
 
-      sh("flutter", "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
-      sh("flutter", "pub", "run", "rename", "--target", "ios", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
+      sh(*flutter, "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
+      sh(*flutter, "pub", "run", "rename", "--target", "ios", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
 
-      sh("flutter", "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign", "--#{build_mode}")
+      sh(*flutter, "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign", "--#{build_mode}")
     end
 
     match(
