@@ -29,7 +29,11 @@ To run the app you need to configure Flutter, Rust, the Android SDK and the iOS 
 
 ## Running
 
-After setting up your environment, launch an Android emulator or the iOS simulator and execute `flutter run`.
+After setting up your environment, launch an Android emulator or the iOS simulator and execute:
+- `flutter run` or
+- `fvm flutter run` when using Flutter Version Manager (FVM)
+
+Note that when using FVM, all Flutter commands below should be prefixed with `fvm`.
 
 ## Building
 

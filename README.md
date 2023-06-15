@@ -132,10 +132,19 @@ a simple `flutter run`. This section describes how to set up your environment.
 
 #### Flutter
 
-For help getting started with Flutter development, view
-the  [online documentation](https://flutter.dev/docs), which offers tutorials, samples, guidance on
-mobile development, and a full API reference. You can validate your setup by
-running `flutter doctor` after the installation.
+To install Flutter follow this [installation guide](https://flutter.dev/docs/get-started/install).
+You can validate your initial setup by running `flutter doctor`.
+
+**Easily manage your local Flutter version using: Flutter Version Manager (FVM)**
+FVM is a simple CLI to manage Flutter SDK versions per project. It enables fast switching between
+Flutter versions and pin them to your Flutter project. When using FVM; all Flutter related
+command need to be prefixed with `fvm`, e.g. `fvm flutter run`.
+
+_Optional step:_
+To install FVM follow this [installation guide](https://fvm.app/docs/getting_started/installation).
+You can validate your initial setup by running `fvm flutter doctor` after the installations. Hit [Y]es when asked to install the pinned Flutter version defined in [fvm_config.json](wallet_app/.fvm/fvm_config.json).
+
+Note that FVM only pins the Flutter version for local development, not the CI pipelines.
 
 #### Rust
 
@@ -144,8 +153,7 @@ the [installation guide](https://www.rust-lang.org/tools/install). After install
 to add the following targets:
 
 - For iOS: `rustup target add aarch64-apple-ios x86_64-apple-ios`
-- For
-  Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
+- For Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
 #### Android
 
@@ -163,7 +171,9 @@ easiest way to do so is:
    picks up the NDK version you installed in the previous step
 4. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
    e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
-5. Finally run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
+5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
+6. Optional: let Android Studio use Flutter SDK installed via FVM by following
+   [these steps](https://fvm.app/docs/getting_started/configuration#android-studio)
 
 #### iOS
 
