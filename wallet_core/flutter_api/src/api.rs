@@ -5,12 +5,11 @@ use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 
-use flutter_api_macros::async_runtime;
+use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
-    errors::FlutterApiError,
     logging::init_logging,
     models::{
         pin::PinValidationResult,
@@ -45,6 +44,7 @@ fn wallet() -> &'static RwLock<Wallet> {
     &wallet_environment().wallet
 }
 
+#[flutter_api_error]
 pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
@@ -65,7 +65,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
+async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> std::result::Result<bool, WalletInitError> {
     let mut created = false;
 
     _ = WALLET_API_ENVIRONMENT
@@ -76,12 +76,12 @@ async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
 
             Ok::<_, WalletInitError>(WalletApiEnvironment::new(wallet, lock_sink))
         })
-        .await
-        .map_err(FlutterApiError::from)?;
+        .await;
 
     Ok(created)
 }
 
+#[flutter_api_error]
 pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
     let result = validate_pin(&pin).into();
 
@@ -89,20 +89,20 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> Result<UnlockResult> {
     let wallet_env = wallet_environment();
     let mut wallet = wallet_env.wallet.write().await;
 
     let result = wallet.unlock(pin).await.try_into()?;
 
-    if let UnlockResult::Ok = result {
-        wallet_env.lock_sink.add(wallet.is_locked());
-    }
+    wallet_env.lock_sink.add(wallet.is_locked());
 
     Ok(result)
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn lock_wallet() -> Result<()> {
     let wallet_env = wallet_environment();
     let mut wallet = wallet_env.wallet.write().await;
@@ -114,30 +114,29 @@ pub async fn lock_wallet() -> Result<()> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn has_registration() -> Result<bool> {
     let has_registration = wallet().read().await.has_registration();
     Ok(has_registration)
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn register(pin: String) -> Result<()> {
-    wallet()
-        .write()
-        .await
-        .register(pin)
-        .await
-        .map_err(FlutterApiError::from)?;
+    wallet().write().await.register(pin).await?;
 
     Ok(())
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
     // TODO: Replace with real implementation.
     Ok("https://example.com".to_string())
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     // TODO: The code below is POC sample code, to be replace with a real implementation.
     if uri.contains("authentication") {
