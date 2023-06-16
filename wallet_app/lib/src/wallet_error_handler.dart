@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 class WalletErrorHandler {
   void handleErrorDetails(FlutterErrorDetails details) {
     FlutterError.presentError(details);
-    exit(1);
   }
 
   /// Return true to indicate the exception has been handled

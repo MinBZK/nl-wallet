@@ -10,7 +10,7 @@ abstract class TypedWalletCore {
 
   Future<void> lockWallet();
 
-  Future<void> unlockWallet(String pin);
+  Future<WalletUnlockResult> unlockWallet(String pin);
 
   Stream<bool> get isLocked;
 

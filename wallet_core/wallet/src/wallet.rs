@@ -3,8 +3,13 @@ use std::{error::Error, panic};
 use tokio::task;
 use tracing::{info, instrument};
 
+pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
 
+pub use crate::{
+    account_server::{AccountServerClient, AccountServerClientError},
+    storage::Storage,
+};
 use crate::{
     pin::{
         key::{new_pin_salt, PinKey},
@@ -12,13 +17,6 @@ use crate::{
     },
     storage::{RegistrationData, StorageError, StorageState},
     PinValidationError,
-};
-
-pub use platform_support::hw_keystore::PlatformEcdsaKey;
-
-pub use crate::{
-    account_server::{AccountServerClient, AccountServerClientError},
-    storage::Storage,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -54,7 +52,16 @@ pub enum WalletRegistrationError {
 #[derive(Debug, thiserror::Error)]
 pub enum WalletUnlockError {
     #[error("PIN provided is incorrect")]
-    IncorrectPin,
+    IncorrectPin {
+        leftover_attempts: u8,
+        is_final_attempt: bool,
+    },
+    #[error("unlock disabled due to timeout")]
+    Timeout { timeout_millis: u32 },
+    #[error("unlock permanently disabled")]
+    Blocked,
+    #[error("server error")]
+    ServerError,
 }
 
 /// Attempts to fetch the registration from storage,
@@ -122,18 +129,55 @@ where
         self.is_locked = true
     }
 
-    #[instrument(skip_all)]
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
         info!("Validating pin");
-        //TODO: Validate pin with account server
-        if pin != "000000" {
+        // TODO: Validate pin with account server, currently mocking all possible responses based on pin
+        if pin == "000000" {
+            info!("Mock unlock() pin valid");
+            self.is_locked = false;
+            return Ok(());
+        }
+        if pin == "100000" {
+            info!("Mock unlock() IncorrectPin (3 attempts left)");
             self.is_locked = true;
-            return Err(WalletUnlockError::IncorrectPin);
+            return Err(WalletUnlockError::IncorrectPin {
+                leftover_attempts: 3,
+                is_final_attempt: false,
+            });
+        }
+        if pin == "200000" {
+            info!("Mock unlock() IncorrectPinTimeout");
+            self.is_locked = true;
+            return Err(WalletUnlockError::Timeout {
+                timeout_millis: 10 * 1000,
+                /* 10 Sec */
+            });
+        }
+        if pin == "300000" {
+            info!("Mock unlock() active Timeout");
+            self.is_locked = true;
+            return Err(WalletUnlockError::Timeout {
+                timeout_millis: 75 * 1000,
+                /* 1 min  15 secs */
+            });
+        }
+        if pin == "400000" {
+            info!("Mock unlock() Blocked");
+            self.is_locked = true;
+            return Err(WalletUnlockError::Blocked);
+        }
+        if pin == "500000" {
+            info!("Mock unlock() ServerError");
+            self.is_locked = true;
+            return Err(WalletUnlockError::ServerError);
         }
 
-        info!("Pin validated, unlocking wallet");
-        self.is_locked = false;
-        Ok(())
+        info!("Mock unlock() IncorrectPin (1 attempts left)");
+        self.is_locked = true;
+        Err(WalletUnlockError::IncorrectPin {
+            leftover_attempts: 1,
+            is_final_attempt: true,
+        })
     }
 
     #[instrument(skip_all)]
@@ -219,6 +263,9 @@ where
 
         // Keep the registration data in memory.
         self.registration = Some(registration_data);
+
+        // Unlock the wallet after successful registration
+        self.is_locked = false;
 
         Ok(())
     }

@@ -19,7 +19,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
 
-  Future<void> unlockWallet({required String pin, dynamic hint});
+  Future<Uint8List> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
 
@@ -82,11 +82,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
-  Future<void> unlockWallet({required String pin, dynamic hint}) {
+  Future<Uint8List> unlockWallet({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_unlock_wallet(port_, arg0),
-      parseSuccessData: _wire2api_unit,
+      parseSuccessData: _wire2api_uint_8_list,
       constMeta: kUnlockWalletConstMeta,
       argValues: [pin],
       hint: hint,

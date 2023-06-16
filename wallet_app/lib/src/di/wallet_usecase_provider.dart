@@ -51,10 +51,8 @@ import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
-import '../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/confirm_transaction_usecase_impl.dart';
-import '../domain/usecase/pin/impl/get_available_pin_attempts_usecase_impl.dart';
 import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/qr/decode_qr_usecase.dart';
@@ -107,9 +105,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ConfirmTransactionUseCase>(
           create: (context) => ConfirmTransactionUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetAvailablePinAttemptsUseCase>(
-          create: (context) => GetAvailablePinAttemptsUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetVerificationRequestUseCase>(
           create: (context) => GetVerificationRequestUseCaseImpl(context.read()),

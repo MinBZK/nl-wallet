@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../data/repository/wallet/wallet_repository.dart';
 import '../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
 class PinOverlay extends StatelessWidget {
   final Widget child;
+  final Stream<bool> isLockedStream;
 
-  const PinOverlay({required this.child, Key? key}) : super(key: key);
+  @visibleForTesting
+  final PinBloc? bloc;
+
+  const PinOverlay({
+    required this.child,
+    required this.isLockedStream,
+    this.bloc,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<bool>(
-      stream: context.read<WalletRepository>().isLockedStream,
+      stream: isLockedStream,
       initialData: true,
       builder: (context, snapshot) {
-        if (snapshot.data!) {
+        final isLocked = snapshot.data!;
+        if (isLocked) {
           return BlocProvider<PinBloc>(
-            create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>(), context.read()),
+            create: (BuildContext context) => bloc ?? PinBloc(context.read<UnlockWalletWithPinUseCase>()),
             child: const PinScreen(),
           );
         } else {

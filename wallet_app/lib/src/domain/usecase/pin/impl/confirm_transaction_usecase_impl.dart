@@ -8,8 +8,8 @@ class ConfirmTransactionUseCaseImpl extends ConfirmTransactionUseCase {
   ConfirmTransactionUseCaseImpl(this.walletRepository);
 
   @override
-  Future<bool> invoke(String pin) async {
+  Future<CheckPinResult> invoke(String pin) async {
     await Future.delayed(kDefaultMockDelay);
-    return walletRepository.confirmTransaction(pin);
+    return await walletRepository.confirmTransaction(pin);
   }
 }

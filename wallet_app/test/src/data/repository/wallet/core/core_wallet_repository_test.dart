@@ -1,8 +1,10 @@
+import 'package:core_domain/core_domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
+import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -10,7 +12,7 @@ const _kValidPin = '112233';
 
 void main() {
   late CoreWalletRepository repo;
-  final MockTypedWalletCore core = Mocks.create<MockTypedWalletCore>();
+  final MockTypedWalletCore core = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
   late BehaviorSubject<bool> mockLockedStream;
 
   setUp(() {
@@ -18,10 +20,15 @@ void main() {
     mockLockedStream = BehaviorSubject.seeded(true);
     when(core.isLocked).thenAnswer((_) => mockLockedStream);
     when(core.isRegistered()).thenAnswer((_) async => registered);
-    when(core.register(any)).thenAnswer((_) async => registered = true);
+    when(core.register(any)).thenAnswer((_) async {
+      registered = true;
+      mockLockedStream.add(false);
+    });
     when(core.unlockWallet(any)).thenAnswer((realInvocation) async {
       final pinIsValid = realInvocation.positionalArguments.first == _kValidPin;
       mockLockedStream.add(!pinIsValid);
+      if (pinIsValid) return const WalletUnlockResultOk();
+      return const WalletUnlockResultIncorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
     repo = CoreWalletRepository(core, PinValidationErrorMapper());
@@ -79,13 +86,27 @@ void main() {
     });
   });
 
+  group('leftover attempts', () {
+    test('result exposes correct amount of leftover pin attempts', () async {
+      await repo.createWallet(_kValidPin);
+      repo.lockWallet();
+
+      when(core.unlockWallet(any)).thenAnswer(
+        (_) async => const WalletUnlockResultIncorrectPin(
+          leftoverAttempts: 1337,
+          isFinalAttempt: false,
+        ),
+      );
+
+      final result = await repo.unlockWallet('invalid');
+      expect((result as WalletUnlockResultIncorrectPin).leftoverAttempts, 1337);
+    });
+  });
+
   group('unimplemented', () {
     // This group makes sure that, once features are implemented, we are reminded to update the tests.
     test('destroyWallet', () async {
       expect(() => repo.destroyWallet(), throwsUnimplementedError);
-    });
-    test('leftoverPinAttempts', () async {
-      expect(repo.leftoverPinAttempts, 999, reason: 'When this is actually implemented it should never be 999');
     });
     test('confirmTransaction', () async {
       expect(() => repo.confirmTransaction(_kValidPin), throwsUnimplementedError);

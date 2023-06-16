@@ -179,6 +179,28 @@
     },
     "description": "Minutes"
   },
+  "generalSeconds": "{seconds, plural, =1 {{seconds} second} other {{seconds} seconds}}",
+  "@generalSeconds": {
+    "placeholders": {
+      "seconds": {
+        "example": "59",
+        "type": "int"
+      }
+    },
+    "description": "Seconds"
+  },
+  "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
+  "pinTimeoutScreenTitle": "Login",
+  "pinTimeoutScreenHeadline": "Temporarily blocked",
+  "pinTimeoutScreenForgotPinCta": "Forgot code?",
+  "pinBlockedScreenTitle": "App blocked",
+  "pinBlockedScreenHeadline": "Your app has been blocked",
+  "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\n\nTo start using the wallet again, please reset the app and select a new pin.",
+  "pinBlockedScreenResetWalletCta": "Reset wallet",
+  "errorScreenGenericTitle": "Fout",
+  "errorScreenGenericHeadline": "Er gaat iets mis",
+  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+  "errorScreenGenericCloseCta": "Sluit",
   "generalOnDate": "On",
   "generalPolicyAllTermsCta": "All terms",
   "generalPolicyDataCanBeDeleted": "You can request data deletion",

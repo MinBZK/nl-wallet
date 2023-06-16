@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart';
 import 'package:wallet/src/domain/usecase/auth/get_digid_auth_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/auth/impl/get_digid_auth_url_usecase_impl.dart';
 
@@ -7,7 +8,7 @@ import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late GetDigidAuthUrlUseCase usecase;
-  final mockRepo = Mocks.create<MockDigidAuthRepository>();
+  final DigidAuthRepository mockRepo = Mocks.create();
 
   setUp(() {
     usecase = GetDigidAuthUrlUseCaseImpl(mockRepo);
