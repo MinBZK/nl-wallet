@@ -20,8 +20,8 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Scrollbar(
-      thumbVisibility: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: CustomScrollView(
@@ -31,7 +31,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               child: Text(
                 locale.walletPersonalizeIntroPageTitle,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.displaySmall,
+                style: theme.textTheme.displaySmall,
               ),
             ),
             const SliverSizedBox(height: 8),
@@ -39,7 +39,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               child: Text(
                 locale.walletPersonalizeIntroPageDescription,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: theme.textTheme.bodyLarge,
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -76,7 +76,9 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             children: [
               Image.asset(_kDigidLogoPath),
               const SizedBox(width: 12),
-              Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
+              Flexible(
+                child: Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
+              ),
             ],
           ),
         ),

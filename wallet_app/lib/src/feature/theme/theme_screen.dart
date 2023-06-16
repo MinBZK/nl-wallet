@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'tabs/button_styles_tab.dart';
 import 'tabs/color_styles_tab.dart';
 import 'tabs/other_styles_tab.dart';
-
 import 'tabs/text_styles_tab.dart';
 
 class ThemeScreen extends StatefulWidget {
@@ -42,7 +42,6 @@ class _ThemeScreenState extends State<ThemeScreen> with SingleTickerProviderStat
             ),
             Expanded(
               child: Scrollbar(
-                thumbVisibility: true,
                 child: _buildContent(context),
               ),
             ),

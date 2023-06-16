@@ -22,7 +22,7 @@ class TextIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final children = [
       if (centerChild) const SizedBox(width: 20),
-      child,
+      Flexible(child: child),
       const SizedBox(width: 8),
       Icon(icon, size: 16),
     ];

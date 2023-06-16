@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/timeline/timeline_section.dart';
-import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
@@ -63,7 +63,6 @@ class CardHistoryScreen extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: CustomScrollView(
               slivers: slivers,
             ),

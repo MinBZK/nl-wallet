@@ -21,13 +21,12 @@ class IssuanceSuccessPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'issuance_success_page',
         slivers: <Widget>[
-          const SliverSizedBox(height: 48.0),
+          const SliverSizedBox(height: 48),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 32.0),
+          const SliverSizedBox(height: 32),
           SliverToBoxAdapter(
               child: Column(
             children: [
@@ -38,7 +37,7 @@ class IssuanceSuccessPage extends StatelessWidget {
               ),
             ],
           )),
-          const SliverSizedBox(height: 16.0),
+          const SliverSizedBox(height: 16),
           SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
         ],
       ),
@@ -55,24 +54,24 @@ class IssuanceSuccessPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: StatusIcon(
             icon: Icons.check,
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
-        const SizedBox(height: 32.0),
+        const SizedBox(height: 32),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             locale.issuanceSuccessPageTitle,
             style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: 8.0),
+        const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             subtitle,
             style: Theme.of(context).textTheme.bodyLarge,
@@ -87,7 +86,7 @@ class IssuanceSuccessPage extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: SizedBox(
           height: 48,
           child: ElevatedButton(

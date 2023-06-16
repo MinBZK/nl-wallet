@@ -76,16 +76,15 @@ class CardSummaryScreen extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: ListView(
-              padding: const EdgeInsets.only(top: 24.0),
+              padding: const EdgeInsets.only(top: 24),
               children: [
-                const SizedBox(height: 8.0),
+                const SizedBox(height: 8),
                 SizedCardFront(
                   cardFront: card.front,
                   displayWidth: MediaQuery.of(context).size.width - (_kCardDisplayPaddingHorizontal * 2),
                 ),
-                const SizedBox(height: 32.0),
+                const SizedBox(height: 32),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.description_outlined,

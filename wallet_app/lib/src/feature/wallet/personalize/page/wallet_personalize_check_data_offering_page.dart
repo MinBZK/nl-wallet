@@ -20,7 +20,6 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         slivers: <Widget>[
           const SliverSizedBox(height: 32),

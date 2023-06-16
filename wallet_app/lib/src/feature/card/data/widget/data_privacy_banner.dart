@@ -22,16 +22,18 @@ class DataPrivacyBanner extends StatelessWidget {
         children: [
           const Icon(Icons.gpp_maybe_outlined),
           const SizedBox(width: 8),
-          Text.rich(
-            TextSpan(
-              text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
-              children: [
-                TextSpan(
-                  text: locale.cardDataScreenDataPrivacyBannerReadMore,
-                  recognizer: TapGestureRecognizer()..onTap = onPressed,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(decoration: TextDecoration.underline),
-                )
-              ],
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
+                children: [
+                  TextSpan(
+                    text: locale.cardDataScreenDataPrivacyBannerReadMore,
+                    recognizer: TapGestureRecognizer()..onTap = onPressed,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(decoration: TextDecoration.underline),
+                  )
+                ],
+              ),
             ),
           ),
         ],

@@ -9,7 +9,6 @@ import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/bottom_sheet_drag_handle.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -247,8 +246,6 @@ class OtherStylesTab extends StatelessWidget {
         const AnimatedLinearProgressIndicator(progress: 0.3),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
         const AnimatedVisibilityBackButton(visible: true),
-        const ThemeSectionSubHeader(title: 'BottomSheetDragHandle'),
-        const BottomSheetDragHandle(),
         const ThemeSectionSubHeader(title: 'CenteredLoadingIndicator'),
         const CenteredLoadingIndicator(),
         const ThemeSectionSubHeader(title: 'LoadingIndicator'),

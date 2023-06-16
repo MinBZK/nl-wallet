@@ -90,7 +90,6 @@ class CardDataScreen extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: CustomScrollView(
               slivers: slivers,
             ),
@@ -105,7 +104,7 @@ class CardDataScreen extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: LinkButton(
           child: Text(AppLocalizations.of(context).cardDataScreenIncorrectCta),
           onPressed: () => PlaceholderScreen.show(context),

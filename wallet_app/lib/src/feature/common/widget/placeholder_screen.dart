@@ -36,17 +36,17 @@ class PlaceholderScreen extends StatelessWidget {
           _imageAssetName(),
           scale: context.isLandscape ? 1.5 : 1,
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
             _informTitle(context),
-            style: Theme.of(context).textTheme.displayMedium,
+            style: Theme.of(context).textTheme.displaySmall,
             textAlign: TextAlign.center,
           ),
         ),
         const Spacer(flex: 2),
-        const BottomBackButton(),
+        const BottomBackButton(showDivider: true),
       ],
     );
   }

@@ -69,7 +69,6 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   Widget _buildOrganizationDetailLoaded(BuildContext context, OrganizationDetailSuccess state) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
           const SliverSizedBox(height: 24),

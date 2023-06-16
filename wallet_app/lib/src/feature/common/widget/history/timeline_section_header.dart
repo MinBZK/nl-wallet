@@ -11,17 +11,18 @@ class TimelineSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AppLocalizations locale = AppLocalizations.of(context);
+    final locale = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Container(
-      color: Theme.of(context).colorScheme.background,
+      color: theme.colorScheme.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Text(
               DateFormat(DateFormat.YEAR_MONTH, locale.localeName).format(dateTime).capitalize,
-              style: Theme.of(context).textTheme.labelSmall,
+              style: theme.textTheme.labelSmall,
             ),
           ),
           const Divider(height: 1),
