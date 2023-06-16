@@ -29,10 +29,7 @@ class WalletAppTestWidget extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en', ''), // English, no country code
-        Locale('nl', ''), // Dutch, no country code
-      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Material(child: child),
     );
   }

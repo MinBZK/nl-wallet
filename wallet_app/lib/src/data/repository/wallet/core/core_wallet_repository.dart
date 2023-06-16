@@ -4,6 +4,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:fimber/fimber.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
+import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../../../wallet_core/typed_wallet_core.dart';
 import '../../../mapper/mapper.dart';
 import '../wallet_repository.dart';
@@ -27,22 +28,17 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<void> createWallet(String pin) async {
     await _walletCore.register(pin);
-    await _walletCore.unlockWallet(pin);
   }
 
   @override
   // TODO: implement confirmTransaction
-  Future<bool> confirmTransaction(String pin) => throw UnimplementedError();
+  Future<CheckPinResult> confirmTransaction(String pin) => throw UnimplementedError();
 
   @override
   Future<bool> isRegistered() => _walletCore.isRegistered();
 
   @override
   Stream<bool> get isLockedStream => _walletCore.isLocked;
-
-  @override
-  // TODO: implement leftoverPinAttempts
-  int get leftoverPinAttempts => 999;
 
   @override
   void lockWallet() async {
@@ -55,13 +51,9 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<void> unlockWallet(String pin) async {
+  Future<WalletUnlockResult> unlockWallet(String pin) async {
     if (await isRegistered() == false) throw UnsupportedError('Wallet not yet registered!');
-    try {
-      await _walletCore.unlockWallet(pin);
-    } catch (exception) {
-      Fimber.e('Failed to unlock wallet', ex: exception);
-    }
+    return await _walletCore.unlockWallet(pin);
   }
 
   @override

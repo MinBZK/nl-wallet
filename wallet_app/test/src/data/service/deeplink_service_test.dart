@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/deeplink_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import '../../mocks/wallet_mocks.dart';
 
@@ -22,19 +23,19 @@ void main() {
       return null;
     });
 
-    mockWalletCore = Mocks.create<MockTypedWalletCore>();
-    mockDecodeDeeplinkUseCase = Mocks.create<MockDecodeDeeplinkUseCase>();
-    isWalletInitializedWithPidUseCase = Mocks.create<MockIsWalletInitializedWithPidUseCase>();
+    mockWalletCore = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
+    mockDecodeDeeplinkUseCase = MockDecodeDeeplinkUseCase();
+    isWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
     navigatorKey = MockNavigatorKey();
 
     service = DeeplinkService(
       navigatorKey,
       mockDecodeDeeplinkUseCase,
-      Mocks.create<MockUpdateDigidAuthStatusUseCase>(),
+      Mocks.create(),
       isWalletInitializedWithPidUseCase,
-      Mocks.create<MockObserveWalletLockUseCase>(),
+      Mocks.create(),
       mockWalletCore,
-      Mocks.create<MockAppLifecycleService>(),
+      Mocks.create(),
     );
   });
 

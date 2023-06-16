@@ -45,7 +45,10 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<void> lockWallet() => _walletCore.lockWallet();
 
   @override
-  Future<void> unlockWallet(String pin) => _walletCore.unlockWallet(pin: pin);
+  Future<WalletUnlockResult> unlockWallet(String pin) async {
+    final bytes = await _walletCore.unlockWallet(pin: pin);
+    return WalletUnlockResult.bincodeDeserialize(bytes);
+  }
 
   @override
   Stream<bool> get isLocked => _isLocked;

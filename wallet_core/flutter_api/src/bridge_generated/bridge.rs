@@ -53,7 +53,7 @@ fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwi
         },
         move || {
             let api_pin = pin.wire2api();
-            move |task_callback| unlock_wallet(api_pin)
+            move |task_callback| Ok(unlock_wallet(api_pin))
         },
     )
 }

@@ -3,17 +3,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../wallet_constants.dart';
-import '../../navigation/wallet_routes.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/wallet_logo.dart';
+import '../error/error_screen.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
+import '../pin_blocked/pin_blocked_screen.dart';
+import '../pin_timeout/pin_timeout_screen.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
 
 /// Signature for a function that creates a widget while providing the leftover pin attempts.
 /// [attempts] being null indicates that this is the first attempt.
-typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts);
+/// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
+typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, bool isFinalAttempt);
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
@@ -31,12 +34,14 @@ class PinPage extends StatelessWidget {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) {
         if (state is PinValidateSuccess) onPinValidated?.call();
+        if (state is PinValidateServerError) {
+          ErrorScreen.showGeneric(context, secured: false);
+        }
+        if (state is PinValidateTimeout) {
+          PinTimeoutScreen.show(context, state.expiryTime);
+        }
         if (state is PinValidateBlocked) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            WalletRoutes.splashRoute,
-            ModalRoute.withName(WalletRoutes.splashRoute),
-          );
+          PinBlockedScreen.show(context);
         }
       },
       child: OrientationBuilder(
@@ -98,25 +103,25 @@ class PinPage extends StatelessWidget {
     return BlocBuilder<PinBloc, PinState>(
       builder: (context, state) {
         if (state is PinValidateFailure) {
-          return builder(context, state.leftoverAttempts);
+          return builder(context, state.leftoverAttempts, state.isFinalAttempt);
         } else {
-          return builder(context, null);
+          return builder(context, null, false);
         }
       },
     );
   }
 
-  Widget _defaultHeaderBuilder(BuildContext context, int? attempts) {
+  Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
     return Column(
       children: [
         const WalletLogo(size: 80),
         const SizedBox(height: 24),
-        _buildTextHeader(context, attempts),
+        _buildTextHeader(context, attempts, isFinalAttempt),
       ],
     );
   }
 
-  Widget _buildTextHeader(BuildContext context, int? attempts) {
+  Widget _buildTextHeader(BuildContext context, int? attempts, bool isFinalAttempt) {
     if (attempts == null) {
       return Column(
         children: [
@@ -191,6 +196,8 @@ class PinPage extends StatelessWidget {
   }
 
   bool _digitKeysEnabled(PinState state) {
+    if (state is PinValidateServerError) return true;
+    if (state is PinValidateTimeout) return true;
     if (state is PinEntryInProgress) return true;
     if (state is PinValidateFailure) return true;
     return false;

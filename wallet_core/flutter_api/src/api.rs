@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Ok, Result};
 use flutter_rust_bridge::StreamSink;
-use tokio::sync::{OnceCell, RwLock};
+use tokio::sync::{OnceCell, RwLock, RwLockWriteGuard};
 
 use macros::async_runtime;
 use wallet::{init_wallet, validate_pin, Wallet};
@@ -14,6 +14,7 @@ use crate::{
     models::{
         pin::PinValidationResult,
         uri_flow_event::{DigidState, UriFlowEvent},
+        wallet::WalletUnlockResult,
     },
 };
 
@@ -83,21 +84,26 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 }
 
 #[async_runtime]
-pub async fn unlock_wallet(pin: String) -> Result<()> {
+pub async fn unlock_wallet(pin: String) -> Vec<u8> {
     let mut wallet = wallet().write().await;
-    wallet.unlock(pin).await?;
-    let is_locked = wallet.is_locked();
-    wallet_lock_sink().add(is_locked);
-    Ok(())
+    let unlock_result = wallet.unlock(pin).await;
+    let wallet_unlock_result = WalletUnlockResult::from(unlock_result);
+    sync_wallet_lock_status(wallet);
+    bincode::serialize(&wallet_unlock_result).unwrap()
 }
 
 #[async_runtime]
 pub async fn lock_wallet() -> Result<()> {
     let mut wallet = wallet().write().await;
     wallet.lock();
+    sync_wallet_lock_status(wallet);
+    Ok(())
+}
+
+/// Syncs the wallet lock status notifying the wallet_app through the [WALLET_API_ENVIRONMENT].
+fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>) {
     let is_locked = wallet.is_locked();
     wallet_lock_sink().add(is_locked);
-    Ok(())
 }
 
 #[async_runtime]
@@ -108,8 +114,9 @@ pub async fn has_registration() -> Result<bool> {
 
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
-    wallet().write().await.register(pin).await?;
-
+    let mut wallet = wallet().write().await;
+    wallet.register(pin).await?;
+    sync_wallet_lock_status(wallet);
     Ok(())
 }
 

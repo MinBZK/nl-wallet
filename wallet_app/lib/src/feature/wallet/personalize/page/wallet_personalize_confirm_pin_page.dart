@@ -10,8 +10,12 @@ import '../../../pin/pin_page.dart';
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   final VoidCallback onPinValidated;
 
+  @visibleForTesting
+  final PinBloc? bloc;
+
   const WalletPersonalizeConfirmPinPage({
     required this.onPinValidated,
+    this.bloc,
     Key? key,
   }) : super(key: key);
 
@@ -19,9 +23,9 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<ConfirmTransactionUseCase>(), context.read()),
+      create: (BuildContext context) => bloc ?? PinBloc(context.read<ConfirmTransactionUseCase>()),
       child: PinPage(
-        headerBuilder: (context, attempts) {
+        headerBuilder: (context, attempts, isFinalAttempt) {
           final hasError = attempts != null;
           final String title, description;
           if (!hasError) {

@@ -1,10 +1,17 @@
+import 'package:core_domain/core_domain.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
+import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
+import '../../../../util/extension/wallet_unlock_result_extension.dart';
 import '../../../../wallet_constants.dart';
 import '../../../source/wallet_datasource.dart';
 import '../wallet_repository.dart';
+
+const _kTimeoutUnlockAttempts = 4;
+@visibleForTesting
+const kMaxUnlockAttempts = 6;
 
 class MockWalletRepository implements WalletRepository {
   WalletDataSource dataSource;
@@ -21,31 +28,60 @@ class MockWalletRepository implements WalletRepository {
   void lockWallet() => _locked.add(true);
 
   @override
-  Future<void> unlockWallet(String pin) async {
+  Future<WalletUnlockResult> unlockWallet(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;
+      return const WalletUnlockResultOk();
     } else {
-      _invalidPinAttempts++;
-      if (_invalidPinAttempts >= kMaxUnlockAttempts) {
-        destroyWallet();
-      }
+      return _handlePinInvalid();
     }
   }
 
   @override
-  Future<bool> confirmTransaction(String pin) async {
+  Future<CheckPinResult> confirmTransaction(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     if (isLocked) throw UnsupportedError('Wallet is locked');
     if (_pin != null && pin == _pin) {
       _invalidPinAttempts = 0;
-      return true;
+      return CheckPinResultOk();
     } else {
-      _invalidPinAttempts++;
-      if (_invalidPinAttempts >= kMaxUnlockAttempts) destroyWallet();
+      return _handlePinInvalid().asCheckPinResult();
     }
-    return false;
+  }
+
+  /// Increase the invalid pin counter and resolve
+  /// the currently relevant [WalletUnlockResult].
+  WalletUnlockResult _handlePinInvalid() {
+    _invalidPinAttempts++;
+    // Ugly & long, but also temporary
+    if (_invalidPinAttempts <= _kTimeoutUnlockAttempts) {
+      if (_invalidPinAttempts >= _kTimeoutUnlockAttempts) {
+        // Trigger timeout
+        return const WalletUnlockResultTimeout(timeoutMillis: 15 * 1000 /* 15 seconds */);
+      } else {
+        // Trigger normal (pre timeout) attempts left
+        return WalletUnlockResultIncorrectPin(
+          leftoverAttempts: _kTimeoutUnlockAttempts - _invalidPinAttempts,
+          isFinalAttempt: false,
+        );
+      }
+    } else {
+      // After initial timeout (user only gets 1 timeout in mock)
+      if (_invalidPinAttempts >= kMaxUnlockAttempts) {
+        // Too many attempts, block user
+        destroyWallet();
+        return const WalletUnlockResultBlocked();
+      } else {
+        // x Attempts left in final round
+        var attemptsLeft = kMaxUnlockAttempts - _invalidPinAttempts;
+        return WalletUnlockResultIncorrectPin(
+          leftoverAttempts: attemptsLeft,
+          isFinalAttempt: attemptsLeft == 1,
+        );
+      }
+    }
   }
 
   @override
@@ -56,6 +92,7 @@ class MockWalletRepository implements WalletRepository {
     _pin = pin;
     _isInitialized.add(true);
     _invalidPinAttempts = 0;
+    _locked.add(false);
   }
 
   @override
@@ -78,9 +115,6 @@ class MockWalletRepository implements WalletRepository {
 
   @override
   Stream<bool> get isLockedStream => _locked.stream.distinct();
-
-  @override
-  int get leftoverPinAttempts => _isInitialized.value ? kMaxUnlockAttempts - _invalidPinAttempts : -1;
 
   @override
   Future<void> validatePin(String pin) async {
