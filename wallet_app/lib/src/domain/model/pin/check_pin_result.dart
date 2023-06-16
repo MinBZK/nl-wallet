@@ -17,4 +17,4 @@ class CheckPinResultTimeout extends CheckPinResult {
 
 class CheckPinResultBlocked extends CheckPinResult {}
 
-class CheckPinResultServerError extends CheckPinResult {}
+class CheckPinResultGenericError extends CheckPinResult {}

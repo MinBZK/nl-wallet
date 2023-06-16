@@ -11,7 +11,6 @@ extension WalletUnlockResultExtension on WalletUnlockResult {
       ),
       timeout: (result) => CheckPinResultTimeout(timeoutMillis: result.timeoutMillis),
       blocked: (result) => CheckPinResultBlocked(),
-      serverError: (result) => CheckPinResultServerError(),
     );
   }
 }

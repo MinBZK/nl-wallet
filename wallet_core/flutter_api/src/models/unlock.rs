@@ -10,7 +10,6 @@ pub enum WalletUnlockResult {
         timeout_millis: u32,
     },
     Blocked,
-    ServerError,
 }
 
 /// This conversion distinguishes between 3 distinct cases:

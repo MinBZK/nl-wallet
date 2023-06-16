@@ -197,7 +197,6 @@ impl support::IntoDart for WalletUnlockResult {
             ],
             Self::Timeout { timeout_millis } => vec![2.into_dart(), timeout_millis.into_dart()],
             Self::Blocked => vec![3.into_dart()],
-            Self::ServerError => vec![4.into_dart()],
         }
         .into_dart()
     }

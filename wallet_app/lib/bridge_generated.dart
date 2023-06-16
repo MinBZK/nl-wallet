@@ -78,7 +78,6 @@ class WalletUnlockResult with _$WalletUnlockResult {
     required int timeoutMillis,
   }) = WalletUnlockResult_Timeout;
   const factory WalletUnlockResult.blocked() = WalletUnlockResult_Blocked;
-  const factory WalletUnlockResult.serverError() = WalletUnlockResult_ServerError;
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -279,8 +278,6 @@ class WalletCoreImpl implements WalletCore {
         );
       case 3:
         return WalletUnlockResult_Blocked();
-      case 4:
-        return WalletUnlockResult_ServerError();
       default:
         throw Exception("unreachable");
     }

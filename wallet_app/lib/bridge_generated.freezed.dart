@@ -230,7 +230,6 @@ mixin _$WalletUnlockResult {
         incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
-    required TResult Function() serverError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -239,7 +238,6 @@ mixin _$WalletUnlockResult {
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
-    TResult? Function()? serverError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -248,7 +246,6 @@ mixin _$WalletUnlockResult {
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
-    TResult Function()? serverError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -259,7 +256,6 @@ mixin _$WalletUnlockResult {
         incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -268,7 +264,6 @@ mixin _$WalletUnlockResult {
     TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult? Function(WalletUnlockResult_Timeout value)? timeout,
     TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -277,7 +272,6 @@ mixin _$WalletUnlockResult {
     TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult Function(WalletUnlockResult_Timeout value)? timeout,
     TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -344,7 +338,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
         incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
-    required TResult Function() serverError,
   }) {
     return ok();
   }
@@ -356,7 +349,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
-    TResult? Function()? serverError,
   }) {
     return ok?.call();
   }
@@ -368,7 +360,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
-    TResult Function()? serverError,
     required TResult orElse(),
   }) {
     if (ok != null) {
@@ -385,7 +376,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
         incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
   }) {
     return ok(this);
   }
@@ -397,7 +387,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
     TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult? Function(WalletUnlockResult_Timeout value)? timeout,
     TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
   }) {
     return ok?.call(this);
   }
@@ -409,7 +398,6 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
     TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult Function(WalletUnlockResult_Timeout value)? timeout,
     TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
     required TResult orElse(),
   }) {
     if (ok != null) {
@@ -509,7 +497,6 @@ class _$WalletUnlockResult_IncorrectPin
         incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
-    required TResult Function() serverError,
   }) {
     return incorrectPin(leftoverAttempts, isFinalAttempt);
   }
@@ -521,7 +508,6 @@ class _$WalletUnlockResult_IncorrectPin
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
-    TResult? Function()? serverError,
   }) {
     return incorrectPin?.call(leftoverAttempts, isFinalAttempt);
   }
@@ -533,7 +519,6 @@ class _$WalletUnlockResult_IncorrectPin
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
-    TResult Function()? serverError,
     required TResult orElse(),
   }) {
     if (incorrectPin != null) {
@@ -550,7 +535,6 @@ class _$WalletUnlockResult_IncorrectPin
         incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
   }) {
     return incorrectPin(this);
   }
@@ -562,7 +546,6 @@ class _$WalletUnlockResult_IncorrectPin
     TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult? Function(WalletUnlockResult_Timeout value)? timeout,
     TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
   }) {
     return incorrectPin?.call(this);
   }
@@ -574,7 +557,6 @@ class _$WalletUnlockResult_IncorrectPin
     TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult Function(WalletUnlockResult_Timeout value)? timeout,
     TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
     required TResult orElse(),
   }) {
     if (incorrectPin != null) {
@@ -669,7 +651,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
         incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
-    required TResult Function() serverError,
   }) {
     return timeout(timeoutMillis);
   }
@@ -681,7 +662,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
-    TResult? Function()? serverError,
   }) {
     return timeout?.call(timeoutMillis);
   }
@@ -693,7 +673,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
-    TResult Function()? serverError,
     required TResult orElse(),
   }) {
     if (timeout != null) {
@@ -710,7 +689,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
         incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
   }) {
     return timeout(this);
   }
@@ -722,7 +700,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
     TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult? Function(WalletUnlockResult_Timeout value)? timeout,
     TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
   }) {
     return timeout?.call(this);
   }
@@ -734,7 +711,6 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
     TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult Function(WalletUnlockResult_Timeout value)? timeout,
     TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
     required TResult orElse(),
   }) {
     if (timeout != null) {
@@ -800,7 +776,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
         incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
-    required TResult Function() serverError,
   }) {
     return blocked();
   }
@@ -812,7 +787,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
-    TResult? Function()? serverError,
   }) {
     return blocked?.call();
   }
@@ -824,7 +798,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
-    TResult Function()? serverError,
     required TResult orElse(),
   }) {
     if (blocked != null) {
@@ -841,7 +814,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
         incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
   }) {
     return blocked(this);
   }
@@ -853,7 +825,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
     TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult? Function(WalletUnlockResult_Timeout value)? timeout,
     TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
   }) {
     return blocked?.call(this);
   }
@@ -865,7 +836,6 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
     TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
     TResult Function(WalletUnlockResult_Timeout value)? timeout,
     TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
     required TResult orElse(),
   }) {
     if (blocked != null) {
@@ -877,132 +847,4 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
 
 abstract class WalletUnlockResult_Blocked implements WalletUnlockResult {
   const factory WalletUnlockResult_Blocked() = _$WalletUnlockResult_Blocked;
-}
-
-/// @nodoc
-abstract class _$$WalletUnlockResult_ServerErrorCopyWith<$Res> {
-  factory _$$WalletUnlockResult_ServerErrorCopyWith(
-          _$WalletUnlockResult_ServerError value,
-          $Res Function(_$WalletUnlockResult_ServerError) then) =
-      __$$WalletUnlockResult_ServerErrorCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$WalletUnlockResult_ServerErrorCopyWithImpl<$Res>
-    extends _$WalletUnlockResultCopyWithImpl<$Res,
-        _$WalletUnlockResult_ServerError>
-    implements _$$WalletUnlockResult_ServerErrorCopyWith<$Res> {
-  __$$WalletUnlockResult_ServerErrorCopyWithImpl(
-      _$WalletUnlockResult_ServerError _value,
-      $Res Function(_$WalletUnlockResult_ServerError) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$WalletUnlockResult_ServerError
-    implements WalletUnlockResult_ServerError {
-  const _$WalletUnlockResult_ServerError();
-
-  @override
-  String toString() {
-    return 'WalletUnlockResult.serverError()';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WalletUnlockResult_ServerError);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
-        incorrectPin,
-    required TResult Function(int timeoutMillis) timeout,
-    required TResult Function() blocked,
-    required TResult Function() serverError,
-  }) {
-    return serverError();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ok,
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult? Function(int timeoutMillis)? timeout,
-    TResult? Function()? blocked,
-    TResult? Function()? serverError,
-  }) {
-    return serverError?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ok,
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult Function(int timeoutMillis)? timeout,
-    TResult Function()? blocked,
-    TResult Function()? serverError,
-    required TResult orElse(),
-  }) {
-    if (serverError != null) {
-      return serverError();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value)
-        incorrectPin,
-    required TResult Function(WalletUnlockResult_Timeout value) timeout,
-    required TResult Function(WalletUnlockResult_Blocked value) blocked,
-    required TResult Function(WalletUnlockResult_ServerError value) serverError,
-  }) {
-    return serverError(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(WalletUnlockResult_Ok value)? ok,
-    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
-    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
-  }) {
-    return serverError?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(WalletUnlockResult_Ok value)? ok,
-    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletUnlockResult_Timeout value)? timeout,
-    TResult Function(WalletUnlockResult_Blocked value)? blocked,
-    TResult Function(WalletUnlockResult_ServerError value)? serverError,
-    required TResult orElse(),
-  }) {
-    if (serverError != null) {
-      return serverError(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class WalletUnlockResult_ServerError implements WalletUnlockResult {
-  const factory WalletUnlockResult_ServerError() =
-      _$WalletUnlockResult_ServerError;
 }

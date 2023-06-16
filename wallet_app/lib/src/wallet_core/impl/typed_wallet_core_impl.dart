@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:fimber/fimber.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../error/flutter_api_error.dart';
 import '../typed_wallet_core.dart';
 import '../wallet_core.dart';
 
-/// Wraps the generated WalletCore to provide
-/// a typed interface using the SERDE generated
-/// models from the 'core_domain' package.
+/// Wraps the generated WalletCore.
+/// Adds auto initialization, pass through of the locked
+/// flag and parsing of the [FlutterApiError]s.
 class TypedWalletCoreImpl extends TypedWalletCore {
   final WalletCore _walletCore;
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
@@ -27,29 +30,84 @@ class TypedWalletCoreImpl extends TypedWalletCore {
 
   @override
   Future<PinValidationResult> isValidPin(String pin) async {
-    return await _walletCore.isValidPin(pin: pin);
+    try {
+      return await _walletCore.isValidPin(pin: pin);
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
   }
 
   @override
-  Future<void> register(String pin) => _walletCore.register(pin: pin);
+  Future<void> register(String pin) async {
+    try {
+      return await _walletCore.register(pin: pin);
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
+  }
 
   @override
-  Future<bool> isRegistered() => _walletCore.hasRegistration();
+  Future<bool> isRegistered() async {
+    try {
+      return await _walletCore.hasRegistration();
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
+  }
 
   @override
-  Future<String> getDigidAuthUrl() => _walletCore.getDigidAuthUrl();
+  Future<String> getDigidAuthUrl() async {
+    try {
+      return await _walletCore.getDigidAuthUrl();
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
+  }
 
   @override
-  Future<void> lockWallet() => _walletCore.lockWallet();
+  Future<void> lockWallet() async {
+    try {
+      return await _walletCore.lockWallet();
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
+  }
 
   @override
   Future<WalletUnlockResult> unlockWallet(String pin) async {
-    return await _walletCore.unlockWallet(pin: pin);
+    try {
+      return await _walletCore.unlockWallet(pin: pin);
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
   }
 
   @override
   Stream<bool> get isLocked => _isLocked;
 
   @override
-  Stream<UriFlowEvent> processUri(Uri uri) => _walletCore.processUri(uri: uri.toString());
+  Stream<UriFlowEvent> processUri(Uri uri) {
+    try {
+      return _walletCore.processUri(uri: uri.toString());
+    } catch (ex) {
+      _decodeFlutterApiError(ex);
+      rethrow;
+    }
+  }
+
+  /// Check the exception and throws it as a [FlutterApiError]
+  /// if it can be mapped into one.
+  void _decodeFlutterApiError(Object ex) {
+    if (ex is FfiException) {
+      if (ex.code != 'RESULT_ERROR') return;
+      var decodedJson = json.decode(ex.message);
+      throw FlutterApiError.fromJson(decodedJson);
+    }
+  }
 }

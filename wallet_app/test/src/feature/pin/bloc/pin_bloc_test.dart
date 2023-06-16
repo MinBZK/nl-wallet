@@ -111,7 +111,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultServerError(),
+        CheckPinResultGenericError(),
       ),
       skip: 6,
       expect: () => [const PinValidateServerError()],
