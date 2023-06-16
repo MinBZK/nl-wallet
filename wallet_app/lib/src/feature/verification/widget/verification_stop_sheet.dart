@@ -52,11 +52,15 @@ class VerificationStopSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return VerificationStopSheet(
-          organizationName: organizationName,
-          onReportIssuePressed: onReportIssuePressed,
-          onConfirmPressed: () => Navigator.pop(context, true),
-          onCancelPressed: () => Navigator.pop(context, false),
+        return Scrollbar(
+          child: SingleChildScrollView(
+            child: VerificationStopSheet(
+              organizationName: organizationName,
+              onReportIssuePressed: onReportIssuePressed,
+              onConfirmPressed: () => Navigator.pop(context, true),
+              onCancelPressed: () => Navigator.pop(context, false),
+            ),
+          ),
         );
       },
     );

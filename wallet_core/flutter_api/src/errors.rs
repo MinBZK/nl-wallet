@@ -42,6 +42,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .downcast::<WalletInitError>()
             .map(Self::from)
             .or_else(|e| e.downcast::<WalletRegistrationError>().map(Self::from))
+            .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
     }
 }
 
@@ -75,6 +76,12 @@ impl From<&WalletRegistrationError> for FlutterApiErrorType {
             WalletRegistrationError::RegistrationRequest(e) => Self::from(e),
             _ => FlutterApiErrorType::Generic,
         }
+    }
+}
+
+impl From<&WalletUnlockError> for FlutterApiErrorType {
+    fn from(_value: &WalletUnlockError) -> Self {
+        FlutterApiErrorType::Networking
     }
 }
 

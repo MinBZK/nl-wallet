@@ -13,7 +13,7 @@ class PinPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<ConfirmTransactionUseCase>(), context.read()),
+      create: (BuildContext context) => PinBloc(context.read<ConfirmTransactionUseCase>()),
       child: PinScreen(
         onUnlock: () => Navigator.pop(context, true),
       ),

@@ -36,7 +36,6 @@ class IntroductionPage extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
@@ -59,7 +58,6 @@ class IntroductionPage extends StatelessWidget {
         Expanded(
           child: SafeArea(
             child: Scrollbar(
-              thumbVisibility: true,
               child: Column(
                 children: [
                   Expanded(

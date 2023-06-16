@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/service/deeplink_service.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
@@ -27,13 +28,14 @@ import '../feature/issuance/argument/issuance_screen_argument.dart';
 import '../feature/issuance/bloc/issuance_bloc.dart';
 import '../feature/issuance/issuance_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
-import '../data/service/deeplink_service.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
 import '../feature/pin/bloc/pin_bloc.dart';
 import '../feature/pin/pin_prompt.dart';
 import '../feature/pin/pin_screen.dart';
+import '../feature/pin_blocked/pin_blocked_screen.dart';
+import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
@@ -60,6 +62,8 @@ class WalletRoutes {
     introductionRoute,
     setupSecurityRoute,
     pinRoute,
+    pinTimeoutRoute,
+    pinBlockedRoute,
     themeRoute,
     changeLanguageRoute
   ];
@@ -68,6 +72,8 @@ class WalletRoutes {
   static const introductionRoute = '/introduction';
   static const setupSecurityRoute = '/security/setup';
   static const pinRoute = '/pin';
+  static const pinTimeoutRoute = '/pin/timeout';
+  static const pinBlockedRoute = '/pin/blocked';
   static const confirmRoute = '/confirm';
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletHistoryRoute = '/wallet/history';
@@ -145,6 +151,10 @@ class WalletRoutes {
         return _createOrganizationDetailScreenBuilder(settings);
       case WalletRoutes.changeLanguageRoute:
         return _createChangeLanguageScreenBuilder;
+      case WalletRoutes.pinTimeoutRoute:
+        return _createPinTimeoutScreenBuilder(settings);
+      case WalletRoutes.pinBlockedRoute:
+        return _createPinBlockedScreenBuilder(settings);
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -163,7 +173,7 @@ Widget _createIntroductionScreenBuilder(BuildContext context) => const Introduct
 Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
-      create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>(), context.read()),
+      create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
       child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
     );
 
@@ -306,6 +316,17 @@ Widget _createChangeLanguageScreenBuilder(BuildContext context) {
     create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
     child: const ChangeLanguageScreen(),
   );
+}
+
+WidgetBuilder _createPinTimeoutScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final arguments = PinTimeoutScreen.getArgument(settings);
+    return PinTimeoutScreen(expiryTime: arguments.expiryTime);
+  };
+}
+
+WidgetBuilder _createPinBlockedScreenBuilder(RouteSettings settings) {
+  return (context) => const PinBlockedScreen();
 }
 
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {

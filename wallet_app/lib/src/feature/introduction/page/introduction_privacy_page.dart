@@ -21,7 +21,6 @@ class IntroductionPrivacyPage extends StatelessWidget {
         children: [
           Expanded(
             child: Scrollbar(
-              thumbVisibility: true,
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [

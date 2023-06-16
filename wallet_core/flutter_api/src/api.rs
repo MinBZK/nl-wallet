@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
-use tokio::sync::{OnceCell, RwLock};
+use tokio::sync::{OnceCell, RwLock, RwLockWriteGuard};
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
@@ -13,7 +13,7 @@ use crate::{
     logging::init_logging,
     models::{
         pin::PinValidationResult,
-        unlock::UnlockResult,
+        unlock::WalletUnlockResult,
         uri_flow_event::{DigidState, UriFlowEvent},
     },
 };
@@ -88,15 +88,20 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
     Ok(result)
 }
 
+/// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].
+fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &StreamSink<bool>) {
+    let is_locked = wallet.is_locked();
+    lock_sink.add(is_locked);
+}
+
 #[async_runtime]
 #[flutter_api_error]
-pub async fn unlock_wallet(pin: String) -> Result<UnlockResult> {
+pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
     let wallet_env = wallet_environment();
     let mut wallet = wallet_env.wallet.write().await;
 
     let result = wallet.unlock(pin).await.try_into()?;
-
-    wallet_env.lock_sink.add(wallet.is_locked());
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(result)
 }
@@ -108,7 +113,7 @@ pub async fn lock_wallet() -> Result<()> {
     let mut wallet = wallet_env.wallet.write().await;
 
     wallet.lock();
-    wallet_env.lock_sink.add(wallet.is_locked());
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }
@@ -123,7 +128,11 @@ pub async fn has_registration() -> Result<bool> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn register(pin: String) -> Result<()> {
-    wallet().write().await.register(pin).await?;
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
+
+    wallet.register(pin).await?;
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }

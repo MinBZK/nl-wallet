@@ -29,7 +29,6 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
           const SliverSizedBox(height: 24),
@@ -129,7 +128,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   Widget _buildNoSelectionRow(BuildContext context) {
     final errorColor = Theme.of(context).colorScheme.error;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

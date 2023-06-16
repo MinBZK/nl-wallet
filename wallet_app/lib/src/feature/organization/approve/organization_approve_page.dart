@@ -45,7 +45,6 @@ class OrganizationApprovePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'approve_organization_scrollview',
         slivers: <Widget>[

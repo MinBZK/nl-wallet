@@ -195,7 +195,6 @@ class HistoryDetailScreen extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: CustomScrollView(
               slivers: slivers,
             ),
@@ -319,26 +318,28 @@ class HistoryDetailScreen extends StatelessWidget {
             child: icon,
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.displaySmall,
-              ),
-              const SizedBox(height: 2),
-              if (subtitle.isNotEmpty) ...[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  subtitle,
-                  style: theme.textTheme.bodyLarge,
+                  title,
+                  style: theme.textTheme.displaySmall,
                 ),
                 const SizedBox(height: 2),
+                if (subtitle.isNotEmpty) ...[
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  HistoryDetailsTimeFormatter.format(locale, attribute.dateTime),
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
-              Text(
-                HistoryDetailsTimeFormatter.format(locale, attribute.dateTime),
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+            ),
           ),
         ],
       ),

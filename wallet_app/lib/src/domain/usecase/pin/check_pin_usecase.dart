@@ -1,5 +1,7 @@
-abstract class CheckPinUseCase {
-  CheckPinUseCase();
+import '../../model/pin/check_pin_result.dart';
 
-  Future<bool> invoke(String pin);
+export '../../model/pin/check_pin_result.dart';
+
+abstract class CheckPinUseCase {
+  Future<CheckPinResult> invoke(String pin);
 }

@@ -20,7 +20,7 @@ class DataAttributeRowImage extends StatelessWidget {
         Visibility(
           visible: labelVisible,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               label ?? '',
               style: Theme.of(context).textTheme.bodySmall,

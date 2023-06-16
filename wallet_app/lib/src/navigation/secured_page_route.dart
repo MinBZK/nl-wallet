@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/repository/wallet/wallet_repository.dart';
 import '../feature/pin/pin_overlay.dart';
 
 const _kSlideTransitionDuration = Duration(milliseconds: 500);
@@ -21,7 +23,12 @@ class SecuredPageRoute<T> extends MaterialPageRoute<T> {
     required WidgetBuilder builder,
     this.transition = SecuredPageTransition.platform,
     super.settings,
-  }) : super(builder: (context) => PinOverlay(child: builder(context)));
+  }) : super(
+          builder: (context) => PinOverlay(
+            isLockedStream: context.read<WalletRepository>().isLockedStream,
+            child: builder(context),
+          ),
+        );
 
   @override
   Widget buildTransitions(

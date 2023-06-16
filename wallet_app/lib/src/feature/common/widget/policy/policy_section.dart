@@ -54,7 +54,7 @@ class PolicySection extends StatelessWidget {
           child: LinkButton(
             onPressed: () => Navigator.pushNamed(context, WalletRoutes.policyRoute, arguments: policy),
             child: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
+              padding: const EdgeInsets.only(left: 8),
               child: Text(locale.generalPolicyAllTermsCta),
             ),
           ),

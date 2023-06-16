@@ -3,12 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart';
 import 'package:wallet/src/data/repository/authentication/impl/digid_auth_repository_impl.dart';
+import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late DigidAuthRepository authRepository;
-  late MockTypedWalletCore core = Mocks.create<MockTypedWalletCore>();
+  late TypedWalletCore core = Mocks.create();
 
   setUp(() {
     authRepository = DigidAuthRepositoryImpl(core);

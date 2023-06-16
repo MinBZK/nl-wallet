@@ -37,7 +37,7 @@ class TimelineAttributeRow extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.max,
@@ -46,7 +46,7 @@ class TimelineAttributeRow extends StatelessWidget {
                   image: AssetImage(attribute.organization.logoUrl),
                   size: _kOrganizationLogoSize,
                 ),
-                const SizedBox(width: 16.0),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -54,7 +54,7 @@ class TimelineAttributeRow extends StatelessWidget {
                       Visibility(
                         visible: titleText.isNotEmpty,
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 2.0),
+                          padding: const EdgeInsets.only(bottom: 2),
                           child: Text(titleText, style: theme.textTheme.titleMedium),
                         ),
                       ),
@@ -63,7 +63,7 @@ class TimelineAttributeRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16.0),
+                const SizedBox(width: 16),
                 Icon(
                   Icons.chevron_right,
                   color: theme.colorScheme.onBackground,
@@ -90,12 +90,19 @@ class TimelineAttributeRow extends StatelessWidget {
       final Color typeTextColor = TimelineAttributeStatusColorMapper.map(theme, attribute);
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: 2.0),
+        padding: const EdgeInsets.only(bottom: 2),
         child: Row(
           children: [
-            if (errorStatusIcon != null) Icon(errorStatusIcon, color: theme.colorScheme.error, size: 16.0),
-            if (errorStatusIcon != null) const SizedBox(width: 8),
-            Text(typeText, style: theme.textTheme.bodyLarge?.copyWith(color: typeTextColor)),
+            if (errorStatusIcon != null) ...[
+              Icon(errorStatusIcon, color: theme.colorScheme.error, size: 16),
+              const SizedBox(width: 8)
+            ],
+            Flexible(
+              child: Text(
+                typeText,
+                style: theme.textTheme.bodyLarge?.copyWith(color: typeTextColor),
+              ),
+            ),
           ],
         ),
       );

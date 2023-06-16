@@ -179,6 +179,28 @@
     },
     "description": "Minutes"
   },
+  "generalSeconds": "{seconds, plural, =1 {{seconds} seconde} other {{seconds} seconden}}",
+  "@generalSeconds": {
+    "placeholders": {
+      "seconds": {
+        "example": "59",
+        "type": "int"
+      }
+    },
+    "description": "Seconds"
+  },
+  "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
+  "pinTimeoutScreenTitle": "Inloggen",
+  "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
+  "pinTimeoutScreenForgotPinCta": "Code vergeten?",
+  "pinBlockedScreenTitle": "Geblokkeerd",
+  "pinBlockedScreenHeadline": "Je app is geblokkeerd",
+  "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+  "pinBlockedScreenResetWalletCta": "Wallet wissen",
+  "errorScreenGenericTitle": "Fout",
+  "errorScreenGenericHeadline": "Er gaat iets mis",
+  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+  "errorScreenGenericCloseCta": "Sluit",
   "generalOnDate": "Op",
   "generalPolicyAllTermsCta": "Alle voorwaarden",
   "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",

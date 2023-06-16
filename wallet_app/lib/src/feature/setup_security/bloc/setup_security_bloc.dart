@@ -88,7 +88,6 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   Future<void> _createAndUnlockWallet(String pin, emit) async {
     try {
       await createWalletUseCase.invoke(pin);
-      await unlockWalletWithPinUseCase.invoke(pin);
       emit(SetupSecurityCompleted());
     } catch (ex, stack) {
       Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'bottom_sheet_drag_handle.dart';
 import 'button/confirm_buttons.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
@@ -34,15 +33,13 @@ class ConfirmActionSheet extends StatelessWidget {
     return Theme(
       data: Theme.of(context).copyWith(elevatedButtonTheme: buttonTheme(context)),
       child: SafeArea(
-        minimum: const EdgeInsets.symmetric(vertical: 16.0),
+        minimum: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Center(child: BottomSheetDragHandle()),
-            const SizedBox(height: 24),
+          children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 title,
                 style: Theme.of(context).textTheme.displayMedium,
@@ -51,7 +48,7 @@ class ConfirmActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 description,
                 style: Theme.of(context).textTheme.bodyLarge,

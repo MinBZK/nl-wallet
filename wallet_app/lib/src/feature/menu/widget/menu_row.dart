@@ -16,6 +16,7 @@ class MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _kMinHeight),
       child: InkWell(
@@ -27,7 +28,7 @@ class MenuRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: theme.textTheme.titleMedium,
               ),
             ),
             const SizedBox(

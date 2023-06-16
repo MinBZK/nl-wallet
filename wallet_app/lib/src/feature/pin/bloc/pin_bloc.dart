@@ -4,20 +4,20 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
-import '../../../domain/usecase/pin/get_available_pin_attempts_usecase.dart';
+import '../../../util/extension/check_pin_result_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
 part 'pin_event.dart';
+
 part 'pin_state.dart';
 
 class PinBloc extends Bloc<PinEvent, PinState> {
   final CheckPinUseCase checkPinUseCase;
-  final GetAvailablePinAttemptsUseCase getAvailablePinAttemptsUseCase;
 
   String _currentPin = '';
 
-  PinBloc(this.checkPinUseCase, this.getAvailablePinAttemptsUseCase) : super(const PinEntryInProgress(0)) {
+  PinBloc(this.checkPinUseCase) : super(const PinEntryInProgress(0)) {
     on<PinDigitPressed>(_onEnterDigitEvent);
     on<PinBackspacePressed>(_onRemoveDigitEvent);
   }
@@ -39,16 +39,16 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   Future<void> _validatePin(Emitter<PinState> emit) async {
-    if (await checkPinUseCase.invoke(_currentPin)) {
-      emit(const PinValidateSuccess());
-    } else {
-      _currentPin = '';
-      int leftoverAttempts = getAvailablePinAttemptsUseCase.invoke();
-      if (leftoverAttempts <= 0) {
-        emit(const PinValidateBlocked());
-      } else {
-        emit(PinValidateFailure(leftoverAttempts));
-      }
-    }
+    final checkPinResult = await checkPinUseCase.invoke(_currentPin);
+    if (checkPinResult is! CheckPinResultOk) _currentPin = '';
+    checkPinResult.when(
+      onCheckPinResultOk: (it) => emit(const PinValidateSuccess()),
+      onCheckPinResultIncorrectPin: (it) =>
+          emit(PinValidateFailure(leftoverAttempts: it.leftoverAttempts, isFinalAttempt: it.isFinalAttempt)),
+      onCheckPinResultTimeout: (it) =>
+          emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: it.timeoutMillis)))),
+      onCheckPinResultBlocked: (it) => emit(const PinValidateBlocked()),
+      onCheckPinResultServerError: (it) => emit(const PinValidateServerError()),
+    );
   }
 }

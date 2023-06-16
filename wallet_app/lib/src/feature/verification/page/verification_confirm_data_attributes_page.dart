@@ -30,7 +30,6 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'confirm_data_attributes_scrollview',
         slivers: <Widget>[
@@ -56,30 +55,10 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverToBoxAdapter(child: _buildConditionsRow(locale, context)),
           const SliverToBoxAdapter(child: Divider(height: 1)),
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: Text(
-                locale.verificationConfirmDataAttributesDisclaimer,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-              ),
-            ),
-          ),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
-            child: Container(
-              alignment: Alignment.bottomCenter,
-              child: ConfirmButtons(
-                onAcceptPressed: onAcceptPressed,
-                acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
-                onDeclinePressed: onDeclinePressed,
-                acceptIcon: Icons.arrow_forward,
-                declineText: locale.verificationConfirmDataAttributesPageDenyCta,
-              ),
-            ),
+            child: _buildBottomSection(context),
           ),
         ],
       ),
@@ -139,6 +118,34 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         child: CardAttributeRow(entry: entries[index]),
       ),
       childCount: flow.availableAttributes.length,
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final locale = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            locale.verificationConfirmDataAttributesDisclaimer,
+            style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+          ),
+        ),
+        Container(
+          alignment: Alignment.bottomCenter,
+          child: ConfirmButtons(
+            onAcceptPressed: onAcceptPressed,
+            acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
+            onDeclinePressed: onDeclinePressed,
+            acceptIcon: Icons.arrow_forward,
+            declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+          ),
+        ),
+      ],
     );
   }
 }

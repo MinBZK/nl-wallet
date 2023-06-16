@@ -1,3 +1,7 @@
+import 'package:core_domain/core_domain.dart';
+
+import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+
 abstract class WalletRepository {
   /// Stream that indicates whether the wallet is currently locked,
   /// meaning the pin should be provided to interact with the wallet.
@@ -21,17 +25,12 @@ abstract class WalletRepository {
   /// provider that it can be deleted.
   Future<void> destroyWallet();
 
-  /// Unlock the wallet, updates [isLockedStream]
-  Future<void> unlockWallet(String pin);
+  /// Unlock the wallet, also updates the [isLockedStream] when successful
+  Future<WalletUnlockResult> unlockWallet(String pin);
 
   /// Lock the wallet, updates [isLockedStream]
   void lockWallet();
 
   /// Confirm a transaction
-  Future<bool> confirmTransaction(String pin);
-
-  /// The amount of times the user can attempt
-  /// to enter a pin before the wallet is
-  /// temporarily or permanently blocked.
-  int get leftoverPinAttempts;
+  Future<CheckPinResult> confirmTransaction(String pin);
 }

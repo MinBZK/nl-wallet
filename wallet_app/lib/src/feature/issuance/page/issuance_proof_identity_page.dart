@@ -26,7 +26,6 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'proof_identity_scrollview',
         slivers: <Widget>[
@@ -99,7 +98,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
+      padding: const EdgeInsets.only(left: 8),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: LinkButton(

@@ -211,3 +211,747 @@ abstract class UriFlowEvent_DigidAuth implements UriFlowEvent {
   @JsonKey(ignore: true)
   _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith => throw _privateConstructorUsedError;
 }
+
+/// @nodoc
+mixin _$WalletUnlockResult {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $WalletUnlockResultCopyWith<$Res> {
+  factory $WalletUnlockResultCopyWith(WalletUnlockResult value, $Res Function(WalletUnlockResult) then) =
+      _$WalletUnlockResultCopyWithImpl<$Res, WalletUnlockResult>;
+}
+
+/// @nodoc
+class _$WalletUnlockResultCopyWithImpl<$Res, $Val extends WalletUnlockResult>
+    implements $WalletUnlockResultCopyWith<$Res> {
+  _$WalletUnlockResultCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$WalletUnlockResult_OkCopyWith<$Res> {
+  factory _$$WalletUnlockResult_OkCopyWith(_$WalletUnlockResult_Ok value, $Res Function(_$WalletUnlockResult_Ok) then) =
+      __$$WalletUnlockResult_OkCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$WalletUnlockResult_OkCopyWithImpl<$Res>
+    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Ok>
+    implements _$$WalletUnlockResult_OkCopyWith<$Res> {
+  __$$WalletUnlockResult_OkCopyWithImpl(_$WalletUnlockResult_Ok _value, $Res Function(_$WalletUnlockResult_Ok) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
+  const _$WalletUnlockResult_Ok();
+
+  @override
+  String toString() {
+    return 'WalletUnlockResult.ok()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletUnlockResult_Ok);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) {
+    return ok();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) {
+    return ok?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) {
+    if (ok != null) {
+      return ok();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) {
+    return ok(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) {
+    return ok?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) {
+    if (ok != null) {
+      return ok(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletUnlockResult_Ok implements WalletUnlockResult {
+  const factory WalletUnlockResult_Ok() = _$WalletUnlockResult_Ok;
+}
+
+/// @nodoc
+abstract class _$$WalletUnlockResult_IncorrectPinCopyWith<$Res> {
+  factory _$$WalletUnlockResult_IncorrectPinCopyWith(
+          _$WalletUnlockResult_IncorrectPin value, $Res Function(_$WalletUnlockResult_IncorrectPin) then) =
+      __$$WalletUnlockResult_IncorrectPinCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int leftoverAttempts, bool isFinalAttempt});
+}
+
+/// @nodoc
+class __$$WalletUnlockResult_IncorrectPinCopyWithImpl<$Res>
+    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_IncorrectPin>
+    implements _$$WalletUnlockResult_IncorrectPinCopyWith<$Res> {
+  __$$WalletUnlockResult_IncorrectPinCopyWithImpl(
+      _$WalletUnlockResult_IncorrectPin _value, $Res Function(_$WalletUnlockResult_IncorrectPin) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? leftoverAttempts = null,
+    Object? isFinalAttempt = null,
+  }) {
+    return _then(_$WalletUnlockResult_IncorrectPin(
+      leftoverAttempts: null == leftoverAttempts
+          ? _value.leftoverAttempts
+          : leftoverAttempts // ignore: cast_nullable_to_non_nullable
+              as int,
+      isFinalAttempt: null == isFinalAttempt
+          ? _value.isFinalAttempt
+          : isFinalAttempt // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletUnlockResult_IncorrectPin implements WalletUnlockResult_IncorrectPin {
+  const _$WalletUnlockResult_IncorrectPin({required this.leftoverAttempts, required this.isFinalAttempt});
+
+  @override
+  final int leftoverAttempts;
+  @override
+  final bool isFinalAttempt;
+
+  @override
+  String toString() {
+    return 'WalletUnlockResult.incorrectPin(leftoverAttempts: $leftoverAttempts, isFinalAttempt: $isFinalAttempt)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletUnlockResult_IncorrectPin &&
+            (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
+            (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin> get copyWith =>
+      __$$WalletUnlockResult_IncorrectPinCopyWithImpl<_$WalletUnlockResult_IncorrectPin>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) {
+    return incorrectPin(leftoverAttempts, isFinalAttempt);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) {
+    return incorrectPin?.call(leftoverAttempts, isFinalAttempt);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) {
+    if (incorrectPin != null) {
+      return incorrectPin(leftoverAttempts, isFinalAttempt);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) {
+    return incorrectPin(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) {
+    return incorrectPin?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) {
+    if (incorrectPin != null) {
+      return incorrectPin(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletUnlockResult_IncorrectPin implements WalletUnlockResult {
+  const factory WalletUnlockResult_IncorrectPin(
+      {required final int leftoverAttempts, required final bool isFinalAttempt}) = _$WalletUnlockResult_IncorrectPin;
+
+  int get leftoverAttempts;
+  bool get isFinalAttempt;
+  @JsonKey(ignore: true)
+  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WalletUnlockResult_TimeoutCopyWith<$Res> {
+  factory _$$WalletUnlockResult_TimeoutCopyWith(
+          _$WalletUnlockResult_Timeout value, $Res Function(_$WalletUnlockResult_Timeout) then) =
+      __$$WalletUnlockResult_TimeoutCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int timeoutMillis});
+}
+
+/// @nodoc
+class __$$WalletUnlockResult_TimeoutCopyWithImpl<$Res>
+    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Timeout>
+    implements _$$WalletUnlockResult_TimeoutCopyWith<$Res> {
+  __$$WalletUnlockResult_TimeoutCopyWithImpl(
+      _$WalletUnlockResult_Timeout _value, $Res Function(_$WalletUnlockResult_Timeout) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? timeoutMillis = null,
+  }) {
+    return _then(_$WalletUnlockResult_Timeout(
+      timeoutMillis: null == timeoutMillis
+          ? _value.timeoutMillis
+          : timeoutMillis // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
+  const _$WalletUnlockResult_Timeout({required this.timeoutMillis});
+
+  @override
+  final int timeoutMillis;
+
+  @override
+  String toString() {
+    return 'WalletUnlockResult.timeout(timeoutMillis: $timeoutMillis)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletUnlockResult_Timeout &&
+            (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, timeoutMillis);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout> get copyWith =>
+      __$$WalletUnlockResult_TimeoutCopyWithImpl<_$WalletUnlockResult_Timeout>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) {
+    return timeout(timeoutMillis);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) {
+    return timeout?.call(timeoutMillis);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) {
+    if (timeout != null) {
+      return timeout(timeoutMillis);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) {
+    return timeout(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) {
+    return timeout?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) {
+    if (timeout != null) {
+      return timeout(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletUnlockResult_Timeout implements WalletUnlockResult {
+  const factory WalletUnlockResult_Timeout({required final int timeoutMillis}) = _$WalletUnlockResult_Timeout;
+
+  int get timeoutMillis;
+  @JsonKey(ignore: true)
+  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WalletUnlockResult_BlockedCopyWith<$Res> {
+  factory _$$WalletUnlockResult_BlockedCopyWith(
+          _$WalletUnlockResult_Blocked value, $Res Function(_$WalletUnlockResult_Blocked) then) =
+      __$$WalletUnlockResult_BlockedCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$WalletUnlockResult_BlockedCopyWithImpl<$Res>
+    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Blocked>
+    implements _$$WalletUnlockResult_BlockedCopyWith<$Res> {
+  __$$WalletUnlockResult_BlockedCopyWithImpl(
+      _$WalletUnlockResult_Blocked _value, $Res Function(_$WalletUnlockResult_Blocked) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
+  const _$WalletUnlockResult_Blocked();
+
+  @override
+  String toString() {
+    return 'WalletUnlockResult.blocked()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletUnlockResult_Blocked);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) {
+    return blocked();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) {
+    return blocked?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) {
+    if (blocked != null) {
+      return blocked();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) {
+    return blocked(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) {
+    return blocked?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) {
+    if (blocked != null) {
+      return blocked(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletUnlockResult_Blocked implements WalletUnlockResult {
+  const factory WalletUnlockResult_Blocked() = _$WalletUnlockResult_Blocked;
+}
+
+/// @nodoc
+abstract class _$$WalletUnlockResult_ServerErrorCopyWith<$Res> {
+  factory _$$WalletUnlockResult_ServerErrorCopyWith(
+          _$WalletUnlockResult_ServerError value, $Res Function(_$WalletUnlockResult_ServerError) then) =
+      __$$WalletUnlockResult_ServerErrorCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$WalletUnlockResult_ServerErrorCopyWithImpl<$Res>
+    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_ServerError>
+    implements _$$WalletUnlockResult_ServerErrorCopyWith<$Res> {
+  __$$WalletUnlockResult_ServerErrorCopyWithImpl(
+      _$WalletUnlockResult_ServerError _value, $Res Function(_$WalletUnlockResult_ServerError) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$WalletUnlockResult_ServerError implements WalletUnlockResult_ServerError {
+  const _$WalletUnlockResult_ServerError();
+
+  @override
+  String toString() {
+    return 'WalletUnlockResult.serverError()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletUnlockResult_ServerError);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+    required TResult Function() serverError,
+  }) {
+    return serverError();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+    TResult? Function()? serverError,
+  }) {
+    return serverError?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    TResult Function()? serverError,
+    required TResult orElse(),
+  }) {
+    if (serverError != null) {
+      return serverError();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletUnlockResult_Ok value) ok,
+    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_Timeout value) timeout,
+    required TResult Function(WalletUnlockResult_Blocked value) blocked,
+    required TResult Function(WalletUnlockResult_ServerError value) serverError,
+  }) {
+    return serverError(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletUnlockResult_Ok value)? ok,
+    TResult? Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult? Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult? Function(WalletUnlockResult_ServerError value)? serverError,
+  }) {
+    return serverError?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletUnlockResult_Ok value)? ok,
+    TResult Function(WalletUnlockResult_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletUnlockResult_Timeout value)? timeout,
+    TResult Function(WalletUnlockResult_Blocked value)? blocked,
+    TResult Function(WalletUnlockResult_ServerError value)? serverError,
+    required TResult orElse(),
+  }) {
+    if (serverError != null) {
+      return serverError(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletUnlockResult_ServerError implements WalletUnlockResult {
+  const factory WalletUnlockResult_ServerError() = _$WalletUnlockResult_ServerError;
+}

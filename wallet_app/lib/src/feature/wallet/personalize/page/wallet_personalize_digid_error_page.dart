@@ -20,7 +20,6 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
-      thumbVisibility: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: CustomScrollView(
@@ -77,7 +76,9 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             children: [
               Image.asset(_kDigidLogoPath),
               const SizedBox(width: 12),
-              Text(locale.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+              Flexible(
+                child: Text(locale.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+              ),
             ],
           ),
         ),

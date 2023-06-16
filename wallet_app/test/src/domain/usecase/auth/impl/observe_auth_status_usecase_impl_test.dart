@@ -9,7 +9,7 @@ import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late ObserveDigidAuthStatusUseCase usecase;
-  final mockRepo = Mocks.create<MockDigidAuthRepository>();
+  final mockRepo = Mocks.create<DigidAuthRepository>() as MockDigidAuthRepository;
   late BehaviorSubject<DigidAuthStatus> mockStatusSubject;
 
   setUp(() {
