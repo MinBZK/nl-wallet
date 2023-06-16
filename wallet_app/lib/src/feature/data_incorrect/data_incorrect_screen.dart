@@ -15,7 +15,6 @@ class DataIncorrectScreen extends StatelessWidget {
         title: Text(locale.dataIncorrectScreenTitle),
       ),
       body: Scrollbar(
-        thumbVisibility: true,
         child: CustomScrollView(
           restorationId: 'data_incorrect',
           slivers: <Widget>[

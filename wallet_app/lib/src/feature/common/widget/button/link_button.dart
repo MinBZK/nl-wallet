@@ -29,7 +29,7 @@ class LinkButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          child,
+          Flexible(child: child),
           const SizedBox(width: 8),
           const Icon(Icons.arrow_forward, size: 16),
         ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'bottom_sheet_drag_handle.dart';
 import 'button/text_icon_button.dart';
 
 class ExplanationSheet extends StatelessWidget {
@@ -18,24 +17,28 @@ class ExplanationSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.all(16.0),
+      minimum: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Center(child: BottomSheetDragHandle()),
-          const SizedBox(height: 24),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.displayMedium,
-            textAlign: TextAlign.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.displayMedium,
+              textAlign: TextAlign.start,
+            ),
           ),
           const SizedBox(height: 16),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyLarge,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              description,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ),
-          const SizedBox(height: 16),
+          const Divider(height: 32),
           Center(
             child: TextIconButton(
               icon: Icons.close,
@@ -57,11 +60,17 @@ class ExplanationSheet extends StatelessWidget {
   }) async {
     return showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
-        return ExplanationSheet(
-          title: title,
-          description: description,
-          closeButtonText: closeButtonText,
+        return Scrollbar(
+          trackVisibility: true,
+          child: SingleChildScrollView(
+            child: ExplanationSheet(
+              title: title,
+              description: description,
+              closeButtonText: closeButtonText,
+            ),
+          ),
         );
       },
     );

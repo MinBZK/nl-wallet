@@ -4,7 +4,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../util/mapper/reporting_option_title_mapper.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
-import '../common/widget/sliver_sized_box.dart';
 
 class ReportIssueScreen extends StatelessWidget {
   final List<ReportingOption> options;
@@ -33,14 +32,12 @@ class ReportIssueScreen extends StatelessWidget {
 
   Scrollbar _buildContent(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'data_incorrect',
         slivers: <Widget>[
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverList(delegate: _getOptionsDelegate(context)),
-          const SliverSizedBox(height: 32),
         ],
       ),
     );
@@ -71,10 +68,13 @@ class ReportIssueScreen extends StatelessWidget {
             onTap: () => Navigator.pop(context, options[index]),
             child: IconRow(
               icon: Icon(
-                Icons.gpp_maybe_outlined,
+                Icons.sms_failed_outlined,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              text: Text(ReportingOptionTitleMapper.map(locale, options[index])),
+              text: Text(
+                ReportingOptionTitleMapper.map(locale, options[index]),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             ),
           ),

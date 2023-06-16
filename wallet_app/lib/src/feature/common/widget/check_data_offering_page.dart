@@ -33,7 +33,6 @@ class CheckDataOfferingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         restorationId: 'check_data_offering_scrollview',
         slivers: <Widget>[
@@ -73,7 +72,7 @@ class CheckDataOfferingPage extends StatelessWidget {
         children: [
           if (overline != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 overline,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
@@ -114,7 +113,7 @@ class CheckDataOfferingPage extends StatelessWidget {
       children: [
         const Divider(height: 24),
         Padding(
-          padding: const EdgeInsets.only(left: 8.0),
+          padding: const EdgeInsets.only(left: 8),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: LinkButton(

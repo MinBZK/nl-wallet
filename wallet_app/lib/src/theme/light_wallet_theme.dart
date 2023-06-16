@@ -83,7 +83,9 @@ class LightWalletTheme {
     backgroundColor: sheetBackgroundColor,
   );
 
+  //endregion Modified (colored) BaseThemes
+
   static final iconTheme = IconThemeData(color: colorScheme.onBackground);
 
-//endregion Modified (colored) BaseThemes
+  static final progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: colorScheme.background);
 }

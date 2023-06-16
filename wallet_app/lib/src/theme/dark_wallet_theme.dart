@@ -16,7 +16,7 @@ class DarkWalletTheme {
     tertiaryContainer: Color(0x0D383EDE),
     onPrimary: Color(0xFF002C71),
     onBackground: primaryColorDark,
-    onSurface: Color(0xFFA6EEFF),
+    onSurface: Color(0xFF8292CC),
     outlineVariant: Color(0xFF44464F),
   );
 
@@ -83,7 +83,9 @@ class DarkWalletTheme {
     backgroundColor: sheetBackgroundColor,
   );
 
+  //endregion Modified (colored) BaseThemes
+
   static final iconTheme = IconThemeData(color: colorScheme.onBackground);
 
-//endregion Modified (colored) BaseThemes
+  static final progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: colorScheme.background);
 }

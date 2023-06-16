@@ -32,7 +32,7 @@ class DigidSplashPage extends StatelessWidget {
         children: [
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Row(
               children: [
                 Image.asset(_kDigidLogoPath),

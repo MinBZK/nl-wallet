@@ -40,7 +40,6 @@ class CheckAttributesScreen extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     return Scrollbar(
-      thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
           ..._generateDataSectionSlivers(),

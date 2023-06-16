@@ -82,7 +82,10 @@ class BaseWalletTheme {
   //region Other Themes
   static const baseDividerTheme = DividerThemeData(thickness: 1);
 
-  static const baseBottomSheetTheme = BottomSheetThemeData(shape: ContinuousRectangleBorder());
+  static const baseBottomSheetTheme = BottomSheetThemeData(
+    shape: ContinuousRectangleBorder(),
+    showDragHandle: true,
+  );
 
   static const baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
     elevation: 4.0,
@@ -99,10 +102,11 @@ class BaseWalletTheme {
   );
 
   static const baseScrollbarTheme = ScrollbarThemeData(
-    thickness: MaterialStatePropertyAll(4.0),
     crossAxisMargin: 8.0,
     mainAxisMargin: 8.0,
     radius: Radius.circular(8),
+    thickness: MaterialStatePropertyAll(4.0),
+    thumbVisibility: MaterialStatePropertyAll(true),
   );
 
 //endregion Other Themes

@@ -22,12 +22,11 @@ class MenuAboutPage extends StatelessWidget {
         return false;
       },
       child: Scrollbar(
-        thumbVisibility: true,
         child: ListView(
           children: [
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 locale.menuAboutPageTitle,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -35,7 +34,7 @@ class MenuAboutPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildDescription(context),
             ),
             const SizedBox(height: 16),

@@ -20,7 +20,6 @@ final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   // Propagate uncaught errors
   final errorHandler = WalletErrorHandler();
-  FlutterError.onError = (details) => errorHandler.handleErrorDetails(details);
   PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
 
   // Appium specific setup

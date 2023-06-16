@@ -57,7 +57,6 @@ class HistoryOverviewScreen extends StatelessWidget {
       children: [
         Expanded(
           child: Scrollbar(
-            thumbVisibility: true,
             child: CustomScrollView(
               slivers: slivers,
             ),

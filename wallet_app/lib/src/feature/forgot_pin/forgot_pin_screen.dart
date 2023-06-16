@@ -30,7 +30,6 @@ class ForgotPinScreen extends StatelessWidget {
   Widget _buildScrollableSection(BuildContext context) {
     final locale = AppLocalizations.of(context);
     return Scrollbar(
-      thumbVisibility: true,
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         children: [
