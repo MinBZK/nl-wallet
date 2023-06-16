@@ -9,12 +9,14 @@ use crate::{
         DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
         StartIssuingMessage, UnsignedMdoc,
     },
-    cose::ClonePayload,
-    crypto::random_string,
     iso::*,
     issuer_shared::IssuanceError,
-    serialization::{cbor_serialize, TaggedBytes},
-    signer::MdocEcdsaKey,
+    utils::{
+        cose::ClonePayload,
+        crypto::random_string,
+        serialization::{cbor_serialize, TaggedBytes},
+        signer::MdocEcdsaKey,
+    },
     Error, Result,
 };
 

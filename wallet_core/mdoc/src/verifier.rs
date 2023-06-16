@@ -4,10 +4,12 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::nom::AsBytes;
 
 use crate::{
-    cose::ClonePayload,
-    crypto::{cbor_digest, dh_hmac_key},
     iso::*,
-    serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+    utils::{
+        cose::ClonePayload,
+        crypto::{cbor_digest, dh_hmac_key},
+        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+    },
     Result,
 };
 

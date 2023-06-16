@@ -20,9 +20,11 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
 use crate::{
-    cose::{CoseKey, MdocCose},
     issuance::SessionId,
-    serialization::TaggedBytes,
+    utils::{
+        cose::{CoseKey, MdocCose},
+        serialization::TaggedBytes,
+    },
     DataElementIdentifier, DataElementValue, DocType, MobileSecurityObject, NameSpace, Tdate, ValidityInfo,
 };
 

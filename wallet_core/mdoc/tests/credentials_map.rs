@@ -4,8 +4,10 @@ use indexmap::IndexMap;
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Credential, CredentialCopies, CredentialStorage},
-    serialization::{cbor_deserialize, cbor_serialize},
-    signer::{MdocEcdsaKey, SoftwareEcdsaKey},
+    utils::{
+        serialization::{cbor_deserialize, cbor_serialize},
+        signer::{MdocEcdsaKey, SoftwareEcdsaKey},
+    },
     DocType, Error, NameSpace,
 };
 

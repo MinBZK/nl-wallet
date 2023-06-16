@@ -13,9 +13,13 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    cose::CoseKey,
     iso::{credentials::*, disclosure::*},
-    serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, RequiredValueTrait, TaggedBytes},
+    utils::{
+        cose::CoseKey,
+        serialization::{
+            CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, RequiredValueTrait, TaggedBytes,
+        },
+    },
 };
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.

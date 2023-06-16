@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
-use crate::serialization::{RequiredValue, RequiredValueTrait};
+use crate::utils::serialization::{RequiredValue, RequiredValueTrait};
 
 /// First message of the issuer to be sent to the holder, e.g. in a QR code, scheme URL or universal link.
 /// Contains the URL with which the holder can start the session, by sending a [`StartProvisioningMessage`] and
@@ -145,7 +145,7 @@ pub struct EndSessionMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::serialization::{cbor_deserialize, cbor_serialize};
+    use crate::utils::serialization::{cbor_deserialize, cbor_serialize};
 
     use super::*;
 

@@ -8,9 +8,11 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    cose::MdocCose,
     iso::{credentials::*, engagement::*},
-    serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
+    utils::{
+        cose::MdocCose,
+        serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
+    },
 };
 use fieldnames_derive::FieldNames;
 

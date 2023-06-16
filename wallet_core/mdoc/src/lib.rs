@@ -1,23 +1,17 @@
-// Data structures defined in ISO 18013-5
+// Data structures defined in ISO 18013-5, 23220-3 and -4
 pub mod iso;
+pub use iso::*;
 
 // Functionality for the three main agents
 pub mod holder;
 pub mod issuer;
 pub mod verifier;
 
+// Data types shared between agents
 pub mod issuer_shared;
 
-pub mod cose;
-pub mod serialization;
+// General code used throughout the crate
+pub mod utils;
 
 pub mod errors;
-
-mod crypto;
-
-pub mod signer;
-
 pub use errors::*;
-pub use iso::*;
-
-// TODO: check expiry of all certificates and credentials

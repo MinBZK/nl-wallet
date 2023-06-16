@@ -4,7 +4,12 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use x509_parser::prelude::X509Certificate;
 
-use crate::{basic_sa_ext::Entry, crypto::sha256, iso::*, serialization::cbor_serialize, signer::MdocEcdsaKey, Result};
+use crate::{
+    basic_sa_ext::Entry,
+    iso::*,
+    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey},
+    Result,
+};
 
 use super::HolderError;
 

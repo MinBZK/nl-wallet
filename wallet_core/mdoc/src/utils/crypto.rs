@@ -13,8 +13,8 @@ use sha2::Digest;
 use x509_parser::nom::AsBytes;
 
 use crate::{
-    cose::CoseKey,
-    serialization::{cbor_serialize, CborError},
+    utils::cose::CoseKey,
+    utils::serialization::{cbor_serialize, CborError},
     Error, Result,
 };
 

@@ -10,9 +10,11 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    cose::MdocCose,
     iso::credentials::*,
-    serialization::{NullCborValue, RequiredValue, TaggedBytes},
+    utils::{
+        cose::MdocCose,
+        serialization::{NullCborValue, RequiredValue, TaggedBytes},
+    },
 };
 
 /// A disclosure of a holder, containing multiple [`Document`]s, containing some or all of their attributes.

@@ -19,8 +19,10 @@ use nl_wallet_mdoc::{
     iso::*,
     issuer::*,
     issuer_shared::SessionToken,
-    serialization::{cbor_deserialize, cbor_serialize},
-    signer::SoftwareEcdsaKey,
+    utils::{
+        serialization::{cbor_deserialize, cbor_serialize},
+        signer::SoftwareEcdsaKey,
+    },
     Error,
 };
 

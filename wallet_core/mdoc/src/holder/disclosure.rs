@@ -3,11 +3,13 @@ use indexmap::IndexMap;
 use x509_parser::{nom::AsBytes, prelude::X509Certificate};
 
 use crate::{
-    cose::ClonePayload,
-    crypto::dh_hmac_key,
     iso::*,
-    serialization::cbor_deserialize,
-    signer::{MdocEcdsaKey, SecureEcdsaKey},
+    utils::{
+        cose::ClonePayload,
+        crypto::dh_hmac_key,
+        serialization::cbor_deserialize,
+        signer::{MdocEcdsaKey, SecureEcdsaKey},
+    },
     verifier::X509Subject,
     Error, Result,
 };

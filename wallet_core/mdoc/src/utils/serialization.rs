@@ -9,8 +9,8 @@ use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 
 use crate::{
-    cose::{CoseKey, MdocCose},
     iso::*,
+    utils::cose::{CoseKey, MdocCose},
 };
 use fieldnames::FieldNames;
 
@@ -339,7 +339,7 @@ mod tests {
     use hex_literal::hex;
     use serde_bytes::ByteBuf;
 
-    use crate::serialization::*;
+    use crate::utils::serialization::*;
 
     #[test]
     fn tagged_bytes() {

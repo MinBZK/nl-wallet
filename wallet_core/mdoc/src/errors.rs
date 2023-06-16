@@ -1,5 +1,7 @@
 use crate::{
-    cose::CoseError, crypto::CryptoError, holder::HolderError, issuer_shared::IssuanceError, serialization::CborError,
+    holder::HolderError,
+    issuer_shared::IssuanceError,
+    utils::{cose::CoseError, crypto::CryptoError, serialization::CborError},
     verifier::VerificationError,
 };
 

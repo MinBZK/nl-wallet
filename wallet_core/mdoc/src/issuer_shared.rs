@@ -8,10 +8,12 @@ use crate::{
         KeyGenerationResponseMessage, MdocResponses, RequestKeyGenerationMessage, Response, ResponseSignaturePayload,
         UnsignedMdoc,
     },
-    cose::{ClonePayload, CoseKey, MdocCose},
-    crypto::random_string,
-    serialization::cbor_serialize,
-    signer::SecureEcdsaKey,
+    utils::{
+        cose::{ClonePayload, CoseKey, MdocCose},
+        crypto::random_string,
+        serialization::cbor_serialize,
+        signer::SecureEcdsaKey,
+    },
     DocType, Result, SessionId,
 };
 

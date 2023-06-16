@@ -15,9 +15,11 @@ use std::fmt::Debug;
 
 use crate::{
     basic_sa_ext::Entry,
-    cose::CoseKey,
-    crypto::{cbor_digest, random_bytes},
-    serialization::TaggedBytes,
+    utils::{
+        cose::CoseKey,
+        crypto::{cbor_digest, random_bytes},
+        serialization::TaggedBytes,
+    },
     Error, Result,
 };
 

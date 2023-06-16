@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use x509_parser::{certificate::X509Certificate, prelude::FromDer};
 
 use nl_wallet_mdoc::{
-    serialization::{cbor_deserialize, cbor_serialize},
+    utils::serialization::{cbor_deserialize, cbor_serialize},
     DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
 };
 

@@ -15,12 +15,14 @@ use crate::{
         RequestKeyGenerationMessage, Response, SparseIssuerAuth, SparseIssuerSigned, StartIssuingMessage, UnsignedMdoc,
         KEY_GEN_RESP_MSG_TYPE, START_ISSUING_MSG_TYPE,
     },
-    cose::{ClonePayload, MdocCose},
-    crypto::random_bytes,
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
-    serialization::{cbor_deserialize, TaggedBytes},
-    signer::{EcdsaKey, SecureEcdsaKey},
+    utils::{
+        cose::{ClonePayload, MdocCose},
+        crypto::random_bytes,
+        serialization::{cbor_deserialize, TaggedBytes},
+        signer::{EcdsaKey, SecureEcdsaKey},
+    },
     Error, Result,
 };
 

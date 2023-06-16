@@ -17,8 +17,8 @@ use x509_parser::{
 };
 
 use crate::{
-    serialization::{cbor_deserialize, cbor_serialize, CborError},
-    signer::SecureEcdsaKey,
+    utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
+    utils::signer::SecureEcdsaKey,
     verifier::X509Subject,
     Result,
 };
