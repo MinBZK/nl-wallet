@@ -53,8 +53,8 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// 2. Any [`anyhow::Error`] resulting from the closure is converted to a
 ///    [`crate::errors::FlutterApiError`], using its [`TryFrom`] trait implementation.
 ///    If this conversion fails, the [`anyhow::Error`] is simply propagated.
-/// 3. The [`crate::errors::FlutterApiError`] is logged using [`tracing`], by called its
-///    [`crate::errors::FlutterApiError::source()`] method.
+/// 3. The [`crate::errors::FlutterApiError`] is logged using [`tracing`], by using the
+///    [`Display`] and [`Debug`] traits on the error.
 /// 4. A new [`anyhow::Error`] is created and propagated, containing the
 ///    [`crate::errors::FlutterApiError`] encoded as JSON as its message. On the Flutter
 ///    side, this message can be extracted from the resulting `FfiException`.
@@ -67,9 +67,8 @@ pub fn flutter_api_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
             (|| #block)()
             .map_err(|error: ::anyhow::Error| match crate::errors::FlutterApiError::try_from(error) {
                 Ok(flutter_error) => {
-                    let source = flutter_error.source();
-                    ::tracing::warn!("Error: {}", source);
-                    ::tracing::info!("Error details: {:?}", source);
+                    ::tracing::warn!("Error: {}", flutter_error);
+                    ::tracing::info!("Error details: {:?}", flutter_error);
 
                     ::anyhow::anyhow!(flutter_error.to_json())
                 },

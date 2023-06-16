@@ -1,8 +1,8 @@
-use std::error::Error;
+use std::{error::Error, fmt::Display};
 
 use serde::Serialize;
 
-use wallet::wallet::{AccountServerClientError, WalletInitError, WalletRegistrationError};
+use wallet::wallet::{AccountServerClientError, WalletInitError, WalletRegistrationError, WalletUnlockError};
 
 /// A type encapsulating data about a Flutter error that
 /// is to be serialized to JSON and sent to Flutter.
@@ -11,7 +11,7 @@ pub struct FlutterApiError {
     #[serde(rename = "type")]
     typ: FlutterApiErrorType,
     description: String,
-    /// This property is present only for logging purposes and will not be encoded to JSON.
+    /// This property is present only for debug logging purposes and will not be encoded to JSON.
     #[serde(skip)]
     source: Box<dyn Error>,
 }
@@ -26,9 +26,19 @@ impl FlutterApiError {
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
+}
 
-    pub fn source(&self) -> &dyn Error {
-        self.source.as_ref()
+impl Display for FlutterApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // This is effectively the same as forwarding the call to self.source,
+        // since that is what we got the description from in the first place.
+        write!(f, "{}", self.description)
+    }
+}
+
+impl Error for FlutterApiError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(self.source.as_ref())
     }
 }
 
