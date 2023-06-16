@@ -10,7 +10,6 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
-  arb_utils: ^0.6.0
   collection: ^1.16.0
   core_domain:
     path: ./pub/core_domain
@@ -49,6 +48,7 @@ dependency_overrides:
   vm_service: 11.6.0 # Resolve conflict between flutter_driver & arb_utils
 
 dev_dependencies:
+  arb_utils: ^0.6.0
   bloc_test: ^9.0.0
   build_runner: ^2.3.2
   ffigen: ^7.2.11 # Newer version is incompatible with flutter_rust_bridge_codegen
