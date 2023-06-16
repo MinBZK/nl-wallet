@@ -6,8 +6,8 @@
 import 'dart:async' as _i5;
 import 'dart:ui' as _i9;
 
-import 'package:core_domain/core_domain.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:wallet/bridge_generated.dart' as _i2;
 import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart'
     as _i4;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart'
@@ -214,9 +214,9 @@ class MockTypedWalletCore extends _i1.Mock implements _i7.TypedWalletCore {
           [pin],
         ),
         returnValue: _i5.Future<_i2.PinValidationResult>.value(
-            _i2.PinValidationResult.ok),
+            _i2.PinValidationResult.Ok),
         returnValueForMissingStub: _i5.Future<_i2.PinValidationResult>.value(
-            _i2.PinValidationResult.ok),
+            _i2.PinValidationResult.Ok),
       ) as _i5.Future<_i2.PinValidationResult>);
   @override
   _i5.Future<void> register(String? pin) => (super.noSuchMethod(

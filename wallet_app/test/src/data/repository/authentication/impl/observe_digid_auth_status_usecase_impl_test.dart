@@ -1,6 +1,6 @@
-import 'package:core_domain/src/core_domain/core_domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart';
 import 'package:wallet/src/data/repository/authentication/impl/digid_auth_repository_impl.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
@@ -25,21 +25,21 @@ void main() {
   group('DigiD State Updates', () {
     test('Stream updates when notified', () async {
       expectLater(authRepository.observeAuthStatus(), emitsInOrder([DigidAuthStatus.authenticating]));
-      authRepository.notifyDigidStateUpdate(DigidState.authenticating);
+      authRepository.notifyDigidStateUpdate(DigidState.Authenticating);
     });
 
     test('Stream reflects success state and returns back to idle', () async {
       expectLater(authRepository.observeAuthStatus(),
           emitsInOrder([DigidAuthStatus.authenticating, DigidAuthStatus.success, DigidAuthStatus.idle]));
-      authRepository.notifyDigidStateUpdate(DigidState.authenticating);
-      authRepository.notifyDigidStateUpdate(DigidState.success);
+      authRepository.notifyDigidStateUpdate(DigidState.Authenticating);
+      authRepository.notifyDigidStateUpdate(DigidState.Success);
     });
 
     test('Stream reflects error state and returns back to idle', () async {
       expectLater(authRepository.observeAuthStatus(),
           emitsInOrder([DigidAuthStatus.authenticating, DigidAuthStatus.error, DigidAuthStatus.idle]));
-      authRepository.notifyDigidStateUpdate(DigidState.authenticating);
-      authRepository.notifyDigidStateUpdate(DigidState.error);
+      authRepository.notifyDigidStateUpdate(DigidState.Authenticating);
+      authRepository.notifyDigidStateUpdate(DigidState.Error);
     });
 
     test('Stream returns back to idle when receiving a null status', () async {

@@ -1,7 +1,7 @@
-import 'package:core_domain/core_domain.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
@@ -27,8 +27,8 @@ void main() {
     when(core.unlockWallet(any)).thenAnswer((realInvocation) async {
       final pinIsValid = realInvocation.positionalArguments.first == _kValidPin;
       mockLockedStream.add(!pinIsValid);
-      if (pinIsValid) return const WalletUnlockResultOk();
-      return const WalletUnlockResultIncorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
+      if (pinIsValid) return const WalletUnlockResult.ok();
+      return const WalletUnlockResult.incorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
     repo = CoreWalletRepository(core, PinValidationErrorMapper());
@@ -92,14 +92,14 @@ void main() {
       repo.lockWallet();
 
       when(core.unlockWallet(any)).thenAnswer(
-        (_) async => const WalletUnlockResultIncorrectPin(
+        (_) async => const WalletUnlockResult.incorrectPin(
           leftoverAttempts: 1337,
           isFinalAttempt: false,
         ),
       );
 
       final result = await repo.unlockWallet('invalid');
-      expect((result as WalletUnlockResultIncorrectPin).leftoverAttempts, 1337);
+      expect((result as WalletUnlockResult_IncorrectPin).leftoverAttempts, 1337);
     });
   });
 

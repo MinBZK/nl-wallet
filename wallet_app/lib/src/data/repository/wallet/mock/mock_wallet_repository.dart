@@ -1,7 +1,7 @@
-import 'package:core_domain/core_domain.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../../../util/extension/wallet_unlock_result_extension.dart';
@@ -33,7 +33,7 @@ class MockWalletRepository implements WalletRepository {
     if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;
-      return const WalletUnlockResultOk();
+      return const WalletUnlockResult.ok();
     } else {
       return _handlePinInvalid();
     }
@@ -59,10 +59,10 @@ class MockWalletRepository implements WalletRepository {
     if (_invalidPinAttempts <= _kTimeoutUnlockAttempts) {
       if (_invalidPinAttempts >= _kTimeoutUnlockAttempts) {
         // Trigger timeout
-        return const WalletUnlockResultTimeout(timeoutMillis: 15 * 1000 /* 15 seconds */);
+        return const WalletUnlockResult.timeout(timeoutMillis: 15 * 1000 /* 15 seconds */);
       } else {
         // Trigger normal (pre timeout) attempts left
-        return WalletUnlockResultIncorrectPin(
+        return WalletUnlockResult.incorrectPin(
           leftoverAttempts: _kTimeoutUnlockAttempts - _invalidPinAttempts,
           isFinalAttempt: false,
         );
@@ -72,11 +72,11 @@ class MockWalletRepository implements WalletRepository {
       if (_invalidPinAttempts >= kMaxUnlockAttempts) {
         // Too many attempts, block user
         destroyWallet();
-        return const WalletUnlockResultBlocked();
+        return const WalletUnlockResult.blocked();
       } else {
         // x Attempts left in final round
         var attemptsLeft = kMaxUnlockAttempts - _invalidPinAttempts;
-        return WalletUnlockResultIncorrectPin(
+        return WalletUnlockResult.incorrectPin(
           leftoverAttempts: attemptsLeft,
           isFinalAttempt: attemptsLeft == 1,
         );

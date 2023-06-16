@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:core_domain/core_domain.dart';
 import 'package:fimber/fimber.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -28,8 +27,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
 
   @override
   Future<PinValidationResult> isValidPin(String pin) async {
-    final bytes = await _walletCore.isValidPin(pin: pin);
-    return PinValidationResultExtension.bincodeDeserialize(bytes);
+    return await _walletCore.isValidPin(pin: pin);
   }
 
   @override
@@ -46,17 +44,12 @@ class TypedWalletCoreImpl extends TypedWalletCore {
 
   @override
   Future<WalletUnlockResult> unlockWallet(String pin) async {
-    final bytes = await _walletCore.unlockWallet(pin: pin);
-    return WalletUnlockResult.bincodeDeserialize(bytes);
+    return await _walletCore.unlockWallet(pin: pin);
   }
 
   @override
   Stream<bool> get isLocked => _isLocked;
 
   @override
-  Stream<UriFlowEvent> processUri(Uri uri) {
-    return _walletCore.processUri(uri: uri.toString()).map((bytes) {
-      return UriFlowEvent.bincodeDeserialize(bytes);
-    });
-  }
+  Stream<UriFlowEvent> processUri(Uri uri) => _walletCore.processUri(uri: uri.toString());
 }

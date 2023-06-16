@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:core_domain/core_domain.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../../../bridge_generated.dart';
 import '../../../../wallet_core/typed_wallet_core.dart';
 import '../digid_auth_repository.dart';
 
@@ -18,14 +18,14 @@ class DigidAuthRepositoryImpl extends DigidAuthRepository {
   @override
   void notifyDigidStateUpdate(DigidState? state) {
     switch (state) {
-      case DigidState.authenticating:
+      case DigidState.Authenticating:
         _digidAuthStatusController.add(DigidAuthStatus.authenticating);
         break;
-      case DigidState.success:
+      case DigidState.Success:
         _digidAuthStatusController.add(DigidAuthStatus.success);
         _digidAuthStatusController.add(DigidAuthStatus.idle);
         break;
-      case DigidState.error:
+      case DigidState.Error:
         _digidAuthStatusController.add(DigidAuthStatus.error);
         _digidAuthStatusController.add(DigidAuthStatus.idle);
         break;
