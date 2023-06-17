@@ -2,6 +2,8 @@
 
 A partial, work-in-progress Rust implementation of mdoc (ISO standards 18013-5, 23220-3, 23220-4).
 
+For an introduction to ISO mdoc, see [`mdoc.md`](documentation/mdoc.md).
+
 ## Running
 
 Run its unit tests:
