@@ -1,3 +1,6 @@
+//! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
+//! See [`CredentialStorage`], [`Wallet::do_issuance()`], and [`Wallet::disclose()`] respectively.
+
 use x509_parser::prelude::X509Error;
 
 use crate::iso::*;

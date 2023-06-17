@@ -3,7 +3,8 @@
 //! of the session so far.
 //!
 //! NB. "Device authentication" is not to be confused with the [`DeviceAuth`] data structure in the
-//! [`disclosure`] module (which contains the holder's signature over [`DeviceAuthentication`] defined here).
+//! [`disclosure`](super::disclosure) module (which contains the holder's signature over [`DeviceAuthentication`]
+//! defined here).
 
 use ciborium::value::Value;
 use fieldnames_derive::FieldNames;

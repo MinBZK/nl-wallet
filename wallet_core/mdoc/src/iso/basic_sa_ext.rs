@@ -66,7 +66,8 @@ pub struct UnsignedMdoc {
 
 /// An attribute name and value.
 ///
-/// See also [`super::IssuerSignedItem`], which additionally contains the attribute's `random` and `digestID`.
+/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
+/// `digestID`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Entry {
     pub name: DataElementIdentifier,
@@ -136,16 +137,18 @@ pub struct MobileIDDocuments {
     pub sparse_issuer_signed: Vec<SparseIssuerSigned>,
 }
 
-/// All data of a signed mdoc being issued (in particular the issuer signatures). Like an [`super::IssuerSigned`],
-/// excluding the data that the holder has already learned during the protocol so far.
+/// All data of a signed mdoc being issued (in particular the issuer signatures). Like an
+/// [`IssuerSigned`](super::IssuerSigned), excluding the data that the holder has already learned during the protocol
+/// so far.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerSigned {
     pub randoms: IndexMap<NameSpace, Vec<ByteBuf>>,
     pub sparse_issuer_auth: SparseIssuerAuth,
 }
 
-/// Issuer signed data of an mdoc being issued. Like the `issuer_auth` field of an [`super::IssuerSigned`], excluding
-/// the data that the holder has already learned during the protocol so far.
+/// Issuer signed data of an mdoc being issued. Like the `issuer_auth` field of an
+/// [`IssuerSigned`](super::IssuerSigned), excluding the data that the holder has already learned during the protocol
+/// so far.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerAuth {
     pub version: String,

@@ -34,8 +34,8 @@ pub type DocumentError = IndexMap<DocType, ErrorCode>;
 /// - the MSO signed by the issuer including the mdoc's public key and the digests of the attributes,
 /// - the values and `random` bytes of the disclosed (i.e. included) attributes,
 /// - the holder signature (over the session transcript so far, which is not included here; see
-///   [`super::DeviceAuthentication`]), using the private key corresponding to the public key contained in the mdoc;
-///   this acts as challenge-response mechanism.
+///   [`DeviceAuthentication`](super::DeviceAuthentication)), using the private key corresponding to the public key
+///   contained in the mdoc; this acts as challenge-response mechanism.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -71,7 +71,8 @@ pub struct DeviceSigned {
 }
 
 /// Attributes included in a holder disclosure that have not been signed by the issuer, but only
-/// by the holder: self-asserted attributes. See also [`DeviceSigned`] and [`super::DeviceAuthentication`].
+/// by the holder: self-asserted attributes. See also [`DeviceSigned`] and
+/// [`DeviceAuthentication`](super::DeviceAuthentication).
 pub type DeviceNameSpaces = IndexMap<NameSpace, DeviceSignedItems>;
 
 /// See [`DeviceNameSpaces`].

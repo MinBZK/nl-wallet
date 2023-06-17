@@ -263,12 +263,12 @@ impl Entry {
 
 pub use issuance_consent::*;
 
-/// This module converts [`super::UserConsentIssuance`], which uses an async trait to one ([`IssuanceSessionReceiver`])
+/// This module converts [`IssuanceUserConsent`], which uses an async trait to one ([`IssuanceSessionReceiver`])
 /// that doesn't. This API works as follows:
 /// - Implement [`IssuanceSessionReceiver`].
 /// - Pass an [`IssuanceSessionReceiver`] to [`IssuanceSessions::new()`], and use the resulting `IssuanceSessions`
-///   instance as the [`super::IssuanceUserConsent`] input parameter to [`Credentials::do_issuance()`].
-/// - When a session is started, you receive its session request (i.e. a [`&RequestKeyGenerationMessage`]) in your
+///   instance as the [`IssuanceUserConsent`] input parameter to [`Wallet::do_issuance()`].
+/// - When a session is started, you receive its session request (i.e. a &[`RequestKeyGenerationMessage`]) in your
 ///   [`IssuanceSessionReceiver`] implementation.
 /// - When the user provides consent (or not), call `IssuanceSessions::provide_consent()` with the session ID
 ///   from the session request (field `e_session_id` of `RequestKeyGenerationMessage`).

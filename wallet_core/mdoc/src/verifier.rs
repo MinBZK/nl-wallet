@@ -1,3 +1,5 @@
+//! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
+
 use indexmap::IndexMap;
 use p256::NistP256;
 use x509_parser::certificate::X509Certificate;
@@ -13,7 +15,10 @@ use crate::{
     Result,
 };
 
+/// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
+/// Grouped per namespace.
 type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>;
+/// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 #[derive(thiserror::Error, Debug)]
@@ -37,6 +42,13 @@ pub enum VerificationError {
 }
 
 impl DeviceResponse {
+    /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
+    ///
+    /// # Arguments
+    /// - `eph_reader_key` - the ephemeral reader public key in case the mdoc is authentication with a MAC.
+    /// - `device_authentication_bts` - the [`DeviceAuthenticationBytes`] acting as the challenge, i.e., that have
+    ///   to be signed by the holder.
+    /// - `ca_cert` - the CA certificate of the issuer against which the disclosure must verify.
     #[allow(dead_code)] // TODO use this in verifier
     pub fn verify(
         &self,

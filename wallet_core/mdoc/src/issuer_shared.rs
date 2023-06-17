@@ -1,3 +1,5 @@
+//! Data types shared between the issuer and the holder.
+
 use std::fmt::Display;
 
 use coset::Header;
@@ -40,12 +42,15 @@ pub enum IssuanceError {
 }
 
 /// Identifies an issuance session in a URL, as passed from the issuer to the holder using the `url` field of
-/// [`iso::ServiceEngagement`]).
-/// This token is distict from [`iso::SessionId`] because the `ServiceEngagement` may be transmitted over an insecure
-/// channel (e.g. a QR code). By not using the `SessionId` for this, the issuer transmits this to the holder in response
-/// to its first HTTPS request, so that it remains secret between them. Since in later protocol messages the issuer
-/// enforces that the correct session ID is present, this means that only the party that sends the first HTTP request
-/// can send later HTTP requests for the session.
+/// [`ServiceEngagement`](super::iso::ServiceEngagement)).
+///
+/// This token is the part of the `ServiceEngagement` that identifies the session. During the session, the issuer
+/// additionally chooses a `SessionId` that must after that be present in each protocol message. The `SessionToken`
+/// is distict from `SessionId` because the `ServiceEngagement` that contains the `SessionToken` may be
+/// transmitted over an insecure channel (e.g. a QR code). By not using the `SessionId` for this, the issuer transmits
+/// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
+/// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
+/// sends the first HTTP request can send later HTTP requests for the session.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct SessionToken(pub(crate) String);
 

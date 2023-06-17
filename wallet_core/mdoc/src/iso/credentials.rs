@@ -133,10 +133,10 @@ pub type DeviceKey = CoseKey;
 /// Data signed by the issuer, containing a.o.
 /// - The public key of the credential (in [`DeviceKeyInfo`])
 /// - the digests of the attributes ([`ValueDigests`]), but not their randoms (for that see the containing struct
-///   [`super::IssuerSigned`])
+///   [`IssuerSigned`](super::IssuerSigned))
 /// - When the credential was signed by the issuer and when it expires ([`ValidityInfo`]).
 ///
-/// This is signed by the issuer during issuance into a COSE and included in an [`super::IssuerSigned`].
+/// This is signed by the issuer during issuance into a COSE and included in an [`IssuerSigned`](super::IssuerSigned).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {

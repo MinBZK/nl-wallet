@@ -1,3 +1,7 @@
+//! Issuer software, for issuing mdocs to holders using an issuance private key.
+//! See [`Server::new_session()`], which takes the mdocs to be issued and returns a [`ServiceEngagement`] to present to
+//! the holder.
+
 use core::panic;
 
 use chrono::Utc;
@@ -133,6 +137,8 @@ impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
         }
     }
 
+    /// Start a new issuance session for the specified (unsigned) mdocs. Returns the [`ServiceEngagement`] to be
+    /// presented to the user.
     pub fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<ServiceEngagement> {
         self.check_keys(&docs)?;
 
