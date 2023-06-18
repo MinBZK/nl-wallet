@@ -7,12 +7,12 @@ A partial, work-in-progress Rust implementation of mdoc (ISO standards 18013-5, 
 Studying mdoc and this repository can be done as follows.
 - For an introduction to ISO mdoc and its most important data structures, see [`mdoc.md`](documentation/mdoc.md).
 - View the documentation of this crate generated from the rustoc comments:
-  ```
+  ```sh
   cargo doc --open
   ```
 - Some of the unit tests of this crate debug-print some mdoc data structures, which may be seen with `--nocapture`:
   ```sh
-  $ cargo test -- iso_examples_disclosure --nocapture
+  cargo test -- iso_examples_disclosure --nocapture
   ```
 
 ## Running
