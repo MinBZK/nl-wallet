@@ -125,14 +125,14 @@ impl ResponseSignaturePayload {
 #[serde(rename_all = "camelCase")]
 pub struct DataToIssueMessage {
     pub e_session_id: SessionId,
-    #[serde(rename = "mobileIDdocuments")]
-    pub mobile_id_documents: Vec<MobileIDDocuments>,
+    #[serde(rename = "mobileeIDdocuments")]
+    pub mobile_id_documents: Vec<MobileeIDDocuments>,
 }
 
-/// All data of the signed mdocs being issued (in particular the issuer signatures) that the holder has not yet already
-/// learned during the protocol so far.
+/// A mobile eID document: all data of the signed mdocs being issued (in particular the issuer signatures) that the
+/// holder has not yet already learned during the protocol so far.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MobileIDDocuments {
+pub struct MobileeIDDocuments {
     pub doc_type: DocType,
     pub sparse_issuer_signed: Vec<SparseIssuerSigned>,
 }

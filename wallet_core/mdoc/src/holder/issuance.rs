@@ -178,7 +178,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
     }
 
     fn create_cred_copies(
-        doc: &basic_sa_ext::MobileIDDocuments,
+        doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
         trusted_issuer_certs: &TrustedIssuerCerts,

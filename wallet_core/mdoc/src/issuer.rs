@@ -15,7 +15,7 @@ use serde_bytes::ByteBuf;
 
 use crate::{
     basic_sa_ext::{
-        DataToIssueMessage, KeyGenerationResponseMessage, MdocResponses, MobileIDDocuments,
+        DataToIssueMessage, KeyGenerationResponseMessage, MdocResponses, MobileeIDDocuments,
         RequestKeyGenerationMessage, Response, SparseIssuerAuth, SparseIssuerSigned, StartIssuingMessage, UnsignedMdoc,
         KEY_GEN_RESP_MSG_TYPE, START_ISSUING_MSG_TYPE,
     },
@@ -393,13 +393,13 @@ impl<'a, K: IssuanceKeyring, S: SessionStore> Session<'a, K, S> {
             .iter()
             .zip(&self.session_data.request.unsigned_mdocs)
             .map(|(responses, unsigned)| {
-                let docs = MobileIDDocuments {
+                let docs = MobileeIDDocuments {
                     doc_type: unsigned.doc_type.clone(),
                     sparse_issuer_signed: self.issue_creds(responses, unsigned)?,
                 };
                 Ok(docs)
             })
-            .collect::<Result<Vec<MobileIDDocuments>>>()?;
+            .collect::<Result<Vec<MobileeIDDocuments>>>()?;
 
         let response = DataToIssueMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
