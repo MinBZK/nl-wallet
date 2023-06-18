@@ -6,6 +6,7 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::nom::AsBytes;
 
 use crate::{
+    basic_sa_ext::Entry,
     iso::*,
     utils::{
         cose::ClonePayload,
@@ -17,7 +18,7 @@ use crate::{
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace.
-type DocumentDisclosedAttributes = IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>;
+type DocumentDisclosedAttributes = IndexMap<NameSpace, Vec<Entry>>;
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
@@ -100,7 +101,7 @@ impl IssuerSigned {
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
         if let Some(namespaces) = &self.name_spaces {
             for (namespace, items) in namespaces {
-                attrs.insert(namespace.clone(), IndexMap::new());
+                attrs.insert(namespace.clone(), Vec::new());
                 let namespace_attrs = attrs.get_mut(namespace).unwrap();
                 for item in &items.0 {
                     let digest_id = item.0.digest_id;
@@ -117,7 +118,10 @@ impl IssuerSigned {
                     if *digest != cbor_digest(item)? {
                         return Err(VerificationError::AttributeVerificationFailed.into());
                     }
-                    namespace_attrs.insert(item.0.element_identifier.clone(), item.0.element_value.clone());
+                    namespace_attrs.push(Entry {
+                        name: item.0.element_identifier.clone(),
+                        value: item.0.element_value.clone(),
+                    });
                 }
             }
         }
