@@ -35,7 +35,7 @@ where
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
-            .post(self.config.base_url().join("/api/v1/enroll").unwrap())
+            .post(self.config.base_url().join("/api/v1/enroll")?)
             .send()
             .await?
             .json::<Challenge>()
@@ -52,7 +52,7 @@ where
     ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
-            .post(self.config.base_url().join("/api/v1/createwallet").unwrap())
+            .post(self.config.base_url().join("/api/v1/createwallet")?)
             .json(&registration_message)
             .send()
             .await?

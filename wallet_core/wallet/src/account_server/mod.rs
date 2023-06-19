@@ -5,6 +5,8 @@ mod mock;
 
 use async_trait::async_trait;
 
+use url::ParseError;
+
 use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
@@ -18,11 +20,13 @@ pub use self::remote::{AccountServerConfigurationProvider, RemoteAccountServerCl
 pub enum AccountServerClientError {
     #[error("networking error: {0}")]
     Networking(#[from] reqwest::Error),
+    #[error("could not parse base URL: {0}")]
+    BaseUrl(#[from] ParseError),
     /// This error variant only exist for the mock implementation of [`AccountServerClient`]
     /// by [`wallet_provider::account_server::AccountServer`].
     #[cfg(test)]
     #[error(transparent)]
-    AccountServer(#[from] Box<dyn std::error::Error + Send + Sync>),
+    Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[async_trait]
