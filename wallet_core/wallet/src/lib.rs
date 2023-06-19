@@ -12,5 +12,5 @@ pub use crate::{
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    pub use crate::storage::MockStorage;
+    pub use crate::{config::MockConfigurationRepository, storage::MockStorage};
 }

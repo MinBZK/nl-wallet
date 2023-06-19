@@ -4,15 +4,14 @@ mod remote;
 mod mock;
 
 use async_trait::async_trait;
-
-use url::ParseError;
+use url::{ParseError, Url};
 
 use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
 
-pub use self::remote::{AccountServerConfigurationProvider, RemoteAccountServerClient};
+pub use self::remote::RemoteAccountServerClient;
 
 // TODO: Make this error more distinctive when specific HTTP error
 //       response codes get added to the Wallet Provider.
@@ -31,6 +30,10 @@ pub enum AccountServerClientError {
 
 #[async_trait]
 pub trait AccountServerClient {
+    fn new(base_url: &Url) -> Self
+    where
+        Self: Sized;
+
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError>;
     async fn register(
         &self,

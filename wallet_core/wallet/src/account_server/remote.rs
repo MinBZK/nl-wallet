@@ -9,33 +9,33 @@ use wallet_common::account::{
 
 use super::{AccountServerClient, AccountServerClientError};
 
-pub trait AccountServerConfigurationProvider {
-    fn base_url(&self) -> &Url;
-}
-
-pub struct RemoteAccountServerClient<'a, C> {
-    config: &'a C,
+pub struct RemoteAccountServerClient {
+    base_url: Url,
     client: Client,
 }
 
-impl<'a, C> RemoteAccountServerClient<'a, C> {
-    pub fn new(config: &'a C) -> Self {
-        Self {
-            config,
+impl RemoteAccountServerClient {
+    fn new(base_url: Url) -> Self {
+        RemoteAccountServerClient {
+            base_url,
             client: Client::new(),
         }
     }
 }
 
 #[async_trait]
-impl<C> AccountServerClient for RemoteAccountServerClient<'_, C>
-where
-    C: AccountServerConfigurationProvider + Send + Sync,
-{
+impl AccountServerClient for RemoteAccountServerClient {
+    fn new(base_url: &Url) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(base_url.clone())
+    }
+
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
-            .post(self.config.base_url().join("/api/v1/enroll")?)
+            .post(self.base_url.join("/api/v1/enroll")?)
             .send()
             .await?
             .json::<Challenge>()
@@ -52,7 +52,7 @@ where
     ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
-            .post(self.config.base_url().join("/api/v1/createwallet")?)
+            .post(self.base_url.join("/api/v1/createwallet")?)
             .json(&registration_message)
             .send()
             .await?

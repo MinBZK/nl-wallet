@@ -1,23 +1,30 @@
+use base64::{engine::general_purpose::STANDARD, Engine};
+use url::Url;
+
 use platform_support::preferred;
+use wallet_common::account::jwt::EcdsaDecodingKey;
 
 use crate::{
     account_server::RemoteAccountServerClient,
-    config::{AccountServerConfiguration, CONFIGURATION},
+    config::{AccountServerConfiguration, Configuration, LocalConfigurationRepository},
     storage::DatabaseStorage,
     wallet::WalletInitError,
 };
 
 pub type Wallet = crate::wallet::Wallet<
-    RemoteAccountServerClient<'static, AccountServerConfiguration>,
+    LocalConfigurationRepository,
+    RemoteAccountServerClient,
     DatabaseStorage,
     preferred::PlatformEcdsaKey,
 >;
 
 pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
-    Wallet::new(
-        RemoteAccountServerClient::new(&CONFIGURATION.account_server),
-        CONFIGURATION.account_server.public_key.clone(),
-        DatabaseStorage::default(),
-    )
-    .await
+    let config = LocalConfigurationRepository::new_with_initial(|| Configuration {
+        account_server: AccountServerConfiguration {
+            base_url: Url::parse("http://localhost:3000").unwrap(),
+            public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
+        },
+    });
+
+    Wallet::new(config).await
 }

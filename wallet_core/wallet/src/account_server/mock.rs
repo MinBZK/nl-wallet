@@ -1,10 +1,11 @@
 use async_trait::async_trait;
+use url::Url;
 
 use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
-use wallet_provider::account_server::AccountServer;
+use wallet_provider::account_server::{stub, AccountServer};
 
 use super::{AccountServerClient, AccountServerClientError};
 
@@ -12,6 +13,13 @@ use super::{AccountServerClient, AccountServerClientError};
 /// [`AccountServer`], skipping JSON encoding and HTTP(S).
 #[async_trait]
 impl AccountServerClient for AccountServer {
+    fn new(_: &Url) -> Self
+    where
+        Self: Sized,
+    {
+        stub::account_server(None)
+    }
+
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         AccountServer::registration_challenge(self).map_err(|e| AccountServerClientError::Other(e.into()))
     }
