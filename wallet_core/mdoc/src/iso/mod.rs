@@ -3,8 +3,8 @@
 
 pub mod basic_sa_ext;
 
-pub mod credentials;
-pub use credentials::*;
+pub mod mdocs;
+pub use mdocs::*;
 
 pub mod device_retrieval;
 pub use device_retrieval::*;

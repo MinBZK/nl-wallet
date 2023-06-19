@@ -14,9 +14,9 @@ use crate::{
     Error, Result,
 };
 
-use super::{Credential, CredentialStorage, HolderError, Wallet};
+use super::{HolderError, Mdoc, Storage, Wallet};
 
-impl<C: CredentialStorage> Wallet<C> {
+impl<C: Storage> Wallet<C> {
     pub fn disclose<K: MdocEcdsaKey>(
         &self,
         device_request: &DeviceRequest,
@@ -28,12 +28,9 @@ impl<C: CredentialStorage> Wallet<C> {
             let items_request = &doc_request.items_request.0;
 
             // This takes any mdoc of the specified doctype. TODO: allow user choice.
-            let creds = self
-                .credential_storage
-                .get::<K>(&items_request.doc_type)
-                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                    items_request.doc_type.clone(),
-                )))?;
+            let creds = self.storage.get::<K>(&items_request.doc_type).ok_or(Error::from(
+                HolderError::UnsatisfiableRequest(items_request.doc_type.clone()),
+            ))?;
             let cred = &creds
                 .first()
                 .ok_or(Error::from(HolderError::UnsatisfiableRequest(
@@ -53,7 +50,7 @@ impl<C: CredentialStorage> Wallet<C> {
     }
 }
 
-impl<K: MdocEcdsaKey> Credential<K> {
+impl<K: MdocEcdsaKey> Mdoc<K> {
     pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed

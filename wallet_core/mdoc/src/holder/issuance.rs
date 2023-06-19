@@ -20,7 +20,7 @@ use crate::{
     Error, Result,
 };
 
-use super::{Credential, CredentialCopies, CredentialStorage, HolderError, Wallet};
+use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
 
 // TODO: support multiple certs per doctype, to allow key rollover.
 // We might consider using https://docs.rs/owning_ref/latest/owning_ref/index.html to make the certificates owned.
@@ -88,7 +88,7 @@ pub trait IssuanceUserConsent {
     async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
 }
 
-impl<C: CredentialStorage> Wallet<C> {
+impl<C: Storage> Wallet<C> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
     pub async fn do_issuance<K: MdocEcdsaKey>(
         &self,
@@ -129,7 +129,7 @@ impl<C: CredentialStorage> Wallet<C> {
 
         // Process issuer response to obtain and save new credentials
         let creds = state.issuance_finish(issuer_response, trusted_issuer_certs)?;
-        self.credential_storage.add(creds.into_iter().flatten())
+        self.storage.add(creds.into_iter().flatten())
     }
 }
 
@@ -167,7 +167,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         self,
         issuer_response: DataToIssueMessage,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<Vec<CredentialCopies<K>>> {
+    ) -> Result<Vec<MdocCopies<K>>> {
         issuer_response
             .mobile_id_documents
             .iter()
@@ -182,14 +182,12 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
         trusted_issuer_certs: &TrustedIssuerCerts,
-    ) -> Result<CredentialCopies<K>> {
+    ) -> Result<MdocCopies<K>> {
         let cred_copies = doc
             .sparse_issuer_signed
             .iter()
             .zip(keys)
-            .map(|(iss_signature, key)| {
-                iss_signature.to_credential(key, unsigned, trusted_issuer_certs.get(&doc.doc_type)?)
-            })
+            .map(|(iss_signature, key)| iss_signature.to_mdoc(key, unsigned, trusted_issuer_certs.get(&doc.doc_type)?))
             .collect::<Result<Vec<_>>>()?
             .into();
         Ok(cred_copies)
@@ -197,12 +195,12 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
 }
 
 impl SparseIssuerSigned {
-    pub(super) fn to_credential<K: MdocEcdsaKey>(
+    pub(super) fn to_mdoc<K: MdocEcdsaKey>(
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,
         iss_cert: &X509Certificate,
-    ) -> Result<Credential<K>> {
+    ) -> Result<Mdoc<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
@@ -231,7 +229,7 @@ impl SparseIssuerSigned {
         };
         issuer_signed.verify(iss_cert)?;
 
-        let cred = Credential::_new(
+        let cred = Mdoc::_new(
             unsigned.doc_type.clone(),
             private_key.identifier().to_string(),
             issuer_signed,

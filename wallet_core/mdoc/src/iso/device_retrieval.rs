@@ -8,7 +8,7 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    iso::{credentials::*, engagement::*},
+    iso::{engagement::*, mdocs::*},
     utils::{
         cose::MdocCose,
         serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},

@@ -29,8 +29,8 @@ use nl_wallet_mdoc::{
 mod examples;
 use examples::*;
 
-mod credentials_map;
-use credentials_map::CredentialsMap;
+mod mdocs_map;
+use mdocs_map::MdocsMap;
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
@@ -83,14 +83,14 @@ fn iso_examples_disclosure() {
 
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Credential::<SoftwareEcdsaKey>::new(
+    let cred = Mdoc::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
     .unwrap();
 
-    let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
+    let wallet = Wallet::new(MdocsMap::try_from([cred]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -119,14 +119,14 @@ fn iso_examples_custom_disclosure() {
 
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Credential::<SoftwareEcdsaKey>::new(
+    let cred = Mdoc::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &ca_cert,
     )
     .unwrap();
 
-    let wallet = Wallet::new(CredentialsMap::try_from([cred]).unwrap());
+    let wallet = Wallet::new(MdocsMap::try_from([cred]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
@@ -204,10 +204,10 @@ impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, Me
 }
 
 struct MockIssuanceKeyring {
-    issuance_key: IssuancePrivateKey,
+    issuance_key: PrivateKey,
 }
-impl IssuanceKeyring for MockIssuanceKeyring {
-    fn private_key(&self, _: &DocType) -> Option<&IssuancePrivateKey> {
+impl KeyRing for MockIssuanceKeyring {
+    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
         Some(&self.issuance_key)
     }
 }
@@ -265,15 +265,15 @@ fn issuance_and_disclosure() {
     custom_disclosure(wallet, ca);
 
     let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>());
-    assert!(wallet.list_credentials::<SoftwareEcdsaKey>().is_empty())
+    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<CredentialsMap>, Vec<u8>) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<MdocsMap>, Vec<u8>) {
     // Issuer CA certificate and normal certificate
     let ca = new_ca(ISSUANCE_CA_CN).unwrap();
     let ca_bts = ca.serialize_der().unwrap();
     let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
-    let issuance_key = IssuancePrivateKey::new(privkey, cert_bts);
+    let issuance_key = PrivateKey::new(privkey, cert_bts);
 
     // Setup session and issuer
     let request = new_issuance_request();
@@ -286,8 +286,8 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
 
     // Setup holder
     let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
-    let wallet = Wallet::new(CredentialsMap::new());
-    assert!(wallet.list_credentials::<SoftwareEcdsaKey>().is_empty());
+    let wallet = Wallet::new(MdocsMap::new());
+    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Do issuance
     let client_builder = MockHttpClientBuilder {
@@ -311,8 +311,8 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     (wallet, ca_bts)
 }
 
-fn custom_disclosure(wallet: Wallet<CredentialsMap>, ca: Vec<u8>) {
-    assert!(!wallet.list_credentials::<SoftwareEcdsaKey>().is_empty());
+fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Vec<u8>) {
+    assert!(!wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Disclose some attributes from our cred
     let request = DeviceRequest::new(vec![ItemsRequest {

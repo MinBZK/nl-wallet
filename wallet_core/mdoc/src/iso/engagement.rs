@@ -14,7 +14,7 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    iso::{credentials::*, disclosure::*},
+    iso::{disclosure::*, mdocs::*},
     utils::{
         cose::CoseKey,
         serialization::{

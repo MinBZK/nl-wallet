@@ -13,25 +13,25 @@ use crate::{
 
 use super::HolderError;
 
-pub trait CredentialStorage {
-    fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Credential<K>>) -> Result<()>;
+pub trait Storage {
+    fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Mdoc<K>>) -> Result<()>;
     fn list<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
 
     // TODO returning all copies of all credentials is very crude and should be refined.
-    fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<CredentialCopies<K>>>;
+    fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<MdocCopies<K>>>;
 }
 
 pub struct Wallet<C> {
-    pub(crate) credential_storage: C,
+    pub(crate) storage: C,
 }
 
-impl<C: CredentialStorage> Wallet<C> {
-    pub fn new(credential_storage: C) -> Self {
-        Self { credential_storage }
+impl<C: Storage> Wallet<C> {
+    pub fn new(storage: C) -> Self {
+        Self { storage }
     }
 
-    pub fn list_credentials<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
-        self.credential_storage.list::<K>()
+    pub fn list_mdocs<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+        self.storage.list::<K>()
     }
 }
 
@@ -41,37 +41,37 @@ impl<C: CredentialStorage> Wallet<C> {
 /// for unlinkability.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(bound = "K: MdocEcdsaKey")]
-pub struct CredentialCopies<K: MdocEcdsaKey> {
-    pub cred_copies: Vec<Credential<K>>,
+pub struct MdocCopies<K: MdocEcdsaKey> {
+    pub cred_copies: Vec<Mdoc<K>>,
 }
 
-impl<K: MdocEcdsaKey> IntoIterator for CredentialCopies<K> {
-    type Item = Credential<K>;
-    type IntoIter = std::vec::IntoIter<Credential<K>>;
+impl<K: MdocEcdsaKey> IntoIterator for MdocCopies<K> {
+    type Item = Mdoc<K>;
+    type IntoIter = std::vec::IntoIter<Mdoc<K>>;
     fn into_iter(self) -> Self::IntoIter {
         self.cred_copies.into_iter()
     }
 }
-impl<K: MdocEcdsaKey> From<Vec<Credential<K>>> for CredentialCopies<K> {
-    fn from(creds: Vec<Credential<K>>) -> Self {
+impl<K: MdocEcdsaKey> From<Vec<Mdoc<K>>> for MdocCopies<K> {
+    fn from(creds: Vec<Mdoc<K>>) -> Self {
         Self { cred_copies: creds }
     }
 }
-impl<K: MdocEcdsaKey> CredentialCopies<K> {
+impl<K: MdocEcdsaKey> MdocCopies<K> {
     pub fn new() -> Self {
-        CredentialCopies::<K> { cred_copies: vec![] }
+        MdocCopies::<K> { cred_copies: vec![] }
     }
 }
 
 /// A full mdoc credential: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(bound = "K: MdocEcdsaKey")]
-pub struct Credential<K> {
+pub struct Mdoc<K> {
     /// Doctype of the credential. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
     pub doc_type: String,
 
-    /// Identifier of the credential's private key. Obtain a reference to it with [`Credential::private_key()`].
+    /// Identifier of the credential's private key. Obtain a reference to it with [`Mdoc::private_key()`].
     // Note that even though these fields are not `pub`, to users of this package their data is still accessible
     // by serializing the credential and examining the serialized bytes. This is not a problem because it is essentially
     // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
@@ -115,14 +115,14 @@ impl<'de, K: MdocEcdsaKey> Deserialize<'de> for PrivateKeyType<K> {
     }
 }
 
-impl<K: MdocEcdsaKey> Credential<K> {
-    pub fn new(private_key: String, issuer_signed: IssuerSigned, ca_cert: &X509Certificate) -> Result<Credential<K>> {
+impl<K: MdocEcdsaKey> Mdoc<K> {
+    pub fn new(private_key: String, issuer_signed: IssuerSigned, ca_cert: &X509Certificate) -> Result<Mdoc<K>> {
         let (_, mso) = issuer_signed.verify(ca_cert)?;
         Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
     }
 
-    pub(crate) fn _new(doc_type: DocType, private_key: String, issuer_signed: IssuerSigned) -> Credential<K> {
-        Credential {
+    pub(crate) fn _new(doc_type: DocType, private_key: String, issuer_signed: IssuerSigned) -> Mdoc<K> {
+        Mdoc {
             doc_type,
             private_key,
             issuer_signed,

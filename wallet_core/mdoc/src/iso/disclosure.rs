@@ -10,7 +10,7 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::{
-    iso::credentials::*,
+    iso::mdocs::*,
     utils::{
         cose::MdocCose,
         serialization::{NullCborValue, RequiredValue, TaggedBytes},
@@ -48,7 +48,7 @@ pub struct Document {
 
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes including their randoms
 /// (i.e. [`IssuerSignedItem`]s) contained in the credential. This includes the public key of the MSO,
-/// but not the private key (for that, see [`Credential`](crate::holder::Credential)).
+/// but not the private key (for that, see [`Mdoc`](crate::holder::Mdoc)).
 ///
 /// This data structure is used as part of credentials (in which case `name_spaces` necessarily contains all attributes
 /// of the credential), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some

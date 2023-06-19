@@ -30,32 +30,32 @@ use crate::{
     Error, Result,
 };
 
-pub struct IssuancePrivateKey {
+pub struct PrivateKey {
     private_key: ecdsa::SigningKey<p256::NistP256>,
     cert_bts: Vec<u8>,
 }
 
-impl IssuancePrivateKey {
-    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> IssuancePrivateKey {
-        IssuancePrivateKey { private_key, cert_bts }
+impl PrivateKey {
+    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> PrivateKey {
+        PrivateKey { private_key, cert_bts }
     }
 }
 
-impl Signer<Signature> for IssuancePrivateKey {
+impl Signer<Signature> for PrivateKey {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, ecdsa::Error> {
         self.private_key.try_sign(msg)
     }
 }
-impl EcdsaKey for IssuancePrivateKey {
+impl EcdsaKey for PrivateKey {
     type Error = ecdsa::Error;
     fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
         Ok(self.private_key.verifying_key())
     }
 }
-impl SecureEcdsaKey for IssuancePrivateKey {}
+impl SecureEcdsaKey for PrivateKey {}
 
-pub trait IssuanceKeyring {
-    fn private_key(&self, doctype: &DocType) -> Option<&IssuancePrivateKey>;
+pub trait KeyRing {
+    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey>;
     fn contains_key(&self, doctype: &DocType) -> bool {
         self.private_key(doctype).is_some()
     }
@@ -126,7 +126,7 @@ pub struct Server<K, S> {
     sessions: S,
 }
 
-impl<K: IssuanceKeyring, S: SessionStore> Server<K, S> {
+impl<K: KeyRing, S: SessionStore> Server<K, S> {
     /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
     pub fn new(url: String, keys: K, session_store: S) -> Self {
@@ -285,7 +285,7 @@ pub struct SessionData {
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<'a, K: IssuanceKeyring, S: SessionStore> Session<'a, K, S> {
+impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     fn update_state(&mut self, new_state: SessionState) {
         self.session_data.state.update(new_state);
         self.updated = true;
