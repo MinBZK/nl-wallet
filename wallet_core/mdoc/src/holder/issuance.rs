@@ -103,7 +103,7 @@ impl<C: Storage> Wallet<C> {
         let ready_msg: ReadyToProvisionMessage = client.post(&StartProvisioningMessage::default()).await?;
         let session_id = ready_msg.e_session_id;
 
-        // Fetch the issuance details: challenge and the to-be-issued credentials
+        // Fetch the issuance details: challenge and the to-be-issued mdocs
         let request: RequestKeyGenerationMessage = client
             .post(&StartIssuingMessage {
                 e_session_id: session_id.clone(),
@@ -127,7 +127,7 @@ impl<C: Storage> Wallet<C> {
         // Finish issuance protocol
         let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
 
-        // Process issuer response to obtain and save new credentials
+        // Process issuer response to obtain and save new mdocs
         let creds = state.issuance_finish(issuer_response, trusted_issuer_certs)?;
         self.storage.add(creds.into_iter().flatten())
     }
@@ -138,7 +138,7 @@ pub struct IssuanceState<K> {
     pub request: RequestKeyGenerationMessage,
     pub response: KeyGenerationResponseMessage,
 
-    /// Private keys grouped by distinct credentials, and then per copies of each distinct credential.
+    /// Private keys grouped by distinct mdocs, and then per copies of each distinct mdoc.
     pub private_keys: Vec<Vec<K>>,
 }
 

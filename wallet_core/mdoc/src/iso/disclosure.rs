@@ -1,7 +1,7 @@
 //! Data structures used in disclosure, created by the holder and sent to the RP.
 //!
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
-//! verification, and [`IssuerSigned`], which contains the entire issuer-signed credential and the disclosed attributes.
+//! verification, and [`IssuerSigned`], which contains the entire issuer-signed mdoc and the disclosed attributes.
 
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
@@ -47,11 +47,11 @@ pub struct Document {
 }
 
 /// The issuer-signed MSO in Cose format, as well as some or all of the attributes including their randoms
-/// (i.e. [`IssuerSignedItem`]s) contained in the credential. This includes the public key of the MSO,
+/// (i.e. [`IssuerSignedItem`]s) contained in the mdoc. This includes the public key of the MSO,
 /// but not the private key (for that, see [`Mdoc`](crate::holder::Mdoc)).
 ///
-/// This data structure is used as part of credentials (in which case `name_spaces` necessarily contains all attributes
-/// of the credential), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
+/// This data structure is used as part of mdocs (in which case `name_spaces` necessarily contains all attributes
+/// of the mdoc), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
 /// attributes may be absent, i.e., not disclosed).
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]

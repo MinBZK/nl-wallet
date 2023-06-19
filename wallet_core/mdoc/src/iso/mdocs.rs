@@ -1,4 +1,4 @@
-//! Data structures containing mdoc credentials.
+//! Data structures contained in mdocs.
 //!
 //! The main citizen of this module is [`MobileSecurityObject`], which is the object that is signed by the issuer.
 //! This data structure does not directly contain the attributes ([`IssuerSignedItem`]) but instead only their digests,
@@ -95,7 +95,7 @@ pub struct KeyAuthorizations {
     pub data_elements: Option<AuthorizedDataElements>,
 }
 
-/// A credential public key ([`DeviceKey`]) along with some information about it, as part of the
+/// An mdoc public key ([`DeviceKey`]) along with some information about it, as part of the
 /// [`MobileSecurityObject`] of an mdoc.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -131,10 +131,10 @@ impl From<CoseKey> for DeviceKeyInfo {
 pub type DeviceKey = CoseKey;
 
 /// Data signed by the issuer, containing a.o.
-/// - The public key of the credential (in [`DeviceKeyInfo`])
+/// - The public key of the mdoc (in [`DeviceKeyInfo`])
 /// - the digests of the attributes ([`ValueDigests`]), but not their randoms (for that see the containing struct
 ///   [`IssuerSigned`](super::IssuerSigned))
-/// - When the credential was signed by the issuer and when it expires ([`ValidityInfo`]).
+/// - When the mdoc was signed by the issuer and when it expires ([`ValidityInfo`]).
 ///
 /// This is signed by the issuer during issuance into a COSE and included in an [`IssuerSigned`](super::IssuerSigned).
 #[derive(Serialize, Deserialize, Debug, Clone)]

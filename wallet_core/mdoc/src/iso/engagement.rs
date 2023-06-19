@@ -1,4 +1,4 @@
-//! Data structures used in disclosure for everything that has to be signed with the credential's private key.
+//! Data structures used in disclosure for everything that has to be signed with the mdoc's private key.
 //! Mainly [`DeviceAuthentication`] and all data structures inside it, which includes a transcript
 //! of the session so far.
 //!
