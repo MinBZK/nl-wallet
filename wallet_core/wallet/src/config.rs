@@ -6,6 +6,8 @@ use url::Url;
 
 use wallet_common::account::jwt::EcdsaDecodingKey;
 
+use crate::account_server::AccountServerConfigurationProvider;
+
 #[derive(Debug)]
 pub struct Configuration {
     pub account_server: AccountServerConfiguration,
@@ -21,6 +23,12 @@ impl Debug for AccountServerConfiguration {
         f.debug_struct("AccountServerConfiguration")
             .field("base_url", &self.base_url)
             .finish_non_exhaustive()
+    }
+}
+
+impl AccountServerConfigurationProvider for AccountServerConfiguration {
+    fn base_url(&self) -> &Url {
+        &self.base_url
     }
 }
 

@@ -10,7 +10,7 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-pub use self::remote::RemoteAccountServerClient;
+pub use self::remote::{AccountServerConfigurationProvider, RemoteAccountServerClient};
 
 // TODO: Make this error more distinctive when specific HTTP error
 //       response codes get added to the Wallet Provider.
