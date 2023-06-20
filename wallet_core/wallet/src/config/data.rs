@@ -6,7 +6,14 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 
 #[derive(Debug)]
 pub struct Configuration {
+    pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
+}
+
+#[derive(Debug)]
+pub struct LockTimeoutConfiguration {
+    pub inactive_timeout: u16,
+    pub background_timeout: u16,
 }
 
 pub struct AccountServerConfiguration {
