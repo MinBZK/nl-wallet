@@ -20,23 +20,28 @@ use crate::{
 
 struct WalletApiEnvironment {
     wallet: RwLock<Wallet>,
-    wallet_lock_sink: StreamSink<bool>,
+    lock_sink: StreamSink<bool>,
+}
+
+impl WalletApiEnvironment {
+    fn new(wallet: Wallet, lock_sink: StreamSink<bool>) -> Self {
+        WalletApiEnvironment {
+            wallet: RwLock::new(wallet),
+            lock_sink,
+        }
+    }
 }
 
 static WALLET_API_ENVIRONMENT: OnceCell<WalletApiEnvironment> = OnceCell::const_new();
 
-fn wallet() -> &'static RwLock<Wallet> {
-    &WALLET_API_ENVIRONMENT
+fn wallet_environment() -> &'static WalletApiEnvironment {
+    WALLET_API_ENVIRONMENT
         .get()
         .expect("Wallet must be initialized. Please execute `init()` first.")
-        .wallet
 }
 
-fn wallet_lock_sink() -> &'static StreamSink<bool> {
-    &WALLET_API_ENVIRONMENT
-        .get()
-        .expect("Wallet must be initialized. Please execute `init()` first.")
-        .wallet_lock_sink
+fn wallet() -> &'static RwLock<Wallet> {
+    &wallet_environment().wallet
 }
 
 pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
@@ -59,7 +64,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<bool> {
+async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
     let mut created = false;
 
     _ = WALLET_API_ENVIRONMENT
@@ -68,10 +73,7 @@ async fn init_wallet_environment(wallet_lock_sink: StreamSink<bool>) -> Result<b
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(WalletApiEnvironment {
-                wallet: RwLock::new(wallet),
-                wallet_lock_sink,
-            })
+            Ok(WalletApiEnvironment::new(wallet, lock_sink))
         })
         .await?;
 
@@ -83,27 +85,34 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
     bincode::serialize(&pin_result).unwrap()
 }
 
+/// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].
+fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &StreamSink<bool>) {
+    let is_locked = wallet.is_locked();
+    lock_sink.add(is_locked);
+}
+
 #[async_runtime]
 pub async fn unlock_wallet(pin: String) -> Vec<u8> {
-    let mut wallet = wallet().write().await;
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
+
     let unlock_result = wallet.unlock(pin).await;
     let wallet_unlock_result = WalletUnlockResult::from(unlock_result);
-    sync_wallet_lock_status(wallet);
+
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
+
     bincode::serialize(&wallet_unlock_result).unwrap()
 }
 
 #[async_runtime]
 pub async fn lock_wallet() -> Result<()> {
-    let mut wallet = wallet().write().await;
-    wallet.lock();
-    sync_wallet_lock_status(wallet);
-    Ok(())
-}
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
 
-/// Syncs the wallet lock status notifying the wallet_app through the [WALLET_API_ENVIRONMENT].
-fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>) {
-    let is_locked = wallet.is_locked();
-    wallet_lock_sink().add(is_locked);
+    wallet.lock();
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
+
+    Ok(())
 }
 
 #[async_runtime]
@@ -114,9 +123,12 @@ pub async fn has_registration() -> Result<bool> {
 
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
-    let mut wallet = wallet().write().await;
+    let wallet_env = wallet_environment();
+    let mut wallet = wallet_env.wallet.write().await;
+
     wallet.register(pin).await?;
-    sync_wallet_lock_status(wallet);
+    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
+
     Ok(())
 }
 
