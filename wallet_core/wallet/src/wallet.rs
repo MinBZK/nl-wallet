@@ -11,7 +11,7 @@ pub use crate::{
     storage::Storage,
 };
 use crate::{
-    config::ConfigurationRepository,
+    config::{Configuration, ConfigurationRepository},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -65,6 +65,8 @@ pub enum WalletUnlockError {
     ServerError,
 }
 
+type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
+
 pub struct Wallet<C, A, S, K> {
     config_repository: C,
     account_server: A,
@@ -72,6 +74,7 @@ pub struct Wallet<C, A, S, K> {
     hw_privkey: K,
     registration: Option<RegistrationData>,
     is_locked: bool,
+    config_callback: Option<ConfigurationCallback>,
 }
 
 impl<C, A, S, K> Wallet<C, A, S, K>
@@ -94,6 +97,7 @@ where
             hw_privkey,
             registration: None,
             is_locked: true,
+            config_callback: None,
         }
     }
 
@@ -119,6 +123,20 @@ where
         self.registration = self.storage.fetch_data::<RegistrationData>().await?;
 
         Ok(())
+    }
+
+    pub fn set_config_callback<F>(&mut self, callback: F)
+    where
+        F: Fn(&Configuration) + Send + Sync + 'static,
+    {
+        callback(self.config_repository.config());
+        // TODO: Once configuration fetching from the Wallet Provider is implemented,
+        //       this callback should be called every time the config updates.
+        self.config_callback.replace(Box::new(callback));
+    }
+
+    pub fn clear_config_callback(&mut self) {
+        self.config_callback.take();
     }
 
     pub fn has_registration(&self) -> bool {

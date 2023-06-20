@@ -19,6 +19,8 @@ use std::sync::Arc;
 
 // Section: imports
 
+use crate::models::config::FlutterConfiguration;
+
 // Section: wire functions
 
 fn wire_init_impl(port_: MessagePort) {
@@ -42,6 +44,26 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
             let api_pin = pin.wire2api();
             move |task_callback| Ok(is_valid_pin(api_pin))
         },
+    )
+}
+fn wire_set_configuration_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "set_configuration_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| set_configuration_stream(task_callback.stream_sink()),
+    )
+}
+fn wire_clear_configuration_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "clear_configuration_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| clear_configuration_stream(),
     )
 }
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -143,6 +165,17 @@ impl Wire2Api<u8> for u8 {
 }
 
 // Section: impl IntoDart
+
+impl support::IntoDart for FlutterConfiguration {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.inactive_lock_timeout.into_dart(),
+            self.background_lock_timeout.into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 
 // Section: executor
 

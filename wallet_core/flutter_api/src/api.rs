@@ -12,6 +12,7 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
+        config::FlutterConfiguration,
         pin::PinValidationResult,
         uri_flow_event::{DigidState, UriFlowEvent},
         wallet::WalletUnlockResult,
@@ -83,6 +84,23 @@ async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()
+}
+
+#[async_runtime]
+pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) -> Result<()> {
+    wallet()
+        .write()
+        .await
+        .set_config_callback(move |config| _ = sink.add(config.into()));
+
+    Ok(())
+}
+
+#[async_runtime]
+pub async fn clear_configuration_stream() -> Result<()> {
+    wallet().write().await.clear_config_callback();
+
+    Ok(())
 }
 
 /// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].

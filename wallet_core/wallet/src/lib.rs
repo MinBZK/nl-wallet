@@ -6,6 +6,7 @@ mod storage;
 pub mod wallet;
 
 pub use crate::{
+    config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration},
     init::{init_wallet, Wallet},
     pin::validation::{validate_pin, PinValidationError},
 };
