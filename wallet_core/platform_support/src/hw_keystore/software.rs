@@ -23,21 +23,24 @@ static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|
 #[derive(Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
-    signing_key: SigningKey,
 }
 
 // SigningKey from p256::ecdsa almost conforms to the EcdsaKey trait,
 // so we can forward the try_sign method and verifying_key methods.
 impl Signer<Signature> for SoftwareEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
-        self.signing_key.try_sign(msg)
+        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        signing_keys.get(&self.identifier).unwrap().try_sign(msg)
     }
 }
 impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(*self.signing_key.verifying_key())
+        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        let key = signing_keys.get(&self.identifier).unwrap().verifying_key();
+
+        Ok(*key)
     }
 }
 impl SecureEcdsaKey for SoftwareEcdsaKey {}
@@ -50,13 +53,12 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
         // obtain lock on SIGNING_KEYS static hashmap
         let mut signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
         // insert new random signing key, if the key is not present
-        let signing_key = signing_keys
-            .entry(identifier.to_string())
-            .or_insert_with(|| SigningKey::random(&mut OsRng));
+        if !signing_keys.contains_key(identifier) {
+            signing_keys.insert(identifier.to_string(), SigningKey::random(&mut OsRng));
+        }
 
         SoftwareEcdsaKey {
             identifier: identifier.to_string(),
-            signing_key: signing_key.clone(),
         }
     }
 
@@ -69,7 +71,6 @@ impl PlatformEcdsaKey for SoftwareEcdsaKey {}
 #[derive(Clone)]
 pub struct SoftwareEncryptionKey {
     identifier: String,
-    cipher: Aes256Gcm,
 }
 
 impl ConstructableWithIdentifier for SoftwareEncryptionKey {
@@ -83,13 +84,15 @@ impl ConstructableWithIdentifier for SoftwareEncryptionKey {
             .expect("Could not get lock on ENCRYPTION_CIPHERS");
 
         // insert new random encryption cipher, if the key is not present
-        let cipher = encryption_ciphers
-            .entry(identifier.to_string())
-            .or_insert_with(|| Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)));
+        if !encryption_ciphers.contains_key(identifier) {
+            encryption_ciphers.insert(
+                identifier.to_string(),
+                Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)),
+            );
+        }
 
         SoftwareEncryptionKey {
             identifier: identifier.to_string(),
-            cipher: cipher.clone(),
         }
     }
 
@@ -103,8 +106,16 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
         let nonce_bytes = random_bytes(12);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
 
+        let encryption_ciphers = ENCRYPTION_CIPHERS
+            .lock()
+            .expect("Could not get lock on ENCRYPTION_CIPHERS");
+
         // Encrypt the provided message
-        let encrypted_msg = self.cipher.encrypt(nonce, msg).expect("Could not encrypt message");
+        let encrypted_msg = encryption_ciphers
+            .get(&self.identifier)
+            .unwrap()
+            .encrypt(nonce, msg)
+            .expect("Could not encrypt message");
 
         // concatenate nonce with encrypted payload
         let result: Vec<_> = nonce_bytes.into_iter().chain(encrypted_msg).collect();
@@ -116,9 +127,14 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
         // Re-create the nonce from the first 12 bytes
         let nonce = Nonce::from_slice(&msg[..12]);
 
+        let encryption_ciphers = ENCRYPTION_CIPHERS
+            .lock()
+            .expect("Could not get lock on ENCRYPTION_CIPHERS");
+
         // Decrypt the provided message with the retrieved nonce
-        let decrypted_msg = self
-            .cipher
+        let decrypted_msg = encryption_ciphers
+            .get(&self.identifier)
+            .unwrap()
             .decrypt(nonce, &msg[12..])
             .expect("Could not decrypt message");
 
