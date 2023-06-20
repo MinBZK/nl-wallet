@@ -7,3 +7,4 @@ mod bridge_generated;
 mod async_runtime;
 mod logging;
 mod models;
+mod stream;

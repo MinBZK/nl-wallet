@@ -17,18 +17,19 @@ use crate::{
         uri_flow_event::{DigidState, UriFlowEvent},
         wallet::WalletUnlockResult,
     },
+    stream::ClosingStreamSink,
 };
 
 struct WalletApiEnvironment {
     wallet: RwLock<Wallet>,
-    lock_sink: StreamSink<bool>,
+    lock_sink: ClosingStreamSink<bool>,
 }
 
 impl WalletApiEnvironment {
-    fn new(wallet: Wallet, lock_sink: StreamSink<bool>) -> Self {
+    fn new(wallet: Wallet, lock_sink: impl Into<ClosingStreamSink<bool>>) -> Self {
         WalletApiEnvironment {
             wallet: RwLock::new(wallet),
-            lock_sink,
+            lock_sink: lock_sink.into(),
         }
     }
 }
@@ -88,10 +89,12 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 
 #[async_runtime]
 pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) -> Result<()> {
+    let sink = ClosingStreamSink::from(sink);
+
     wallet()
         .write()
         .await
-        .set_config_callback(move |config| _ = sink.add(config.into()));
+        .set_config_callback(move |config| sink.add(config.into()));
 
     Ok(())
 }
@@ -104,7 +107,7 @@ pub async fn clear_configuration_stream() -> Result<()> {
 }
 
 /// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].
-fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &StreamSink<bool>) {
+fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &ClosingStreamSink<bool>) {
     let is_locked = wallet.is_locked();
     lock_sink.add(is_locked);
 }
@@ -159,6 +162,8 @@ pub async fn get_digid_auth_url() -> Result<String> {
 #[async_runtime]
 pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
     // TODO: The code below is POC sample code, to be replace with a real implementation.
+    let sink = ClosingStreamSink::from(sink);
+
     if uri.contains("authentication") {
         let auth_event = UriFlowEvent::DigidAuth {
             state: DigidState::Authenticating,
@@ -179,8 +184,7 @@ pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
     } else {
         return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
     }
-    // TODO: Create newtype and implement Drop trait to automate sink closure.
-    sink.close();
+
     Ok(())
 }
 
