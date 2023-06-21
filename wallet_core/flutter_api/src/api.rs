@@ -89,10 +89,7 @@ pub fn is_valid_pin(pin: String) -> Vec<u8> {
 pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
-    wallet()
-        .write()
-        .await
-        .set_lock_callback(move |locked| sink.add(locked));
+    wallet().write().await.set_lock_callback(move |locked| sink.add(locked));
 
     Ok(())
 }
