@@ -60,6 +60,11 @@ class FlutterConfiguration {
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
   });
+
+  @override
+  String toString() {
+    return 'FlutterConfiguration{inactiveLockTimeout: $inactiveLockTimeout, backgroundLockTimeout: $backgroundLockTimeout}';
+  }
 }
 
 class WalletCoreImpl implements WalletCore {

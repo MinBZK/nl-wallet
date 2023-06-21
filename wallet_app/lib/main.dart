@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
+import 'package:wallet/src/feature/common/widget/flutter_configuration_provider.dart';
 
 import 'environment.dart';
 import 'src/di/wallet_bloc_provider.dart';
@@ -43,9 +44,12 @@ void main() async {
           child: WalletServiceProvider(
             navigatorKey: _navigatorKey,
             child: WalletBlocProvider(
-              child: AutoLockObserver(
-                child: WalletApp(
-                  navigatorKey: _navigatorKey,
+              child: FlutterConfigurationProvider(
+                builder: (config) => AutoLockObserver(
+                  configuration: config,
+                  child: WalletApp(
+                    navigatorKey: _navigatorKey,
+                  ),
                 ),
               ),
             ),

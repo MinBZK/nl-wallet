@@ -12,7 +12,6 @@ import '../wallet_core/typed_wallet_core.dart';
 import '../wallet_core/wallet_core.dart';
 import '../wallet_core/impl/typed_wallet_core_impl.dart';
 
-
 class WalletDataSourceProvider extends StatelessWidget {
   final Widget child;
 
@@ -30,6 +29,7 @@ class WalletDataSourceProvider extends StatelessWidget {
         ),
         RepositoryProvider<TypedWalletCore>(
           create: (context) => TypedWalletCoreImpl(api),
+          lazy: false,
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),

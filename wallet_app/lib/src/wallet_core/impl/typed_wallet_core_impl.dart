@@ -27,7 +27,11 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     );
 
     // Configure the configuration stream to observe the wallet_core when it has listeners.
-    _flutterConfig.onListen = () => _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
+    _flutterConfig.onListen = () async {
+      //FIXME: Temp solution to make sure wallet is fully initialized
+      await Future.delayed(const Duration(seconds: 1));
+      _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
+    };
     _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();
   }
 
