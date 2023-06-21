@@ -13,6 +13,7 @@ import '../wallet_core.dart';
 class TypedWalletCoreImpl extends TypedWalletCore {
   final WalletCore _walletCore;
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
+  final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
 
   TypedWalletCoreImpl(this._walletCore) {
     // Initialize the Asynchronous runtime and the wallet itself.
@@ -24,6 +25,10 @@ class TypedWalletCoreImpl extends TypedWalletCore {
         throw ex; //Delegate to [WalletErrorHandler]
       },
     );
+
+    // Configure the configuration stream to observe the wallet_core when it has listeners.
+    _flutterConfig.onListen = () => _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
+    _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();
   }
 
   @override
@@ -59,4 +64,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       return UriFlowEvent.bincodeDeserialize(bytes);
     });
   }
+
+  @override
+  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
 }
