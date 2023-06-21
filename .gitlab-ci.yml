@@ -256,6 +256,7 @@ test-codegen:
     - set -euxo pipefail
     - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
     - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
