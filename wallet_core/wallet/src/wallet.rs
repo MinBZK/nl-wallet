@@ -66,6 +66,7 @@ pub enum WalletUnlockError {
 }
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
+type LockedCallback = Box<dyn Fn(bool) + Send + Sync>;
 
 pub struct Wallet<C, A, S, K> {
     config_repository: C,
@@ -75,14 +76,15 @@ pub struct Wallet<C, A, S, K> {
     registration: Option<RegistrationData>,
     is_locked: bool,
     config_callback: Option<ConfigurationCallback>,
+    lock_callback: Option<LockedCallback>,
 }
 
 impl<C, A, S, K> Wallet<C, A, S, K>
-where
-    C: ConfigurationRepository,
-    A: AccountServerClient,
-    S: Storage + Default,
-    K: PlatformEcdsaKey + Clone + Send + 'static,
+    where
+        C: ConfigurationRepository,
+        A: AccountServerClient,
+        S: Storage + Default,
+        K: PlatformEcdsaKey + Clone + Send + 'static,
 {
     /// Initialize the wallet, but without registration loaded.
     pub fn new_without_registration(config_repository: C) -> Self {
@@ -98,6 +100,7 @@ where
             registration: None,
             is_locked: true,
             config_callback: None,
+            lock_callback: None,
         }
     }
 
@@ -125,9 +128,22 @@ where
         Ok(())
     }
 
+    pub fn set_lock_callback<F>(&mut self, callback: F)
+        where
+            F: Fn(bool) + Send + Sync + 'static,
+    {
+        callback(self.is_locked);
+        // this callback should be called every time the locked state changes
+        self.lock_callback.replace(Box::new(callback));
+    }
+
+    pub fn clear_lock_callback(&mut self) {
+        self.lock_callback.take();
+    }
+
     pub fn set_config_callback<F>(&mut self, callback: F)
-    where
-        F: Fn(&Configuration) + Send + Sync + 'static,
+        where
+            F: Fn(&Configuration) + Send + Sync + 'static,
     {
         callback(self.config_repository.config());
         // TODO: Once configuration fetching from the Wallet Provider is implemented,
@@ -148,7 +164,8 @@ where
     }
 
     pub fn lock(&mut self) {
-        self.is_locked = true
+        self.is_locked = true;
+        self.lock_callback.as_mut().map(|callback| callback(self.is_locked));
     }
 
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
@@ -157,6 +174,8 @@ where
         if pin == "000000" {
             info!("Mock unlock() pin valid");
             self.is_locked = false;
+            // We only sync the lock_state here, since all other cases should not change the state.
+            self.lock_callback.as_mut().map(|callback| callback(self.is_locked));
             return Ok(());
         }
         if pin == "100000" {
@@ -247,8 +266,8 @@ where
             // Return ownership of the pin_salt, the hardware public key and signed registration message.
             Ok::<_, WalletRegistrationError>((pin_salt, hw_pubkey, registration_message))
         })
-        .await
-        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
+            .await
+            .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
 
         // Send the registration message to the account server and receive the wallet certificate in response.
         let cert = self
@@ -360,8 +379,8 @@ mod tests {
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
         )))
-        .await
-        .expect("Could not initialize wallet");
+            .await
+            .expect("Could not initialize wallet");
 
         // The wallet should have a registration, the database should be opened.
         assert!(wallet.registration.is_some());

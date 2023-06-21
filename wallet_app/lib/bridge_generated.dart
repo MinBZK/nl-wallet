@@ -11,13 +11,21 @@ import 'package:uuid/uuid.dart';
 import 'dart:ffi' as ffi;
 
 abstract class WalletCore {
-  Stream<bool> init({dynamic hint});
+  Future<void> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   Future<Uint8List> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
+
+  Stream<bool> setLockStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta;
+
+  Future<void> clearLockStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta;
 
   Stream<FlutterConfiguration> setConfigurationStream({dynamic hint});
 
@@ -60,11 +68,6 @@ class FlutterConfiguration {
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
   });
-
-  @override
-  String toString() {
-    return 'FlutterConfiguration{inactiveLockTimeout: $inactiveLockTimeout, backgroundLockTimeout: $backgroundLockTimeout}';
-  }
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -74,10 +77,10 @@ class WalletCoreImpl implements WalletCore {
   /// Only valid on web/WASM platforms.
   factory WalletCoreImpl.wasm(FutureOr<WasmModule> module) => WalletCoreImpl(module as ExternalLibrary);
   WalletCoreImpl.raw(this._platform);
-  Stream<bool> init({dynamic hint}) {
-    return _platform.executeStream(FlutterRustBridgeTask(
+  Future<void> init({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_init(port_),
-      parseSuccessData: _wire2api_bool,
+      parseSuccessData: _wire2api_unit,
       constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
@@ -103,6 +106,36 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "is_valid_pin",
         argNames: ["pin"],
+      );
+
+  Stream<bool> setLockStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_lock_stream(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kSetLockStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_lock_stream",
+        argNames: [],
+      );
+
+  Future<void> clearLockStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_lock_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kClearLockStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_lock_stream",
+        argNames: [],
       );
 
   Stream<FlutterConfiguration> setConfigurationStream({dynamic hint}) {
@@ -400,6 +433,30 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_is_valid_pin');
   late final _wire_is_valid_pin = _wire_is_valid_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_set_lock_stream(
+    int port_,
+  ) {
+    return _wire_set_lock_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_lock_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_lock_stream');
+  late final _wire_set_lock_stream = _wire_set_lock_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_lock_stream(
+    int port_,
+  ) {
+    return _wire_clear_lock_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_lock_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_lock_stream');
+  late final _wire_clear_lock_stream = _wire_clear_lock_streamPtr.asFunction<void Function(int)>();
 
   void wire_set_configuration_stream(
     int port_,

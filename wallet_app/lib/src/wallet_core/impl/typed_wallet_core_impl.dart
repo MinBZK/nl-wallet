@@ -12,24 +12,36 @@ import '../wallet_core.dart';
 /// models from the 'core_domain' package.
 class TypedWalletCoreImpl extends TypedWalletCore {
   final WalletCore _walletCore;
+  final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
 
   TypedWalletCoreImpl(this._walletCore) {
     // Initialize the Asynchronous runtime and the wallet itself.
     // This is required to call any subsequent API function on the wallet.
-    _walletCore.init().listen(
-      (locked) => _isLocked.add(locked),
+    _walletCore.init().then(
+      (value) => _isInitialized.complete(),
       onError: (ex) {
         Fimber.e('WalletCore failed to initialize!', ex: ex);
         throw ex; //Delegate to [WalletErrorHandler]
       },
     );
 
-    // Configure the configuration stream to observe the wallet_core when it has listeners.
+    _setupLockedStream();
+    _setupConfigurationStream();
+  }
+
+  void _setupLockedStream() {
+    _isLocked.onListen = () async {
+      await _isInitialized.future;
+      _walletCore.setLockStream().listen((event) => _isLocked.add(event));
+    };
+    _isLocked.onCancel = () => _walletCore.clearLockStream();
+  }
+
+  void _setupConfigurationStream() {
     _flutterConfig.onListen = () async {
-      //FIXME: Temp solution to make sure wallet is fully initialized
-      await Future.delayed(const Duration(seconds: 1));
+      await _isInitialized.future;
       _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
     };
     _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();

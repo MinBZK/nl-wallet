@@ -28,9 +28,9 @@ fn wire_init_impl(port_: MessagePort) {
         WrapInfo {
             debug_name: "init",
             port: Some(port_),
-            mode: FfiCallMode::Stream,
+            mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| init(task_callback.stream_sink()),
+        move || move |task_callback| init(),
     )
 }
 fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -44,6 +44,26 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
             let api_pin = pin.wire2api();
             move |task_callback| Ok(is_valid_pin(api_pin))
         },
+    )
+}
+fn wire_set_lock_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "set_lock_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| set_lock_stream(task_callback.stream_sink()),
+    )
+}
+fn wire_clear_lock_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "clear_lock_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| clear_lock_stream(),
     )
 }
 fn wire_set_configuration_stream_impl(port_: MessagePort) {

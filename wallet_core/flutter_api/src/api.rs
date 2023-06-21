@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Ok, Result};
 use flutter_rust_bridge::StreamSink;
-use tokio::sync::{OnceCell, RwLock, RwLockWriteGuard};
+use tokio::sync::{OnceCell, RwLock};
 
 use macros::async_runtime;
 use wallet::{init_wallet, validate_pin, Wallet};
@@ -22,14 +22,12 @@ use crate::{
 
 struct WalletApiEnvironment {
     wallet: RwLock<Wallet>,
-    lock_sink: ClosingStreamSink<bool>,
 }
 
 impl WalletApiEnvironment {
-    fn new(wallet: Wallet, lock_sink: impl Into<ClosingStreamSink<bool>>) -> Self {
+    fn new(wallet: Wallet) -> Self {
         WalletApiEnvironment {
             wallet: RwLock::new(wallet),
-            lock_sink: lock_sink.into(),
         }
     }
 }
@@ -46,7 +44,7 @@ fn wallet() -> &'static RwLock<Wallet> {
     &wallet_environment().wallet
 }
 
-pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
+pub fn init() -> Result<()> {
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
     // init_logging() should not fail when being called more than once.
@@ -56,7 +54,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
     // This function may also be called safely more than once.
     init_async_runtime()?;
 
-    let initialized = init_wallet_environment(wallet_lock_sink)?;
+    let initialized = init_wallet_environment()?;
     assert!(initialized, "Wallet can only be initialized once");
 
     Ok(())
@@ -66,7 +64,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
+async fn init_wallet_environment() -> Result<bool> {
     let mut created = false;
 
     _ = WALLET_API_ENVIRONMENT
@@ -75,7 +73,7 @@ async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(WalletApiEnvironment::new(wallet, lock_sink))
+            Ok(WalletApiEnvironment::new(wallet))
         })
         .await?;
 
@@ -85,6 +83,25 @@ async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> Result<bool> {
 pub fn is_valid_pin(pin: String) -> Vec<u8> {
     let pin_result = PinValidationResult::from(validate_pin(&pin));
     bincode::serialize(&pin_result).unwrap()
+}
+
+#[async_runtime]
+pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
+    let sink = ClosingStreamSink::from(sink);
+
+    wallet()
+        .write()
+        .await
+        .set_lock_callback(move |locked| sink.add(locked));
+
+    Ok(())
+}
+
+#[async_runtime]
+pub async fn clear_lock_stream() -> Result<()> {
+    wallet().write().await.clear_lock_callback();
+
+    Ok(())
 }
 
 #[async_runtime]
@@ -106,12 +123,6 @@ pub async fn clear_configuration_stream() -> Result<()> {
     Ok(())
 }
 
-/// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].
-fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &ClosingStreamSink<bool>) {
-    let is_locked = wallet.is_locked();
-    lock_sink.add(is_locked);
-}
-
 #[async_runtime]
 pub async fn unlock_wallet(pin: String) -> Vec<u8> {
     let wallet_env = wallet_environment();
@@ -119,8 +130,6 @@ pub async fn unlock_wallet(pin: String) -> Vec<u8> {
 
     let unlock_result = wallet.unlock(pin).await;
     let wallet_unlock_result = WalletUnlockResult::from(unlock_result);
-
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     bincode::serialize(&wallet_unlock_result).unwrap()
 }
@@ -131,7 +140,6 @@ pub async fn lock_wallet() -> Result<()> {
     let mut wallet = wallet_env.wallet.write().await;
 
     wallet.lock();
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }
@@ -148,7 +156,6 @@ pub async fn register(pin: String) -> Result<()> {
     let mut wallet = wallet_env.wallet.write().await;
 
     wallet.register(pin).await?;
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }
