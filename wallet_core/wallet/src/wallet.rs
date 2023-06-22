@@ -12,6 +12,7 @@ pub use crate::{
 };
 use crate::{
     config::{Configuration, ConfigurationRepository},
+    lock::WalletLock,
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -66,7 +67,6 @@ pub enum WalletUnlockError {
 }
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
-type LockedCallback = Box<dyn Fn(bool) + Send + Sync>;
 
 pub struct Wallet<C, A, S, K> {
     config_repository: C,
@@ -74,9 +74,8 @@ pub struct Wallet<C, A, S, K> {
     storage: S,
     hw_privkey: K,
     registration: Option<RegistrationData>,
-    is_locked: bool,
+    lock: WalletLock,
     config_callback: Option<ConfigurationCallback>,
-    lock_callback: Option<LockedCallback>,
 }
 
 impl<C, A, S, K> Wallet<C, A, S, K>
@@ -98,9 +97,8 @@ where
             storage,
             hw_privkey,
             registration: None,
-            is_locked: true,
+            lock: WalletLock::new(true),
             config_callback: None,
-            lock_callback: None,
         }
     }
 
@@ -132,13 +130,11 @@ where
     where
         F: Fn(bool) + Send + Sync + 'static,
     {
-        callback(self.is_locked);
-        // this callback should be called every time the locked state changes
-        self.lock_callback.replace(Box::new(callback));
+        self.lock.set_lock_callback(callback)
     }
 
     pub fn clear_lock_callback(&mut self) {
-        self.lock_callback.take();
+        self.lock.clear_lock_callback()
     }
 
     pub fn set_config_callback<F>(&mut self, callback: F)
@@ -160,14 +156,11 @@ where
     }
 
     pub fn is_locked(&self) -> bool {
-        self.is_locked
+        self.lock.is_locked()
     }
 
     pub fn lock(&mut self) {
-        self.is_locked = true;
-        if let Some(callback) = self.lock_callback.as_ref() {
-            callback(self.is_locked)
-        }
+        self.lock.lock()
     }
 
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
@@ -175,16 +168,13 @@ where
         // TODO: Validate pin with account server, currently mocking all possible responses based on pin
         if pin == "000000" {
             info!("Mock unlock() pin valid");
-            self.is_locked = false;
-            // We only sync the lock_state here, since all other cases should not change the state.
-            if let Some(callback) = self.lock_callback.as_ref() {
-                callback(self.is_locked)
-            }
+            self.lock.unlock();
+
             return Ok(());
         }
         if pin == "100000" {
             info!("Mock unlock() IncorrectPin (3 attempts left)");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::IncorrectPin {
                 leftover_attempts: 3,
                 is_final_attempt: false,
@@ -192,7 +182,7 @@ where
         }
         if pin == "200000" {
             info!("Mock unlock() IncorrectPinTimeout");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Timeout {
                 timeout_millis: 10 * 1000,
                 /* 10 Sec */
@@ -200,7 +190,7 @@ where
         }
         if pin == "300000" {
             info!("Mock unlock() active Timeout");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Timeout {
                 timeout_millis: 75 * 1000,
                 /* 1 min  15 secs */
@@ -208,17 +198,17 @@ where
         }
         if pin == "400000" {
             info!("Mock unlock() Blocked");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Blocked);
         }
         if pin == "500000" {
             info!("Mock unlock() ServerError");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::ServerError);
         }
 
         info!("Mock unlock() IncorrectPin (1 attempts left)");
-        self.is_locked = true;
+        self.lock.lock();
         Err(WalletUnlockError::IncorrectPin {
             leftover_attempts: 1,
             is_final_attempt: true,
@@ -310,7 +300,7 @@ where
         self.registration = Some(registration_data);
 
         // Unlock the wallet after successful registration
-        self.is_locked = false;
+        self.lock.unlock();
 
         Ok(())
     }
@@ -362,7 +352,7 @@ mod tests {
         ));
 
         // The wallet should be locked by default
-        assert!(wallet.is_locked);
+        assert!(wallet.is_locked());
 
         // Test with a wallet with a database file, no registration.
         let wallet = init_wallet(Some(MockStorage::new(StorageState::Unopened, None)))

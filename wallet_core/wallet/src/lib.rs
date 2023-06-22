@@ -1,6 +1,7 @@
 mod account_server;
 mod config;
 mod init;
+mod lock;
 mod pin;
 mod storage;
 pub mod wallet;
