@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 // Animation
 const kDefaultAnimationDuration = Duration(milliseconds: 300);
 

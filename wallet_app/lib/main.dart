@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
-import 'package:wallet/src/feature/common/widget/flutter_configuration_provider.dart';
+import 'src/feature/common/widget/flutter_configuration_provider.dart';
 
 import 'environment.dart';
 import 'src/di/wallet_bloc_provider.dart';
