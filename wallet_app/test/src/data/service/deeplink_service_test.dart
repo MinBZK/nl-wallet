@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/service/deeplink_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
@@ -13,6 +14,7 @@ void main() {
   late MockTypedWalletCore mockWalletCore;
   late MockDecodeDeeplinkUseCase mockDecodeDeeplinkUseCase;
   late MockIsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
+  late MockUpdateDigidAuthStatusUseCase updateDigidAuthStatusUseCase;
   late MockNavigatorKey navigatorKey;
 
   setUp(() {
@@ -26,12 +28,13 @@ void main() {
     mockWalletCore = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
     mockDecodeDeeplinkUseCase = MockDecodeDeeplinkUseCase();
     isWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
+    updateDigidAuthStatusUseCase = MockUpdateDigidAuthStatusUseCase();
     navigatorKey = MockNavigatorKey();
 
     service = DeeplinkService(
       navigatorKey,
       mockDecodeDeeplinkUseCase,
-      Mocks.create(),
+      updateDigidAuthStatusUseCase,
       isWalletInitializedWithPidUseCase,
       Mocks.create(),
       mockWalletCore,
@@ -46,10 +49,45 @@ void main() {
       verifyZeroInteractions(mockWalletCore);
     });
 
-    test('Wallet core should be called when the DecodeDeeplinkUsecase can not resolve the url', () async {
-      service.processUri(Uri.parse('https://example.org'));
-      verify(mockWalletCore.processUri(any));
+    test('A navigation event should be triggered when a supported deeplink url is provided', () async {
+      // Allow deeplink_service to navigate
+      when(isWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) async => true);
+
+      // Navigation is triggered when supported deeplink is provided
+      when(mockDecodeDeeplinkUseCase.invoke(any)).thenReturn(NavigationRequest('/mock'));
+      await service.processUri(Uri.parse('https://example.org'));
+
+      // Make sure navigation was triggered (note: currently only shallow validation by checking interaction with the navigator)
+      verify(navigatorKey.currentState);
     });
+
+    test(
+      'Wallet core should be called when the DecodeDeeplinkUsecase can not resolve the url',
+      () async {
+        service.processUri(Uri.parse('https://example.org'));
+        verify(mockWalletCore.processUri(any));
+      },
+    );
+
+    test(
+      'Result should be passed on to the updateDigidAuthStatusUseCase when the result is relevant',
+      () async {
+        when(mockWalletCore.processUri(any)).thenAnswer(
+          (_) => Stream.value(const UriFlowEvent.digidAuth(state: DigidState.Success)),
+        );
+        await service.processUri(Uri.parse('https://example.org'));
+        verify(updateDigidAuthStatusUseCase.invoke(any));
+      },
+    );
+
+    test(
+      'Result should not be passed on to the updateDigidAuthStatusUseCase when the result is irrelevant',
+      () async {
+        when(mockWalletCore.processUri(any)).thenAnswer((_) => Stream.error('Error'));
+        await service.processUri(Uri.parse('https://example.org'));
+        verifyNever(updateDigidAuthStatusUseCase.invoke(any));
+      },
+    );
   });
 
   group('processQueue', () {
