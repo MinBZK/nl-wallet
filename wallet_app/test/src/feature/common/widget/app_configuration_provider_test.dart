@@ -1,17 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/bridge_generated.dart';
-import 'package:wallet/src/feature/common/widget/flutter_configuration_provider.dart';
+import 'package:wallet/src/domain/model/configuration/app_configuration.dart';
+import 'package:wallet/src/feature/common/widget/app_configuration_provider.dart';
 
 void main() {
-  const defaultMockConfig = FlutterConfiguration(inactiveLockTimeout: 5, backgroundLockTimeout: 10);
+  const defaultMockConfig = AppConfiguration(
+    idleLockTimeout: Duration(seconds: 10),
+    backgoundLockTimeout: Duration(seconds: 20),
+  );
 
   testWidgets(
     'verify builder is called when a config is available',
-    (tester) async {
+        (tester) async {
       bool called = false;
       await tester.pumpWidget(
-        FlutterConfigurationProvider(
+        AppConfigurationProvider(
           configProvider: const Stream.empty(),
           defaultConfig: defaultMockConfig,
           builder: (config) {
@@ -26,10 +29,13 @@ void main() {
   );
 
   testWidgets('verify builder is called when a config is available', (tester) async {
-    const expectedConfig = FlutterConfiguration(inactiveLockTimeout: 8, backgroundLockTimeout: 9);
-    late FlutterConfiguration receivedConfig;
+    const expectedConfig = AppConfiguration(
+      idleLockTimeout: Duration(seconds: 8),
+      backgoundLockTimeout: Duration(seconds: 5),
+    );
+    late AppConfiguration receivedConfig;
     await tester.pumpWidget(
-      FlutterConfigurationProvider(
+      AppConfigurationProvider(
         configProvider: Stream.value(expectedConfig),
         defaultConfig: defaultMockConfig,
         builder: (config) {
@@ -42,7 +48,6 @@ void main() {
     // Make sure stream is processed
     await tester.pumpAndSettle();
 
-    expect(receivedConfig.backgroundLockTimeout, expectedConfig.backgroundLockTimeout);
-    expect(receivedConfig.inactiveLockTimeout, expectedConfig.inactiveLockTimeout);
+    expect(receivedConfig, expectedConfig);
   });
 }

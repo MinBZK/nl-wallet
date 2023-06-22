@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../bridge_generated.dart';
 import '../../data/repository/wallet/wallet_repository.dart';
+import '../../domain/model/configuration/app_configuration.dart';
 import 'widget/interaction_detector.dart';
 
 class AutoLockObserver extends StatefulWidget {
   final Widget child;
-  final FlutterConfiguration configuration;
+  final AppConfiguration configuration;
 
   const AutoLockObserver({
     required this.child,
@@ -51,14 +51,14 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   void _setupNoInteractionListener() {
     _inactiveSubscription?.cancel();
     _inactiveSubscription = _userInteractionStream
-        .debounceTime(Duration(seconds: widget.configuration.inactiveLockTimeout))
+        .debounceTime(widget.configuration.idleLockTimeout)
         .listen((event) => _lockWallet());
   }
 
   @override
   void didUpdateWidget(AutoLockObserver oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.configuration.inactiveLockTimeout != widget.configuration.inactiveLockTimeout) {
+    if (oldWidget.configuration.idleLockTimeout != widget.configuration.idleLockTimeout) {
       _setupNoInteractionListener();
     }
   }
@@ -80,7 +80,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   /// Locks the app if needed, and reset the stopwatch for future use.
   void _checkAndResetStopwatch() {
     _backgroundStopwatch.stop();
-    if (_backgroundStopwatch.elapsed >= Duration(seconds: widget.configuration.backgroundLockTimeout)) _lockWallet();
+    if (_backgroundStopwatch.elapsed >= widget.configuration.backgoundLockTimeout) _lockWallet();
     _backgroundStopwatch.reset();
   }
 
