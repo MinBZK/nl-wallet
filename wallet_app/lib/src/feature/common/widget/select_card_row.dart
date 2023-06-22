@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
-import 'card/sized_card_front.dart';
+import 'card/wallet_card_item.dart';
 
 const _kCardDisplayWidth = 40.0;
 
@@ -32,9 +32,11 @@ class SelectCardRow extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedCardFront(
-                    cardFront: card.front,
-                    displayWidth: _kCardDisplayWidth,
+                  child: SizedBox(
+                    width: _kCardDisplayWidth,
+                    child: WalletCardItem.fromCardFront(
+                      front: card.front,
+                    ),
                   ),
                 ),
                 Expanded(

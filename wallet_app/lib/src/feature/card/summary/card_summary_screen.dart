@@ -14,7 +14,7 @@ import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/card/sized_card_front.dart';
+import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/info_row.dart';
@@ -25,7 +25,6 @@ import 'argument/card_summary_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 
 const _kCardExpiresInDays = 365; // 1 year for demo purposes
-const _kCardDisplayPaddingHorizontal = 56;
 
 class CardSummaryScreen extends StatelessWidget {
   static CardSummaryScreenArgument getArgument(RouteSettings settings) {
@@ -79,9 +78,9 @@ class CardSummaryScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: 24),
               children: [
                 const SizedBox(height: 8),
-                SizedCardFront(
-                  cardFront: card.front,
-                  displayWidth: MediaQuery.of(context).size.width - (_kCardDisplayPaddingHorizontal * 2),
+                FractionallySizedBox(
+                  widthFactor: 0.6,
+                  child: WalletCardItem.fromCardFront(front: card.front),
                 ),
                 const SizedBox(height: 32),
                 const Divider(height: 1),
