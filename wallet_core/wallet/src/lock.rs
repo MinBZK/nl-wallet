@@ -1,5 +1,9 @@
 use std::fmt::Debug;
 
+/// This models the locked state of the wallet. Locking and unlocking
+/// is restricted to the [`Self::lock()`] and [`Self::unlock()`] methods.
+/// Optionally, a callback can be set to get notified whenever the locked
+/// state changes.
 pub struct WalletLock {
     is_locked: bool,
     update_callback: Option<Box<dyn Fn(bool) + Send + Sync>>,

@@ -12,12 +12,16 @@ pub struct Configuration {
 
 #[derive(Debug)]
 pub struct LockTimeoutConfiguration {
+    /// App inactivity lock timeout in seconds
     pub inactive_timeout: u16,
+    /// App background lock timeout in seconds
     pub background_timeout: u16,
 }
 
 pub struct AccountServerConfiguration {
+    // The base URL for the Account Server API
     pub base_url: Url,
+    // The known public key for the Wallet Provider
     pub public_key: EcdsaDecodingKey,
 }
 
