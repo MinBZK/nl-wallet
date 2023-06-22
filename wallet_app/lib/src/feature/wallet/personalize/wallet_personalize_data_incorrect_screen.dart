@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/placeholder_screen.dart';
 
@@ -9,10 +9,9 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.walletPersonalizeDataIncorrectScreenTitle),
+        title: Text(context.l10n.walletPersonalizeDataIncorrectScreenTitle),
       ),
       body: CustomScrollView(
         slivers: [
@@ -23,13 +22,13 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    locale.walletPersonalizeDataIncorrectScreenSubhead,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    context.l10n.walletPersonalizeDataIncorrectScreenSubhead,
+                    style: context.textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    locale.walletPersonalizeDataIncorrectScreenDescription,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    context.l10n.walletPersonalizeDataIncorrectScreenDescription,
+                    style: context.textTheme.bodyLarge,
                   ),
                 ],
               ),
@@ -54,8 +53,8 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ElevatedButton(
               onPressed: () => PlaceholderScreen.show(context),
-              child: Text(AppLocalizations.of(context).walletPersonalizeDataIncorrectScreenPrimaryCta),
-             ),
+              child: Text(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta),
+            ),
           ),
           const BottomBackButton(),
         ],

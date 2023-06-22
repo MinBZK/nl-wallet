@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../svg_or_image.dart';
 import '../utility/limit_font_scaling.dart';
 import 'card_holograph.dart';
@@ -140,11 +141,11 @@ class WalletCardItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.displaySmall),
+                Text(title, style: context.textTheme.displaySmall),
                 const SizedBox(height: 4),
-                Text(subtitle1 ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                Text(subtitle1 ?? '', style: context.textTheme.bodyLarge),
                 const SizedBox(height: 4),
-                Text(subtitle2 ?? '', style: Theme.of(context).textTheme.bodyLarge),
+                Text(subtitle2 ?? '', style: context.textTheme.bodyLarge),
                 const SizedBox(height: 16),
                 const Opacity(
                   /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */
@@ -185,10 +186,9 @@ class WalletCardItem extends StatelessWidget {
 
   /// Resolve the [ThemeData] for the selected [brightness], making sure the text contrasts the provided [background]
   ThemeData _resolveTheme(BuildContext context) {
-    final theme = Theme.of(context);
     final textColor = brightness == Brightness.light ? _kLightBrightnessTextColor : _kDarkBrightnessTextColor;
-    return Theme.of(context).copyWith(
-      textTheme: theme.textTheme.apply(bodyColor: textColor, displayColor: textColor),
+    return context.theme.copyWith(
+      textTheme: context.textTheme.apply(bodyColor: textColor, displayColor: textColor),
     );
   }
 }

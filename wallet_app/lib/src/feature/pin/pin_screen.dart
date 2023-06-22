@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import 'pin_page.dart';
 
 class PinScreen extends StatelessWidget {
@@ -12,7 +12,7 @@ class PinScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).pinScreenTitle),
+        title: Text(context.l10n.pinScreenTitle),
         leading: const SizedBox.shrink(),
       ),
       body: PinPage(onPinValidated: onUnlock),

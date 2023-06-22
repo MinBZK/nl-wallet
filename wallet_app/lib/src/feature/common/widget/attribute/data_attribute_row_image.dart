@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 const _kImageBorderRadius = 4.0;
 const _kImageWidth = 58.0;
 const _kImageHeight = 64.0;
@@ -23,7 +25,7 @@ class DataAttributeRowImage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               label ?? '',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: context.textTheme.bodySmall,
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'button/text_icon_button.dart';
 
 class ExplanationSheet extends StatelessWidget {
@@ -26,7 +27,7 @@ class ExplanationSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               title,
-              style: Theme.of(context).textTheme.displayMedium,
+              style: context.textTheme.displayMedium,
               textAlign: TextAlign.start,
             ),
           ),
@@ -35,7 +36,7 @@ class ExplanationSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               description,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: context.textTheme.bodyLarge,
             ),
           ),
           const Divider(height: 32),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 class InfoRow extends StatelessWidget {
   final String? title;
   final String? subtitle;
@@ -30,7 +32,7 @@ class InfoRow extends StatelessWidget {
             leading ??
                 Icon(
                   icon,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.colorScheme.primary,
                 ),
             const SizedBox(width: 16),
             Expanded(
@@ -41,12 +43,12 @@ class InfoRow extends StatelessWidget {
                   if (title != null)
                     Text(
                       title!,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: context.textTheme.titleMedium,
                     ),
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: context.textTheme.bodyMedium,
                     ),
                 ],
               ),
@@ -55,7 +57,7 @@ class InfoRow extends StatelessWidget {
             if (onTap != null)
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).primaryColorDark,
+                color: context.theme.primaryColorDark,
               ),
           ],
         ),

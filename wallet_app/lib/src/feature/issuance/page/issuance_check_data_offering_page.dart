@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
-import '../../common/widget/check_data_offering_page.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/check_data_offering_page.dart';
 
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -19,22 +19,20 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
       attributes: attributes,
-      title: locale.issuanceCheckDataOfferingPageTitle,
-      subtitle: locale.issuanceCheckDataOfferingPageSubtitle,
+      title: context.l10n.issuanceCheckDataOfferingPageTitle,
+      subtitle: context.l10n.issuanceCheckDataOfferingPageSubtitle,
     );
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmButtons(
       onAcceptPressed: onAcceptPressed,
-      acceptText: locale.issuanceCheckDataOfferingPagePositiveCta,
+      acceptText: context.l10n.issuanceCheckDataOfferingPagePositiveCta,
       onDeclinePressed: onDeclinePressed,
-      declineText: locale.issuanceCheckDataOfferingPageNegativeCta,
+      declineText: context.l10n.issuanceCheckDataOfferingPageNegativeCta,
       acceptIcon: Icons.check,
     );
   }

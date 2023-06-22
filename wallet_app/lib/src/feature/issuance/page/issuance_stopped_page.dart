@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/flow_terminal_page.dart';
 
 class IssuanceStoppedPage extends StatelessWidget {
@@ -15,15 +15,14 @@ class IssuanceStoppedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.not_interested,
-      iconColor: Theme.of(context).primaryColorDark,
-      title: locale.issuanceStoppedPageTitle,
-      description: locale.issuanceStoppedPageDescription,
-      closeButtonCta: locale.issuanceStoppedPageCloseCta,
+      iconColor: context.theme.primaryColorDark,
+      title: context.l10n.issuanceStoppedPageTitle,
+      description: context.l10n.issuanceStoppedPageDescription,
+      closeButtonCta: context.l10n.issuanceStoppedPageCloseCta,
       onClosePressed: onClosePressed,
-      secondaryButtonCta: locale.issuanceStoppedPageGiveFeedbackCta,
+      secondaryButtonCta: context.l10n.issuanceStoppedPageGiveFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
     );
   }

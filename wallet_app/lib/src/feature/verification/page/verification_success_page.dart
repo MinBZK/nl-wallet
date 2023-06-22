@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/flow_terminal_page.dart';
 
 class VerificationSuccessPage extends StatelessWidget {
@@ -17,14 +17,13 @@ class VerificationSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.check,
-      title: locale.verificationSuccessPageTitle,
-      description: locale.verificationSuccessPageDescription(verifierShortName),
-      closeButtonCta: locale.verificationSuccessPageCloseCta,
+      title: context.l10n.verificationSuccessPageTitle,
+      description: context.l10n.verificationSuccessPageDescription(verifierShortName),
+      closeButtonCta: context.l10n.verificationSuccessPageCloseCta,
       onClosePressed: onClosePressed,
-      tertiaryButtonCta: locale.verificationSuccessPageShowHistoryCta,
+      tertiaryButtonCta: context.l10n.verificationSuccessPageShowHistoryCta,
       onTertiaryButtonPressed: onHistoryPressed,
     );
   }

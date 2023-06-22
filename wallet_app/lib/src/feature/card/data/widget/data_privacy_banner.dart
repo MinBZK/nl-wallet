@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
@@ -14,10 +14,9 @@ class DataPrivacyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      color: Theme.of(context).colorScheme.tertiaryContainer,
+      color: context.colorScheme.tertiaryContainer,
       child: Row(
         children: [
           const Icon(Icons.gpp_maybe_outlined),
@@ -25,12 +24,12 @@ class DataPrivacyBanner extends StatelessWidget {
           Expanded(
             child: Text.rich(
               TextSpan(
-                text: locale.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
+                text: context.l10n.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
                 children: [
                   TextSpan(
-                    text: locale.cardDataScreenDataPrivacyBannerReadMore,
+                    text: context.l10n.cardDataScreenDataPrivacyBannerReadMore,
                     recognizer: TapGestureRecognizer()..onTap = onPressed,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(decoration: TextDecoration.underline),
+                    style: context.textTheme.bodyMedium?.copyWith(decoration: TextDecoration.underline),
                   )
                 ],
               ),

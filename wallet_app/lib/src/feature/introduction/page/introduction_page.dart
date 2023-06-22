@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 const _kCoverHeaderImageDesiredHeight = 250.0;
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
 
@@ -122,14 +124,14 @@ class IntroductionPage extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.displayLarge,
+            style: context.textTheme.displayLarge,
             textAlign: TextAlign.start,
             textScaleFactor: 1,
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],

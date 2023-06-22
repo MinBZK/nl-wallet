@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
@@ -114,8 +114,8 @@ class DigidPinPage extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              AppLocalizations.of(context).mockDigidScreenEnterPin,
-              style: Theme.of(context).textTheme.bodyMedium,
+              context.l10n.mockDigidScreenEnterPin,
+              style: context.textTheme.bodyMedium,
             ),
           ),
           const Icon(Icons.help, size: 20),
@@ -139,12 +139,12 @@ class DigidPinPage extends StatelessWidget {
   Widget _buildForgotPinCta(BuildContext context) {
     return Center(
       child: Text(
-        AppLocalizations.of(context).mockDigidScreenForgotPinCta,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              decoration: TextDecoration.underline,
-            ),
+        context.l10n.mockDigidScreenForgotPinCta,
+        style: context.textTheme.bodyMedium?.copyWith(
+          color: context.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+        ),
       ),
     );
   }
@@ -161,7 +161,7 @@ class DigidPinPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.grey, width: 2),
       ),
-      child: filled ? Text('*', style: Theme.of(context).textTheme.displayMedium) : const SizedBox.shrink(),
+      child: filled ? Text('*', style: context.textTheme.displayMedium) : const SizedBox.shrink(),
     );
   }
 }

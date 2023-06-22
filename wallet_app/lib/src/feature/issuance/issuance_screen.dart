@@ -1,10 +1,10 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -75,11 +75,10 @@ class IssuanceScreen extends StatelessWidget {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       buildWhen: (previous, current) => current is IssuanceInitial && current is IssuanceLoadInProgress,
       builder: (context, state) {
-        final locale = AppLocalizations.of(context);
         if (state.isRefreshFlow) {
-          return Text(locale.issuanceScreenRefreshTitle);
+          return Text(context.l10n.issuanceScreenRefreshTitle);
         } else {
-          return Text(locale.issuanceScreenTitle);
+          return Text(context.l10n.issuanceScreenTitle);
         }
       },
     );
@@ -211,15 +210,14 @@ class IssuanceScreen extends StatelessWidget {
   void _stopIssuance(BuildContext context) async {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
-      final locale = AppLocalizations.of(context);
       final organizationName = bloc.state.organization?.shortName ?? '-';
       final stopped = await ConfirmActionSheet.show(
         context,
-        title: locale.issuanceStopSheetTitle,
-        description: locale.issuanceStopSheetDescription(organizationName),
-        cancelButtonText: locale.issuanceStopSheetNegativeCta,
-        confirmButtonText: locale.issuanceStopSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).colorScheme.error,
+        title: context.l10n.issuanceStopSheetTitle,
+        description: context.l10n.issuanceStopSheetDescription(organizationName),
+        cancelButtonText: context.l10n.issuanceStopSheetNegativeCta,
+        confirmButtonText: context.l10n.issuanceStopSheetPositiveCta,
+        confirmButtonColor: context.colorScheme.error,
       );
       if (stopped) bloc.add(IssuanceStopRequested(bloc.state.flow));
     } else {

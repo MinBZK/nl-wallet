@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/organization/organization_logo.dart';
 
 const _kOrganizationLogoSize = 72.0;
@@ -21,8 +21,8 @@ class DigidSignInWithOrganization extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            AppLocalizations.of(context).mockDigidScreenSignInOrganization,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.mockDigidScreenSignInOrganization,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ],

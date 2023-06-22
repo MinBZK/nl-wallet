@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/icon_row.dart';
 
 class ColorStylesTab extends StatelessWidget {
@@ -13,23 +14,23 @@ class ColorStylesTab extends StatelessWidget {
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.primary,
+            color: context.colorScheme.primary,
           ),
           text: const Text('colorScheme.primary'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.primaryContainer,
+            color: context.colorScheme.primaryContainer,
           ),
           text: const Text('colorScheme.primaryContainer'),
         ),
         Container(
-          color: Theme.of(context).colorScheme.primary,
+          color: context.colorScheme.primary,
           child: IconRow(
             icon: Icon(
               Icons.circle,
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: context.colorScheme.onPrimary,
             ),
             text: const Text('colorScheme.onPrimary'),
           ),
@@ -37,49 +38,49 @@ class ColorStylesTab extends StatelessWidget {
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.secondary,
+            color: context.colorScheme.secondary,
           ),
           text: const Text('colorScheme.secondary'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.secondaryContainer,
+            color: context.colorScheme.secondaryContainer,
           ),
           text: const Text('colorScheme.secondaryContainer'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.background,
+            color: context.colorScheme.background,
           ),
           text: const Text('colorScheme.background'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.onBackground,
+            color: context.colorScheme.onBackground,
           ),
           text: const Text('colorScheme.onBackground'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.error,
+            color: context.colorScheme.error,
           ),
           text: const Text('colorScheme.error'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: context.colorScheme.onSurface,
           ),
           text: const Text('colorScheme.onSurface'),
         ),
         IconRow(
           icon: Icon(
             Icons.circle,
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: context.colorScheme.outlineVariant,
           ),
           text: const Text('colorScheme.outlineVariant'),
         ),

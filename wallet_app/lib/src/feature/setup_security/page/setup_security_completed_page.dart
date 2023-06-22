@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/flow_terminal_page.dart';
 
 class SetupSecurityCompletedPage extends StatelessWidget {
@@ -10,12 +10,11 @@ class SetupSecurityCompletedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.check,
-      title: locale.setupSecurityCompletedPageTitle,
-      closeButtonCta: locale.setupSecurityCompletedPageCreateWalletCta,
-      description: locale.setupSecurityCompletedPageDescription,
+      title: context.l10n.setupSecurityCompletedPageTitle,
+      closeButtonCta: context.l10n.setupSecurityCompletedPageCreateWalletCta,
+      description: context.l10n.setupSecurityCompletedPageDescription,
       onClosePressed: onSetupWalletPressed,
     );
   }

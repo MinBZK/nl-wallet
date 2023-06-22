@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'localization/preferred_locale_cubit.dart';
-import 'theme/wallet_theme.dart';
 import 'navigation/wallet_routes.dart';
+import 'theme/wallet_theme.dart';
+import 'util/extension/build_context_extension.dart';
 
 class WalletApp extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
@@ -20,7 +21,7 @@ class WalletApp extends StatelessWidget {
           supportedLocales: AppLocalizations.supportedLocales,
           navigatorKey: navigatorKey,
           locale: locale,
-          onGenerateTitle: (BuildContext context) => AppLocalizations.of(context).appTitle,
+          onGenerateTitle: (BuildContext context) => context.l10n.appTitle,
           theme: WalletTheme.light,
           darkTheme: WalletTheme.dark,
           onGenerateInitialRoutes: WalletRoutes.initialRoutes,

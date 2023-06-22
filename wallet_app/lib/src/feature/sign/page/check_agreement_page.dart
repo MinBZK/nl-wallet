@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/document_section.dart';
@@ -49,9 +49,9 @@ class CheckAgreementPage extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
                 onAcceptPressed: onAccept,
-                acceptText: AppLocalizations.of(context).checkAgreementPageConfirmCta,
+                acceptText: context.l10n.checkAgreementPageConfirmCta,
                 onDeclinePressed: onDecline,
-                declineText: AppLocalizations.of(context).checkAgreementPageCancelCta,
+                declineText: context.l10n.checkAgreementPageCancelCta,
               ),
             ),
           ),
@@ -73,14 +73,14 @@ class CheckAgreementPage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            AppLocalizations.of(context).checkAgreementPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.checkAgreementPageTitle,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).checkAgreementPageSubtitle,
-            style: Theme.of(context).textTheme.bodyLarge,
+            context.l10n.checkAgreementPageSubtitle,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -95,7 +95,7 @@ class CheckAgreementPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 8),
-          child: Text(AppLocalizations.of(context).checkAgreementPageDataIncorrectCta),
+          child: Text(context.l10n.checkAgreementPageDataIncorrectCta),
         ),
       ),
     );
@@ -110,11 +110,11 @@ class CheckAgreementPage extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              AppLocalizations.of(context).checkAgreementPageSignProvider(
+              context.l10n.checkAgreementPageSignProvider(
                 flow.organization.shortName,
                 flow.trustProvider.name,
               ),
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: context.textTheme.bodyLarge,
             ),
           )
         ],

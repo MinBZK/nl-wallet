@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/attribute/data_attribute.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import 'data_attribute_row.dart';
 
 class DataAttributeSection extends StatelessWidget {
@@ -31,10 +31,9 @@ class DataAttributeSection extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, String text) {
-    final locale = AppLocalizations.of(context);
     return Text(
-      locale.dataAttributeSectionTitle(text),
-      style: Theme.of(context).textTheme.bodyMedium,
+      context.l10n.dataAttributeSectionTitle(text),
+      style: context.textTheme.bodyMedium,
     );
   }
 }

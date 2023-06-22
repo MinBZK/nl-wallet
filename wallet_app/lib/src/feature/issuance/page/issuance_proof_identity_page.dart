@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/issuance_flow.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
@@ -46,9 +46,9 @@ class IssuanceProofIdentityPage extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
                 onAcceptPressed: onAcceptPressed,
-                acceptText: AppLocalizations.of(context).issuanceProofIdentityPagePositiveCta,
+                acceptText: context.l10n.issuanceProofIdentityPagePositiveCta,
                 onDeclinePressed: onDeclinePressed,
-                declineText: AppLocalizations.of(context).issuanceProofIdentityPageNegativeCta,
+                declineText: context.l10n.issuanceProofIdentityPageNegativeCta,
                 acceptIcon: Icons.arrow_forward,
               ),
             ),
@@ -59,11 +59,10 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     final organization = flow.organization;
     final issuanceProofIdentityPageSubtitle = isRefreshFlow
-        ? locale.issuanceProofIdentityPageRefreshDataSubtitle(organization.shortName)
-        : locale.issuanceProofIdentityPageSubtitle(organization.shortName);
+        ? context.l10n.issuanceProofIdentityPageRefreshDataSubtitle(organization.shortName)
+        : context.l10n.issuanceProofIdentityPageSubtitle(organization.shortName);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -72,13 +71,13 @@ class IssuanceProofIdentityPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            locale.issuanceProofIdentityPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.issuanceProofIdentityPageTitle,
+            style: context.textTheme.displayMedium,
           ),
           const SizedBox(height: 8),
           Text(
             issuanceProofIdentityPageSubtitle,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
           ),
         ],
       ),
@@ -103,7 +102,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
         alignment: AlignmentDirectional.centerStart,
         child: LinkButton(
           onPressed: () => PlaceholderScreen.show(context),
-          child: Text(AppLocalizations.of(context).issuanceProofIdentityPageIncorrectCta),
+          child: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
         ),
       ),
     );

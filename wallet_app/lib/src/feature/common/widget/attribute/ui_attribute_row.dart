@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/ui_attribute.dart';
+import '../../../../util/extension/build_context_extension.dart';
 
 class UiAttributeRow extends StatelessWidget {
   final UiAttribute attribute;
@@ -16,7 +17,7 @@ class UiAttributeRow extends StatelessWidget {
         Icon(
           attribute.icon,
           size: 24,
-          color: Theme.of(context).colorScheme.primary,
+          color: context.colorScheme.primary,
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -25,11 +26,11 @@ class UiAttributeRow extends StatelessWidget {
             children: [
               Text(
                 attribute.label,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: context.textTheme.bodySmall,
               ),
               Text(
                 attribute.value,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: context.textTheme.titleMedium,
               ),
             ],
           ),

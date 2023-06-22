@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'button/link_button.dart';
 import 'button/text_icon_button.dart';
 import 'status_icon.dart';
@@ -66,7 +67,7 @@ class FlowTerminalPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               title,
-              style: Theme.of(context).textTheme.displayMedium,
+              style: context.textTheme.displayMedium,
               textAlign: TextAlign.start,
             ),
           ),
@@ -75,7 +76,7 @@ class FlowTerminalPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               description,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: context.textTheme.bodyLarge,
               textAlign: TextAlign.start,
             ),
           ),

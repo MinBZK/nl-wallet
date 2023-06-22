@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/usecase/pin/confirm_transaction_usecase.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/pin_header.dart';
 import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
@@ -21,7 +21,6 @@ class VerificationConfirmPinPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return BlocProvider<PinBloc>(
       create: (BuildContext context) => bloc ?? PinBloc(context.read<ConfirmTransactionUseCase>()),
       child: PinPage(
@@ -29,11 +28,11 @@ class VerificationConfirmPinPage extends StatelessWidget {
           final hasError = attempts != null;
           final String title, description;
           if (!hasError) {
-            title = locale.verificationConfirmPinPageTitle;
-            description = locale.verificationConfirmPinPageDescription;
+            title = context.l10n.verificationConfirmPinPageTitle;
+            description = context.l10n.verificationConfirmPinPageDescription;
           } else {
-            title = locale.verificationConfirmPinPageErrorTitle;
-            description = locale.verificationConfirmPinPageErrorDescription(attempts);
+            title = context.l10n.verificationConfirmPinPageErrorTitle;
+            description = context.l10n.verificationConfirmPinPageErrorDescription(attempts);
           }
           return PinHeader(
             hasError: hasError,
