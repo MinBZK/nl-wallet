@@ -33,8 +33,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.isValidPin(pin: pin);
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -43,8 +42,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.register(pin: pin);
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -53,8 +51,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.hasRegistration();
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -63,8 +60,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.getDigidAuthUrl();
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -73,8 +69,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.lockWallet();
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -83,8 +78,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return await _walletCore.unlockWallet(pin: pin);
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
@@ -96,18 +90,20 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     try {
       return _walletCore.processUri(uri: uri.toString());
     } catch (ex) {
-      _decodeFlutterApiError(ex);
-      rethrow;
+      throw _handleCoreException(ex);
     }
   }
 
-  /// Check the exception and throws it as a [FlutterApiError]
-  /// if it can be mapped into one.
-  void _decodeFlutterApiError(Object ex) {
+  /// Converts the exception to a [FlutterApiError]
+  /// if it can be mapped into one, otherwise returns
+  /// the original exception.
+  Object _handleCoreException(Object ex) {
     if (ex is FfiException) {
-      if (ex.code != 'RESULT_ERROR') return;
+      if (ex.code != 'RESULT_ERROR') return ex;
       var decodedJson = json.decode(ex.message);
-      throw FlutterApiError.fromJson(decodedJson);
+      return FlutterApiError.fromJson(decodedJson);
+    } else {
+      return ex;
     }
   }
 }
