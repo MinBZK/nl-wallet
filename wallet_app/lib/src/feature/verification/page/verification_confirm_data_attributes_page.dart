@@ -122,6 +122,8 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const SizedBox(height: 24),
         Container(
