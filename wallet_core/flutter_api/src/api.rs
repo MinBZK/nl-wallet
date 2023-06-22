@@ -20,28 +20,12 @@ use crate::{
     stream::ClosingStreamSink,
 };
 
-struct WalletApiEnvironment {
-    wallet: RwLock<Wallet>,
-}
-
-impl WalletApiEnvironment {
-    fn new(wallet: Wallet) -> Self {
-        WalletApiEnvironment {
-            wallet: RwLock::new(wallet),
-        }
-    }
-}
-
-static WALLET_API_ENVIRONMENT: OnceCell<WalletApiEnvironment> = OnceCell::const_new();
-
-fn wallet_environment() -> &'static WalletApiEnvironment {
-    WALLET_API_ENVIRONMENT
-        .get()
-        .expect("Wallet must be initialized. Please execute `init()` first.")
-}
+static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
 fn wallet() -> &'static RwLock<Wallet> {
-    &wallet_environment().wallet
+    WALLET
+        .get()
+        .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
 pub fn init() -> Result<()> {
@@ -54,7 +38,7 @@ pub fn init() -> Result<()> {
     // This function may also be called safely more than once.
     init_async_runtime()?;
 
-    let initialized = init_wallet_environment()?;
+    let initialized = create_wallet()?;
     assert!(initialized, "Wallet can only be initialized once");
 
     Ok(())
@@ -64,16 +48,16 @@ pub fn init() -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment() -> Result<bool> {
+async fn create_wallet() -> Result<bool> {
     let mut created = false;
 
-    _ = WALLET_API_ENVIRONMENT
+    _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(WalletApiEnvironment::new(wallet))
+            Ok(RwLock::new(wallet))
         })
         .await?;
 
@@ -122,8 +106,7 @@ pub async fn clear_configuration_stream() -> Result<()> {
 
 #[async_runtime]
 pub async fn unlock_wallet(pin: String) -> Vec<u8> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     let unlock_result = wallet.unlock(pin).await;
     let wallet_unlock_result = WalletUnlockResult::from(unlock_result);
@@ -133,8 +116,7 @@ pub async fn unlock_wallet(pin: String) -> Vec<u8> {
 
 #[async_runtime]
 pub async fn lock_wallet() -> Result<()> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     wallet.lock();
 
@@ -149,8 +131,7 @@ pub async fn has_registration() -> Result<bool> {
 
 #[async_runtime]
 pub async fn register(pin: String) -> Result<()> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     wallet.register(pin).await?;
 
