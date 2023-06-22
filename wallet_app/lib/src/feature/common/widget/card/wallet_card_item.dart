@@ -11,16 +11,13 @@ import 'card_logo.dart';
 import 'show_details_cta.dart';
 
 const _kMaxCardTextScale = 2.5;
-const _kCardAspectRatio = 328.0 / 192.0;
+const _kCardRenderSize = Size(328, 192);
 const _kCardBorderRadius = BorderRadius.all(Radius.circular(12));
 const _kCardContentPadding = 24.0;
 const _kLightBrightnessTextColor = LightWalletTheme.textColor;
 const _kDarkBrightnessTextColor = DarkWalletTheme.textColor;
 
 class WalletCardItem extends StatelessWidget {
-  /// Defines the default size of the card when rendered
-  static const kCardRenderSize = Size(328, 192);
-
   /// The cards title
   final String title;
 
@@ -78,28 +75,32 @@ class WalletCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data: _resolveTheme(context),
-      child: LimitFontScaling(
-        maxTextScaleFactor: _kMaxCardTextScale,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minCardHeight = constraints.maxWidth / _kCardAspectRatio;
-            return ConstrainedBox(
-              constraints: BoxConstraints(minHeight: minCardHeight),
-              child: ClipRRect(
-                borderRadius: _kCardBorderRadius,
-                child: Stack(
-                  children: [
-                    _buildBackground(context),
-                    _buildHolograph(context, minCardHeight),
-                    _buildContent(context),
-                    _buildShowDetailsCta(context),
-                    _buildRippleAndFocus(context),
-                  ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return LimitFontScaling(
+            maxTextScaleFactor: _kMaxCardTextScale,
+            child: FittedBox(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: _kCardRenderSize.width,
+                  minHeight: _kCardRenderSize.height,
+                ),
+                child: ClipRRect(
+                  borderRadius: _kCardBorderRadius,
+                  child: Stack(
+                    children: [
+                      _buildBackground(context),
+                      _buildHolograph(context, _kCardRenderSize.height),
+                      _buildContent(context),
+                      _buildShowDetailsCta(context),
+                      _buildRippleAndFocus(context),
+                    ],
+                  ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -175,7 +176,7 @@ class WalletCardItem extends StatelessWidget {
   }
 
   Widget _buildShowDetailsCta(BuildContext context) {
-    if (onPressed == null) return const SizedBox.shrink();
+    if (!_showDetailsCta) return const SizedBox.shrink();
     return const Positioned(
       bottom: _kCardContentPadding,
       left: _kCardContentPadding,
@@ -191,4 +192,6 @@ class WalletCardItem extends StatelessWidget {
       textTheme: context.textTheme.apply(bodyColor: textColor, displayColor: textColor),
     );
   }
+
+  bool get _showDetailsCta => onPressed != null;
 }

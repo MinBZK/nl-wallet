@@ -43,7 +43,7 @@ class CardHolograph extends StatelessWidget {
           child: SvgOrImage(
             asset: holograph,
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
+            alignment: Alignment.center,
           ),
         ),
         Foil(
