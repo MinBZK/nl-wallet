@@ -29,7 +29,6 @@ class WalletDataSourceProvider extends StatelessWidget {
         ),
         RepositoryProvider<TypedWalletCore>(
           create: (context) => TypedWalletCoreImpl(api),
-          lazy: false,
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),
