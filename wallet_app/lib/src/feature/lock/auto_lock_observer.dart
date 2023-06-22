@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +26,7 @@ class AutoLockObserver extends StatefulWidget {
 class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBindingObserver {
   final PublishSubject<void> _userInteractionStream = PublishSubject();
   final Stopwatch _backgroundStopwatch = Stopwatch();
+  StreamSubscription? _inactiveSubscription;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +40,26 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _userInteractionStream
-        .debounceTime(Duration(seconds: widget.configuration.inactiveLockTimeout))
-        .listen((event) => _lockWallet());
+    _setupNoInteractionListener();
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       _lockWallet();
     } else {
       _resetIdleTimeout();
+    }
+  }
+
+  void _setupNoInteractionListener() {
+    _inactiveSubscription?.cancel();
+    _inactiveSubscription = _userInteractionStream
+        .debounceTime(Duration(seconds: widget.configuration.inactiveLockTimeout))
+        .listen((event) => _lockWallet());
+  }
+
+  @override
+  void didUpdateWidget(AutoLockObserver oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.configuration.inactiveLockTimeout != widget.configuration.inactiveLockTimeout) {
+      _setupNoInteractionListener();
     }
   }
 
