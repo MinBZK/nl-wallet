@@ -125,6 +125,8 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     final locale = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const SizedBox(height: 24),
         Container(
