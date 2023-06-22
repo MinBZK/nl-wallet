@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import '../../../util/extension/build_context_extension.dart';
 
 /// Force highest res version here, avoids bloating the assets with files that are temporary by nature.
 const _kDigidLogoPath = 'assets/images/3.0x/digid_logo.png';
@@ -19,12 +20,11 @@ class DigidSplashPage extends StatelessWidget {
           SafeArea(child: _buildBody(context)),
         ],
       ),
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: context.colorScheme.primary,
     );
   }
 
   Widget _buildBody(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
@@ -43,8 +43,8 @@ class DigidSplashPage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        locale.mockDigidScreenTitle,
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.black),
+                        context.l10n.mockDigidScreenTitle,
+                        style: context.textTheme.displayMedium?.copyWith(color: Colors.black),
                       ),
                     ],
                   ),

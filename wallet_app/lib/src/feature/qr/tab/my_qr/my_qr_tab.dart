@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/explanation_sheet.dart';
 import '../../../common/widget/utility/max_brightness.dart';
-import '../../../common/widget/button/text_icon_button.dart';
 
 const _kLandscapeQrSize = 200.0;
 
@@ -25,17 +24,17 @@ class MyQrTab extends StatelessWidget {
               padding: EdgeInsets.zero,
               data: '{"id": ${DateTime.now().millisecondsSinceEpoch}',
               eyeStyle: QrEyeStyle(
-                color: Theme.of(context).primaryColorDark,
+                color: context.theme.primaryColorDark,
                 eyeShape: QrEyeShape.square,
               ),
               dataModuleStyle: QrDataModuleStyle(
-                color: Theme.of(context).primaryColorDark,
+                color: context.theme.primaryColorDark,
                 dataModuleShape: QrDataModuleShape.square,
               ),
             ),
           ),
           TextIconButton(
-            child: Text(AppLocalizations.of(context).qrMyCodeTabHowToCta),
+            child: Text(context.l10n.qrMyCodeTabHowToCta),
             onPressed: () => _showHowToSheet(context),
           ),
           const SizedBox(height: 16),
@@ -45,12 +44,11 @@ class MyQrTab extends StatelessWidget {
   }
 
   void _showHowToSheet(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     ExplanationSheet.show(
       context,
-      title: locale.qrMyCodeTabHowToSheetTitle,
-      description: locale.qrMyCodeTabHowToSheetDescription,
-      closeButtonText: locale.qrMyCodeTabHowToSheetCloseCta,
+      title: context.l10n.qrMyCodeTabHowToSheetTitle,
+      description: context.l10n.qrMyCodeTabHowToSheetDescription,
+      closeButtonText: context.l10n.qrMyCodeTabHowToSheetCloseCta,
     );
   }
 }

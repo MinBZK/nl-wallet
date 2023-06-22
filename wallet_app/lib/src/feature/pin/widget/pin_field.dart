@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'pin_dot.dart';
 
 class PinField extends StatelessWidget {
@@ -15,9 +15,8 @@ class PinField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Semantics(
-      label: locale.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, digits),
+      label: context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, digits),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
@@ -25,7 +24,7 @@ class PinField extends StatelessWidget {
           (index) => PinDot(
             checked: index < enteredDigits,
             key: ValueKey(index),
-            color: Theme.of(context).colorScheme.onBackground,
+            color: context.colorScheme.onBackground,
           ),
         ),
       ),

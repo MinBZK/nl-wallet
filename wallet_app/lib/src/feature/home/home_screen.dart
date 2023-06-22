@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../card/overview/card_overview_screen.dart';
 import '../menu/bloc/menu_bloc.dart';
 import '../menu/menu_screen.dart';
@@ -53,11 +53,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     final items = [
-      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: locale.homeScreenBottomNavBarCardsCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: locale.homeScreenBottomNavBarQrCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.menu), label: locale.homeScreenBottomNavBarMenuCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: context.l10n.homeScreenBottomNavBarCardsCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: context.l10n.homeScreenBottomNavBarQrCta),
+      BottomNavigationBarItem(icon: const Icon(Icons.menu), label: context.l10n.homeScreenBottomNavBarMenuCta),
     ];
 
     return BlocBuilder<HomeBloc, HomeState>(

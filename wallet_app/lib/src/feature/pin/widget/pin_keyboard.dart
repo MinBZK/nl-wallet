@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'keyboard_backspace_key.dart';
 import 'keyboard_digit_key.dart';
 import 'keyboard_row.dart';
@@ -31,7 +32,7 @@ class PinKeyboard extends StatelessWidget {
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
         child: SafeArea(
           child: DefaultTextStyle(
-            style: Theme.of(context).textTheme.displayMedium!,
+            style: context.textTheme.displayMedium!,
             child: Column(
               children: [
                 KeyboardRow(

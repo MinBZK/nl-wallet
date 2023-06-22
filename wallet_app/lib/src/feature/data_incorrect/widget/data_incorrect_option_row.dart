@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/link_button.dart';
 
 class DataIncorrectOptionRow extends StatelessWidget {
@@ -36,12 +37,12 @@ class DataIncorrectOptionRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.displaySmall,
+                  style: context.textTheme.displaySmall,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   description,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: context.textTheme.bodyLarge,
                 ),
                 LinkButton(
                   onPressed: onTap,

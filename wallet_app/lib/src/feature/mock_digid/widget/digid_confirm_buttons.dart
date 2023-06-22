@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 
 class DigidConfirmButtons extends StatelessWidget {
@@ -11,12 +11,11 @@ class DigidConfirmButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmButtons(
       onAcceptPressed: onAccept ?? () {},
       onDeclinePressed: onDecline ?? () {},
-      acceptText: locale.mockDigidScreenAcceptCta,
-      declineText: locale.mockDigidScreenDeclineCta,
+      acceptText: context.l10n.mockDigidScreenAcceptCta,
+      declineText: context.l10n.mockDigidScreenDeclineCta,
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../navigation/secured_page_route.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 
@@ -59,7 +59,7 @@ class ErrorScreen extends StatelessWidget {
                   child: Text(
                     headline,
                     textAlign: TextAlign.start,
-                    style: Theme.of(context).textTheme.displayMedium,
+                    style: context.textTheme.displayMedium,
                   ),
                 ),
                 const SliverSizedBox(height: 8),
@@ -67,7 +67,7 @@ class ErrorScreen extends StatelessWidget {
                   child: Text(
                     description,
                     textAlign: TextAlign.start,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: context.textTheme.bodyLarge,
                   ),
                 ),
                 const SliverSizedBox(height: 32),
@@ -150,14 +150,13 @@ class ErrorScreen extends StatelessWidget {
   /// we only want to communicate something went wrong without going
   /// into any specifics.
   static void showGeneric(BuildContext context, {bool secured = true}) {
-    final locale = AppLocalizations.of(context);
     show(
       context,
       secured: secured,
-      title: locale.errorScreenGenericTitle,
-      headline: locale.errorScreenGenericHeadline,
-      description: locale.errorScreenGenericDescription,
-      primaryActionText: locale.errorScreenGenericCloseCta,
+      title: context.l10n.errorScreenGenericTitle,
+      headline: context.l10n.errorScreenGenericHeadline,
+      description: context.l10n.errorScreenGenericDescription,
+      primaryActionText: context.l10n.errorScreenGenericCloseCta,
       onPrimaryActionPressed: () => Navigator.pop(context),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 
@@ -18,7 +18,6 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scrollbar(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -29,7 +28,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
               height: 105,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  color: context.colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
@@ -39,17 +38,17 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             const SliverSizedBox(height: 24),
             SliverToBoxAdapter(
               child: Text(
-                locale.walletPersonalizeDigidErrorPageTitle,
+                context.l10n.walletPersonalizeDigidErrorPageTitle,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.displaySmall,
+                style: context.textTheme.displaySmall,
               ),
             ),
             const SliverSizedBox(height: 8),
             SliverToBoxAdapter(
               child: Text(
-                locale.walletPersonalizeDigidErrorPageDescription,
+                context.l10n.walletPersonalizeDigidErrorPageDescription,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: context.textTheme.bodyLarge,
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -65,7 +64,6 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -77,7 +75,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
               Image.asset(_kDigidLogoPath),
               const SizedBox(width: 12),
               Flexible(
-                child: Text(locale.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+                child: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),
               ),
             ],
           ),
@@ -87,7 +85,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
           child: TextIconButton(
             onPressed: onHelpPressed,
             child: Text(
-              locale.walletPersonalizeDigidErrorPageNoDigidCta,
+              context.l10n.walletPersonalizeDigidErrorPageNoDigidCta,
             ),
           ),
         ),

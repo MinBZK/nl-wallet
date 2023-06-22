@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../bloc/menu_bloc.dart';
 import '../widget/menu_row.dart';
@@ -12,7 +12,6 @@ class MenuSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return WillPopScope(
       onWillPop: () async {
         context.read<MenuBloc>().add(MenuBackPressed());
@@ -22,25 +21,25 @@ class MenuSettingsPage extends StatelessWidget {
         children: [
           const SizedBox(height: 16),
           MenuRow(
-            label: locale.menuSettingsPageChangePinCta,
+            label: context.l10n.menuSettingsPageChangePinCta,
             icon: Icons.key,
             onTap: () => PlaceholderScreen.show(context),
           ),
           const Divider(height: 1),
           MenuRow(
-            label: locale.menuSettingsPageSetupBiometricsCta,
+            label: context.l10n.menuSettingsPageSetupBiometricsCta,
             icon: Icons.fingerprint,
             onTap: () => PlaceholderScreen.show(context),
           ),
           const Divider(height: 1),
           MenuRow(
-            label: locale.menuSettingsPageChangeLanguageCta,
+            label: context.l10n.menuSettingsPageChangeLanguageCta,
             icon: Icons.translate,
             onTap: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
           ),
           const Divider(height: 1),
           MenuRow(
-            label: locale.menuSettingsPageClearDataCta,
+            label: context.l10n.menuSettingsPageClearDataCta,
             icon: Icons.delete_outline,
             onTap: () => PlaceholderScreen.show(context),
           ),

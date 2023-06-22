@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 /// A button with a trailing arrow that somewhat resembles a hyperlink with its behaviour.
 /// i.e. it has no ripple effect and the text color changes when it's in a pressed state.
 class LinkButton extends StatelessWidget {
@@ -45,10 +47,9 @@ class LinkButton extends StatelessWidget {
         MaterialState.focused,
       };
       if (states.any(interactiveStates.contains)) {
-        return Theme.of(context).primaryColorLight;
+        return context.theme.primaryColorLight;
       }
-      return Theme.of(context).textButtonTheme.style?.foregroundColor?.resolve(states) ??
-          Theme.of(context).colorScheme.primary;
+      return context.theme.textButtonTheme.style?.foregroundColor?.resolve(states) ?? context.colorScheme.primary;
     };
   }
 }

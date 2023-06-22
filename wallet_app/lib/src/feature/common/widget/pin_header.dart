@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 class PinHeader extends StatelessWidget {
   final String title;
   final String description;
@@ -22,20 +24,20 @@ class PinHeader extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final textColor = hasError ? Theme.of(context).colorScheme.error : null;
+    final textColor = hasError ? context.colorScheme.error : null;
     return Column(
       crossAxisAlignment: _resolveCrossAxisAlignment(context),
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: textColor),
+          style: context.textTheme.displayMedium?.copyWith(color: textColor),
           textAlign: _resolveTextAlignment(context),
         ),
         const SizedBox(height: 8),
         Text(
           description,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: textColor),
+          style: context.textTheme.bodyLarge?.copyWith(color: textColor),
           textAlign: _resolveTextAlignment(context),
         ),
       ],

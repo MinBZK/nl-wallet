@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/wallet_card.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
@@ -48,7 +48,6 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -56,14 +55,14 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            locale.issuanceSelectCardsPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.issuanceSelectCardsPageTitle,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            locale.issuanceSelectCardsPageDescription,
-            style: Theme.of(context).textTheme.bodyLarge,
+            context.l10n.issuanceSelectCardsPageDescription,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -78,7 +77,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
       children: [
         LinkButton(
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(AppLocalizations.of(context).issuanceSelectCardsPageDataIncorrectCta),
+          child: Text(context.l10n.issuanceSelectCardsPageDataIncorrectCta),
           onPressed: () => PlaceholderScreen.show(context),
         ),
         const Divider(
@@ -105,7 +104,6 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Column(
@@ -115,8 +113,8 @@ class IssuanceSelectCardsPage extends StatelessWidget {
           ConfirmButtons(
             onDeclinePressed: onStopPressed,
             onAcceptPressed: onAddSelectedPressed,
-            acceptText: locale.issuanceSelectCardsPageAddCta,
-            declineText: locale.issuanceSelectCardsPageStopCta,
+            acceptText: context.l10n.issuanceSelectCardsPageAddCta,
+            declineText: context.l10n.issuanceSelectCardsPageStopCta,
             acceptIcon: Icons.arrow_forward,
             declineIcon: Icons.block,
           )
@@ -126,7 +124,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
   }
 
   Widget _buildNoSelectionRow(BuildContext context) {
-    final errorColor = Theme.of(context).colorScheme.error;
+    final errorColor = context.colorScheme.error;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -139,8 +137,8 @@ class IssuanceSelectCardsPage extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              AppLocalizations.of(context).issuanceSelectCardsPageNoSelectionError,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: errorColor),
+              context.l10n.issuanceSelectCardsPageNoSelectionError,
+              style: context.textTheme.bodyMedium?.copyWith(color: errorColor),
             ),
           )
         ],

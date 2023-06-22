@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/attribute/ui_attribute.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
 import '../../../common/widget/button/confirm_buttons.dart';
 import '../../../common/widget/sliver_sized_box.dart';
@@ -44,13 +44,12 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       alignment: Alignment.centerLeft,
       child: Text(
-        locale.walletPersonalizeCheckDataOfferingPageTitle,
-        style: Theme.of(context).textTheme.displayMedium,
+        context.l10n.walletPersonalizeCheckDataOfferingPageTitle,
+        style: context.textTheme.displayMedium,
       ),
     );
   }
@@ -66,12 +65,11 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmButtons(
       onDeclinePressed: () => WalletPersonalizeDataIncorrectScreen.show(context),
       onAcceptPressed: onAcceptPressed,
-      acceptText: locale.walletPersonalizeCheckDataOfferingPageAcceptCta,
-      declineText: locale.walletPersonalizeCheckDataOfferingPageDeclineCta,
+      acceptText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
+      declineText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
     );
   }
 }

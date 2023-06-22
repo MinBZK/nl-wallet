@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import 'bloc/menu_bloc.dart';
@@ -26,18 +26,17 @@ class MenuScreen extends StatelessWidget {
   Widget _buildTitle(BuildContext context) {
     return BlocBuilder<MenuBloc, MenuState>(
       builder: (context, state) {
-        final locale = AppLocalizations.of(context);
-        String title = locale.menuScreenMainTitle;
+        String title = context.l10n.menuScreenMainTitle;
         if (state is MenuLoadSuccess) {
           switch (state.menu) {
             case SelectedMenu.main:
-              title = locale.menuScreenMainTitle;
+              title = context.l10n.menuScreenMainTitle;
               break;
             case SelectedMenu.settings:
-              title = locale.menuScreenSettingsTitle;
+              title = context.l10n.menuScreenSettingsTitle;
               break;
             case SelectedMenu.about:
-              title = locale.menuScreenAboutTitle;
+              title = context.l10n.menuScreenAboutTitle;
               break;
           }
         }

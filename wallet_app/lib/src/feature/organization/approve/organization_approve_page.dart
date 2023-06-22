@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
@@ -96,7 +96,7 @@ class OrganizationApprovePage extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             _headerTitleText(context),
-            style: Theme.of(context).textTheme.displayMedium,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
         ],
@@ -105,35 +105,33 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   String _headerTitleText(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.organizationApprovePageReceiveFromTitle(organization.name);
+        return context.l10n.organizationApprovePageReceiveFromTitle(organization.name);
       case ApprovalPurpose.verification:
-        return locale.organizationApprovePageShareWithTitle(organization.name);
+        return context.l10n.organizationApprovePageShareWithTitle(organization.name);
       case ApprovalPurpose.sign:
-        return locale.organizationApprovePageSignWithTitle(organization.name);
+        return context.l10n.organizationApprovePageSignWithTitle(organization.name);
     }
   }
 
   Widget _buildInfoRows(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         isFirstInteractionWithOrganization
             ? IconRow(
                 icon: Image.asset('assets/images/ic_first_share.png'),
-                text: Text(locale.organizationApprovePageFirstInteraction),
+                text: Text(context.l10n.organizationApprovePageFirstInteraction),
               )
             : const SizedBox.shrink(),
         IconRow(
           icon: Icon(
             Icons.flag_outlined,
-            color: Theme.of(context).colorScheme.primary,
+            color: context.colorScheme.primary,
           ),
           text: Text(
-            locale.organizationApprovePagePurpose(requestPurpose ?? purpose.name),
+            context.l10n.organizationApprovePagePurpose(requestPurpose ?? purpose.name),
           ),
         ),
       ],
@@ -141,26 +139,24 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   String _approveButtonText(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.organizationApprovePageApproveCta;
+        return context.l10n.organizationApprovePageApproveCta;
       case ApprovalPurpose.verification:
-        return locale.organizationApprovePageShareWithApproveCta;
+        return context.l10n.organizationApprovePageShareWithApproveCta;
       case ApprovalPurpose.sign:
-        return locale.organizationApprovePageApproveCta;
+        return context.l10n.organizationApprovePageApproveCta;
     }
   }
 
   String _declineButtonText(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return locale.organizationApprovePageDenyCta;
+        return context.l10n.organizationApprovePageDenyCta;
       case ApprovalPurpose.verification:
-        return locale.organizationApprovePageShareWithDenyCta;
+        return context.l10n.organizationApprovePageShareWithDenyCta;
       case ApprovalPurpose.sign:
-        return locale.organizationApprovePageDenyCta;
+        return context.l10n.organizationApprovePageDenyCta;
     }
   }
 }

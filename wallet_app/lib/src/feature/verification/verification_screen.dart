@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -38,7 +38,7 @@ class VerificationScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'verification_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).verificationScreenTitle),
+        title: Text(context.l10n.verificationScreenTitle),
         leading: _buildBackButton(context),
         actions: [CloseButton(onPressed: () => _stopVerification(context))],
       ),

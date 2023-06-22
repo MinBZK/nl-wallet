@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 
@@ -19,8 +19,6 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Scrollbar(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -29,17 +27,17 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             const SliverSizedBox(height: 36),
             SliverToBoxAdapter(
               child: Text(
-                locale.walletPersonalizeIntroPageTitle,
+                context.l10n.walletPersonalizeIntroPageTitle,
                 textAlign: TextAlign.start,
-                style: theme.textTheme.displaySmall,
+                style: context.textTheme.displaySmall,
               ),
             ),
             const SliverSizedBox(height: 8),
             SliverToBoxAdapter(
               child: Text(
-                locale.walletPersonalizeIntroPageDescription,
+                context.l10n.walletPersonalizeIntroPageDescription,
                 textAlign: TextAlign.start,
-                style: theme.textTheme.bodyLarge,
+                style: context.textTheme.bodyLarge,
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -65,7 +63,6 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -77,7 +74,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               Image.asset(_kDigidLogoPath),
               const SizedBox(width: 12),
               Flexible(
-                child: Text(locale.walletPersonalizeIntroPageLoginWithDigidCta),
+                child: Text(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta),
               ),
             ],
           ),
@@ -86,7 +83,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
         Center(
           child: TextIconButton(
             onPressed: onNoDigidPressed,
-            child: Text(locale.walletPersonalizeIntroPageNoDigidCta),
+            child: Text(context.l10n.walletPersonalizeIntroPageNoDigidCta),
           ),
         ),
         const SizedBox(height: 24),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 class PolicyEntryRow extends StatelessWidget {
   final IconData? icon;
   final Widget title;
@@ -24,7 +26,7 @@ class PolicyEntryRow extends StatelessWidget {
               : Icon(
                   icon,
                   size: 24,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: context.colorScheme.onSurface,
                 ),
           SizedBox(width: icon == null ? 0 : 16),
           Expanded(
@@ -36,13 +38,13 @@ class PolicyEntryRow extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 24),
                   child: DefaultTextStyle(
-                    style: Theme.of(context).textTheme.titleMedium!,
+                    style: context.textTheme.titleMedium!,
                     child: title,
                   ),
                 ),
                 const SizedBox(height: 8),
                 DefaultTextStyle(
-                  style: Theme.of(context).textTheme.bodyLarge!,
+                  style: context.textTheme.bodyLarge!,
                   child: description,
                 ),
               ],

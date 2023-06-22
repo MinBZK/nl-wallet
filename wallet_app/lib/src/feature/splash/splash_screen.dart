@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/loading_indicator.dart';
 import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
@@ -34,8 +34,8 @@ class SplashScreen extends StatelessWidget {
               const WalletLogo(size: 80),
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context).appTitle,
-                style: Theme.of(context).textTheme.displaySmall,
+                context.l10n.appTitle,
+                style: context.textTheme.displaySmall,
               ),
               const SizedBox(height: 16),
               const LoadingIndicator(),

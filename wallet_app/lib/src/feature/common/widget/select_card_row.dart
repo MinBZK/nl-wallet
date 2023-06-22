@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
+import '../../../util/extension/build_context_extension.dart';
 import 'card/sized_card_front.dart';
 
 const _kCardDisplayWidth = 40.0;
@@ -40,10 +41,10 @@ class SelectCardRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(card.front.title, style: Theme.of(context).textTheme.titleMedium),
+                      Text(card.front.title, style: context.textTheme.titleMedium),
                       Text(
                         card.front.subtitle ?? card.front.info ?? '',
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: context.textTheme.bodyLarge,
                       ),
                     ],
                   ),
@@ -51,7 +52,7 @@ class SelectCardRow extends StatelessWidget {
                 Checkbox(
                   value: isSelected,
                   onChanged: (checked) => onCardSelectionToggled(card),
-                  fillColor: showError ? MaterialStatePropertyAll(Theme.of(context).colorScheme.error) : null,
+                  fillColor: showError ? MaterialStatePropertyAll(context.colorScheme.error) : null,
                 ),
                 const SizedBox(width: 8),
               ],

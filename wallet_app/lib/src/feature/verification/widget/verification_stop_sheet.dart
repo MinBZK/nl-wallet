@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/confirm_action_sheet.dart';
@@ -23,13 +23,12 @@ class VerificationStopSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmActionSheet(
-      title: locale.verificationStopSheetTitle,
-      description: locale.verificationStopSheetDescription(organizationName).addSpaceSuffix,
-      cancelButtonText: locale.verificationStopSheetNegativeCta,
-      confirmButtonText: locale.verificationStopSheetPositiveCta,
-      confirmButtonColor: Theme.of(context).colorScheme.error,
+      title: context.l10n.verificationStopSheetTitle,
+      description: context.l10n.verificationStopSheetDescription(organizationName).addSpaceSuffix,
+      cancelButtonText: context.l10n.verificationStopSheetNegativeCta,
+      confirmButtonText: context.l10n.verificationStopSheetPositiveCta,
+      confirmButtonColor: context.colorScheme.error,
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
       confirmIcon: Icons.not_interested,
@@ -38,7 +37,7 @@ class VerificationStopSheet extends StatelessWidget {
           : LinkButton(
               onPressed: onReportIssuePressed,
               customPadding: const EdgeInsets.all(16),
-              child: Text(locale.verificationStopSheetReportIssueCta),
+              child: Text(context.l10n.verificationStopSheetReportIssueCta),
             ),
     );
   }

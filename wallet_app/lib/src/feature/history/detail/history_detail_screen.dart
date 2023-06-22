@@ -1,13 +1,13 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/timeline/signing_timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/history_details_time_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_description_text_mapper.dart';
 import '../../common/widget/attribute/data_attribute_section.dart';
@@ -44,7 +44,7 @@ class HistoryDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).historyDetailScreenTitle),
+        title: Text(context.l10n.historyDetailScreenTitle),
       ),
       body: SafeArea(
         child: _buildBody(context),
@@ -68,13 +68,12 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
-    final locale = AppLocalizations.of(context);
     final TimelineAttribute attribute = state.timelineAttribute;
     final bool showTimelineStatusRow = _showTimelineStatusRow(attribute);
     final bool showDataAttributesSection = _showDataAttributesSection(attribute);
     final bool showContractSection = _showContractSection(attribute);
     final List<Widget> slivers = [];
-    final Color iconColor = Theme.of(context).colorScheme.onSurface;
+    final Color iconColor = context.colorScheme.onSurface;
 
     slivers.addAll([
       // Organization
@@ -155,8 +154,8 @@ class HistoryDetailScreen extends StatelessWidget {
             const SliverDivider(),
             SliverToBoxAdapter(
               child: InfoRow(
-                title: locale.historyDetailScreenTermsTitle,
-                subtitle: locale.historyDetailScreenTermsSubtitle(attribute.organization.shortName),
+                title: context.l10n.historyDetailScreenTermsTitle,
+                subtitle: context.l10n.historyDetailScreenTermsSubtitle(attribute.organization.shortName),
                 leading: Icon(Icons.policy_outlined, color: iconColor),
                 onTap: () => PolicyScreen.show(context, policy),
               ),
@@ -170,8 +169,8 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(
         SliverToBoxAdapter(
           child: InfoRow(
-            title: locale.historyDetailScreenIssueTitle,
-            subtitle: locale.historyDetailScreenIssueSubtitle,
+            title: context.l10n.historyDetailScreenIssueTitle,
+            subtitle: context.l10n.historyDetailScreenIssueSubtitle,
             leading: Icon(Icons.gpp_maybe_outlined, color: iconColor),
             onTap: () => PlaceholderScreen.show(context),
           ),
@@ -181,8 +180,8 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(
         SliverToBoxAdapter(
           child: InfoRow(
-            title: locale.historyDetailScreenHelpdeskTitle,
-            subtitle: locale.historyDetailScreenHelpdeskSubtitle,
+            title: context.l10n.historyDetailScreenHelpdeskTitle,
+            subtitle: context.l10n.historyDetailScreenHelpdeskSubtitle,
             leading: Icon(Icons.comment_outlined, color: iconColor),
             onTap: () => PlaceholderScreen.show(context),
           ),
@@ -207,17 +206,16 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildInteractionRequestPurposeRow(BuildContext context, InteractionTimelineAttribute attribute) {
     return InfoRow(
-      title: AppLocalizations.of(context).historyDetailScreenInteractionRequestPurposeTitle,
+      title: context.l10n.historyDetailScreenInteractionRequestPurposeTitle,
       subtitle: attribute.requestPurpose,
       leading: Icon(
         Icons.outlined_flag_outlined,
-        color: Theme.of(context).colorScheme.onSurface,
+        color: context.colorScheme.onSurface,
       ),
     );
   }
 
   Widget _buildOrganizationRow(BuildContext context, TimelineAttribute attribute) {
-    final locale = AppLocalizations.of(context);
     final organization = attribute.organization;
     final status = _getTimelineAttributeStatus(context, attribute);
     return InfoRow(
@@ -225,7 +223,7 @@ class HistoryDetailScreen extends StatelessWidget {
         image: AssetImage(organization.logoUrl),
         size: _kOrganizationLogoSize,
       ),
-      title: locale.historyDetailScreenOrganizationNameAndStatus(
+      title: context.l10n.historyDetailScreenOrganizationNameAndStatus(
         status,
         organization.shortName,
       ),
@@ -238,15 +236,14 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   String _getTimelineAttributeStatus(BuildContext context, TimelineAttribute attribute) {
-    final locale = AppLocalizations.of(context);
     if (attribute is InteractionTimelineAttribute) {
       return attribute.status == InteractionStatus.success
-          ? locale.historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess
-          : locale.historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess;
+          ? context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess
+          : context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess;
     } else if (attribute is OperationTimelineAttribute) {
-      return locale.historyDetailScreenOrganizationNamePrefixOperationStatusAll;
+      return context.l10n.historyDetailScreenOrganizationNamePrefixOperationStatusAll;
     } else if (attribute is SigningTimelineAttribute) {
-      return locale.historyDetailScreenOrganizationNamePrefixSigningStatusAll;
+      return context.l10n.historyDetailScreenOrganizationNamePrefixSigningStatusAll;
     }
     return '';
   }
@@ -283,9 +280,7 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDataAttributesSectionTitle(BuildContext context, TimelineAttribute attribute) {
-    final locale = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final iconColor = theme.colorScheme.onSurface;
+    final iconColor = context.colorScheme.onSurface;
 
     String title = '';
     String subtitle = '';
@@ -295,16 +290,16 @@ class HistoryDetailScreen extends StatelessWidget {
     );
 
     if (attribute is InteractionTimelineAttribute) {
-      title = locale.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
+      title = context.l10n.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
     } else if (attribute is OperationTimelineAttribute) {
       title = attribute.cardTitle;
-      subtitle = TimelineAttributeStatusDescriptionTextMapper.map(locale, attribute);
+      subtitle = TimelineAttributeStatusDescriptionTextMapper.map(context, attribute);
       icon = Icon(
         Icons.credit_card_outlined,
         color: iconColor,
       );
     } else if (attribute is SigningTimelineAttribute) {
-      title = locale.historyDetailScreenSigningAttributesTitle;
+      title = context.l10n.historyDetailScreenSigningAttributesTitle;
     }
 
     return Padding(
@@ -324,19 +319,19 @@ class HistoryDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.displaySmall,
+                  style: context.textTheme.displaySmall,
                 ),
                 const SizedBox(height: 2),
                 if (subtitle.isNotEmpty) ...[
                   Text(
                     subtitle,
-                    style: theme.textTheme.bodyLarge,
+                    style: context.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 2),
                 ],
                 Text(
-                  HistoryDetailsTimeFormatter.format(locale, attribute.dateTime),
-                  style: theme.textTheme.bodySmall,
+                  HistoryDetailsTimeFormatter.format(context, attribute.dateTime),
+                  style: context.textTheme.bodySmall,
                 ),
               ],
             ),
