@@ -3,8 +3,6 @@ use async_trait::async_trait;
 use axum_test_helper::TestClient;
 
 use once_cell::sync::Lazy;
-use p256::ecdsa::SigningKey;
-use rand::rngs::OsRng;
 use url::Url;
 
 use platform_support::hw_keystore::software::SoftwareEcdsaKey;
@@ -20,19 +18,21 @@ use wallet_common::account::{
 
 use wallet_provider::{account_server::stub::account_server, app};
 
-static ACCOUNT_SERVER_PRIVKEY: Lazy<SigningKey> = Lazy::new(|| SigningKey::random(&mut OsRng));
+// The global test client and account server public key.
+static TEST_CLIENT: Lazy<(TestClient, EcdsaDecodingKey)> = Lazy::new(|| {
+    let account_server = account_server();
+    let account_server_pubkey = account_server.pubkey.clone();
+    let app = app::router(account_server);
+    let client = TestClient::new(app);
+
+    (client, account_server_pubkey)
+});
 
 /// This struct acts as a client for [`Wallet`] by implementing [`AccountServerClient`]
 /// and using [`TestClient`]. It can access the routes of the Wallet Provider without
 /// actually needing a HTTP server.
 struct WalletTestClient {
-    client: TestClient,
-}
-
-impl WalletTestClient {
-    fn new(client: TestClient) -> Self {
-        WalletTestClient { client }
-    }
+    client: &'static TestClient,
 }
 
 #[async_trait]
@@ -41,11 +41,7 @@ impl AccountServerClient for WalletTestClient {
     where
         Self: Sized,
     {
-        let account_server = account_server(Some(&ACCOUNT_SERVER_PRIVKEY));
-        let app = app::router(account_server);
-        let client = TestClient::new(app);
-
-        Self::new(client)
+        WalletTestClient { client: &TEST_CLIENT.0 }
     }
 
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
@@ -83,12 +79,7 @@ impl AccountServerClient for WalletTestClient {
 /// Create an instance of [`Wallet`] with appropriate mocks, including [`WalletTestClient`].
 async fn create_test_wallet() -> Wallet<MockConfigurationRepository, WalletTestClient, MockStorage, SoftwareEcdsaKey> {
     let mut config = MockConfigurationRepository::default();
-    config.0.account_server.public_key = EcdsaDecodingKey::from_sec1(
-        ACCOUNT_SERVER_PRIVKEY
-            .verifying_key()
-            .to_encoded_point(false)
-            .as_bytes(),
-    );
+    config.0.account_server.public_key = TEST_CLIENT.1.clone();
 
     Wallet::new(config).await.expect("Could not create test wallet")
 }

@@ -59,7 +59,7 @@ mod tests {
     async fn test_http_registration() {
         // Create an account server stub and copy some details
         // that are needed for testing later.
-        let account_server = account_server(None);
+        let account_server = account_server();
         let pubkey = account_server.pubkey.clone();
         let server_name = account_server.name.clone();
 

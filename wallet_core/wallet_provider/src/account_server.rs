@@ -189,14 +189,11 @@ pub mod stub {
     use super::AccountServer;
 
     #[allow(dead_code)] // Clippy does not seem to understand that this is used during testing
-    pub fn account_server(privkey: Option<&SigningKey>) -> AccountServer {
-        let secret = privkey
-            .map(|k| k.to_pkcs8_der())
-            .unwrap_or_else(|| SigningKey::random(&mut OsRng).to_pkcs8_der())
-            .unwrap();
+    pub fn account_server() -> AccountServer {
+        let account_server_privkey = SigningKey::random(&mut OsRng);
 
         AccountServer::new(
-            secret.as_bytes().to_vec(),
+            account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
             random_bytes(32),
             "stub_account_server".into(),
         )
@@ -213,7 +210,7 @@ mod tests {
     #[test]
     fn test_account_server() {
         // Setup account server
-        let account_server = stub::account_server(None);
+        let account_server = stub::account_server();
 
         // Set up keys
         let hw_privkey = SigningKey::random(&mut OsRng);

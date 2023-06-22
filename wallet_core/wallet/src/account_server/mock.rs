@@ -17,7 +17,7 @@ impl AccountServerClient for AccountServer {
     where
         Self: Sized,
     {
-        stub::account_server(None)
+        stub::account_server()
     }
 
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
