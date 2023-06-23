@@ -1,6 +1,12 @@
 {
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "nl",
+  "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
+  "aboutScreenFeedbackCta": "Geef feedback",
+  "aboutScreenPrivacyCta": "Privacybeleid",
+  "aboutScreenTermsCta": "Gebruiksvoorwaarden",
+  "aboutScreenTitle": "Over de app",
+  "aboutScreenUrl": "edi.pleio.nl",
   "appTitle": "NL Wallet",
   "cardAttributeRowTitle": "Uit {name}",
   "@cardAttributeRowTitle": {
@@ -143,6 +149,10 @@
   "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
   "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
   "dataIncorrectScreenTitle": "Gegevens ophalen",
+  "errorScreenGenericCloseCta": "Sluit",
+  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+  "errorScreenGenericHeadline": "Er gaat iets mis",
+  "errorScreenGenericTitle": "Fout",
   "forgotPinScreenCta": "Wallet wissen",
   "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
   "forgotPinScreenHeadline": "Code vergeten?",
@@ -179,28 +189,6 @@
     },
     "description": "Minutes"
   },
-  "generalSeconds": "{seconds, plural, =1 {{seconds} seconde} other {{seconds} seconden}}",
-  "@generalSeconds": {
-    "placeholders": {
-      "seconds": {
-        "example": "59",
-        "type": "int"
-      }
-    },
-    "description": "Seconds"
-  },
-  "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
-  "pinTimeoutScreenTitle": "Inloggen",
-  "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
-  "pinTimeoutScreenForgotPinCta": "Code vergeten?",
-  "pinBlockedScreenTitle": "Geblokkeerd",
-  "pinBlockedScreenHeadline": "Je app is geblokkeerd",
-  "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
-  "pinBlockedScreenResetWalletCta": "Wallet wissen",
-  "errorScreenGenericTitle": "Fout",
-  "errorScreenGenericHeadline": "Er gaat iets mis",
-  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
-  "errorScreenGenericCloseCta": "Sluit",
   "generalOnDate": "Op",
   "generalPolicyAllTermsCta": "Alle voorwaarden",
   "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
@@ -221,6 +209,16 @@
   "generalPolicyDataWillBeShared": "Je gegevens worden gedeeld met derden",
   "generalPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met derden",
   "generalRetry": "Probeer opnieuw",
+  "generalSeconds": "{seconds, plural, =1 {{seconds} seconde} other {{seconds} seconden}}",
+  "@generalSeconds": {
+    "placeholders": {
+      "seconds": {
+        "example": "59",
+        "type": "int"
+      }
+    },
+    "description": "Seconds"
+  },
   "generalSheetCloseCta": "Sluiten",
   "generalTimeAgo": "geleden",
   "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
@@ -449,16 +447,10 @@
   },
   "issuanceSuccessPageCloseCta": "Naar mijn kaarten",
   "issuanceSuccessPageTitle": "Gelukt!",
-  "menuAboutPageDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
-  "menuAboutPageFeedbackCta": "Geef feedback",
-  "menuAboutPagePrivacyCta": "Privacybeleid",
-  "menuAboutPageTermsCta": "Gebruiksvoorwaarden",
-  "menuAboutPageTitle": "Over deze app",
-  "menuAboutPageUrl": "edi.pleio.nl",
-  "menuMainPageAboutCta": "Over deze app",
-  "menuMainPageDesignCta": "Design System",
-  "menuMainPageGreeting": "Hallo {name}",
-  "@menuMainPageGreeting": {
+  "menuScreenAboutCta": "Over deze app",
+  "menuScreenDesignCta": "Design System",
+  "menuScreenGreeting": "Hallo {name}",
+  "@menuScreenGreeting": {
     "placeholders": {
       "name": {
         "example": "Willeke",
@@ -467,17 +459,11 @@
     },
     "description": "Greeting at top of the setting screen"
   },
-  "menuMainPageHelpCta": "Help",
-  "menuMainPageHistoryCta": "Gebruiksgeschiedenis",
-  "menuMainPageLockCta": "Uitloggen",
-  "menuMainPageSettingsCta": "Instellingen",
-  "menuScreenAboutTitle": "Over de app",
-  "menuScreenMainTitle": "Menu",
-  "menuScreenSettingsTitle": "Instellingen",
-  "menuSettingsPageChangeLanguageCta": "Taal veranderen",
-  "menuSettingsPageChangePinCta": "Toegangscode veranderen",
-  "menuSettingsPageClearDataCta": "Gegevens wissen",
-  "menuSettingsPageSetupBiometricsCta": "Biometrie instellen",
+  "menuScreenHelpCta": "Help",
+  "menuScreenHistoryCta": "Gebruiksgeschiedenis",
+  "menuScreenLockCta": "Uitloggen",
+  "menuScreenSettingsCta": "Instellingen",
+  "menuScreenTitle": "Menu",
   "mockDigidScreenAcceptCta": "inloggen",
   "mockDigidScreenDeclineCta": "annuleren",
   "mockDigidScreenEnterPin": "Voer pincode in om verder te gaan",
@@ -540,6 +526,10 @@
   "organizationDetailScreenReportIssueCta": "Een probleem melden",
   "organizationDetailScreenTitle": "Over deze partij",
   "organizationDetailScreenViewTerms": "Bekijk de algemene",
+  "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+  "pinBlockedScreenHeadline": "Je app is geblokkeerd",
+  "pinBlockedScreenResetWalletCta": "Wallet wissen",
+  "pinBlockedScreenTitle": "Geblokkeerd",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "invoer",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
@@ -556,6 +546,10 @@
   "pinScreenForgotPinCta": "Code vergeten?",
   "pinScreenHeader": "Vul je toegangscode in",
   "pinScreenTitle": "Inloggen",
+  "pinTimeoutScreenForgotPinCta": "Code vergeten?",
+  "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
+  "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
+  "pinTimeoutScreenTitle": "Inloggen",
   "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
   "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
   "placeholderScreenTitle": "Placeholder",
@@ -628,6 +622,11 @@
   "reportOptionUnknownOrganization": "Ik ken deze partij niet",
   "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
   "reportOptionUntrusted": "Ik vertrouw het niet",
+  "settingsScreenChangeLanguageCta": "Taal veranderen",
+  "settingsScreenChangePinCta": "Toegangscode veranderen",
+  "settingsScreenClearDataCta": "Gegevens wissen",
+  "settingsScreenSetupBiometricsCta": "Biometrie instellen",
+  "settingsScreenTitle": "Instellingen",
   "setupSecurityCompletedPageCreateWalletCta": "Mijn Wallet aanmaken",
   "setupSecurityCompletedPageDescription": "Je beveiliging is ingesteld.",
   "setupSecurityCompletedPageTitle": "Gelukt!",

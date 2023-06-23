@@ -1,6 +1,12 @@
 {
   "@@last_modified": "2022-10-31T15:40:42+01:00",
   "@@locale": "en",
+  "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
+  "aboutScreenFeedbackCta": "Give feedback",
+  "aboutScreenPrivacyCta": "Privacy policy",
+  "aboutScreenTermsCta": "Terms and conditions",
+  "aboutScreenTitle": "About the app",
+  "aboutScreenUrl": "edi.pleio.nl",
   "appTitle": "NL Wallet",
   "cardAttributeRowTitle": "From {name}",
   "@cardAttributeRowTitle": {
@@ -143,6 +149,10 @@
   "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
   "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
   "dataIncorrectScreenTitle": "Retrieve data",
+  "errorScreenGenericCloseCta": "Sluit",
+  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+  "errorScreenGenericHeadline": "Er gaat iets mis",
+  "errorScreenGenericTitle": "Fout",
   "forgotPinScreenCta": "Clear Wallet",
   "forgotPinScreenDescription": "When you forget your pin you can no longer use your Wallet.\n\nTo continue using the Wallet you have to start over. Clear your wallet and select a new pin.",
   "forgotPinScreenHeadline": "Forgot your pin?",
@@ -179,28 +189,6 @@
     },
     "description": "Minutes"
   },
-  "generalSeconds": "{seconds, plural, =1 {{seconds} second} other {{seconds} seconds}}",
-  "@generalSeconds": {
-    "placeholders": {
-      "seconds": {
-        "example": "59",
-        "type": "int"
-      }
-    },
-    "description": "Seconds"
-  },
-  "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
-  "pinTimeoutScreenTitle": "Login",
-  "pinTimeoutScreenHeadline": "Temporarily blocked",
-  "pinTimeoutScreenForgotPinCta": "Forgot code?",
-  "pinBlockedScreenTitle": "App blocked",
-  "pinBlockedScreenHeadline": "Your app has been blocked",
-  "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\n\nTo start using the wallet again, please reset the app and select a new pin.",
-  "pinBlockedScreenResetWalletCta": "Reset wallet",
-  "errorScreenGenericTitle": "Fout",
-  "errorScreenGenericHeadline": "Er gaat iets mis",
-  "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
-  "errorScreenGenericCloseCta": "Sluit",
   "generalOnDate": "On",
   "generalPolicyAllTermsCta": "All terms",
   "generalPolicyDataCanBeDeleted": "You can request data deletion",
@@ -221,6 +209,16 @@
   "generalPolicyDataWillBeShared": "Your information will be shared with third parties",
   "generalPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
   "generalRetry": "Retry",
+  "generalSeconds": "{seconds, plural, =1 {{seconds} second} other {{seconds} seconds}}",
+  "@generalSeconds": {
+    "placeholders": {
+      "seconds": {
+        "example": "59",
+        "type": "int"
+      }
+    },
+    "description": "Seconds"
+  },
   "generalSheetCloseCta": "Close",
   "generalTimeAgo": "ago",
   "generalTimeAgoLessThenOneMinute": "less then a minute",
@@ -449,16 +447,10 @@
   },
   "issuanceSuccessPageCloseCta": "To my cards",
   "issuanceSuccessPageTitle": "Success!",
-  "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
-  "menuAboutPageFeedbackCta": "Give feedback",
-  "menuAboutPagePrivacyCta": "Privacy policy",
-  "menuAboutPageTermsCta": "Terms and conditions",
-  "menuAboutPageTitle": "About this app",
-  "menuAboutPageUrl": "edi.pleio.nl",
-  "menuMainPageAboutCta": "About this app",
-  "menuMainPageDesignCta": "Design System",
-  "menuMainPageGreeting": "Hi {name}",
-  "@menuMainPageGreeting": {
+  "menuScreenAboutCta": "About this app",
+  "menuScreenDesignCta": "Design System",
+  "menuScreenGreeting": "Hi {name}",
+  "@menuScreenGreeting": {
     "placeholders": {
       "name": {
         "example": "Willeke",
@@ -467,17 +459,11 @@
     },
     "description": "Greeting at top of the setting screen"
   },
-  "menuMainPageHelpCta": "Help",
-  "menuMainPageHistoryCta": "Usage history",
-  "menuMainPageLockCta": "Log out",
-  "menuMainPageSettingsCta": "Settings",
-  "menuScreenAboutTitle": "About the app",
-  "menuScreenMainTitle": "Menu",
-  "menuScreenSettingsTitle": "Settings",
-  "menuSettingsPageChangeLanguageCta": "Change language",
-  "menuSettingsPageChangePinCta": "Change pin",
-  "menuSettingsPageClearDataCta": "Remove data",
-  "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
+  "menuScreenHelpCta": "Help",
+  "menuScreenHistoryCta": "Usage history",
+  "menuScreenLockCta": "Log out",
+  "menuScreenSettingsCta": "Settings",
+  "menuScreenTitle": "Menu",
   "mockDigidScreenAcceptCta": "login",
   "mockDigidScreenDeclineCta": "cancel",
   "mockDigidScreenEnterPin": "Enter pin to continue",
@@ -540,6 +526,10 @@
   "organizationDetailScreenReportIssueCta": "Report a problem",
   "organizationDetailScreenTitle": "About this organization",
   "organizationDetailScreenViewTerms": "View the",
+  "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\n\nTo start using the wallet again, please reset the app and select a new pin.",
+  "pinBlockedScreenHeadline": "Your app has been blocked",
+  "pinBlockedScreenResetWalletCta": "Reset wallet",
+  "pinBlockedScreenTitle": "App blocked",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "select",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
@@ -556,6 +546,10 @@
   "pinScreenForgotPinCta": "Forgot code?",
   "pinScreenHeader": "Enter your pin",
   "pinScreenTitle": "Login",
+  "pinTimeoutScreenForgotPinCta": "Forgot code?",
+  "pinTimeoutScreenHeadline": "Temporarily blocked",
+  "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
+  "pinTimeoutScreenTitle": "Login",
   "placeholderScreenContractInformTitle": "The contract will be displayed here.",
   "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
   "placeholderScreenTitle": "Placeholder",
@@ -628,6 +622,11 @@
   "reportOptionUnknownOrganization": "Ik ken deze partij niet",
   "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
   "reportOptionUntrusted": "Ik vertrouw het niet",
+  "settingsScreenChangeLanguageCta": "Change language",
+  "settingsScreenChangePinCta": "Change pin",
+  "settingsScreenClearDataCta": "Remove data",
+  "settingsScreenSetupBiometricsCta": "Setup biometrics",
+  "settingsScreenTitle": "Settings",
   "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
   "setupSecurityCompletedPageDescription": "Your security is configured.",
   "setupSecurityCompletedPageTitle": "Success!",
