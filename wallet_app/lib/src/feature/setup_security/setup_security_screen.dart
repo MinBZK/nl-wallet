@@ -26,8 +26,14 @@ class SetupSecurityScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'setup_security_scaffold',
       appBar: AppBar(
-        title: Text(context.l10n.setupSecurityScreenTitle),
         leading: _buildBackButton(context),
+        title: Text(context.l10n.setupSecurityScreenTitle),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
+            icon: const Icon(Icons.info_outline),
+          ),
+        ],
       ),
       body: WillPopScope(
         onWillPop: () async {
