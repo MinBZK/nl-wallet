@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import 'text_icon_button.dart';
@@ -17,7 +16,6 @@ class BottomBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeData = Theme.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Column(
@@ -28,9 +26,9 @@ class BottomBackButton extends StatelessWidget {
             height: context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight,
             width: double.infinity,
             child: Theme(
-              data: themeData.copyWith(
+              data: context.theme.copyWith(
                 textButtonTheme: TextButtonThemeData(
-                  style: themeData.textButtonTheme.style?.copyWith(
+                  style: context.theme.textButtonTheme.style?.copyWith(
                     // Remove rounded edges
                     shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
                   ),
@@ -40,7 +38,7 @@ class BottomBackButton extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 iconPosition: IconPosition.start,
                 icon: Icons.arrow_back,
-                child: Text(AppLocalizations.of(context).generalBottomBackCta),
+                child: Text(context.l10n.generalBottomBackCta),
               ),
             ),
           ),

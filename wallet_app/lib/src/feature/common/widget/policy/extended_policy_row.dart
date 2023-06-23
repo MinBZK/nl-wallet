@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 const double _kIconSize = 24;
 
 class ExtendedPolicyRow extends StatelessWidget {
@@ -21,7 +23,7 @@ class ExtendedPolicyRow extends StatelessWidget {
         children: [
           Icon(
             icon,
-            color: Theme.of(context).colorScheme.onBackground,
+            color: context.colorScheme.onBackground,
             size: _kIconSize,
           ),
           const SizedBox(width: 16),
@@ -36,14 +38,14 @@ class ExtendedPolicyRow extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: context.textTheme.titleMedium,
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '...',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: context.textTheme.bodyLarge,
                 ),
               ],
             ),

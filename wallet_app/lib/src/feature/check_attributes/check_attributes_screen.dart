@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/attribute/data_attribute.dart';
 import '../../domain/model/wallet_card.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/attribute/data_attribute_section.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
@@ -20,10 +20,9 @@ class CheckAttributesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.checkAttributesScreenTitle),
+        title: Text(context.l10n.checkAttributesScreenTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -70,14 +69,13 @@ class CheckAttributesScreen extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     if (onDataIncorrectPressed == null) return const SizedBox.shrink();
-    final locale = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LinkButton(
           onPressed: () => onDataIncorrectPressed!(),
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(locale.checkAttributesScreenDataIncorrectCta),
+          child: Text(context.l10n.checkAttributesScreenDataIncorrectCta),
         ),
         const Divider(height: 1),
       ],

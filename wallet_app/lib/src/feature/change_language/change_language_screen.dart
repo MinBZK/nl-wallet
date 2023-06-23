@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import 'bloc/change_language_bloc.dart';
@@ -13,7 +13,7 @@ class ChangeLanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).changeLanguageScreenTitle),
+        title: Text(context.l10n.changeLanguageScreenTitle),
         leading: IconButton(
           key: const Key('changeLanguageScreenBackCta'),
           icon: const Icon(Icons.arrow_back),
@@ -57,7 +57,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                   duration: kDefaultAnimationDuration,
                   child: Icon(
                     Icons.check,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: context.colorScheme.primary,
                   ),
                 ),
               ],
@@ -71,8 +71,8 @@ class ChangeLanguageScreen extends StatelessWidget {
   }
 
   TextStyle _getRowTextStyle(BuildContext context, bool isSelected) {
-    final baseStyle = Theme.of(context).textTheme.bodyLarge ?? const TextStyle();
+    final baseStyle = context.textTheme.bodyLarge ?? const TextStyle();
     if (!isSelected) return baseStyle;
-    return baseStyle.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold);
+    return baseStyle.copyWith(color: context.colorScheme.primary, fontWeight: FontWeight.bold);
   }
 }

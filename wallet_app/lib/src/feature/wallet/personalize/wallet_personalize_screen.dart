@@ -1,11 +1,11 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../environment.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
@@ -33,7 +33,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       restorationId: 'wallet_personalize_scaffold',
       appBar: AppBar(
         leading: _buildBackButton(context),
-        title: Text(AppLocalizations.of(context).walletPersonalizeScreenTitle),
+        title: Text(context.l10n.walletPersonalizeScreenTitle),
       ),
       body: WillPopScope(
         onWillPop: () async {
@@ -105,20 +105,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
-    final locale = AppLocalizations.of(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          locale.walletPersonalizeScreenLoadingTitle,
-          style: Theme.of(context).textTheme.headlineMedium,
+          context.l10n.walletPersonalizeScreenLoadingTitle,
+          style: context.textTheme.headlineMedium,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
-          locale.walletPersonalizeScreenLoadingSubtitle,
-          style: Theme.of(context).textTheme.bodyLarge,
+          context.l10n.walletPersonalizeScreenLoadingSubtitle,
+          style: context.textTheme.bodyLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -127,7 +126,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           const SizedBox(height: 48),
           TextButton(
             onPressed: onCancel,
-            child: Text(locale.generalCancelCta),
+            child: Text(context.l10n.generalCancelCta),
           ),
         ],
       ],
@@ -174,13 +173,12 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildErrorPage(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.not_interested,
-      iconColor: Theme.of(context).primaryColorDark,
-      title: locale.walletPersonalizeScreenErrorTitle,
-      description: locale.walletPersonalizeScreenErrorDescription,
-      closeButtonCta: locale.walletPersonalizeScreenErrorRetryCta,
+      iconColor: context.theme.primaryColorDark,
+      title: context.l10n.walletPersonalizeScreenErrorTitle,
+      description: context.l10n.walletPersonalizeScreenErrorDescription,
+      closeButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
       onClosePressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
     );
   }
@@ -194,14 +192,13 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.
   Future<bool> _showExitSheet(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmActionSheet.show(
       context,
-      title: locale.walletPersonalizeScreenExitSheetTitle,
-      description: locale.walletPersonalizeScreenExitSheetDescription,
-      cancelButtonText: locale.walletPersonalizeScreenExitSheetCancelCta,
-      confirmButtonText: locale.walletPersonalizeScreenExitSheetConfirmCta,
-      confirmButtonColor: Theme.of(context).colorScheme.error,
+      title: context.l10n.walletPersonalizeScreenExitSheetTitle,
+      description: context.l10n.walletPersonalizeScreenExitSheetDescription,
+      cancelButtonText: context.l10n.walletPersonalizeScreenExitSheetCancelCta,
+      confirmButtonText: context.l10n.walletPersonalizeScreenExitSheetConfirmCta,
+      confirmButtonColor: context.colorScheme.error,
     );
   }
 

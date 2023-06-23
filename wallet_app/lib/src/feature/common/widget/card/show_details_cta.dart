@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import '../../../../util/extension/build_context_extension.dart';
 
 class ShowDetailsCta extends StatelessWidget {
   const ShowDetailsCta({
@@ -11,11 +12,11 @@ class ShowDetailsCta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(AppLocalizations.of(context).showDetailsCta, style: Theme.of(context).textTheme.labelLarge),
+        Text(context.l10n.showDetailsCta, style: context.textTheme.labelLarge),
         const SizedBox(width: 8),
         Icon(
           Icons.arrow_forward,
-          color: Theme.of(context).textTheme.labelLarge?.color,
+          color: context.textTheme.labelLarge?.color,
           size: 16 * MediaQuery.of(context).textScaleFactor,
         ),
       ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/placeholder_screen.dart';
@@ -47,14 +47,14 @@ class VerificationMissingAttributesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context).verificationMissingAttributesPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.verificationMissingAttributesPageTitle,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).verificationMissingAttributesPageDescription(flow.organization.name),
-            style: Theme.of(context).textTheme.bodyLarge,
+            context.l10n.verificationMissingAttributesPageDescription(flow.organization.name),
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
         ],
@@ -79,7 +79,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 10),
-          child: Text(AppLocalizations.of(context).verificationMissingAttributesPageHowToProceedCta),
+          child: Text(context.l10n.verificationMissingAttributesPageHowToProceedCta),
         ),
       ),
     );
@@ -92,7 +92,7 @@ class VerificationMissingAttributesPage extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ElevatedButton(
           onPressed: onDecline,
-          child: Text(AppLocalizations.of(context).verificationMissingAttributesPageCloseCta),
+          child: Text(context.l10n.verificationMissingAttributesPageCloseCta),
         ),
       ),
     );

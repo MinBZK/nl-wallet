@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/placeholder_screen.dart';
 
@@ -11,10 +11,9 @@ class ForgotPinScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.forgotPinScreenTitle),
+        title: Text(context.l10n.forgotPinScreenTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -28,7 +27,6 @@ class ForgotPinScreen extends StatelessWidget {
   }
 
   Widget _buildScrollableSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scrollbar(
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -36,15 +34,15 @@ class ForgotPinScreen extends StatelessWidget {
           Image.asset(_kPinHeaderImage, fit: BoxFit.fitWidth),
           const SizedBox(height: 24),
           Text(
-            locale.forgotPinScreenHeadline,
+            context.l10n.forgotPinScreenHeadline,
             textAlign: TextAlign.start,
-            style: Theme.of(context).textTheme.displayMedium,
+            style: context.textTheme.displayMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            locale.forgotPinScreenDescription,
+            context.l10n.forgotPinScreenDescription,
             textAlign: TextAlign.start,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
           ),
         ],
       ),
@@ -52,14 +50,13 @@ class ForgotPinScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ElevatedButton(
             onPressed: () => PlaceholderScreen.show(context, secured: false),
-            child: Text(locale.forgotPinScreenCta),
+            child: Text(context.l10n.forgotPinScreenCta),
           ),
         ),
         const BottomBackButton(),

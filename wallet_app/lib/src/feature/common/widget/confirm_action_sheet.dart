@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import 'button/confirm_buttons.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
@@ -31,7 +32,7 @@ class ConfirmActionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: Theme.of(context).copyWith(elevatedButtonTheme: buttonTheme(context)),
+      data: context.theme.copyWith(elevatedButtonTheme: buttonTheme(context)),
       child: SafeArea(
         minimum: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
@@ -42,7 +43,7 @@ class ConfirmActionSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.displayMedium,
+                style: context.textTheme.displayMedium,
                 textAlign: TextAlign.start,
               ),
             ),
@@ -51,7 +52,7 @@ class ConfirmActionSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 description,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: context.textTheme.bodyLarge,
               ),
             ),
             if (extraContent != null) ...[

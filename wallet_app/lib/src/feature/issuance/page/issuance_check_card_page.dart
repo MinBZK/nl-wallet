@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/wallet_card.dart';
-import '../../common/widget/check_data_offering_page.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/check_data_offering_page.dart';
 
 class IssuanceCheckCardPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -24,24 +24,22 @@ class IssuanceCheckCardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
       attributes: card.attributes,
-      title: locale.issuanceCheckCardPageTitle,
-      overline: locale.issuanceCheckCardPageOverline(currentCardIndex + 1, totalNrOfCards),
+      title: context.l10n.issuanceCheckCardPageTitle,
+      overline: context.l10n.issuanceCheckCardPageOverline(currentCardIndex + 1, totalNrOfCards),
       cardFront: card.front,
       showHeaderAttributesDivider: false,
     );
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return ConfirmButtons(
       onDeclinePressed: onDeclinePressed,
       onAcceptPressed: onAcceptPressed,
-      acceptText: locale.issuanceCheckCardPageConfirmCta,
-      declineText: locale.issuanceCheckCardPageRejectCta,
+      acceptText: context.l10n.issuanceCheckCardPageConfirmCta,
+      declineText: context.l10n.issuanceCheckCardPageRejectCta,
     );
   }
 }

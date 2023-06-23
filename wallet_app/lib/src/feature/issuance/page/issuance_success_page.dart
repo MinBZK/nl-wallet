@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/card_front.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
@@ -45,10 +45,9 @@ class IssuanceSuccessPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     final subtitle = isRefreshFlow
-        ? locale.issuanceSuccessPageCardsUpdatedSubtitle(cards.length)
-        : locale.issuanceSuccessPageCardsAddedSubtitle(cards.length);
+        ? context.l10n.issuanceSuccessPageCardsUpdatedSubtitle(cards.length)
+        : context.l10n.issuanceSuccessPageCardsAddedSubtitle(cards.length);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -57,15 +56,15 @@ class IssuanceSuccessPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: StatusIcon(
             icon: Icons.check,
-            color: Theme.of(context).colorScheme.primary,
+            color: context.colorScheme.primary,
           ),
         ),
         const SizedBox(height: 32),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            locale.issuanceSuccessPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.issuanceSuccessPageTitle,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ),
@@ -74,7 +73,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
         ),
@@ -91,7 +90,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           height: 48,
           child: ElevatedButton(
             onPressed: onClose,
-            child: Text(AppLocalizations.of(context).issuanceSuccessPageCloseCta),
+            child: Text(context.l10n.issuanceSuccessPageCloseCta),
           ),
         ),
       ),

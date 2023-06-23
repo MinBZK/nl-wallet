@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
@@ -25,7 +25,6 @@ class ConfirmAgreementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scrollbar(
       child: CustomScrollView(
         slivers: <Widget>[
@@ -45,9 +44,9 @@ class ConfirmAgreementPage extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
                 onAcceptPressed: onAcceptPressed,
-                acceptText: locale.confirmAgreementPageConfirmCta,
+                acceptText: context.l10n.confirmAgreementPageConfirmCta,
                 onDeclinePressed: onDeclinePressed,
-                declineText: locale.confirmAgreementPageCancelCta,
+                declineText: context.l10n.confirmAgreementPageCancelCta,
               ),
             ),
           ),
@@ -69,8 +68,8 @@ class ConfirmAgreementPage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            AppLocalizations.of(context).confirmAgreementPageTitle,
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.confirmAgreementPageTitle,
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
         ],
@@ -95,7 +94,7 @@ class ConfirmAgreementPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 8),
-          child: Text(AppLocalizations.of(context).confirmAgreementPageDataIncorrectCta),
+          child: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
         ),
       ),
     );
@@ -110,8 +109,8 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              AppLocalizations.of(context).confirmAgreementPageSignProvider(flow.trustProvider.name),
-              style: Theme.of(context).textTheme.bodyLarge,
+              context.l10n.confirmAgreementPageSignProvider(flow.trustProvider.name),
+              style: context.textTheme.bodyLarge,
             ),
           )
         ],

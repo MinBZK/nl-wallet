@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 const _kMinHeight = 56.0;
 
 class MenuRow extends StatelessWidget {
@@ -16,7 +18,6 @@ class MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _kMinHeight),
       child: InkWell(
@@ -28,7 +29,7 @@ class MenuRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: theme.textTheme.titleMedium,
+                style: context.textTheme.titleMedium,
               ),
             ),
             const SizedBox(
@@ -50,7 +51,7 @@ class MenuRow extends StatelessWidget {
       child: Center(
         child: Icon(
           icon,
-          color: Theme.of(context).colorScheme.onSurface,
+          color: context.colorScheme.onSurface,
         ),
       ),
     );

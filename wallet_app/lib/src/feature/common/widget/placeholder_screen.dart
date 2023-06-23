@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -20,7 +19,7 @@ class PlaceholderScreen extends StatelessWidget {
     return Scaffold(
       key: const Key('placeholderScreenKey'),
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).placeholderScreenTitle),
+        title: Text(context.l10n.placeholderScreenTitle),
       ),
       body: SafeArea(
         child: _buildBody(context),
@@ -41,7 +40,7 @@ class PlaceholderScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             _informTitle(context),
-            style: Theme.of(context).textTheme.displaySmall,
+            style: context.textTheme.displaySmall,
             textAlign: TextAlign.center,
           ),
         ),
@@ -63,9 +62,9 @@ class PlaceholderScreen extends StatelessWidget {
   String _informTitle(BuildContext context) {
     switch (type) {
       case PlaceholderType.generic:
-        return AppLocalizations.of(context).placeholderScreenGenericInformTitle;
+        return context.l10n.placeholderScreenGenericInformTitle;
       case PlaceholderType.contract:
-        return AppLocalizations.of(context).placeholderScreenContractInformTitle;
+        return context.l10n.placeholderScreenContractInformTitle;
     }
   }
 

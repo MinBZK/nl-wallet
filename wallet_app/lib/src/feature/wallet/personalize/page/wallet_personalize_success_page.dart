@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/card_front.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/flow_terminal_page.dart';
 import '../../../common/widget/stacked_wallet_cards.dart';
 
@@ -17,16 +17,15 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.check,
-      title: locale.walletPersonalizeSuccessPageTitle,
+      title: context.l10n.walletPersonalizeSuccessPageTitle,
       content: Padding(
         padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
         child: StackedWalletCards(cards: cards),
       ),
-      description: locale.walletPersonalizeSuccessPageDescription,
-      closeButtonCta: locale.walletPersonalizeSuccessPageContinueCta,
+      description: context.l10n.walletPersonalizeSuccessPageDescription,
+      closeButtonCta: context.l10n.walletPersonalizeSuccessPageContinueCta,
       onClosePressed: onContinuePressed,
     );
   }

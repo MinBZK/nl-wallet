@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/flow_terminal_page.dart';
 
 class VerificationReportSubmittedPage extends StatelessWidget {
@@ -13,13 +13,12 @@ class VerificationReportSubmittedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.gpp_maybe_outlined,
-      iconColor: Theme.of(context).primaryColorDark,
-      title: locale.verificationReportSubmittedPageTitle,
-      description: locale.verificationReportSubmittedPageSubtitle,
-      closeButtonCta: locale.verificationReportSubmittedPageCloseCta,
+      iconColor: context.theme.primaryColorDark,
+      title: context.l10n.verificationReportSubmittedPageTitle,
+      description: context.l10n.verificationReportSubmittedPageSubtitle,
+      closeButtonCta: context.l10n.verificationReportSubmittedPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }

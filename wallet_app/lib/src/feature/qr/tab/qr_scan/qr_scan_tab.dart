@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../domain/model/qr/qr_request.dart';
 import '../../../../navigation/wallet_routes.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/explanation_sheet.dart';
@@ -44,7 +44,7 @@ class QrScanTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextIconButton(
               onPressed: () => _showHowToScanSheet(context),
-              child: Text(AppLocalizations.of(context).qrScanTabHowToScanCta),
+              child: Text(context.l10n.qrScanTabHowToScanCta),
             ),
           ),
         ],
@@ -73,7 +73,7 @@ class QrScanTab extends StatelessWidget {
     return QrScannerFrame(
       child: Container(
         alignment: Alignment.center,
-        color: Theme.of(context).colorScheme.secondaryContainer,
+        color: context.colorScheme.secondaryContainer,
         child: const CenteredLoadingIndicator(),
       ),
     );
@@ -83,15 +83,15 @@ class QrScanTab extends StatelessWidget {
     return QrScannerFrame(
       child: Container(
         alignment: Alignment.center,
-        color: Theme.of(context).colorScheme.secondaryContainer,
+        color: context.colorScheme.secondaryContainer,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline, color: context.colorScheme.error),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScanTabErrorRetryCta),
+              child: Text(context.l10n.qrScanTabErrorRetryCta),
             )
           ],
         ),
@@ -103,7 +103,7 @@ class QrScanTab extends StatelessWidget {
     return QrScannerFrame(
       child: Container(
         alignment: Alignment.center,
-        color: Theme.of(context).colorScheme.secondaryContainer,
+        color: context.colorScheme.secondaryContainer,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -120,7 +120,7 @@ class QrScanTab extends StatelessWidget {
                     context.read<QrScanBloc>().add(const QrScanCheckPermission());
                   }
                 },
-                child: Text(AppLocalizations.of(context).qrScanTabGrantPermissionCta),
+                child: Text(context.l10n.qrScanTabGrantPermissionCta),
               ),
             )
           ],
@@ -133,7 +133,7 @@ class QrScanTab extends StatelessWidget {
     return QrScannerFrame(
       child: Container(
         alignment: Alignment.center,
-        color: Theme.of(context).colorScheme.secondaryContainer,
+        color: context.colorScheme.secondaryContainer,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -141,7 +141,7 @@ class QrScanTab extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrScanBloc>().add(const QrScanReset()),
-              child: Text(AppLocalizations.of(context).qrScanTabContinueCta),
+              child: Text(context.l10n.qrScanTabContinueCta),
             )
           ],
         ),
@@ -150,12 +150,11 @@ class QrScanTab extends StatelessWidget {
   }
 
   void _showHowToScanSheet(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     ExplanationSheet.show(
       context,
-      title: locale.qrScanTabHowToScanSheetTitle,
-      description: locale.qrScanTabHowToScanSheetDescription,
-      closeButtonText: locale.qrScanTabHowToScanSheetCloseCta,
+      title: context.l10n.qrScanTabHowToScanSheetTitle,
+      description: context.l10n.qrScanTabHowToScanSheetDescription,
+      closeButtonText: context.l10n.qrScanTabHowToScanSheetCloseCta,
     );
   }
 

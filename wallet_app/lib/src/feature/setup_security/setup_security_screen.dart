@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/pin/pin_validation_error.dart';
-import '../../wallet_constants.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/widget/button/text_icon_button.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
@@ -26,8 +26,14 @@ class SetupSecurityScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'setup_security_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).setupSecurityScreenTitle),
         leading: _buildBackButton(context),
+        title: Text(context.l10n.setupSecurityScreenTitle),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
+            icon: const Icon(Icons.info_outline),
+          ),
+        ],
       ),
       body: WillPopScope(
         onWillPop: () async {
@@ -58,7 +64,7 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
         if (!MediaQuery.of(context).accessibleNavigation) return;
-        final locale = AppLocalizations.of(context);
+        final locale = context.l10n;
         if (state is SetupSecuritySelectPinInProgress) {
           if (state.afterBackspacePressed) {
             announceEnteredDigits(context, state.enteredDigits);
@@ -113,8 +119,8 @@ class SetupSecurityScreen extends StatelessWidget {
     return SetupSecurityPinPage(
       key: _kSelectPinKey,
       content: Text(
-        AppLocalizations.of(context).setupSecuritySelectPinPageTitle,
-        style: Theme.of(context).textTheme.displaySmall,
+        context.l10n.setupSecuritySelectPinPageTitle,
+        style: context.textTheme.displaySmall,
         textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
@@ -124,18 +130,17 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildSelectPinErrorPage(BuildContext context, SetupSecuritySelectPinFailed state) {
-    final locale = AppLocalizations.of(context);
-    String errorTitle = locale.setupSecuritySelectPinErrorPageTitle;
+    String errorTitle = context.l10n.setupSecuritySelectPinErrorPageTitle;
     String errorDescription;
     switch (state.reason) {
       case PinValidationError.tooFewUniqueDigits:
-        errorDescription = locale.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError;
+        errorDescription = context.l10n.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError;
         break;
       case PinValidationError.sequentialDigits:
-        errorDescription = locale.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;
+        errorDescription = context.l10n.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;
         break;
       default:
-        errorDescription = locale.setupSecuritySelectPinErrorPageDefaultError;
+        errorDescription = context.l10n.setupSecuritySelectPinErrorPageDefaultError;
     }
     return SetupSecurityPinPage(
       key: _kSelectPinKey,
@@ -146,13 +151,13 @@ class SetupSecurityScreen extends StatelessWidget {
             Text(
               errorTitle,
               key: const Key('setupSecurityPinPageSimpleErrorMessageTitle'),
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+              style: context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error),
               textAlign: TextAlign.center,
             ),
             Text(
               errorDescription,
               key: const Key('setupSecurityPinPageSimpleErrorMessageDescription'),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
+              style: context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error),
               textAlign: TextAlign.center,
             ),
           ],
@@ -168,8 +173,8 @@ class SetupSecurityScreen extends StatelessWidget {
     return SetupSecurityPinPage(
       key: _kConfirmPinKey,
       content: Text(
-        AppLocalizations.of(context).setupSecurityConfirmationPageTitle,
-        style: Theme.of(context).textTheme.displaySmall,
+        context.l10n.setupSecurityConfirmationPageTitle,
+        style: context.textTheme.displaySmall,
         textAlign: TextAlign.center,
       ),
       enteredDigits: state.enteredDigits,
@@ -179,23 +184,21 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildPinConfirmationErrorPage(BuildContext context, SetupSecurityPinConfirmationFailed state) {
-    final locale = AppLocalizations.of(context);
-    final titleStyle = Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error);
-    final descriptionStyle =
-        Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error);
+    final titleStyle = context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error);
+    final descriptionStyle = context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error);
     Widget content;
     if (state.retryAllowed) {
       content = Column(
         children: [
           Text(
             key: const Key('setupSecurityConfirmationErrorPageTitle'),
-            locale.setupSecurityConfirmationErrorPageTitle,
+            context.l10n.setupSecurityConfirmationErrorPageTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
             key: const Key('setupSecurityConfirmationErrorPageDescription'),
-            locale.setupSecurityConfirmationErrorPageDescription,
+            context.l10n.setupSecurityConfirmationErrorPageDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
           ),
@@ -206,20 +209,20 @@ class SetupSecurityScreen extends StatelessWidget {
         children: [
           Text(
             key: const Key('setupSecurityConfirmationErrorPageFatalTitle'),
-            locale.setupSecurityConfirmationErrorPageFatalTitle,
+            context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
             key: const Key('setupSecurityConfirmationErrorPageFatalDescription'),
-            locale.setupSecurityConfirmationErrorPageFatalDescription,
+            context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           TextIconButton(
             key: const Key('setupSecurityConfirmationErrorPageFatalCta'),
-            child: Text(locale.setupSecurityConfirmationErrorPageFatalCta),
+            child: Text(context.l10n.setupSecurityConfirmationErrorPageFatalCta),
             onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
           ),
         ],
@@ -256,7 +259,7 @@ class SetupSecurityScreen extends StatelessWidget {
           IntrinsicWidth(
             child: ElevatedButton(
               onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityRetryPressed()),
-              child: Text(AppLocalizations.of(context).generalRetry),
+              child: Text(context.l10n.generalRetry),
             ),
           )
         ],
@@ -265,9 +268,8 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   void announceEnteredDigits(BuildContext context, int enteredDigits) {
-    var locale = AppLocalizations.of(context);
     SemanticsService.announce(
-      locale.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
       TextDirection.ltr,
     );
   }

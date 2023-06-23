@@ -20,4 +20,19 @@ class HistoryDetailScreenArgument {
       cardId: map[_kCardIdKey],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HistoryDetailScreenArgument &&
+          runtimeType == other.runtimeType &&
+          timelineAttributeId == other.timelineAttributeId &&
+          cardId == other.cardId;
+
+  @override
+  int get hashCode => Object.hash(
+        runtimeType,
+        timelineAttributeId,
+        cardId,
+      );
 }

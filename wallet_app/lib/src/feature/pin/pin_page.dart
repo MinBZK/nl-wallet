@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/wallet_logo.dart';
@@ -126,13 +126,13 @@ class PinPage extends StatelessWidget {
       return Column(
         children: [
           Text(
-            AppLocalizations.of(context).pinScreenHeader,
-            style: Theme.of(context).textTheme.displaySmall,
+            context.l10n.pinScreenHeader,
+            style: context.textTheme.displaySmall,
             textAlign: TextAlign.center,
           ),
           Text(
             '' /* makes sure the UI doesn't jump around */,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
           ),
         ],
       );
@@ -141,13 +141,13 @@ class PinPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            AppLocalizations.of(context).pinScreenErrorHeader,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Theme.of(context).colorScheme.error),
+            context.l10n.pinScreenErrorHeader,
+            style: context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error),
             textAlign: TextAlign.center,
           ),
           Text(
-            AppLocalizations.of(context).pinScreenAttemptsCount(attempts),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.error),
+            context.l10n.pinScreenAttemptsCount(attempts),
+            style: context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error),
             textAlign: TextAlign.center,
           ),
         ],
@@ -172,7 +172,7 @@ class PinPage extends StatelessWidget {
         final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
         return TextIconButton(
           onPressed: buttonEnabled ? () => ForgotPinScreen.show(context) : null,
-          child: Text(AppLocalizations.of(context).pinScreenForgotPinCta),
+          child: Text(context.l10n.pinScreenForgotPinCta),
         );
       },
     );

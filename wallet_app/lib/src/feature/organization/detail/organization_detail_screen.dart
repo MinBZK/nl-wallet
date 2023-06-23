@@ -2,9 +2,9 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../navigation/secured_page_route.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
@@ -40,7 +40,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).organizationDetailScreenTitle),
+        title: Text(context.l10n.organizationDetailScreenTitle),
         leading: const BackButton(),
       ),
       body: SafeArea(
@@ -107,7 +107,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                           onReportIssuePressed?.call();
                         },
                         customPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(AppLocalizations.of(context).organizationDetailScreenReportIssueCta),
+                        child: Text(context.l10n.organizationDetailScreenReportIssueCta),
                       ),
                       const SizedBox(height: 12),
                       const Divider(height: 1),
@@ -132,7 +132,7 @@ class OrganizationDetailScreen extends StatelessWidget {
               child: Text(
                 organization.name,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.displayMedium,
+                style: context.textTheme.displayMedium,
               ),
             )
           ],
@@ -140,7 +140,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           organization.description,
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: context.textTheme.bodyLarge,
         ),
       ],
     );
@@ -150,27 +150,26 @@ class OrganizationDetailScreen extends StatelessWidget {
     BuildContext context,
     OrganizationDetailSuccess state,
   ) {
-    final locale = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          locale.organizationDetailScreenPrivacyHeader,
+          context.l10n.organizationDetailScreenPrivacyHeader,
           textAlign: TextAlign.start,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: context.textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.policy_outlined),
           text: Text.rich(
             TextSpan(
-              text: locale.organizationDetailScreenViewTerms.addSpaceSuffix,
+              text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
               children: [
                 TextSpan(
-                  text: locale.organizationDetailScreenPrivacyPolicy,
+                  text: context.l10n.organizationDetailScreenPrivacyPolicy,
                   recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+                  style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
                 )
               ],
             ),
@@ -181,9 +180,9 @@ class OrganizationDetailScreen extends StatelessWidget {
           IconRow(
             icon: Image.asset(
               'assets/images/ic_first_share.png',
-              color: Theme.of(context).iconTheme.color,
+              color: context.theme.iconTheme.color,
             ),
-            text: Text(locale.organizationDetailScreenFirstInteraction),
+            text: Text(context.l10n.organizationDetailScreenFirstInteraction),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
       ],
@@ -191,15 +190,14 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context, Organization organization) {
-    final locale = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          locale.organizationDetailScreenInfoHeader,
+          context.l10n.organizationDetailScreenInfoHeader,
           textAlign: TextAlign.start,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: context.textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
         IconRow(
@@ -225,7 +223,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             text: Text.rich(TextSpan(
               text: organization.webUrl!,
               recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+              style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
             )),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
@@ -258,7 +256,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           onPressed: () {
             context.read<OrganizationDetailBloc>().add(OrganizationLoadTriggered(organizationId: state.organizationId));
           },
-          child: Text(AppLocalizations.of(context).generalRetry),
+          child: Text(context.l10n.generalRetry),
         ),
       ],
     );
