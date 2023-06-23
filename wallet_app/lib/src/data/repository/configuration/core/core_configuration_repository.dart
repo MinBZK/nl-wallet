@@ -1,4 +1,4 @@
-import '../../../../domain/model/configuration/app_configuration.dart';
+import '../../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../../../wallet_core/typed_wallet_core.dart';
 import '../configuration_repository.dart';
 
@@ -8,6 +8,6 @@ class CoreConfigurationRepository implements ConfigurationRepository {
   CoreConfigurationRepository(this._walletCore);
 
   @override
-  Stream<AppConfiguration> get appConfiguration =>
-      _walletCore.observeConfig().map((event) => AppConfiguration.fromFlutterConfig(event));
+  Stream<FlutterAppConfiguration> get appConfiguration =>
+      _walletCore.observeConfig().map((event) => FlutterAppConfiguration.fromFlutterConfig(event));
 }

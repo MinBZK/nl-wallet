@@ -3,7 +3,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/configuration/core/core_configuration_repository.dart';
 import 'package:wallet/src/data/repository/configuration/mock/mock_configuration_repository.dart';
-import 'package:wallet/src/domain/model/configuration/app_configuration.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -26,9 +26,9 @@ void main() {
     final config = await configurationRepository.appConfiguration.first;
     expect(
       config,
-      const AppConfiguration(
+      const FlutterAppConfiguration(
         idleLockTimeout: Duration(seconds: 5),
-        backgoundLockTimeout: Duration(seconds: 10),
+        backgroundLockTimeout: Duration(seconds: 10),
       ),
     );
   });

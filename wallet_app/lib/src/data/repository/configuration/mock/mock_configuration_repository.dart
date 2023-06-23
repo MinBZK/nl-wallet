@@ -1,11 +1,11 @@
-import '../../../../domain/model/configuration/app_configuration.dart';
+import '../../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../configuration_repository.dart';
 
 class MockConfigurationRepository implements ConfigurationRepository {
   @override
-  Stream<AppConfiguration> get appConfiguration => Stream.value(
-        const AppConfiguration(
-          backgoundLockTimeout: Duration(minutes: 5),
+  Stream<FlutterAppConfiguration> get appConfiguration => Stream.value(
+        const FlutterAppConfiguration(
+          backgroundLockTimeout: Duration(minutes: 5),
           idleLockTimeout: Duration(minutes: 20),
         ),
       );

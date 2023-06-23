@@ -3,25 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/repository/configuration/configuration_repository.dart';
-import '../../../domain/model/configuration/app_configuration.dart';
+import '../../../domain/model/configuration/flutter_app_configuration.dart';
 import '../../../wallet_core/typed_wallet_core.dart';
 import 'centered_loading_indicator.dart';
 
-class AppConfigurationProvider extends StatelessWidget {
-  /// This builder will be called with the latest [AppConfiguration]
-  final Widget Function(AppConfiguration) builder;
+class FlutterAppConfigurationProvider extends StatelessWidget {
+  /// This builder will be called with the latest [FlutterAppConfiguration]
+  final Widget Function(FlutterAppConfiguration) builder;
 
-  /// The default [AppConfiguration] to be provided to the [builder].
+  /// The default [FlutterAppConfiguration] to be provided to the [builder].
   /// When this is null a [CenteredLoadingIndicator] will be rendered until
-  /// a [AppConfiguration] is available.
-  final AppConfiguration? defaultConfig;
+  /// a [FlutterAppConfiguration] is available.
+  final FlutterAppConfiguration? defaultConfig;
 
-  /// The stream to be observed to fetch the [AppConfiguration], when
+  /// The stream to be observed to fetch the [FlutterAppConfiguration], when
   /// set to null the provider is fetched through the [TypedWalletCore],
   /// mainly used for testing.
-  final Stream<AppConfiguration>? configProvider;
+  final Stream<FlutterAppConfiguration>? configProvider;
 
-  const AppConfigurationProvider({
+  const FlutterAppConfigurationProvider({
     required this.builder,
     this.configProvider,
     this.defaultConfig,
@@ -30,7 +30,7 @@ class AppConfigurationProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AppConfiguration>(
+    return StreamBuilder<FlutterAppConfiguration>(
       stream: configProvider ?? context.read<ConfigurationRepository>().appConfiguration,
       builder: (context, snapshot) {
         if (!snapshot.hasData && defaultConfig == null) return const CenteredLoadingIndicator();

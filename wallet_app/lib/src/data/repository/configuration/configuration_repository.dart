@@ -1,5 +1,5 @@
-import '../../../domain/model/configuration/app_configuration.dart';
+import '../../../domain/model/configuration/flutter_app_configuration.dart';
 
 abstract class ConfigurationRepository {
-  Stream<AppConfiguration> get appConfiguration;
+  Stream<FlutterAppConfiguration> get appConfiguration;
 }

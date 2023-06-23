@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/configuration/app_configuration.dart';
-import 'package:wallet/src/feature/common/widget/app_configuration_provider.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
+import 'package:wallet/src/feature/common/widget/flutter_app_configuration_provider.dart';
 
 void main() {
-  const defaultMockConfig = AppConfiguration(
+  const defaultMockConfig = FlutterAppConfiguration(
     idleLockTimeout: Duration(seconds: 10),
-    backgoundLockTimeout: Duration(seconds: 20),
+    backgroundLockTimeout: Duration(seconds: 20),
   );
 
   testWidgets(
@@ -14,7 +14,7 @@ void main() {
         (tester) async {
       bool called = false;
       await tester.pumpWidget(
-        AppConfigurationProvider(
+        FlutterAppConfigurationProvider(
           configProvider: const Stream.empty(),
           defaultConfig: defaultMockConfig,
           builder: (config) {
@@ -29,13 +29,13 @@ void main() {
   );
 
   testWidgets('verify builder is called when a config is available', (tester) async {
-    const expectedConfig = AppConfiguration(
+    const expectedConfig = FlutterAppConfiguration(
       idleLockTimeout: Duration(seconds: 8),
-      backgoundLockTimeout: Duration(seconds: 5),
+      backgroundLockTimeout: Duration(seconds: 5),
     );
-    late AppConfiguration receivedConfig;
+    late FlutterAppConfiguration receivedConfig;
     await tester.pumpWidget(
-      AppConfigurationProvider(
+      FlutterAppConfigurationProvider(
         configProvider: Stream.value(expectedConfig),
         defaultConfig: defaultMockConfig,
         builder: (config) {

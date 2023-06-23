@@ -6,12 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../data/repository/wallet/wallet_repository.dart';
-import '../../domain/model/configuration/app_configuration.dart';
+import '../../domain/model/configuration/flutter_app_configuration.dart';
 import 'widget/interaction_detector.dart';
 
 class AutoLockObserver extends StatefulWidget {
   final Widget child;
-  final AppConfiguration configuration;
+  final FlutterAppConfiguration configuration;
 
   const AutoLockObserver({
     required this.child,
@@ -80,7 +80,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   /// Locks the app if needed, and reset the stopwatch for future use.
   void _checkAndResetStopwatch() {
     _backgroundStopwatch.stop();
-    if (_backgroundStopwatch.elapsed >= widget.configuration.backgoundLockTimeout) _lockWallet();
+    if (_backgroundStopwatch.elapsed >= widget.configuration.backgroundLockTimeout) _lockWallet();
     _backgroundStopwatch.reset();
   }
 
