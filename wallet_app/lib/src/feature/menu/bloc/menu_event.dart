@@ -9,12 +9,4 @@ abstract class MenuEvent extends Equatable {
 
 class MenuLoadTriggered extends MenuEvent {}
 
-class MenuSettingsPressed extends MenuEvent {}
-
-class MenuAboutPressed extends MenuEvent {}
-
-class MenuBackPressed extends MenuEvent {}
-
-class MenuHomePressed extends MenuEvent {}
-
 class MenuLockWalletPressed extends MenuEvent {}

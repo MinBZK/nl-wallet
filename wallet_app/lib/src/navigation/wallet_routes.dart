@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/service/deeplink_service.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import '../feature/about/about_screen.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
@@ -37,6 +38,7 @@ import '../feature/pin/pin_screen.dart';
 import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
+import '../feature/settings/settings_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
 import '../feature/sign/bloc/sign_bloc.dart';
@@ -60,16 +62,18 @@ class WalletRoutes {
   static const publicRoutes = [
     splashRoute,
     introductionRoute,
+    aboutRoute,
     setupSecurityRoute,
     pinRoute,
     pinTimeoutRoute,
     pinBlockedRoute,
     themeRoute,
-    changeLanguageRoute
+    changeLanguageRoute,
   ];
 
   static const splashRoute = '/';
   static const introductionRoute = '/introduction';
+  static const aboutRoute = '/about';
   static const setupSecurityRoute = '/security/setup';
   static const pinRoute = '/pin';
   static const pinTimeoutRoute = '/pin/timeout';
@@ -89,6 +93,7 @@ class WalletRoutes {
   static const historyDetailRoute = '/history';
   static const changeLanguageRoute = '/language';
   static const organizationDetailRoute = '/organization';
+  static const settingsRoute = '/settings';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -117,6 +122,8 @@ class WalletRoutes {
         return _createSplashScreenBuilder;
       case WalletRoutes.introductionRoute:
         return _createIntroductionScreenBuilder;
+      case WalletRoutes.aboutRoute:
+        return _createAboutScreenBuilder;
       case WalletRoutes.pinRoute:
         return _createPinScreenBuilder;
       case WalletRoutes.setupSecurityRoute:
@@ -155,6 +162,8 @@ class WalletRoutes {
         return _createPinTimeoutScreenBuilder(settings);
       case WalletRoutes.pinBlockedRoute:
         return _createPinBlockedScreenBuilder(settings);
+      case WalletRoutes.settingsRoute:
+        return _createSettingsScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -169,6 +178,8 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
     );
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
+
+Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
 Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
@@ -341,3 +352,5 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
     );
   };
 }
+
+Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();

@@ -14,10 +14,6 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
   MenuBloc(this.getFirstNamesUseCase, this.lockWalletUseCase) : super(MenuInitial()) {
     on<MenuLoadTriggered>(_onLoadTriggered);
     on<MenuLockWalletPressed>(_onLockWalletPressed);
-    on<MenuSettingsPressed>(_onSettingsPressed);
-    on<MenuAboutPressed>(_onAboutPressed);
-    on<MenuBackPressed>(_onBackPressed);
-    on<MenuHomePressed>(_onHomePressed);
 
     //Immediately start loading when bloc is created.
     add(MenuLoadTriggered());
@@ -26,37 +22,7 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
   void _onLoadTriggered(event, emit) async {
     emit(const MenuLoadInProgress());
     final firstName = await getFirstNamesUseCase.invoke();
-    emit(MenuLoadSuccess(name: firstName, menu: SelectedMenu.main));
-  }
-
-  void _onSettingsPressed(event, emit) async {
-    final state = this.state;
-    if (state is MenuLoadSuccess) {
-      emit(state.copyWith(menu: SelectedMenu.settings));
-    }
-  }
-
-  void _onAboutPressed(event, emit) async {
-    final state = this.state;
-    if (state is MenuLoadSuccess) {
-      emit(state.copyWith(menu: SelectedMenu.about));
-    }
-  }
-
-  void _onBackPressed(event, emit) async {
-    final state = this.state;
-    if (state is MenuLoadSuccess) {
-      emit(state.copyWith(menu: SelectedMenu.main));
-    }
-  }
-
-  void _onHomePressed(event, emit) async {
-    final state = this.state;
-    if (state is MenuLoadSuccess) {
-      emit(state.copyWith(menu: SelectedMenu.main));
-    } else {
-      add(MenuLoadTriggered());
-    }
+    emit(MenuLoadSuccess(name: firstName));
   }
 
   void _onLockWalletPressed(event, emit) async {

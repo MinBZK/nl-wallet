@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../card/overview/card_overview_screen.dart';
-import '../menu/bloc/menu_bloc.dart';
 import '../menu/menu_screen.dart';
 import '../qr/qr_screen.dart';
 import 'bloc/home_bloc.dart';
@@ -18,9 +17,6 @@ class HomeScreen extends StatelessWidget {
       body: WillPopScope(
         child: _buildBody(),
         onWillPop: () async {
-          if ((context.read<HomeBloc>().state.tab) == HomeTab.menu) {
-            context.read<MenuBloc>().add(MenuHomePressed());
-          }
           return false; // Back gesture disabled for demo purposes
         },
       ),
@@ -29,11 +25,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildBody() {
-    return BlocConsumer<HomeBloc, HomeState>(
-      listenWhen: (prev, current) => prev.tab == current.tab,
-      listener: (context, state) {
-        if (state.tab == HomeTab.menu) context.read<MenuBloc>().add(MenuHomePressed());
-      },
+    return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
         final Widget tab;
         switch (state.tab) {
