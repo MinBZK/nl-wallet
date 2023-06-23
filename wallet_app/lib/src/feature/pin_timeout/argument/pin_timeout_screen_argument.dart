@@ -25,5 +25,8 @@ class PinTimeoutScreenArgument {
       other is PinTimeoutScreenArgument && runtimeType == other.runtimeType && expiryTime == other.expiryTime;
 
   @override
-  int get hashCode => expiryTime.hashCode;
+  int get hashCode => Object.hash(
+        runtimeType,
+        expiryTime,
+      );
 }

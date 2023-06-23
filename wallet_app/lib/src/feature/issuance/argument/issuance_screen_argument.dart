@@ -20,4 +20,19 @@ class IssuanceScreenArgument {
       isRefreshFlow: map[_kIsRefreshFlow],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is IssuanceScreenArgument &&
+          runtimeType == other.runtimeType &&
+          sessionId == other.sessionId &&
+          isRefreshFlow == other.isRefreshFlow;
+
+  @override
+  int get hashCode => Object.hash(
+        runtimeType,
+        sessionId,
+        isRefreshFlow,
+      );
 }
