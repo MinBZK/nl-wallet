@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -36,7 +36,7 @@ class SignScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: _buildBackButton(context),
-        title: Text(AppLocalizations.of(context).signScreenTitle),
+        title: Text(context.l10n.signScreenTitle),
         actions: [CloseButton(onPressed: () => _stopSigning(context))],
       ),
       body: WillPopScope(
@@ -151,14 +151,13 @@ class SignScreen extends StatelessWidget {
   void _stopSigning(BuildContext context) async {
     final bloc = context.read<SignBloc>();
     if (bloc.state.showStopConfirmation) {
-      final locale = AppLocalizations.of(context);
       final stopped = await ConfirmActionSheet.show(
         context,
-        title: locale.signScreenCancelSheetTitle,
-        description: locale.signScreenCancelSheetDescription,
-        cancelButtonText: locale.signScreenCancelSheetNegativeCta,
-        confirmButtonText: locale.signScreenCancelSheetPositiveCta,
-        confirmButtonColor: Theme.of(context).colorScheme.error,
+        title: context.l10n.signScreenCancelSheetTitle,
+        description: context.l10n.signScreenCancelSheetDescription,
+        cancelButtonText: context.l10n.signScreenCancelSheetNegativeCta,
+        confirmButtonText: context.l10n.signScreenCancelSheetPositiveCta,
+        confirmButtonColor: context.colorScheme.error,
       );
       if (stopped) bloc.add(const SignStopRequested());
     } else {

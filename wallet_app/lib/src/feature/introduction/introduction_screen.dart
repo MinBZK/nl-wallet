@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
-import '../../wallet_constants.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
+import '../../wallet_constants.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/placeholder_screen.dart';
 import 'page/introduction_page.dart';
@@ -83,8 +83,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroductionPage(BuildContext context) {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_introduction.png'),
-      title: AppLocalizations.of(context).introductionAppIntroPageTitle,
-      subtitle: AppLocalizations.of(context).introductionAppIntroPageSubtitle,
+      title: context.l10n.introductionAppIntroPageTitle,
+      subtitle: context.l10n.introductionAppIntroPageSubtitle,
       header: _buildProgressStepper(_currentPage),
       footer: _buildBottomSection(context),
     );
@@ -93,8 +93,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppBenefitsPage(BuildContext context) {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_benefits.png'),
-      title: AppLocalizations.of(context).introductionAppBenefitsPageTitle,
-      subtitle: AppLocalizations.of(context).introductionAppBenefitsPageSubtitle,
+      title: context.l10n.introductionAppBenefitsPageTitle,
+      subtitle: context.l10n.introductionAppBenefitsPageSubtitle,
       header: _buildProgressStepper(_currentPage),
       footer: _buildBottomSection(context),
     );
@@ -103,8 +103,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppSecurityPage(BuildContext context) {
     return IntroductionPage(
       image: const AssetImage('assets/non-free/images/image_introduction_app_security.png'),
-      title: AppLocalizations.of(context).introductionAppSecurityPageTitle,
-      subtitle: AppLocalizations.of(context).introductionAppSecurityPageSubtitle,
+      title: context.l10n.introductionAppSecurityPageTitle,
+      subtitle: context.l10n.introductionAppSecurityPageSubtitle,
       header: _buildProgressStepper(_currentPage),
       footer: _buildBottomSection(context),
     );
@@ -126,7 +126,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       key: const Key('introductionPrivacyPolicyCta'),
       icon: Icons.arrow_forward,
       onPressed: () => PlaceholderScreen.show(context, secured: false),
-      child: Text(AppLocalizations.of(context).introductionPrivacyPolicyCta),
+      child: Text(context.l10n.introductionPrivacyPolicyCta),
     );
   }
 
@@ -155,7 +155,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       iconPosition: IconPosition.start,
       centerChild: false,
       onPressed: () => _onSkipPressed(context),
-      child: Text(AppLocalizations.of(context).introductionSkipCta),
+      child: Text(context.l10n.introductionSkipCta),
     );
 
     //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
@@ -194,7 +194,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 const Icon(Icons.arrow_forward, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  AppLocalizations.of(context).introductionNextPageCta,
+                  context.l10n.introductionNextPageCta,
                   key: const Key('introductionNextPageCtaText'),
                 ),
               ],
@@ -223,7 +223,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 const Icon(Icons.arrow_forward, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  AppLocalizations.of(context).introductionNextPageCta,
+                  context.l10n.introductionNextPageCta,
                   key: const Key('introductionNextPageCtaText'),
                 ),
               ],
@@ -247,7 +247,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           key: const Key('introductionBackCta'),
           excludeSemantics: _currentPage < 1.0,
           button: true,
-          tooltip: AppLocalizations.of(context).generalWCAGBack,
+          tooltip: context.l10n.generalWCAGBack,
           child: InkWell(
             onTap: () => _onBackPressed(context),
             child: Container(
@@ -255,11 +255,11 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.background,
+                color: context.colorScheme.background,
               ),
               child: Icon(
                 Icons.arrow_back,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: context.colorScheme.onBackground,
               ),
             ),
           ),

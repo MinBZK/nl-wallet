@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 const double _kStatusIconSize = 56;
 
 class StatusIcon extends StatelessWidget {
@@ -16,7 +18,7 @@ class StatusIcon extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color ?? Theme.of(context).colorScheme.primary,
+        color: color ?? context.colorScheme.primary,
       ),
       child: Icon(icon, color: Colors.white),
     );

@@ -1,9 +1,11 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
+import '../extension/build_context_extension.dart';
+
 class OperationIssuedTimeFormatter {
-  static String format(AppLocalizations locale, DateTime dateTime) {
-    DateFormat dateTimeFormat = DateFormat(DateFormat.MONTH_DAY, locale.localeName).add_Hm();
+  static String format(BuildContext context, DateTime dateTime) {
+    DateFormat dateTimeFormat = DateFormat(DateFormat.MONTH_DAY, context.l10n.localeName).add_Hm();
     return dateTimeFormat.format(dateTime);
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import '../../../util/extension/build_context_extension.dart';
 
 class KeyboardDigitKey extends StatelessWidget {
   final int digit;
@@ -15,7 +16,7 @@ class KeyboardDigitKey extends StatelessWidget {
         child: Center(
           child: Semantics(
             keyboardKey: true,
-            onTapHint: AppLocalizations.of(context).pinKeyboardWCAGDigitKeyTapHint,
+            onTapHint: context.l10n.pinKeyboardWCAGDigitKeyTapHint,
             child: Text(
               digit.toString(),
               textAlign: TextAlign.center,

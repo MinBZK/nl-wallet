@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/duration_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
@@ -28,7 +28,6 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scrollbar(
       child: CustomScrollView(
         restorationId: 'confirm_data_attributes_scrollview',
@@ -41,7 +40,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
           SliverToBoxAdapter(
             child: InfoRow(
               icon: Icons.remove_red_eye_outlined,
-              title: locale.verificationConfirmDataAttributesCheckAttributesCta,
+              title: context.l10n.verificationConfirmDataAttributesCheckAttributesCta,
               onTap: () => CheckAttributesScreen.show(
                 context,
                 flow.availableAttributes,
@@ -53,7 +52,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverToBoxAdapter(child: _buildConditionsRow(locale, context)),
+          SliverToBoxAdapter(child: _buildConditionsRow(context)),
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverFillRemaining(
             hasScrollBody: false,
@@ -65,19 +64,20 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildConditionsRow(AppLocalizations locale, BuildContext context) {
+  Widget _buildConditionsRow(BuildContext context) {
     // currently defaults to 3 months for mocks with undefined storageDuration
     final storageDurationInMonths = flow.policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
     final String subtitle;
     if (flow.policy.dataIsShared) {
-      subtitle = locale.verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
+      subtitle =
+          context.l10n.verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
     } else {
-      subtitle = locale.verificationConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
+      subtitle = context.l10n.verificationConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
     }
 
     return InfoRow(
       leading: Image.asset('assets/images/ic_policy.png'),
-      title: locale.verificationConfirmDataAttributesCheckConditionsCta,
+      title: context.l10n.verificationConfirmDataAttributesCheckConditionsCta,
       subtitle: subtitle,
       onTap: () => PolicyScreen.show(
         context,
@@ -94,15 +94,14 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context).verificationConfirmDataAttributesShareWithTitle(flow.organization.name),
-            style: Theme.of(context).textTheme.bodySmall,
+            context.l10n.verificationConfirmDataAttributesShareWithTitle(flow.organization.name),
+            style: context.textTheme.bodySmall,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context)
-                .verificationConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
-            style: Theme.of(context).textTheme.displayMedium,
+            context.l10n.verificationConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
+            style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
         ],
@@ -122,27 +121,27 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         const SizedBox(height: 24),
         Container(
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            locale.verificationConfirmDataAttributesDisclaimer,
-            style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+            context.l10n.verificationConfirmDataAttributesDisclaimer,
+            style: context.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
           ),
         ),
         Container(
           alignment: Alignment.bottomCenter,
           child: ConfirmButtons(
             onAcceptPressed: onAcceptPressed,
-            acceptText: locale.verificationConfirmDataAttributesPageApproveCta,
+            acceptText: context.l10n.verificationConfirmDataAttributesPageApproveCta,
             onDeclinePressed: onDeclinePressed,
             acceptIcon: Icons.arrow_forward,
-            declineText: locale.verificationConfirmDataAttributesPageDenyCta,
+            declineText: context.l10n.verificationConfirmDataAttributesPageDenyCta,
           ),
         ),
       ],

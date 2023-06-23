@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 class IconRow extends StatelessWidget {
   final Widget icon;
   final Widget text;
@@ -24,7 +26,7 @@ class IconRow extends StatelessWidget {
           icon,
           const SizedBox(width: 16),
           DefaultTextStyle(
-            style: Theme.of(context).textTheme.bodyLarge!,
+            style: context.textTheme.bodyLarge!,
             child: Expanded(child: text),
           ),
         ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
+import '../../../util/extension/build_context_extension.dart';
 
 const _kCardShareAsset = 'assets/images/ic_card_share.png';
 
@@ -16,7 +16,6 @@ class CardAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -27,14 +26,14 @@ class CardAttributeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                locale.cardAttributeRowTitle(entry.key.front.title),
-                style: Theme.of(context).textTheme.titleMedium,
+                context.l10n.cardAttributeRowTitle(entry.key.front.title),
+                style: context.textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               ...entry.value.map(
                 (attribute) => Text(
                   attribute.label,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: context.textTheme.bodyLarge,
                 ),
               ),
             ],

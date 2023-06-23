@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 class PolicyRow extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -19,13 +21,13 @@ class PolicyRow extends StatelessWidget {
         children: [
           Icon(
             icon,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: context.colorScheme.onSurface,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: context.textTheme.bodyLarge,
             ),
           ),
         ],

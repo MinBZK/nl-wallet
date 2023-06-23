@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/timeline/timeline_section.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -18,7 +18,7 @@ class HistoryOverviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).historyOverviewScreenTitle),
+        title: Text(context.l10n.historyOverviewScreenTitle),
       ),
       body: SafeArea(
         child: _buildBody(context),

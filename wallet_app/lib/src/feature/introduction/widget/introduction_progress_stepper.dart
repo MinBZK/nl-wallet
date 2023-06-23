@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 const double _selectedStepHeight = 6;
 const double _selectedStepWidth = 16;
 const double _stepHeight = 4;
@@ -49,7 +51,7 @@ class IntroductionProgressStepper extends StatelessWidget {
         height: _stepHeight,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColorDark,
+            color: context.theme.primaryColorDark,
             shape: BoxShape.circle,
           ),
         ),
@@ -63,8 +65,7 @@ class IntroductionProgressStepper extends StatelessWidget {
       height: max(_stepHeight, _selectedStepHeight * size),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: ColorTween(begin: Theme.of(context).primaryColorDark, end: Theme.of(context).colorScheme.primary)
-              .lerp(size),
+          color: ColorTween(begin: context.theme.primaryColorDark, end: context.colorScheme.primary).lerp(size),
           shape: BoxShape.rectangle,
           borderRadius: BorderRadius.circular(_stepHeight),
         ),

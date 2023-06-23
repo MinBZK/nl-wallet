@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
+import '../../../util/extension/build_context_extension.dart';
 import 'attribute/data_attribute_row.dart';
 import 'button/link_button.dart';
 import 'card/wallet_card_item.dart';
@@ -75,19 +76,19 @@ class CheckDataOfferingPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 overline,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
+                style: context.textTheme.labelSmall?.copyWith(color: context.colorScheme.primary),
               ),
             ),
           Text(
             title,
-            style: Theme.of(context).textTheme.displayMedium,
+            style: context.textTheme.displayMedium,
           ),
           if (subtitle != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: context.textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
             )

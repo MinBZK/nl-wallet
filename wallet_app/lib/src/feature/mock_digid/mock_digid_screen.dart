@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../theme/light_wallet_theme.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import 'bloc/mock_digid_bloc.dart';
 import 'page/digid_confirm_app_page.dart';
@@ -20,7 +21,7 @@ class MockDigidScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: Theme.of(context).copyWith(
+      data: context.theme.copyWith(
         primaryColor: _kDigidOrange,
         colorScheme: LightWalletTheme.colorScheme.copyWith(primary: _kDigidOrange),
         outlinedButtonTheme: outlinedButtonTheme(context),
@@ -67,22 +68,22 @@ class MockDigidScreen extends StatelessWidget {
 
   OutlinedButtonThemeData outlinedButtonTheme(BuildContext context) {
     return OutlinedButtonThemeData(
-      style: Theme.of(context).outlinedButtonTheme.style?.copyWith(
-            side: const MaterialStatePropertyAll(
-              BorderSide(
-                color: Color(0xFFD2762B),
-                width: 1,
-              ),
-            ),
+      style: context.theme.outlinedButtonTheme.style?.copyWith(
+        side: const MaterialStatePropertyAll(
+          BorderSide(
+            color: Color(0xFFD2762B),
+            width: 1,
           ),
+        ),
+      ),
     );
   }
 
   ElevatedButtonThemeData elevatedButtonTheme(BuildContext context) {
     return ElevatedButtonThemeData(
-      style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
-            backgroundColor: const MaterialStatePropertyAll(_kDigidOrange),
-          ),
+      style: context.theme.elevatedButtonTheme.style?.copyWith(
+        backgroundColor: const MaterialStatePropertyAll(_kDigidOrange),
+      ),
     );
   }
 

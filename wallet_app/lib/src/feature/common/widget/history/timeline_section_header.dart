@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 
 class TimelineSectionHeader extends StatelessWidget {
@@ -11,18 +11,16 @@ class TimelineSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Container(
-      color: theme.colorScheme.background,
+      color: context.colorScheme.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Text(
-              DateFormat(DateFormat.YEAR_MONTH, locale.localeName).format(dateTime).capitalize,
-              style: theme.textTheme.labelSmall,
+              DateFormat(DateFormat.YEAR_MONTH, context.l10n.localeName).format(dateTime).capitalize,
+              style: context.textTheme.labelSmall,
             ),
           ),
           const Divider(height: 1),

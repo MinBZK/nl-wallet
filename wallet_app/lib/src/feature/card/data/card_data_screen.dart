@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
@@ -106,7 +106,7 @@ class CardDataScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: LinkButton(
-          child: Text(AppLocalizations.of(context).cardDataScreenIncorrectCta),
+          child: Text(context.l10n.cardDataScreenIncorrectCta),
           onPressed: () => PlaceholderScreen.show(context),
         ),
       ),
@@ -114,12 +114,11 @@ class CardDataScreen extends StatelessWidget {
   }
 
   void _showDataPrivacySheet(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     ExplanationSheet.show(
       context,
-      title: locale.cardDataScreenDataPrivacySheetTitle,
-      description: locale.cardDataScreenDataPrivacySheetDescription,
-      closeButtonText: locale.generalSheetCloseCta,
+      title: context.l10n.cardDataScreenDataPrivacySheetTitle,
+      description: context.l10n.cardDataScreenDataPrivacySheetDescription,
+      closeButtonText: context.l10n.generalSheetCloseCta,
     );
   }
 }

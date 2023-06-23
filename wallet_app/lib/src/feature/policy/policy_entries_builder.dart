@@ -1,18 +1,18 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../domain/model/policy/policy.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/duration_extension.dart';
 import 'model/policy_entry.dart';
 
 /// Helper class to organize all the provided policy attributes into a render-able list of [PolicyEntry]s
 class PolicyEntriesBuilder {
-  final AppLocalizations locale;
+  final BuildContext context;
   final TextStyle urlTheme;
 
-  PolicyEntriesBuilder(this.locale, this.urlTheme);
+  PolicyEntriesBuilder(this.context, this.urlTheme);
 
   List<PolicyEntry> build(Policy interactionPolicy) {
     final results = <PolicyEntry>[];
@@ -44,7 +44,7 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildDataPurposeEntry(String dataPurpose, String? dataPurposeDescription) {
     return PolicyEntry(
       title: TextSpan(text: dataPurpose),
-      description: TextSpan(text: dataPurposeDescription ?? locale.policyScreenDataPurposeDescription),
+      description: TextSpan(text: dataPurposeDescription ?? context.l10n.policyScreenDataPurposeDescription),
       icon: Icons.task_outlined,
     );
   }
@@ -52,9 +52,9 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildStorageDurationPolicy(Duration storageDuration) {
     return PolicyEntry(
       title: TextSpan(
-        text: locale.policyScreenDataRetentionDuration(storageDuration.inMonths),
+        text: context.l10n.policyScreenDataRetentionDuration(storageDuration.inMonths),
       ),
-      description: TextSpan(text: locale.policyScreenDataRetentionDurationDescription(storageDuration.inMonths)),
+      description: TextSpan(text: context.l10n.policyScreenDataRetentionDurationDescription(storageDuration.inMonths)),
       icon: Icons.access_time_outlined,
     );
   }
@@ -63,13 +63,13 @@ class PolicyEntriesBuilder {
     return PolicyEntry(
       title: TextSpan(
         text: interactionPolicy.dataIsShared
-            ? locale.policyScreenDataWillBeShared
-            : locale.policyScreenDataWillNotBeShared,
+            ? context.l10n.policyScreenDataWillBeShared
+            : context.l10n.policyScreenDataWillNotBeShared,
       ),
       description: TextSpan(
         text: interactionPolicy.dataIsShared
-            ? locale.policyScreenDataWillBeSharedDescription
-            : locale.policyScreenDataWillNotBeSharedDescription,
+            ? context.l10n.policyScreenDataWillBeSharedDescription
+            : context.l10n.policyScreenDataWillNotBeSharedDescription,
       ),
       icon: Icons.share_outlined,
     );
@@ -77,7 +77,7 @@ class PolicyEntriesBuilder {
 
   PolicyEntry _buildSignaturePolicy() {
     return PolicyEntry(
-      title: TextSpan(text: locale.policyScreenDataIsSignature),
+      title: TextSpan(text: context.l10n.policyScreenDataIsSignature),
       description: const TextSpan(text: _kLoremIpsum),
       icon: Icons.security_outlined,
     );
@@ -86,25 +86,28 @@ class PolicyEntriesBuilder {
   PolicyEntry _buildDeletionPolicy(bool deletionCanBeRequested) {
     return PolicyEntry(
       title: TextSpan(
-        text: deletionCanBeRequested ? locale.policyScreenDataCanBeDeleted : locale.policyScreenDataCanNotBeDeleted,
+        text: deletionCanBeRequested
+            ? context.l10n.policyScreenDataCanBeDeleted
+            : context.l10n.policyScreenDataCanNotBeDeleted,
       ),
-      description:
-      TextSpan(
-        text: deletionCanBeRequested ? locale.policyScreenDataCanBeDeletedDescription : locale.policyScreenDataCanNotBeDeletedDescription,
+      description: TextSpan(
+        text: deletionCanBeRequested
+            ? context.l10n.policyScreenDataCanBeDeletedDescription
+            : context.l10n.policyScreenDataCanNotBeDeletedDescription,
       ),
       icon: Icons.delete_outline,
     );
   }
 
   PolicyEntry _buildPrivacyPolicy(String privacyPolicyUrl) {
-    final policyCta = locale.policyScreenPolicySectionPolicyCta;
-    final fullPolicyDescription = locale.policyScreenPolicySectionText(policyCta);
+    final policyCta = context.l10n.policyScreenPolicySectionPolicyCta;
+    final fullPolicyDescription = context.l10n.policyScreenPolicySectionText(policyCta);
     final ctaIndex = fullPolicyDescription.indexOf(policyCta);
     final prefix = fullPolicyDescription.substring(0, ctaIndex);
     final suffix = fullPolicyDescription.substring(ctaIndex + policyCta.length, fullPolicyDescription.length);
 
     final policyEntry = PolicyEntry(
-      title: TextSpan(text: locale.policyScreenPolicySectionTitle),
+      title: TextSpan(text: context.l10n.policyScreenPolicySectionTitle),
       description: TextSpan(children: [
         TextSpan(text: prefix),
         TextSpan(

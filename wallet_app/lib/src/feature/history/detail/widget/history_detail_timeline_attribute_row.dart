@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/formatter/history_details_time_formatter.dart';
 import '../../../../util/mapper/timeline_attribute_error_status_icon_mapper.dart';
 import '../../../../util/mapper/timeline_attribute_status_color_mapper.dart';
@@ -20,14 +20,11 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    final String titleText = TimelineAttributeStatusTitleTextMapper.map(locale, attribute);
-    final String descriptionText = TimelineAttributeStatusDescriptionTextMapper.map(locale, attribute);
+    final String titleText = TimelineAttributeStatusTitleTextMapper.map(context, attribute);
+    final String descriptionText = TimelineAttributeStatusDescriptionTextMapper.map(context, attribute);
 
     final IconData? errorStatusIcon = TimelineAttributeErrorStatusIconMapper.map(attribute);
-    final Color statusColor = TimelineAttributeStatusColorMapper.map(theme, attribute);
+    final Color statusColor = TimelineAttributeStatusColorMapper.map(context, attribute);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -54,12 +51,12 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
                   children: [
                     Text(
                       titleText,
-                      style: theme.textTheme.titleMedium,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      HistoryDetailsTimeFormatter.format(locale, attribute.dateTime),
-                      style: theme.textTheme.bodySmall,
+                      HistoryDetailsTimeFormatter.format(context, attribute.dateTime),
+                      style: context.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -69,7 +66,7 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             descriptionText,
-            style: theme.textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
           ),
         ],
       ),

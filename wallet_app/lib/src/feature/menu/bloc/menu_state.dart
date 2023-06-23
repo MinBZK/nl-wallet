@@ -18,22 +18,9 @@ class MenuLoadInProgress extends MenuState {
 
 class MenuLoadSuccess extends MenuState {
   final String name;
-  final SelectedMenu menu;
 
-  const MenuLoadSuccess({required this.name, required this.menu});
+  const MenuLoadSuccess({required this.name});
 
   @override
-  List<Object> get props => [name, menu];
-
-  MenuLoadSuccess copyWith({
-    String? name,
-    SelectedMenu? menu,
-  }) {
-    return MenuLoadSuccess(
-      name: name ?? this.name,
-      menu: menu ?? this.menu,
-    );
-  }
+  List<Object> get props => [name];
 }
-
-enum SelectedMenu { main, settings, about }

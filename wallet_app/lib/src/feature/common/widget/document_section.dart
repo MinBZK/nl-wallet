@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/document.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../verification/model/organization.dart';
 import 'button/link_button.dart';
 import 'placeholder_screen.dart';
@@ -28,23 +28,23 @@ class DocumentSection extends StatelessWidget {
         children: [
           Text(
             document.title,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: context.textTheme.titleMedium,
             textAlign: TextAlign.start,
           ),
           Text(
             organization.name,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           Text(
             document.fileName,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           LinkButton(
             customPadding: EdgeInsets.zero,
-            child: Text(AppLocalizations.of(context).checkAgreementPageShowDocumentCta),
+            child: Text(context.l10n.checkAgreementPageShowDocumentCta),
             onPressed: () => PlaceholderScreen.show(context, type: PlaceholderType.contract),
           ),
         ],

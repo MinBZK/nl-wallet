@@ -1,8 +1,8 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/policy/policy.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
 import 'model/policy_entry.dart';
@@ -30,7 +30,7 @@ class PolicyScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'policy_scaffold',
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).policyScreenTitle),
+        title: Text(context.l10n.policyScreenTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -48,11 +48,11 @@ class PolicyScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
-    final urlTheme = Theme.of(context).textTheme.bodyLarge!.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          decoration: TextDecoration.underline,
-        );
-    final policyBuilder = PolicyEntriesBuilder(AppLocalizations.of(context), urlTheme);
+    final urlTheme = context.textTheme.bodyLarge!.copyWith(
+      color: context.colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+    final policyBuilder = PolicyEntriesBuilder(context, urlTheme);
     return Scrollbar(
       child: CustomScrollView(
         slivers: [
@@ -84,7 +84,6 @@ class PolicyScreen extends StatelessWidget {
 
   Widget _buildReportIssueButton(BuildContext context) {
     if (onReportIssuePressed == null) return const SizedBox.shrink();
-    final locale = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -95,7 +94,7 @@ class PolicyScreen extends StatelessWidget {
             onReportIssuePressed?.call();
           },
           customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(locale.policyScreenReportIssueCta),
+          child: Text(context.l10n.policyScreenReportIssueCta),
         ),
         const Divider(height: 1),
       ],

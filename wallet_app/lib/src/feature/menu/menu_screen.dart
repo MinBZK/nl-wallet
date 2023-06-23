@@ -1,59 +1,27 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../common/widget/button/animated_visibility_back_button.dart';
+import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/placeholder_screen.dart';
+import '../common/widget/version_text.dart';
 import 'bloc/menu_bloc.dart';
-import 'page/menu_about_page.dart';
-import 'page/menu_main_page.dart';
-import 'page/menu_settings_page.dart';
+import 'widget/menu_row.dart';
 
 class MenuScreen extends StatelessWidget {
+  bool get showDesignSystemRow => kDebugMode;
+
   const MenuScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: _buildBackButton(context),
-        title: _buildTitle(context),
+        title: Text(context.l10n.menuScreenTitle),
       ),
       body: _buildBody(),
-    );
-  }
-
-  Widget _buildTitle(BuildContext context) {
-    return BlocBuilder<MenuBloc, MenuState>(
-      builder: (context, state) {
-        final locale = AppLocalizations.of(context);
-        String title = locale.menuScreenMainTitle;
-        if (state is MenuLoadSuccess) {
-          switch (state.menu) {
-            case SelectedMenu.main:
-              title = locale.menuScreenMainTitle;
-              break;
-            case SelectedMenu.settings:
-              title = locale.menuScreenSettingsTitle;
-              break;
-            case SelectedMenu.about:
-              title = locale.menuScreenAboutTitle;
-              break;
-          }
-        }
-        return Text(title);
-      },
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<MenuBloc, MenuState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: (state is MenuLoadSuccess && state.menu != SelectedMenu.main),
-          onPressed: () => context.read<MenuBloc>().add(MenuBackPressed()),
-        );
-      },
     );
   }
 
@@ -69,13 +37,69 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _buildSuccess(BuildContext context, MenuLoadSuccess state) {
-    switch (state.menu) {
-      case SelectedMenu.main:
-        return MenuMainPage(name: state.name);
-      case SelectedMenu.settings:
-        return const MenuSettingsPage();
-      case SelectedMenu.about:
-        return const MenuAboutPage();
-    }
+    return Scrollbar(
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: Text(
+              context.l10n.menuScreenGreeting(state.name),
+              style: context.textTheme.displayMedium,
+            ),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: context.l10n.menuScreenHelpCta,
+            icon: Icons.help_outline,
+            onTap: () => PlaceholderScreen.show(context),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: context.l10n.menuScreenHistoryCta,
+            icon: Icons.history,
+            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: context.l10n.menuScreenSettingsCta,
+            icon: Icons.settings_outlined,
+            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.settingsRoute),
+          ),
+          const Divider(height: 1),
+          MenuRow(
+            label: context.l10n.menuScreenAboutCta,
+            icon: Icons.info_outline,
+            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
+          ),
+          const Divider(height: 1),
+          if (showDesignSystemRow)
+            MenuRow(
+              label: context.l10n.menuScreenDesignCta,
+              icon: Icons.design_services,
+              onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
+            ),
+          if (showDesignSystemRow) const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: VersionText(),
+          ),
+          Center(
+            child: IntrinsicWidth(
+              child: OutlinedButton(
+                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock, size: 14),
+                    const SizedBox(width: 8),
+                    Text(context.l10n.menuScreenLockCta),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

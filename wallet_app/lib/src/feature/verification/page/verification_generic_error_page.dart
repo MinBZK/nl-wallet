@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/flow_terminal_page.dart';
 
 class VerificationGenericErrorPage extends StatelessWidget {
@@ -13,13 +13,12 @@ class VerificationGenericErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return FlowTerminalPage(
       icon: Icons.not_interested,
-      iconColor: Theme.of(context).primaryColorDark,
-      title: locale.verificationGenericErrorPageTitle,
-      description: locale.verificationGenericErrorPageDescription,
-      closeButtonCta: locale.verificationGenericErrorPageCloseCta,
+      iconColor: context.theme.primaryColorDark,
+      title: context.l10n.verificationGenericErrorPageTitle,
+      description: context.l10n.verificationGenericErrorPageDescription,
+      closeButtonCta: context.l10n.verificationGenericErrorPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }

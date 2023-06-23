@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 
 class PinTimeoutDescription extends StatefulWidget {
@@ -27,8 +27,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
     super.initState();
     _timer = Timer.periodic(
       const Duration(seconds: 1),
-          (Timer t) =>
-          setState(() => _checkExpiry()),
+      (Timer t) => setState(() => _checkExpiry()),
     );
   }
 
@@ -40,35 +39,24 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Text.rich(
-      TextSpan(
-          text: locale.pinTimeoutScreenTimeoutPrefix.addSpaceSuffix,
-          children: [
-            TextSpan(
-              text: _generateTimeLeft(context),
-              style: Theme
-                  .of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ]),
-      style: Theme
-          .of(context)
-          .textTheme
-          .bodyLarge,
+      TextSpan(text: context.l10n.pinTimeoutScreenTimeoutPrefix.addSpaceSuffix, children: [
+        TextSpan(
+          text: _generateTimeLeft(context),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ]),
+      style: Theme.of(context).textTheme.bodyLarge,
       textAlign: TextAlign.start,
     );
   }
 
   String _generateTimeLeft(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     final diff = widget.expiryTime.difference(DateTime.now());
     if (diff.inSeconds > 60) {
-      return locale.generalMinutes(diff.inMinutes);
+      return context.l10n.generalMinutes(diff.inMinutes);
     } else {
-      return locale.generalSeconds(diff.inSeconds);
+      return context.l10n.generalSeconds(diff.inSeconds);
     }
   }
 

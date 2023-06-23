@@ -1,24 +1,25 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../../feature/report_issue/report_issue_screen.dart';
+import '../extension/build_context_extension.dart';
 
 class ReportingOptionTitleMapper {
-  static String map(AppLocalizations locale, ReportingOption option) {
+  static String map(BuildContext context, ReportingOption option) {
     switch (option) {
       case ReportingOption.unknownOrganization:
-        return locale.reportOptionUnknownOrganization;
+        return context.l10n.reportOptionUnknownOrganization;
       case ReportingOption.requestNotInitiated:
-        return locale.reportOptionRequestNotInitiated;
+        return context.l10n.reportOptionRequestNotInitiated;
       case ReportingOption.impersonatingOrganization:
-        return locale.reportOptionImpersonatingOrganization;
+        return context.l10n.reportOptionImpersonatingOrganization;
       case ReportingOption.untrusted:
-        return locale.reportOptionUntrusted;
+        return context.l10n.reportOptionUntrusted;
       case ReportingOption.overAskingOrganization:
-        return locale.reportOptionOverAskingOrganization;
+        return context.l10n.reportOptionOverAskingOrganization;
       case ReportingOption.suspiciousOrganization:
-        return locale.reportOptionSuspiciousOrganization;
+        return context.l10n.reportOptionSuspiciousOrganization;
       case ReportingOption.unreasonableTerms:
-        return locale.reportOptionUnreasonableTerms;
+        return context.l10n.reportOptionUnreasonableTerms;
     }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/icon_row.dart';
 
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
@@ -41,7 +41,6 @@ class IntroductionPrivacyPage extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
@@ -49,8 +48,8 @@ class IntroductionPrivacyPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            locale.introductionPrivacyPageTitle,
-            style: Theme.of(context).textTheme.displayLarge,
+            context.l10n.introductionPrivacyPageTitle,
+            style: context.textTheme.displayLarge,
             textAlign: TextAlign.start,
             textScaleFactor: 1,
           ),
@@ -59,25 +58,25 @@ class IntroductionPrivacyPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             icon: Icon(
               Icons.check,
-              color: Theme.of(context).colorScheme.primary,
+              color: context.colorScheme.primary,
             ),
-            text: Text(locale.introductionPrivacyPageBullet1),
+            text: Text(context.l10n.introductionPrivacyPageBullet1),
           ),
           IconRow(
             padding: const EdgeInsets.symmetric(vertical: 4),
             icon: Icon(
               Icons.check,
-              color: Theme.of(context).colorScheme.primary,
+              color: context.colorScheme.primary,
             ),
-            text: Text(locale.introductionPrivacyPageBullet2),
+            text: Text(context.l10n.introductionPrivacyPageBullet2),
           ),
           IconRow(
             padding: const EdgeInsets.symmetric(vertical: 4),
             icon: Icon(
               Icons.check,
-              color: Theme.of(context).colorScheme.primary,
+              color: context.colorScheme.primary,
             ),
-            text: Text(locale.introductionPrivacyPageBullet3),
+            text: Text(context.l10n.introductionPrivacyPageBullet3),
           ),
         ],
       ),

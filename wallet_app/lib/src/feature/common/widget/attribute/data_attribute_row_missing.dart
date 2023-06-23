@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 class DataAttributeRowMissing extends StatelessWidget {
   final String label;
 
@@ -15,7 +17,7 @@ class DataAttributeRowMissing extends StatelessWidget {
         const SizedBox(width: 16),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: context.textTheme.bodyLarge,
         ),
       ],
     );

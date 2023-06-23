@@ -222,6 +222,16 @@ The generated code is currently checked in, so that generation only has to be pe
 - Do not end the subject line with a period
 - Wrap lines at 72 characters
 
+## Branch names
+
+- Prefix the branch name with the Jira code for the story or subtask the branch relates to.
+  If there is no story or subtask, strongly consider making one or forego the prefix.
+- The rest of the branch name should be a short description of the purpose of the branch, in lowercase and separated by hyphens.
+  The description should be clear enough that any reader should understand it without having to look up the Jira ticket.
+  Consider starting the description with the component that is being worked on, e.g. `ci-` or `core-`.
+
+Example of a branch name: **PVW-123-wp-teapot-status-code**
+
 ### PR title
 
 See [commit message](#commit-message).

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import '../../util/mapper/reporting_option_title_mapper.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
@@ -12,10 +12,9 @@ class ReportIssueScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.reportIssueScreenTitle),
+        title: Text(context.l10n.reportIssueScreenTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -44,15 +43,14 @@ class ReportIssueScreen extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            locale.reportIssueScreenHeaderTitle,
-            style: Theme.of(context).textTheme.bodyLarge,
+            context.l10n.reportIssueScreenHeaderTitle,
+            style: context.textTheme.bodyLarge,
           ),
         ],
       ),
@@ -60,7 +58,6 @@ class ReportIssueScreen extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getOptionsDelegate(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return SliverChildBuilderDelegate(
       (context, index) => Column(
         children: [
@@ -69,11 +66,11 @@ class ReportIssueScreen extends StatelessWidget {
             child: IconRow(
               icon: Icon(
                 Icons.sms_failed_outlined,
-                color: Theme.of(context).colorScheme.primary,
+                color: context.colorScheme.primary,
               ),
               text: Text(
-                ReportingOptionTitleMapper.map(locale, options[index]),
-                style: Theme.of(context).textTheme.titleMedium,
+                ReportingOptionTitleMapper.map(context, options[index]),
+                style: context.textTheme.titleMedium,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             ),

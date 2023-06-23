@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+import '../../../util/extension/build_context_extension.dart';
 
 class VersionText extends StatelessWidget {
   const VersionText({Key? key}) : super(key: key);
@@ -13,8 +14,8 @@ class VersionText extends StatelessWidget {
         if (snapshot.hasData) {
           final data = snapshot.data!;
           return Text(
-            AppLocalizations.of(context).generalVersionText(data.version, data.buildNumber),
-            style: Theme.of(context).textTheme.bodyMedium,
+            context.l10n.generalVersionText(data.version, data.buildNumber),
+            style: context.textTheme.bodyMedium,
           );
         } else {
           return const SizedBox.shrink();

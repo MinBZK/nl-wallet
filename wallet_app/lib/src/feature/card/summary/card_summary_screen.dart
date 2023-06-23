@@ -1,7 +1,6 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
@@ -9,12 +8,13 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_summary.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/card/sized_card_front.dart';
+import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/explanation_sheet.dart';
 import '../../common/widget/info_row.dart';
@@ -25,7 +25,6 @@ import 'argument/card_summary_screen_argument.dart';
 import 'bloc/card_summary_bloc.dart';
 
 const _kCardExpiresInDays = 365; // 1 year for demo purposes
-const _kCardDisplayPaddingHorizontal = 56;
 
 class CardSummaryScreen extends StatelessWidget {
   static CardSummaryScreenArgument getArgument(RouteSettings settings) {
@@ -69,7 +68,6 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
   Widget _buildSummary(BuildContext context, WalletCardSummary summary) {
-    final locale = AppLocalizations.of(context);
     final card = summary.card;
 
     return Column(
@@ -80,29 +78,29 @@ class CardSummaryScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: 24),
               children: [
                 const SizedBox(height: 8),
-                SizedCardFront(
-                  cardFront: card.front,
-                  displayWidth: MediaQuery.of(context).size.width - (_kCardDisplayPaddingHorizontal * 2),
+                FractionallySizedBox(
+                  widthFactor: 0.6,
+                  child: WalletCardItem.fromCardFront(front: card.front),
                 ),
                 const SizedBox(height: 32),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.description_outlined,
-                  title: locale.cardSummaryScreenCardDataCta,
-                  subtitle: locale.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
+                  title: context.l10n.cardSummaryScreenCardDataCta,
+                  subtitle: context.l10n.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
                   onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.history_outlined,
-                  title: locale.cardSummaryScreenCardHistoryCta,
+                  title: context.l10n.cardSummaryScreenCardHistoryCta,
                   subtitle: _createInteractionText(context, summary.latestSuccessInteraction),
                   onTap: () => _onCardHistoryPressed(context, card.id),
                 ),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.replay_outlined,
-                  title: locale.cardSummaryScreenCardUpdateCta,
+                  title: context.l10n.cardSummaryScreenCardUpdateCta,
                   subtitle: _createOperationText(context, summary.latestIssuedOperation),
                   onTap: () => _onCardUpdatePressed(context, card),
                 ),
@@ -110,7 +108,7 @@ class CardSummaryScreen extends StatelessWidget {
                 if (card.config.removable) ...[
                   InfoRow(
                     icon: Icons.delete_outline_rounded,
-                    title: locale.cardSummaryScreenCardDeleteCta,
+                    title: context.l10n.cardSummaryScreenCardDeleteCta,
                     onTap: () => _onCardDeletePressed(context),
                   ),
                   const Divider(height: 1)
@@ -125,40 +123,37 @@ class CardSummaryScreen extends StatelessWidget {
   }
 
   void _showNoUpdateAvailableSheet(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     ExplanationSheet.show(
       context,
-      title: locale.cardSummaryScreenNoUpdateAvailableSheetTitle,
-      description: locale.cardSummaryScreenNoUpdateAvailableSheetDescription,
-      closeButtonText: locale.cardSummaryScreenNoUpdateAvailableSheetCloseCta,
+      title: context.l10n.cardSummaryScreenNoUpdateAvailableSheetTitle,
+      description: context.l10n.cardSummaryScreenNoUpdateAvailableSheetDescription,
+      closeButtonText: context.l10n.cardSummaryScreenNoUpdateAvailableSheetCloseCta,
     );
   }
 
   String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
-    final locale = AppLocalizations.of(context);
     if (attribute != null) {
-      final String timeAgo = TimeAgoFormatter.format(locale, attribute.dateTime);
-      final String status = TimelineAttributeStatusTextMapper.map(locale, attribute).toLowerCase();
-      return locale.cardSummaryScreenLatestSuccessInteraction(timeAgo, status, attribute.organization.shortName);
+      final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
+      final String status = TimelineAttributeStatusTextMapper.map(context, attribute).toLowerCase();
+      return context.l10n.cardSummaryScreenLatestSuccessInteraction(timeAgo, status, attribute.organization.shortName);
     } else {
-      return locale.cardSummaryScreenLatestSuccessInteractionUnknown;
+      return context.l10n.cardSummaryScreenLatestSuccessInteractionUnknown;
     }
   }
 
   String _createOperationText(BuildContext context, OperationTimelineAttribute? attribute) {
-    final locale = AppLocalizations.of(context);
     if (attribute != null) {
       DateTime issued = attribute.dateTime;
-      String issuedTime = OperationIssuedTimeFormatter.format(locale, issued);
-      String issuedText = locale.cardSummaryScreenLatestIssuedOperation(issuedTime);
+      String issuedTime = OperationIssuedTimeFormatter.format(context, issued);
+      String issuedText = context.l10n.cardSummaryScreenLatestIssuedOperation(issuedTime);
 
       DateTime validUntil = issued.add(const Duration(days: _kCardExpiresInDays));
-      String validUntilTime = CardValidUntilTimeFormatter.format(locale, validUntil);
-      String validUntilText = locale.cardSummaryScreenCardValidUntil(validUntilTime);
+      String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
+      String validUntilText = context.l10n.cardSummaryScreenCardValidUntil(validUntilTime);
 
       return '$issuedText\n$validUntilText';
     } else {
-      return locale.cardSummaryScreenLatestIssuedOperationUnknown;
+      return context.l10n.cardSummaryScreenLatestIssuedOperationUnknown;
     }
   }
 
@@ -170,7 +165,7 @@ class CardSummaryScreen extends StatelessWidget {
           const Icon(Icons.error_outline),
           const SizedBox(height: 16),
           TextButton(
-            child: Text(AppLocalizations.of(context).generalRetry),
+            child: Text(context.l10n.generalRetry),
             onPressed: () => context.read<CardSummaryBloc>().add(CardSummaryLoadTriggered(state.cardId)),
           ),
         ],

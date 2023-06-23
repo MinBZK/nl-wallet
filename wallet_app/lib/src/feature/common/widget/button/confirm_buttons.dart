@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../util/extension/build_context_extension.dart';
+
 const _kHorizontalPadding = 16.0;
 const _kVerticalPadding = 24.0;
 
@@ -164,13 +166,12 @@ class ConfirmButtons extends StatelessWidget {
   }
 
   TextStyle? _getButtonTextStyle(BuildContext context, ConfirmButtonType type) {
-    final theme = Theme.of(context);
     final states = {MaterialState.focused};
     switch (type) {
       case ConfirmButtonType.elevated:
-        return theme.elevatedButtonTheme.style?.textStyle?.resolve(states);
+        return context.theme.elevatedButtonTheme.style?.textStyle?.resolve(states);
       case ConfirmButtonType.outlined:
-        return theme.outlinedButtonTheme.style?.textStyle?.resolve(states);
+        return context.theme.outlinedButtonTheme.style?.textStyle?.resolve(states);
     }
   }
 

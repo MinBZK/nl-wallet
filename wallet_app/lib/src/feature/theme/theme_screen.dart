@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../util/extension/build_context_extension.dart';
 import 'tabs/button_styles_tab.dart';
 import 'tabs/color_styles_tab.dart';
 import 'tabs/other_styles_tab.dart';
@@ -76,7 +77,7 @@ class ThemeSectionHeader extends StatelessWidget {
     return Container(
       alignment: Alignment.center,
       color: Colors.black12,
-      child: Text('- $title -', style: Theme.of(context).textTheme.headlineMedium),
+      child: Text('- $title -', style: context.textTheme.headlineMedium),
     );
   }
 }
@@ -91,7 +92,7 @@ class ThemeSectionSubHeader extends StatelessWidget {
     return Container(
       alignment: Alignment.centerLeft,
       color: Colors.black.withAlpha(10),
-      child: Text('$title:', style: Theme.of(context).textTheme.titleSmall),
+      child: Text('$title:', style: context.textTheme.titleSmall),
     );
   }
 }

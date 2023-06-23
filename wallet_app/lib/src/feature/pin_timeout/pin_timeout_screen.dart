@@ -1,8 +1,8 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/placeholder_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
@@ -17,7 +17,8 @@ class PinTimeoutScreen extends StatelessWidget {
       return PinTimeoutScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in [PinTimeoutScreenArgument].toMap() when opening the PinTimeoutScreen');
+      throw UnsupportedError(
+          'Make sure to pass in [PinTimeoutScreenArgument].toMap() when opening the PinTimeoutScreen');
     }
   }
 
@@ -30,10 +31,9 @@ class PinTimeoutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.pinTimeoutScreenTitle),
+        title: Text(context.l10n.pinTimeoutScreenTitle),
         leading: const SizedBox.shrink(),
         actions: [
           IconButton(
@@ -56,9 +56,9 @@ class PinTimeoutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                locale.pinTimeoutScreenHeadline,
+                context.l10n.pinTimeoutScreenHeadline,
                 textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.displayMedium,
+                style: context.textTheme.displayMedium,
               ),
               const SizedBox(height: 8),
               PinTimeoutDescription(
@@ -70,7 +70,7 @@ class PinTimeoutScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: LinkButton(
                   customPadding: EdgeInsets.zero,
-                  child: Text(locale.pinTimeoutScreenForgotPinCta),
+                  child: Text(context.l10n.pinTimeoutScreenForgotPinCta),
                   onPressed: () => PlaceholderScreen.show(context, secured: false),
                 ),
               ),
