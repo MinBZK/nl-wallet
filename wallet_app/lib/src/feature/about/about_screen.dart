@@ -42,17 +42,17 @@ class AboutScreen extends StatelessWidget {
           const Divider(height: 1),
           MenuRow(
             label: context.l10n.aboutScreenPrivacyCta,
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.show(context, secured: false),
           ),
           const Divider(height: 1),
           MenuRow(
             label: context.l10n.aboutScreenTermsCta,
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.show(context, secured: false),
           ),
           const Divider(height: 1),
           MenuRow(
             label: context.l10n.aboutScreenFeedbackCta,
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.show(context, secured: false),
           ),
           const Divider(height: 1),
         ],
