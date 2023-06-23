@@ -20,4 +20,19 @@ class CardDataScreenArgument {
       cardTitle: map[_kCardTitleKey],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CardDataScreenArgument &&
+          runtimeType == other.runtimeType &&
+          cardId == other.cardId &&
+          cardTitle == other.cardTitle;
+
+  @override
+  int get hashCode => Object.hash(
+        runtimeType,
+        cardId,
+        cardTitle,
+      );
 }

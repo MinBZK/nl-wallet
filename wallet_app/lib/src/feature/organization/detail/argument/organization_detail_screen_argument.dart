@@ -23,4 +23,19 @@ class OrganizationDetailScreenArgument {
       organizationId: map[_kOrganizationIdKey],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationDetailScreenArgument &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          organizationId == other.organizationId;
+
+  @override
+  int get hashCode => Object.hash(
+        runtimeType,
+        title,
+        organizationId,
+      );
 }
