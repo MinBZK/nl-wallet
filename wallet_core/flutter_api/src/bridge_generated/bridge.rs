@@ -20,6 +20,10 @@ use std::sync::Arc;
 // Section: imports
 
 use crate::models::config::FlutterConfiguration;
+use crate::models::pin::PinValidationResult;
+use crate::models::unlock::WalletUnlockResult;
+use crate::models::uri_flow_event::DigidState;
+use crate::models::uri_flow_event::UriFlowEvent;
 
 // Section: wire functions
 
@@ -42,7 +46,7 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
         },
         move || {
             let api_pin = pin.wire2api();
-            move |task_callback| Ok(is_valid_pin(api_pin))
+            move |task_callback| is_valid_pin(api_pin)
         },
     )
 }
@@ -95,7 +99,7 @@ fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwi
         },
         move || {
             let api_pin = pin.wire2api();
-            move |task_callback| Ok(unlock_wallet(api_pin))
+            move |task_callback| unlock_wallet(api_pin)
         },
     )
 }
@@ -186,6 +190,17 @@ impl Wire2Api<u8> for u8 {
 
 // Section: impl IntoDart
 
+impl support::IntoDart for DigidState {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Authenticating => 0,
+            Self::Success => 1,
+            Self::Error => 2,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DigidState {}
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -197,6 +212,47 @@ impl support::IntoDart for FlutterConfiguration {
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 
+impl support::IntoDart for PinValidationResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => 0,
+            Self::TooFewUniqueDigits => 1,
+            Self::SequentialDigits => 2,
+            Self::OtherIssue => 3,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for PinValidationResult {}
+
+impl support::IntoDart for UriFlowEvent {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::DigidAuth { state } => vec![0.into_dart(), state.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for UriFlowEvent {}
+impl support::IntoDart for WalletUnlockResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => vec![0.into_dart()],
+            Self::IncorrectPin {
+                leftover_attempts,
+                is_final_attempt,
+            } => vec![
+                1.into_dart(),
+                leftover_attempts.into_dart(),
+                is_final_attempt.into_dart(),
+            ],
+            Self::Timeout { timeout_millis } => vec![2.into_dart(), timeout_millis.into_dart()],
+            Self::Blocked => vec![3.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for WalletUnlockResult {}
 // Section: executor
 
 support::lazy_static! {

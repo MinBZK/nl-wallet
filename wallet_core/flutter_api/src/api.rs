@@ -1,12 +1,12 @@
 use std::thread::sleep;
 use std::time::Duration;
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 
-use macros::async_runtime;
-use wallet::{init_wallet, validate_pin, Wallet};
+use flutter_api_macros::{async_runtime, flutter_api_error};
+use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -14,8 +14,8 @@ use crate::{
     models::{
         config::FlutterConfiguration,
         pin::PinValidationResult,
+        unlock::WalletUnlockResult,
         uri_flow_event::{DigidState, UriFlowEvent},
-        wallet::WalletUnlockResult,
     },
     stream::ClosingStreamSink,
 };
@@ -28,6 +28,7 @@ fn wallet() -> &'static RwLock<Wallet> {
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
+#[flutter_api_error]
 pub fn init() -> Result<()> {
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
@@ -36,7 +37,7 @@ pub fn init() -> Result<()> {
 
     // Initialize the async runtime so the #[async_runtime] macro can be used.
     // This function may also be called safely more than once.
-    init_async_runtime()?;
+    init_async_runtime();
 
     let initialized = create_wallet()?;
     assert!(initialized, "Wallet can only be initialized once");
@@ -48,7 +49,7 @@ pub fn init() -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn create_wallet() -> Result<bool> {
+async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
     let mut created = false;
 
     _ = WALLET
@@ -57,19 +58,22 @@ async fn create_wallet() -> Result<bool> {
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok(RwLock::new(wallet))
+            Ok::<_, WalletInitError>(RwLock::new(wallet))
         })
         .await?;
 
     Ok(created)
 }
 
-pub fn is_valid_pin(pin: String) -> Vec<u8> {
-    let pin_result = PinValidationResult::from(validate_pin(&pin));
-    bincode::serialize(&pin_result).unwrap()
+#[flutter_api_error]
+pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
+    let result = validate_pin(&pin).into();
+
+    Ok(result)
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
@@ -79,6 +83,7 @@ pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn clear_lock_stream() -> Result<()> {
     wallet().write().await.clear_lock_callback();
 
@@ -86,6 +91,7 @@ pub async fn clear_lock_stream() -> Result<()> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
@@ -98,6 +104,7 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) ->
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn clear_configuration_stream() -> Result<()> {
     wallet().write().await.clear_config_callback();
 
@@ -105,16 +112,17 @@ pub async fn clear_configuration_stream() -> Result<()> {
 }
 
 #[async_runtime]
-pub async fn unlock_wallet(pin: String) -> Vec<u8> {
+#[flutter_api_error]
+pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
     let mut wallet = wallet().write().await;
 
-    let unlock_result = wallet.unlock(pin).await;
-    let wallet_unlock_result = WalletUnlockResult::from(unlock_result);
+    let result = wallet.unlock(pin).await.try_into()?;
 
-    bincode::serialize(&wallet_unlock_result).unwrap()
+    Ok(result)
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn lock_wallet() -> Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -124,12 +132,14 @@ pub async fn lock_wallet() -> Result<()> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn has_registration() -> Result<bool> {
     let has_registration = wallet().read().await.has_registration();
     Ok(has_registration)
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn register(pin: String) -> Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -139,13 +149,15 @@ pub async fn register(pin: String) -> Result<()> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
     // TODO: Replace with real implementation.
     Ok("https://example.com".to_string())
 }
 
 #[async_runtime]
-pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
+#[flutter_api_error]
+pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     // TODO: The code below is POC sample code, to be replace with a real implementation.
     let sink = ClosingStreamSink::from(sink);
 
@@ -153,18 +165,18 @@ pub async fn process_uri(uri: String, sink: StreamSink<Vec<u8>>) -> Result<()> {
         let auth_event = UriFlowEvent::DigidAuth {
             state: DigidState::Authenticating,
         };
-        sink.add(bincode::serialize(&auth_event).unwrap());
+        sink.add(auth_event);
         sleep(Duration::from_secs(5));
         if uri.contains("success") {
             let success_event = UriFlowEvent::DigidAuth {
                 state: DigidState::Success,
             };
-            sink.add(bincode::serialize(&success_event).unwrap());
+            sink.add(success_event);
         } else {
             let error_event = UriFlowEvent::DigidAuth {
                 state: DigidState::Error,
             };
-            sink.add(bincode::serialize(&error_event).unwrap());
+            sink.add(error_event);
         }
     } else {
         return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
@@ -178,9 +190,10 @@ mod tests {
     use super::*;
 
     fn test_is_valid_pin(pin: &str) -> bool {
-        let serialized_pin_result = is_valid_pin(pin.to_owned());
-        let pin_result = bincode::deserialize(&serialized_pin_result).unwrap();
-        matches!(pin_result, PinValidationResult::Ok)
+        matches!(
+            is_valid_pin(pin.to_string()).expect("Could not validate PIN"),
+            PinValidationResult::Ok
+        )
     }
 
     #[test]

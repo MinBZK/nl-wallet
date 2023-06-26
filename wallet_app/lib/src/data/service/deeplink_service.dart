@@ -11,7 +11,6 @@ import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import '../../navigation/wallet_routes.dart';
-import '../../util/extension/uri_flow_event_extension.dart';
 import '../../wallet_core/typed_wallet_core.dart';
 import 'app_lifecycle_service.dart';
 
@@ -81,14 +80,14 @@ class DeeplinkService {
     _walletCore.processUri(uri).listen((event) {
       Fimber.d('wallet_core processUri response: $event');
       event.when(
-        onDigidAuth: (event) {
+        digidAuth: (state) {
           // We only pass on the [DigidState] here (no navigation) since:
           // - if the app did not cold start the user is already in the correct place
           // - else if the wallet is not yet registered, a DigiD auth is not yet appropriate and it will be re-initiated later.
           // - else if the wallet is registered but the PID is not yet retrieved, the user will end up in the personalize flow,
           //   the correct state will be rendered because we notify the repository that authentication is in process.
           // - else if the wallet is registered and the PID is available, DigiD auth is no longer relevant.
-          _updateDigidAuthStatusUseCase.invoke(event.state);
+          _updateDigidAuthStatusUseCase.invoke(state);
         },
       );
     }, onError: (ex) {

@@ -1,5 +1,5 @@
-import 'package:core_domain/core_domain.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/wallet/mock/mock_wallet_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/source/memory/memory_wallet_datasource.dart';
@@ -49,30 +49,30 @@ void main() {
   group('Pin Attempts', () {
     test('leftover attempts decrement as user tries to unlock with invalid pin', () async {
       await walletRepository.createWallet(kMockPin);
-      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);
-      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 2);
-      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 1);
     });
     test('attempts are reset after creating a new wallet', () async {
       await walletRepository.createWallet(kMockPin);
-      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);
       await walletRepository.destroyWallet();
       await walletRepository.createWallet(kMockPin);
-      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);
     });
     test('attempts are reset after successfully unlocking a wallet', () async {
       await walletRepository.createWallet(kMockPin);
-      await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
-      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
+      var result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 2);
       walletRepository.unlockWallet(kMockPin);
       walletRepository.lockWallet();
-      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResultIncorrectPin;
+      result = await walletRepository.unlockWallet('invalid') as WalletUnlockResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);
     });
   });

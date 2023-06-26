@@ -1,5 +1,4 @@
-import 'package:core_domain/core_domain.dart';
-
+import '../../../../bridge_generated.dart';
 import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 
 abstract class WalletRepository {

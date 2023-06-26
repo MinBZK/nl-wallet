@@ -4,28 +4,27 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:ui' as _i10;
+import 'dart:ui' as _i9;
 
-import 'package:core_domain/core_domain.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:wallet/bridge_generated.dart' as _i8;
+import 'package:wallet/bridge_generated.dart' as _i2;
 import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart'
     as _i4;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart'
     as _i6;
-import 'package:wallet/src/data/service/app_lifecycle_service.dart' as _i9;
+import 'package:wallet/src/data/service/app_lifecycle_service.dart' as _i8;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart'
-    as _i12;
-import 'package:wallet/src/domain/usecase/auth/update_digid_auth_status_usecase.dart'
-    as _i13;
-import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart'
     as _i11;
+import 'package:wallet/src/domain/usecase/auth/update_digid_auth_status_usecase.dart'
+    as _i12;
+import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart'
+    as _i10;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart'
     as _i3;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart'
-    as _i14;
+    as _i13;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart'
-    as _i15;
+    as _i14;
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart' as _i7;
 
 // ignore_for_file: type=lint
@@ -215,9 +214,9 @@ class MockTypedWalletCore extends _i1.Mock implements _i7.TypedWalletCore {
           [pin],
         ),
         returnValue: _i5.Future<_i2.PinValidationResult>.value(
-            _i2.PinValidationResult.ok),
+            _i2.PinValidationResult.Ok),
         returnValueForMissingStub: _i5.Future<_i2.PinValidationResult>.value(
-            _i2.PinValidationResult.ok),
+            _i2.PinValidationResult.Ok),
       ) as _i5.Future<_i2.PinValidationResult>);
   @override
   _i5.Future<void> register(String? pin) => (super.noSuchMethod(
@@ -289,32 +288,32 @@ class MockTypedWalletCore extends _i1.Mock implements _i7.TypedWalletCore {
         returnValueForMissingStub: _i5.Stream<_i2.UriFlowEvent>.empty(),
       ) as _i5.Stream<_i2.UriFlowEvent>);
   @override
-  _i5.Stream<_i8.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
+  _i5.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
         Invocation.method(
           #observeConfig,
           [],
         ),
-        returnValue: _i5.Stream<_i8.FlutterConfiguration>.empty(),
-        returnValueForMissingStub: _i5.Stream<_i8.FlutterConfiguration>.empty(),
-      ) as _i5.Stream<_i8.FlutterConfiguration>);
+        returnValue: _i5.Stream<_i2.FlutterConfiguration>.empty(),
+        returnValueForMissingStub: _i5.Stream<_i2.FlutterConfiguration>.empty(),
+      ) as _i5.Stream<_i2.FlutterConfiguration>);
 }
 
 /// A class which mocks [AppLifecycleService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockAppLifecycleService extends _i1.Mock
-    implements _i9.AppLifecycleService {
+    implements _i8.AppLifecycleService {
   @override
-  _i5.Stream<_i10.AppLifecycleState> observe() => (super.noSuchMethod(
+  _i5.Stream<_i9.AppLifecycleState> observe() => (super.noSuchMethod(
         Invocation.method(
           #observe,
           [],
         ),
-        returnValue: _i5.Stream<_i10.AppLifecycleState>.empty(),
-        returnValueForMissingStub: _i5.Stream<_i10.AppLifecycleState>.empty(),
-      ) as _i5.Stream<_i10.AppLifecycleState>);
+        returnValue: _i5.Stream<_i9.AppLifecycleState>.empty(),
+        returnValueForMissingStub: _i5.Stream<_i9.AppLifecycleState>.empty(),
+      ) as _i5.Stream<_i9.AppLifecycleState>);
   @override
-  void notifyStateChanged(_i10.AppLifecycleState? state) => super.noSuchMethod(
+  void notifyStateChanged(_i9.AppLifecycleState? state) => super.noSuchMethod(
         Invocation.method(
           #notifyStateChanged,
           [state],
@@ -327,22 +326,22 @@ class MockAppLifecycleService extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockDecodeDeeplinkUseCase extends _i1.Mock
-    implements _i11.DecodeDeeplinkUseCase {
+    implements _i10.DecodeDeeplinkUseCase {
   @override
-  _i12.NavigationRequest? invoke(Uri? uri) => (super.noSuchMethod(
+  _i11.NavigationRequest? invoke(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [uri],
         ),
         returnValueForMissingStub: null,
-      ) as _i12.NavigationRequest?);
+      ) as _i11.NavigationRequest?);
 }
 
 /// A class which mocks [UpdateDigidAuthStatusUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockUpdateDigidAuthStatusUseCase extends _i1.Mock
-    implements _i13.UpdateDigidAuthStatusUseCase {
+    implements _i12.UpdateDigidAuthStatusUseCase {
   @override
   _i5.Future<void> invoke(_i2.DigidState? state) => (super.noSuchMethod(
         Invocation.method(
@@ -358,7 +357,7 @@ class MockUpdateDigidAuthStatusUseCase extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIsWalletInitializedWithPidUseCase extends _i1.Mock
-    implements _i14.IsWalletInitializedWithPidUseCase {
+    implements _i13.IsWalletInitializedWithPidUseCase {
   @override
   _i5.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -374,7 +373,7 @@ class MockIsWalletInitializedWithPidUseCase extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockObserveWalletLockUseCase extends _i1.Mock
-    implements _i15.ObserveWalletLockUseCase {
+    implements _i14.ObserveWalletLockUseCase {
   @override
   _i5.Stream<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
