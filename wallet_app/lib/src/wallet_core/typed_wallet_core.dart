@@ -1,7 +1,5 @@
 import '../../bridge_generated.dart';
 
-import '../../bridge_generated.dart';
-
 abstract class TypedWalletCore {
   Future<PinValidationResult> isValidPin(String pin);
 
