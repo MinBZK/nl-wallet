@@ -21,7 +21,7 @@ impl Default for MockConfigurationRepository {
                 background_timeout: 2 * 60,
             },
             account_server: AccountServerConfiguration {
-                base_url: Url::parse("http://rijksoverheid.nl").unwrap(),
+                base_url: Url::parse("https://example.com").unwrap(),
                 public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
             },
         })
