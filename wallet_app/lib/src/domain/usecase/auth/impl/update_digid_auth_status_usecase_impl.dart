@@ -1,5 +1,5 @@
-import 'package:core_domain/core_domain.dart';
 
+import '../../../../../bridge_generated.dart';
 import '../../../../data/repository/authentication/digid_auth_repository.dart';
 import '../update_digid_auth_status_usecase.dart';
 

@@ -1,5 +1,4 @@
-import 'package:core_domain/core_domain.dart';
-
+import '../../../../bridge_generated.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../mapper.dart';
 
@@ -7,15 +6,13 @@ class PinValidationErrorMapper extends Mapper<PinValidationResult, PinValidation
   @override
   PinValidationError? map(PinValidationResult input) {
     switch (input) {
-      case PinValidationResult.ok:
+      case PinValidationResult.Ok:
           return null;
-      case PinValidationResult.tooFewUniqueDigitsError:
+      case PinValidationResult.TooFewUniqueDigits:
         return PinValidationError.tooFewUniqueDigits;
-      case PinValidationResult.ascendingDigitsError:
-      case PinValidationResult.descendingDigitsError:
+      case PinValidationResult.SequentialDigits:
         return PinValidationError.sequentialDigits;
-      case PinValidationResult.nonDigitsError:
-      case PinValidationResult.invalidLengthError:
+      case PinValidationResult.OtherIssue:
         return PinValidationError.other;
     }
   }

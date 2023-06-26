@@ -1,9 +1,0 @@
-name: core_domain
-
-environment:
-  sdk: '>=2.14.0 <3.0.0'
-
-dependencies:
-  meta: ^1.0.0
-  tuple: ^2.0.0
-

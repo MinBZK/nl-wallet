@@ -7,19 +7,22 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:uuid/uuid.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 
 import 'dart:ffi' as ffi;
+
+part 'bridge_generated.freezed.dart';
 
 abstract class WalletCore {
   Stream<bool> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
-  Future<Uint8List> isValidPin({required String pin, dynamic hint});
+  Future<PinValidationResult> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
 
-  Future<Uint8List> unlockWallet({required String pin, dynamic hint});
+  Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
 
@@ -39,9 +42,42 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kGetDigidAuthUrlConstMeta;
 
-  Stream<Uint8List> processUri({required String uri, dynamic hint});
+  Stream<UriFlowEvent> processUri({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
+}
+
+enum DigidState {
+  Authenticating,
+  Success,
+  Error,
+}
+
+enum PinValidationResult {
+  Ok,
+  TooFewUniqueDigits,
+  SequentialDigits,
+  OtherIssue,
+}
+
+@freezed
+class UriFlowEvent with _$UriFlowEvent {
+  const factory UriFlowEvent.digidAuth({
+    required DigidState state,
+  }) = UriFlowEvent_DigidAuth;
+}
+
+@freezed
+class WalletUnlockResult with _$WalletUnlockResult {
+  const factory WalletUnlockResult.ok() = WalletUnlockResult_Ok;
+  const factory WalletUnlockResult.incorrectPin({
+    required int leftoverAttempts,
+    required bool isFinalAttempt,
+  }) = WalletUnlockResult_IncorrectPin;
+  const factory WalletUnlockResult.timeout({
+    required int timeoutMillis,
+  }) = WalletUnlockResult_Timeout;
+  const factory WalletUnlockResult.blocked() = WalletUnlockResult_Blocked;
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -66,11 +102,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<Uint8List> isValidPin({required String pin, dynamic hint}) {
+  Future<PinValidationResult> isValidPin({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_is_valid_pin(port_, arg0),
-      parseSuccessData: _wire2api_uint_8_list,
+      parseSuccessData: _wire2api_pin_validation_result,
       constMeta: kIsValidPinConstMeta,
       argValues: [pin],
       hint: hint,
@@ -82,11 +118,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
-  Future<Uint8List> unlockWallet({required String pin, dynamic hint}) {
+  Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_unlock_wallet(port_, arg0),
-      parseSuccessData: _wire2api_uint_8_list,
+      parseSuccessData: _wire2api_wallet_unlock_result,
       constMeta: kUnlockWalletConstMeta,
       argValues: [pin],
       hint: hint,
@@ -159,11 +195,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Stream<Uint8List> processUri({required String uri, dynamic hint}) {
+  Stream<UriFlowEvent> processUri({required String uri, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
     return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_process_uri(port_, arg0),
-      parseSuccessData: _wire2api_uint_8_list,
+      parseSuccessData: _wire2api_uri_flow_event,
       constMeta: kProcessUriConstMeta,
       argValues: [uri],
       hint: hint,
@@ -188,6 +224,22 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  DigidState _wire2api_digid_state(dynamic raw) {
+    return DigidState.values[raw];
+  }
+
+  int _wire2api_i32(dynamic raw) {
+    return raw as int;
+  }
+
+  PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
+    return PinValidationResult.values[raw];
+  }
+
+  int _wire2api_u32(dynamic raw) {
+    return raw as int;
+  }
+
   int _wire2api_u8(dynamic raw) {
     return raw as int;
   }
@@ -198,6 +250,37 @@ class WalletCoreImpl implements WalletCore {
 
   void _wire2api_unit(dynamic raw) {
     return;
+  }
+
+  UriFlowEvent _wire2api_uri_flow_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return UriFlowEvent_DigidAuth(
+          state: _wire2api_digid_state(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  WalletUnlockResult _wire2api_wallet_unlock_result(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return WalletUnlockResult_Ok();
+      case 1:
+        return WalletUnlockResult_IncorrectPin(
+          leftoverAttempts: _wire2api_u8(raw[1]),
+          isFinalAttempt: _wire2api_bool(raw[2]),
+        );
+      case 2:
+        return WalletUnlockResult_Timeout(
+          timeoutMillis: _wire2api_u32(raw[1]),
+        );
+      case 3:
+        return WalletUnlockResult_Blocked();
+      default:
+        throw Exception("unreachable");
+    }
   }
 }
 

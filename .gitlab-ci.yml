@@ -71,7 +71,7 @@ test-flutter:
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter pub get $FLUTTER_APP_PROJECT_DIR
+    - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage)
   artifacts:
@@ -254,9 +254,9 @@ test-codegen:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:b6333c8db6c2cf94ea3a2b74b6716a6ba1a467aa8e5713f1d6602125f693ecd4"
   script:
     - set -euxo pipefail
-    - flutter pub get $FLUTTER_APP_PROJECT_DIR
+    - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
     - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
-    - cargo run --manifest-path wallet_core/Cargo.toml --locked --bin serde_reflection_codegen --features serde_reflection_codegen
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
