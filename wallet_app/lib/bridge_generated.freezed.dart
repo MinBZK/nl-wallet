@@ -51,19 +51,22 @@ mixin _$UriFlowEvent {
       throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $UriFlowEventCopyWith<UriFlowEvent> get copyWith => throw _privateConstructorUsedError;
+  $UriFlowEventCopyWith<UriFlowEvent> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $UriFlowEventCopyWith<$Res> {
-  factory $UriFlowEventCopyWith(UriFlowEvent value, $Res Function(UriFlowEvent) then) =
+  factory $UriFlowEventCopyWith(
+          UriFlowEvent value, $Res Function(UriFlowEvent) then) =
       _$UriFlowEventCopyWithImpl<$Res, UriFlowEvent>;
   @useResult
   $Res call({DigidState state});
 }
 
 /// @nodoc
-class _$UriFlowEventCopyWithImpl<$Res, $Val extends UriFlowEvent> implements $UriFlowEventCopyWith<$Res> {
+class _$UriFlowEventCopyWithImpl<$Res, $Val extends UriFlowEvent>
+    implements $UriFlowEventCopyWith<$Res> {
   _$UriFlowEventCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -86,9 +89,10 @@ class _$UriFlowEventCopyWithImpl<$Res, $Val extends UriFlowEvent> implements $Ur
 }
 
 /// @nodoc
-abstract class _$$UriFlowEvent_DigidAuthCopyWith<$Res> implements $UriFlowEventCopyWith<$Res> {
-  factory _$$UriFlowEvent_DigidAuthCopyWith(
-          _$UriFlowEvent_DigidAuth value, $Res Function(_$UriFlowEvent_DigidAuth) then) =
+abstract class _$$UriFlowEvent_DigidAuthCopyWith<$Res>
+    implements $UriFlowEventCopyWith<$Res> {
+  factory _$$UriFlowEvent_DigidAuthCopyWith(_$UriFlowEvent_DigidAuth value,
+          $Res Function(_$UriFlowEvent_DigidAuth) then) =
       __$$UriFlowEvent_DigidAuthCopyWithImpl<$Res>;
   @override
   @useResult
@@ -96,9 +100,11 @@ abstract class _$$UriFlowEvent_DigidAuthCopyWith<$Res> implements $UriFlowEventC
 }
 
 /// @nodoc
-class __$$UriFlowEvent_DigidAuthCopyWithImpl<$Res> extends _$UriFlowEventCopyWithImpl<$Res, _$UriFlowEvent_DigidAuth>
+class __$$UriFlowEvent_DigidAuthCopyWithImpl<$Res>
+    extends _$UriFlowEventCopyWithImpl<$Res, _$UriFlowEvent_DigidAuth>
     implements _$$UriFlowEvent_DigidAuthCopyWith<$Res> {
-  __$$UriFlowEvent_DigidAuthCopyWithImpl(_$UriFlowEvent_DigidAuth _value, $Res Function(_$UriFlowEvent_DigidAuth) _then)
+  __$$UriFlowEvent_DigidAuthCopyWithImpl(_$UriFlowEvent_DigidAuth _value,
+      $Res Function(_$UriFlowEvent_DigidAuth) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -143,7 +149,8 @@ class _$UriFlowEvent_DigidAuth implements UriFlowEvent_DigidAuth {
   @override
   @pragma('vm:prefer-inline')
   _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith =>
-      __$$UriFlowEvent_DigidAuthCopyWithImpl<_$UriFlowEvent_DigidAuth>(this, _$identity);
+      __$$UriFlowEvent_DigidAuthCopyWithImpl<_$UriFlowEvent_DigidAuth>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -203,13 +210,15 @@ class _$UriFlowEvent_DigidAuth implements UriFlowEvent_DigidAuth {
 }
 
 abstract class UriFlowEvent_DigidAuth implements UriFlowEvent {
-  const factory UriFlowEvent_DigidAuth({required final DigidState state}) = _$UriFlowEvent_DigidAuth;
+  const factory UriFlowEvent_DigidAuth({required final DigidState state}) =
+      _$UriFlowEvent_DigidAuth;
 
   @override
   DigidState get state;
   @override
   @JsonKey(ignore: true)
-  _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith => throw _privateConstructorUsedError;
+  _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -217,7 +226,8 @@ mixin _$WalletUnlockResult {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
+        incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) =>
@@ -242,7 +252,8 @@ mixin _$WalletUnlockResult {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_IncorrectPin value)
+        incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
   }) =>
@@ -268,7 +279,8 @@ mixin _$WalletUnlockResult {
 
 /// @nodoc
 abstract class $WalletUnlockResultCopyWith<$Res> {
-  factory $WalletUnlockResultCopyWith(WalletUnlockResult value, $Res Function(WalletUnlockResult) then) =
+  factory $WalletUnlockResultCopyWith(
+          WalletUnlockResult value, $Res Function(WalletUnlockResult) then) =
       _$WalletUnlockResultCopyWithImpl<$Res, WalletUnlockResult>;
 }
 
@@ -285,7 +297,8 @@ class _$WalletUnlockResultCopyWithImpl<$Res, $Val extends WalletUnlockResult>
 
 /// @nodoc
 abstract class _$$WalletUnlockResult_OkCopyWith<$Res> {
-  factory _$$WalletUnlockResult_OkCopyWith(_$WalletUnlockResult_Ok value, $Res Function(_$WalletUnlockResult_Ok) then) =
+  factory _$$WalletUnlockResult_OkCopyWith(_$WalletUnlockResult_Ok value,
+          $Res Function(_$WalletUnlockResult_Ok) then) =
       __$$WalletUnlockResult_OkCopyWithImpl<$Res>;
 }
 
@@ -293,7 +306,8 @@ abstract class _$$WalletUnlockResult_OkCopyWith<$Res> {
 class __$$WalletUnlockResult_OkCopyWithImpl<$Res>
     extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Ok>
     implements _$$WalletUnlockResult_OkCopyWith<$Res> {
-  __$$WalletUnlockResult_OkCopyWithImpl(_$WalletUnlockResult_Ok _value, $Res Function(_$WalletUnlockResult_Ok) _then)
+  __$$WalletUnlockResult_OkCopyWithImpl(_$WalletUnlockResult_Ok _value,
+      $Res Function(_$WalletUnlockResult_Ok) _then)
       : super(_value, _then);
 }
 
@@ -309,7 +323,8 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletUnlockResult_Ok);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$WalletUnlockResult_Ok);
   }
 
   @override
@@ -319,7 +334,8 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
+        incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -356,7 +372,8 @@ class _$WalletUnlockResult_Ok implements WalletUnlockResult_Ok {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_IncorrectPin value)
+        incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
   }) {
@@ -397,7 +414,8 @@ abstract class WalletUnlockResult_Ok implements WalletUnlockResult {
 /// @nodoc
 abstract class _$$WalletUnlockResult_IncorrectPinCopyWith<$Res> {
   factory _$$WalletUnlockResult_IncorrectPinCopyWith(
-          _$WalletUnlockResult_IncorrectPin value, $Res Function(_$WalletUnlockResult_IncorrectPin) then) =
+          _$WalletUnlockResult_IncorrectPin value,
+          $Res Function(_$WalletUnlockResult_IncorrectPin) then) =
       __$$WalletUnlockResult_IncorrectPinCopyWithImpl<$Res>;
   @useResult
   $Res call({int leftoverAttempts, bool isFinalAttempt});
@@ -405,10 +423,12 @@ abstract class _$$WalletUnlockResult_IncorrectPinCopyWith<$Res> {
 
 /// @nodoc
 class __$$WalletUnlockResult_IncorrectPinCopyWithImpl<$Res>
-    extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_IncorrectPin>
+    extends _$WalletUnlockResultCopyWithImpl<$Res,
+        _$WalletUnlockResult_IncorrectPin>
     implements _$$WalletUnlockResult_IncorrectPinCopyWith<$Res> {
   __$$WalletUnlockResult_IncorrectPinCopyWithImpl(
-      _$WalletUnlockResult_IncorrectPin _value, $Res Function(_$WalletUnlockResult_IncorrectPin) _then)
+      _$WalletUnlockResult_IncorrectPin _value,
+      $Res Function(_$WalletUnlockResult_IncorrectPin) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -432,8 +452,10 @@ class __$$WalletUnlockResult_IncorrectPinCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletUnlockResult_IncorrectPin implements WalletUnlockResult_IncorrectPin {
-  const _$WalletUnlockResult_IncorrectPin({required this.leftoverAttempts, required this.isFinalAttempt});
+class _$WalletUnlockResult_IncorrectPin
+    implements WalletUnlockResult_IncorrectPin {
+  const _$WalletUnlockResult_IncorrectPin(
+      {required this.leftoverAttempts, required this.isFinalAttempt});
 
   @override
   final int leftoverAttempts;
@@ -450,24 +472,29 @@ class _$WalletUnlockResult_IncorrectPin implements WalletUnlockResult_IncorrectP
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletUnlockResult_IncorrectPin &&
-            (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
-            (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
+            (identical(other.leftoverAttempts, leftoverAttempts) ||
+                other.leftoverAttempts == leftoverAttempts) &&
+            (identical(other.isFinalAttempt, isFinalAttempt) ||
+                other.isFinalAttempt == isFinalAttempt));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
+  int get hashCode =>
+      Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin> get copyWith =>
-      __$$WalletUnlockResult_IncorrectPinCopyWithImpl<_$WalletUnlockResult_IncorrectPin>(this, _$identity);
+  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin>
+      get copyWith => __$$WalletUnlockResult_IncorrectPinCopyWithImpl<
+          _$WalletUnlockResult_IncorrectPin>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
+        incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -504,7 +531,8 @@ class _$WalletUnlockResult_IncorrectPin implements WalletUnlockResult_IncorrectP
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_IncorrectPin value)
+        incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
   }) {
@@ -540,19 +568,21 @@ class _$WalletUnlockResult_IncorrectPin implements WalletUnlockResult_IncorrectP
 
 abstract class WalletUnlockResult_IncorrectPin implements WalletUnlockResult {
   const factory WalletUnlockResult_IncorrectPin(
-      {required final int leftoverAttempts, required final bool isFinalAttempt}) = _$WalletUnlockResult_IncorrectPin;
+      {required final int leftoverAttempts,
+      required final bool isFinalAttempt}) = _$WalletUnlockResult_IncorrectPin;
 
   int get leftoverAttempts;
   bool get isFinalAttempt;
   @JsonKey(ignore: true)
-  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$WalletUnlockResult_IncorrectPinCopyWith<_$WalletUnlockResult_IncorrectPin>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$WalletUnlockResult_TimeoutCopyWith<$Res> {
   factory _$$WalletUnlockResult_TimeoutCopyWith(
-          _$WalletUnlockResult_Timeout value, $Res Function(_$WalletUnlockResult_Timeout) then) =
+          _$WalletUnlockResult_Timeout value,
+          $Res Function(_$WalletUnlockResult_Timeout) then) =
       __$$WalletUnlockResult_TimeoutCopyWithImpl<$Res>;
   @useResult
   $Res call({int timeoutMillis});
@@ -563,7 +593,8 @@ class __$$WalletUnlockResult_TimeoutCopyWithImpl<$Res>
     extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Timeout>
     implements _$$WalletUnlockResult_TimeoutCopyWith<$Res> {
   __$$WalletUnlockResult_TimeoutCopyWithImpl(
-      _$WalletUnlockResult_Timeout _value, $Res Function(_$WalletUnlockResult_Timeout) _then)
+      _$WalletUnlockResult_Timeout _value,
+      $Res Function(_$WalletUnlockResult_Timeout) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -598,7 +629,8 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletUnlockResult_Timeout &&
-            (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
+            (identical(other.timeoutMillis, timeoutMillis) ||
+                other.timeoutMillis == timeoutMillis));
   }
 
   @override
@@ -607,14 +639,16 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout> get copyWith =>
-      __$$WalletUnlockResult_TimeoutCopyWithImpl<_$WalletUnlockResult_Timeout>(this, _$identity);
+  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout>
+      get copyWith => __$$WalletUnlockResult_TimeoutCopyWithImpl<
+          _$WalletUnlockResult_Timeout>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
+        incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -651,7 +685,8 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_IncorrectPin value)
+        incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
   }) {
@@ -686,18 +721,20 @@ class _$WalletUnlockResult_Timeout implements WalletUnlockResult_Timeout {
 }
 
 abstract class WalletUnlockResult_Timeout implements WalletUnlockResult {
-  const factory WalletUnlockResult_Timeout({required final int timeoutMillis}) = _$WalletUnlockResult_Timeout;
+  const factory WalletUnlockResult_Timeout({required final int timeoutMillis}) =
+      _$WalletUnlockResult_Timeout;
 
   int get timeoutMillis;
   @JsonKey(ignore: true)
-  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$WalletUnlockResult_TimeoutCopyWith<_$WalletUnlockResult_Timeout>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$WalletUnlockResult_BlockedCopyWith<$Res> {
   factory _$$WalletUnlockResult_BlockedCopyWith(
-          _$WalletUnlockResult_Blocked value, $Res Function(_$WalletUnlockResult_Blocked) then) =
+          _$WalletUnlockResult_Blocked value,
+          $Res Function(_$WalletUnlockResult_Blocked) then) =
       __$$WalletUnlockResult_BlockedCopyWithImpl<$Res>;
 }
 
@@ -706,7 +743,8 @@ class __$$WalletUnlockResult_BlockedCopyWithImpl<$Res>
     extends _$WalletUnlockResultCopyWithImpl<$Res, _$WalletUnlockResult_Blocked>
     implements _$$WalletUnlockResult_BlockedCopyWith<$Res> {
   __$$WalletUnlockResult_BlockedCopyWithImpl(
-      _$WalletUnlockResult_Blocked _value, $Res Function(_$WalletUnlockResult_Blocked) _then)
+      _$WalletUnlockResult_Blocked _value,
+      $Res Function(_$WalletUnlockResult_Blocked) _then)
       : super(_value, _then);
 }
 
@@ -722,7 +760,9 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletUnlockResult_Blocked);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletUnlockResult_Blocked);
   }
 
   @override
@@ -732,7 +772,8 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt)
+        incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -769,7 +810,8 @@ class _$WalletUnlockResult_Blocked implements WalletUnlockResult_Blocked {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletUnlockResult_Ok value) ok,
-    required TResult Function(WalletUnlockResult_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletUnlockResult_IncorrectPin value)
+        incorrectPin,
     required TResult Function(WalletUnlockResult_Timeout value) timeout,
     required TResult Function(WalletUnlockResult_Blocked value) blocked,
   }) {
