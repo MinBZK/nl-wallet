@@ -12,7 +12,6 @@ import '../wallet_core/typed_wallet_core.dart';
 import '../wallet_core/wallet_core.dart';
 import '../wallet_core/impl/typed_wallet_core_impl.dart';
 
-
 class WalletDataSourceProvider extends StatelessWidget {
   final Widget child;
 

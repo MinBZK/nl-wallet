@@ -4,13 +4,15 @@ use tokio::task;
 use tracing::{info, instrument};
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::{auth::Registration, jwt::EcdsaDecodingKey};
+use wallet_common::account::auth::Registration;
 
 pub use crate::{
     account_server::{AccountServerClient, AccountServerClientError},
     storage::Storage,
 };
 use crate::{
+    config::{Configuration, ConfigurationRepository},
+    lock::WalletLock,
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -64,57 +66,89 @@ pub enum WalletUnlockError {
     ServerError,
 }
 
-/// Attempts to fetch the registration from storage,
-/// without creating a database if there is none.
-async fn fetch_registration(storage: &mut impl Storage) -> Result<Option<RegistrationData>, StorageError> {
-    match storage.state().await? {
-        // If there is no database file, we can conclude early that there is no registration.
-        StorageState::Uninitialized => return Ok(None),
-        // Open the database, if necessary.
-        StorageState::Unopened => storage.open().await?,
-        _ => (),
-    }
+type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-    // Finally, fetch the registration.
-    let registration = storage.fetch_data::<RegistrationData>().await?;
-
-    Ok(registration)
-}
-
-pub struct Wallet<A, S, K> {
+pub struct Wallet<C, A, S, K> {
+    config_repository: C,
     account_server: A,
-    account_server_pubkey: EcdsaDecodingKey,
     storage: S,
     hw_privkey: K,
     registration: Option<RegistrationData>,
-    is_locked: bool,
+    lock: WalletLock,
+    config_callback: Option<ConfigurationCallback>,
 }
 
-impl<A, S, K> Wallet<A, S, K>
+impl<C, A, S, K> Wallet<C, A, S, K>
 where
+    C: ConfigurationRepository,
     A: AccountServerClient,
-    S: Storage,
+    S: Storage + Default,
     K: PlatformEcdsaKey + Clone + Send + 'static,
 {
-    // Initialize the wallet by loading initial state.
-    pub async fn new(
-        account_server: A,
-        account_server_pubkey: EcdsaDecodingKey,
-        mut storage: S,
-    ) -> Result<Self, WalletInitError> {
-        let registration = fetch_registration(&mut storage).await?;
+    /// Initialize the wallet, but without registration loaded.
+    pub fn new_without_registration(config_repository: C) -> Self {
+        let account_server = A::new(&config_repository.config().account_server.base_url);
+        let storage = S::default();
         let hw_privkey = K::new(WALLET_KEY_ID);
 
-        let wallet = Wallet {
+        Wallet {
+            config_repository,
             account_server,
-            account_server_pubkey,
             storage,
             hw_privkey,
-            registration,
-            is_locked: true,
-        };
+            registration: None,
+            lock: WalletLock::new(true),
+            config_callback: None,
+        }
+    }
+
+    /// Initialize the wallet by loading initial state.
+    pub async fn new(config_repository: C) -> Result<Self, WalletInitError> {
+        let mut wallet = Self::new_without_registration(config_repository);
+        wallet.fetch_registration().await?;
 
         Ok(wallet)
+    }
+
+    /// Attempts to fetch the registration from storage, without creating a database if there is none.
+    async fn fetch_registration(&mut self) -> Result<(), StorageError> {
+        match self.storage.state().await? {
+            // If there is no database file, we can conclude early that there is no registration.
+            StorageState::Uninitialized => return Ok(()),
+            // Open the database, if necessary.
+            StorageState::Unopened => self.storage.open().await?,
+            _ => (),
+        }
+
+        // Finally, fetch the registration.
+        self.registration = self.storage.fetch_data::<RegistrationData>().await?;
+
+        Ok(())
+    }
+
+    pub fn set_lock_callback<F>(&mut self, callback: F)
+    where
+        F: Fn(bool) + Send + Sync + 'static,
+    {
+        self.lock.set_lock_callback(callback)
+    }
+
+    pub fn clear_lock_callback(&mut self) {
+        self.lock.clear_lock_callback()
+    }
+
+    pub fn set_config_callback<F>(&mut self, callback: F)
+    where
+        F: Fn(&Configuration) + Send + Sync + 'static,
+    {
+        callback(self.config_repository.config());
+        // TODO: Once configuration fetching from the Wallet Provider is implemented,
+        //       this callback should be called every time the config updates.
+        self.config_callback.replace(Box::new(callback));
+    }
+
+    pub fn clear_config_callback(&mut self) {
+        self.config_callback.take();
     }
 
     pub fn has_registration(&self) -> bool {
@@ -122,11 +156,11 @@ where
     }
 
     pub fn is_locked(&self) -> bool {
-        self.is_locked
+        self.lock.is_locked()
     }
 
     pub fn lock(&mut self) {
-        self.is_locked = true
+        self.lock.lock()
     }
 
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
@@ -134,12 +168,13 @@ where
         // TODO: Validate pin with account server, currently mocking all possible responses based on pin
         if pin == "000000" {
             info!("Mock unlock() pin valid");
-            self.is_locked = false;
+            self.lock.unlock();
+
             return Ok(());
         }
         if pin == "100000" {
             info!("Mock unlock() IncorrectPin (3 attempts left)");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::IncorrectPin {
                 leftover_attempts: 3,
                 is_final_attempt: false,
@@ -147,7 +182,7 @@ where
         }
         if pin == "200000" {
             info!("Mock unlock() IncorrectPinTimeout");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Timeout {
                 timeout_millis: 10 * 1000,
                 /* 10 Sec */
@@ -155,7 +190,7 @@ where
         }
         if pin == "300000" {
             info!("Mock unlock() active Timeout");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Timeout {
                 timeout_millis: 75 * 1000,
                 /* 1 min  15 secs */
@@ -163,17 +198,17 @@ where
         }
         if pin == "400000" {
             info!("Mock unlock() Blocked");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::Blocked);
         }
         if pin == "500000" {
             info!("Mock unlock() ServerError");
-            self.is_locked = true;
+            self.lock.lock();
             return Err(WalletUnlockError::ServerError);
         }
 
         info!("Mock unlock() IncorrectPin (1 attempts left)");
-        self.is_locked = true;
+        self.lock.lock();
         Err(WalletUnlockError::IncorrectPin {
             leftover_attempts: 1,
             is_final_attempt: true,
@@ -240,7 +275,7 @@ where
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert
-            .parse_and_verify(&self.account_server_pubkey)
+            .parse_and_verify(&self.config_repository.config().account_server.public_key)
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
@@ -265,7 +300,7 @@ where
         self.registration = Some(registration_data);
 
         // Unlock the wallet after successful registration
-        self.is_locked = false;
+        self.lock.unlock();
 
         Ok(())
     }
@@ -274,19 +309,33 @@ where
 #[cfg(test)]
 mod tests {
     use platform_support::hw_keystore::software::SoftwareEcdsaKey;
-    use wallet_provider::account_server::{stub, AccountServer};
+    use wallet_provider::account_server::AccountServer;
 
-    use crate::storage::MockStorage;
+    use crate::{config::MockConfigurationRepository, storage::MockStorage};
 
     use super::*;
 
     async fn init_wallet(
         storage: Option<MockStorage>,
-    ) -> Result<Wallet<AccountServer, MockStorage, SoftwareEcdsaKey>, WalletInitError> {
-        let account_server = stub::account_server();
-        let pubkey = account_server.pubkey.clone();
+    ) -> Result<Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey>, WalletInitError>
+    {
+        let config = MockConfigurationRepository::default();
 
-        Wallet::new(account_server, pubkey, storage.unwrap_or_default()).await
+        let mut wallet: Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey> =
+            match storage {
+                Some(storage) => {
+                    let mut wallet = Wallet::new_without_registration(config);
+                    wallet.storage = storage;
+                    wallet.fetch_registration().await?;
+
+                    Ok(wallet)
+                }
+                None => Wallet::new(config).await,
+            }?;
+
+        wallet.config_repository.0.account_server.public_key = wallet.account_server.pubkey.clone();
+
+        Ok(wallet)
     }
 
     #[tokio::test]
@@ -303,7 +352,7 @@ mod tests {
         ));
 
         // The wallet should be locked by default
-        assert!(wallet.is_locked);
+        assert!(wallet.is_locked());
 
         // Test with a wallet with a database file, no registration.
         let wallet = init_wallet(Some(MockStorage::new(StorageState::Unopened, None)))

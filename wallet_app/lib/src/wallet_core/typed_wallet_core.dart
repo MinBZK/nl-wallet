@@ -16,4 +16,6 @@ abstract class TypedWalletCore {
   Future<String> getDigidAuthUrl();
 
   Stream<UriFlowEvent> processUri(Uri uri);
+
+  Stream<FlutterConfiguration> observeConfig();
 }

@@ -14,13 +14,29 @@ import 'dart:ffi' as ffi;
 part 'bridge_generated.freezed.dart';
 
 abstract class WalletCore {
-  Stream<bool> init({dynamic hint});
+  Future<void> init({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
   Future<PinValidationResult> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
+
+  Stream<bool> setLockStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta;
+
+  Future<void> clearLockStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta;
+
+  Stream<FlutterConfiguration> setConfigurationStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta;
+
+  Future<void> clearConfigurationStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta;
 
   Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint});
 
@@ -51,6 +67,16 @@ enum DigidState {
   Authenticating,
   Success,
   Error,
+}
+
+class FlutterConfiguration {
+  final int inactiveLockTimeout;
+  final int backgroundLockTimeout;
+
+  const FlutterConfiguration({
+    required this.inactiveLockTimeout,
+    required this.backgroundLockTimeout,
+  });
 }
 
 enum PinValidationResult {
@@ -87,10 +113,10 @@ class WalletCoreImpl implements WalletCore {
   /// Only valid on web/WASM platforms.
   factory WalletCoreImpl.wasm(FutureOr<WasmModule> module) => WalletCoreImpl(module as ExternalLibrary);
   WalletCoreImpl.raw(this._platform);
-  Stream<bool> init({dynamic hint}) {
-    return _platform.executeStream(FlutterRustBridgeTask(
+  Future<void> init({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_init(port_),
-      parseSuccessData: _wire2api_bool,
+      parseSuccessData: _wire2api_unit,
       constMeta: kInitConstMeta,
       argValues: [],
       hint: hint,
@@ -116,6 +142,66 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "is_valid_pin",
         argNames: ["pin"],
+      );
+
+  Stream<bool> setLockStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_lock_stream(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kSetLockStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_lock_stream",
+        argNames: [],
+      );
+
+  Future<void> clearLockStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_lock_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kClearLockStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_lock_stream",
+        argNames: [],
+      );
+
+  Stream<FlutterConfiguration> setConfigurationStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_configuration_stream(port_),
+      parseSuccessData: _wire2api_flutter_configuration,
+      constMeta: kSetConfigurationStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_configuration_stream",
+        argNames: [],
+      );
+
+  Future<void> clearConfigurationStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_configuration_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kClearConfigurationStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_configuration_stream",
+        argNames: [],
       );
 
   Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint}) {
@@ -228,12 +314,25 @@ class WalletCoreImpl implements WalletCore {
     return DigidState.values[raw];
   }
 
+  FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return FlutterConfiguration(
+      inactiveLockTimeout: _wire2api_u16(arr[0]),
+      backgroundLockTimeout: _wire2api_u16(arr[1]),
+    );
+  }
+
   int _wire2api_i32(dynamic raw) {
     return raw as int;
   }
 
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
     return PinValidationResult.values[raw];
+  }
+
+  int _wire2api_u16(dynamic raw) {
+    return raw as int;
   }
 
   int _wire2api_u32(dynamic raw) {
@@ -417,6 +516,54 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_is_valid_pinPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_is_valid_pin');
   late final _wire_is_valid_pin = _wire_is_valid_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_set_lock_stream(
+    int port_,
+  ) {
+    return _wire_set_lock_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_lock_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_lock_stream');
+  late final _wire_set_lock_stream = _wire_set_lock_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_lock_stream(
+    int port_,
+  ) {
+    return _wire_clear_lock_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_lock_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_lock_stream');
+  late final _wire_clear_lock_stream = _wire_clear_lock_streamPtr.asFunction<void Function(int)>();
+
+  void wire_set_configuration_stream(
+    int port_,
+  ) {
+    return _wire_set_configuration_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_configuration_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_configuration_stream');
+  late final _wire_set_configuration_stream = _wire_set_configuration_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_configuration_stream(
+    int port_,
+  ) {
+    return _wire_clear_configuration_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_configuration_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_configuration_stream');
+  late final _wire_clear_configuration_stream = _wire_clear_configuration_streamPtr.asFunction<void Function(int)>();
 
   void wire_unlock_wallet(
     int port_,

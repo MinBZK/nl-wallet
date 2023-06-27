@@ -287,6 +287,15 @@ class MockTypedWalletCore extends _i1.Mock implements _i7.TypedWalletCore {
         returnValue: _i5.Stream<_i2.UriFlowEvent>.empty(),
         returnValueForMissingStub: _i5.Stream<_i2.UriFlowEvent>.empty(),
       ) as _i5.Stream<_i2.UriFlowEvent>);
+  @override
+  _i5.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
+        Invocation.method(
+          #observeConfig,
+          [],
+        ),
+        returnValue: _i5.Stream<_i2.FlutterConfiguration>.empty(),
+        returnValueForMissingStub: _i5.Stream<_i2.FlutterConfiguration>.empty(),
+      ) as _i5.Stream<_i2.FlutterConfiguration>);
 }
 
 /// A class which mocks [AppLifecycleService].

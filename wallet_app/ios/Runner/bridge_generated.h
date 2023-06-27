@@ -30,6 +30,14 @@ void wire_init(int64_t port_);
 
 void wire_is_valid_pin(int64_t port_, struct wire_uint_8_list *pin);
 
+void wire_set_lock_stream(int64_t port_);
+
+void wire_clear_lock_stream(int64_t port_);
+
+void wire_set_configuration_stream(int64_t port_);
+
+void wire_clear_configuration_stream(int64_t port_);
+
 void wire_unlock_wallet(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_lock_wallet(int64_t port_);
@@ -50,6 +58,10 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) wire_init);
     dummy_var ^= ((int64_t) (void*) wire_is_valid_pin);
+    dummy_var ^= ((int64_t) (void*) wire_set_lock_stream);
+    dummy_var ^= ((int64_t) (void*) wire_clear_lock_stream);
+    dummy_var ^= ((int64_t) (void*) wire_set_configuration_stream);
+    dummy_var ^= ((int64_t) (void*) wire_clear_configuration_stream);
     dummy_var ^= ((int64_t) (void*) wire_unlock_wallet);
     dummy_var ^= ((int64_t) (void*) wire_lock_wallet);
     dummy_var ^= ((int64_t) (void*) wire_has_registration);

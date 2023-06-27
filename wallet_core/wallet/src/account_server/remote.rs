@@ -10,14 +10,14 @@ use wallet_common::account::{
 use super::{AccountServerClient, AccountServerClientError};
 
 pub struct RemoteAccountServerClient {
-    url: Url,
+    base_url: Url,
     client: Client,
 }
 
 impl RemoteAccountServerClient {
-    pub fn new(url: Url) -> Self {
-        Self {
-            url,
+    fn new(base_url: Url) -> Self {
+        RemoteAccountServerClient {
+            base_url,
             client: Client::new(),
         }
     }
@@ -25,10 +25,17 @@ impl RemoteAccountServerClient {
 
 #[async_trait]
 impl AccountServerClient for RemoteAccountServerClient {
+    fn new(base_url: &Url) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(base_url.clone())
+    }
+
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
-            .post(self.url.join("/api/v1/enroll").unwrap())
+            .post(self.base_url.join("/api/v1/enroll")?)
             .send()
             .await?
             .json::<Challenge>()
@@ -45,7 +52,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
-            .post(self.url.join("/api/v1/createwallet").unwrap())
+            .post(self.base_url.join("/api/v1/createwallet")?)
             .json(&registration_message)
             .send()
             .await?

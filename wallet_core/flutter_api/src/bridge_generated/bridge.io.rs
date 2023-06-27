@@ -12,6 +12,26 @@ pub extern "C" fn wire_is_valid_pin(port_: i64, pin: *mut wire_uint_8_list) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_set_lock_stream(port_: i64) {
+    wire_set_lock_stream_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_clear_lock_stream(port_: i64) {
+    wire_clear_lock_stream_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_set_configuration_stream(port_: i64) {
+    wire_set_configuration_stream_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_clear_configuration_stream(port_: i64) {
+    wire_clear_configuration_stream_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_unlock_wallet(port_: i64, pin: *mut wire_uint_8_list) {
     wire_unlock_wallet_impl(port_, pin)
 }

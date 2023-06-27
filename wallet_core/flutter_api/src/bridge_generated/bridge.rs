@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 // Section: imports
 
+use crate::models::config::FlutterConfiguration;
 use crate::models::pin::PinValidationResult;
 use crate::models::unlock::WalletUnlockResult;
 use crate::models::uri_flow_event::DigidState;
@@ -31,9 +32,9 @@ fn wire_init_impl(port_: MessagePort) {
         WrapInfo {
             debug_name: "init",
             port: Some(port_),
-            mode: FfiCallMode::Stream,
+            mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| init(task_callback.stream_sink()),
+        move || move |task_callback| init(),
     )
 }
 fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -47,6 +48,46 @@ fn wire_is_valid_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + Unwin
             let api_pin = pin.wire2api();
             move |task_callback| is_valid_pin(api_pin)
         },
+    )
+}
+fn wire_set_lock_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "set_lock_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| set_lock_stream(task_callback.stream_sink()),
+    )
+}
+fn wire_clear_lock_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "clear_lock_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| clear_lock_stream(),
+    )
+}
+fn wire_set_configuration_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "set_configuration_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| set_configuration_stream(task_callback.stream_sink()),
+    )
+}
+fn wire_clear_configuration_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "clear_configuration_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| clear_configuration_stream(),
     )
 }
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -160,6 +201,16 @@ impl support::IntoDart for DigidState {
     }
 }
 impl support::IntoDartExceptPrimitive for DigidState {}
+impl support::IntoDart for FlutterConfiguration {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.inactive_lock_timeout.into_dart(),
+            self.background_lock_timeout.into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 
 impl support::IntoDart for PinValidationResult {
     fn into_dart(self) -> support::DartAbi {

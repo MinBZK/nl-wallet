@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
-use tokio::sync::{OnceCell, RwLock, RwLockWriteGuard};
+use tokio::sync::{OnceCell, RwLock};
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
@@ -12,40 +12,24 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
+        config::FlutterConfiguration,
         pin::PinValidationResult,
         unlock::WalletUnlockResult,
         uri_flow_event::{DigidState, UriFlowEvent},
     },
+    stream::ClosingStreamSink,
 };
 
-struct WalletApiEnvironment {
-    wallet: RwLock<Wallet>,
-    lock_sink: StreamSink<bool>,
-}
+static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
-impl WalletApiEnvironment {
-    fn new(wallet: Wallet, lock_sink: StreamSink<bool>) -> Self {
-        WalletApiEnvironment {
-            wallet: RwLock::new(wallet),
-            lock_sink,
-        }
-    }
-}
-
-static WALLET_API_ENVIRONMENT: OnceCell<WalletApiEnvironment> = OnceCell::const_new();
-
-fn wallet_environment() -> &'static WalletApiEnvironment {
-    WALLET_API_ENVIRONMENT
+fn wallet() -> &'static RwLock<Wallet> {
+    WALLET
         .get()
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
-fn wallet() -> &'static RwLock<Wallet> {
-    &wallet_environment().wallet
-}
-
 #[flutter_api_error]
-pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
+pub fn init() -> Result<()> {
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
     // init_logging() should not fail when being called more than once.
@@ -55,7 +39,7 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
     // This function may also be called safely more than once.
     init_async_runtime();
 
-    let initialized = init_wallet_environment(wallet_lock_sink)?;
+    let initialized = create_wallet()?;
     assert!(initialized, "Wallet can only be initialized once");
 
     Ok(())
@@ -65,18 +49,18 @@ pub fn init(wallet_lock_sink: StreamSink<bool>) -> Result<()> {
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
 #[async_runtime]
-async fn init_wallet_environment(lock_sink: StreamSink<bool>) -> std::result::Result<bool, WalletInitError> {
+async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
     let mut created = false;
 
-    _ = WALLET_API_ENVIRONMENT
+    _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
             let wallet = init_wallet().await?;
             created = true;
 
-            Ok::<_, WalletInitError>(WalletApiEnvironment::new(wallet, lock_sink))
+            Ok::<_, WalletInitError>(RwLock::new(wallet))
         })
-        .await;
+        .await?;
 
     Ok(created)
 }
@@ -88,20 +72,51 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
     Ok(result)
 }
 
-/// Syncs the wallet lock status notifying the wallet_app through the [`WALLET_API_ENVIRONMENT`].
-fn sync_wallet_lock_status(wallet: RwLockWriteGuard<'_, Wallet>, lock_sink: &StreamSink<bool>) {
-    let is_locked = wallet.is_locked();
-    lock_sink.add(is_locked);
+#[async_runtime]
+#[flutter_api_error]
+pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
+    let sink = ClosingStreamSink::from(sink);
+
+    wallet().write().await.set_lock_callback(move |locked| sink.add(locked));
+
+    Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn clear_lock_stream() -> Result<()> {
+    wallet().write().await.clear_lock_callback();
+
+    Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) -> Result<()> {
+    let sink = ClosingStreamSink::from(sink);
+
+    wallet()
+        .write()
+        .await
+        .set_config_callback(move |config| sink.add(config.into()));
+
+    Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn clear_configuration_stream() -> Result<()> {
+    wallet().write().await.clear_config_callback();
+
+    Ok(())
 }
 
 #[async_runtime]
 #[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     let result = wallet.unlock(pin).await.try_into()?;
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(result)
 }
@@ -109,11 +124,9 @@ pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn lock_wallet() -> Result<()> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     wallet.lock();
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }
@@ -128,11 +141,9 @@ pub async fn has_registration() -> Result<bool> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn register(pin: String) -> Result<()> {
-    let wallet_env = wallet_environment();
-    let mut wallet = wallet_env.wallet.write().await;
+    let mut wallet = wallet().write().await;
 
     wallet.register(pin).await?;
-    sync_wallet_lock_status(wallet, &wallet_env.lock_sink);
 
     Ok(())
 }
@@ -148,6 +159,8 @@ pub async fn get_digid_auth_url() -> Result<String> {
 #[flutter_api_error]
 pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     // TODO: The code below is POC sample code, to be replace with a real implementation.
+    let sink = ClosingStreamSink::from(sink);
+
     if uri.contains("authentication") {
         let auth_event = UriFlowEvent::DigidAuth {
             state: DigidState::Authenticating,
@@ -168,8 +181,7 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
     } else {
         return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
     }
-    // TODO: Create newtype and implement Drop trait to automate sink closure.
-    sink.close();
+
     Ok(())
 }
 

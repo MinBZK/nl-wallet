@@ -8,3 +8,4 @@ mod async_runtime;
 mod errors;
 mod logging;
 mod models;
+mod stream;

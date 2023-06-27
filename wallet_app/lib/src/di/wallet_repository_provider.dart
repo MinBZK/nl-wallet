@@ -11,6 +11,9 @@ import '../data/repository/card/impl/timeline_attribute_repository_impl.dart';
 import '../data/repository/card/impl/wallet_card_repository_impl.dart';
 import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
+import '../data/repository/configuration/configuration_repository.dart';
+import '../data/repository/configuration/core/core_configuration_repository.dart';
+import '../data/repository/configuration/mock/mock_configuration_repository.dart';
 import '../data/repository/issuance/impl/issuance_response_repository_impl.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
@@ -63,6 +66,10 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<VerificationRequestRepository>(
           create: (context) =>
               provideMocks ? MockVerificationRequestRepository(context.read()) : VerificationRequestRepositoryImpl(),
+        ),
+        RepositoryProvider<ConfigurationRepository>(
+          create: (context) =>
+              provideMocks ? MockConfigurationRepository() : CoreConfigurationRepository(context.read()),
         ),
         RepositoryProvider<QrRepository>(
           create: (context) => provideMocks ? MockQrRepository() : QrRepositoryImpl(),
