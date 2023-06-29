@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -19,18 +18,25 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
 
   TypedWalletCoreImpl(this._walletCore) {
-    // Initialize the Asynchronous runtime and the wallet itself.
-    // This is required to call any subsequent API function on the wallet.
-    _walletCore.init().then(
-      (value) => _isInitialized.complete(),
-      onError: (ex) {
-        Fimber.e('WalletCore failed to initialize!', ex: ex);
-        throw ex; //Delegate to [WalletErrorHandler]
-      },
-    );
-
+    _initWalletCore();
     _setupLockedStream();
     _setupConfigurationStream();
+  }
+
+  void _initWalletCore() async {
+    if ((await _walletCore.isInitialized()) == false) {
+      // Initialize the Asynchronous runtime and the wallet itself.
+      // This is required to call any subsequent API function on the wallet.
+      await _walletCore.init();
+    } else {
+      // The wallet_core is already initialized, this can happen when the Flutter
+      // engine/activity was killed, but the application (and thus native code) was
+      // kept alive by the platform. To recover from this we make sure the streams are reset,
+      // as they can contain references to the previous Flutter engine.
+      await _walletCore.clearLockStream();
+      await _walletCore.clearConfigurationStream();
+    }
+    _isInitialized.complete();
   }
 
   void _setupLockedStream() {
