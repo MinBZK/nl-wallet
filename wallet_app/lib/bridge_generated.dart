@@ -18,6 +18,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta;
 
+  Future<bool> isInitialized({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kIsInitializedConstMeta;
+
   Future<PinValidationResult> isValidPin({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta;
@@ -125,6 +129,21 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kInitConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "init",
+        argNames: [],
+      );
+
+  Future<bool> isInitialized({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_is_initialized(port_),
+      parseSuccessData: _wire2api_bool,
+      constMeta: kIsInitializedConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kIsInitializedConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "is_initialized",
         argNames: [],
       );
 
@@ -502,6 +521,17 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
 
   late final _wire_initPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_init');
   late final _wire_init = _wire_initPtr.asFunction<void Function(int)>();
+
+  void wire_is_initialized(
+    int port_,
+  ) {
+    return _wire_is_initialized(
+      port_,
+    );
+  }
+
+  late final _wire_is_initializedPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_is_initialized');
+  late final _wire_is_initialized = _wire_is_initializedPtr.asFunction<void Function(int)>();
 
   void wire_is_valid_pin(
     int port_,

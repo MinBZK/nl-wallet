@@ -45,6 +45,10 @@ pub fn init() -> Result<()> {
     Ok(())
 }
 
+pub fn is_initialized() -> bool {
+    WALLET.initialized()
+}
+
 /// This is called by the public [`init()`] function above.
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
