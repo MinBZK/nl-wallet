@@ -18,6 +18,9 @@ import 'widget/pin_keyboard.dart';
 /// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
 typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, bool isFinalAttempt);
 
+/// The required minimum height in the header to be able to show the logo
+const _kHeaderHeightLogoCutOff = 180;
+
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
   final VoidCallback? onPinValidated;
@@ -61,13 +64,11 @@ class PinPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (headerBuilder == null) const Spacer(),
-        _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-        const Spacer(),
+        Expanded(child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder)),
         _buildPinField(),
         const SizedBox(height: 18),
         _buildForgotCodeButton(),
-        const Spacer(),
+        const SizedBox(height: 18),
         _buildPinKeyboard(),
       ],
     );
@@ -81,7 +82,7 @@ class PinPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildHeader(headerBuilder ?? _buildTextHeader),
+              _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
               const SizedBox(height: 24),
               _buildPinField(),
               const SizedBox(height: 18),
@@ -112,47 +113,53 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
-    return Column(
-      children: [
-        const WalletLogo(size: 80),
-        const SizedBox(height: 24),
-        _buildTextHeader(context, attempts, isFinalAttempt),
-      ],
-    );
+    if (context.isLandscape) return _buildTextHeader(context, attempts, isFinalAttempt);
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxHeight < _kHeaderHeightLogoCutOff) return _buildTextHeader(context, attempts, isFinalAttempt);
+      return Column(
+        children: [
+          const Spacer(),
+          const WalletLogo(size: 80),
+          const SizedBox(height: 24),
+          _buildTextHeader(context, attempts, isFinalAttempt),
+          const Spacer(),
+        ],
+      );
+    });
   }
 
   Widget _buildTextHeader(BuildContext context, int? attempts, bool isFinalAttempt) {
-    if (attempts == null) {
-      return Column(
-        children: [
-          Text(
-            context.l10n.pinScreenHeader,
-            style: context.textTheme.displaySmall,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            '' /* makes sure the UI doesn't jump around */,
-            style: context.textTheme.bodyLarge,
-          ),
-        ],
-      );
-    } else {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            context.l10n.pinScreenErrorHeader,
-            style: context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            context.l10n.pinScreenAttemptsCount(attempts),
-            style: context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      );
+    var headerText = context.l10n.pinScreenHeader;
+    var descriptionText = '';
+    bool useErrorColor = attempts != null || isFinalAttempt;
+
+    if (attempts != null) {
+      headerText = context.l10n.pinScreenErrorHeader;
+      descriptionText = context.l10n.pinScreenAttemptsCount(attempts);
     }
+    if (isFinalAttempt) {
+      headerText = context.l10n.pinScreenErrorHeader;
+      descriptionText = context.l10n.pinScreenFinalAttempt;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            headerText,
+            style: context.textTheme.displaySmall?.copyWith(color: useErrorColor ? context.colorScheme.error : null),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            descriptionText,
+            style: context.textTheme.bodyLarge?.copyWith(color: useErrorColor ? context.colorScheme.error : null),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPinField() {

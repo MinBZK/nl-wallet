@@ -45,22 +45,10 @@ class PinHeader extends StatelessWidget {
   }
 
   CrossAxisAlignment _resolveCrossAxisAlignment(BuildContext context) {
-    final orientation = MediaQuery.of(context).orientation;
-    switch (orientation) {
-      case Orientation.portrait:
-        return CrossAxisAlignment.start;
-      case Orientation.landscape:
-        return CrossAxisAlignment.center;
-    }
+    return context.isLandscape ? CrossAxisAlignment.center : CrossAxisAlignment.start;
   }
 
   TextAlign _resolveTextAlignment(BuildContext context) {
-    final orientation = MediaQuery.of(context).orientation;
-    switch (orientation) {
-      case Orientation.portrait:
-        return TextAlign.start;
-      case Orientation.landscape:
-        return TextAlign.center;
-    }
+    return context.isLandscape ? TextAlign.center : TextAlign.start;
   }
 }
