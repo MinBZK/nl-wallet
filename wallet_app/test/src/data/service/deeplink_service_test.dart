@@ -37,6 +37,7 @@ void main() {
       updateDigidAuthStatusUseCase,
       isWalletInitializedWithPidUseCase,
       Mocks.create(),
+      Mocks.create(),
       mockWalletCore,
       Mocks.create(),
     );

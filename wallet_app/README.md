@@ -10,6 +10,7 @@ This README explains how to configure the wallet app. It also contains the curre
 - [File structure](#file-structure)
     * [Assets](#assets)
     * [Localization](#localization)
+    * [Deeplink Scenarios](#deeplink-scenarios)
 - [Conventions](#conventions)
     * [Dart](#dart)
     * [Naming](#naming)
@@ -117,7 +118,7 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | Marketplace Login         | {"id":"MARKETPLACE_LOGIN","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22MARKETPLACE_LOGIN%22%2C%22type%22%3A%22verify%22%7D        |
 | Car Rental                | {"id":"CAR_RENTAL","type":"verify"}               | walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D               |
 | First Aid                 | {"id":"FIRST_AID","type":"verify"}                | walletdebuginteraction://deeplink#%7B%22id%22%3A%22FIRST_AID%22%2C%22type%22%3A%22verify%22%7D                |
-| Parking Permit            | {"id":"PARKING_PERMIT","type":"verify"}           | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PARKING_PERMIT%22%2C%22type%22%3A%22verify%22%7D      |
+| Parking Permit            | {"id":"PARKING_PERMIT","type":"verify"}           | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PARKING_PERMIT%22%2C%22type%22%3A%22verify%22%7D           |
 | Open Bank Account         | {"id":"OPEN_BANK_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
 | Provide Contract Details  | {"id":"PROVIDE_CONTRACT_DETAILS","type":"verify"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PROVIDE_CONTRACT_DETAILS%22%2C%22type%22%3A%22verify%22%7D |
 | Create MonkeyBike Account | {"id":"CREATE_MB_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22CREATE_MB_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
@@ -127,6 +128,12 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | Sign Scenario    | Content                                 | Deeplink                                                                                            |
 |------------------|-----------------------------------------|-----------------------------------------------------------------------------------------------------|
 | Rental Agreement | {"id":"RENTAL_AGREEMENT","type":"sign"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D |
+
+### E2E Test Scenarios
+
+| E2E Test Scenario    | Deep dive link                         | Explanation                                                                                                           |
+|----------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Skip (setup) to home | walletdebuginteraction://deepdive#home | Use on clean app startup; to setup wallet with mock data and jump straight to the home (a.k.a. cards overview) screen |
 
 # Conventions
 
