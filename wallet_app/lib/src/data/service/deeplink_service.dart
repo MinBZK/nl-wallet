@@ -10,6 +10,7 @@ import '../../domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
+import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../wallet_core/typed_wallet_core.dart';
 import 'app_lifecycle_service.dart';
@@ -37,12 +38,14 @@ class DeeplinkService {
   final UpdateDigidAuthStatusUseCase _updateDigidAuthStatusUseCase;
   final ObserveWalletLockUseCase _observeWalletLockUseCase;
   final IsWalletInitializedWithPidUseCase _isWalletInitializedWithPidUseCase;
+  final SetupMockedWalletUseCase _setupMockedWalletUseCase;
 
   DeeplinkService(
     this._navigatorKey,
     this._decodeDeeplinkUseCase,
     this._updateDigidAuthStatusUseCase,
     this._isWalletInitializedWithPidUseCase,
+    this._setupMockedWalletUseCase,
     this._observeWalletLockUseCase,
     this._walletCore,
     this._appLifecycleService,
@@ -54,12 +57,21 @@ class DeeplinkService {
         .whereNotNull()
         .debounce((uri) => _appLifecycleService.observe().where((state) => state == AppLifecycleState.resumed))
         .debounceTime(const Duration(milliseconds: 200))
-        .debounce((uri) => _observeWalletLockUseCase.invoke().where((locked) => !locked))
+        .debounce((uri) => _debounceUriHost(uri.host))
         .listen(processUri);
 
     // Pass the [Uri]s to the [_uriController] so they can be processed when the app is unlocked
     getInitialUri().then((uri) => _uriController.add(uri));
     uriLinkStream.listen((uri) => _uriController.add(uri));
+  }
+
+  /// Determines debouncing based on [Uri] host and wallet lock state:
+  /// - Deep dive links are always allowed, no debounce
+  /// - Non-deep dive links are only allowed when the wallet is unlocked, debounce
+  Stream<bool> _debounceUriHost(String host) {
+    return host == _decodeDeeplinkUseCase.deepDiveHost
+        ? Stream.value(true)
+        : _observeWalletLockUseCase.invoke().where((locked) => !locked);
   }
 
   /// Process the incoming [Uri], first attempting to resolve it inside the wallet_app, but if the link is
@@ -109,14 +121,29 @@ class DeeplinkService {
   }
 
   /// Check whether the apps current state allows navigation based on the provided [NavigationRequest]
-  Future<bool> _canNavigate(NavigationRequest request) => _isWalletInitializedWithPidUseCase.invoke();
+  /// If no [NavigationRequest.navigatePrerequisite] is provided, the wallet is checked to be initialized with a PID.
+  Future<bool> _canNavigate(NavigationRequest request) {
+    return request.navigatePrerequisite == null ? _isWalletInitializedWithPidUseCase.invoke() : Future.value(true);
+  }
 
-  void _navigate(NavigationRequest request) {
+  Future<void> _navigate(NavigationRequest request) async {
+    _handleNavigatePrerequisite(request);
+
     _navigatorKey.currentState?.restorablePushNamedAndRemoveUntil(
       request.destination,
       ModalRoute.withName(WalletRoutes.homeRoute),
       arguments: request.argument,
     );
+  }
+
+  Future<void> _handleNavigatePrerequisite(NavigationRequest request) async {
+    switch (request.navigatePrerequisite) {
+      case NavigationPrerequisite.setupMockedWallet:
+        await _setupMockedWalletUseCase.invoke();
+        break;
+      case null:
+        return;
+    }
   }
 
   /// Process any outstanding [NavigationRequest] and consume it if it can be handled.

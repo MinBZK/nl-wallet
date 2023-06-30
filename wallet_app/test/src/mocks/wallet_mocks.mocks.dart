@@ -25,6 +25,8 @@ import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_
     as _i13;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart'
     as _i14;
+import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart'
+    as _i15;
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart' as _i7;
 
 // ignore_for_file: type=lint
@@ -328,6 +330,18 @@ class MockAppLifecycleService extends _i1.Mock
 class MockDecodeDeeplinkUseCase extends _i1.Mock
     implements _i10.DecodeDeeplinkUseCase {
   @override
+  String get deeplinkHost => (super.noSuchMethod(
+        Invocation.getter(#deeplinkHost),
+        returnValue: '',
+        returnValueForMissingStub: '',
+      ) as String);
+  @override
+  String get deepDiveHost => (super.noSuchMethod(
+        Invocation.getter(#deepDiveHost),
+        returnValue: '',
+        returnValueForMissingStub: '',
+      ) as String);
+  @override
   _i11.NavigationRequest? invoke(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
@@ -411,4 +425,20 @@ class MockCheckPinUseCase extends _i1.Mock implements _i3.CheckPinUseCase {
           ),
         )),
       ) as _i5.Future<_i3.CheckPinResult>);
+}
+
+/// A class which mocks [SetupMockedWalletUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSetupMockedWalletUseCase extends _i1.Mock
+    implements _i15.SetupMockedWalletUseCase {
+  @override
+  _i5.Future<void> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 }

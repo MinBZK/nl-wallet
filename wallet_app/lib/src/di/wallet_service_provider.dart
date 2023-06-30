@@ -30,6 +30,7 @@ class WalletServiceProvider extends StatelessWidget {
             context.read(),
             context.read(),
             context.read(),
+            context.read(),
           ),
           lazy: false,
         ),
