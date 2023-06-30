@@ -44,17 +44,15 @@ void main() {
 
   group('forceStateRefresh', () {
     blocTest<HomeBloc, HomeState>(
-      'should not toggle `stateToggle` when `forceStateRefresh = false`',
+      'should not set `uid` when `forceStateRefresh = false`',
       build: () => bloc,
       act: (bloc) => bloc.add(const HomeTabPressed(HomeTab.menu, forceStateRefresh: false)),
-      expect: () => [const HomeScreenSelect(HomeTab.menu, stateToggle: false)],
+      expect: () => [const HomeScreenSelect(HomeTab.menu, uid: null)],
     );
 
-    blocTest<HomeBloc, HomeState>(
-      'should toggle `stateToggle` when `forceStateRefresh = true`',
-      build: () => bloc,
-      act: (bloc) => bloc.add(const HomeTabPressed(HomeTab.menu, forceStateRefresh: true)),
-      expect: () => [const HomeScreenSelect(HomeTab.menu, stateToggle: true)],
-    );
+    blocTest<HomeBloc, HomeState>('should set `uid` when `forceStateRefresh = true`',
+        build: () => bloc,
+        act: (bloc) => bloc.add(const HomeTabPressed(HomeTab.menu, forceStateRefresh: true)),
+        verify: (bloc) => expect((bloc.state as HomeScreenSelect).uid, isNotNull));
   });
 }

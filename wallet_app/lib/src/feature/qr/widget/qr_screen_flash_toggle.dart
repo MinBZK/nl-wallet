@@ -16,20 +16,17 @@ class QrScreenFlashToggle extends StatelessWidget {
       opacity: ReverseAnimation(DefaultTabController.of(context).animation!),
       child: BlocBuilder<FlashlightCubit, FlashlightState>(
         builder: (context, state) {
-          if (state is FlashlightInitial) return const SizedBox.shrink();
-          if (state is FlashlightToggled) {
-            return const IconButton(
+          return switch(state){
+            FlashlightInitial() => const SizedBox.shrink(),
+            FlashlightToggled() => const IconButton(
               icon: Icon(Icons.flashlight_on),
               onPressed: null,
-            );
-          }
-          if (state is FlashlightSuccess) {
-            return IconButton(
+            ),
+            FlashlightSuccess() => IconButton(
               icon: Icon(state.on ? Icons.flashlight_off : Icons.flashlight_on),
               onPressed: () => context.read<FlashlightCubit>().toggle(),
-            );
-          }
-          throw UnsupportedError('Unknown state: $state');
+            ),
+          };
         },
       ),
     );

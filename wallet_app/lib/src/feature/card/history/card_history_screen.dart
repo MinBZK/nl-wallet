@@ -40,10 +40,12 @@ class CardHistoryScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardHistoryBloc, CardHistoryState>(
       builder: (context, state) {
-        if (state is CardHistoryInitial) return _buildLoading();
-        if (state is CardHistoryLoadInProgress) return _buildLoading();
-        if (state is CardHistoryLoadSuccess) return _buildHistory(context, state);
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          CardHistoryInitial() => _buildLoading(),
+          CardHistoryLoadInProgress() => _buildLoading(),
+          CardHistoryLoadSuccess() => _buildHistory(context, state),
+          CardHistoryLoadFailure() => _buildError(context),
+        };
       },
     );
   }
@@ -82,6 +84,36 @@ class CardHistoryScreen extends StatelessWidget {
         timelineAttributeId: timelineAttributeId,
         cardId: cardId,
       ).toMap(),
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Text(
+            context.l10n.errorScreenGenericDescription,
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () {
+              final settings = ModalRoute.of(context)?.settings;
+              if (settings != null) {
+                final cardId = getArguments(settings);
+                context.read<CardHistoryBloc>().add(CardHistoryLoadTriggered(cardId));
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(context.l10n.generalRetry),
+          ),
+        ],
+      ),
     );
   }
 }

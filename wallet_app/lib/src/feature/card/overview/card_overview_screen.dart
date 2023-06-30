@@ -40,11 +40,12 @@ class CardOverviewScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardOverviewBloc, CardOverviewState>(
       builder: (context, state) {
-        if (state is CardOverviewInitial) return _buildLoading();
-        if (state is CardOverviewLoadInProgress) return _buildLoading();
-        if (state is CardOverviewLoadSuccess) return _buildCards(context, state.cards);
-        if (state is CardOverviewLoadFailure) return const Center(child: Icon(Icons.error_outline));
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          CardOverviewInitial() => _buildLoading(),
+          CardOverviewLoadInProgress() => _buildLoading(),
+          CardOverviewLoadSuccess() => _buildCards(context, state.cards),
+          CardOverviewLoadFailure() => _buildError(context),
+        };
       },
     );
   }
@@ -80,6 +81,28 @@ class CardOverviewScreen extends StatelessWidget {
         cardId: walletCard.id,
         cardTitle: walletCard.front.title,
       ).toMap(),
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Text(
+            context.l10n.errorScreenGenericDescription,
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () => context.read<CardOverviewBloc>().add(CardOverviewLoadTriggered()),
+            child: Text(context.l10n.generalRetry),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,6 @@
 part of 'history_overview_bloc.dart';
 
-abstract class HistoryOverviewState extends Equatable {
+sealed class HistoryOverviewState extends Equatable {
   const HistoryOverviewState();
 }
 

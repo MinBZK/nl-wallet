@@ -84,18 +84,17 @@ class SignScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<SignBloc, SignState>(
       builder: (context, state) {
-        Widget? result;
-        if (state is SignInitial) result = _buildLoading();
-        if (state is SignLoadInProgress) result = _buildLoading();
-        if (state is SignCheckOrganization) result = _buildCheckOrganization(context, state);
-        if (state is SignCheckAgreement) result = _buildCheckAgreement(context, state);
-        if (state is SignConfirmAgreement) result = _buildConfirmAgreement(context, state);
-        if (state is SignConfirmPin) result = _buildConfirmPin(context, state);
-        if (state is SignError) result = _buildError(context);
-        if (state is SignStopped) result = _buildStopped(context, state);
-        if (state is SignSuccess) result = _buildSuccess(context, state);
-        if (result == null) throw UnsupportedError('Unhandled state: $state');
-
+        Widget result = switch (state) {
+          SignInitial() => _buildLoading(),
+          SignLoadInProgress() => _buildLoading(),
+          SignCheckOrganization() => _buildCheckOrganization(context, state),
+          SignCheckAgreement() => _buildCheckAgreement(context, state),
+          SignConfirmAgreement() => _buildConfirmAgreement(context, state),
+          SignConfirmPin() => _buildConfirmPin(context, state),
+          SignError() => _buildError(context),
+          SignStopped() => _buildStopped(context, state),
+          SignSuccess() => _buildSuccess(context, state),
+        };
         final skipAnim = !state.didGoBack && state is SignCheckOrganization;
         return FakePagingAnimatedSwitcher(
           animateBackwards: state.didGoBack,

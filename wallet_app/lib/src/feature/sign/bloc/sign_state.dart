@@ -1,6 +1,6 @@
 part of 'sign_bloc.dart';
 
-abstract class SignState extends Equatable {
+sealed class SignState extends Equatable {
   bool get showStopConfirmation => true;
 
   bool get canGoBack => false;

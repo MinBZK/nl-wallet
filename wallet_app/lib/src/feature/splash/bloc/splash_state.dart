@@ -1,6 +1,6 @@
 part of 'splash_bloc.dart';
 
-abstract class SplashState extends Equatable {
+sealed class SplashState extends Equatable {
   const SplashState();
 }
 

@@ -1,6 +1,6 @@
 part of 'pin_bloc.dart';
 
-abstract class PinState extends Equatable {
+sealed class PinState extends Equatable {
   const PinState();
 }
 

@@ -55,10 +55,12 @@ class HistoryDetailScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<HistoryDetailBloc, HistoryDetailState>(
       builder: (context, state) {
-        if (state is HistoryDetailInitial) return _buildLoading();
-        if (state is HistoryDetailLoadInProgress) return _buildLoading();
-        if (state is HistoryDetailLoadSuccess) return _buildSuccess(context, state);
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          HistoryDetailInitial() => _buildLoading(),
+          HistoryDetailLoadInProgress() => _buildLoading(),
+          HistoryDetailLoadSuccess() => _buildSuccess(context, state),
+          HistoryDetailLoadFailure() => _buildError(context),
+        };
       },
     );
   }
@@ -335,6 +337,41 @@ class HistoryDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Text(
+            context.l10n.errorScreenGenericDescription,
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () {
+              var settings = ModalRoute.of(context)?.settings;
+              if (settings != null) {
+                final args = getArgument(settings);
+                context.read<HistoryDetailBloc>().add(
+                      HistoryDetailLoadTriggered(
+                        attributeId: args.timelineAttributeId,
+                        cardId: args.cardId,
+                      ),
+                    );
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(context.l10n.generalRetry),
           ),
         ],
       ),

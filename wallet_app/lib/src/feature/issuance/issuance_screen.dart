@@ -94,20 +94,21 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
-        Widget? result;
-        if (state is IssuanceInitial) result = _buildLoading();
-        if (state is IssuanceLoadInProgress) result = _buildLoading();
-        if (state is IssuanceCheckOrganization) result = _buildCheckOrganizationPage(context, state);
-        if (state is IssuanceProofIdentity) result = _buildProofIdentityPage(context, state);
-        if (state is IssuanceProvidePin) result = _buildProvidePinPage(context, state);
-        if (state is IssuanceCheckDataOffering) result = _buildCheckDataOfferingPage(context, state);
-        if (state is IssuanceSelectCards) result = _buildSelectCardsPage(context, state);
-        if (state is IssuanceCheckCards) result = _buildCheckCardsPage(context, state);
-        if (state is IssuanceCompleted) result = _buildIssuanceCompletedPage(context, state);
-        if (state is IssuanceStopped) result = _buildStoppedPage(context, state);
-        if (state is IssuanceGenericError) result = _buildGenericErrorPage(context, state);
-        if (state is IssuanceIdentityValidationFailure) result = _buildIdentityValidationFailedPage(context, state);
-        if (result == null) throw UnsupportedError('Unknown state: $state');
+        Widget result = switch (state) {
+          IssuanceInitial() => _buildLoading(),
+          IssuanceLoadInProgress() => _buildLoading(),
+          IssuanceCheckOrganization() => _buildCheckOrganizationPage(context, state),
+          IssuanceProofIdentity() => _buildProofIdentityPage(context, state),
+          IssuanceProvidePin() => _buildProvidePinPage(context, state),
+          IssuanceCheckDataOffering() => _buildCheckDataOfferingPage(context, state),
+          IssuanceSelectCards() => _buildSelectCardsPage(context, state),
+          IssuanceCheckCards() => _buildCheckCardsPage(context, state),
+          IssuanceCompleted() => _buildIssuanceCompletedPage(context, state),
+          IssuanceStopped() => _buildStoppedPage(context, state),
+          IssuanceGenericError() => _buildGenericErrorPage(context),
+          IssuanceIdentityValidationFailure() => _buildIdentityValidationFailedPage(context, state),
+          IssuanceLoadFailure() => _buildGenericErrorPage(context),
+        };
 
         final skipAnim = !state.didGoBack && state is IssuanceCheckOrganization;
         return FakePagingAnimatedSwitcher(
@@ -196,7 +197,7 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGenericErrorPage(BuildContext context, IssuanceGenericError state) {
+  Widget _buildGenericErrorPage(BuildContext context) {
     return IssuanceGenericErrorPage(onClosePressed: () => Navigator.pop(context));
   }
 
@@ -225,7 +226,7 @@ class IssuanceScreen extends StatelessWidget {
     }
   }
 
-  Widget? _buildSelectCardsPage(BuildContext context, IssuanceSelectCards state) {
+  Widget _buildSelectCardsPage(BuildContext context, IssuanceSelectCards state) {
     return IssuanceSelectCardsPage(
       cards: state.availableCards,
       selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),

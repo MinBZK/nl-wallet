@@ -1,6 +1,6 @@
 part of 'issuance_bloc.dart';
 
-abstract class IssuanceState extends Equatable {
+sealed class IssuanceState extends Equatable {
   final bool isRefreshFlow;
 
   double get stepperProgress => 0.0;

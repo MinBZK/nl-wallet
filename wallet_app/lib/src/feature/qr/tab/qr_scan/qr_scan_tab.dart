@@ -31,13 +31,14 @@ class QrScanTab extends StatelessWidget {
         children: [
           BlocBuilder<QrScanBloc, QrScanState>(
             builder: (context, state) {
-              if (state is QrScanInitial) return _buildInitialState(context);
-              if (state is QrScanFailure) return _buildErrorState(context);
-              if (state is QrScanNoPermission) return _buildNoPermission(context, state.permanentlyDenied);
-              if (state is QrScanScanning) return QrScanner(key: _scannerKey);
-              if (state is QrScanSuccess) return _buildSuccessState(context);
-              if (state is QrScanLoading) return _buildLoading();
-              throw UnsupportedError('Unknown state: $state');
+              return switch (state) {
+                QrScanInitial() => _buildInitialState(context),
+                QrScanFailure() => _buildErrorState(context),
+                QrScanNoPermission() => _buildNoPermission(context, state.permanentlyDenied),
+                QrScanScanning() => QrScanner(key: _scannerKey),
+                QrScanSuccess() => _buildSuccessState(context),
+                QrScanLoading() => _buildLoading(),
+              };
             },
           ),
           Padding(

@@ -33,21 +33,21 @@ class MockDigidScreen extends StatelessWidget {
           if (state is MockDigidRejected) Navigator.pop(context, false);
         },
         builder: (context, state) {
-          Widget? result;
-          if (state is MockDigidInitial) result = const DigidSplashPage();
-          if (state is MockDigidEnteringPin) result = _buildEnteringPinPage(state, context);
-          if (state is MockDigidConfirmApp) result = _buildConfirmAppPage(context);
-          if (state is MockDigidLoadInProgress) result = DigidLoadingPage(mockDelay: state.mockDelay);
-          if (state is MockDigidLoggedIn) result = const DigidLoadingPage(mockDelay: Duration.zero);
-          if (state is MockDigidRejected) result = const DigidLoadingPage(mockDelay: Duration.zero);
-          if (result == null) throw UnsupportedError('Unknown state: $state');
+          Widget result = switch (state) {
+            MockDigidInitial() => const DigidSplashPage(),
+            MockDigidEnteringPin() => _buildEnteringPinPage(context, state),
+            MockDigidConfirmApp() => _buildConfirmAppPage(context),
+            MockDigidLoadInProgress() => DigidLoadingPage(mockDelay: state.mockDelay),
+            MockDigidLoggedIn() => const DigidLoadingPage(mockDelay: Duration.zero),
+            MockDigidRejected() => const DigidLoadingPage(mockDelay: Duration.zero),
+          };
           return AnimatedSwitcher(duration: kDefaultAnimationDuration, child: result);
         },
       ),
     );
   }
 
-  Widget _buildEnteringPinPage(MockDigidEnteringPin state, BuildContext context) {
+  Widget _buildEnteringPinPage(BuildContext context, MockDigidEnteringPin state) {
     return DigidPinPage(
       selectedIndex: state.enteredDigits,
       onKeyPressed: (key) => context.read<MockDigidBloc>().add(MockDigidPinKeyPressed()),

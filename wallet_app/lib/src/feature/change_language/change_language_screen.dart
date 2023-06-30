@@ -22,9 +22,10 @@ class ChangeLanguageScreen extends StatelessWidget {
       ),
       body: BlocBuilder<ChangeLanguageBloc, ChangeLanguageState>(
         builder: (context, state) {
-          if (state is ChangeLanguageInitial) return const CenteredLoadingIndicator();
-          if (state is ChangeLanguageSuccess) return _buildLanguagePicker(context, state);
-          throw UnsupportedError('Unknown state: $state');
+          return switch (state) {
+            ChangeLanguageInitial() => const CenteredLoadingIndicator(),
+            ChangeLanguageSuccess() => _buildLanguagePicker(context, state),
+          };
         },
       ),
     );

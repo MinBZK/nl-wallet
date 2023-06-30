@@ -1,6 +1,6 @@
 part of 'menu_bloc.dart';
 
-abstract class MenuState extends Equatable {
+sealed class MenuState extends Equatable {
   const MenuState();
 }
 

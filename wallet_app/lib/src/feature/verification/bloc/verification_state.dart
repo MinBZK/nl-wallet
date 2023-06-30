@@ -1,6 +1,6 @@
 part of 'verification_bloc.dart';
 
-abstract class VerificationState extends Equatable {
+sealed class VerificationState extends Equatable {
   bool get showStopConfirmation => true;
 
   bool get canGoBack => false;

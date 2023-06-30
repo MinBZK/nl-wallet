@@ -29,10 +29,12 @@ class HistoryOverviewScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<HistoryOverviewBloc, HistoryOverviewState>(
       builder: (context, state) {
-        if (state is HistoryOverviewInitial) return _buildLoading();
-        if (state is HistoryOverviewLoadInProgress) return _buildLoading();
-        if (state is HistoryOverviewLoadSuccess) return _buildTimeline(context, state);
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          HistoryOverviewInitial() => _buildLoading(),
+          HistoryOverviewLoadInProgress() => _buildLoading(),
+          HistoryOverviewLoadSuccess() => _buildTimeline(context, state),
+          HistoryOverviewLoadFailure() => _buildError(context),
+        };
       },
     );
   }
@@ -74,6 +76,30 @@ class HistoryOverviewScreen extends StatelessWidget {
       arguments: HistoryDetailScreenArgument(
         timelineAttributeId: timelineAttributeId,
       ).toMap(),
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Text(
+            context.l10n.errorScreenGenericDescription,
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () {
+              context.read<HistoryOverviewBloc>().add(const HistoryOverviewLoadTriggered());
+            },
+            child: Text(context.l10n.generalRetry),
+          ),
+        ],
+      ),
     );
   }
 }

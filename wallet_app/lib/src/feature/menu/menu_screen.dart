@@ -27,11 +27,12 @@ class MenuScreen extends StatelessWidget {
 
   Widget _buildBody() {
     return BlocBuilder<MenuBloc, MenuState>(
-      builder: (context, state) {
-        if (state is MenuInitial) return const CenteredLoadingIndicator();
-        if (state is MenuLoadInProgress) return const CenteredLoadingIndicator();
-        if (state is MenuLoadSuccess) return _buildSuccess(context, state);
-        throw UnsupportedError('Unknown state: ${state.runtimeType}');
+      builder: (context, MenuState state) {
+        return switch (state) {
+          MenuInitial() => const CenteredLoadingIndicator(),
+          MenuLoadInProgress() => const CenteredLoadingIndicator(),
+          MenuLoadSuccess() => _buildSuccess(context, state),
+        };
       },
     );
   }

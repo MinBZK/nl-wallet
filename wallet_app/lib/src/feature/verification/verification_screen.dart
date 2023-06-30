@@ -87,18 +87,18 @@ class VerificationScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<VerificationBloc, VerificationState>(
       builder: (context, state) {
-        Widget? result;
-        if (state is VerificationInitial) result = _buildLoading();
-        if (state is VerificationLoadInProgress) result = _buildLoading();
-        if (state is VerificationCheckOrganization) result = _buildCheckOrganizationPage(context, state);
-        if (state is VerificationMissingAttributes) result = _buildMissingAttributesPage(context, state);
-        if (state is VerificationConfirmDataAttributes) result = _buildConfirmDataAttributesPage(context, state);
-        if (state is VerificationConfirmPin) result = _buildConfirmPinPage(context, state);
-        if (state is VerificationStopped) result = _buildStoppedPage(context, state);
-        if (state is VerificationLeftFeedback) result = _buildLeftFeedbackPage(context, state);
-        if (state is VerificationSuccess) result = _buildSuccessPage(context, state);
-        if (state is VerificationGenericError) result = _buildGenericErrorPage(context, state);
-        if (result == null) throw UnsupportedError('Unknown state: $state');
+        Widget result = switch (state) {
+          VerificationInitial() => _buildLoading(),
+          VerificationLoadInProgress() => _buildLoading(),
+          VerificationCheckOrganization() => _buildCheckOrganizationPage(context, state),
+          VerificationMissingAttributes() => _buildMissingAttributesPage(context, state),
+          VerificationConfirmDataAttributes() => _buildConfirmDataAttributesPage(context, state),
+          VerificationConfirmPin() => _buildConfirmPinPage(context, state),
+          VerificationStopped() => _buildStoppedPage(context, state),
+          VerificationLeftFeedback() => _buildLeftFeedbackPage(context, state),
+          VerificationSuccess() => _buildSuccessPage(context, state),
+          VerificationGenericError() => _buildGenericErrorPage(context, state),
+        };
 
         final skipAnim = !state.didGoBack && state is VerificationCheckOrganization;
         return FakePagingAnimatedSwitcher(

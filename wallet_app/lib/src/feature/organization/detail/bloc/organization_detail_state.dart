@@ -1,6 +1,6 @@
 part of 'organization_detail_bloc.dart';
 
-abstract class OrganizationDetailState extends Equatable {
+sealed class OrganizationDetailState extends Equatable {
   const OrganizationDetailState();
 }
 
