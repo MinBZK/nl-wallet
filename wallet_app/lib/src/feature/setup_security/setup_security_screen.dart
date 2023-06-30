@@ -166,6 +166,7 @@ class SetupSecurityScreen extends StatelessWidget {
       enteredDigits: 0,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
       onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      isShowingError: true,
     );
   }
 
@@ -235,6 +236,7 @@ class SetupSecurityScreen extends StatelessWidget {
       enteredDigits: 0,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
       onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      isShowingError: true,
     );
   }
 

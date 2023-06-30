@@ -22,7 +22,9 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
       title: context.l10n.walletPersonalizeSuccessPageTitle,
       content: Padding(
         padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
-        child: StackedWalletCards(cards: cards),
+        child: Center(
+          child: StackedWalletCards(cards: cards),
+        ),
       ),
       description: context.l10n.walletPersonalizeSuccessPageDescription,
       closeButtonCta: context.l10n.walletPersonalizeSuccessPageContinueCta,

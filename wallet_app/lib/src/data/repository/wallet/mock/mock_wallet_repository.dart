@@ -30,6 +30,7 @@ class MockWalletRepository implements WalletRepository {
   @override
   Future<WalletUnlockResult> unlockWallet(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
+    await Future.delayed(const Duration(milliseconds: 500));
     if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;
