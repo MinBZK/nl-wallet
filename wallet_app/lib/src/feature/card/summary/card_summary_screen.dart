@@ -56,11 +56,12 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardSummaryBloc, CardSummaryState>(
       builder: (context, state) {
-        if (state is CardSummaryInitial) return _buildLoading();
-        if (state is CardSummaryLoadInProgress) return _buildLoading();
-        if (state is CardSummaryLoadSuccess) return _buildSummary(context, state.summary);
-        if (state is CardSummaryLoadFailure) return _buildError(context, state);
-        throw UnsupportedError('Unknown state: $state');
+        return switch(state){
+          CardSummaryInitial() => _buildLoading(),
+          CardSummaryLoadInProgress() => _buildLoading(),
+          CardSummaryLoadSuccess() => _buildSummary(context, state.summary),
+          CardSummaryLoadFailure() => _buildError(context, state),
+        };
       },
     );
   }

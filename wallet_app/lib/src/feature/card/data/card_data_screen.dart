@@ -45,10 +45,12 @@ class CardDataScreen extends StatelessWidget {
   Widget _buildBody() {
     return BlocBuilder<CardDataBloc, CardDataState>(
       builder: (context, state) {
-        if (state is CardDataInitial) return _buildLoading();
-        if (state is CardDataLoadInProgress) return _buildLoading();
-        if (state is CardDataLoadSuccess) return _buildDataAttributes(context, state.attributes);
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          CardDataInitial() => _buildLoading(),
+          CardDataLoadInProgress() => _buildLoading(),
+          CardDataLoadSuccess() => _buildDataAttributes(context, state.attributes),
+          CardDataLoadFailure() => _buildError(context),
+        };
       },
     );
   }
@@ -119,6 +121,36 @@ class CardDataScreen extends StatelessWidget {
       title: context.l10n.cardDataScreenDataPrivacySheetTitle,
       description: context.l10n.cardDataScreenDataPrivacySheetDescription,
       closeButtonText: context.l10n.generalSheetCloseCta,
+    );
+  }
+
+  Widget _buildError(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Text(
+            context.l10n.errorScreenGenericDescription,
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () {
+              final settings = ModalRoute.of(context)?.settings;
+              if (settings != null) {
+                final args = getArgument(settings);
+                context.read<CardDataBloc>().add(CardDataLoadTriggered(args.cardId));
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(context.l10n.generalRetry),
+          ),
+        ],
+      ),
     );
   }
 }

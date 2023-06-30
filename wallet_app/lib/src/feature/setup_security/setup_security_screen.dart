@@ -90,15 +90,15 @@ class SetupSecurityScreen extends StatelessWidget {
         }
       },
       builder: (context, state) {
-        Widget? result;
-        if (state is SetupSecuritySelectPinInProgress) result = _buildSelectPinPage(context, state);
-        if (state is SetupSecuritySelectPinFailed) result = _buildSelectPinErrorPage(context, state);
-        if (state is SetupSecurityPinConfirmationInProgress) result = _buildPinConfirmationPage(context, state);
-        if (state is SetupSecurityPinConfirmationFailed) result = _buildPinConfirmationErrorPage(context, state);
-        if (state is SetupSecurityCreatingWallet) result = _buildCreatingWallet(context, state);
-        if (state is SetupSecurityCompleted) result = _buildSetupCompletedPage(context, state);
-        if (state is SetupSecurityFailure) result = _buildSetupFailed(context);
-        if (result == null) throw UnsupportedError('Unknown state: $state');
+        Widget result = switch (state) {
+          SetupSecuritySelectPinInProgress() => _buildSelectPinPage(context, state),
+          SetupSecuritySelectPinFailed() => _buildSelectPinErrorPage(context, state),
+          SetupSecurityPinConfirmationInProgress() => _buildPinConfirmationPage(context, state),
+          SetupSecurityPinConfirmationFailed() => _buildPinConfirmationErrorPage(context, state),
+          SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
+          SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
+          SetupSecurityFailure() => _buildSetupFailed(context),
+        };
         return SafeArea(child: FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result));
       },
     );

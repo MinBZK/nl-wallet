@@ -59,10 +59,11 @@ class OrganizationDetailScreen extends StatelessWidget {
   Widget _buildBody() {
     return BlocBuilder<OrganizationDetailBloc, OrganizationDetailState>(
       builder: (context, state) {
-        if (state is OrganizationDetailInitial) return const CenteredLoadingIndicator();
-        if (state is OrganizationDetailSuccess) return _buildOrganizationDetailLoaded(context, state);
-        if (state is OrganizationDetailFailure) return _buildOrganizationDetailFailure(context, state);
-        throw UnsupportedError('Unknown state: $state');
+        return switch (state) {
+          OrganizationDetailInitial() => const CenteredLoadingIndicator(),
+          OrganizationDetailSuccess() => _buildOrganizationDetailLoaded(context, state),
+          OrganizationDetailFailure() => _buildOrganizationDetailFailure(context, state),
+        };
       },
     );
   }

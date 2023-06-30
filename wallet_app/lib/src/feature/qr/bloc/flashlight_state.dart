@@ -1,6 +1,6 @@
 part of 'flashlight_cubit.dart';
 
-abstract class FlashlightState extends Equatable {
+sealed class FlashlightState extends Equatable {
   const FlashlightState();
 }
 

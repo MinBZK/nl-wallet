@@ -2,7 +2,7 @@ part of 'wallet_personalize_bloc.dart';
 
 const _kNrOfPages = 6;
 
-abstract class WalletPersonalizeState extends Equatable {
+sealed class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
 
   bool get canGoBack => false;

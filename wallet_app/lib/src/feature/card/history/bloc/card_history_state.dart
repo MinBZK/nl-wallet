@@ -1,6 +1,6 @@
 part of 'card_history_bloc.dart';
 
-abstract class CardHistoryState extends Equatable {
+sealed class CardHistoryState extends Equatable {
   const CardHistoryState();
 }
 

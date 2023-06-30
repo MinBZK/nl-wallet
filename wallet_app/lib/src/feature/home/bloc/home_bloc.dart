@@ -5,8 +5,6 @@ part 'home_event.dart';
 part 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  bool _stateToggle = false;
-
   HomeBloc() : super(const HomeScreenSelect(HomeTab.cards)) {
     on<HomeTabPressed>(_onHomeTabPressedEvent);
   }
@@ -14,14 +12,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   void _onHomeTabPressedEvent(HomeTabPressed event, emit) {
     emit(HomeScreenSelect(
       event.tab,
-      stateToggle: _getStateToggle(event.forceStateRefresh),
+      uid: _generateUid(event.forceStateRefresh),
     ));
   }
 
-  bool _getStateToggle(bool forceStateRefresh) {
-    if (forceStateRefresh) {
-      _stateToggle = !_stateToggle;
-    }
-    return _stateToggle;
+  /// Generates a (naive) UID if [forceStateRefresh] is true
+  int? _generateUid(bool forceStateRefresh) {
+    if (forceStateRefresh) return DateTime.now().millisecondsSinceEpoch;
+    return null;
   }
 }

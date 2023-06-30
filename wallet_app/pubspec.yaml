@@ -7,19 +7,19 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   collection: ^1.16.0
   equatable: ^2.0.5
   ffi: ^2.0.1
-  fimber: ^0.6.6
+  fimber: ^0.7.0
   flutter:
     sdk: flutter
   flutter_bloc: ^8.1.1
   flutter_localizations:
     sdk: flutter
-  flutter_rust_bridge: ^1.61.1
+  flutter_rust_bridge: ^1.78.0
   flutter_staggered_grid_view: ^0.6.2
   flutter_sticky_header: ^0.6.4
   flutter_svg: ^2.0.4
@@ -49,7 +49,7 @@ dev_dependencies:
   arb_utils: ^0.6.0
   bloc_test: ^9.0.0
   build_runner: ^2.3.2
-  ffigen: ^7.2.11 # Newer version is incompatible with flutter_rust_bridge_codegen
+  ffigen: ^8.0.2
   flutter_driver:
     sdk: flutter
   flutter_lints: ^2.0.0

@@ -204,25 +204,39 @@ class PinPage extends StatelessWidget {
   }
 
   bool _digitKeysEnabled(PinState state) {
-    if (state is PinValidateServerError) return true;
-    if (state is PinValidateTimeout) return true;
-    if (state is PinEntryInProgress) return true;
-    if (state is PinValidateFailure) return true;
-    return false;
+    return switch (state) {
+      PinEntryInProgress() => true,
+      PinValidateFailure() => true,
+      PinValidateTimeout() => true,
+      PinValidateServerError() => true,
+      PinValidateInProgress() => false,
+      PinValidateSuccess() => false,
+      PinValidateBlocked() => false,
+    };
   }
 
   bool _backspaceKeyEnabled(PinState state) {
-    if (state is PinEntryInProgress) return true;
-    if (state is PinValidateFailure) return true;
-    return false;
+    return switch (state) {
+      PinEntryInProgress() => true,
+      PinValidateFailure() => true,
+      PinValidateInProgress() => false,
+      PinValidateSuccess() => false,
+      PinValidateTimeout() => false,
+      PinValidateBlocked() => false,
+      PinValidateServerError() => false,
+    };
   }
 
   int _resolveEnteredDigits(PinState state) {
-    if (state is PinEntryInProgress) return state.enteredDigits;
-    if (state is PinValidateInProgress) return kPinDigits;
-    if (state is PinValidateSuccess) return kPinDigits;
-    if (state is PinValidateFailure) return 0;
-    return 0;
+    return switch (state) {
+      PinEntryInProgress() => state.enteredDigits,
+      PinValidateInProgress() => kPinDigits,
+      PinValidateSuccess() => kPinDigits,
+      PinValidateFailure() => 0,
+      PinValidateTimeout() => 0,
+      PinValidateBlocked() => 0,
+      PinValidateServerError() => 0,
+    };
   }
 
   PinFieldState _resolvePinFieldState(PinState state) {

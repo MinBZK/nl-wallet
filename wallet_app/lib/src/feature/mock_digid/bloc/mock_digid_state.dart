@@ -1,6 +1,6 @@
 part of 'mock_digid_bloc.dart';
 
-abstract class MockDigidState extends Equatable {
+sealed class MockDigidState extends Equatable {
   const MockDigidState();
 }
 

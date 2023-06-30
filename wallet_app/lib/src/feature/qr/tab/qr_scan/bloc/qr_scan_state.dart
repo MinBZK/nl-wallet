@@ -1,6 +1,6 @@
 part of 'qr_scan_bloc.dart';
 
-abstract class QrScanState extends Equatable {
+sealed class QrScanState extends Equatable {
   const QrScanState();
 }
 

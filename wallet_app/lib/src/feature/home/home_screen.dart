@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -54,13 +53,10 @@ class HomeScreen extends StatelessWidget {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
         return BottomNavigationBar(
-          currentIndex: state.tab.tabIndex,
+          currentIndex: state.tab.index,
           onTap: (value) {
-            final homeTab = HomeTab.values.firstWhereOrNull((element) => element.tabIndex == value);
-            final forceStateRefresh = state.tab == HomeTab.menu;
-            if (homeTab != null) {
-              context.read<HomeBloc>().add(HomeTabPressed(homeTab, forceStateRefresh: forceStateRefresh));
-            }
+            final homeTab = HomeTab.values[value];
+            context.read<HomeBloc>().add(HomeTabPressed(homeTab));
           },
           items: items,
         );

@@ -2,7 +2,7 @@ part of 'setup_security_bloc.dart';
 
 const _kTotalSteps = 3;
 
-abstract class SetupSecurityState extends Equatable {
+sealed class SetupSecurityState extends Equatable {
   const SetupSecurityState();
 
   bool get canGoBack => false;

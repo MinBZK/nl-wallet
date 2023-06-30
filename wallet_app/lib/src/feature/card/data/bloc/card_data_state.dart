@@ -1,6 +1,6 @@
 part of 'card_data_bloc.dart';
 
-abstract class CardDataState extends Equatable {
+sealed class CardDataState extends Equatable {
   const CardDataState();
 }
 

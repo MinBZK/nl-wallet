@@ -81,17 +81,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
       listenWhen: (prev, current) => current is WalletPersonalizeConnectDigid,
       listener: (context, state) => _loginWithDigid(context, (state as WalletPersonalizeConnectDigid).authUrl),
       builder: (context, state) {
-        Widget? result;
-        if (state is WalletPersonalizeInitial) result = _buildWalletIntroPage(context);
-        if (state is WalletPersonalizeConnectDigid) result = _buildAuthenticatingWithDigid(context);
-        if (state is WalletPersonalizeAuthenticating) result = _buildAuthenticatingWithDigid(context);
-        if (state is WalletPersonalizeLoadInProgress) result = _buildLoading(context);
-        if (state is WalletPersonalizeCheckData) result = _buildCheckDataOfferingPage(context, state);
-        if (state is WalletPersonalizeConfirmPin) result = _buildConfirmPinPage(context, state);
-        if (state is WalletPersonalizeSuccess) result = _buildSuccessPage(context, state);
-        if (state is WalletPersonalizeFailure) result = _buildErrorPage(context);
-        if (state is WalletPersonalizeDigidFailure) result = _buildDigidErrorPage(context);
-        if (result == null) throw UnsupportedError('Unknown state: $state');
+        Widget result = switch (state) {
+          WalletPersonalizeInitial() => _buildWalletIntroPage(context),
+          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(context),
+          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(context),
+          WalletPersonalizeLoadInProgress() => _buildLoading(context),
+          WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
+          WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
+          WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
+          WalletPersonalizeFailure() => _buildErrorPage(context),
+          WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
+        };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
     );
