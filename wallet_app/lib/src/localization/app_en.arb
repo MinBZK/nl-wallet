@@ -543,6 +543,7 @@
     "description": "Attempts left counter on the pin entry screen"
   },
   "pinScreenErrorHeader": "Invalid pin",
+  "pinScreenFinalAttempt": "You have 1 attempt left. After that you can no longer use the app.",
   "pinScreenForgotPinCta": "Forgot code?",
   "pinScreenHeader": "Enter your pin",
   "pinScreenTitle": "Login",
