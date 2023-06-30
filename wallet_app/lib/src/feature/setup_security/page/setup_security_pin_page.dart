@@ -13,6 +13,7 @@ class SetupSecurityPinPage extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
   final int enteredDigits;
   final bool showInput;
+  final bool isShowingError;
 
   const SetupSecurityPinPage({
     required this.content,
@@ -20,6 +21,7 @@ class SetupSecurityPinPage extends StatelessWidget {
     required this.onBackspacePressed,
     required this.enteredDigits,
     this.showInput = true,
+    this.isShowingError = false,
     Key? key,
   }) : super(key: key);
 
@@ -56,7 +58,7 @@ class SetupSecurityPinPage extends StatelessWidget {
                     child: content,
                   ),
                 ),
-                if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
+                if (showInput) _buildPinField(),
                 if (showInput) const Spacer(),
               ],
             );
@@ -88,7 +90,7 @@ class SetupSecurityPinPage extends StatelessWidget {
                 child: content,
               ),
               if (showInput) const SizedBox(height: 16),
-              if (showInput) PinField(digits: kPinDigits, enteredDigits: enteredDigits),
+              if (showInput) _buildPinField(),
             ],
           ),
         ),
@@ -103,6 +105,14 @@ class SetupSecurityPinPage extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildPinField() {
+    return PinField(
+      digits: kPinDigits,
+      enteredDigits: enteredDigits,
+      state: isShowingError ? PinFieldState.error : PinFieldState.idle,
     );
   }
 }

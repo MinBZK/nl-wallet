@@ -161,6 +161,7 @@ class PinPage extends StatelessWidget {
         return PinField(
           digits: kPinDigits,
           enteredDigits: _resolveEnteredDigits(state),
+          state: _resolvePinFieldState(state),
         );
       },
     );
@@ -213,7 +214,13 @@ class PinPage extends StatelessWidget {
     if (state is PinEntryInProgress) return state.enteredDigits;
     if (state is PinValidateInProgress) return kPinDigits;
     if (state is PinValidateSuccess) return kPinDigits;
-    if (state is PinValidateFailure) return kPinDigits;
+    if (state is PinValidateFailure) return 0;
     return 0;
+  }
+
+  PinFieldState _resolvePinFieldState(PinState state) {
+    if (state is PinValidateInProgress) return PinFieldState.loading;
+    if (state is PinValidateFailure) return PinFieldState.error;
+    return PinFieldState.idle;
   }
 }

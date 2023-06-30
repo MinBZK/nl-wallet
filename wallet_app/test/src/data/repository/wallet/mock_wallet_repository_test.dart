@@ -80,7 +80,7 @@ void main() {
   group('Confirmation pin attempts', () {
     test('wallet is destroyed after too many invalid confirmation attempts', () async {
       await walletRepository.createWallet(kMockPin);
-      walletRepository.unlockWallet(kMockPin); //Make sure wallet is unlocked before confirmation
+      await walletRepository.unlockWallet(kMockPin); //Make sure wallet is unlocked before confirmation
       expect(await walletRepository.isRegistered(), true);
       for (var _ in Iterable.generate(kMaxUnlockAttempts)) {
         await walletRepository.confirmTransaction('invalid');
