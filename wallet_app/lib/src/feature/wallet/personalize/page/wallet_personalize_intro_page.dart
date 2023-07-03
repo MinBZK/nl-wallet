@@ -26,18 +26,23 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
           slivers: [
             const SliverSizedBox(height: 36),
             SliverToBoxAdapter(
-              child: Text(
-                context.l10n.walletPersonalizeIntroPageTitle,
-                textAlign: TextAlign.start,
-                style: context.textTheme.displaySmall,
-              ),
-            ),
-            const SliverSizedBox(height: 8),
-            SliverToBoxAdapter(
-              child: Text(
-                context.l10n.walletPersonalizeIntroPageDescription,
-                textAlign: TextAlign.start,
-                style: context.textTheme.bodyLarge,
+              child: MergeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.walletPersonalizeIntroPageTitle,
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.displaySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.walletPersonalizeIntroPageDescription,
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.bodyLarge,
+                    )
+                  ],
+                ),
               ),
             ),
             const SliverSizedBox(height: 32),

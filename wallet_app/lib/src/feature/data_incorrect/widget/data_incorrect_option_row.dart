@@ -32,24 +32,26 @@ class DataIncorrectOptionRow extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: context.textTheme.displaySmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: context.textTheme.bodyLarge,
-                ),
-                LinkButton(
-                  onPressed: onTap,
-                  customPadding: EdgeInsets.zero,
-                  child: Text(cta),
-                ),
-              ],
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: context.textTheme.displaySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: context.textTheme.bodyLarge,
+                  ),
+                  LinkButton(
+                    onPressed: onTap,
+                    customPadding: EdgeInsets.zero,
+                    child: Text(cta),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -178,6 +178,8 @@ class HistoryDetailScreen extends StatelessWidget {
           ),
         ),
       );
+
+      // Helpdesk button
       slivers.add(const SliverDivider());
       slivers.add(
         SliverToBoxAdapter(
@@ -316,26 +318,28 @@ class HistoryDetailScreen extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: context.textTheme.displaySmall,
-                ),
-                const SizedBox(height: 2),
-                if (subtitle.isNotEmpty) ...[
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    subtitle,
-                    style: context.textTheme.bodyLarge,
+                    title,
+                    style: context.textTheme.displaySmall,
                   ),
                   const SizedBox(height: 2),
+                  if (subtitle.isNotEmpty) ...[
+                    Text(
+                      subtitle,
+                      style: context.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 2),
+                  ],
+                  Text(
+                    HistoryDetailsTimeFormatter.format(context, attribute.dateTime),
+                    style: context.textTheme.bodySmall,
+                  ),
                 ],
-                Text(
-                  HistoryDetailsTimeFormatter.format(context, attribute.dateTime),
-                  style: context.textTheme.bodySmall,
-                ),
-              ],
+              ),
             ),
           ),
         ],

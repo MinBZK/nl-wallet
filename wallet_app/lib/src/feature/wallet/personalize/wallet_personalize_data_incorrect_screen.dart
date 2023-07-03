@@ -18,19 +18,21 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.walletPersonalizeDataIncorrectScreenSubhead,
-                    style: context.textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.l10n.walletPersonalizeDataIncorrectScreenDescription,
-                    style: context.textTheme.bodyLarge,
-                  ),
-                ],
+              child: MergeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.walletPersonalizeDataIncorrectScreenSubhead,
+                      style: context.textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.walletPersonalizeDataIncorrectScreenDescription,
+                      style: context.textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

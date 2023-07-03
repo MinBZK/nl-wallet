@@ -67,32 +67,34 @@ class CheckDataOfferingPage extends StatelessWidget {
     final subtitle = this.subtitle;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (overline != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                overline,
-                style: context.textTheme.labelSmall?.copyWith(color: context.colorScheme.primary),
+      child: MergeSemantics(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (overline != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  overline,
+                  style: context.textTheme.labelSmall?.copyWith(color: context.colorScheme.primary),
+                ),
               ),
+            Text(
+              title,
+              style: context.textTheme.displayMedium,
             ),
-          Text(
-            title,
-            style: context.textTheme.displayMedium,
-          ),
-          if (subtitle != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                subtitle,
-                style: context.textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-            )
-        ],
+            if (subtitle != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  subtitle,
+                  style: context.textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+              )
+          ],
+        ),
       ),
     );
   }

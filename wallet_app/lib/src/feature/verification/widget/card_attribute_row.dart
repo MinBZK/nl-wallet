@@ -19,7 +19,9 @@ class CardAttributeRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Image.asset(_kCardShareAsset),
+        ExcludeSemantics(
+          child: Image.asset(_kCardShareAsset),
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(

@@ -78,9 +78,11 @@ class VerificationScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return BlocBuilder<VerificationBloc, VerificationState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+    return ExcludeSemantics(
+      child: BlocBuilder<VerificationBloc, VerificationState>(
+        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      ),
     );
   }
 

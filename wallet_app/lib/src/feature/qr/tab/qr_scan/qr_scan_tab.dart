@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -29,17 +30,27 @@ class QrScanTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          BlocBuilder<QrScanBloc, QrScanState>(
-            builder: (context, state) {
-              return switch (state) {
-                QrScanInitial() => _buildInitialState(context),
-                QrScanFailure() => _buildErrorState(context),
-                QrScanNoPermission() => _buildNoPermission(context, state.permanentlyDenied),
-                QrScanScanning() => QrScanner(key: _scannerKey),
-                QrScanSuccess() => _buildSuccessState(context),
-                QrScanLoading() => _buildLoading(),
-              };
+          BlocListener<QrScanBloc, QrScanState>(
+            listener: (context, state) {
+              if (state is QrScanScanning) {
+                SemanticsService.announce(context.l10n.qrScanTabCameraScanningQrStartedAnnouncement, TextDirection.ltr);
+              }
+              if (state is QrScanSuccess) {
+                SemanticsService.announce(context.l10n.qrScanTabCameraScanningQrScannedAnnouncement, TextDirection.ltr);
+              }
             },
+            child: BlocBuilder<QrScanBloc, QrScanState>(
+              builder: (context, state) {
+                return switch (state) {
+                  QrScanInitial() => _buildInitialState(context),
+                  QrScanFailure() => _buildErrorState(context),
+                  QrScanNoPermission() => _buildNoPermission(context, state.permanentlyDenied),
+                  QrScanScanning() => _buildScanning(context),
+                  QrScanSuccess() => _buildSuccessState(context),
+                  QrScanLoading() => _buildLoading(),
+                };
+              },
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -129,6 +140,8 @@ class QrScanTab extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildScanning(BuildContext context) => QrScanner(key: _scannerKey);
 
   Widget _buildSuccessState(BuildContext context) {
     return QrScannerFrame(

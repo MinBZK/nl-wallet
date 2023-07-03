@@ -29,10 +29,7 @@ class SetupSecurityScreen extends StatelessWidget {
         leading: _buildBackButton(context),
         title: Text(context.l10n.setupSecurityScreenTitle),
         actions: [
-          IconButton(
-            onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
-            icon: const Icon(Icons.info_outline),
-          ),
+          _buildAboutAction(context),
         ],
       ),
       body: WillPopScope(
@@ -110,6 +107,19 @@ class SetupSecurityScreen extends StatelessWidget {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
           onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
+        );
+      },
+    );
+  }
+
+  Widget _buildAboutAction(BuildContext context) {
+    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+      builder: (context, state) {
+        if (state is SetupSecurityCompleted) return const SizedBox.shrink();
+        return IconButton(
+          onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
+          icon: const Icon(Icons.info_outline),
+          tooltip: context.l10n.setupSecurityScreenAboutAppTooltip,
         );
       },
     );

@@ -49,35 +49,37 @@ class IssuanceSuccessPage extends StatelessWidget {
         ? context.l10n.issuanceSuccessPageCardsUpdatedSubtitle(cards.length)
         : context.l10n.issuanceSuccessPageCardsAddedSubtitle(cards.length);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: StatusIcon(
-            icon: Icons.check,
-            color: context.colorScheme.primary,
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: StatusIcon(
+              icon: Icons.check,
+              color: context.colorScheme.primary,
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            context.l10n.issuanceSuccessPageTitle,
-            style: context.textTheme.displayMedium,
-            textAlign: TextAlign.center,
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              context.l10n.issuanceSuccessPageTitle,
+              style: context.textTheme.displayMedium,
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            subtitle,
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.center,
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              subtitle,
+              style: context.textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

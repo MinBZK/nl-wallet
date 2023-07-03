@@ -62,22 +62,26 @@ class FlowTerminalPage extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              title,
-              style: context.textTheme.displayMedium,
-              textAlign: TextAlign.start,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              description,
-              style: context.textTheme.bodyLarge,
-              textAlign: TextAlign.start,
+            padding: const EdgeInsets.all(16),
+
+            /// The [Column] is added to improve semantics; reading title and description together
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: context.textTheme.displayMedium,
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: context.textTheme.bodyLarge,
+                  textAlign: TextAlign.start,
+                )
+              ],
             ),
           ),
           if (tertiaryButtonCta != null)

@@ -85,9 +85,11 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return BlocBuilder<IssuanceBloc, IssuanceState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+    return ExcludeSemantics(
+      child: BlocBuilder<IssuanceBloc, IssuanceState>(
+        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      ),
     );
   }
 

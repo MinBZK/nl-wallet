@@ -74,19 +74,21 @@ class DataIncorrectScreen extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.dataIncorrectScreenHeaderTitle,
-            style: context.textTheme.displayMedium,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            context.l10n.dataIncorrectScreenHeaderDescription,
-            style: context.textTheme.bodyLarge,
-          ),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.dataIncorrectScreenHeaderTitle,
+              style: context.textTheme.displayMedium,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.l10n.dataIncorrectScreenHeaderDescription,
+              style: context.textTheme.bodyLarge,
+            ),
+          ],
+        ),
       ),
     );
   }

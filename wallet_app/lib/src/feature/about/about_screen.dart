@@ -28,14 +28,6 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              context.l10n.aboutScreenTitle,
-              style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _buildDescription(context),
           ),
           const SizedBox(height: 16),
