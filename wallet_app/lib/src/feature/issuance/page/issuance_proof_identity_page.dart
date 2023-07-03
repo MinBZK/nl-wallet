@@ -66,20 +66,22 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.issuanceProofIdentityPageTitle,
-            style: context.textTheme.displayMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            issuanceProofIdentityPageSubtitle,
-            style: context.textTheme.bodyLarge,
-          ),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.issuanceProofIdentityPageTitle,
+              style: context.textTheme.displayMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              issuanceProofIdentityPageSubtitle,
+              style: context.textTheme.bodyLarge,
+            ),
+          ],
+        ),
       ),
     );
   }

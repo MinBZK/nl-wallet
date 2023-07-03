@@ -33,16 +33,22 @@ class ForgotPinScreen extends StatelessWidget {
         children: [
           Image.asset(_kPinHeaderImage, fit: BoxFit.fitWidth),
           const SizedBox(height: 24),
-          Text(
-            context.l10n.forgotPinScreenHeadline,
-            textAlign: TextAlign.start,
-            style: context.textTheme.displayMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.forgotPinScreenDescription,
-            textAlign: TextAlign.start,
-            style: context.textTheme.bodyLarge,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.l10n.forgotPinScreenHeadline,
+                textAlign: TextAlign.start,
+                style: context.textTheme.displayMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.l10n.forgotPinScreenDescription,
+                textAlign: TextAlign.start,
+                style: context.textTheme.bodyLarge,
+              ),
+            ],
           ),
         ],
       ),

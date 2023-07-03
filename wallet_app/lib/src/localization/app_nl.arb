@@ -33,6 +33,7 @@
   "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
   "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
   "cardHistoryTimelineSigningSuccess": "Ondertekend",
+  "cardOverviewScreenLockWalletTooltip": "Vergrendel wallet",
   "cardOverviewScreenTitle": "Mijn kaarten",
   "cardSummaryScreenCardDataCta": "Gegevens",
   "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",
@@ -335,6 +336,20 @@
   "introductionPrivacyPageTitle": "Zo helpt de app jouw privacy te beschermen",
   "introductionPrivacyPolicyCta": "Lees het privacybeleid",
   "introductionSkipCta": "Overslaan",
+  "introductionWCAGCurrentPageAnnouncement": "Introductie pagina {currentPage} van {totalPages}",
+  "@introductionWCAGCurrentPageAnnouncement": {
+    "placeholders": {
+      "currentPage": {
+        "example": "3",
+        "type": "int"
+      },
+      "totalPages": {
+        "example": "6",
+        "type": "int"
+      }
+    }
+  },
+  "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
   "issuanceCheckCardPageConfirmCta": "Ja, volgende",
   "issuanceCheckCardPageOverline": "Kaart {current} van {total}",
   "@issuanceCheckCardPageOverline": {
@@ -532,6 +547,7 @@
   "pinBlockedScreenTitle": "Geblokkeerd",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "invoer",
+  "pinScreenAboutAppTooltip": "Over de app",
   "pinScreenAttemptsCount": "{count, plural, =1 {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {
@@ -553,7 +569,7 @@
   "pinTimeoutScreenTitle": "Inloggen",
   "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
   "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
-  "placeholderScreenTitle": "Placeholder",
+  "placeholderScreenTitle": "Pagina bestaat niet",
   "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
   "policyScreenDataCanBeDeletedDescription": "De partij biedt een manier aan om je opgeslagen gegevens te laten verwijderen.",
   "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -604,6 +620,8 @@
   "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
   "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
   "qrMyCodeTabHowToSheetTitle": "Hoe werkt mijn QR-code?",
+  "qrScanTabCameraScanningQrScannedAnnouncement": "QR-code gescand",
+  "qrScanTabCameraScanningQrStartedAnnouncement": "Camera is gestart met scannen naar QR code",
   "qrScanTabContinueCta": "Nog een QR scannen",
   "qrScanTabErrorRetryCta": "Probeer opnieuw",
   "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
@@ -637,6 +655,7 @@
   "setupSecurityConfirmationErrorPageFatalTitle": "Toegangscode kiezen is niet gelukt",
   "setupSecurityConfirmationErrorPageTitle": "Deze toegangscode is anders",
   "setupSecurityConfirmationPageTitle": "Herhaal je toegangscode",
+  "setupSecurityScreenAboutAppTooltip": "Over de app",
   "setupSecurityScreenTitle": "Beveiliging instellen",
   "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} van {totalDigits} ingevoerd",
   "@setupSecurityScreenWCAGEnteredDigitsAnnouncement": {
@@ -838,7 +857,7 @@
   "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoonsgegevens toe te voegen via de DigiD app",
   "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
   "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",
-  "walletPersonalizeIntroPageTitle": "Login met DigiD om te beginnen",
+  "walletPersonalizeIntroPageTitle": "Log in met DigiD om te beginnen",
   "walletPersonalizeLoadingPhotoPageSubtitle": "Even geduld...",
   "walletPersonalizeLoadingPhotoPageTitle": "Aan het scannen",
   "walletPersonalizeNoDigidPageBackCta": "Terug",

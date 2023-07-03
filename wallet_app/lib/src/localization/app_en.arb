@@ -33,6 +33,7 @@
   "cardHistoryTimelineOperationRenewed": "Card updated",
   "cardHistoryTimelineSigningRejected": "Signing stopped",
   "cardHistoryTimelineSigningSuccess": "Signed",
+  "cardOverviewScreenLockWalletTooltip": "Lock wallet",
   "cardOverviewScreenTitle": "My cards",
   "cardSummaryScreenCardDataCta": "Data",
   "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
@@ -335,6 +336,20 @@
   "introductionPrivacyPageTitle": "This is how the app helps protect your privacy",
   "introductionPrivacyPolicyCta": "Read the privacy policy",
   "introductionSkipCta": "Skip",
+  "introductionWCAGCurrentPageAnnouncement": "Introduction page {currentPage} of {totalPages}",
+  "@introductionWCAGCurrentPageAnnouncement": {
+    "placeholders": {
+      "currentPage": {
+        "example": "3",
+        "type": "int"
+      },
+      "totalPages": {
+        "example": "6",
+        "type": "int"
+      }
+    }
+  },
+  "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
   "issuanceCheckCardPageConfirmCta": "Yes, next",
   "issuanceCheckCardPageOverline": "Card {current} of {total}",
   "@issuanceCheckCardPageOverline": {
@@ -532,6 +547,7 @@
   "pinBlockedScreenTitle": "App blocked",
   "pinKeyboardWCAGBackspaceLabel": "backspace",
   "pinKeyboardWCAGDigitKeyTapHint": "select",
+  "pinScreenAboutAppTooltip": "About the app",
   "pinScreenAttemptsCount": "{count, plural, =1 {You have {count} attempt left} other {You have {count} attempts left}}",
   "@pinScreenAttemptsCount": {
     "placeholders": {
@@ -553,7 +569,7 @@
   "pinTimeoutScreenTitle": "Login",
   "placeholderScreenContractInformTitle": "The contract will be displayed here.",
   "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
-  "placeholderScreenTitle": "Placeholder",
+  "placeholderScreenTitle": "Page does not exist",
   "policyScreenDataCanBeDeleted": "You can request data deletion",
   "policyScreenDataCanBeDeletedDescription": "This organizations allows you to delete your data.",
   "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
@@ -604,6 +620,8 @@
   "qrMyCodeTabHowToSheetCloseCta": "Close",
   "qrMyCodeTabHowToSheetDescription": "Information can be shared by showing your QR-code. Further english translation goes here...",
   "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
+  "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
+  "qrScanTabCameraScanningQrStartedAnnouncement": "Camera started scanning for QR code",
   "qrScanTabContinueCta": "Scan another QR-code",
   "qrScanTabErrorRetryCta": "Retry",
   "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
@@ -637,6 +655,7 @@
   "setupSecurityConfirmationErrorPageFatalTitle": "Failed to setup pin",
   "setupSecurityConfirmationErrorPageTitle": "This code is different",
   "setupSecurityConfirmationPageTitle": "Repeat your code",
+  "setupSecurityScreenAboutAppTooltip": "About the app",
   "setupSecurityScreenTitle": "Setup security",
   "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} of {totalDigits} digits supplied",
   "@setupSecurityScreenWCAGEnteredDigitsAnnouncement": {

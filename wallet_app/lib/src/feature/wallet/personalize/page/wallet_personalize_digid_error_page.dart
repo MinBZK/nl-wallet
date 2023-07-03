@@ -26,29 +26,36 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             const SliverSizedBox(height: 36),
             SliverSizedBox(
               height: 105,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(8),
+              child: ExcludeSemantics(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text('Placeholder image'),
                 ),
-                alignment: Alignment.center,
-                child: const Text('Placeholder image'),
               ),
             ),
             const SliverSizedBox(height: 24),
             SliverToBoxAdapter(
-              child: Text(
-                context.l10n.walletPersonalizeDigidErrorPageTitle,
-                textAlign: TextAlign.start,
-                style: context.textTheme.displaySmall,
-              ),
-            ),
-            const SliverSizedBox(height: 8),
-            SliverToBoxAdapter(
-              child: Text(
-                context.l10n.walletPersonalizeDigidErrorPageDescription,
-                textAlign: TextAlign.start,
-                style: context.textTheme.bodyLarge,
+              child: MergeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.walletPersonalizeDigidErrorPageTitle,
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.displaySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.l10n.walletPersonalizeDigidErrorPageDescription,
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SliverSizedBox(height: 32),

@@ -19,6 +19,7 @@ class PinScreen extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
             icon: const Icon(Icons.info_outline),
+            tooltip: context.l10n.pinScreenAboutAppTooltip,
           ),
         ],
       ),

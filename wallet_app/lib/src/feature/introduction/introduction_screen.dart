@@ -14,7 +14,11 @@ import 'page/introduction_page.dart';
 import 'page/introduction_privacy_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 
-const int _kNrOfPages = 4;
+// Progress constants
+const _kNrOfPages = 4;
+
+// Semantic constants
+const _kBackButtonSortKey = -1.0;
 
 class IntroductionScreen extends StatefulWidget {
   const IntroductionScreen({Key? key}) : super(key: key);
@@ -72,7 +76,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           ],
         ),
         Semantics(
-          sortKey: const OrdinalSortKey(-1),
+          sortKey: const OrdinalSortKey(_kBackButtonSortKey),
           explicitChildNodes: true,
           child: _buildBackButton(),
         ),
@@ -111,13 +115,18 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildAppPrivacyPage(BuildContext context) {
-    return IntroductionPrivacyPage(footer: _buildPrivacyBottomSection(context));
+    return IntroductionPrivacyPage(
+      footer: _buildPrivacyBottomSection(context),
+    );
   }
 
   Widget _buildProgressStepper(double currentStep) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
-      child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
+    return Semantics(
+      label: context.l10n.introductionWCAGCurrentPageAnnouncement(currentStep.toInt() + 1, _kNrOfPages - 1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
+      ),
     );
   }
 
@@ -131,7 +140,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   void _onNextPressed(BuildContext context) {
-    final isOnLastPage = (_currentPage + 0.5).toInt() == (_kNrOfPages - 1);
+    final isOnLastPage = (_currentPage + 0.5).toInt() == _kNrOfPages - 1;
     if (isOnLastPage) {
       Navigator.restorablePushReplacementNamed(context, WalletRoutes.setupSecurityRoute);
     } else {

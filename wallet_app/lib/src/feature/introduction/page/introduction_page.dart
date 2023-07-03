@@ -42,7 +42,9 @@ class IntroductionPage extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: [
                 _buildPortraitImage(context),
+                const SizedBox(height: 16),
                 header != null ? header! : const SizedBox.shrink(),
+                const SizedBox(height: 8),
                 _buildInfoSection(context),
               ],
             ),
@@ -56,7 +58,7 @@ class IntroductionPage extends StatelessWidget {
   Widget _buildLandscape(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _buildLandscapeImage()),
+        Expanded(child: _buildLandscapeImage(context)),
         Expanded(
           child: SafeArea(
             child: Scrollbar(
@@ -78,7 +80,7 @@ class IntroductionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLandscapeImage() {
+  Widget _buildLandscapeImage(BuildContext context) {
     return Stack(
       fit: StackFit.passthrough,
       children: [
@@ -88,13 +90,7 @@ class IntroductionPage extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Image.asset(
-            _kCoverHeaderLabelImage,
-            fit: BoxFit.cover,
-          ),
-        ),
+        _buildLogo(context),
       ],
     );
   }
@@ -107,17 +103,27 @@ class IntroductionPage extends StatelessWidget {
           height: _kCoverHeaderImageDesiredHeight,
           child: Image(image: image, fit: BoxFit.cover),
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Image.asset(_kCoverHeaderLabelImage, fit: BoxFit.cover),
-        ),
+        _buildLogo(context),
       ],
+    );
+  }
+
+  Widget _buildLogo(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Semantics(
+        label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
+        child: Image.asset(
+          _kCoverHeaderLabelImage,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 
   Widget _buildInfoSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

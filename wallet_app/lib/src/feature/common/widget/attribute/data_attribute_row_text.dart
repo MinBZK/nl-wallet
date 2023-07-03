@@ -10,19 +10,21 @@ class DataAttributeRowText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          attribute.label,
-          style: context.textTheme.bodySmall,
-        ),
-        Text(
-          attribute.value,
-          style: context.textTheme.titleMedium,
-        ),
-      ],
+    return MergeSemantics(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            attribute.label,
+            style: context.textTheme.bodySmall,
+          ),
+          Text(
+            attribute.value,
+            style: context.textTheme.titleMedium,
+          ),
+        ],
+      ),
     );
   }
 }

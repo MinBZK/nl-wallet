@@ -25,22 +25,24 @@ class PinHeader extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final textColor = hasError ? context.colorScheme.error : null;
-    return Column(
-      crossAxisAlignment: _resolveCrossAxisAlignment(context),
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: context.textTheme.displayMedium?.copyWith(color: textColor),
-          textAlign: _resolveTextAlignment(context),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          description,
-          style: context.textTheme.bodyLarge?.copyWith(color: textColor),
-          textAlign: _resolveTextAlignment(context),
-        ),
-      ],
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: _resolveCrossAxisAlignment(context),
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: context.textTheme.displayMedium?.copyWith(color: textColor),
+            textAlign: _resolveTextAlignment(context),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: context.textTheme.bodyLarge?.copyWith(color: textColor),
+            textAlign: _resolveTextAlignment(context),
+          ),
+        ],
+      ),
     );
   }
 

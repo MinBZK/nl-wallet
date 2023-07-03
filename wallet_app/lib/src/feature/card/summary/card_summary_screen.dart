@@ -79,9 +79,11 @@ class CardSummaryScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: 24),
               children: [
                 const SizedBox(height: 8),
-                FractionallySizedBox(
-                  widthFactor: 0.6,
-                  child: WalletCardItem.fromCardFront(front: card.front),
+                ExcludeSemantics(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.6,
+                    child: WalletCardItem.fromCardFront(front: card.front),
+                  ),
                 ),
                 const SizedBox(height: 32),
                 const Divider(height: 1),
