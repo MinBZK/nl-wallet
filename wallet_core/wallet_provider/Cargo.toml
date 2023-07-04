@@ -17,6 +17,7 @@ required-features = ["wallet_provider_migrations"]
 stub = ["wallet_provider_service/stub"]
 wallet_provider_migrations = ["dep:sea-orm-migration"]
 db_test = []
+http_test = []
 
 [dependencies]
 wallet_provider_domain = { path = "domain" }

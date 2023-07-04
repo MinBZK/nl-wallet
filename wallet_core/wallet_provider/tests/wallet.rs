@@ -1,16 +1,21 @@
+use std::env;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use axum_test_helper::TestClient;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use tokio::sync::OnceCell;
 use url::Url;
 
 use platform_support::hw_keystore::software::SoftwareEcdsaKey;
+use wallet::mock::{ConfigurationRepository, RemoteAccountServerClient};
+use wallet::wallet::Storage;
 use wallet::{
     mock::{MockConfigurationRepository, MockStorage},
     wallet::{AccountServerClient, AccountServerClientError, Wallet},
+    AccountServerConfiguration, Configuration, LockTimeoutConfiguration,
 };
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
@@ -78,6 +83,7 @@ impl AccountServerClient for WalletTestClient {
 async fn create_test_wallet_and_db_connection() -> (
     Wallet<MockConfigurationRepository, WalletTestClient, MockStorage, SoftwareEcdsaKey>,
     DatabaseConnection,
+    EcdsaDecodingKey,
 ) {
     // Make sure TEST_CLIENT is initialized
     _ = TEST_CLIENT
@@ -98,13 +104,14 @@ async fn create_test_wallet_and_db_connection() -> (
 
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
-    config.0.account_server.public_key = EcdsaDecodingKey::from_sec1(
+    let pubkey = EcdsaDecodingKey::from_sec1(
         SigningKey::from_pkcs8_der(&settings.signing_private_key.0)
             .expect("Could not decode private key")
             .verifying_key()
             .to_encoded_point(false)
             .as_bytes(),
     );
+    config.0.account_server.public_key = pubkey.clone();
     let wallet = Wallet::new(config).await.expect("Could not create test wallet");
 
     // Create database connection from settings
@@ -117,7 +124,7 @@ async fn create_test_wallet_and_db_connection() -> (
     .await
     .expect("Could not open database connection");
 
-    (wallet, connection)
+    (wallet, connection, pubkey)
 }
 
 async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -127,15 +134,17 @@ async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .expect("Could not fetch user count from database")
 }
 
-#[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_wallet_registration() {
-    let (mut wallet, connection) = create_test_wallet_and_db_connection().await;
-
+async fn test_wallet_registration<C, A, S, K>(mut wallet: Wallet<C, A, S, K>, conn: &DatabaseConnection)
+where
+    C: ConfigurationRepository,
+    A: AccountServerClient,
+    S: Storage + Default,
+    K: PlatformEcdsaKey + Clone + Send + 'static,
+{
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
-    let before = wallet_user_count(&connection).await;
+    let before = wallet_user_count(conn).await;
 
     // Register with a valid PIN.
     wallet
@@ -146,7 +155,40 @@ async fn test_wallet_registration() {
     // The registration should now be loaded.
     assert!(wallet.has_registration());
 
-    let after = wallet_user_count(&connection).await;
+    let after = wallet_user_count(conn).await;
 
     assert_eq!(before + 1, after);
+
+    // Registering again should result in an error.
+    assert!(wallet.register("112233".to_owned()).await.is_err());
+}
+
+#[tokio::test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn test_wallet_registration_direct() {
+    let (wallet, connection, _) = create_test_wallet_and_db_connection().await;
+    test_wallet_registration(wallet, &connection).await;
+}
+
+#[tokio::test]
+#[cfg_attr(not(feature = "http_test"), ignore)]
+async fn test_wallet_registration_via_http() {
+    let (_, connection, public_key) = create_test_wallet_and_db_connection().await;
+    let base_url = &env::var("WALLET_PROVIDER_BASE_URL").unwrap_or("http://localhost:3000".to_string());
+
+    let config = MockConfigurationRepository(Configuration {
+        lock_timeouts: LockTimeoutConfiguration {
+            inactive_timeout: 60,
+            background_timeout: 2 * 60,
+        },
+        account_server: AccountServerConfiguration {
+            base_url: Url::parse(base_url).unwrap(),
+            public_key,
+        },
+    });
+
+    let wallet: Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> =
+        Wallet::new_without_registration(config);
+
+    test_wallet_registration(wallet, &connection).await;
 }
