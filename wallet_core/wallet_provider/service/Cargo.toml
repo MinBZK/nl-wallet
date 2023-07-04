@@ -1,0 +1,31 @@
+[package]
+name = "wallet_provider_service"
+version.workspace = true
+edition.workspace = true
+
+[features]
+stub = ["wallet_provider_domain/stub", "dep:async-trait", "dep:rand"]
+
+[dependencies]
+wallet_provider_domain = { path = "../domain" }
+wallet_common = { path = "../../wallet_common" }
+
+async-trait = { workspace = true, optional = true }
+der = { workspace = true, features = ["alloc"] }
+jsonwebtoken.workspace = true
+p256.workspace = true
+pkcs8 = { workspace = true, features = ["std"] }
+rand = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[dev-dependencies]
+wallet_common = { path = "../../wallet_common", features = ["mock"] }
+wallet_provider_domain = { path = "../domain", features = ["stub"] }
+
+async-trait.workspace = true
+rand.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

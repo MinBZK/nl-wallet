@@ -37,7 +37,8 @@ const _kRvigOrganization = Organization(
   name: 'Rijksdienst voor Identiteitsgegevens',
   shortName: 'Rijksdienst voor Identiteitsgegevens',
   category: 'Overheid',
-  description: 'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
+  description:
+      'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
 );
 

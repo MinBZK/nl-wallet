@@ -27,7 +27,7 @@ spec:
         - name: harbor-puller
       containers:
         - name: wallet-provider
-          image: {{WALLET_PROVIDER_IMAGE}}
+          image: $WALLET_PROVIDER_IMAGE
           resources:
             limits:
               memory: "512Mi"
@@ -46,3 +46,17 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-provider-signing-key
                   key: private
+            - name: WALLET_PROVIDER_DATABASE__NAME
+              value: wallet_provider
+            - name: WALLET_PROVIDER_DATABASE__HOST
+              value: db-cluster-rw
+            - name: WALLET_PROVIDER_DATABASE__USERNAME
+              valueFrom:
+                  secretKeyRef:
+                      name: db-cluster-app
+                      key: username
+            - name: WALLET_PROVIDER_DATABASE__PASSWORD
+              valueFrom:
+                  secretKeyRef:
+                      name: db-cluster-app
+                      key: password

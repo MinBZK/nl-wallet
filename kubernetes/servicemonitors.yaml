@@ -8,7 +8,7 @@ spec:
       port: wallet-provider-health-http
   namespaceSelector:
     matchNames:
-      - {{K8S_NAMESPACE}}
+      - $K8S_NAMESPACE
   selector:
     matchLabels:
       service: wallet-provider

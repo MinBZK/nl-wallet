@@ -1,1 +1,12 @@
+# Used to sign JWT's sent from wallet_provider to wallet
 signing_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
+
+[database]
+host = "localhost"
+username = "postgres"
+password = "postgres"
+name = "wallet_provider"
+
+[webserver]
+ip = "0.0.0.0"
+port = 3000

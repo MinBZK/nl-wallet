@@ -1,0 +1,13 @@
+[package]
+name = "wallet_provider_domain"
+version.workspace = true
+edition.workspace = true
+
+[features]
+stub = []
+
+[dependencies]
+async-trait.workspace = true
+serde = { workspace = true, features = ["std", "derive"] }
+thiserror.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }

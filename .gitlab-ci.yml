@@ -27,7 +27,7 @@ stages:
 .deploy-sp:
   extends: .env-sp
   dependencies: [ ]
-  image: $HARBOR_REGISTRY/$DOCKER_HUB_PROXY/bitnami/kubectl@sha256:ebace7799e1fcf6abc4080c7026d1c549310b2d4c6a37a1937773d5fd9d559b7 # 1.23.15
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:0f89f392d517649775d0e55b4ad2e1c89248a28686e0e033eeb8f957a6a96b6a"
   resource_group: testcluster
   environment:
     action: start
@@ -107,7 +107,7 @@ test-rust:
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Rust formatting results in different files!"; exit 1; fi
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
-    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings    
+    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     # Run tests, generate code coverage reports
     - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
     - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path coverage.xml)
@@ -118,6 +118,30 @@ test-rust:
         coverage_format: cobertura
     paths:
       - wallet_core/lcov.info
+
+integration-test-rust-wp:
+  stage: test
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
+  variables:
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    POSTGRES_DB: "wallet_provider"
+    POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    WALLET_PROVIDER_DATABASE__HOST: "postgres"
+  services:
+    - name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
+      alias: postgres
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    - cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- up
+    - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
+  artifacts:
+    paths:
+      - wallet_core/lcov_integration.info
 
 test-rust-compilation-android-linux:
   stage: test
@@ -199,12 +223,15 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
+    - job: integration-test-rust-wp
+      artifacts: true
   before_script:
     - cd wallet_core
   script:
     - sonar-scanner
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
+      -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
 
 sonar-flutter:
   stage: test
@@ -268,9 +295,23 @@ build-wp-image:
   script:
     - /kaniko/executor
       --context wallet_core
+      --dockerfile wallet_core/wallet_provider/Dockerfile
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
+build-wp-migrations-image:
+  extends: .kaniko
+  stage: build
+  rules: !reference [ .default-branch, rules ]
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/wallet_provider/db_migrations.Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider-migrations:$CI_COMMIT_SHORT_SHA
       --cache=true
 
 build-android-app:
@@ -386,6 +427,19 @@ upload-browserstack-ios-app:
     - bundle install
     - bundle exec fastlane ios ci_browserstack
 
+run-wallet-provider-migrations:
+  extends: .deploy-sp
+  stage: deploy
+  rules: !reference [ .default-branch, rules ]
+  when: manual
+  needs:
+    - build-wp-migrations-image
+  variables:
+    WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider-migrations:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < kubernetes/wallet-provider-migration-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=wallet-provider-migrations
+
 deploy-wallet-provider:
   extends: .deploy-sp
   stage: deploy
@@ -393,20 +447,15 @@ deploy-wallet-provider:
   when: manual
   needs:
     - build-wp-image
+    - run-wallet-provider-migrations
+  variables:
+    WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
   script:
-    - cat kubernetes/servicemonitors.yaml
-      | sed "s;{{K8S_NAMESPACE}};${K8S_NAMESPACE};g"
-      | kubectl apply -f -
-    - cat kubernetes/wallet-provider-configmap.yaml | kubectl apply -f -
-    - cat kubernetes/wallet-provider-deployment.yaml
-      | sed "s;{{WALLET_PROVIDER_IMAGE}};${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA};g"
-      | kubectl apply -f -
-    - cat kubernetes/wallet-provider-ingress.yaml
-      | sed "s;{{INTERNAL_HOSTNAME}};${WALLET_PROVIDER_INTERNAL_HOSTNAME};g"
-      | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g"
-      | sed "s;{{EXTERNAL_CONTEXT_PATH}};${WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH};g"
-      | kubectl apply -f -
-    - cat kubernetes/wallet-provider-service.yaml | kubectl apply -f -
+    - envsubst < kubernetes/servicemonitors.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/wallet-provider-configmap.yaml
+    - envsubst < kubernetes/wallet-provider-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/wallet-provider-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/wallet-provider-service.yaml
     - kubectl rollout status deployment/wallet-provider
 
 deploy-wallet-provider-staging-cert:
@@ -415,8 +464,8 @@ deploy-wallet-provider-staging-cert:
   rules:
     - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
   script:
-    - cat kubernetes/stage/cert.yaml | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g" | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/stage/cert.yaml
+    - envsubst < kubernetes/certificates/stage/cert.yaml | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/stage/cert.yaml
 
 deploy-wallet-provider-live-cert:
   extends: .deploy-sp
@@ -424,8 +473,8 @@ deploy-wallet-provider-live-cert:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
   script:
-    - cat kubernetes/live/cert.yaml | sed "s;{{EXTERNAL_HOSTNAME}};${WALLET_PROVIDER_EXTERNAL_HOSTNAME};g" | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/live/cert.yaml
+    - envsubst < kubernetes/certificates/live/cert.yaml | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/cert.yaml
 
 run-automation-tests:
   extends: .env-sp

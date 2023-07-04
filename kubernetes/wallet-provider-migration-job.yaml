@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wallet-provider-migrations-$CI_COMMIT_SHORT_SHA
+  labels:
+    app: wallet-provider-migrations
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        tier: zeer-vertrouwd
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: wallet-provider-migrations
+          image: $WALLET_PROVIDER_MIGRATIONS_IMAGE
+          args: [ "fresh" ]
+          env:
+            - name: WALLET_PROVIDER_DATABASE__HOST
+              value: db-cluster-rw
+            - name: WALLET_PROVIDER_DATABASE__NAME
+              value: wallet_provider
+            - name: WALLET_PROVIDER_DATABASE__USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: username
+            - name: WALLET_PROVIDER_DATABASE__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: password
+            - name: WALLET_PROVIDER_SIGNING_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-provider-signing-key
+                  key: private
+      restartPolicy: Never

@@ -5,7 +5,10 @@ use wallet_common::account::{
     auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
-use wallet_provider::account_server::{stub, AccountServer};
+use wallet_provider::{
+    stub::{self, TestDeps},
+    AccountServer,
+};
 
 use super::{AccountServerClient, AccountServerClientError};
 
@@ -28,6 +31,8 @@ impl AccountServerClient for AccountServer {
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError> {
-        AccountServer::register(self, registration_message).map_err(|e| AccountServerClientError::Other(e.into()))
+        AccountServer::register(self, &TestDeps, registration_message)
+            .await
+            .map_err(|e| AccountServerClientError::Other(e.into()))
     }
 }
