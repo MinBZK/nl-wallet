@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_constants.dart';
 import '../card/overview/card_overview_screen.dart';
 import '../menu/menu_screen.dart';
 import '../qr/qr_screen.dart';
@@ -50,15 +51,29 @@ class HomeScreen extends StatelessWidget {
       BottomNavigationBarItem(icon: const Icon(Icons.menu), label: context.l10n.homeScreenBottomNavBarMenuCta),
     ];
 
+    final indicatorWidth = MediaQuery.of(context).size.width / items.length;
+    const indicatorHeight = 2.0;
+
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
-        return BottomNavigationBar(
-          currentIndex: state.tab.index,
-          onTap: (value) {
-            final homeTab = HomeTab.values[value];
-            context.read<HomeBloc>().add(HomeTabPressed(homeTab));
-          },
-          items: items,
+        return Stack(
+          children: [
+            BottomNavigationBar(
+              currentIndex: state.tab.index,
+              onTap: (value) {
+                final homeTab = HomeTab.values[value];
+                context.read<HomeBloc>().add(HomeTabPressed(homeTab));
+              },
+              items: items,
+            ),
+            AnimatedPositioned(
+              height: indicatorHeight,
+              width: indicatorWidth,
+              left: indicatorWidth * state.tab.index,
+              duration: kDefaultAnimationDuration,
+              child: Container(color: context.colorScheme.primary),
+            ),
+          ],
         );
       },
     );

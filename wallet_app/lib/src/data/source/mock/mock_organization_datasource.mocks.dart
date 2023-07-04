@@ -35,9 +35,9 @@ const kMonkeyBikeId = 'monkey_bike';
 const _kRvigOrganization = Organization(
   id: kRvigId,
   name: 'Rijksdienst voor Identiteitsgegevens',
-  shortName: 'RvIG',
+  shortName: 'Rijksdienst voor Identiteitsgegevens',
   category: 'Overheid',
-  description: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
+  description: 'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
   logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
 );
 
