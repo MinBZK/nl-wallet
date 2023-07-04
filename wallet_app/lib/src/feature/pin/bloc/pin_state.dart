@@ -7,10 +7,15 @@ sealed class PinState extends Equatable {
 class PinEntryInProgress extends PinState {
   final int enteredDigits;
 
-  const PinEntryInProgress(this.enteredDigits);
+  final bool afterBackspacePressed;
+
+  const PinEntryInProgress(
+    this.enteredDigits, {
+    this.afterBackspacePressed = false,
+  });
 
   @override
-  List<Object> get props => [enteredDigits];
+  List<Object> get props => [enteredDigits, afterBackspacePressed];
 }
 
 class PinValidateInProgress extends PinState {

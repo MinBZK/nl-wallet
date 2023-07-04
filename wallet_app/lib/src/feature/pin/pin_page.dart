@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
@@ -36,7 +37,17 @@ class PinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) {
-        if (state is PinValidateSuccess) onPinValidated?.call();
+        if (state is PinEntryInProgress) {
+          if (state.afterBackspacePressed) {
+            announceEnteredDigits(context, state.enteredDigits);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            announceEnteredDigits(context, state.enteredDigits);
+          }
+        }
+        if (state is PinValidateSuccess) {
+          SemanticsService.announce(context.l10n.pinScreenWCAGPinOkWalletUnlockedAnnouncement, TextDirection.ltr);
+          onPinValidated?.call();
+        }
         if (state is PinValidateServerError) {
           ErrorScreen.showGeneric(context, secured: false);
         }
@@ -243,5 +254,12 @@ class PinPage extends StatelessWidget {
     if (state is PinValidateInProgress) return PinFieldState.loading;
     if (state is PinValidateFailure) return PinFieldState.error;
     return PinFieldState.idle;
+  }
+
+  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+    SemanticsService.announce(
+      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      TextDirection.ltr,
+    );
   }
 }

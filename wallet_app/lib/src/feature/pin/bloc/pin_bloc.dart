@@ -9,7 +9,6 @@ import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
 part 'pin_event.dart';
-
 part 'pin_state.dart';
 
 class PinBloc extends Bloc<PinEvent, PinState> {
@@ -35,7 +34,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
 
   FutureOr<void> _onRemoveDigitEvent(event, emit) {
     _currentPin = _currentPin.removeLastChar;
-    emit(PinEntryInProgress(_currentPin.length));
+    emit(PinEntryInProgress(_currentPin.length, afterBackspacePressed: true));
   }
 
   Future<void> _validatePin(Emitter<PinState> emit) async {
