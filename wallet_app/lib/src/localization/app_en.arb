@@ -563,6 +563,7 @@
   "pinScreenForgotPinCta": "Forgot code?",
   "pinScreenHeader": "Enter your pin",
   "pinScreenTitle": "Login",
+  "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Pin correct, wallet is unlocked",
   "pinTimeoutScreenForgotPinCta": "Forgot code?",
   "pinTimeoutScreenHeadline": "Temporarily blocked",
   "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",

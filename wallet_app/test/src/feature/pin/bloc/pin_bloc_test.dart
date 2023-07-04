@@ -59,8 +59,8 @@ void main() {
       expect: () => [
         const PinEntryInProgress(1),
         const PinEntryInProgress(2),
-        const PinEntryInProgress(1),
-        const PinEntryInProgress(0),
+        const PinEntryInProgress(1, afterBackspacePressed: true),
+        const PinEntryInProgress(0, afterBackspacePressed: true),
       ],
     );
   });

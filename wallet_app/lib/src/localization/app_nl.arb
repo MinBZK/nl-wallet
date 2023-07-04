@@ -563,6 +563,7 @@
   "pinScreenForgotPinCta": "Code vergeten?",
   "pinScreenHeader": "Vul je toegangscode in",
   "pinScreenTitle": "Inloggen",
+  "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Toegangscode correct, wallet is ontgrendeld",
   "pinTimeoutScreenForgotPinCta": "Code vergeten?",
   "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
   "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
