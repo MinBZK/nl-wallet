@@ -7,33 +7,26 @@ variables:
     value: "false"
     description: "Try to renew the wallet_provider server certificate from the Let's encrypt live environment."
 
-stages:
-  - test
-  - build
-  - deploy
-
-.docker-sp:
+.env:
   environment:
     name: ${K8S_CLUSTER}
     action: prepare
 
-.env-sp:
+.env-k8s:
+  extends: .env
   environment:
-    action: prepare
-    name: ${K8S_CLUSTER}
     kubernetes:
       namespace: ${K8S_NAMESPACE}
 
-.deploy-sp:
-  extends: .env-sp
-  dependencies: [ ]
+.deploy-k8s:
+  extends: .env-k8s
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:0f89f392d517649775d0e55b4ad2e1c89248a28686e0e033eeb8f957a6a96b6a"
   resource_group: testcluster
   environment:
     action: start
 
 .kaniko:
-  extends: .docker-sp
+  extends: .env
   before_script:
     - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
   image:
@@ -41,7 +34,6 @@ stages:
     entrypoint: [ "" ]
 
 .default-sonar:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
@@ -64,7 +56,6 @@ stages:
 
 # Working directory is 'wallet_app' directory
 test-flutter:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:9bf7a0aa104327f5b45916d4fd2b91ad1f2cd88556c83b5d16b42de95681d188"
@@ -79,7 +70,6 @@ test-flutter:
       - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
 
 test-flutter-ui:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   when: manual
   tags:
@@ -95,7 +85,6 @@ test-flutter-ui:
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
 test-rust:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
@@ -120,7 +109,6 @@ test-rust:
       - wallet_core/lcov.info
 
 integration-test-rust-wp:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
@@ -144,7 +132,6 @@ integration-test-rust-wp:
       - wallet_core/lcov_integration.info
 
 test-rust-compilation-android-linux:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:03c85d08bb17f336ad1142a9ea2e60c110b3592a2d1494357a38b634925a4596"
@@ -153,7 +140,6 @@ test-rust-compilation-android-linux:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
 
 test-rust-compilation-ios:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   when: manual
   tags:
@@ -162,7 +148,6 @@ test-rust-compilation-ios:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --target aarch64-apple-ios --release
 
 test-ios:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   when: manual
   tags:
@@ -180,7 +165,6 @@ test-ios:
     - bundle exec fastlane ios test
 
 dependency-check:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:88a6ff08245ccee24e4625fc19533985ebc745223a600e193b5e9b0c946f2c8b"
@@ -204,7 +188,6 @@ dependency-check:
       - $CI_PROJECT_DIR/dependency_check_data
 
 dependency-check-rust:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
@@ -234,7 +217,6 @@ sonar-rust:
       -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
 
 sonar-flutter:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   needs:
     - job: test-flutter
@@ -275,7 +257,6 @@ sonar-android:
       -Dsonar.findbugs.allowuncompiledcode=true
 
 test-codegen:
-  stage: test
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:639bc24a25b66be0f98f530782330a1ff5773cdbeeb39efd852f6023d3873175"
@@ -290,8 +271,14 @@ test-codegen:
 
 build-wp-image:
   extends: .kaniko
-  stage: build
   rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: integration-test-rust-wp
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
   script:
     - /kaniko/executor
       --context wallet_core
@@ -303,8 +290,14 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  stage: build
   rules: !reference [ .default-branch, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: integration-test-rust-wp
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
   script:
     - /kaniko/executor
       --context wallet_core
@@ -315,9 +308,17 @@ build-wp-migrations-image:
       --cache=true
 
 build-android-app:
-  extends: .env-sp
-  stage: build
+  extends: .env-k8s
   rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-flutter
+      artifacts: false
+    - job: test-codegen
+      artifacts: false
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:03c85d08bb17f336ad1142a9ea2e60c110b3592a2d1494357a38b634925a4596"
   artifacts:
@@ -334,49 +335,21 @@ build-android-app:
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
 
-deploy-android-app:
-  extends: .env-sp
-  stage: deploy
-  rules: !reference [ .default-or-release, rules ]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-  needs:
-    - job: build-android-app
-      artifacts: true
-  dependencies:
-    - build-android-app
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
-  script:
-    - bundle install
-    - bundle exec fastlane android ci_deploy
-
-upload-browserstack-android-app:
-  extends: .env-sp
-  stage: deploy
-  rules: !reference [ .default-branch, rules ]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-  needs:
-    - job: build-android-app
-      artifacts: true
-  dependencies:
-    - build-android-app
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
-  script:
-    - bundle install
-    - bundle exec fastlane android ci_browserstack
-
 build-ios-app:
-  extends: .env-sp
-  stage: build
+  extends: .env-k8s
   rules: !reference [ .default-or-release, rules ]
   when: manual
+  needs:
+    - job: test-flutter
+      artifacts: false
+    - job: test-codegen
+      artifacts: false
+    - job: test-rust
+      artifacts: false
+    - job: test-ios
+      artifacts: false
+    - job: test-rust-compilation-ios
+      artifacts: false
   tags:
     - macos
   artifacts:
@@ -390,15 +363,52 @@ build-ios-app:
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
 
+deploy-android-app:
+  extends: .env-k8s
+  rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: build-android-app
+      artifacts: true
+  # needs:
+  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
+  #     artifacts: false
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane android ci_deploy
+
+upload-browserstack-android-app:
+  extends: .env-k8s
+  rules: !reference [ .default-branch, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+  needs:
+    - job: build-android-app
+      artifacts: true
+  # needs:
+  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
+  #     artifacts: false
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane android ci_browserstack
+
 deploy-ios-app:
-  extends: .env-sp
-  stage: deploy
+  extends: .env-k8s
   rules: !reference [ .default-or-release, rules ]
   needs:
     - job: build-ios-app
       artifacts: true
-  dependencies:
-    - build-ios-app
+    - job: build-android-app # only deploy apps when both apps have been built successfully
+      artifacts: false
   tags:
     - macos
   variables:
@@ -409,16 +419,15 @@ deploy-ios-app:
     - bundle exec fastlane ios ci_deploy
 
 upload-browserstack-ios-app:
-  extends: .env-sp
-  stage: deploy
+  extends: .env-k8s
   rules: !reference [ .default-branch, rules ]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   needs:
     - job: build-ios-app
       artifacts: true
-  dependencies:
-    - build-ios-app
+    - job: build-android-app # only deploy apps when both apps have been built successfully
+      artifacts: false
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -428,12 +437,12 @@ upload-browserstack-ios-app:
     - bundle exec fastlane ios ci_browserstack
 
 run-wallet-provider-migrations:
-  extends: .deploy-sp
-  stage: deploy
+  extends: .deploy-k8s
   rules: !reference [ .default-branch, rules ]
   when: manual
   needs:
-    - build-wp-migrations-image
+    - job: build-wp-migrations-image
+      artifacts: false
   variables:
     WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider-migrations:${CI_COMMIT_SHORT_SHA}
   script:
@@ -441,13 +450,13 @@ run-wallet-provider-migrations:
     - kubectl wait --for=condition=complete --timeout=300s job -l app=wallet-provider-migrations
 
 deploy-wallet-provider:
-  extends: .deploy-sp
-  stage: deploy
+  extends: .deploy-k8s
   rules: !reference [ .default-branch, rules ]
-  when: manual
   needs:
-    - build-wp-image
-    - run-wallet-provider-migrations
+    - job: build-wp-image
+      artifacts: false
+    - job: run-wallet-provider-migrations
+      artifacts: false
   variables:
     WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
   script:
@@ -459,8 +468,7 @@ deploy-wallet-provider:
     - kubectl rollout status deployment/wallet-provider
 
 deploy-wallet-provider-staging-cert:
-  extends: .deploy-sp
-  stage: deploy
+  extends: .deploy-k8s
   rules:
     - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
   script:
@@ -468,8 +476,7 @@ deploy-wallet-provider-staging-cert:
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/stage/cert.yaml
 
 deploy-wallet-provider-live-cert:
-  extends: .deploy-sp
-  stage: deploy
+  extends: .deploy-k8s
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
   script:
@@ -477,8 +484,7 @@ deploy-wallet-provider-live-cert:
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/cert.yaml
 
 run-automation-tests:
-  extends: .env-sp
-  stage: test
+  extends: .env-k8s
   rules:
     - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
