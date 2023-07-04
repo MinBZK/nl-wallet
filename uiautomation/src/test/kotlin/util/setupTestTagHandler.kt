@@ -13,7 +13,7 @@ class setupTestTagHandler {
 
         var language: String = ""
         var locale: String = ""
-        private var platformName = ""
+        var platformName = ""
 
         fun handleTestTags(testInfo: TestInfo) {
             platformName = when (testDataConfig.remoteOrLocal) {
