@@ -3441,6 +3441,7 @@ dependencies = [
  "axum-test-helper",
  "base64 0.21.0",
  "config",
+ "once_cell",
  "p256",
  "platform_support",
  "sea-orm",

@@ -58,3 +58,4 @@ sea-orm = { workspace = true, features = [
 
 axum-test-helper.workspace = true
 url.workspace = true
+once_cell.workspace = true

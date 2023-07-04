@@ -8,10 +8,10 @@ use wallet_common::account::auth::Registration;
 
 pub use crate::{
     account_server::{AccountServerClient, AccountServerClientError},
+    config::{Configuration, ConfigurationRepository},
     storage::Storage,
 };
 use crate::{
-    config::{Configuration, ConfigurationRepository},
     lock::WalletLock,
     pin::{
         key::{new_pin_salt, PinKey},
