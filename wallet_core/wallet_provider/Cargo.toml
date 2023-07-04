@@ -26,7 +26,13 @@ wallet_provider_service = { path = "service" }
 wallet_common = { path = "../wallet_common" }
 
 async-trait.workspace = true
-axum.workspace = true
+axum = { workspace = true, features = [
+    "http1",
+    "json",
+    "tokio",
+    "tower-log",
+    "tracing",
+] }
 base64.workspace = true
 config.workspace = true
 p256.workspace = true
