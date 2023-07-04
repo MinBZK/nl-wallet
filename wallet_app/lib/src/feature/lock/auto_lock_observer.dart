@@ -50,9 +50,8 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   void _setupNoInteractionListener() {
     _inactiveSubscription?.cancel();
-    _inactiveSubscription = _userInteractionStream
-        .debounceTime(widget.configuration.idleLockTimeout)
-        .listen((event) => _lockWallet());
+    _inactiveSubscription =
+        _userInteractionStream.debounceTime(widget.configuration.idleLockTimeout).listen((event) => _lockWallet());
   }
 
   @override

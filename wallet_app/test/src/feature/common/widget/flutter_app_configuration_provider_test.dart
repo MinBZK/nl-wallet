@@ -11,7 +11,7 @@ void main() {
 
   testWidgets(
     'verify builder is called when a config is available',
-        (tester) async {
+    (tester) async {
       bool called = false;
       await tester.pumpWidget(
         FlutterAppConfigurationProvider(

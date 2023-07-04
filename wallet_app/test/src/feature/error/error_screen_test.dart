@@ -44,17 +44,17 @@ void main() {
 
   testWidgets('ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: ErrorScreen(
-            title: 'T',
-            description: 'D',
-            headline: 'H',
-            primaryActionText: 'P',
-            onPrimaryActionPressed: () {},
-            secondaryActionText: 'S',
-            onSecondaryActionPressed: () {},
-          ),
+      WalletAppTestWidget(
+        child: ErrorScreen(
+          title: 'T',
+          description: 'D',
+          headline: 'H',
+          primaryActionText: 'P',
+          onPrimaryActionPressed: () {},
+          secondaryActionText: 'S',
+          onSecondaryActionPressed: () {},
         ),
+      ),
     );
 
     // Setup finders
