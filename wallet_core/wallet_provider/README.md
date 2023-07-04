@@ -65,3 +65,14 @@ Encode the private key to pkcs8 format:
 ```bash
 openssl pkcs8 -topk8 -nocrypt -in private.ec.key -out private.pem
 ```
+
+## Running the server & retrieving the public key
+
+During local development, the Wallet Provider can be run with the following command:
+
+```bash
+RUST_LOG=debug cargo run --bin wallet_provider
+```
+
+If the log level is at least debug (as above), it will output the public key that is derived from the private key on the first line.
+This can then be used in development of the Wallet app.
