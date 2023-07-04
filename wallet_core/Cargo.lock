@@ -3487,6 +3487,7 @@ dependencies = [
  "sea-orm",
  "serial_test",
  "tokio",
+ "tracing",
  "uuid",
  "wallet_provider_domain",
 ]
