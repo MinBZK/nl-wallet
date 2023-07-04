@@ -36,8 +36,9 @@ axum = { workspace = true, features = [
 base64.workspace = true
 config.workspace = true
 p256.workspace = true
-serde = { workspace = true, features = ["derive"] }
 sea-orm-migration = { workspace = true, features = ["cli"], optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",

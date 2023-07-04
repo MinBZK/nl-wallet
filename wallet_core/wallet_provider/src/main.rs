@@ -1,5 +1,6 @@
 mod app;
 mod app_dependencies;
+mod errors;
 mod settings;
 
 use std::error::Error;
