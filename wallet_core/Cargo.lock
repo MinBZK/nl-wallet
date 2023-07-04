@@ -260,6 +260,7 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -277,6 +278,7 @@ dependencies = [
  "rustversion",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -3446,6 +3448,7 @@ dependencies = [
  "sea-orm",
  "sea-orm-migration",
  "serde",
+ "serde_json",
  "tokio",
  "tower-http",
  "tracing",
@@ -3485,6 +3488,7 @@ dependencies = [
  "sea-orm",
  "serial_test",
  "tokio",
+ "tracing",
  "uuid",
  "wallet_provider_domain",
 ]

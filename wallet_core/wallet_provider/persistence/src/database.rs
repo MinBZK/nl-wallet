@@ -1,8 +1,13 @@
-use sea_orm::{Database, DatabaseConnection};
+use std::time::Duration;
+
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use tracing::log::LevelFilter;
 
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::postgres::connection_string;
+
+const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub trait PersistenceConnection<T> {
     fn connection(&self) -> &T;
@@ -17,7 +22,11 @@ impl Db {
         username: Option<&str>,
         password: Option<&str>,
     ) -> Result<Db, PersistenceError> {
-        let db = Database::connect(connection_string(host, db_name, username, password))
+        let mut connection_options = ConnectOptions::new(connection_string(host, db_name, username, password));
+        connection_options.connect_timeout(DB_CONNECT_TIMEOUT);
+        connection_options.sqlx_logging_level(LevelFilter::Trace);
+
+        let db = Database::connect(connection_options)
             .await
             .map_err(|e| PersistenceError::Connection(e.into()))?;
 
