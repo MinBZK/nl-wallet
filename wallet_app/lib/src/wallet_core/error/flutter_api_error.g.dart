@@ -6,14 +6,12 @@ part of 'flutter_api_error.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-FlutterApiError _$FlutterApiErrorFromJson(Map<String, dynamic> json) =>
-    FlutterApiError(
+FlutterApiError _$FlutterApiErrorFromJson(Map<String, dynamic> json) => FlutterApiError(
       type: $enumDecode(_$FlutterApiErrorTypeEnumMap, json['type']),
       description: json['description'] as String?,
     );
 
-Map<String, dynamic> _$FlutterApiErrorToJson(FlutterApiError instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$FlutterApiErrorToJson(FlutterApiError instance) => <String, dynamic>{
       'type': _$FlutterApiErrorTypeEnumMap[instance.type]!,
       'description': instance.description,
     };

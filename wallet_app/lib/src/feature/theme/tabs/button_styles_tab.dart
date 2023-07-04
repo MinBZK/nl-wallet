@@ -47,7 +47,7 @@ class ButtonStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'BottomBackButton'),
         const BottomBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
-        ConfirmButtons(onDeclinePressed: (){}, onAcceptPressed: (){}, acceptText: 'Accept', declineText: 'Decline'),
+        ConfirmButtons(onDeclinePressed: () {}, onAcceptPressed: () {}, acceptText: 'Accept', declineText: 'Decline'),
       ],
     );
   }

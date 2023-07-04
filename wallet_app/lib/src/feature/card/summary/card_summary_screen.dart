@@ -56,7 +56,7 @@ class CardSummaryScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return BlocBuilder<CardSummaryBloc, CardSummaryState>(
       builder: (context, state) {
-        return switch(state){
+        return switch (state) {
           CardSummaryInitial() => _buildLoading(),
           CardSummaryLoadInProgress() => _buildLoading(),
           CardSummaryLoadSuccess() => _buildSummary(context, state.summary),

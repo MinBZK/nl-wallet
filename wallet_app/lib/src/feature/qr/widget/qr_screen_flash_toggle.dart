@@ -16,16 +16,16 @@ class QrScreenFlashToggle extends StatelessWidget {
       opacity: ReverseAnimation(DefaultTabController.of(context).animation!),
       child: BlocBuilder<FlashlightCubit, FlashlightState>(
         builder: (context, state) {
-          return switch(state){
+          return switch (state) {
             FlashlightInitial() => const SizedBox.shrink(),
             FlashlightToggled() => const IconButton(
-              icon: Icon(Icons.flashlight_on),
-              onPressed: null,
-            ),
+                icon: Icon(Icons.flashlight_on),
+                onPressed: null,
+              ),
             FlashlightSuccess() => IconButton(
-              icon: Icon(state.on ? Icons.flashlight_off : Icons.flashlight_on),
-              onPressed: () => context.read<FlashlightCubit>().toggle(),
-            ),
+                icon: Icon(state.on ? Icons.flashlight_off : Icons.flashlight_on),
+                onPressed: () => context.read<FlashlightCubit>().toggle(),
+              ),
           };
         },
       ),

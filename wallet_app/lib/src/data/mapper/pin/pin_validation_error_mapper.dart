@@ -7,7 +7,7 @@ class PinValidationErrorMapper extends Mapper<PinValidationResult, PinValidation
   PinValidationError? map(PinValidationResult input) {
     switch (input) {
       case PinValidationResult.Ok:
-          return null;
+        return null;
       case PinValidationResult.TooFewUniqueDigits:
         return PinValidationError.tooFewUniqueDigits;
       case PinValidationResult.SequentialDigits:
