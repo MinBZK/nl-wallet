@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: {{INTERNAL_HOSTNAME}}
+    - host: $WALLET_PROVIDER_INTERNAL_HOSTNAME
       http:
         paths:
           - backend:
@@ -16,7 +16,7 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - {{INTERNAL_HOSTNAME}}
+        - $WALLET_PROVIDER_INTERNAL_HOSTNAME
       secretName: wildcard-tls
 ---
 apiVersion: networking.k8s.io/v1
@@ -28,7 +28,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: {{EXTERNAL_HOSTNAME}}
+    - host: $WALLET_PROVIDER_EXTERNAL_HOSTNAME
       http:
         paths:
           - backend:
@@ -36,9 +36,9 @@ spec:
                 name: wallet-provider
                 port:
                   number: 3000
-            path: /{{EXTERNAL_CONTEXT_PATH}}/(.+)
+            path: /$WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH/(.+)
             pathType: Prefix
   tls:
     - hosts:
-        - {{EXTERNAL_HOSTNAME}}
+        - $WALLET_PROVIDER_EXTERNAL_HOSTNAME
       secretName: nl-wallet-letsencrypt-live-cert

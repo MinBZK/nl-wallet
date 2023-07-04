@@ -9,22 +9,29 @@ rust-version.workspace = true
 [[bin]]
 name = "wallet_provider"
 
+[[bin]]
+name = "wallet_provider_migrations"
+required-features = ["wallet_provider_migrations"]
+
 [features]
-stub = []
+stub = ["wallet_provider_service/stub"]
+wallet_provider_migrations = ["dep:sea-orm-migration"]
+db_test = []
 
 [dependencies]
+wallet_provider_domain = { path = "domain" }
+wallet_provider_migration = { path = "migration" }
+wallet_provider_persistence = { path = "persistence" }
+wallet_provider_service = { path = "service" }
 wallet_common = { path = "../wallet_common" }
-axum = { workspace = true }
+
+async-trait.workspace = true
+axum.workspace = true
 base64.workspace = true
 config.workspace = true
-der = { workspace = true, features = ["alloc"] }
-jsonwebtoken.workspace = true
-p256 = { workspace = true, features = ["pem"] }
-pkcs8 = { workspace = true, features = ["std"] }
-rand.workspace = true
-serde = { workspace = true, features = ["serde_derive"] }
-sha2.workspace = true
-thiserror.workspace = true
+p256.workspace = true
+serde = { workspace = true, features = ["derive"] }
+sea-orm-migration = { workspace = true, features = ["cli"], optional = true }
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",
@@ -36,15 +43,17 @@ tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "parking_lot",
 ] }
+uuid = { workspace = true, features = ["serde", "v4"] }
 
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = ["mock"] }
-wallet_common = { path = "../wallet_common", features = ["mock"] }
-# stub feature is required for integration tests
-wallet_provider = { path = "../wallet_provider", features = ["stub"] }
-anyhow.workspace = true
-async-trait.workspace = true
+sea-orm = { workspace = true, features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-uuid",
+] }
+
 axum-test-helper.workspace = true
-once_cell.workspace = true
 url.workspace = true

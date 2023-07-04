@@ -4,7 +4,7 @@ metadata:
   name: nl-wallet-letsencrypt-staging-cert
 spec:
   dnsNames:
-    - {{EXTERNAL_HOSTNAME}} # Can also be a wildcard
+    - $WALLET_PROVIDER_EXTERNAL_HOSTNAME # Can also be a wildcard
   issuerRef:
     name: nl-wallet-letsencrypt-staging-issuer # Reference to earlier deployed Issuer
     kind: Issuer

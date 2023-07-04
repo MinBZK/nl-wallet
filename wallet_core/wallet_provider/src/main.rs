@@ -1,42 +1,37 @@
-mod account_server;
 mod app;
+mod app_dependencies;
 mod settings;
 
+use std::error::Error;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 
-use wallet_common::utils::random_bytes;
-
-use crate::account_server::AccountServer;
+use crate::{app_dependencies::AppDependencies, settings::Settings};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
-    let settings = settings::Settings::new().unwrap();
-
-    let account_server_privkey = settings.signing_private_key;
-
-    let account_server = AccountServer::new(
-        account_server_privkey.0.clone(),
-        random_bytes(32),
-        "account_server".into(),
-    )
-    .unwrap();
+    let settings = Settings::new()?;
+    let (ip, port) = (settings.webserver.ip, settings.webserver.port);
 
     dbg!(STANDARD.encode(
-        SigningKey::from_pkcs8_der(&account_server_privkey.0)
+        SigningKey::from_pkcs8_der(&settings.signing_private_key.0)
             .unwrap()
             .verifying_key()
             .to_encoded_point(false)
             .as_bytes()
     ));
 
-    let app = app::router(account_server);
+    let app = app::router(Arc::new(AppDependencies::new_from_settings(settings).await?));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    tracing::debug!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+    let socket = SocketAddr::new(ip, port);
+    tracing::debug!("listening on {}", socket);
+
+    axum::Server::bind(&socket).serve(app.into_make_service()).await?;
+
+    Ok(())
 }

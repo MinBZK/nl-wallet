@@ -1,0 +1,26 @@
+[package]
+name = "wallet_provider_persistence"
+version.workspace = true
+edition.workspace = true
+
+[features]
+db_test = []
+
+[dependencies]
+wallet_provider_domain = { path = "../domain" }
+
+async-trait.workspace = true
+sea-orm = { workspace = true, features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "with-uuid",
+] }
+serial_test = { workspace = true, optional = true }
+tokio.workspace = true
+uuid = { workspace = true, features = ["v4"], optional = true }
+
+[dev-dependencies]
+serial_test.workspace = true
+tokio = { workspace = true, features = ["macros", "parking_lot"] }
+uuid.workspace = true

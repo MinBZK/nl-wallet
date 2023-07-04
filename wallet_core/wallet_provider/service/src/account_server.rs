@@ -4,6 +4,7 @@ use p256::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
+use uuid::Uuid;
 
 use wallet_common::{
     account::{
@@ -14,6 +15,8 @@ use wallet_common::{
     },
     utils::{random_bytes, random_string},
 };
+use wallet_provider_domain::repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository};
+use wallet_provider_domain::{generator::Generator, model::wallet_user::WalletUserCreate};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {
@@ -46,6 +49,8 @@ pub enum RegistrationError {
     PinPubKeyEncoding(#[from] der::Error),
     #[error("registration JWT signing error: {0}")]
     JwtSigning(#[source] wallet_common::errors::Error),
+    #[error("could not store certificate {0}")]
+    CertificateStorage(#[from] PersistenceError),
 }
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
@@ -118,10 +123,14 @@ impl AccountServer {
             .map_err(RegistrationError::ChallengeValidation)
     }
 
-    pub fn register(
+    pub async fn register<T>(
         &self,
+        deps: &(impl Generator<Uuid> + TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, RegistrationError> {
+    ) -> Result<WalletCertificate, RegistrationError>
+    where
+        T: Committable,
+    {
         // We don't have the public keys yet against which to verify the message, as those are contained within the
         // message (like in X509 certificate requests). So first parse it to grab the public keys from it.
         let unverified = registration_message
@@ -144,9 +153,25 @@ impl AccountServer {
             });
         }
 
-        self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)
+        let tx = deps.begin_transaction().await?;
 
-        // TODO insert into users table
+        deps.create_wallet_user(
+            &tx,
+            WalletUserCreate {
+                id: deps.generate(),
+                wallet_id: wallet_id.clone(),
+                hw_pubkey: serde_json::to_string(&unverified.payload.hw_pubkey).unwrap(),
+            },
+        )
+        .await?;
+
+        let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey);
+
+        if cert_result.is_ok() {
+            tx.commit().await?;
+        }
+
+        cert_result
     }
 
     fn new_wallet_certificate(
@@ -181,14 +206,17 @@ fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
 
 #[cfg(any(test, feature = "stub"))]
 pub mod stub {
-    use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+    use async_trait::async_trait;
+    use p256::pkcs8::EncodePrivateKey;
     use rand::rngs::OsRng;
 
-    use wallet_common::utils::random_bytes;
+    use wallet_provider_domain::{
+        generator::stub::FixedGenerator,
+        repository::{TransactionStarterStub, WalletUserRepositoryStub},
+    };
 
-    use super::AccountServer;
+    use super::*;
 
-    #[allow(dead_code)] // Clippy does not seem to understand that this is used during testing
     pub fn account_server() -> AccountServer {
         let account_server_privkey = SigningKey::random(&mut OsRng);
 
@@ -199,19 +227,48 @@ pub mod stub {
         )
         .unwrap()
     }
+
+    pub struct TestDeps;
+
+    impl Generator<uuid::Uuid> for TestDeps {
+        fn generate(&self) -> Uuid {
+            FixedGenerator.generate()
+        }
+    }
+
+    #[async_trait]
+    impl TransactionStarter for TestDeps {
+        type TransactionType = <TransactionStarterStub as TransactionStarter>::TransactionType;
+
+        async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
+            TransactionStarterStub.begin_transaction().await
+        }
+    }
+
+    #[async_trait]
+    impl WalletUserRepository for TestDeps {
+        type TransactionType = <WalletUserRepositoryStub as WalletUserRepository>::TransactionType;
+
+        async fn create_wallet_user(
+            &self,
+            transaction: &Self::TransactionType,
+            user: WalletUserCreate,
+        ) -> Result<(), PersistenceError> {
+            WalletUserRepositoryStub.create_wallet_user(transaction, user).await
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use rand::rngs::OsRng;
 
-    use super::*;
+    use super::{stub::TestDeps, *};
 
-    #[test]
-    fn test_account_server() {
+    #[tokio::test]
+    async fn test_account_server() {
         // Setup account server
         let account_server = stub::account_server();
-
         // Set up keys
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
@@ -223,7 +280,8 @@ mod tests {
         let registration_message =
             Registration::new_signed(&hw_privkey, &pin_privkey, &challenge).expect("Could not sign new registration");
         let cert = account_server
-            .register(registration_message)
+            .register(&TestDeps, registration_message)
+            .await
             .expect("Could not process registration message at account server");
 
         // Verify the certificate

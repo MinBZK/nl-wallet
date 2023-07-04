@@ -13,5 +13,5 @@ trim_trailing_whitespace = true
 [*.dart]
 indent_size = 2
 
-[*.yml]
+[{*.yml,*.yaml}]
 indent_size = 2
