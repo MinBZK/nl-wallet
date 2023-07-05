@@ -23,7 +23,7 @@ axum = { version = "0.6.12", default-features = false }
 axum-test-helper = "0.2.0"
 backtrace = "0.3.67"
 base64 = "0.21.0"
-config = "0.13.3"
+config = { version = "0.13.3", default-features = false }
 cstr = "0.2.11"
 der = "0.6.1"
 flutter_rust_bridge = "1.70.0"

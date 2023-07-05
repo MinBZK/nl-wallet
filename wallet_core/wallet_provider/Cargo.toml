@@ -34,7 +34,7 @@ axum = { workspace = true, features = [
     "tracing",
 ] }
 base64.workspace = true
-config.workspace = true
+config = { workspace = true, features = ["toml"] }
 p256.workspace = true
 sea-orm-migration = { workspace = true, features = ["cli"], optional = true }
 serde = { workspace = true, features = ["derive"] }

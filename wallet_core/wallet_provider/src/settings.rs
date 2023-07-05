@@ -5,14 +5,14 @@ use serde::Deserialize;
 
 use wallet_common::account::serialization::Base64Bytes;
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Settings {
     pub signing_private_key: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Database {
     pub host: String,
     pub name: String,
@@ -20,7 +20,7 @@ pub struct Database {
     pub password: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Webserver {
     pub ip: IpAddr,
     pub port: u16,
