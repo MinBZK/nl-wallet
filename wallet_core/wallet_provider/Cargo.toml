@@ -17,7 +17,6 @@ required-features = ["wallet_provider_migrations"]
 stub = ["wallet_provider_service/stub"]
 wallet_provider_migrations = ["dep:sea-orm-migration"]
 db_test = []
-http_test = []
 
 [dependencies]
 wallet_provider_domain = { path = "domain" }
@@ -59,3 +58,4 @@ sea-orm = { workspace = true, features = [
 axum-test-helper.workspace = true
 url.workspace = true
 once_cell.workspace = true
+serial_test.workspace = true

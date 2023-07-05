@@ -3,6 +3,7 @@ use std::error::Error;
 use async_trait::async_trait;
 use uuid::Uuid;
 
+use crate::settings::Settings;
 use wallet_common::utils::random_bytes;
 use wallet_provider_domain::{
     generator::Generator,
@@ -15,8 +16,6 @@ use wallet_provider_persistence::{
     wallet_user_repository,
 };
 use wallet_provider_service::account_server::AccountServer;
-
-use crate::settings::Settings;
 
 pub struct AppDependencies {
     pub account_server: AccountServer,

@@ -3447,6 +3447,7 @@ dependencies = [
  "sea-orm",
  "sea-orm-migration",
  "serde",
+ "serial_test",
  "tokio",
  "tower-http",
  "tracing",

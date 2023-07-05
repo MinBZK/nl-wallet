@@ -1,10 +1,17 @@
-use std::{env, sync::Arc};
+use std::net::SocketAddr;
+use std::{
+    net::{IpAddr, TcpListener},
+    str::FromStr,
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use axum_test_helper::TestClient;
+use base64::{engine::general_purpose::STANDARD, Engine};
 use once_cell::sync::Lazy;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
+use serial_test::serial;
 use tokio::sync::OnceCell;
 use url::Url;
 
@@ -18,7 +25,7 @@ use wallet_common::account::{
     jwt::EcdsaDecodingKey,
     signed::SignedDouble,
 };
-use wallet_provider::{app, app_dependencies::AppDependencies, settings::Settings};
+use wallet_provider::{app, app_dependencies::AppDependencies, server, settings::Settings};
 use wallet_provider_persistence::{entity::wallet_user, postgres};
 
 /// A global [`TestClient`] that is only initialized once.
@@ -126,6 +133,23 @@ async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .expect("Could not fetch user count from database")
 }
 
+fn start_wallet_provider() -> SocketAddr {
+    let mut settings = Settings::new().expect("Could not read settings");
+    settings.webserver.ip = IpAddr::from_str("127.0.0.1").expect("Could not parse IP address");
+    settings.webserver.port = 0;
+
+    let listener = TcpListener::bind(SocketAddr::new(settings.webserver.ip, settings.webserver.port))
+        .expect("Could not find TCP port");
+
+    let addr = listener
+        .local_addr()
+        .expect("Could not get local address from TCP listener");
+
+    tokio::spawn(async { server::serve(listener, settings).await.expect("Could not start server") });
+
+    addr
+}
+
 async fn test_wallet_registration<C, A, S, K>(mut wallet: Wallet<C, A, S, K>, conn: &DatabaseConnection)
 where
     C: ConfigurationRepository,
@@ -155,9 +179,23 @@ where
     assert!(wallet.register("112233".to_owned()).await.is_err());
 }
 
+async fn test_wallet_registration_via_http(base_url: Url, public_key: EcdsaDecodingKey) {
+    let connection = database_connection_from_settings(&SETTINGS).await;
+
+    let mut config = MockConfigurationRepository::default();
+    config.0.account_server.base_url = base_url;
+    config.0.account_server.public_key = public_key;
+
+    let wallet: Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> =
+        Wallet::new_without_registration(config);
+
+    test_wallet_registration(wallet, &connection).await;
+}
+
 #[tokio::test]
+#[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_wallet_registration_direct() {
+async fn test_wallet_registration_mocked() {
     let wallet = create_test_wallet().await;
     let connection = database_connection_from_settings(&SETTINGS).await;
 
@@ -165,18 +203,22 @@ async fn test_wallet_registration_direct() {
 }
 
 #[tokio::test]
-#[cfg_attr(not(feature = "http_test"), ignore)]
-async fn test_wallet_registration_via_http() {
-    let connection = database_connection_from_settings(&SETTINGS).await;
-    let public_key = public_key_from_settings(&SETTINGS);
-    let base_url = &env::var("WALLET_PROVIDER_BASE_URL").unwrap_or("http://localhost:3000".to_string());
+#[serial]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn test_wallet_registration_via_http_local() {
+    let addr = start_wallet_provider();
+    let base_url = Url::parse(&format!("http://{}", &addr.to_string())).expect("Could not create url");
+    let pub_key = public_key_from_settings(&SETTINGS);
 
-    let mut config = MockConfigurationRepository::default();
-    config.0.account_server.base_url = Url::parse(base_url).unwrap();
-    config.0.account_server.public_key = public_key;
+    test_wallet_registration_via_http(base_url, pub_key).await;
+}
 
-    let wallet: Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> =
-        Wallet::new_without_registration(config);
+#[tokio::test]
+#[serial]
+#[cfg_attr(not(feature = "live_test"), ignore)]
+async fn test_wallet_registration_via_http_live() {
+    let base_url = Url::parse("http://localhost:3000").unwrap();
+    let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
 
-    test_wallet_registration(wallet, &connection).await;
+    test_wallet_registration_via_http(base_url, pub_key).await;
 }
