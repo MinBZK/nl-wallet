@@ -1,5 +1,4 @@
-use std::net::TcpListener;
-use std::{error::Error, sync::Arc};
+use std::{error::Error, net::TcpListener, sync::Arc};
 
 use crate::{app, app_dependencies::AppDependencies, settings::Settings};
 

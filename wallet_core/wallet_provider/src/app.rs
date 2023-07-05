@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use axum::{
     routing::post,
     {extract::State, http::StatusCode, response::Json, Router},
 };
-use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
 use wallet_common::account::{

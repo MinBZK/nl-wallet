@@ -2,7 +2,7 @@ use sea_orm::{ActiveModelTrait, ActiveValue::Set, ConnectionTrait};
 
 use wallet_provider_domain::{model::wallet_user::WalletUserCreate, repository::PersistenceError};
 
-use crate::{database::PersistenceConnection, entity::wallet_user};
+use crate::{entity::wallet_user, PersistenceConnection};
 
 pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<(), PersistenceError>
 where

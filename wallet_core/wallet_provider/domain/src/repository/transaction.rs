@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::errors::PersistenceError;
+use crate::repository::errors::PersistenceError;
 
 #[async_trait]
 pub trait Committable {

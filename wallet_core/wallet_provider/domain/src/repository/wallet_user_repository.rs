@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 
-use super::{errors::PersistenceError, transaction::Committable};
-use crate::model::wallet_user::WalletUserCreate;
+use crate::{
+    model::wallet_user::WalletUserCreate,
+    repository::{errors::PersistenceError, transaction::Committable},
+};
 
 #[async_trait]
 pub trait WalletUserRepository {
