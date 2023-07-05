@@ -21,7 +21,7 @@ spec:
         tier: vertrouwd
         egress-frontoffice-policy: allow
         ingress-controller-frontoffice-policy: allow
-        db-cluster-policy: allow
+        db-in-zeer-vertrouwd: allow
     spec:
       imagePullSecrets:
         - name: harbor-puller

@@ -1,5 +1,6 @@
 pub mod app;
 pub mod app_dependencies;
+mod errors;
 pub mod server;
 pub mod settings;
 
