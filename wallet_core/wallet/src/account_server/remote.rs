@@ -1,6 +1,12 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
-use reqwest::Client;
-use url::Url;
+use reqwest::{
+    header::{self, HeaderMap, HeaderValue},
+    Client, Request,
+};
+use serde::de::DeserializeOwned;
+use url::{ParseError, Url};
 
 use wallet_common::account::{
     auth::{Certificate, Challenge, Registration, WalletCertificate},
@@ -9,6 +15,8 @@ use wallet_common::account::{
 
 use super::{AccountServerClient, AccountServerClientError};
 
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+
 pub struct RemoteAccountServerClient {
     base_url: Url,
     client: Client,
@@ -16,10 +24,29 @@ pub struct RemoteAccountServerClient {
 
 impl RemoteAccountServerClient {
     fn new(base_url: Url) -> Self {
-        RemoteAccountServerClient {
-            base_url,
-            client: Client::new(),
-        }
+        let client = Client::builder()
+            .timeout(CLIENT_TIMEOUT)
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static("application/json"),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        RemoteAccountServerClient { base_url, client }
+    }
+
+    fn url(&self, path: &str) -> Result<Url, ParseError> {
+        self.base_url.join(path)
+    }
+
+    async fn send_json_request<T>(&self, request: Request) -> Result<T, reqwest::Error>
+    where
+        T: DeserializeOwned,
+    {
+        let body = self.client.execute(request).await?.error_for_status()?.json().await?;
+
+        Ok(body)
     }
 }
 
@@ -33,15 +60,8 @@ impl AccountServerClient for RemoteAccountServerClient {
     }
 
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
-        let challenge = self
-            .client
-            .post(self.base_url.join("enroll")?)
-            .send()
-            .await?
-            .json::<Challenge>()
-            .await?
-            .challenge
-            .0;
+        let request = self.client.post(self.url("enroll")?).build()?;
+        let challenge = self.send_json_request::<Challenge>(request).await?.challenge.0;
 
         Ok(challenge)
     }
@@ -50,16 +70,13 @@ impl AccountServerClient for RemoteAccountServerClient {
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError> {
-        let cert = self
+        let request = self
             .client
-            .post(self.base_url.join("createwallet")?)
+            .post(self.url("createwallet")?)
             .json(&registration_message)
-            .send()
-            .await?
-            .json::<Certificate>()
-            .await?
-            .certificate;
+            .build()?;
+        let certificate = self.send_json_request::<Certificate>(request).await?.certificate;
 
-        Ok(cert)
+        Ok(certificate)
     }
 }
