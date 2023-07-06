@@ -28,7 +28,7 @@ fn public_key_from_settings(settings: &Settings) -> EcdsaDecodingKey {
 }
 
 fn local_base_url(port: u16) -> Url {
-    Url::parse(&format!("http://127.0.0.1:{}", port)).expect("Could not create url")
+    Url::parse(&format!("http://127.0.0.1:{}/api/v1/", port)).expect("Could not create url")
 }
 
 async fn database_connection(settings: &Settings) -> DatabaseConnection {
@@ -122,7 +122,7 @@ async fn test_wallet_registration_in_process() {
 #[tokio::test]
 #[cfg_attr(not(feature = "live_test"), ignore)]
 async fn test_wallet_registration_live() {
-    let base_url = Url::parse("http://localhost:3000").unwrap();
+    let base_url = Url::parse("http://localhost:3000/api/v1").unwrap();
     let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
     let wallet = create_test_wallet(base_url, pub_key).await;
 

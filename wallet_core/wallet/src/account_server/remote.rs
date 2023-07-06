@@ -35,7 +35,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge = self
             .client
-            .post(self.base_url.join("api/v1/enroll")?)
+            .post(self.base_url.join("enroll")?)
             .send()
             .await?
             .json::<Challenge>()
@@ -52,7 +52,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     ) -> Result<WalletCertificate, AccountServerClientError> {
         let cert = self
             .client
-            .post(self.base_url.join("api/v1/createwallet")?)
+            .post(self.base_url.join("createwallet")?)
             .json(&registration_message)
             .send()
             .await?

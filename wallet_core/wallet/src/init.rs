@@ -28,7 +28,7 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
             background_timeout: 5 * 60,
         },
         account_server: AccountServerConfiguration {
-            base_url: Url::parse("http://localhost:3000").unwrap(),
+            base_url: Url::parse("http://localhost:3000/api/v1/").unwrap(),
             public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
         },
     });
