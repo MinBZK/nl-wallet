@@ -5,13 +5,9 @@ use tracing::log::LevelFilter;
 
 use wallet_provider_domain::repository::PersistenceError;
 
-use crate::postgres::connection_string;
+use crate::{postgres::connection_string, PersistenceConnection};
 
 const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-
-pub trait PersistenceConnection<T> {
-    fn connection(&self) -> &T;
-}
 
 pub struct Db(DatabaseConnection);
 

@@ -1,6 +1,7 @@
 pub mod app;
 pub mod app_dependencies;
 mod errors;
+pub mod server;
 pub mod settings;
 
 pub use wallet_provider_service::account_server::AccountServer;

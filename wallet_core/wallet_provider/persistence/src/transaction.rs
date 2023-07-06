@@ -4,7 +4,7 @@ use tokio::task;
 
 use wallet_provider_domain::repository::{Committable, PersistenceError};
 
-use crate::database::{Db, PersistenceConnection};
+use crate::{database::Db, PersistenceConnection};
 
 /// This wraps a [`DatabaseTransaction`] in an [`Option`], which should always
 /// be present while the [`Transaction`] wrapper is alive. It will only ever be

@@ -7,12 +7,14 @@ mod storage;
 pub mod wallet;
 
 pub use crate::{
-    config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration},
+    config::{AccountServerConfiguration, LockTimeoutConfiguration},
     init::{init_wallet, Wallet},
     pin::validation::{validate_pin, PinValidationError},
 };
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    pub use crate::{config::MockConfigurationRepository, storage::MockStorage};
+    pub use crate::{
+        account_server::RemoteAccountServerClient, config::MockConfigurationRepository, storage::MockStorage,
+    };
 }

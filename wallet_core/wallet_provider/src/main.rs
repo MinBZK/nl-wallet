@@ -1,24 +1,16 @@
-mod app;
-mod app_dependencies;
-mod errors;
-mod settings;
-
 use std::error::Error;
-use std::net::SocketAddr;
-use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use tracing::debug;
 
-use crate::{app_dependencies::AppDependencies, settings::Settings};
+use wallet_provider::{server, settings::Settings};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
     let settings = Settings::new()?;
-    let (ip, port) = (settings.webserver.ip, settings.webserver.port);
 
     debug!(
         "Account server public key: {}",
@@ -30,12 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     );
 
-    let app = app::router(Arc::new(AppDependencies::new_from_settings(settings).await?));
-
-    let socket = SocketAddr::new(ip, port);
-    debug!("listening on {}", socket);
-
-    axum::Server::bind(&socket).serve(app.into_make_service()).await?;
+    server::serve(settings).await?;
 
     Ok(())
 }

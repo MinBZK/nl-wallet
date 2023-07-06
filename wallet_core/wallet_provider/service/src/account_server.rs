@@ -15,8 +15,11 @@ use wallet_common::{
     },
     utils::{random_bytes, random_string},
 };
-use wallet_provider_domain::repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository};
-use wallet_provider_domain::{generator::Generator, model::wallet_user::WalletUserCreate};
+use wallet_provider_domain::{
+    generator::Generator,
+    model::wallet_user::WalletUserCreate,
+    repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {

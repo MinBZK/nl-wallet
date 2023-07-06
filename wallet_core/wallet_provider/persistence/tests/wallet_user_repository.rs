@@ -10,10 +10,8 @@ use wallet_provider_domain::{
     repository::{Committable, PersistenceError},
 };
 use wallet_provider_persistence::{
-    database::{Db, PersistenceConnection},
-    entity::wallet_user,
-    transaction,
-    wallet_user_repository::create_wallet_user,
+    PersistenceConnection,
+    {database::Db, entity::wallet_user, transaction, wallet_user_repository::create_wallet_user},
 };
 
 static DB: OnceCell<Db> = OnceCell::const_new();
