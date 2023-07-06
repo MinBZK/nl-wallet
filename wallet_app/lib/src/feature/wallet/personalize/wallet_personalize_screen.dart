@@ -10,10 +10,10 @@ import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
-import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/confirm_action_sheet.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/flow_terminal_page.dart';
+import '../../common/widget/generic_loading_page.dart';
 import '../../common/widget/placeholder_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -107,31 +107,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          context.l10n.walletPersonalizeScreenLoadingTitle,
-          style: context.textTheme.headlineMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          context.l10n.walletPersonalizeScreenLoadingSubtitle,
-          style: context.textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-        const CenteredLoadingIndicator(),
-        if (onCancel != null) ...[
-          const SizedBox(height: 48),
-          TextButton(
-            onPressed: onCancel,
-            child: Text(context.l10n.generalCancelCta),
-          ),
-        ],
-      ],
+    return GenericLoadingPage(
+      title: context.l10n.walletPersonalizeScreenLoadingTitle,
+      description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
+      onCancel: onCancel,
     );
   }
 

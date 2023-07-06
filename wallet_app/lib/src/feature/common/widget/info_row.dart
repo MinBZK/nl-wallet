@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class InfoRow extends StatelessWidget {
-  final String? title;
-  final String? subtitle;
+  final Text? title;
+  final Text? subtitle;
   final IconData? icon;
   final Widget? leading;
   final VoidCallback? onTap;
+  final EdgeInsets? padding;
 
   const InfoRow({
     this.title,
@@ -15,6 +16,7 @@ class InfoRow extends StatelessWidget {
     this.leading,
     this.icon,
     this.onTap,
+    this.padding,
     Key? key,
   })  : assert(leading == null || icon == null, 'You cannot provide a leading widget and an icon'),
         assert(leading != null || icon != null, 'Provide a leading widget or icon'),
@@ -25,7 +27,7 @@ class InfoRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -41,14 +43,14 @@ class InfoRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (title != null)
-                    Text(
-                      title!,
-                      style: context.textTheme.titleMedium,
+                    DefaultTextStyle(
+                      style: context.textTheme.titleMedium!,
+                      child: title!,
                     ),
                   if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: context.textTheme.bodyMedium,
+                    DefaultTextStyle(
+                      style: context.textTheme.bodyMedium!,
+                      child: subtitle!,
                     ),
                 ],
               ),

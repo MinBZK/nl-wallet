@@ -40,7 +40,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
           SliverToBoxAdapter(
             child: InfoRow(
               icon: Icons.remove_red_eye_outlined,
-              title: context.l10n.verificationConfirmDataAttributesCheckAttributesCta,
+              title: Text(context.l10n.verificationConfirmDataAttributesCheckAttributesCta),
               onTap: () => CheckAttributesScreen.show(
                 context,
                 flow.availableAttributes,
@@ -77,8 +77,8 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
 
     return InfoRow(
       leading: Image.asset('assets/images/ic_policy.png'),
-      title: context.l10n.verificationConfirmDataAttributesCheckConditionsCta,
-      subtitle: subtitle,
+      title: Text(context.l10n.verificationConfirmDataAttributesCheckConditionsCta),
+      subtitle: Text(subtitle),
       onTap: () => PolicyScreen.show(
         context,
         flow.policy,

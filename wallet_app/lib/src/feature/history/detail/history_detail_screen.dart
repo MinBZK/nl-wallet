@@ -156,8 +156,8 @@ class HistoryDetailScreen extends StatelessWidget {
             const SliverDivider(),
             SliverToBoxAdapter(
               child: InfoRow(
-                title: context.l10n.historyDetailScreenTermsTitle,
-                subtitle: context.l10n.historyDetailScreenTermsSubtitle(attribute.organization.shortName),
+                title: Text(context.l10n.historyDetailScreenTermsTitle),
+                subtitle: Text(context.l10n.historyDetailScreenTermsSubtitle(attribute.organization.shortName)),
                 leading: Icon(Icons.policy_outlined, color: iconColor),
                 onTap: () => PolicyScreen.show(context, policy),
               ),
@@ -171,8 +171,8 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(
         SliverToBoxAdapter(
           child: InfoRow(
-            title: context.l10n.historyDetailScreenIssueTitle,
-            subtitle: context.l10n.historyDetailScreenIssueSubtitle,
+            title: Text(context.l10n.historyDetailScreenIssueTitle),
+            subtitle: Text(context.l10n.historyDetailScreenIssueSubtitle),
             leading: Icon(Icons.gpp_maybe_outlined, color: iconColor),
             onTap: () => PlaceholderScreen.show(context),
           ),
@@ -184,8 +184,8 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(
         SliverToBoxAdapter(
           child: InfoRow(
-            title: context.l10n.historyDetailScreenHelpdeskTitle,
-            subtitle: context.l10n.historyDetailScreenHelpdeskSubtitle,
+            title: Text(context.l10n.historyDetailScreenHelpdeskTitle),
+            subtitle: Text(context.l10n.historyDetailScreenHelpdeskSubtitle),
             leading: Icon(Icons.comment_outlined, color: iconColor),
             onTap: () => PlaceholderScreen.show(context),
           ),
@@ -210,8 +210,8 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildInteractionRequestPurposeRow(BuildContext context, InteractionTimelineAttribute attribute) {
     return InfoRow(
-      title: context.l10n.historyDetailScreenInteractionRequestPurposeTitle,
-      subtitle: attribute.requestPurpose,
+      title: Text(context.l10n.historyDetailScreenInteractionRequestPurposeTitle),
+      subtitle: Text(attribute.requestPurpose),
       leading: Icon(
         Icons.outlined_flag_outlined,
         color: context.colorScheme.onSurface,
@@ -227,11 +227,11 @@ class HistoryDetailScreen extends StatelessWidget {
         image: AssetImage(organization.logoUrl),
         size: _kOrganizationLogoSize,
       ),
-      title: context.l10n.historyDetailScreenOrganizationNameAndStatus(
+      title: Text(context.l10n.historyDetailScreenOrganizationNameAndStatus(
         status,
         organization.shortName,
-      ),
-      subtitle: organization.category,
+      )),
+      subtitle: Text(organization.category),
       onTap: () => OrganizationDetailScreen.show(
         context,
         organization.id,

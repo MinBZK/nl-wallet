@@ -21,8 +21,8 @@ class OrganizationRow extends StatelessWidget {
     return InfoRow(
       icon: logoUrl != null ? null : Icons.apartment_outlined,
       leading: logoUrl != null ? OrganizationLogo(image: AssetImage(logoUrl!), size: 24) : null,
-      title: context.l10n.organizationButtonLabel,
-      subtitle: organizationName,
+      title: Text(context.l10n.organizationButtonLabel),
+      subtitle: Text(organizationName),
       onTap: onTap,
     );
   }
