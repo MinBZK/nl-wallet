@@ -57,7 +57,7 @@ unzip -o nl-wallet-showcase-app.zip
 rm nl-wallet-showcase-app.zip
 
 # Generate new translation files
-dart run build_runner build --delete-conflicting-outputs
+flutter gen-l10n
 ```
 
 ### Importing keys/translations (app -> lokalise)
