@@ -1,0 +1,1147 @@
+{
+    "@@locale": "en",
+    "@@last_modified": "2023-07-03T15:38:39+02:00",
+    "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
+    "aboutScreenFeedbackCta": "Give feedback",
+    "aboutScreenPrivacyCta": "Privacy policy",
+    "aboutScreenTermsCta": "Terms and conditions",
+    "aboutScreenTitle": "About the app",
+    "aboutScreenUrl": "edi.pleio.nl",
+    "appTitle": "NL Wallet",
+    "approveOrganizationPageApproveCta": "Yes, next",
+    "approveOrganizationPageDenyCta": "No, decline",
+    "approveOrganizationPageIncorrectCta": "Is something not right?",
+    "approveOrganizationPageReceiveFromTitle": "Receive information from {organization}?",
+    "@approveOrganizationPageReceiveFromTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Pin correct, wallet is unlocked",
+    "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
+    "@approveOrganizationPageShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "approveOrganizationPageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
+    "@approveOrganizationPageSignWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "cardAttributeRowTitle": "From {name}",
+    "@cardAttributeRowTitle": {
+        "placeholders": {
+            "name": {
+                "example": "Persoonsgegevens",
+                "type": "String"
+            }
+        }
+    },
+    "cardDataAttributesCloseButton": "Close",
+    "cardDataAttributesScreenTitle": "All data",
+    "cardDataScreenCloseCta": "Close",
+    "cardDataScreenDataPrivacyBannerReadMore": "Read more",
+    "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you.",
+    "cardDataScreenDataPrivacySheetClose": "Close",
+    "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\\n\\nDo you want to share data with an organization? Then use the QR code function.",
+    "cardDataScreenDataPrivacySheetTitle": "View of your data",
+    "cardDataScreenIncorrectCta": "Is the data incorrect?",
+    "cardDataScreenTitle": "All data",
+    "cardHistoryScreenBackCta": "Back",
+    "cardHistoryScreenTitle": "Card history",
+    "cardHistoryTimelineInteractionFailed": "Failed to share",
+    "cardHistoryTimelineInteractionRejected": "Rejected to share",
+    "cardHistoryTimelineInteractionSuccess": "Shared",
+    "cardHistoryTimelineOperationExpired": "Card is expired",
+    "cardHistoryTimelineOperationIssued": "Card added",
+    "cardHistoryTimelineOperationRenewed": "Card updated",
+    "cardHistoryTimelineSigningRejected": "Signing stopped",
+    "cardHistoryTimelineSigningSuccess": "Signed",
+    "cardOverviewAddCardButton": "Add data",
+    "cardOverviewScreenAddCardCta": "Add data",
+    "cardOverviewScreenLockWalletTooltip": "Lock wallet",
+    "cardOverviewScreenTitle": "My cards",
+    "cardShareScreenExplanationCta": "How does sharing work?",
+    "cardShareScreenExplanationSheetCloseCta": "Close",
+    "cardShareScreenExplanationSheetDescription": "Have the QR code scanned by a reviewer to start sharing. After your QR code has been scanned, you will receive a data request. Data will only be shared if you agree to the request.",
+    "cardShareScreenExplanationSheetTitle": "How does sharing work?",
+    "cardShareScreenSubtitle": "Have the QR code scanned to start sharing.",
+    "cardSummaryDataAttributesAllButton": "All data",
+    "cardSummaryDataAttributesTitle": "Data",
+    "cardSummaryDataShareButton": "Share",
+    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organisation}",
+    "@cardSummaryDataShareHistory": {
+        "placeholders": {
+            "organisation": {
+                "example": "Organization",
+                "type": "String"
+            },
+            "shareStatus": {
+                "example": "failed to share",
+                "type": "String"
+            },
+            "timeAgo": {
+                "example": "4 hours ago",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryDataShareHistoryAllButton": "History",
+    "cardSummaryDataShareHistoryTitle": "History",
+    "cardSummaryDataShareStatusFailed": "failed to share",
+    "cardSummaryDataShareStatusRejected": "rejected to share",
+    "cardSummaryDataShareStatusSuccess": "shared",
+    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
+    "cardSummaryOptionsButton": "Card options",
+    "cardSummaryScreenAddCardCta": "All data",
+    "cardSummaryScreenCardDataCta": "Data",
+    "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
+    "@cardSummaryScreenCardDataIssuedBy": {
+        "placeholders": {
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryScreenCardDeleteCta": "Delete card",
+    "cardSummaryScreenCardHistoryCta": "Card history",
+    "cardSummaryScreenCardRenewCta": "Renew data",
+    "cardSummaryScreenCardUpdateCta": "Renew data",
+    "cardSummaryScreenCardValidUntil": "Valid until {dateTime}",
+    "@cardSummaryScreenCardValidUntil": {
+        "placeholders": {
+            "dateTime": {
+                "example": "April 25 13:31",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryScreenDataAttributesTitle": "Data",
+    "cardSummaryScreenLatestIssuedOperation": "Latest update {dateTime}",
+    "@cardSummaryScreenLatestIssuedOperation": {
+        "placeholders": {
+            "dateTime": {
+                "example": "April 25 13:31",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryScreenLatestIssuedOperationUnknown": "Latest update unknown",
+    "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} with {organization}",
+    "@cardSummaryScreenLatestSuccessInteraction": {
+        "placeholders": {
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            },
+            "shareStatus": {
+                "example": "failed to share",
+                "type": "String"
+            },
+            "timeAgo": {
+                "example": "4 hours ago",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryScreenLatestSuccessInteractionUnknown": "Never shared yet",
+    "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+    "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\\n\\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+    "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
+    "cardSummaryScreenOptionsCta": "Card options",
+    "cardSummaryScreenShareCta": "Share",
+    "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} with {organization}",
+    "@cardSummaryScreenShareHistory": {
+        "placeholders": {
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            },
+            "shareStatus": {
+                "example": "failed to share",
+                "type": "String"
+            },
+            "timeAgo": {
+                "example": "4 hours ago",
+                "type": "String"
+            }
+        }
+    },
+    "cardSummaryScreenShareHistoryAllCta": "History",
+    "cardSummaryScreenShareHistoryTitle": "History",
+    "cardSummaryScreenShareSuccessNoHistory": "Never shared yet.",
+    "cardSummaryScreenTitle": "Card summary",
+    "cardTimelineInteraction": "{interactionType} with {organization}",
+    "@cardTimelineInteraction": {
+        "placeholders": {
+            "interactionType": {
+                "example": "shared",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organization",
+                "type": "String"
+            }
+        }
+    },
+    "cardTimelineInteractionFailed": "Failed to share",
+    "cardTimelineInteractionRejected": "Rejected to share",
+    "cardTimelineInteractionSuccess": "Shared",
+    "cardTimelineOperation": "{interactionType}. {description}",
+    "@cardTimelineOperation": {
+        "placeholders": {
+            "description": {
+                "example": "Valid until X",
+                "type": "String"
+            },
+            "interactionType": {
+                "example": "shared",
+                "type": "String"
+            }
+        }
+    },
+    "cardTimelineOperationExpired": "Card is expired",
+    "cardTimelineOperationExtended": "Card is extended",
+    "cardTimelineOperationIssued": "Card is added",
+    "changeLanguageScreenTitle": "Select a language",
+    "checkAgreementPageCancelCta": "No",
+    "checkAgreementPageConfirmCta": "Yes, next",
+    "checkAgreementPageDataIncorrectCta": "Is something not right?",
+    "checkAgreementPageShowDocumentCta": "View PDF",
+    "checkAgreementPageSignProvider": "{organization} uses {provider} to sign agreements.",
+    "@checkAgreementPageSignProvider": {
+        "placeholders": {
+            "organization": {
+                "example": "Housing Corporation A",
+                "type": "String"
+            },
+            "provider": {
+                "example": "DocuSign",
+                "type": "String"
+            }
+        }
+    },
+    "checkAgreementPageSubtitle": "Check the agreement before continuing",
+    "checkAgreementPageTitle": "Are you aware of the agreement?",
+    "checkAttributesScreenDataIncorrectCta": "Something not right?",
+    "checkAttributesScreenTitle": "Your data",
+    "confirmAgreementPageAllPoliciesCta": "All policies",
+    "confirmAgreementPageCancelCta": "No",
+    "confirmAgreementPageConfirmCta": "Yes, sign",
+    "confirmAgreementPageDataIncorrectCta": "Something not right?",
+    "confirmAgreementPageDataNotShared": "You information will not be shared with third parties",
+    "confirmAgreementPageDataShared": "You information will be shared with third parties",
+    "confirmAgreementPageSignProvider": "You will be signing through {provider}",
+    "@confirmAgreementPageSignProvider": {
+        "placeholders": {
+            "provider": {
+                "example": "DocuSign",
+                "type": "String"
+            }
+        }
+    },
+    "confirmAgreementPageSigningContextInfo": "By continuing the agreement will be definitive",
+    "confirmAgreementPageTitle": "Do you want to sign using this information",
+    "dataAttributeSectionTitle": "From {source}",
+    "@dataAttributeSectionTitle": {
+        "placeholders": {
+            "source": {
+                "example": "Persoonsgegevens",
+                "type": "String"
+            }
+        }
+    },
+    "dataIncorrectScreenApproveCta": "Add card",
+    "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
+    "dataIncorrectScreenApproveTitle": "Add card",
+    "dataIncorrectScreenBackCta": "Back",
+    "dataIncorrectScreenDeclineCta": "Decline card",
+    "dataIncorrectScreenDeclineDescription": "If you decline the card, it will not be added to your wallet.",
+    "dataIncorrectScreenDeclineTitle": "Decline card",
+    "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
+    "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
+    "dataIncorrectScreenTitle": "Retrieve data",
+    "errorScreenGenericCloseCta": "Sluit",
+    "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+    "errorScreenGenericHeadline": "Er gaat iets mis",
+    "errorScreenGenericTitle": "Fout",
+    "forgotPinScreenCta": "Clear Wallet",
+    "forgotPinScreenDescription": "When you forget your pin you can no longer use your Wallet.\\n\\nTo continue using the Wallet you have to start over. Clear your wallet and select a new pin.",
+    "forgotPinScreenHeadline": "Forgot your pin?",
+    "forgotPinScreenTitle": "Forgot pin",
+    "generalBottomBackCta": "Back",
+    "generalCancelCta": "Cancel",
+    "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
+    "@generalDays": {
+        "placeholders": {
+            "days": {
+                "example": "200",
+                "type": "int"
+            }
+        }
+    },
+    "generalHours": "{hours, plural, one {{hours} hour} other {{hours} hours}}",
+    "@generalHours": {
+        "placeholders": {
+            "hours": {
+                "example": "16",
+                "type": "int"
+            }
+        }
+    },
+    "generalMinutes": "{minutes, plural, one {{minutes} minute} other {{minutes} minutes}}",
+    "@generalMinutes": {
+        "placeholders": {
+            "minutes": {
+                "example": "59",
+                "type": "int"
+            }
+        }
+    },
+    "generalOnDate": "On",
+    "generalPolicyAllTermsCta": "All terms",
+    "generalPolicyDataCanBeDeleted": "You can request data deletion",
+    "generalPolicyDataCanNotBeDeleted": "You can not request data deletion",
+    "generalPolicyDataIsSignature": "By continuing the agreement will be definitive",
+    "generalPolicyDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@generalPolicyDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "generalPolicyDataSingleViewData": "Je gegevens worden één keer bekeken",
+    "generalPolicyDataSingleViewProfilePhoto": "Je pasfoto wordt gebruikt om te controleren of jij het echt bent",
+    "generalPolicyDataWillBeShared": "Your information will be shared with third parties",
+    "generalPolicyDataWillNotBeShared": "Your information will not be shared with third parties",
+    "generalRetry": "Retry",
+    "generalSeconds": "{seconds, plural, one {{seconds} second} other {{seconds} seconds}}",
+    "@generalSeconds": {
+        "placeholders": {
+            "seconds": {
+                "example": "59",
+                "type": "int"
+            }
+        }
+    },
+    "generalSheetCloseCta": "Close",
+    "generalTimeAgo": "ago",
+    "generalTimeAgoLessThenOneMinute": "less then a minute",
+    "generalVersionText": "App version: {versionName} ({versionCode})",
+    "@generalVersionText": {
+        "placeholders": {
+            "versionCode": {
+                "example": "1337",
+                "type": "String"
+            },
+            "versionName": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
+    "generalWCAGBack": "Back",
+    "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
+    "historyDetailScreenHelpdeskTitle": "Open helpdesk",
+    "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 attribute} other {Shared {attributes} attributes}}",
+    "@historyDetailScreenInteractionAttributesTitle": {
+        "placeholders": {
+            "attributes": {
+                "example": "4",
+                "type": "int"
+            }
+        }
+    },
+    "historyDetailScreenInteractionRequestPurposeTitle": "Sharing reason",
+    "historyDetailScreenInteractionStatusFailedDescription": "No data has been shared with {organization}, because something went wrong.",
+    "@historyDetailScreenInteractionStatusFailedDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenInteractionStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the interaction.",
+    "@historyDetailScreenInteractionStatusRejectedDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
+    "historyDetailScreenIssueTitle": "Report an issue",
+    "historyDetailScreenOperationAttributesTitle": "Retrieved data",
+    "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
+    "historyDetailScreenOperationStatusIssuedDescription": "Card added",
+    "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
+    "historyDetailScreenOrganizationNameAndStatus": "{status} {organization}",
+    "@historyDetailScreenOrganizationNameAndStatus": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            },
+            "status": {
+                "example": "Shared with",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess": "About",
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess": "Shared with",
+    "historyDetailScreenOrganizationNamePrefixOperationStatusAll": "Publisher",
+    "historyDetailScreenOrganizationNamePrefixSigningStatusAll": "About",
+    "historyDetailScreenSigningAttributesTitle": "Signed",
+    "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the signing process.",
+    "@historyDetailScreenSigningStatusRejectedDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenTermsSubtitle": "This is how {organization} processes your data",
+    "@historyDetailScreenTermsSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenTermsTitle": "Terms and Conditions",
+    "historyDetailScreenTitle": "Details",
+    "historyOverviewScreenTitle": "Usage history",
+    "homeBottomNavBarCardsButton": "Cards",
+    "homeBottomNavBarQrButton": "QR",
+    "homeBottomNavBarSettingsButton": "Settings",
+    "homeScreenBottomNavBarCardsCta": "Cards",
+    "homeScreenBottomNavBarMenuCta": "Menu",
+    "homeScreenBottomNavBarQrCta": "QR",
+    "homeScreenBottomNavBarSettingsCta": "Settings",
+    "introductionAppBenefitsPageSubtitle": "For example to login to government websites or an online marketplace.",
+    "introductionAppBenefitsPageTitle": "Easily proof who you are online",
+    "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
+    "introductionAppIntroPageSubtitle": "Your official name, birthdate, address and more.",
+    "introductionAppIntroPageTitle": "Your personal data, available from your phone.",
+    "introductionAppSecurityPageSubtitle": "Sometimes only your postal code might be needed, so only your postal code will be shared.",
+    "introductionAppSecurityPageTitle": "You only share what's needed, nothing more.",
+    "introductionLanguageSelectCta": "English",
+    "introductionNextPageCta": "Next",
+    "introductionPrivacyPageBullet1": "Only you can access the data in your Wallet.",
+    "introductionPrivacyPageBullet2": "You'll share less information",
+    "introductionPrivacyPageBullet3": "You can see who you've shared information with.",
+    "introductionPrivacyPageTitle": "This is how the app helps protect your privacy",
+    "introductionPrivacyPolicyCta": "Read the privacy policy",
+    "introductionSkipCta": "Skip",
+    "introductionWCAGCurrentPageAnnouncement": "Introduction page {currentPage} of {totalPages}",
+    "@introductionWCAGCurrentPageAnnouncement": {
+        "placeholders": {
+            "currentPage": {
+                "example": "3",
+                "type": "int"
+            },
+            "totalPages": {
+                "example": "6",
+                "type": "int"
+            }
+        }
+    },
+    "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
+    "issuanceCardAddedCloseCta": "Close",
+    "issuanceCardAddedSubtitle": "Your card has been added",
+    "issuanceCardAddedTitle": "Success!",
+    "issuanceCheckCardPageConfirmCta": "Yes, next",
+    "issuanceCheckCardPageOverline": "Card {current} of {total}",
+    "@issuanceCheckCardPageOverline": {
+        "placeholders": {
+            "current": {
+                "example": "1",
+                "type": "int"
+            },
+            "total": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceCheckCardPageRejectCta": "No",
+    "issuanceCheckCardPageTitle": "Are these details correct?",
+    "issuanceCheckDataOfferingPageIncorrectCta": "Something not right?",
+    "issuanceCheckDataOfferingPageNegativeCta": "No",
+    "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
+    "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
+    "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
+    "issuanceConfirmPinDescription": "By entering your pin you agree to exchange your information.",
+    "issuanceConfirmPinErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@issuanceConfirmPinErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceConfirmPinErrorTitle": "Invalid code",
+    "issuanceConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
+    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@issuanceConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceConfirmPinPageErrorTitle": "Invalid code",
+    "issuanceConfirmPinPageTitle": "Enter your pin",
+    "issuanceConfirmPinTitle": "Enter your pin",
+    "issuanceGenericErrorPageCloseCta": "Close",
+    "issuanceGenericErrorPageDescription": "Something went wrong, try again later.",
+    "issuanceGenericErrorPageTitle": "Something went wrong",
+    "issuanceIdentityValidationFailedPageCloseCta": "Close",
+    "issuanceIdentityValidationFailedPageDescription": "It looks like the data your are trying to retrieve is meant for someone else.",
+    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Something not right?",
+    "issuanceIdentityValidationFailedPageTitle": "Your identity did not match",
+    "issuanceProofIdentityPageIncorrectCta": "Something not right?",
+    "issuanceProofIdentityPageNegativeCta": "No",
+    "issuanceProofIdentityPagePositiveCta": "Share",
+    "issuanceProofIdentityPageRefreshDataSubtitle": "Share your identity with {organization} to refresh your data.",
+    "@issuanceProofIdentityPageRefreshDataSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceProofIdentityPageSubtitle": "Share your identity with {organization} to download your data.",
+    "@issuanceProofIdentityPageSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceProofIdentityPageTitle": "Proof who you are",
+    "issuanceScreenRefreshTitle": "Refresh data",
+    "issuanceScreenTitle": "Retrieve data",
+    "issuanceSelectCardsPageAddCta": "Add",
+    "issuanceSelectCardsPageDataIncorrectCta": "Something not right?",
+    "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
+    "issuanceSelectCardsPageNoSelectionError": "Select one or more cards to add",
+    "issuanceSelectCardsPageStopCta": "Stop",
+    "issuanceSelectCardsPageTitle": "The following cards are available",
+    "issuanceStopSheetDescription": "If you stop, no further information will be retrieved from {organization}",
+    "@issuanceStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceStopSheetNegativeCta": "No",
+    "issuanceStopSheetPositiveCta": "Yes, Stop",
+    "issuanceStopSheetTitle": "Are your sure you want to stop?",
+    "issuanceStoppedPageCloseCta": "Close",
+    "issuanceStoppedPageDescription": "Because you stopped, no information was retrieved",
+    "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
+    "issuanceStoppedPageTitle": "Sharing stopped",
+    "issuanceSuccessPageCardsAddedSubtitle": "{cards, plural, one {Your card has been added.} other {Your cards have been added.}}",
+    "@issuanceSuccessPageCardsAddedSubtitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, one {Your card has been updated.} other {Your cards have been updated.}}",
+    "@issuanceSuccessPageCardsUpdatedSubtitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceSuccessPageCloseCta": "To my cards",
+    "issuanceSuccessPageTitle": "Success!",
+    "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
+    "menuAboutPageFeedbackCta": "Give feedback",
+    "menuAboutPagePrivacyCta": "Privacy policy",
+    "menuAboutPageTermsCta": "Terms and conditions",
+    "menuAboutPageTitle": "About this app",
+    "menuAboutPageUrl": "edi.pleio.nl",
+    "menuMainPageAboutCta": "About this app",
+    "menuMainPageDesignCta": "Design System",
+    "menuMainPageGreeting": "Hi {name}",
+    "@menuMainPageGreeting": {
+        "placeholders": {
+            "name": {
+                "example": "Willeke",
+                "type": "String"
+            }
+        }
+    },
+    "menuMainPageHelpCta": "Help",
+    "menuMainPageHistoryCta": "Usage history",
+    "menuMainPageLockCta": "Log out",
+    "menuMainPageSettingsCta": "Settings",
+    "menuScreenAboutCta": "About this app",
+    "menuScreenAboutTitle": "About the app",
+    "menuScreenDesignCta": "Design System",
+    "menuScreenGreeting": "Hi {name}",
+    "@menuScreenGreeting": {
+        "placeholders": {
+            "name": {
+                "example": "Willeke",
+                "type": "String"
+            }
+        }
+    },
+    "menuScreenHelpCta": "Help",
+    "menuScreenHistoryCta": "Usage history",
+    "menuScreenLockCta": "Log out",
+    "menuScreenMainTitle": "Menu",
+    "menuScreenSettingsCta": "Settings",
+    "menuScreenSettingsTitle": "Settings",
+    "menuScreenTitle": "Menu",
+    "menuSettingsPageChangeLanguageCta": "Change language",
+    "menuSettingsPageChangePinCta": "Change pin",
+    "menuSettingsPageClearDataCta": "Remove data",
+    "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
+    "mockDigidScreenAcceptCta": "login",
+    "mockDigidScreenCta": "Login with DigiD",
+    "mockDigidScreenDeclineCta": "cancel",
+    "mockDigidScreenDescription": "During the demo, DigiD is only used for illustrative purposes.",
+    "mockDigidScreenEnterPin": "Enter pin to continue",
+    "mockDigidScreenForgotPinCta": "Forgot pin",
+    "mockDigidScreenHeaderSubtitle": "You are logging in at:",
+    "mockDigidScreenHeaderTitle": "Login",
+    "mockDigidScreenSignInOrganization": "Rijksdienst voor Identiteitsgegevens",
+    "mockDigidScreenTitle": "Securely login with DigiD",
+    "organizationApprovePageApproveCta": "Yes, next",
+    "organizationApprovePageDenyCta": "No, decline",
+    "organizationApprovePageFirstInteraction": "First request",
+    "organizationApprovePageIncorrectCta": "Is something not right?",
+    "organizationApprovePagePurpose": "Purpose: {purpose}",
+    "@organizationApprovePagePurpose": {
+        "placeholders": {
+            "purpose": {
+                "example": "Afspraak bevestigen",
+                "type": "String"
+            }
+        }
+    },
+    "organizationApprovePageReceiveFromTitle": "Receive information from {organization}?",
+    "@organizationApprovePageReceiveFromTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "organizationApprovePageShareWithApproveCta": "Yes, view request",
+    "organizationApprovePageShareWithDenyCta": "No, stop",
+    "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
+    "@organizationApprovePageShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "organizationApprovePageSignWithTitle": "{organization} is asking you to sign. Is that correct?",
+    "@organizationApprovePageSignWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "organizationButtonLabel": "About this organization",
+    "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
+    "organizationDetailScreenInfoHeader": "Info",
+    "organizationDetailScreenPrivacyHeader": "Privacy",
+    "organizationDetailScreenPrivacyPolicy": "privacy statement",
+    "organizationDetailScreenReportIssueCta": "Report a problem",
+    "organizationDetailScreenTitle": "About this organization",
+    "organizationDetailScreenViewTerms": "View the",
+    "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\\n\\nTo start using the wallet again, please reset the app and select a new pin.",
+    "pinBlockedScreenHeadline": "Your app has been blocked",
+    "pinBlockedScreenResetWalletCta": "Reset wallet",
+    "pinBlockedScreenTitle": "App blocked",
+    "pinKeyboardWCAGBackspaceLabel": "backspace",
+    "pinKeyboardWCAGDigitKeyTapHint": "select",
+    "pinScreenAboutAppTooltip": "About the app",
+    "pinScreenAttemptsCount": "{count, plural, one {You have {count} attempt left} other {You have {count} attempts left}}",
+    "@pinScreenAttemptsCount": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "pinScreenErrorHeader": "Invalid pin",
+    "pinScreenFinalAttempt": "You have 1 attempt left. After that you can no longer use the app.",
+    "pinScreenForgotPinCta": "Forgot code?",
+    "pinScreenHeader": "Enter your pin",
+    "pinScreenTitle": "Login",
+    "pinTimeoutScreenForgotPinCta": "Forgot code?",
+    "pinTimeoutScreenHeadline": "Temporarily blocked",
+    "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
+    "pinTimeoutScreenTitle": "Login",
+    "placeholderScreenContractInformTitle": "The contract will be displayed here.",
+    "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
+    "placeholderScreenTitle": "Page does not exist",
+    "policyScreenDataCanBeDeleted": "You can request data deletion",
+    "policyScreenDataCanBeDeletedDescription": "This organizations allows you to delete your data.",
+    "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
+    "policyScreenDataCanNotBeDeletedDescription": "This organizations does not allow you to delete your data.",
+    "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
+    "policyScreenDataPurposeDescription": "Your information is not used for anything besides the stated purpose.",
+    "policyScreenDataRetentionDuration": "{months, plural, one {Data is stored for {months} month} other {Data is stored for {months} months}}",
+    "@policyScreenDataRetentionDuration": {
+        "placeholders": {
+            "months": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "policyScreenDataRetentionDurationDescription": "{months, plural, one {Your data is stored for {months} month. After that it will be deleted automatically.} other {Your data is stored for {months} months. After that it will be deleted automatically.}}",
+    "@policyScreenDataRetentionDurationDescription": {
+        "placeholders": {
+            "months": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "policyScreenDataWillBeShared": "Your information will be shared with third parties",
+    "policyScreenDataWillBeSharedDescription": "Data is shared with other companies and\/or organizations.",
+    "policyScreenDataWillNotBeShared": "Your information will not be shared with third parties",
+    "policyScreenDataWillNotBeSharedDescription": "Data is not shared with other companies and\/or organizations.",
+    "policyScreenErrorDescription": "The policy could not be loaded",
+    "policyScreenPolicySectionPolicyCta": "privacy policy",
+    "policyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
+    "@policyScreenPolicySectionText": {
+        "placeholders": {
+            "policy": {
+                "example": "privacy policy",
+                "type": "String"
+            }
+        }
+    },
+    "policyScreenPolicySectionTitle": "Want to know more?",
+    "policyScreenReportIssueCta": "Report an issue",
+    "policyScreenRetryCta": "Try again",
+    "policyScreenTitle": "Voorwaarden",
+    "qrMyCodeTabHowToCta": "How does my QR-code work?",
+    "qrMyCodeTabHowToSheetCloseCta": "Close",
+    "qrMyCodeTabHowToSheetDescription": "Information can be shared by showing your QR-code. Further english translation goes here...",
+    "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
+    "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
+    "qrScanTabCameraScanningQrStartedAnnouncement": "Camera started scanning for QR code",
+    "qrScanTabContinueCta": "Scan another QR-code",
+    "qrScanTabErrorRetryCta": "Retry",
+    "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
+    "qrScanTabHowToScanCta": "How does scanning work?",
+    "qrScanTabHowToScanSheetCloseCta": "Close",
+    "qrScanTabHowToScanSheetDescription": "English description goes here",
+    "qrScanTabHowToScanSheetTitle": "How does scanning work?",
+    "qrScreenHowToScanButton": "How does scanning work?",
+    "qrScreenHowToScanSheetCloseButton": "Close",
+    "qrScreenHowToScanSheetDescription": "English description goes here",
+    "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
+    "qrScreenMyCodeTabTitle": "My code",
+    "qrScreenScanTabContinueButton": "Scan another QR-code",
+    "qrScreenScanTabErrorButton": "Retry",
+    "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
+    "qrScreenScanTabTitle": "Scan",
+    "qrScreenTitle": "QR-code",
+    "reportIssueScreenHeaderTitle": "Welk probleem wil je melden? Je melding wordt anoniem verstuurd.",
+    "reportIssueScreenTitle": "Report problem",
+    "reportOptionImpersonatingOrganization": "Deze partij doet zich voor als een ander",
+    "reportOptionOverAskingOrganization": "Deze partij vraagt te veel gegevens",
+    "reportOptionRequestNotInitiated": "Ik ben dit verzoek niet gestart",
+    "reportOptionSuspiciousOrganization": "Deze partij lijkt verdacht",
+    "reportOptionUnknownOrganization": "Ik ken deze partij niet",
+    "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
+    "reportOptionUntrusted": "Ik vertrouw het niet",
+    "settingsScreenChangeLanguageCta": "Change language",
+    "settingsScreenChangePinCta": "Change pin",
+    "settingsScreenClearDataCta": "Remove data",
+    "settingsScreenSetupBiometricsCta": "Setup biometrics",
+    "settingsScreenTitle": "Settings",
+    "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
+    "setupSecurityCompletedPageDescription": "Your security is configured.",
+    "setupSecurityCompletedPageTitle": "Success!",
+    "setupSecurityConfirmationErrorPageDescription": "Try again",
+    "setupSecurityConfirmationErrorPageFatalCta": "Choose new code",
+    "setupSecurityConfirmationErrorPageFatalDescription": "Try again",
+    "setupSecurityConfirmationErrorPageFatalTitle": "Failed to setup pin",
+    "setupSecurityConfirmationErrorPageTitle": "This code is different",
+    "setupSecurityConfirmationPageTitle": "Repeat your code",
+    "setupSecurityScreenAboutAppTooltip": "About the app",
+    "setupSecurityScreenTitle": "Setup security",
+    "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} of {totalDigits} digits supplied",
+    "@setupSecurityScreenWCAGEnteredDigitsAnnouncement": {
+        "placeholders": {
+            "enteredDigits": {
+                "example": "3",
+                "type": "int"
+            },
+            "totalDigits": {
+                "example": "6",
+                "type": "int"
+            }
+        }
+    },
+    "setupSecurityScreenWCAGPinChosenAnnouncement": "Pin chosen. Repeat to confirm.",
+    "setupSecurityScreenWCAGPinConfirmationFailedAnnouncement": "Confirmation pin doesn't match, try again",
+    "setupSecurityScreenWCAGPinTooSimpleAnnouncement": "Chosen pin too simple. Try again.",
+    "setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError": "Sequential characters are unsafe, select a different code.",
+    "setupSecuritySelectPinErrorPageDefaultError": "Choose another code",
+    "setupSecuritySelectPinErrorPageDescription": "Choose another code",
+    "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
+    "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Select a code with at least two different digits.",
+    "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",
+    "showDetailsCta": "Show details",
+    "signConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
+    "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@signConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "signConfirmPinPageErrorTitle": "Invalid code",
+    "signConfirmPinPageTitle": "Enter your pin",
+    "signGenericErrorPageCloseCta": "Close",
+    "signGenericErrorPageDescription": "An error occurred, please try again later.",
+    "signGenericErrorPageTitle": "Something went wrong",
+    "signScreenCancelSheetDescription": "If you stop, no agreement will be signed.",
+    "signScreenCancelSheetNegativeCta": "No",
+    "signScreenCancelSheetPositiveCta": "Yes, stop",
+    "signScreenCancelSheetTitle": "Are you sure you want to stop?",
+    "signScreenTitle": "Sign",
+    "signStoppedPageCloseCta": "Close",
+    "signStoppedPageDescription": "By stopping, no agreements have been signed",
+    "signStoppedPageFeedbackCta": "Give feedback",
+    "signStoppedPageTitle": "Signing stopped",
+    "signSuccessPageCloseCta": "Close",
+    "signSuccessPageDescription": "You signed the agreement with {organization}.",
+    "@signSuccessPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "Housing Corp. A",
+                "type": "String"
+            }
+        }
+    },
+    "signSuccessPageHistoryCta": "History",
+    "signSuccessPageTitle": "Success!",
+    "timelineScrollViewBackCta": "Back",
+    "verificationConfirmDataAttributesCheckAttributesCta": "View your data",
+    "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
+    "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
+    "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
+    "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "verificationConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible",
+    "verificationConfirmDataAttributesPageAllTermsCta": "All terms",
+    "verificationConfirmDataAttributesPageApproveCta": "Share",
+    "verificationConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
+    "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
+    "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@verificationConfirmDataAttributesPageDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "verificationConfirmDataAttributesPageDataWillBeShared": "Information will be shared",
+    "verificationConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
+    "verificationConfirmDataAttributesPageDenyCta": "No, decline",
+    "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",
+    "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Do you want to share this attribute?} other {Do you want to share these {count} attributes?}}",
+    "@verificationConfirmDataAttributesPageShareDataTitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "verificationConfirmDataAttributesShareWithTitle": "Share with {organization}",
+    "@verificationConfirmDataAttributesShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationConfirmPinPageDescription": "By entering your pin you agree to share your information.",
+    "verificationConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@verificationConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "verificationConfirmPinPageErrorTitle": "Invalid code",
+    "verificationConfirmPinPageTitle": "Enter your pin",
+    "verificationGenericErrorPageCloseCta": "Sluiten",
+    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "verificationGenericErrorPageTitle": "Er ging iets mis",
+    "verificationMissingAttributesPageCloseCta": "Close request",
+    "verificationMissingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
+    "@verificationMissingAttributesPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationMissingAttributesPageHowToProceedCta": "What can I do?",
+    "verificationMissingAttributesPageTitle": "You're missing information",
+    "verificationReportSubmittedPageCloseCta": "Close",
+    "verificationReportSubmittedPageSubtitle": "Your report has been sent anonymously. The organization will be checked as soon as possible.\\n\\nNever share any data with organizations you do not trust.",
+    "verificationReportSubmittedPageTitle": "Thanks for your feedback",
+    "verificationScreenAboutHeader": "About {organization}",
+    "@verificationScreenAboutHeader": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationScreenAllTermsCta": "All terms",
+    "verificationScreenApproveAttributesCta": "Yes, next",
+    "verificationScreenApproveOrganizationCta": "Yes, next",
+    "verificationScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
+    "@verificationScreenCancelSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationScreenCancelSheetNegativeCta": "No",
+    "verificationScreenCancelSheetPositiveCta": "Yes, stop",
+    "verificationScreenCancelSheetTitle": "Are you sure you want to stop sharing",
+    "verificationScreenCloseCta": "Close",
+    "verificationScreenDataCanBeDeleted": "You can request data deletion",
+    "verificationScreenDataCanNotBeDeleted": "You can not request data deletion",
+    "verificationScreenDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@verificationScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "verificationScreenDataWillBeShared": "Information will be shared",
+    "verificationScreenDataWillNotBeShared": "Information will not be shared",
+    "verificationScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
+    "verificationScreenDeclinedTitle": "Stopped sharing data",
+    "verificationScreenDenyAttributesCta": "No, decline",
+    "verificationScreenDenyOrganizationCta": "No, decline",
+    "verificationScreenGenericError": "Verification failed",
+    "verificationScreenGenericErrorCta": "Exit",
+    "verificationScreenGiveFeedbackCta": "Give Feedback",
+    "verificationScreenHistoryDescription": "You can find the details in your history",
+    "verificationScreenIncorrectCta": "Is something not right?",
+    "verificationScreenPurposeTitle": "Purpose",
+    "verificationScreenShareDataTitle": "Do you want to share this information?",
+    "verificationScreenShareWithTitle": "Share data with {organization}?",
+    "@verificationScreenShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationScreenShowHistoryCta": "History",
+    "verificationScreenSuccessTitle": "Success! Your information is shared with {organization}",
+    "@verificationScreenSuccessTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationScreenTitle": "Share data",
+    "verificationScreenUsageTitle": "Usage",
+    "verificationStopSheetDescription": "If you stop, no data will be shared with {organization}.",
+    "@verificationStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationStopSheetNegativeCta": "No",
+    "verificationStopSheetPositiveCta": "Yes, stop",
+    "verificationStopSheetReportIssueCta": "Report a problem",
+    "verificationStopSheetTitle": "Are you sure you want to stop?",
+    "verificationStoppedPageCloseCta": "Close",
+    "verificationStoppedPageDescription": "Because you have stopped, no data has been shared.",
+    "verificationStoppedPageFeedbackCta": "Give Feedback",
+    "verificationStoppedPageTitle": "Stopped",
+    "verificationSuccessPageCloseCta": "Close",
+    "verificationSuccessPageDescription": " Your information is shared with {organization}.",
+    "@verificationSuccessPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "verificationSuccessPageHistoryDescription": "You can find the details in your history",
+    "verificationSuccessPageShowHistoryCta": "History",
+    "verificationSuccessPageTitle": "Success!",
+    "verifierPolicyScreenBackCta": "Back",
+    "verifierPolicyScreenDataCanBeDeleted": "You can request data deletion",
+    "verifierPolicyScreenDataCanNotBeDeleted": "You can not request data deletion",
+    "verifierPolicyScreenDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@verifierPolicyScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "verifierPolicyScreenDataWillBeShared": "Information will be shared",
+    "verifierPolicyScreenDataWillNotBeShared": "Information will not be shared",
+    "verifierPolicyScreenErrorDescription": "The policy could not be loaded",
+    "verifierPolicyScreenPolicySectionPolicyCta": "privacy policy",
+    "verifierPolicyScreenPolicySectionText": "View the {policy} to read more about how your data will be used.",
+    "@verifierPolicyScreenPolicySectionText": {
+        "placeholders": {
+            "policy": {
+                "example": "privacy policy",
+                "type": "String"
+            }
+        }
+    },
+    "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
+    "verifierPolicyScreenRetryCta": "Try again",
+    "verifierPolicyScreenTitle": "Terms",
+    "walletHistoryScreenTitle": "Usage history",
+    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, next",
+    "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, next",
+    "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
+    "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
+    "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
+    "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",
+    "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@walletPersonalizeConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "walletPersonalizeConfirmPinPageErrorTitle": "Invalid code",
+    "walletPersonalizeConfirmPinPageTitle": "Enter your pin",
+    "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, this can lead to issues. Report your issue to MFO.\\n\\nIt can take a moment before your data is updated, once the updates are processed you can create your Wallet.",
+    "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
+    "walletPersonalizeDataIncorrectScreenSubhead": "Is the data incorrect?",
+    "walletPersonalizeDataIncorrectScreenTitle": "Something is not correct",
+    "walletPersonalizeDigidErrorPageDescription": "Still want to retrieve your personal information? Try to login again.",
+    "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login",
+    "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
+    "walletPersonalizeDigidErrorPageTitle": "Login cancelled",
+    "walletPersonalizeIntroPageDescription": "You create a wallet by retrieving your personal information through the DigiD app",
+    "walletPersonalizeIntroPageLoginWithDigidCta": "Login with DigiD",
+    "walletPersonalizeIntroPageNoDigidCta": "I don't have DigiD",
+    "walletPersonalizeIntroPageTitle": "Login with DigiD to get started",
+    "walletPersonalizeLoadingPhotoPageSubtitle": "One moment...",
+    "walletPersonalizeLoadingPhotoPageTitle": "Scanning",
+    "walletPersonalizeNoDigidPageBackCta": "Back",
+    "walletPersonalizeNoDigidPageDescription": "At the moment you can only setup your wallet if you have access to DigiD",
+    "walletPersonalizeNoDigidPageHeadline": "I don't have DigiD",
+    "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
+    "walletPersonalizeNoDigidPageTitle": "No DigiD",
+    "walletPersonalizePhotoAddedPageContinueCta": "Fetch more information",
+    "walletPersonalizePhotoAddedPageDataIncorrectCta": "Something not right?",
+    "walletPersonalizePhotoAddedPageSubtitle": "Your photo has been added",
+    "walletPersonalizePhotoAddedPageTitle": "Success!",
+    "walletPersonalizeScanIdIntroPageContinueCta": "Start scanning",
+    "walletPersonalizeScanIdIntroPageDescription": "You need a picture in your wallet. You can add this using a:\\n      •    passport;\\n      •    ID card.",
+    "walletPersonalizeScanIdIntroPageTitle": "Add the picture from your ID",
+    "walletPersonalizeScanIdPageDescription": "Move your passport or ID card back and forth to setup the connection.",
+    "walletPersonalizeScanIdPageTitle": "Press the center of your ID against the back of your phone",
+    "walletPersonalizeScreenErrorDescription": "Something went wrong, please try again",
+    "walletPersonalizeScreenErrorRetryCta": "Try again",
+    "walletPersonalizeScreenErrorTitle": "Personalization failed",
+    "walletPersonalizeScreenExitSheetCancelCta": "No",
+    "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
+    "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your wallet?",
+    "walletPersonalizeScreenExitSheetTitle": "Exit",
+    "walletPersonalizeScreenLoadingSubtitle": "One moment please...",
+    "walletPersonalizeScreenLoadingTitle": "Loading",
+    "walletPersonalizeScreenTitle": "Create wallet",
+    "walletPersonalizeSuccessPageContinueCta": "To my cards",
+    "walletPersonalizeSuccessPageDescription": "Your data is saved as cards.",
+    "walletPersonalizeSuccessPageTitle": "Success!"
+}
