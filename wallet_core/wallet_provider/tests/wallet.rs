@@ -47,6 +47,8 @@ async fn create_test_wallet(
     base_url: Url,
     public_key: EcdsaDecodingKey,
 ) -> Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> {
+    tracing_subscriber::fmt::init();
+
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
     config.0.account_server.base_url = base_url;
