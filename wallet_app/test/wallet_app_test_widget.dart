@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 
@@ -23,12 +22,7 @@ class WalletAppTestWidget extends StatelessWidget {
     return MaterialApp(
       theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Material(child: child),
     );

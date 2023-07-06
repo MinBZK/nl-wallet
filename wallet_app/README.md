@@ -83,7 +83,7 @@ Note; the `assets/images/` directory contains [resolution-aware images](https://
 
 ## Localization
 
-Text localization is enabled; currently supporting English & Dutch, with English set as primary (fallback) language. Localized messages are generated based on `ARB` files found in the `lib/src/localization` directory.
+Text localization is enabled; currently supporting English & Dutch, with English set as primary (fallback) language. Localized messages are generated based on `ARB` files found in the `lib/l10n` directory.
 
 To support additional languages, please visit the tutorial on [Internationalizing Flutter apps](https://flutter.dev/docs/development/accessibility-and-localization/internationalization).
 
