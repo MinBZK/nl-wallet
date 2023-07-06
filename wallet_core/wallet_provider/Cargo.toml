@@ -17,6 +17,7 @@ required-features = ["wallet_provider_migrations"]
 stub = ["wallet_provider_service/stub"]
 wallet_provider_migrations = ["dep:sea-orm-migration"]
 db_test = []
+live_test = []
 
 [dependencies]
 wallet_provider_domain = { path = "domain" }
@@ -55,14 +56,11 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = ["mock"] }
+
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-uuid",
 ] }
-
-axum-test-helper.workspace = true
 url.workspace = true
-once_cell.workspace = true
-serial_test.workspace = true

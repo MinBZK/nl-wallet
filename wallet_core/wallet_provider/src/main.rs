@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    net::{SocketAddr, TcpListener},
-};
+use std::error::Error;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
@@ -25,12 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     );
 
-    let (ip, port) = (settings.webserver.ip, settings.webserver.port);
-    let socket = SocketAddr::new(ip, port);
-    let listener = TcpListener::bind(socket)?;
-    debug!("listening on {}", socket);
-
-    server::serve(listener, settings).await?;
+    server::serve(settings).await?;
 
     Ok(())
 }
