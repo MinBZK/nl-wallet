@@ -9,8 +9,8 @@ import '../../wallet_constants.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
-import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/generic_loading_page.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
@@ -250,8 +250,12 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCreatingWallet(BuildContext context, SetupSecurityCreatingWallet state) =>
-      const CenteredLoadingIndicator();
+  Widget _buildCreatingWallet(BuildContext context, SetupSecurityCreatingWallet state) {
+    return GenericLoadingPage(
+      title: context.l10n.setupSecurityLoadingPageTitle,
+      description: context.l10n.setupSecurityLoadingPageDescription,
+    );
+  }
 
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(

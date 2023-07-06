@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-07-03T15:38:39+02:00",
+    "@@last_modified": "2023-07-06T12:08:11+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Give feedback",
     "aboutScreenPrivacyCta": "Privacy policy",
@@ -20,7 +20,6 @@
             }
         }
     },
-    "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Pin correct, wallet is unlocked",
     "approveOrganizationPageShareWithTitle": "Share data with {organization}?",
     "@approveOrganizationPageShareWithTitle": {
         "placeholders": {
@@ -70,7 +69,6 @@
     "cardHistoryTimelineSigningSuccess": "Signed",
     "cardOverviewAddCardButton": "Add data",
     "cardOverviewScreenAddCardCta": "Add data",
-    "cardOverviewScreenLockWalletTooltip": "Lock wallet",
     "cardOverviewScreenTitle": "My cards",
     "cardShareScreenExplanationCta": "How does sharing work?",
     "cardShareScreenExplanationSheetCloseCta": "Close",
@@ -712,6 +710,7 @@
     "pinScreenForgotPinCta": "Forgot code?",
     "pinScreenHeader": "Enter your pin",
     "pinScreenTitle": "Login",
+    "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Pin correct, wallet is unlocked",
     "pinTimeoutScreenForgotPinCta": "Forgot code?",
     "pinTimeoutScreenHeadline": "Temporarily blocked",
     "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
@@ -800,7 +799,7 @@
     "settingsScreenSetupBiometricsCta": "Setup biometrics",
     "settingsScreenTitle": "Settings",
     "setupSecurityCompletedPageCreateWalletCta": "Create Wallet",
-    "setupSecurityCompletedPageDescription": "Your security is configured.",
+    "setupSecurityCompletedPageDescription": "Your app is secured with the chosen pin.",
     "setupSecurityCompletedPageTitle": "Success!",
     "setupSecurityConfirmationErrorPageDescription": "Try again",
     "setupSecurityConfirmationErrorPageFatalCta": "Choose new code",
@@ -808,6 +807,8 @@
     "setupSecurityConfirmationErrorPageFatalTitle": "Failed to setup pin",
     "setupSecurityConfirmationErrorPageTitle": "This code is different",
     "setupSecurityConfirmationPageTitle": "Repeat your code",
+    "setupSecurityLoadingPageDescription": "Just a moment...",
+    "setupSecurityLoadingPageTitle": "Saving",
     "setupSecurityScreenAboutAppTooltip": "About the app",
     "setupSecurityScreenTitle": "Setup security",
     "setupSecurityScreenWCAGEnteredDigitsAnnouncement": "{enteredDigits} of {totalDigits} digits supplied",
@@ -1103,10 +1104,12 @@
     },
     "walletPersonalizeConfirmPinPageErrorTitle": "Invalid code",
     "walletPersonalizeConfirmPinPageTitle": "Enter your pin",
-    "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, this can lead to issues. Report your issue to MFO.\\n\\nIt can take a moment before your data is updated, once the updates are processed you can create your Wallet.",
+    "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, this can lead to issues. Contact your municipality to get this resolved.",
+    "walletPersonalizeDataIncorrectScreenPhone": "Phone",
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Naar Meldpunt",
     "walletPersonalizeDataIncorrectScreenSubhead": "Is the data incorrect?",
     "walletPersonalizeDataIncorrectScreenTitle": "Something is not correct",
+    "walletPersonalizeDataIncorrectScreenWebsite": "Website",
     "walletPersonalizeDigidErrorPageDescription": "Still want to retrieve your personal information? Try to login again.",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",

@@ -89,29 +89,29 @@ class CardSummaryScreen extends StatelessWidget {
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.description_outlined,
-                  title: context.l10n.cardSummaryScreenCardDataCta,
-                  subtitle: context.l10n.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName),
+                  title: Text(context.l10n.cardSummaryScreenCardDataCta),
+                  subtitle: Text(context.l10n.cardSummaryScreenCardDataIssuedBy(summary.issuer.shortName)),
                   onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.history_outlined,
-                  title: context.l10n.cardSummaryScreenCardHistoryCta,
-                  subtitle: _createInteractionText(context, summary.latestSuccessInteraction),
+                  title: Text(context.l10n.cardSummaryScreenCardHistoryCta),
+                  subtitle: Text(_createInteractionText(context, summary.latestSuccessInteraction)),
                   onTap: () => _onCardHistoryPressed(context, card.id),
                 ),
                 const Divider(height: 1),
                 InfoRow(
                   icon: Icons.replay_outlined,
-                  title: context.l10n.cardSummaryScreenCardUpdateCta,
-                  subtitle: _createOperationText(context, summary.latestIssuedOperation),
+                  title: Text(context.l10n.cardSummaryScreenCardUpdateCta),
+                  subtitle: Text(_createOperationText(context, summary.latestIssuedOperation)),
                   onTap: () => _onCardUpdatePressed(context, card),
                 ),
                 const Divider(height: 1),
                 if (card.config.removable) ...[
                   InfoRow(
                     icon: Icons.delete_outline_rounded,
-                    title: context.l10n.cardSummaryScreenCardDeleteCta,
+                    title: Text(context.l10n.cardSummaryScreenCardDeleteCta),
                     onTap: () => _onCardDeletePressed(context),
                   ),
                   const Divider(height: 1)

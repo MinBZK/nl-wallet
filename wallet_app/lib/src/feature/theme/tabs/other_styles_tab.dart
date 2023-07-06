@@ -273,8 +273,8 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'InfoRow'),
         const InfoRow(
           icon: Icons.ac_unit,
-          title: 'Title',
-          subtitle: 'Subtitle',
+          title: Text('Title'),
+          subtitle: Text('Subtitle'),
         ),
         const ThemeSectionSubHeader(title: 'PinField'),
         const PinFieldDemo(),

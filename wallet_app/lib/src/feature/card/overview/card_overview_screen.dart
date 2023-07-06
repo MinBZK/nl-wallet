@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
@@ -17,8 +16,6 @@ import 'bloc/card_overview_bloc.dart';
 /// used to calculate the crossAxisCount.
 const _kCardBreakPointWidth = 300.0;
 
-const _kLockWalletButtonSortKey = -1.0;
-
 class CardOverviewScreen extends StatelessWidget {
   const CardOverviewScreen({Key? key}) : super(key: key);
 
@@ -32,15 +29,6 @@ class CardOverviewScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      leading: Semantics(
-        sortKey: const OrdinalSortKey(_kLockWalletButtonSortKey),
-        explicitChildNodes: true,
-        child: IconButton(
-          icon: const Icon(Icons.lock_outline),
-          onPressed: () => context.read<CardOverviewBloc>().add(CardOverviewLockWalletPressed()),
-          tooltip: context.l10n.cardOverviewScreenLockWalletTooltip,
-        ),
-      ),
       title: Text(context.l10n.cardOverviewScreenTitle),
     );
   }
