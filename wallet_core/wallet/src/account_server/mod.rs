@@ -4,6 +4,7 @@ mod remote;
 mod mock;
 
 use async_trait::async_trait;
+use reqwest::StatusCode;
 use url::{ParseError, Url};
 
 use wallet_common::account::{
@@ -13,10 +14,10 @@ use wallet_common::account::{
 
 pub use self::remote::RemoteAccountServerClient;
 
-// TODO: Make this error more distinctive when specific HTTP error
-//       response codes get added to the Wallet Provider.
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerClientError {
+    #[error("server responded with {0}")]
+    Response(#[from] AccountServerResponseError),
     #[error("networking error: {0}")]
     Networking(#[from] reqwest::Error),
     #[error("could not parse base URL: {0}")]
@@ -26,6 +27,14 @@ pub enum AccountServerClientError {
     #[cfg(test)]
     #[error(transparent)]
     Other(#[from] Box<dyn std::error::Error + Send + Sync>),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AccountServerResponseError {
+    #[error("status code {0}")]
+    Status(StatusCode),
+    #[error("status code {0} and contents: {1}")]
+    Text(StatusCode, String),
 }
 
 #[async_trait]
