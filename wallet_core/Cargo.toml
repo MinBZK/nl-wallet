@@ -20,7 +20,6 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 async-trait = "0.1.68"
 axum = { version = "0.6.12", default-features = false }
-axum-test-helper = "0.2.0"
 backtrace = "0.3.67"
 base64 = "0.21.0"
 config = { version = "0.13.3", default-features = false }
