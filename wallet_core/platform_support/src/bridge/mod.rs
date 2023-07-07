@@ -4,16 +4,9 @@ pub mod utils;
 use once_cell::sync::OnceCell;
 
 use self::{
-    hw_keystore::{EncryptionKeyBridge, KeyStoreError, SigningKeyBridge},
-    utils::{UtilitiesBridge, UtilitiesError},
+    hw_keystore::{EncryptionKeyBridge, SigningKeyBridge},
+    utils::UtilitiesBridge,
 };
-
-// import generated Rust bindings
-uniffi::include_scaffolding!("platform_support");
-
-// This prevents a compilation warning that "uniffi_reexport_hack" is unused.
-// It needs a top level use statement, see lib.rs
-uniffi_reexport_scaffolding!();
 
 static BRIDGE_COLLECTION: OnceCell<BridgeCollection> = OnceCell::new();
 

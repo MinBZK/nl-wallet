@@ -7,9 +7,16 @@ mod bridge;
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
 
-// this prevents a compilation warning, see bridge/mod.rs
+// import generated Rust bindings
 #[cfg(feature = "hardware")]
-use bridge::uniffi_reexport_hack;
+use crate::bridge::{
+    hw_keystore::{EncryptionKeyBridge, KeyStoreError, SigningKeyBridge},
+    init_platform_support,
+    utils::{UtilitiesBridge, UtilitiesError},
+};
+
+#[cfg(feature = "hardware")]
+uniffi::include_scaffolding!("platform_support");
 
 // if the hardware feature is enabled, prefer hardware implementations
 #[cfg(feature = "hardware")]

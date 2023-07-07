@@ -20,7 +20,6 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 async-trait = "0.1.68"
 axum = { version = "0.6.12", default-features = false }
-axum-test-helper = "0.2.0"
 backtrace = "0.3.67"
 base64 = "0.21.0"
 config = { version = "0.13.3", default-features = false }
@@ -47,7 +46,6 @@ serde = { version = "1.0.147", default-features = false }
 serde_json = { version = "1.0.92", default-features = false }
 serial_test = "2.0.0"
 sha2 = "0.10.6"
-spki = { version = "0.6.0", default-features = false }
 syn = "2.0"
 tempfile = "3.5.0"
 thiserror = "1.0.39"
@@ -55,6 +53,6 @@ tokio = { version = "1.27.0", default-features = false }
 tower-http = { version = "0.4.0", default-features = false }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-uniffi = { version = "0.23.0", default-features = false }
+uniffi = { version = "0.24.1", default-features = false }
 url = "2.4.0"
-uuid.version = "1.1.2"
+uuid.version = "1.4.0"
