@@ -61,3 +61,13 @@ impl From<ErrorType> for StatusCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_status_code_to_error_type() {
+        assert_eq!(StatusCode::from(ErrorType::ChallengeValidation).as_u16(), 401);
+    }
+}
