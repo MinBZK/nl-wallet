@@ -1,7 +1,10 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 use http::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// The contents of the error JSON are (loosely) based on
 /// [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807).
@@ -13,7 +16,7 @@ use serde::Serialize;
 /// * A `title`, which contains the string value of the error.
 /// * Optionally a `data` field, which can contain some key-value
 ///   data.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorData {
     #[serde(rename = "type")]
     pub typ: ErrorType,
@@ -24,7 +27,7 @@ pub struct ErrorData {
 
 /// This enum exists to allow the key-value error data to contain
 /// multiple types of values. It will most likely be expanded later.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DataValue {
     #[allow(dead_code)]
@@ -33,11 +36,17 @@ pub enum DataValue {
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
-#[derive(Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum ErrorType {
     Unexpected,
     ChallengeValidation,
     RegistrationParsing,
+}
+
+impl Display for ErrorData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.title)
+    }
 }
 
 /// For the purposes of predictability, there exist a strict mapping

@@ -8,7 +8,10 @@ use reqwest::StatusCode;
 use url::{ParseError, Url};
 
 use wallet_common::account::{
-    messages::auth::{Registration, WalletCertificate},
+    messages::{
+        auth::{Registration, WalletCertificate},
+        errors::ErrorData,
+    },
     signed::SignedDouble,
 };
 
@@ -35,6 +38,8 @@ pub enum AccountServerResponseError {
     Status(StatusCode),
     #[error("status code {0} and contents: {1}")]
     Text(StatusCode, String),
+    #[error("status code {0} and error: {1}")]
+    Data(StatusCode, ErrorData),
 }
 
 #[async_trait]

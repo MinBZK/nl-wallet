@@ -9,7 +9,10 @@ use serde::de::DeserializeOwned;
 use url::{ParseError, Url};
 
 use wallet_common::account::{
-    messages::auth::{Certificate, Challenge, Registration, WalletCertificate},
+    messages::{
+        auth::{Certificate, Challenge, Registration, WalletCertificate},
+        errors::ErrorData,
+    },
     signed::SignedDouble,
 };
 
@@ -47,16 +50,27 @@ impl RemoteAccountServerClient {
         let response = self.client.execute(request).await?;
         let status = response.status();
 
+        // In case of a 4xx or 5xx response...
         if status.is_client_error() || status.is_server_error() {
+            // ...try to get the response body as a string with the appropriate encoding.
+            // If that doesn't work or the body is empty, just wrap the status code in an error.
             let error = response.text().await.ok().filter(|text| !text.is_empty()).map_or_else(
                 || AccountServerResponseError::Status(status),
-                |text| AccountServerResponseError::Text(status, text),
+                |text| {
+                    // If it does work, try to decode the body as an ErrorData struct in order to wrap
+                    // that data in an error along with the status code. Otherwise, fall back to just
+                    // wrapping the body text in an error, again with the status code.
+                    serde_json::from_str::<ErrorData>(&text).ok().map_or_else(
+                        || AccountServerResponseError::Text(status, text),
+                        |error_data| AccountServerResponseError::Data(status, error_data),
+                    )
+                },
             );
 
             return Err(AccountServerClientError::Response(error));
         }
 
-        let body = response.error_for_status()?.json().await?;
+        let body = response.json().await?;
 
         Ok(body)
     }
