@@ -2,6 +2,7 @@ package uiTests
 
 import localization.LocalizationHelper
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
@@ -130,5 +131,26 @@ class PinScreenTests : TestBase() {
                 "setup security completed screen is not visible"
             )
         }
+    }
+
+    @RetryingTest(value = 3, name = "{displayName} - #{index}")
+    @DisplayName("UC 2.1 - verify forgot pin")
+    @Tags(Tag("smoke"), Tag("android"), Tag("iOS"))
+    fun verifyForgotPin() {
+        introductionScreens.clickSkipButton()
+        introductionScreens.clickNextButton()
+
+        val isPinScreenVisible = pinScreen.verifyIfPinScreenIsVisible() == true
+        assertTrue(isPinScreenVisible, "setup pin screen is not visible")
+
+        pinScreen.tapKeyNumber(correctKeyNumber)
+        pinScreen.tapKeyNumber(correctKeyNumber)
+
+        val isSetupSecurityCompletedScreenVisible =
+            setupSecurityCompletedScreen.verifyIfSetupSecurityCompletedScreenIsVisible() == true
+        assertTrue(
+            isSetupSecurityCompletedScreenVisible,
+            "setup security completed screen is not visible"
+        )
     }
 }

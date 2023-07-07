@@ -30,7 +30,7 @@ class PinScreen : MobileActions() {
 
 
     @Step("verify if the pin screen is visible")
-    fun verifyIfPinScreenIsVisible(): Boolean?{
+    fun verifyIfPinScreenIsVisible(): Boolean? {
         return isVisible(pinScreen)
     }
 

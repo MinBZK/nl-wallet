@@ -1,6 +1,6 @@
 package util
 
-import util.setupTestTagHandler.Companion.platformName
+import util.SetupTestTagHandler.Companion.platformName
 
 object Deeplink {
 
