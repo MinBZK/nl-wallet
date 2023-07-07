@@ -42,7 +42,7 @@ curl --request POST \
      --data '
 {
   "format": "arb",
-  "replace_breaks": true,
+  "replace_breaks": false,
   "plural_format": "icu",
   "compact": false,
   "original_filenames": false,
