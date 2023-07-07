@@ -24,7 +24,7 @@ backtrace = "0.3.67"
 base64 = "0.21.0"
 config = { version = "0.13.3", default-features = false }
 cstr = "0.2.11"
-der = "0.6.1"
+der = "0.7.7"
 flutter_rust_bridge = "1.70.0"
 futures = { version = "0.3.28", default-features = false }
 jni = "0.21.1"
@@ -33,8 +33,7 @@ libsqlite3-sys = { version = "0.24.2", default-features = false }
 never = "0.1.0"
 once_cell = "1.17.1"
 oslog = { version = "0.2.0", default-features = false }
-p256 = { version = "0.12.0", default-features = false }
-pkcs8 = { version = "0.9.0", default-features = false }
+p256 = { version = "0.13.2", default-features = false }
 quote = "1.0.26"
 rand = "0.8.5"
 rand_core = "0.6.4"
