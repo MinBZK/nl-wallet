@@ -37,7 +37,7 @@ pub enum ChallengeError {
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
-    ChallengeDecoding(#[from] std::string::FromUtf8Error),
+    ChallengeDecoding(#[source] std::string::FromUtf8Error),
     #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] wallet_common::errors::Error),
     #[error("registration message parsing error: {0}")]
@@ -47,9 +47,9 @@ pub enum RegistrationError {
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("registration PIN public key decoding error: {0}")]
-    PinPubKeyDecoding(#[from] p256::pkcs8::spki::Error),
+    PinPubKeyDecoding(#[source] p256::pkcs8::spki::Error),
     #[error("registration PIN public key DER encoding error: {0}")]
-    PinPubKeyEncoding(#[from] der::Error),
+    PinPubKeyEncoding(#[source] der::Error),
     #[error("registration JWT signing error: {0}")]
     JwtSigning(#[source] wallet_common::errors::Error),
     #[error("could not store certificate {0}")]
@@ -122,8 +122,13 @@ impl AccountServer {
         &self,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
-        Jwt::parse_and_verify(&String::from_utf8(challenge.to_owned())?.into(), &self.pubkey)
-            .map_err(RegistrationError::ChallengeValidation)
+        Jwt::parse_and_verify(
+            &String::from_utf8(challenge.to_owned())
+                .map_err(RegistrationError::ChallengeDecoding)?
+                .into(),
+            &self.pubkey,
+        )
+        .map_err(RegistrationError::ChallengeValidation)
     }
 
     pub async fn register<T>(
@@ -183,9 +188,13 @@ impl AccountServer {
         wallet_hw_pubkey: VerifyingKey,
         wallet_pin_pubkey: VerifyingKey,
     ) -> Result<WalletCertificate, RegistrationError> {
-        let pin_pubkey_bts = wallet_pin_pubkey.to_public_key_der()?.to_vec();
+        let pin_pubkey_bts = wallet_pin_pubkey
+            .to_public_key_der()
+            .map_err(RegistrationError::PinPubKeyDecoding)?
+            .to_vec();
 
-        let pin_pubkey_tohash = der_encode(vec![self.pin_hash_salt.clone(), pin_pubkey_bts])?;
+        let pin_pubkey_tohash = der_encode(vec![self.pin_hash_salt.clone(), pin_pubkey_bts])
+            .map_err(RegistrationError::PinPubKeyEncoding)?;
 
         let cert = WalletCertificateClaims {
             wallet_id,
