@@ -58,3 +58,4 @@ tracing-subscriber = "0.3"
 uniffi = { version = "0.23.0", default-features = false }
 url = "2.4.0"
 uuid.version = "1.1.2"
+wiremock = "0.5.19"
