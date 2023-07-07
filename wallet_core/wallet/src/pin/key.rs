@@ -73,7 +73,7 @@ impl<'a> PinKey<'a> {
     }
 }
 
-impl<'a> Signer<Signature> for PinKey<'a> {
+impl Signer<Signature> for PinKey<'_> {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
         let signature = pin_private_key(self.salt, self.pin)
             .map_err(PinKeyError::from)?
@@ -83,7 +83,7 @@ impl<'a> Signer<Signature> for PinKey<'a> {
     }
 }
 
-impl<'a> EcdsaKey for PinKey<'a> {
+impl EcdsaKey for PinKey<'_> {
     type Error = PinKeyError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -91,7 +91,7 @@ impl<'a> EcdsaKey for PinKey<'a> {
     }
 }
 
-impl<'a> EphemeralEcdsaKey for PinKey<'a> {}
+impl EphemeralEcdsaKey for PinKey<'_> {}
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
 fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRingError> {
