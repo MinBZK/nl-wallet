@@ -28,6 +28,7 @@ cstr = "0.2.11"
 der = "0.6.1"
 flutter_rust_bridge = "1.70.0"
 futures = { version = "0.3.28", default-features = false }
+http = "0.2.9"
 jni = "0.21.1"
 jsonwebtoken = "8.2.0"
 libsqlite3-sys = { version = "0.24.2", default-features = false }

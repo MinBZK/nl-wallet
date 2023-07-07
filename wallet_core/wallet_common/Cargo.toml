@@ -11,6 +11,7 @@ mock = []
 
 [dependencies]
 base64.workspace = true
+http.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rand.workspace = true

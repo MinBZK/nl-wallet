@@ -3283,6 +3283,7 @@ name = "wallet_common"
 version = "0.1.0"
 dependencies = [
  "base64 0.21.0",
+ "http",
  "jsonwebtoken",
  "p256",
  "rand",
