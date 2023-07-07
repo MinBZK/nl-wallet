@@ -4,7 +4,7 @@ use tokio::task;
 use tracing::{info, instrument};
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::auth::Registration;
+use wallet_common::account::messages::auth::Registration;
 
 pub use crate::{
     account_server::{AccountServerClient, AccountServerClientError},

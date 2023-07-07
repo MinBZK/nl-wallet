@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::{
-        auth::{Registration, WalletCertificate, WalletCertificateClaims},
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
+        messages::auth::{Registration, WalletCertificate, WalletCertificateClaims},
         serialization::Base64Bytes,
         signed::SignedDouble,
     },

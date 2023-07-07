@@ -164,7 +164,7 @@ mod tests {
     use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
     use tokio::fs;
 
-    use wallet_common::{account::auth::WalletCertificate, utils::random_bytes};
+    use wallet_common::{account::messages::auth::WalletCertificate, utils::random_bytes};
 
     use crate::storage::data::RegistrationData;
 

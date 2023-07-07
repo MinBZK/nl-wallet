@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 use url::{ParseError, Url};
 
 use wallet_common::account::{
-    auth::{Registration, WalletCertificate},
+    messages::auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
 

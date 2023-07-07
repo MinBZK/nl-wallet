@@ -9,7 +9,7 @@ use serde::de::DeserializeOwned;
 use url::{ParseError, Url};
 
 use wallet_common::account::{
-    auth::{Certificate, Challenge, Registration, WalletCertificate},
+    messages::auth::{Certificate, Challenge, Registration, WalletCertificate},
     signed::SignedDouble,
 };
 

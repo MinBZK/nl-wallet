@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use url::Url;
 
 use wallet_common::account::{
-    auth::{Registration, WalletCertificate},
+    messages::auth::{Registration, WalletCertificate},
     signed::SignedDouble,
 };
 use wallet_provider::{
