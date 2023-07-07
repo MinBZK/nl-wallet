@@ -70,11 +70,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return ExcludeSemantics(
-      child: BlocBuilder<WalletPersonalizeBloc, WalletPersonalizeState>(
-        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-      ),
+    return BlocBuilder<WalletPersonalizeBloc, WalletPersonalizeState>(
+      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 

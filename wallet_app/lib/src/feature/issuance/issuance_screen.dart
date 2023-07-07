@@ -45,7 +45,7 @@ class IssuanceScreen extends StatelessWidget {
       appBar: AppBar(
         title: _buildTitle(context),
         leading: _buildBackButton(context),
-        actions: [CloseButton(onPressed: () => _stopIssuance(context))],
+        actions: [_buildCloseButton(context)],
       ),
       body: WillPopScope(
         onWillPop: () async {
@@ -85,11 +85,9 @@ class IssuanceScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return ExcludeSemantics(
-      child: BlocBuilder<IssuanceBloc, IssuanceState>(
-        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-      ),
+    return BlocBuilder<IssuanceBloc, IssuanceState>(
+      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 
@@ -131,6 +129,21 @@ class IssuanceScreen extends StatelessWidget {
           visible: state.canGoBack,
           onPressed: () => context.bloc.add(const IssuanceBackPressed()),
         );
+      },
+    );
+  }
+
+  /// The close button stops/closes the verification flow.
+  /// It is only visible in the semantics tree when the verification flow is in progress.
+  Widget _buildCloseButton(BuildContext context) {
+    final closeButton = CloseButton(onPressed: () => _stopIssuance(context));
+    return BlocBuilder<IssuanceBloc, IssuanceState>(
+      builder: (context, state) {
+        if (state.stepperProgress == 1.0) {
+          return ExcludeSemantics(child: closeButton);
+        } else {
+          return closeButton;
+        }
       },
     );
   }

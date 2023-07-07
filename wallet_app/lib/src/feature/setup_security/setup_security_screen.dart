@@ -49,11 +49,9 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildStepper() {
-    return ExcludeSemantics(
-      child: BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-      ),
+    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 

@@ -45,7 +45,6 @@ class PinPage extends StatelessWidget {
           }
         }
         if (state is PinValidateSuccess) {
-          SemanticsService.announce(context.l10n.pinScreenWCAGPinOkWalletUnlockedAnnouncement, TextDirection.ltr);
           onPinValidated?.call();
         }
         if (state is PinValidateServerError) {

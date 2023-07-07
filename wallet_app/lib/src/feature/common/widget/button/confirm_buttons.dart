@@ -19,6 +19,7 @@ class ConfirmButtons extends StatelessWidget {
   final VoidCallback onAcceptPressed;
   final String acceptText;
   final String declineText;
+  final String? declineTextSemanticsLabel;
   final IconData? acceptIcon;
   final IconData? declineIcon;
   final bool forceVertical;
@@ -28,6 +29,7 @@ class ConfirmButtons extends StatelessWidget {
     required this.onAcceptPressed,
     required this.acceptText,
     required this.declineText,
+    this.declineTextSemanticsLabel,
     this.forceVertical = false,
     this.acceptIcon = Icons.check,
     this.declineIcon = Icons.not_interested,
@@ -84,6 +86,7 @@ class ConfirmButtons extends StatelessWidget {
           onDeclinePressed,
           declineIcon,
           declineText,
+          declineTextSemanticsLabel,
         ),
       ),
       const SizedBox(width: _kButtonSpacing, height: _kButtonSpacing),
@@ -95,6 +98,7 @@ class ConfirmButtons extends StatelessWidget {
           onAcceptPressed,
           acceptIcon,
           acceptText,
+          null,
         ),
       ),
     ];
@@ -118,6 +122,7 @@ class ConfirmButtons extends StatelessWidget {
     VoidCallback onPressed,
     IconData? icon,
     String text,
+    String? textSemanticsLabel,
   ) {
     return SizedBox(
       height: _kButtonHeight,
@@ -126,14 +131,14 @@ class ConfirmButtons extends StatelessWidget {
         type: type,
         onPressed: onPressed,
         child: icon == null
-            ? _buildButtonText(context, type, text)
+            ? _buildButtonText(context, type, text, textSemanticsLabel)
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(icon, size: _kButtonIconSize),
                   const SizedBox(width: _kButtonIconSpacing),
                   Flexible(
-                    child: _buildButtonText(context, type, text),
+                    child: _buildButtonText(context, type, text, textSemanticsLabel),
                   ),
                 ],
               ),
@@ -156,11 +161,17 @@ class ConfirmButtons extends StatelessWidget {
     }
   }
 
-  Widget _buildButtonText(BuildContext context, ConfirmButtonType type, String text) {
+  Widget _buildButtonText(
+    BuildContext context,
+    ConfirmButtonType type,
+    String text,
+    String? textSemanticsLabel,
+  ) {
     return Text(
       text,
       maxLines: _kButtonTextMaxLines,
       overflow: TextOverflow.ellipsis,
+      semanticsLabel: textSemanticsLabel,
       style: _getButtonTextStyle(context, type),
     );
   }
