@@ -11,7 +11,7 @@ import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
 import uiTests.TestBase
 
-import util.setupTestTagHandler
+import util.SetupTestTagHandler
 
 import java.net.MalformedURLException
 import java.net.URL
@@ -39,8 +39,8 @@ class BrowserstackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:automationName", "Flutter")
         caps.setCapability("appium:platformVersion", remoteDevice.platformVersion)
         caps.setCapability("appium:deviceName", remoteDevice.deviceName)
-        caps.setCapability("appium:language", setupTestTagHandler.language)
-        caps.setCapability("appium:locale", setupTestTagHandler.locale)
+        caps.setCapability("appium:language", SetupTestTagHandler.language)
+        caps.setCapability("appium:locale", SetupTestTagHandler.locale)
         caps.setCapability("appium:retryBackoffTime", 500)
         // Set URL of the application under test
         caps.setCapability(

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import server.AppiumServiceProvider
-import util.setupTestTagHandler.Companion.handleTestTags
+import util.SetupTestTagHandler.Companion.handleTestTags
 import java.time.Duration
 
 @ExtendWith(TestResultsListener::class)
