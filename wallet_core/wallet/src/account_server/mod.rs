@@ -25,11 +25,6 @@ pub enum AccountServerClientError {
     Networking(#[from] reqwest::Error),
     #[error("could not parse base URL: {0}")]
     BaseUrl(#[from] ParseError),
-    /// This error variant only exist for the mock implementation of [`AccountServerClient`]
-    /// by [`wallet_provider::account_server::AccountServer`].
-    #[cfg(test)]
-    #[error(transparent)]
-    Other(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug, thiserror::Error)]

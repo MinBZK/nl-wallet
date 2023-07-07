@@ -19,7 +19,7 @@ pub struct WalletProviderError {
 
 /// Any top-level error should implement this trait in order to be
 /// convertible to a [`WalletProviderError`].
-trait ConvertibleError: Error {
+pub trait ConvertibleError: Error {
     fn error_type(&self) -> ErrorType;
 
     fn error_title(&self) -> String {
