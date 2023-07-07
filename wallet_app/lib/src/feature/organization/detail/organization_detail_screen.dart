@@ -1,5 +1,4 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -163,16 +162,18 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.policy_outlined),
-          text: Text.rich(
-            TextSpan(
-              text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
-              children: [
-                TextSpan(
-                  text: context.l10n.organizationDetailScreenPrivacyPolicy,
-                  recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
-                  style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-                )
-              ],
+          text: InkWell(
+            onTap: () => PlaceholderScreen.show(context),
+            child: Text.rich(
+              TextSpan(
+                text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
+                children: [
+                  TextSpan(
+                    text: context.l10n.organizationDetailScreenPrivacyPolicy,
+                    style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+                  )
+                ],
+              ),
             ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -221,11 +222,13 @@ class OrganizationDetailScreen extends StatelessWidget {
         if (organization.webUrl != null)
           IconRow(
             icon: const Icon(Icons.language_outlined),
-            text: Text.rich(TextSpan(
-              text: organization.webUrl!,
-              recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
-              style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-            )),
+            text: InkWell(
+              onTap: () => PlaceholderScreen.show(context),
+              child: Text.rich(TextSpan(
+                text: organization.webUrl!,
+                style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+              )),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
       ],

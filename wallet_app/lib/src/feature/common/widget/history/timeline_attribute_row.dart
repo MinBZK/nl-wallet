@@ -39,9 +39,11 @@ class TimelineAttributeRow extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.max,
               children: [
-                OrganizationLogo(
-                  image: AssetImage(attribute.organization.logoUrl),
-                  size: _kOrganizationLogoSize,
+                ExcludeSemantics(
+                  child: OrganizationLogo(
+                    image: AssetImage(attribute.organization.logoUrl),
+                    size: _kOrganizationLogoSize,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -61,9 +63,11 @@ class TimelineAttributeRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Icon(
-                  Icons.chevron_right,
-                  color: context.colorScheme.onBackground,
+                ExcludeSemantics(
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: context.colorScheme.onBackground,
+                  ),
                 ),
               ],
             ),

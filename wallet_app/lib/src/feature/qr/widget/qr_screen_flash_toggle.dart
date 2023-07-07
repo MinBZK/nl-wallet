@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../bloc/flashlight_cubit.dart';
 
 /// Explicit naming because it relies on the [DefaultTabController]
@@ -23,7 +24,12 @@ class QrScreenFlashToggle extends StatelessWidget {
                 onPressed: null,
               ),
             FlashlightSuccess() => IconButton(
-                icon: Icon(state.on ? Icons.flashlight_off : Icons.flashlight_on),
+                icon: Icon(
+                  state.on ? Icons.flashlight_off : Icons.flashlight_on,
+                  semanticLabel: state.on
+                      ? context.l10n.qrScanTabFlashDisableCtaTooltip
+                      : context.l10n.qrScanTabFlashEnableCtaTooltip,
+                ),
                 onPressed: () => context.read<FlashlightCubit>().toggle(),
               ),
           };
