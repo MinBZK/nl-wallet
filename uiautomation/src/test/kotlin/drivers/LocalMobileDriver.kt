@@ -12,6 +12,9 @@ import util.SetupTestTagHandler
 
 class LocalMobileDriver : WebDriverProvider {
 
+    private val apkPath = "../wallet_app/build/app/outputs/flutter-apk/app-profile.apk"
+    private val ipaPath = "../nl.ict.edi.wallet.latest-0.1.0.ipa"
+
     override fun createDriver(capabilities: Capabilities): WebDriver {
         AppiumServiceProvider.startService()
         val localDevice = testDataConfig.defaultLocalDevice
@@ -22,11 +25,13 @@ class LocalMobileDriver : WebDriverProvider {
             UiAutomator2Options().apply {
                 setAppPackage(testDataConfig.appPackage)
                 setAppActivity(testDataConfig.appActivity)
+                setApp(apkPath)
                 ignoreHiddenApiPolicyError()
             }
         } else {
             XCUITestOptions().apply {
                 setBundleId(testDataConfig.bundleId)
+                setApp(ipaPath)
             }
         }
         options.merge(capabilities)
