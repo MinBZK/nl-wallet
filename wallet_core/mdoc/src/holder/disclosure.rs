@@ -1,6 +1,6 @@
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
 use indexmap::IndexMap;
-use x509_parser::{nom::AsBytes, prelude::X509Certificate};
+use x509_parser::nom::AsBytes;
 
 use crate::{
     iso::*,
@@ -9,6 +9,7 @@ use crate::{
         crypto::dh_hmac_key,
         serialization::cbor_deserialize,
         signer::{MdocEcdsaKey, SecureEcdsaKey},
+        x509::{CertificateUsage, TrustAnchors},
     },
     verifier::X509Subject,
     Error, Result,
@@ -132,7 +133,11 @@ impl DeviceRequest {
     /// For now, this function requires either none of the DocRequests to be signed, or all of them
     /// by the same reader.
     // TODO use in client
-    pub fn verify(&self, ca_cert: &X509Certificate, reader_authentication_bts: &[u8]) -> Result<Option<X509Subject>> {
+    pub fn verify(
+        &self,
+        trust_anchors: &TrustAnchors,
+        reader_authentication_bts: &[u8],
+    ) -> Result<Option<X509Subject>> {
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
         }
@@ -147,7 +152,7 @@ impl DeviceRequest {
                 .as_ref()
                 .unwrap()
                 .clone_with_payload(reader_authentication_bts.to_vec())
-                .verify_against_cert(ca_cert)?;
+                .verify_against_trust_anchors(CertificateUsage::ReaderAuth, trust_anchors)?;
             if reader.is_none() {
                 reader.replace(found);
             } else if *reader.as_ref().unwrap() != found {

@@ -2,12 +2,11 @@ use std::marker::PhantomData;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use x509_parser::prelude::X509Certificate;
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey},
+    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, x509::TrustAnchors},
     Result,
 };
 
@@ -116,8 +115,8 @@ impl<'de, K: MdocEcdsaKey> Deserialize<'de> for PrivateKeyType<K> {
 }
 
 impl<K: MdocEcdsaKey> Mdoc<K> {
-    pub fn new(private_key: String, issuer_signed: IssuerSigned, ca_cert: &X509Certificate) -> Result<Mdoc<K>> {
-        let (_, mso) = issuer_signed.verify(ca_cert)?;
+    pub fn new(private_key: String, issuer_signed: IssuerSigned, trust_anchors: &TrustAnchors) -> Result<Mdoc<K>> {
+        let (_, mso) = issuer_signed.verify(trust_anchors)?;
         Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
     }
 

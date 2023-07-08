@@ -127,6 +127,20 @@ The payload is not always present in the COSE; sometimes it is transmitted out o
 The COSE standard also includes a data structure definition called `COSE_Key` for cryptographic keys, such as an ECDSA public key.
 The ISO standards use this for all keys occuring in the mdoc data structures.
 
+### Verification
+
+An mdoc is signed by its issuer through the signature over the MSO (Mobile Security Object, see below), in COSE form.
+
+The public key corresponding to the issuer's private key is encoded in an X509 certificate, and included in a header of the mdoc COSE.
+This issuer X509 certificate is signed in turn by the IACA, the Issuer Authority Certificate Authority, which thus acts as the root of trust.
+An RP may trust one or more IACAs.
+
+To verify an mdoc (disclosure), the RP thus needs to perform the following steps:
+
+1. Parse the mdoc, and take the issuer X509 certificate from the COSE header of the mdoc.
+2. Validate this certificate against the IACA certificate(s) that the RP trusts.
+3. Using the public key from the issuer certificate, verify the mdoc.
+
 ## Data structures
 
 This section describes and shows examples of the major datatypes of ISO 18013-5.

@@ -4,17 +4,10 @@ use std::marker::PhantomData;
 
 use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
-use ecdsa::{
-    elliptic_curve::pkcs8::DecodePublicKey,
-    signature::{Signature, Verifier},
-};
+use ecdsa::signature::{Signature, Verifier};
 use p256::NistP256;
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
-use x509_parser::{
-    certificate::X509Certificate,
-    prelude::{FromDer, X509Error},
-};
 
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
@@ -22,6 +15,8 @@ use crate::{
     verifier::X509Subject,
     Result,
 };
+
+use super::x509::{Certificate, CertificateError, CertificateUsage, TrustAnchors};
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -47,12 +42,8 @@ pub enum CoseError {
     Cbor(#[from] CborError),
     #[error("signing certificate header did not contain bytes")]
     CertificateUnexpectedHeaderType,
-    #[error("certificate failed to validate against CA certificate: {0}")]
-    CertificateInvalid(#[from] X509Error),
-    #[error("failed to parse certificate public key: {0}")]
-    CertificateKeyParsingFailed(p256::pkcs8::spki::Error),
-    #[error("failed to parse certificate: {0}")]
-    CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
 }
 
 impl Cose for CoseSign1 {
@@ -163,32 +154,33 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose)
     }
 
-    pub fn verify_against_cert(&self, ca_cert: &X509Certificate) -> Result<(T, X509Subject)>
+    pub fn verify_against_trust_anchors(
+        &self,
+        usage: CertificateUsage,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<(T, X509Subject)>
     where
         T: DeserializeOwned,
     {
         // Take certificate containing the public key with which the MSO is signed from the unsigned COSE header
         // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
-        let issuer_cert_bts = self
+        let cert_bts = self
             .unprotected_header_item(&Label::Int(33))?
             .as_bytes()
             .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
-        let issuer_cert = X509Certificate::from_der(issuer_cert_bts)
-            .map_err(CoseError::CertificateParsingFailed)?
-            .1;
 
-        // Verify the certificate against the CA
-        ca_cert.verify_signature(None).map_err(CoseError::CertificateInvalid)?;
-        issuer_cert
-            .verify_signature(Some(ca_cert.public_key()))
-            .map_err(CoseError::CertificateInvalid)?;
+        let cert = Certificate::from(cert_bts);
 
-        let issuer_pk = ecdsa::VerifyingKey::from_public_key_der(issuer_cert.public_key().raw)
-            .map_err(CoseError::CertificateKeyParsingFailed)?;
+        // Verify the certificate against the trusted IACAs
+        cert.verify(usage, &[], trust_anchors).map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
+        let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
         let parsed = self.verify_and_parse(&issuer_pk)?;
-        let subject = issuer_cert
+
+        let subject = cert
+            .to_x509()
+            .map_err(CoseError::Certificate)?
             .subject
             .iter_attributes()
             .map(|attr| {

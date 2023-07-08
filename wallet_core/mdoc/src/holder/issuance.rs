@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
-use x509_parser::prelude::{FromDer, X509Certificate};
 
 use crate::{
     basic_sa_ext::{
@@ -16,55 +15,12 @@ use crate::{
         crypto::random_string,
         serialization::{cbor_serialize, TaggedBytes},
         signer::MdocEcdsaKey,
+        x509::TrustAnchors,
     },
-    Error, Result,
+    Result,
 };
 
-use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
-
-// TODO: support multiple certs per doctype, to allow key rollover.
-// We might consider using https://docs.rs/owning_ref/latest/owning_ref/index.html to make the certificates owned.
-/// Trusted CA certificates of issuers authorized to issue a doctype.
-#[derive(Debug, Clone, Default)]
-pub struct TrustedIssuerCerts<'a>(IndexMap<DocType, X509Certificate<'a>>);
-
-impl<'a> From<IndexMap<DocType, X509Certificate<'a>>> for TrustedIssuerCerts<'a> {
-    fn from(value: IndexMap<DocType, X509Certificate<'a>>) -> Self {
-        Self(value)
-    }
-}
-
-impl<'a, const N: usize> TryFrom<[(DocType, &'a [u8]); N]> for TrustedIssuerCerts<'a> {
-    type Error = Error;
-
-    fn try_from(value: [(DocType, &'a [u8]); N]) -> Result<Self> {
-        let certs = value
-            .iter()
-            .map(|(doc_type, bts)| Ok((doc_type.clone(), Self::parse(bts)?)))
-            .collect::<Result<IndexMap<_, _>>>()?
-            .into();
-        Ok(certs)
-    }
-}
-
-impl<'a> TrustedIssuerCerts<'a> {
-    pub fn new() -> Self {
-        IndexMap::new().into()
-    }
-
-    pub fn parse(cert_bts: &'a [u8]) -> Result<X509Certificate<'a>> {
-        let cert = X509Certificate::from_der(cert_bts)
-            .map_err(HolderError::CertificateParsingFailed)?
-            .1;
-        Ok(cert)
-    }
-
-    pub fn get(&self, doc_type: &DocType) -> Result<&X509Certificate> {
-        self.0
-            .get(doc_type)
-            .ok_or(Error::from(HolderError::UntrustedIssuer(doc_type.clone())))
-    }
-}
+use super::{Mdoc, MdocCopies, Storage, Wallet};
 
 /// Used during a session to construct a HTTP client to interface with the server.
 /// Can be used to pass information to the client that it needs during the session.
@@ -95,7 +51,7 @@ impl<C: Storage> Wallet<C> {
         service_engagement: ServiceEngagement,
         user_consent: &impl IssuanceUserConsent,
         client_builder: &impl HttpClientBuilder,
-        trusted_issuer_certs: &TrustedIssuerCerts<'_>,
+        trust_anchors: &TrustAnchors<'_>,
     ) -> Result<()> {
         let client = client_builder.build(service_engagement);
 
@@ -128,7 +84,7 @@ impl<C: Storage> Wallet<C> {
         let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
 
         // Process issuer response to obtain and save new mdocs
-        let creds = state.issuance_finish(issuer_response, trusted_issuer_certs)?;
+        let creds = state.issuance_finish(issuer_response, trust_anchors)?;
         self.storage.add(creds.into_iter().flatten())
     }
 }
@@ -166,14 +122,14 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
     pub fn issuance_finish(
         self,
         issuer_response: DataToIssueMessage,
-        trusted_issuer_certs: &TrustedIssuerCerts,
+        trust_anchors: &TrustAnchors,
     ) -> Result<Vec<MdocCopies<K>>> {
         issuer_response
             .mobile_id_documents
             .iter()
             .zip(&self.request.unsigned_mdocs)
             .zip(&self.private_keys)
-            .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trusted_issuer_certs))
+            .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trust_anchors))
             .collect()
     }
 
@@ -181,13 +137,13 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
-        trusted_issuer_certs: &TrustedIssuerCerts,
+        trust_anchors: &TrustAnchors,
     ) -> Result<MdocCopies<K>> {
         let cred_copies = doc
             .sparse_issuer_signed
             .iter()
             .zip(keys)
-            .map(|(iss_signature, key)| iss_signature.to_mdoc(key, unsigned, trusted_issuer_certs.get(&doc.doc_type)?))
+            .map(|(iss_signature, key)| iss_signature.to_mdoc(key, unsigned, trust_anchors))
             .collect::<Result<Vec<_>>>()?
             .into();
         Ok(cred_copies)
@@ -199,7 +155,7 @@ impl SparseIssuerSigned {
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,
-        iss_cert: &X509Certificate,
+        trust_anchors: &TrustAnchors,
     ) -> Result<Mdoc<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
@@ -227,7 +183,7 @@ impl SparseIssuerSigned {
             name_spaces: Some(name_spaces),
             issuer_auth,
         };
-        issuer_signed.verify(iss_cert)?;
+        issuer_signed.verify(trust_anchors)?;
 
         let cred = Mdoc::_new(
             unsigned.doc_type.clone(),

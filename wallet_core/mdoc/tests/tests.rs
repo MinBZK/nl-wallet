@@ -1,17 +1,13 @@
-use anyhow::{anyhow, Result};
-use async_trait::async_trait;
-use ciborium::value::Value;
 use core::fmt::Debug;
+use std::{ops::Add, sync::Arc};
+
+use anyhow::Result;
+use async_trait::async_trait;
+use chrono::{TimeZone, Utc};
+use ciborium::value::Value;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
-use p256::pkcs8::{
-    der::{asn1::SequenceOf, Encode},
-    DecodePrivateKey, ObjectIdentifier,
-};
-use rcgen::{BasicConstraints, Certificate, CertificateParams, CustomExtension, DnType, IsCa};
 use serde::{de::DeserializeOwned, Serialize};
-use std::{ops::Add, sync::Arc};
-use x509_parser::prelude::{FromDer, X509Certificate};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
@@ -22,6 +18,8 @@ use nl_wallet_mdoc::{
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
         signer::SoftwareEcdsaKey,
+        time::mock_time::set_mock_time,
+        x509::{Certificate, CertificateUsage},
     },
     Error,
 };
@@ -40,7 +38,7 @@ fn iso_examples_consistency() {
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
         .issuer_signed
         .issuer_auth
-        .verify_against_cert(&Examples::issuer_ca_cert())
+        .verify_against_trust_anchors(CertificateUsage::Mdl, &Examples::issuer_ca_cert())
         .unwrap()
         .0
          .0
@@ -55,6 +53,9 @@ fn iso_examples_consistency() {
 
 #[test]
 fn iso_examples_disclosure() {
+    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
+
     let ca_cert = Examples::issuer_ca_cert();
     let eph_reader_key = Examples::ephemeral_reader_key();
     let device_response = DeviceResponse::example();
@@ -104,6 +105,9 @@ fn iso_examples_disclosure() {
 
 #[test]
 fn iso_examples_custom_disclosure() {
+    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
+
     let ca_cert = Examples::issuer_ca_cert();
     let device_response = DeviceResponse::example();
 
@@ -268,12 +272,12 @@ fn issuance_and_disclosure() {
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty())
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<MdocsMap>, Vec<u8>) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<MdocsMap>, Certificate) {
     // Issuer CA certificate and normal certificate
-    let ca = new_ca(ISSUANCE_CA_CN).unwrap();
-    let ca_bts = ca.serialize_der().unwrap();
-    let (privkey, cert_bts) = new_certificate(&ca, ISSUANCE_CERT_CN).unwrap();
-    let issuance_key = PrivateKey::new(privkey, cert_bts);
+    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
+    let (issuer_cert, issuer_privkey) =
+        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
+    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
 
     // Setup session and issuer
     let request = new_issuance_request();
@@ -285,7 +289,6 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     let service_engagement = issuance_server.new_session(request).unwrap();
 
     // Setup holder
-    let trusted_issuer_certs = [(ISSUANCE_DOC_TYPE.to_string(), ca_bts.as_slice())].try_into().unwrap();
     let wallet = Wallet::new(MdocsMap::new());
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
@@ -302,16 +305,16 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
                     service_engagement,
                     &user_consent,
                     &client_builder,
-                    &trusted_issuer_certs,
+                    &[(&ca).try_into().unwrap()].as_slice().into(),
                 )
                 .await
                 .unwrap();
         });
 
-    (wallet, ca_bts)
+    (wallet, ca)
 }
 
-fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Vec<u8>) {
+fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
     assert!(!wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Disclose some attributes from our cred
@@ -329,44 +332,14 @@ fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Vec<u8>) {
         .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref())
         .unwrap();
 
-    let ca_cert = X509Certificate::from_der(ca.as_slice()).unwrap().1;
     println!(
         "Disclosure: {:#?}",
-        DebugCollapseBts(disclosed.verify(None, &challenge, &ca_cert).unwrap())
+        DebugCollapseBts(
+            disclosed
+                .verify(None, &challenge, &[(&ca).try_into().unwrap()].as_slice().into())
+                .unwrap()
+        )
     );
-}
-
-pub fn new_ca(common_name: &str) -> Result<Certificate, rcgen::RcgenError> {
-    let mut ca_params = CertificateParams::new(vec![]);
-    ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-    ca_params.distinguished_name.push(DnType::CommonName, common_name);
-    Certificate::from_params(ca_params)
-}
-
-const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
-const MDL_EXT_KEY_USAGE: &str = "1.0.18013.5.1.2";
-
-pub fn new_certificate(ca: &Certificate, common_name: &str) -> Result<(ecdsa::SigningKey<p256::NistP256>, Vec<u8>)> {
-    let mut cert_params = CertificateParams::new(vec![]);
-    cert_params.is_ca = IsCa::NoCa;
-    cert_params.distinguished_name.push(DnType::CommonName, common_name);
-
-    // The spec requires that we add OID 1.0.18013.5.1.2 to the extended key usage extension, but [`CertificateParams`]
-    // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
-    // the custom extensions.
-    let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
-    seq.add(MDL_EXT_KEY_USAGE.parse().unwrap()).unwrap(); // this will always succeed
-    let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_vec().map_err(anyhow::Error::msg)?);
-    ext.set_criticality(true);
-    cert_params.custom_extensions.push(ext);
-
-    let cert = Certificate::from_params(cert_params)?;
-    let cert_bts = cert.serialize_der_with_signer(ca)?;
-
-    let cert_privkey: ecdsa::SigningKey<p256::NistP256> =
-        ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der()).map_err(|e| anyhow!(e))?;
-
-    Ok((cert_privkey, cert_bts))
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,

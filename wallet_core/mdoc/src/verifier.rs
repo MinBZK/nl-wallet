@@ -2,7 +2,6 @@
 
 use indexmap::IndexMap;
 use p256::NistP256;
-use x509_parser::certificate::X509Certificate;
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -12,6 +11,7 @@ use crate::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        x509::{CertificateUsage, TrustAnchors},
     },
     Result,
 };
@@ -55,7 +55,7 @@ impl DeviceResponse {
         &self,
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication_bts: &Vec<u8>,
-        ca_cert: &X509Certificate,
+        trust_anchors: &TrustAnchors,
     ) -> Result<DisclosedAttributes> {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
@@ -76,7 +76,7 @@ impl DeviceResponse {
                 eph_reader_key,
                 &device_authentication,
                 device_authentication_bts,
-                ca_cert,
+                trust_anchors,
             )?;
             if doc_type != doc.doc_type {
                 return Err(VerificationError::WrongDocType {
@@ -95,8 +95,10 @@ impl DeviceResponse {
 pub type X509Subject = IndexMap<String, String>;
 
 impl IssuerSigned {
-    pub fn verify(&self, ca_cert: &X509Certificate<'_>) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
-        let (mso, _) = self.issuer_auth.verify_against_cert(ca_cert)?;
+    pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
+        let (mso, _) = self
+            .issuer_auth
+            .verify_against_trust_anchors(CertificateUsage::Mdl, trust_anchors)?;
 
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
         if let Some(namespaces) = &self.name_spaces {
@@ -136,9 +138,9 @@ impl Document {
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication: &DeviceAuthenticationBytes,
         device_authentication_bts: &[u8],
-        ca_cert: &X509Certificate,
+        trust_anchors: &TrustAnchors,
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
-        let (attrs, mso) = self.issuer_signed.verify(ca_cert)?;
+        let (attrs, mso) = self.issuer_signed.verify(trust_anchors)?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
