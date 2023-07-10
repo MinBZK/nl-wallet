@@ -12,7 +12,7 @@ use url::{ParseError, Url};
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
-        errors::{ErrorData, APPLICATION_PROBLEM_JSON},
+        errors::ErrorData,
     },
     signed::SignedDouble,
 };
@@ -55,34 +55,42 @@ impl RemoteAccountServerClient {
 
         // In case of a 4xx or 5xx response...
         if status.is_client_error() || status.is_server_error() {
-            // ...determine if the `Content-Type` is `application/problem+json` before we
-            // lose ownership of the `Response` after the `.text()` method call.
-            let has_problem_json = response
+            let content_length = response.content_length();
+            // Parse any `Content-Type` header that is present to a Mime type...
+            let content_type = response
                 .headers()
                 .get(header::CONTENT_TYPE)
                 .and_then(|content_type| content_type.to_str().ok())
-                .and_then(|content_type| content_type.parse::<Mime>().ok())
-                .filter(|content_type| content_type == &*APPLICATION_PROBLEM_JSON)
-                .is_some();
+                .and_then(|content_type| content_type.parse::<Mime>().ok());
+            // ...and get the media type, subtype and optional suffix.
+            let content_type_components = content_type
+                .as_ref()
+                .map(|content_type| (content_type.type_(), content_type.subtype(), content_type.suffix()));
 
-            // Then try to get the response body as a string with the appropriate encoding.
-            // If that doesn't work or the body is empty, just wrap the status code in an error.
-            let error = response.text().await.ok().filter(|text| !text.is_empty()).map_or_else(
-                || AccountServerResponseError::Status(status),
-                |text| {
-                    // If it does work AND the `Content-Type` determined earlier matches, try to decode
-                    // the body as an ErrorData struct in order to wrap that data in an error along with
-                    // the status code. Otherwise, fall back to just wrapping the body text in an error,
-                    // again with the status code.
-                    has_problem_json
-                        .then(|| serde_json::from_str::<ErrorData>(&text).ok())
-                        .flatten()
-                        .map_or_else(
-                            || AccountServerResponseError::Text(status, text),
-                            |error_data| AccountServerResponseError::Data(status, error_data),
-                        )
+            // Return the correct `AccountServerResponseError` based on all of these.
+            let error = match (content_length, content_type_components) {
+                // If we know there is an empty body,
+                // we can stop early and return `AccountServerResponseError::Status`.
+                (Some(content_length), _) if content_length == 0 => AccountServerResponseError::Status(status),
+                // When the `Content-Type` header is either `application/json` or `application/???+json`,
+                // attempt to parse the body as `ErrorData`. If this fails, just return
+                // `AccountServerResponseError::Status`.
+                (_, Some((mime::APPLICATION, mime::JSON, _))) | (_, Some((mime::APPLICATION, _, Some(mime::JSON)))) => {
+                    match response.json::<ErrorData>().await {
+                        Ok(error_data) => AccountServerResponseError::Data(status, error_data),
+                        Err(_) => AccountServerResponseError::Status(status),
+                    }
+                }
+                // When the `Content-Type` header is `text/plain`, attempt to get the body as text
+                // and return `AccountServerResponseError::Text`. If this fails or the body is empty,
+                // just return `AccountServerResponseError::Status`.
+                (_, Some((mime::TEXT, mime::PLAIN, _))) => match response.text().await {
+                    Ok(text) if !text.is_empty() => AccountServerResponseError::Text(status, text),
+                    _ => AccountServerResponseError::Status(status),
                 },
-            );
+                // The fallback is to return `AccountServerResponseError::Status`.
+                _ => AccountServerResponseError::Status(status),
+            };
 
             return Err(AccountServerClientError::Response(error));
         }
@@ -244,7 +252,7 @@ mod tests {
                 ResponseTemplate::new(400)
                     .insert_header(
                         header::CONTENT_TYPE,
-                        HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
+                        HeaderValue::from_str("application/problem+json").unwrap(),
                     )
                     .set_body_bytes(
                         serde_json::to_vec(&json!({
@@ -301,11 +309,9 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        dbg!(&error);
-
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Text(StatusCode::SERVICE_UNAVAILABLE, body))
-       if body.contains("\"Service Unavailable\"")))
+            AccountServerClientError::Response(AccountServerResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
+        ));
     }
 }
