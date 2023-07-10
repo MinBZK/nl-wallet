@@ -138,7 +138,11 @@ class CardSummaryScreen extends StatelessWidget {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
       final String status = TimelineAttributeStatusTextMapper.map(context, attribute).toLowerCase();
-      return context.l10n.cardSummaryScreenLatestSuccessInteraction(timeAgo, status, attribute.organization.shortName);
+      return context.l10n.cardSummaryScreenLatestSuccessInteraction(
+        attribute.organization.shortName,
+        status,
+        timeAgo,
+      );
     } else {
       return context.l10n.cardSummaryScreenLatestSuccessInteractionUnknown;
     }

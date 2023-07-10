@@ -67,42 +67,8 @@
     "cardHistoryTimelineOperationRenewed": "Card updated",
     "cardHistoryTimelineSigningRejected": "Signing stopped",
     "cardHistoryTimelineSigningSuccess": "Signed",
-    "cardOverviewAddCardButton": "Add data",
     "cardOverviewScreenAddCardCta": "Add data",
     "cardOverviewScreenTitle": "My cards",
-    "cardShareScreenExplanationCta": "How does sharing work?",
-    "cardShareScreenExplanationSheetCloseCta": "Close",
-    "cardShareScreenExplanationSheetDescription": "Have the QR code scanned by a reviewer to start sharing. After your QR code has been scanned, you will receive a data request. Data will only be shared if you agree to the request.",
-    "cardShareScreenExplanationSheetTitle": "How does sharing work?",
-    "cardShareScreenSubtitle": "Have the QR code scanned to start sharing.",
-    "cardSummaryDataAttributesAllButton": "All data",
-    "cardSummaryDataAttributesTitle": "Data",
-    "cardSummaryDataShareButton": "Share",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} with {organisation}",
-    "@cardSummaryDataShareHistory": {
-        "placeholders": {
-            "organisation": {
-                "example": "Organization",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            }
-        }
-    },
-    "cardSummaryDataShareHistoryAllButton": "History",
-    "cardSummaryDataShareHistoryTitle": "History",
-    "cardSummaryDataShareStatusFailed": "failed to share",
-    "cardSummaryDataShareStatusRejected": "rejected to share",
-    "cardSummaryDataShareStatusSuccess": "shared",
-    "cardSummaryDataShareSuccessNoHistory": "Never shared yet.",
-    "cardSummaryOptionsButton": "Card options",
-    "cardSummaryScreenAddCardCta": "All data",
     "cardSummaryScreenCardDataCta": "Data",
     "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
     "@cardSummaryScreenCardDataIssuedBy": {
@@ -158,61 +124,6 @@
     "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
     "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\\n\\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
     "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
-    "cardSummaryScreenOptionsCta": "Card options",
-    "cardSummaryScreenShareCta": "Share",
-    "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} with {organization}",
-    "@cardSummaryScreenShareHistory": {
-        "placeholders": {
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            }
-        }
-    },
-    "cardSummaryScreenShareHistoryAllCta": "History",
-    "cardSummaryScreenShareHistoryTitle": "History",
-    "cardSummaryScreenShareSuccessNoHistory": "Never shared yet.",
-    "cardSummaryScreenTitle": "Card summary",
-    "cardTimelineInteraction": "{interactionType} with {organization}",
-    "@cardTimelineInteraction": {
-        "placeholders": {
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        }
-    },
-    "cardTimelineInteractionFailed": "Failed to share",
-    "cardTimelineInteractionRejected": "Rejected to share",
-    "cardTimelineInteractionSuccess": "Shared",
-    "cardTimelineOperation": "{interactionType}. {description}",
-    "@cardTimelineOperation": {
-        "placeholders": {
-            "description": {
-                "example": "Valid until X",
-                "type": "String"
-            },
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            }
-        }
-    },
-    "cardTimelineOperationExpired": "Card is expired",
-    "cardTimelineOperationExtended": "Card is extended",
-    "cardTimelineOperationIssued": "Card is added",
     "changeLanguageScreenTitle": "Select a language",
     "checkAgreementPageCancelCta": "No",
     "checkAgreementPageConfirmCta": "Yes, next",
@@ -235,12 +146,9 @@
     "checkAgreementPageTitle": "Are you aware of the agreement?",
     "checkAttributesScreenDataIncorrectCta": "Something not right?",
     "checkAttributesScreenTitle": "Your data",
-    "confirmAgreementPageAllPoliciesCta": "All policies",
     "confirmAgreementPageCancelCta": "No",
     "confirmAgreementPageConfirmCta": "Yes, sign",
     "confirmAgreementPageDataIncorrectCta": "Something not right?",
-    "confirmAgreementPageDataNotShared": "You information will not be shared with third parties",
-    "confirmAgreementPageDataShared": "You information will be shared with third parties",
     "confirmAgreementPageSignProvider": "You will be signing through {provider}",
     "@confirmAgreementPageSignProvider": {
         "placeholders": {
@@ -250,7 +158,6 @@
             }
         }
     },
-    "confirmAgreementPageSigningContextInfo": "By continuing the agreement will be definitive",
     "confirmAgreementPageTitle": "Do you want to sign using this information",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
@@ -585,12 +492,6 @@
     },
     "issuanceSuccessPageCloseCta": "To my cards",
     "issuanceSuccessPageTitle": "Success!",
-    "menuAboutPageDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
-    "menuAboutPageFeedbackCta": "Give feedback",
-    "menuAboutPagePrivacyCta": "Privacy policy",
-    "menuAboutPageTermsCta": "Terms and conditions",
-    "menuAboutPageTitle": "About this app",
-    "menuAboutPageUrl": "edi.pleio.nl",
     "menuMainPageAboutCta": "About this app",
     "menuMainPageDesignCta": "Design System",
     "menuMainPageGreeting": "Hi {name}",
@@ -621,18 +522,11 @@
     "menuScreenHelpCta": "Help",
     "menuScreenHistoryCta": "Usage history",
     "menuScreenLockCta": "Log out",
-    "menuScreenMainTitle": "Menu",
     "menuScreenSettingsCta": "Settings",
-    "menuScreenSettingsTitle": "Settings",
     "menuScreenTitle": "Menu",
-    "menuSettingsPageChangeLanguageCta": "Change language",
-    "menuSettingsPageChangePinCta": "Change pin",
-    "menuSettingsPageClearDataCta": "Remove data",
     "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
     "mockDigidScreenAcceptCta": "login",
-    "mockDigidScreenCta": "Login with DigiD",
     "mockDigidScreenDeclineCta": "cancel",
-    "mockDigidScreenDescription": "During the demo, DigiD is only used for illustrative purposes.",
     "mockDigidScreenEnterPin": "Enter a random pin to continue",
     "mockDigidScreenForgotPinCta": "Forgot pin",
     "mockDigidScreenHeaderSubtitle": "You are logging in at:",
@@ -710,7 +604,6 @@
     "pinScreenForgotPinCta": "Forgot code?",
     "pinScreenHeader": "Enter your pin",
     "pinScreenTitle": "Login",
-    "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Pin correct, wallet is unlocked",
     "pinTimeoutScreenForgotPinCta": "Forgot code?",
     "pinTimeoutScreenHeadline": "Temporarily blocked",
     "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
@@ -766,7 +659,6 @@
     "qrMyCodeTabHowToSheetDescription": "Information can be shared by showing your QR-code. Further english translation goes here...",
     "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
-    "qrScanTabCameraScanningQrStartedAnnouncement": "Camera started scanning for QR code",
     "qrScanTabContinueCta": "Scan another QR-code",
     "qrScanTabErrorRetryCta": "Retry",
     "qrScanTabFlashDisableCtaTooltip": "Turn flashlight off",
@@ -1089,7 +981,6 @@
     "verifierPolicyScreenTitle": "Terms",
     "walletHistoryScreenTitle": "Usage history",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, next",
-    "walletPersonalizeCheckDataOfferingPageContinueCta": "Yes, next",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
@@ -1133,7 +1024,6 @@
     "walletPersonalizePhotoAddedPageSubtitle": "Your photo has been added",
     "walletPersonalizePhotoAddedPageTitle": "Success!",
     "walletPersonalizeScanIdIntroPageContinueCta": "Start scanning",
-    "walletPersonalizeScanIdIntroPageDescription": "You need a picture in your wallet. You can add this using a:\\n      •    passport;\\n      •    ID card.",
     "walletPersonalizeScanIdIntroPageTitle": "Add the picture from your ID",
     "walletPersonalizeScanIdPageDescription": "Move your passport or ID card back and forth to setup the connection.",
     "walletPersonalizeScanIdPageTitle": "Press the center of your ID against the back of your phone",
