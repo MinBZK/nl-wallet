@@ -3,11 +3,16 @@ use std::{collections::HashMap, error::Error};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 
+use http::{header, HeaderValue};
+use mime::Mime;
+use once_cell::sync::Lazy;
 use wallet_common::account::messages::errors::{DataValue, ErrorData, ErrorType};
 use wallet_provider_service::account_server::{ChallengeError, RegistrationError};
+
+static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
+    Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
 
 /// This type wraps a [`StatusCode`] and [`ErrorData`] instance,
 /// which forms the JSON body of the error reponses.
@@ -31,11 +36,22 @@ pub trait ConvertibleError: Error {
 }
 
 /// This allows `axum` to interpret the [`WalletProviderError`] and
-/// turn it into a response. We just make use of the [`IntoResponse`]
-/// implementation of the `(StatusCode, Json<T>)` tuple.
+/// turn it into a response. We make use of the [`IntoResponse`] implementation
+/// of the `(StatusCode, X: IntoResponseParts, Y: IntoResponse)` tuple.
 impl IntoResponse for WalletProviderError {
     fn into_response(self) -> Response {
-        (self.status_code, Json(self.body)).into_response()
+        // Panic because the JSON encoding should always succeed.
+        let bytes = serde_json::to_vec(&self.body).expect("Could not encode ErrorData to JSON.");
+
+        (
+            self.status_code,
+            [(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
+            )],
+            bytes,
+        )
+            .into_response()
     }
 }
 
