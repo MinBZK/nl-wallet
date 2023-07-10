@@ -14,7 +14,10 @@ class VersionText extends StatelessWidget {
         if (snapshot.hasData) {
           final data = snapshot.data!;
           return Text(
-            context.l10n.generalVersionText(data.version, data.buildNumber),
+            context.l10n.generalVersionText(
+              data.buildNumber,
+              data.version,
+            ),
             style: context.textTheme.bodyMedium,
           );
         } else {

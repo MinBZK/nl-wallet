@@ -221,7 +221,7 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildOrganizationRow(BuildContext context, TimelineAttribute attribute) {
     final organization = attribute.organization;
-    final organizationNamePrefix = _getOrganizationNamePrefixBasedOnStatus(context, attribute);
+    final status = _getOrganizationNamePrefixBasedOnStatus(context, attribute);
     return InfoRow(
       leading: ExcludeSemantics(
         child: OrganizationLogo(
@@ -230,8 +230,8 @@ class HistoryDetailScreen extends StatelessWidget {
         ),
       ),
       title: Text(context.l10n.historyDetailScreenOrganizationNameAndStatus(
-        organizationNamePrefix,
         organization.shortName,
+        status,
       )),
       subtitle: Text(organization.category),
       onTap: () => OrganizationDetailScreen.show(
