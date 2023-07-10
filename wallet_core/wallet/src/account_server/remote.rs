@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
+use mime::Mime;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Request,
@@ -11,7 +12,7 @@ use url::{ParseError, Url};
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
-        errors::ErrorData,
+        errors::{ErrorData, APPLICATION_PROBLEM_JSON},
     },
     signed::SignedDouble,
 };
@@ -54,18 +55,32 @@ impl RemoteAccountServerClient {
 
         // In case of a 4xx or 5xx response...
         if status.is_client_error() || status.is_server_error() {
-            // ...try to get the response body as a string with the appropriate encoding.
+            // ...determine if the `Content-Type` is `application/problem+json` before we
+            // lose ownership of the `Response` after the `.text()` method call.
+            let has_problem_json = response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|content_type| content_type.to_str().ok())
+                .and_then(|content_type| content_type.parse::<Mime>().ok())
+                .filter(|content_type| content_type == &*APPLICATION_PROBLEM_JSON)
+                .is_some();
+
+            // Then try to get the response body as a string with the appropriate encoding.
             // If that doesn't work or the body is empty, just wrap the status code in an error.
             let error = response.text().await.ok().filter(|text| !text.is_empty()).map_or_else(
                 || AccountServerResponseError::Status(status),
                 |text| {
-                    // If it does work, try to decode the body as an ErrorData struct in order to wrap
-                    // that data in an error along with the status code. Otherwise, fall back to just
-                    // wrapping the body text in an error, again with the status code.
-                    serde_json::from_str::<ErrorData>(&text).ok().map_or_else(
-                        || AccountServerResponseError::Text(status, text),
-                        |error_data| AccountServerResponseError::Data(status, error_data),
-                    )
+                    // If it does work AND the `Content-Type` determined earlier matches, try to decode
+                    // the body as an ErrorData struct in order to wrap that data in an error along with
+                    // the status code. Otherwise, fall back to just wrapping the body text in an error,
+                    // again with the status code.
+                    has_problem_json
+                        .then(|| serde_json::from_str::<ErrorData>(&text).ok())
+                        .flatten()
+                        .map_or_else(
+                            || AccountServerResponseError::Text(status, text),
+                            |error_data| AccountServerResponseError::Data(status, error_data),
+                        )
                 },
             );
 
@@ -116,10 +131,9 @@ impl AccountServerClient for RemoteAccountServerClient {
 /// Its goal is mostly to validate that HTTP error responses get converted to the right variant
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
-    use std::collections::HashMap;
-
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
+    use serde_json::json;
     use wiremock::{
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
@@ -226,14 +240,24 @@ mod tests {
 
         Mock::given(method("POST"))
             .and(path("/foobar_400"))
-            .respond_with(ResponseTemplate::new(400).set_body_json(ErrorData {
-                typ: ErrorType::ChallengeValidation,
-                title: "Error title".to_string(),
-                data: Some(HashMap::from([
-                    ("foo".to_string(), DataValue::String("bar".to_string())),
-                    ("bleh".to_string(), DataValue::String("blah".to_string())),
-                ])),
-            }))
+            .respond_with(
+                ResponseTemplate::new(400)
+                    .insert_header(
+                        header::CONTENT_TYPE,
+                        HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
+                    )
+                    .set_body_bytes(
+                        serde_json::to_vec(&json!({
+                            "type": "ChallengeValidation",
+                            "title": "Error title",
+                            "data": {
+                                "foo": "bar",
+                                "bleh": "blah"
+                            }
+                        }))
+                        .unwrap(),
+                    ),
+            )
             .expect(1)
             .mount(&server)
             .await;
@@ -257,5 +281,31 @@ mod tests {
         } else {
             panic!("No error data received")
         }
+    }
+
+    #[tokio::test]
+    async fn test_remote_account_server_client_send_json_request_other_json() {
+        let (server, client) = create_mock_server_and_client().await;
+
+        Mock::given(method("POST"))
+            .and(path("/foobar_503"))
+            .respond_with(ResponseTemplate::new(503).set_body_json(json!({
+                "status": "503",
+                "text": "Service Unavailable",
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let error = post_example_request(&client, "foobar_503")
+            .await
+            .expect_err("No error received from server");
+
+        dbg!(&error);
+
+        assert!(matches!(
+            error,
+            AccountServerClientError::Response(AccountServerResponseError::Text(StatusCode::SERVICE_UNAVAILABLE, body))
+       if body.contains("\"Service Unavailable\"")))
     }
 }

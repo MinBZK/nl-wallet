@@ -17,6 +17,7 @@ futures.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
+mime.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 tokio = { workspace = true, features = [

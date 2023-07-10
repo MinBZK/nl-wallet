@@ -6,13 +6,8 @@ use axum::{
 };
 
 use http::{header, HeaderValue};
-use mime::Mime;
-use once_cell::sync::Lazy;
-use wallet_common::account::messages::errors::{DataValue, ErrorData, ErrorType};
+use wallet_common::account::messages::errors::{DataValue, ErrorData, ErrorType, APPLICATION_PROBLEM_JSON};
 use wallet_provider_service::account_server::{ChallengeError, RegistrationError};
-
-static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
-    Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
 
 /// This type wraps a [`StatusCode`] and [`ErrorData`] instance,
 /// which forms the JSON body of the error reponses.

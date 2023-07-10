@@ -13,6 +13,8 @@ mock = []
 base64.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
+mime.workspace = true
+once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rand.workspace = true
 serde = { workspace = true, features = ["derive"] }

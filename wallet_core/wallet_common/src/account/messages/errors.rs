@@ -4,7 +4,12 @@ use std::{
 };
 
 use http::StatusCode;
+use mime::Mime;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+
+pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
+    Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
 
 /// The contents of the error JSON are (loosely) based on
 /// [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807).
