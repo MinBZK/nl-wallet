@@ -79,7 +79,10 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(_kDigidLogoPath),
+              Image.asset(
+                _kDigidLogoPath,
+                excludeFromSemantics: true,
+              ),
               const SizedBox(width: 12),
               Flexible(
                 child: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),

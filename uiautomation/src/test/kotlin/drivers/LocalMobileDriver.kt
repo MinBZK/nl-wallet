@@ -8,9 +8,12 @@ import io.appium.java_client.ios.options.XCUITestOptions
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import server.AppiumServiceProvider
-import util.setupTestTagHandler
+import util.SetupTestTagHandler
 
 class LocalMobileDriver : WebDriverProvider {
+
+    private val apkPath = "../wallet_app/build/app/outputs/flutter-apk/app-profile.apk"
+    private val ipaPath = "../nl.ict.edi.wallet.latest-0.1.0.ipa"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
         AppiumServiceProvider.startService()
@@ -22,11 +25,13 @@ class LocalMobileDriver : WebDriverProvider {
             UiAutomator2Options().apply {
                 setAppPackage(testDataConfig.appPackage)
                 setAppActivity(testDataConfig.appActivity)
+                setApp(apkPath)
                 ignoreHiddenApiPolicyError()
             }
         } else {
             XCUITestOptions().apply {
                 setBundleId(testDataConfig.bundleId)
+                setApp(ipaPath)
             }
         }
         options.merge(capabilities)
@@ -36,8 +41,8 @@ class LocalMobileDriver : WebDriverProvider {
         options.setPlatformName(localDevice.platformName)
         options.setDeviceName(localDevice.deviceName)
         options.setPlatformVersion(localDevice.platformVersion)
-        options.setLanguage(setupTestTagHandler.language)
-        options.setLocale(setupTestTagHandler.locale)
+        options.setLanguage(SetupTestTagHandler.language)
+        options.setLocale(SetupTestTagHandler.locale)
         // Initialise the local Webdriver
         // and desired capabilities defined above
         return AppiumDriver(AppiumServiceProvider.server?.url, options)

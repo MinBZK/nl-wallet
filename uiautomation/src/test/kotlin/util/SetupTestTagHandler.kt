@@ -5,7 +5,7 @@ import config.TestDataConfig.Companion.testDataConfig
 import org.junit.jupiter.api.TestInfo
 import javax.naming.ConfigurationException
 
-class setupTestTagHandler {
+class SetupTestTagHandler {
 
     companion object {
         private const val ENGLISH_LANGUAGE_TAG = "english"

@@ -58,7 +58,8 @@
             "platformVersion": "9.0",
             "platformName": "android"
         },
-        {    "deviceName": "Motorola Moto G7 Play",
+        {
+            "deviceName": "Motorola Moto G7 Play",
             "platformVersion": "9.0",
             "platformName": "android"
         },

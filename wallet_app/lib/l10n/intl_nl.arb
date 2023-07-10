@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-07-06T12:08:11+02:00",
+    "@@last_modified": "2023-07-07T14:10:17+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Geef feedback",
     "aboutScreenPrivacyCta": "Privacybeleid",
@@ -67,42 +67,8 @@
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
     "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
-    "cardOverviewAddCardButton": "Gegevens toevoegen",
     "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
     "cardOverviewScreenTitle": "Mijn kaarten",
-    "cardShareScreenExplanationCta": "Hoe werkt delen?",
-    "cardShareScreenExplanationSheetCloseCta": "Sluiten",
-    "cardShareScreenExplanationSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Nadat je QR-code is gescant krijg je een gegevensverzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
-    "cardShareScreenExplanationSheetTitle": "Hoe werkt delen?",
-    "cardShareScreenSubtitle": "Laat de QR-code scannen om te beginnen met delen.",
-    "cardSummaryDataAttributesAllButton": "Alle gegevens",
-    "cardSummaryDataAttributesTitle": "Gegevens",
-    "cardSummaryDataShareButton": "Delen",
-    "cardSummaryDataShareHistory": "{timeAgo} {shareStatus} met {organisation}",
-    "@cardSummaryDataShareHistory": {
-        "placeholders": {
-            "organisation": {
-                "example": "Organization",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            }
-        }
-    },
-    "cardSummaryDataShareHistoryAllButton": "Geschiedenis",
-    "cardSummaryDataShareHistoryTitle": "Geschiedenis",
-    "cardSummaryDataShareStatusFailed": "niet gelukt te delen",
-    "cardSummaryDataShareStatusRejected": "geweigerd te delen",
-    "cardSummaryDataShareStatusSuccess": "gedeeld",
-    "cardSummaryDataShareSuccessNoHistory": "Nog nooit gedeeld.",
-    "cardSummaryOptionsButton": "Kaart opties",
-    "cardSummaryScreenAddCardCta": "Alle gegevens",
     "cardSummaryScreenCardDataCta": "Gegevens",
     "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",
     "@cardSummaryScreenCardDataIssuedBy": {
@@ -158,61 +124,6 @@
     "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
     "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\\n\\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
     "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
-    "cardSummaryScreenOptionsCta": "Kaart opties",
-    "cardSummaryScreenShareCta": "Delen",
-    "cardSummaryScreenShareHistory": "{timeAgo} {shareStatus} met {organization}",
-    "@cardSummaryScreenShareHistory": {
-        "placeholders": {
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            },
-            "shareStatus": {
-                "example": "failed to share",
-                "type": "String"
-            },
-            "timeAgo": {
-                "example": "4 hours ago",
-                "type": "String"
-            }
-        }
-    },
-    "cardSummaryScreenShareHistoryAllCta": "Geschiedenis",
-    "cardSummaryScreenShareHistoryTitle": "Geschiedenis",
-    "cardSummaryScreenShareSuccessNoHistory": "Nog nooit gedeeld.",
-    "cardSummaryScreenTitle": "Kaart overzicht",
-    "cardTimelineInteraction": "{interactionType} met {organization}",
-    "@cardTimelineInteraction": {
-        "placeholders": {
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            },
-            "organization": {
-                "example": "Organization",
-                "type": "String"
-            }
-        }
-    },
-    "cardTimelineInteractionFailed": "Niet gelukt te delen",
-    "cardTimelineInteractionRejected": "Geweigerd te delen",
-    "cardTimelineInteractionSuccess": "Gedeeld",
-    "cardTimelineOperation": "{interactionType}. {description}",
-    "@cardTimelineOperation": {
-        "placeholders": {
-            "description": {
-                "example": "Valid until X",
-                "type": "String"
-            },
-            "interactionType": {
-                "example": "shared",
-                "type": "String"
-            }
-        }
-    },
-    "cardTimelineOperationExpired": "Kaart is verlopen",
-    "cardTimelineOperationExtended": "Kaart is vernieuwd",
-    "cardTimelineOperationIssued": "Kaart is toegevoegd",
     "changeLanguageScreenTitle": "Kies een taal",
     "checkAgreementPageCancelCta": "Nee",
     "checkAgreementPageConfirmCta": "Ja, volgende",
@@ -235,12 +146,9 @@
     "checkAgreementPageTitle": "Ken je de afspraken?",
     "checkAttributesScreenDataIncorrectCta": "Klopt er iets niet?",
     "checkAttributesScreenTitle": "Jouw gegevens",
-    "confirmAgreementPageAllPoliciesCta": "Alle voorwaarden",
     "confirmAgreementPageCancelCta": "Nee",
     "confirmAgreementPageConfirmCta": "Ja, tekenen",
     "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
-    "confirmAgreementPageDataNotShared": "Je gegevens worden niet gedeeld met derden",
-    "confirmAgreementPageDataShared": "Je gegevens worden gedeeld met derden",
     "confirmAgreementPageSignProvider": "Je gaat ondertekenen met {provider}",
     "@confirmAgreementPageSignProvider": {
         "placeholders": {
@@ -250,7 +158,6 @@
             }
         }
     },
-    "confirmAgreementPageSigningContextInfo": "Met ondertekenen maak je een afspraak definitief",
     "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
     "dataAttributeSectionTitle": "Uit {source}",
     "@dataAttributeSectionTitle": {
@@ -585,12 +492,6 @@
     },
     "issuanceSuccessPageCloseCta": "Naar mijn kaarten",
     "issuanceSuccessPageTitle": "Gelukt!",
-    "menuAboutPageDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
-    "menuAboutPageFeedbackCta": "Geef feedback",
-    "menuAboutPagePrivacyCta": "Privacybeleid",
-    "menuAboutPageTermsCta": "Gebruiksvoorwaarden",
-    "menuAboutPageTitle": "Over deze app",
-    "menuAboutPageUrl": "edi.pleio.nl",
     "menuMainPageAboutCta": "Over deze app",
     "menuMainPageDesignCta": "Design System",
     "menuMainPageGreeting": "Hallo {name}",
@@ -621,19 +522,12 @@
     "menuScreenHelpCta": "Help",
     "menuScreenHistoryCta": "Gebruiksgeschiedenis",
     "menuScreenLockCta": "Uitloggen",
-    "menuScreenMainTitle": "Menu",
     "menuScreenSettingsCta": "Instellingen",
-    "menuScreenSettingsTitle": "Instellingen",
     "menuScreenTitle": "Menu",
-    "menuSettingsPageChangeLanguageCta": "Taal veranderen",
-    "menuSettingsPageChangePinCta": "Toegangscode veranderen",
-    "menuSettingsPageClearDataCta": "Gegevens wissen",
     "menuSettingsPageSetupBiometricsCta": "Biometrie instellen",
     "mockDigidScreenAcceptCta": "inloggen",
-    "mockDigidScreenCta": "Inloggen met DigiD",
     "mockDigidScreenDeclineCta": "annuleren",
-    "mockDigidScreenDescription": "Tijdens de demo is het inloggen met DigiD enkel ter illustratie, als je op volgende klikt ga je verder alsof je je zojuist hebt aangemeld.",
-    "mockDigidScreenEnterPin": "Voer pincode in om verder te gaan",
+    "mockDigidScreenEnterPin": "Voer een willekeurige pincode in om verder te gaan",
     "mockDigidScreenForgotPinCta": "Pincode vergeten",
     "mockDigidScreenHeaderSubtitle": "U gaat inloggen bij:",
     "mockDigidScreenHeaderTitle": "Inloggen",
@@ -710,7 +604,6 @@
     "pinScreenForgotPinCta": "Code vergeten?",
     "pinScreenHeader": "Vul je toegangscode in",
     "pinScreenTitle": "Inloggen",
-    "pinScreenWCAGPinOkWalletUnlockedAnnouncement": "Toegangscode correct, wallet is ontgrendeld",
     "pinTimeoutScreenForgotPinCta": "Code vergeten?",
     "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
     "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
@@ -766,9 +659,10 @@
     "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrMyCodeTabHowToSheetTitle": "Hoe werkt mijn QR-code?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR-code gescand",
-    "qrScanTabCameraScanningQrStartedAnnouncement": "Camera is gestart met scannen naar QR code",
     "qrScanTabContinueCta": "Nog een QR scannen",
     "qrScanTabErrorRetryCta": "Probeer opnieuw",
+    "qrScanTabFlashDisableCtaTooltip": "Zet zaklamp uit",
+    "qrScanTabFlashEnableCtaTooltip": "Zet zaklamp aan",
     "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
     "qrScanTabHowToScanCta": "Hoe werkt scannen?",
     "qrScanTabHowToScanSheetCloseCta": "Sluiten",
@@ -1087,8 +981,8 @@
     "verifierPolicyScreenTitle": "Voorwaarden",
     "walletHistoryScreenTitle": "Gebruiksgeschiedenis",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
-    "walletPersonalizeCheckDataOfferingPageContinueCta": "Ja, wallet aanmaken",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
+    "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
@@ -1130,7 +1024,6 @@
     "walletPersonalizePhotoAddedPageSubtitle": "Je hebt je pasfoto toegevoegd",
     "walletPersonalizePhotoAddedPageTitle": "Gelukt!",
     "walletPersonalizeScanIdIntroPageContinueCta": "Start met scannen",
-    "walletPersonalizeScanIdIntroPageDescription": "Je hebt een pasfoto nodig in je Wallet. Je kunt deze toevoegen met een:\\n      •    paspoort;\\n      •    identiteitskaart.",
     "walletPersonalizeScanIdIntroPageTitle": "Je pasfoto van een identiteitsbewijs toevoegen",
     "walletPersonalizeScanIdPageDescription": "Beweeg je paspoort of identiteitskaart heen en weer tot er verbinding is.",
     "walletPersonalizeScanIdPageTitle": "Houd het midden van je identiteitsbewijs tegen de achterkant van je telefoon",

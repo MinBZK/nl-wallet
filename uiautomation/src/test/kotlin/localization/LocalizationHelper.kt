@@ -3,7 +3,7 @@ package localization
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import util.setupTestTagHandler.Companion.language
+import util.SetupTestTagHandler.Companion.language
 import java.io.File
 
 class LocalizationHelper {

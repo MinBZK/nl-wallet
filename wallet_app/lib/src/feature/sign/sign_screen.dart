@@ -37,7 +37,7 @@ class SignScreen extends StatelessWidget {
       appBar: AppBar(
         leading: _buildBackButton(context),
         title: Text(context.l10n.signScreenTitle),
-        actions: [CloseButton(onPressed: () => _stopSigning(context))],
+        actions: [_buildCloseButton(context)],
       ),
       body: WillPopScope(
         onWillPop: () async {
@@ -70,6 +70,21 @@ class SignScreen extends StatelessWidget {
           visible: state.canGoBack,
           onPressed: () => context.read<SignBloc>().add(const SignBackPressed()),
         );
+      },
+    );
+  }
+
+  /// The close button stops/closes the verification flow.
+  /// It is only visible in the semantics tree when the verification flow is in progress.
+  Widget _buildCloseButton(BuildContext context) {
+    final closeButton = CloseButton(onPressed: () => _stopSigning(context));
+    return BlocBuilder<SignBloc, SignState>(
+      builder: (context, state) {
+        if (state.stepperProgress == 1.0) {
+          return ExcludeSemantics(child: closeButton);
+        } else {
+          return closeButton;
+        }
       },
     );
   }

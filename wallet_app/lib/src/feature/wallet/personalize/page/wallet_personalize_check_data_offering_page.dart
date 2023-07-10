@@ -70,6 +70,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
       onAcceptPressed: onAcceptPressed,
       acceptText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
       declineText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
+      declineTextSemanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
     );
   }
 }

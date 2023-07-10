@@ -5,13 +5,13 @@ import io.qameta.allure.Attachment
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.remote.RemoteWebDriver
-import java.nio.charset.StandardCharsets
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 object Attach {
     private val driver = WebDriverRunner.getWebDriver() as RemoteWebDriver
+
     // Attaches the given message to the test report
     @Attachment(value = "{attachName}", type = "text/plain")
     fun attachAsText(attachName: String?, message: String): String {
@@ -21,7 +21,6 @@ object Attach {
     // Returns the page source of the current WebDriver session
     @Attachment(value = "Page source", type = "text/plain")
     fun pageSource(): Any? {
-        driver.executeScript("flutter:getRenderTree")
         return driver.executeScript("flutter:getRenderTree")
     }
 
@@ -41,8 +40,8 @@ object Attach {
     @Attachment(value = "Video", type = "text/html", fileExtension = ".html")
     fun video(sessionId: String?): String {
         return ("<html><body><video width='100%' height='100%' controls autoplay><source src='"
-                + Browserstack.videoUrl(sessionId)
-                ) + "' type='video/mp4'></video></body></html>"
+            + Browserstack.videoUrl(sessionId)
+            ) + "' type='video/mp4'></video></body></html>"
     }
 
     // Get the current sessionId

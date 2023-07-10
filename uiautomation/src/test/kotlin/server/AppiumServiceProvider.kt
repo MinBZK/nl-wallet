@@ -8,7 +8,7 @@ object AppiumServiceProvider {
     var server: AppiumDriverLocalService? = null
 
     fun startService() {
-        if(server != null) throw UnsupportedOperationException("Server already running!")
+        if (server != null) throw UnsupportedOperationException("Server already running!")
         val serviceBuilder = AppiumServiceBuilder()
         // Use any port, in case the default 4723 is already taken (maybe by another Appium server)
 

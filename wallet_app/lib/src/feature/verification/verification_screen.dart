@@ -40,7 +40,7 @@ class VerificationScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.l10n.verificationScreenTitle),
         leading: _buildBackButton(context),
-        actions: [CloseButton(onPressed: () => _stopVerification(context))],
+        actions: [_buildCloseButton(context)],
       ),
       body: WillPopScope(
         onWillPop: () async {
@@ -77,12 +77,25 @@ class VerificationScreen extends StatelessWidget {
     );
   }
 
+  /// The close button stops/closes the verification flow.
+  /// It is only visible in the semantics tree when the verification flow is in progress.
+  Widget _buildCloseButton(BuildContext context) {
+    final closeButton = CloseButton(onPressed: () => _stopVerification(context));
+    return BlocBuilder<VerificationBloc, VerificationState>(
+      builder: (context, state) {
+        if (state.stepperProgress == 1.0) {
+          return ExcludeSemantics(child: closeButton);
+        } else {
+          return closeButton;
+        }
+      },
+    );
+  }
+
   Widget _buildStepper() {
-    return ExcludeSemantics(
-      child: BlocBuilder<VerificationBloc, VerificationState>(
-        buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-        builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-      ),
+    return BlocBuilder<VerificationBloc, VerificationState>(
+      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
+      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 

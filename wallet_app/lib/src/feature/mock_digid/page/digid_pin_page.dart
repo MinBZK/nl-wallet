@@ -138,12 +138,14 @@ class DigidPinPage extends StatelessWidget {
 
   Widget _buildForgotPinCta(BuildContext context) {
     return Center(
-      child: Text(
-        context.l10n.mockDigidScreenForgotPinCta,
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colorScheme.primary,
-          fontWeight: FontWeight.bold,
-          decoration: TextDecoration.underline,
+      child: ExcludeSemantics(
+        child: Text(
+          context.l10n.mockDigidScreenForgotPinCta,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+          ),
         ),
       ),
     );

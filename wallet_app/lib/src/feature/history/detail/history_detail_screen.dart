@@ -221,15 +221,17 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildOrganizationRow(BuildContext context, TimelineAttribute attribute) {
     final organization = attribute.organization;
-    final status = _getTimelineAttributeStatus(context, attribute);
+    final status = _getOrganizationNamePrefixBasedOnStatus(context, attribute);
     return InfoRow(
-      leading: OrganizationLogo(
-        image: AssetImage(organization.logoUrl),
-        size: _kOrganizationLogoSize,
+      leading: ExcludeSemantics(
+        child: OrganizationLogo(
+          image: AssetImage(organization.logoUrl),
+          size: _kOrganizationLogoSize,
+        ),
       ),
       title: Text(context.l10n.historyDetailScreenOrganizationNameAndStatus(
-        status,
         organization.shortName,
+        status,
       )),
       subtitle: Text(organization.category),
       onTap: () => OrganizationDetailScreen.show(
@@ -239,7 +241,7 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  String _getTimelineAttributeStatus(BuildContext context, TimelineAttribute attribute) {
+  String _getOrganizationNamePrefixBasedOnStatus(BuildContext context, TimelineAttribute attribute) {
     if (attribute is InteractionTimelineAttribute) {
       return attribute.status == InteractionStatus.success
           ? context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess
