@@ -19,7 +19,7 @@
 use p256::{
     ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
     elliptic_curve::{
-        bigint::{Limb, U384},
+        bigint::{Limb, NonZero, U384},
         ops::Reduce,
         Curve,
     },
@@ -73,7 +73,7 @@ impl<'a> PinKey<'a> {
     }
 }
 
-impl<'a> Signer<Signature> for PinKey<'a> {
+impl Signer<Signature> for PinKey<'_> {
     fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
         let signature = pin_private_key(self.salt, self.pin)
             .map_err(PinKeyError::from)?
@@ -83,7 +83,7 @@ impl<'a> Signer<Signature> for PinKey<'a> {
     }
 }
 
-impl<'a> EcdsaKey for PinKey<'a> {
+impl EcdsaKey for PinKey<'_> {
     type Error = PinKeyError;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -91,7 +91,7 @@ impl<'a> EcdsaKey for PinKey<'a> {
     }
 }
 
-impl<'a> EphemeralEcdsaKey for PinKey<'a> {}
+impl EphemeralEcdsaKey for PinKey<'_> {}
 
 /// Given a salt and a PIN, derive an ECDSA private key and return it.
 fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRingError> {
@@ -110,7 +110,7 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
     // Making it larger by 8 bytes, i.e. 32 bits, is conventional.
     let hkdf = hkdf(salt, b"", pin, 256 / 8 + 8)?;
     let scalar = bytes_to_ecdsa_scalar(hkdf);
-    Ok(SecretKey::new(Scalar::from_uint_reduced(scalar).into()).into())
+    Ok(SecretKey::new(Scalar::reduce(scalar).into()).into())
 }
 
 /// Convert the specified bytes to a number suitable for use as an ECDSA private key: an (almost) uniformly distributed
@@ -128,8 +128,7 @@ fn bytes_to_ecdsa_scalar(mut bts: Vec<u8>) -> U256 {
 
     let q = u256_to_u384(&NistP256::ORDER);
     let int = U384::from_be_slice(bts)
-        .reduce(&q.sub_mod(&U384::ONE, &q))
-        .unwrap()
+        .rem(&NonZero::from_uint(q.sub_mod(&U384::ONE, &q)))
         .add_mod(&U384::ONE, &q);
 
     u384_to_u256(&int)
@@ -157,13 +156,13 @@ fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Resul
 // The U... bigint types (U256 and U384) offer no API to convert them from one size
 // to the other, necessitating these conversion methods.
 fn u256_to_u384(x: &U256) -> U384 {
-    let mut limbs = x.limbs().to_vec();
-    limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BIT_SIZE]);
+    let mut limbs = x.as_limbs().to_vec();
+    limbs.append(&mut vec![Limb(0); (384 - 256) / Limb::BITS]);
     U384::new(limbs.try_into().unwrap())
 }
 
 fn u384_to_u256(x: &U384) -> U256 {
-    U256::new(x.limbs()[..256 / Limb::BIT_SIZE].try_into().unwrap())
+    U256::new(x.as_limbs()[..256 / Limb::BITS].try_into().unwrap())
 }
 
 #[cfg(test)]
@@ -173,7 +172,7 @@ mod tests {
     use p256::{
         ecdsa::signature::Verifier,
         elliptic_curve::{
-            bigint::{ArrayEncoding, NonZero, Random, RandomMod, Wrapping},
+            bigint::{ArrayEncoding, Random, RandomMod, Wrapping},
             rand_core::OsRng,
         },
     };
