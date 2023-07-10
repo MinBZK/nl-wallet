@@ -18,7 +18,8 @@ use wallet_common::account::{
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
 
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct RemoteAccountServerClient {
     base_url: Url,
@@ -28,7 +29,8 @@ pub struct RemoteAccountServerClient {
 impl RemoteAccountServerClient {
     fn new(base_url: Url) -> Self {
         let client = Client::builder()
-            .timeout(CLIENT_TIMEOUT)
+            .timeout(CLIENT_REQUEST_TIMEOUT)
+            .connect_timeout(CLIENT_CONNECT_TIMEOUT)
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static("application/json"),
