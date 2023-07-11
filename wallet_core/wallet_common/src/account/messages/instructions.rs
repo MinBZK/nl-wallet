@@ -1,4 +1,6 @@
-use super::{auth::WalletCertificate, signed::SignedDouble};
+use crate::account::signed::SignedDouble;
+
+use super::auth::WalletCertificate;
 
 #[allow(unused)]
 struct Instruction<T: IsInstruction> {

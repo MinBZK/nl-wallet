@@ -1,16 +1,24 @@
 use serde::{Deserialize, Serialize};
 
-use super::{
-    jwt::{Jwt, JwtClaims},
-    serialization::Base64Bytes,
-    signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
-    {serialization::DerVerifyingKey, signed::SignedDouble},
+use crate::{
+    account::{
+        jwt::{Jwt, JwtClaims},
+        serialization::Base64Bytes,
+        signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
+        {serialization::DerVerifyingKey, signed::SignedDouble},
+    },
+    errors::{Result, ValidationError},
 };
-use crate::errors::{Result, ValidationError};
 
-/// Message that the wallet sends (signed) to the wallet provider during registration.
-/// This does not implement IsInstruction because it not get sent as an [`Instruction<Registration>`]. because there is
-/// no certificate yet at this point.
+// Registration challenge response
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Challenge {
+    pub challenge: Base64Bytes,
+}
+
+// Registration request and response
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
     pub pin_pubkey: DerVerifyingKey,
@@ -59,11 +67,6 @@ impl JwtClaims for WalletCertificateClaims {
 }
 
 pub type WalletCertificate = Jwt<WalletCertificateClaims>;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Challenge {
-    pub challenge: Base64Bytes,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Certificate {

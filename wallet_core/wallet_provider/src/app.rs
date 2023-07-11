@@ -7,7 +7,7 @@ use axum::{
 use tower_http::trace::TraceLayer;
 
 use wallet_common::account::{
-    auth::{Certificate, Challenge, Registration},
+    messages::auth::{Certificate, Challenge, Registration},
     signed::SignedDouble,
 };
 
