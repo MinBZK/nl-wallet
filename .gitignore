@@ -41,12 +41,15 @@ jniLibs/
 # Ruby gems
 /vendor/
 
-# fastlane
+# Fastlane
 /fastlane/report.xml
 /fastlane/Preview.html
 /fastlane/screenshots
 /fastlane/test_output
 /.env*
 
-# golden test failures
+# Golden test failures
 **/failures/*.png
+
+# UI automation
+uiautomation/node_modules

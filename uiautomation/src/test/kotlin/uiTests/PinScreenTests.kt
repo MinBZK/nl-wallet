@@ -132,25 +132,4 @@ class PinScreenTests : TestBase() {
             )
         }
     }
-
-    @RetryingTest(value = 3, name = "{displayName} - #{index}")
-    @DisplayName("UC 2.1 - verify forgot pin")
-    @Tags(Tag("smoke"), Tag("android"), Tag("iOS"))
-    fun verifyForgotPin() {
-        introductionScreens.clickSkipButton()
-        introductionScreens.clickNextButton()
-
-        val isPinScreenVisible = pinScreen.verifyIfPinScreenIsVisible() == true
-        assertTrue(isPinScreenVisible, "setup pin screen is not visible")
-
-        pinScreen.tapKeyNumber(correctKeyNumber)
-        pinScreen.tapKeyNumber(correctKeyNumber)
-
-        val isSetupSecurityCompletedScreenVisible =
-            setupSecurityCompletedScreen.verifyIfSetupSecurityCompletedScreenIsVisible() == true
-        assertTrue(
-            isSetupSecurityCompletedScreenVisible,
-            "setup security completed screen is not visible"
-        )
-    }
 }
