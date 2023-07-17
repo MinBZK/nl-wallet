@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/flow_terminal_page.dart';
+import '../../common/page/flow_terminal_page.dart';
 
 class SetupSecurityCompletedPage extends StatelessWidget {
   final VoidCallback onSetupWalletPressed;

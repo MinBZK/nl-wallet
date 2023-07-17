@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 
@@ -24,7 +25,7 @@ class WalletAppTestWidget extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Material(child: child),
+      home: Scaffold(body: child),
     );
   }
 }
@@ -56,4 +57,22 @@ extension TestWidgetExtensions on Widget {
         },
         child: this,
       );
+}
+
+extension WidgetTesterExtensions on WidgetTester {
+  /// Convenience method to pump any widget with the wrapped by the
+  /// [WalletAppTestWidget] so that it has access to the theme.
+  Future<void> pumpWidgetWithAppWrapper(
+    Widget widget, {
+    Size surfaceSize = const Size(375, 812), // Iphone X
+    double textScaleSize = 1.0,
+    Brightness brightness = Brightness.light,
+  }) async {
+    return pumpWidgetBuilder(
+      widget,
+      surfaceSize: surfaceSize,
+      textScaleSize: textScaleSize,
+      wrapper: walletAppWrapper(brightness: brightness),
+    );
+  }
 }

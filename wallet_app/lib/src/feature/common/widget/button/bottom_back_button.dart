@@ -6,6 +6,9 @@ import 'text_icon_button.dart';
 const _kButtonHeight = 72.0;
 const _kLandscapeButtonHeight = 56.0;
 
+/// Back button that is aligned at the bottom of the screen,
+/// can be rendered with divider by setting [showDivider].
+/// Often used as a direct child of a [SliverFillRemaining] widget.
 class BottomBackButton extends StatelessWidget {
   final bool showDivider;
 

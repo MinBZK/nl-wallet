@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../util/extension/build_context_extension.dart';
-import '../common/widget/placeholder_screen.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../menu/widget/menu_row.dart';
 
 const _kAboutUrl = 'https://edi.pleio.nl/';

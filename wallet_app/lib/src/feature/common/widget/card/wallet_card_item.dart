@@ -75,8 +75,8 @@ class WalletCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data: _resolveTheme(context),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
+      child: Builder(
+        builder: (context) {
           return LimitFontScaling(
             maxTextScaleFactor: _kMaxCardTextScale,
             child: FittedBox(

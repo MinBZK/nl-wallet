@@ -10,7 +10,7 @@ import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/placeholder_screen.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../verification/model/organization.dart';
 import 'argument/organization_detail_screen_argument.dart';

@@ -4,7 +4,7 @@ import '../../../domain/model/document.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../verification/model/organization.dart';
 import 'button/link_button.dart';
-import 'placeholder_screen.dart';
+import '../screen/placeholder_screen.dart';
 
 class DocumentSection extends StatelessWidget {
   final Document document;

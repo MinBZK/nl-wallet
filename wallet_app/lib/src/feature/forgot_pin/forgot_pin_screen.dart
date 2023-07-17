@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/placeholder_screen.dart';
+import '../common/screen/placeholder_screen.dart';
 
 const _kPinHeaderImage = 'assets/images/forgot_pin_header.png';
 

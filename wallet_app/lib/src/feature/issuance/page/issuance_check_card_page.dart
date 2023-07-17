@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
-import '../../common/widget/check_data_offering_page.dart';
+import '../../common/page/check_data_offering_page.dart';
 
 class IssuanceCheckCardPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;

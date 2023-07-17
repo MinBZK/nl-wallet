@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/text_icon_button.dart';
-import '../../common/widget/placeholder_screen.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
 const _kDigidLogoPath = 'assets/images/digid_logo.png';

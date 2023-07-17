@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/card_front.dart';
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../common/widget/flow_terminal_page.dart';
+import '../../../common/page/flow_terminal_page.dart';
 import '../../../common/widget/stacked_wallet_cards.dart';
 
 class WalletPersonalizeSuccessPage extends StatelessWidget {

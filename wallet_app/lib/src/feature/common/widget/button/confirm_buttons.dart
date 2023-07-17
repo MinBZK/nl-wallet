@@ -192,6 +192,8 @@ class ConfirmButtons extends StatelessWidget {
     final double buttonContentWidth = buttonWidth - (_kButtonTextHorizontalPadding * 2);
     final double buttonTextMaxWidth = buttonContentWidth - (hasIcon ? _kButtonIconHorizontalSpace : 0);
 
+    if (buttonContentWidth.isNegative || buttonTextMaxWidth.isNegative) return true;
+
     final TextSpan textSpan = TextSpan(
       text: text,
       style: _getButtonTextStyle(context, type),

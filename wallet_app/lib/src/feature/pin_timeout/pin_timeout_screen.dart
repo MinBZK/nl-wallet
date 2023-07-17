@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/link_button.dart';
-import '../common/widget/placeholder_screen.dart';
+import '../common/screen/placeholder_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
 

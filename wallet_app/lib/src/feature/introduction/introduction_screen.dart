@@ -9,7 +9,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/text_icon_button.dart';
-import '../common/widget/placeholder_screen.dart';
+import '../common/screen/placeholder_screen.dart';
 import 'page/introduction_page.dart';
 import 'page/introduction_privacy_page.dart';
 import 'widget/introduction_progress_stepper.dart';
@@ -124,7 +124,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return Semantics(
       label: context.l10n.introductionWCAGCurrentPageAnnouncement(currentStep.toInt() + 1, _kNrOfPages - 1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
         child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
       ),
     );
