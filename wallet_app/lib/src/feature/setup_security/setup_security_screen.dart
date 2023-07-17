@@ -10,7 +10,7 @@ import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/widget/generic_loading_page.dart';
+import '../common/page/generic_loading_page.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';

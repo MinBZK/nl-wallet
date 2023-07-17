@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/widget/placeholder_screen.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../common/widget/version_text.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';

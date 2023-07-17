@@ -8,7 +8,10 @@ const _kCardOverlap = 56.0;
 class StackedWalletCards extends StatelessWidget {
   final List<CardFront> cards;
 
-  const StackedWalletCards({required this.cards, Key? key}) : super(key: key);
+  const StackedWalletCards({
+    required this.cards,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

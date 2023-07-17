@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/link_button.dart';
-import '../../common/widget/confirm_action_sheet.dart';
+import '../../common/sheet/confirm_action_sheet.dart';
 
 /// Builds upon the [ConfirmActionSheet], but supplies defaults for
 /// when the user is requesting to stop the verification flow.

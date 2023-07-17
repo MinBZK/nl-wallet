@@ -3,7 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/button/text_icon_button.dart';
-import '../../../common/widget/explanation_sheet.dart';
+import '../../../common/sheet/explanation_sheet.dart';
 import '../../../common/widget/utility/max_brightness.dart';
 
 const _kLandscapeQrSize = 200.0;

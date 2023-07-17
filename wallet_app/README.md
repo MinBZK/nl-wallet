@@ -178,6 +178,53 @@ new goldens on a mac host. This can be done with `flutter test --update-goldens 
 - To only verify goldens use `flutter test --tags=golden`
 - To only verify other tests use `flutter test --exclude-tags=golden`
 
+#### Widget Test Template
+
+To be as consistent as possible when it comes to testing widget we provide the following template. This can be used as a starting point when writing widget tests:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:golden_toolkit/golden_toolkit.dart';
+
+void main() {
+
+  group('goldens', () {
+    testGoldens(
+      'light text',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          Text('T'),
+        );
+        await screenMatchesGolden(tester, 'text/light');
+      },
+    );
+    testGoldens(
+      'dark text',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          Text('T'),
+          brightness: Brightness.dark,
+        );
+        await screenMatchesGolden(tester, 'text/dark');
+      },
+    );
+  });
+
+  group('widgets', () {
+    testWidgets('widget is visible', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Text('T'),
+      );
+
+      // Validate that the widget exists
+      final widgetFinder = find.text('T');
+      expect(widgetFinder, findsOneWidget);
+    });
+  });
+}
+```
+
 # Architecture
 
 > Note: This section needs to be updated, as some changes have since be made. Mainly splitting the mock and real implementation at the Repository layer in favour of the DataSource layer.

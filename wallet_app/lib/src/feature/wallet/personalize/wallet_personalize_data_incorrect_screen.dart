@@ -5,7 +5,7 @@ import '../../../../environment.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/info_row.dart';
-import '../../common/widget/placeholder_screen.dart';
+import '../../common/screen/placeholder_screen.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   const WalletPersonalizeDataIncorrectScreen({Key? key}) : super(key: key);

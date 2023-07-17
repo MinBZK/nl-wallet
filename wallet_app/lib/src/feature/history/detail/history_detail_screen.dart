@@ -16,7 +16,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/placeholder_screen.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../organization/detail/organization_detail_screen.dart';

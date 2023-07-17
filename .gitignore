@@ -51,5 +51,8 @@ jniLibs/
 # Golden test failures
 **/failures/*.png
 
+# Local coverage reports
+wallet_app/coverage
+
 # UI automation
 uiautomation/node_modules
