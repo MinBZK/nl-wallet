@@ -20,6 +20,7 @@ This README explains how to configure the wallet app. It also contains the curre
     * [Domain Layer](#domain-layer)
     * [Data Layer](#data-layer)
     * [Motivation](#motivation)
+- [App Distribution](#app-distribution)
 
 
 # Running the App
@@ -290,3 +291,36 @@ working with real datasources, this abstraction allows us to get started now, an
 migrate to a fully functional app (once the data comes online) by replacing our MockRepositories /
 MockDataSources with the actual implementations, without touching anything in the Domain or UI
 Layer.
+
+# App Distribution
+
+## TestFlight iOS app distribution
+
+Currently it's work in progress to setup a MacOS host machine to enable Continuous Delivery for the iOS app. Therefore; follow the steps below in order to deliver a test version of the app to iOS users via TestFlight.
+
+### Prerequisites
+
+* Apple ID with access to App Store Connect
+* App-specific password
+* Fastlane Match Passphrase
+
+*Credentials and access are available within the team (ask around).*
+
+### Setup prerequisites (1 time action)
+
+* Login to appleid.com
+* Create an App-specific password
+* Store the created App-specific password & fastlane username/password as environment variables:
+```
+export FASTLANE_USER="{AppleID email address}"
+export FASTLANE_PASSWORD="{Fastlane Match Passphrase}"
+export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
+```
+
+### Build & upload IPA
+
+* Run `bundle install` from the project root folder
+* Run `bundle exec fastlane match appstore --readonly`  to locally install App Store certificate & provisioning profile (password protected: "Fastlane Match Passphrase")
+* Check latest iOS build number here: [App Store Connect - iOS Builds](https://appstoreconnect.apple.com/apps/SSSS/testflight/ios), next build number needs to be `{latest_build_numer} + 1`
+* Build app with updated build number `bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest`
+* Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login with Apple ID + password; app specific password!)
