@@ -172,10 +172,11 @@ dependency-check:
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
     - dependency-check.sh
-      --enableExperimental
-      --scan "."
-      --format "HTML" --format "JSON" --format "XML"
       --data $CI_PROJECT_DIR/dependency_check_data
+      --enableExperimental
+      --format "HTML" --format "JSON" --format "XML"
+      --scan "."
+      --suppression $CI_PROJECT_DIR/dependency_check_suppressions.xml
   artifacts:
     when: always
     paths:
