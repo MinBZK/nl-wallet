@@ -33,51 +33,48 @@ class ErrorScreen extends StatelessWidget {
         leading: const SizedBox.shrink(),
         actions: const [CloseButton()],
       ),
-      body: PrimaryScrollController(
-        controller: ScrollController(),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CustomScrollView(
-              slivers: [
-                const SliverSizedBox(height: 24),
-                SliverToBoxAdapter(
-                  child: Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5FD),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    width: double.infinity,
-                    height: 100,
-                    child: const Text('Placeholder image'),
+      body: Scrollbar(
+        thumbVisibility: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CustomScrollView(
+            slivers: [
+              const SliverSizedBox(height: 24),
+              SliverToBoxAdapter(
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5FD),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  width: double.infinity,
+                  height: 100,
+                  child: const Text('Placeholder image'),
                 ),
-                const SliverSizedBox(height: 24),
-                SliverToBoxAdapter(
-                  child: Text(
-                    headline,
-                    textAlign: TextAlign.start,
-                    style: context.textTheme.displayMedium,
-                  ),
+              ),
+              const SliverSizedBox(height: 24),
+              SliverToBoxAdapter(
+                child: Text(
+                  headline,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.displayMedium,
                 ),
-                const SliverSizedBox(height: 8),
-                SliverToBoxAdapter(
-                  child: Text(
-                    description,
-                    textAlign: TextAlign.start,
-                    style: context.textTheme.bodyLarge,
-                  ),
+              ),
+              const SliverSizedBox(height: 8),
+              SliverToBoxAdapter(
+                child: Text(
+                  description,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.bodyLarge,
                 ),
-                const SliverSizedBox(height: 32),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  fillOverscroll: true,
-                  child: _buildBottomSection(context),
-                ),
-              ],
-            ),
+              ),
+              const SliverSizedBox(height: 32),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                fillOverscroll: true,
+                child: _buildBottomSection(context),
+              ),
+            ],
           ),
         ),
       ),

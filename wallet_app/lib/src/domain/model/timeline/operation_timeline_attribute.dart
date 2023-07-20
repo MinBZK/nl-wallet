@@ -17,9 +17,9 @@ class OperationTimelineAttribute extends TimelineAttribute {
   List<Object?> get props => [status, cardTitle, ...super.props];
 
   @override
-  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes}) {
+  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, OperationStatus? status}) {
     return OperationTimelineAttribute(
-      status: status,
+      status: status ?? this.status,
       cardTitle: cardTitle,
       dateTime: dateTime,
       organization: organization,

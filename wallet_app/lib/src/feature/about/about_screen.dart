@@ -17,7 +17,7 @@ class AboutScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.l10n.aboutScreenTitle),
       ),
-      body: _buildBody(context),
+      body: SafeArea(child: _buildBody(context)),
     );
   }
 

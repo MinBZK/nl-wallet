@@ -4,6 +4,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
+import '../../../../util/test_utils.dart';
 
 const _kDarkBg = 'assets/svg/rijks_card_bg_dark.svg';
 const _kLightBg = 'assets/svg/rijks_card_bg_light.svg';
@@ -15,18 +16,9 @@ void _voidCallback() {}
 /// This test also (indirectly) verifies:
 /// [ShowDetailsCta], [CardLogo] and [CardHolograph]
 void main() {
-  setUp(() {
-    // Mock the accelerometer, as this is used in the [CardHolograph] to make it appear reflective.
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/sensors/accelerometer'), (MethodCall methodCall) async {
-      if (methodCall.method == 'listen') {
-        return <String, dynamic>{};
-      }
-      return null;
-    });
-  });
+  setUp(() => TestUtils.mockAccelerometerPlugin());
 
-  group('Golden Tests', () {
+  group('goldens', () {
     testGoldens(
       'Cards adapt based on provided brightness',
       (tester) async {

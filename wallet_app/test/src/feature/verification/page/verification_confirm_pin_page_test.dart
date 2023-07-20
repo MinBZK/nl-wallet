@@ -1,6 +1,4 @@
-import 'dart:ui';
-
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
@@ -9,54 +7,58 @@ import 'package:wallet/src/feature/verification/page/verification_confirm_pin_pa
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
 import '../../../util/device_utils.dart';
+import '../../../util/test_utils.dart';
 
 void main() {
-  DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.accessibilityDeviceBuilder
-      ..addScenario(
-        widget: VerificationConfirmPinPage(
-          bloc: PinBloc(Mocks.create()),
-          onPinValidated: () {},
-        ),
-        name: 'error_screen',
-      );
-  }
-
-  group('Golden Tests', () {
-    testGoldens('Accessibility Light Test', (tester) async {
+  group('goldens', () {
+    testGoldens('VerificationConfirmPinPage light', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
+          ..addScenario(
+            widget: VerificationConfirmPinPage(
+              bloc: PinBloc(Mocks.create()),
+              onPinValidated: () {},
+            ),
+          ),
         wrapper: walletAppWrapper(),
       );
-      await screenMatchesGolden(tester, 'accessibility_light');
+      await screenMatchesGolden(tester, 'verification_confirm_pin/light');
     });
 
-    testGoldens('Accessibility Dark Test', (tester) async {
+    testGoldens('VerificationConfirmPinPage dark', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
+          ..addScenario(
+            widget: VerificationConfirmPinPage(
+              bloc: PinBloc(Mocks.create()),
+              onPinValidated: () {},
+            ),
+          ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
-      await screenMatchesGolden(tester, 'accessibility_dark');
+      await screenMatchesGolden(tester, 'verification_confirm_pin/dark');
     });
   });
 
-  testWidgets('VerificationConfirmPinPage renders the correct title & subtitle', (tester) async {
-    final locale = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.pumpWidget(
-      WalletAppTestWidget(
-        child: VerificationConfirmPinPage(
-          onPinValidated: () {},
-          bloc: PinBloc(Mocks.create()),
+  group('widgets', () {
+    testWidgets('VerificationConfirmPinPage renders the correct title & subtitle', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: VerificationConfirmPinPage(
+            onPinValidated: () {},
+            bloc: PinBloc(Mocks.create()),
+          ),
         ),
-      ),
-    );
+      );
 
-    // Setup finders
-    final titleFinder = find.text(locale.verificationConfirmPinPageTitle);
-    final descriptionFinder = find.text(locale.verificationConfirmPinPageDescription);
+      // Setup finders
+      final titleFinder = find.text(l10n.verificationConfirmPinPageTitle);
+      final descriptionFinder = find.text(l10n.verificationConfirmPinPageDescription);
 
-    // Verify all expected widgets show up once
-    expect(titleFinder, findsOneWidget);
-    expect(descriptionFinder, findsOneWidget);
+      // Verify all expected widgets show up once
+      expect(titleFinder, findsOneWidget);
+      expect(descriptionFinder, findsOneWidget);
+    });
   });
 }

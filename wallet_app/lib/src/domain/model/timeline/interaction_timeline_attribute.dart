@@ -20,12 +20,12 @@ class InteractionTimelineAttribute extends TimelineAttribute {
   List<Object?> get props => [status, policy, requestPurpose, ...super.props];
 
   @override
-  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes}) {
+  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, InteractionStatus? status, DateTime? dateTime}) {
     return InteractionTimelineAttribute(
-      status: status,
+      status: status ?? this.status,
       policy: policy,
       requestPurpose: requestPurpose,
-      dateTime: dateTime,
+      dateTime: dateTime ?? this.dateTime,
       organization: organization,
       dataAttributes: dataAttributes ?? this.dataAttributes,
     );

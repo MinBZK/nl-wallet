@@ -88,7 +88,7 @@ class BaseWalletTheme {
   );
 
   static const baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
-    elevation: 4.0,
+    elevation: 0.0,
     selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, fontFamily: fontFamily),
     unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
   );

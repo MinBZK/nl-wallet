@@ -38,8 +38,10 @@ void main() {
     testGoldens(
       'light generic placeholder',
       (tester) async {
-        await tester.pumpWidgetWithAppWrapper(const PlaceholderScreen(type: PlaceholderType.generic),
-            surfaceSize: const Size(812, 375));
+        await tester.pumpWidgetWithAppWrapper(
+          const PlaceholderScreen(type: PlaceholderType.generic),
+          surfaceSize: const Size(812, 375),
+        );
         await screenMatchesGolden(tester, 'placeholder_screen/light.generic.landscape');
       },
     );

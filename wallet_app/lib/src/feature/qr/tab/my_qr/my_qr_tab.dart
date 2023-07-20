@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../../../environment.dart';
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/sheet/explanation_sheet.dart';
+import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/utility/max_brightness.dart';
 
 const _kLandscapeQrSize = 200.0;
@@ -22,7 +23,7 @@ class MyQrTab extends StatelessWidget {
             height: context.isLandscape ? _kLandscapeQrSize : null,
             child: QrImageView(
               padding: EdgeInsets.zero,
-              data: '{"id": ${DateTime.now().millisecondsSinceEpoch}',
+              data: '{"id": ${Environment.isTest ? 'test' : DateTime.now().millisecondsSinceEpoch}',
               eyeStyle: QrEyeStyle(
                 color: context.theme.primaryColorDark,
                 eyeShape: QrEyeShape.square,
