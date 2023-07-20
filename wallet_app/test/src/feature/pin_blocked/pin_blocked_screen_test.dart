@@ -7,46 +7,49 @@ import 'package:wallet/src/feature/pin_blocked/pin_blocked_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.accessibilityDeviceBuilder
+    return DeviceUtils.deviceBuilder
       ..addScenario(
         widget: const PinBlockedScreen(),
         name: 'pin_blocked_screen',
       );
   }
 
-  group('Golden Tests', () {
-    testGoldens('Accessibility Light Test', (tester) async {
+  group('goldens', () {
+    testGoldens('PinBlockedScreen light', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(),
       );
-      await screenMatchesGolden(tester, 'accessibility_light');
+      await screenMatchesGolden(tester, 'light');
     });
 
-    testGoldens('Accessibility Dark Test', (tester) async {
+    testGoldens('PinBlockedScreen dark', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
-      await screenMatchesGolden(tester, 'accessibility_dark');
+      await screenMatchesGolden(tester, 'dark');
     });
   });
 
-  testWidgets('verify PinBlockedScreen renders expected text', (tester) async {
-    await tester.pumpWidget(const WalletAppTestWidget(child: PinBlockedScreen()));
+  group('widgets', () {
+    testWidgets('verify PinBlockedScreen renders expected text', (tester) async {
+      await tester.pumpWidget(const WalletAppTestWidget(child: PinBlockedScreen()));
 
-    final AppLocalizations locale = await AppLocalizations.delegate.load(const Locale('en'));
-    final titleFinder = find.textContaining(locale.pinBlockedScreenTitle, findRichText: true);
-    final headlineFinder = find.textContaining(locale.pinBlockedScreenHeadline, findRichText: true);
-    final descriptionFinder = find.textContaining(locale.pinBlockedScreenDescription, findRichText: true);
-    final ctaFinder = find.textContaining(locale.pinBlockedScreenResetWalletCta, findRichText: true);
+      final AppLocalizations l10n = await TestUtils.englishLocalizations;
+      final titleFinder = find.textContaining(l10n.pinBlockedScreenTitle, findRichText: true);
+      final headlineFinder = find.textContaining(l10n.pinBlockedScreenHeadline, findRichText: true);
+      final descriptionFinder = find.textContaining(l10n.pinBlockedScreenDescription, findRichText: true);
+      final ctaFinder = find.textContaining(l10n.pinBlockedScreenResetWalletCta, findRichText: true);
 
-    expect(titleFinder, findsOneWidget);
-    expect(headlineFinder, findsOneWidget);
-    expect(descriptionFinder, findsOneWidget);
-    expect(ctaFinder, findsOneWidget);
+      expect(titleFinder, findsOneWidget);
+      expect(headlineFinder, findsOneWidget);
+      expect(descriptionFinder, findsOneWidget);
+      expect(ctaFinder, findsOneWidget);
+    });
   });
 }

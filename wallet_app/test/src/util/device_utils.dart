@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/widgets.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 
 class DeviceUtils {
@@ -21,6 +20,10 @@ class DeviceUtils {
     pixel2LandscapeLarge,
   ];
 
-  static DeviceBuilder get accessibilityDeviceBuilder =>
+  static DeviceBuilder get deviceBuilder =>
       DeviceBuilder()..overrideDevicesForAllScenarios(devices: _accessibilityDevices);
+
+  static DeviceBuilder get deviceBuilderWithPrimaryScrollController =>
+      DeviceBuilder(wrap: (child) => PrimaryScrollController(controller: ScrollController(), child: child))
+        ..overrideDevicesForAllScenarios(devices: _accessibilityDevices);
 }

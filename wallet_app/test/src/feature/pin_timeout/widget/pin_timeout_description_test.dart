@@ -1,9 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/pin_timeout/widget/pin_timeout_description.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../util/test_utils.dart';
 
 void main() {
   testWidgets('verify PinTimeoutDescription renders with 2 minutes left when timeleft >2 mins', (tester) async {
@@ -17,9 +17,9 @@ void main() {
     );
 
     // Setup finders
-    final AppLocalizations locale = await AppLocalizations.delegate.load(const Locale('en'));
-    final leadingTextFinder = find.textContaining(locale.pinTimeoutScreenTimeoutPrefix, findRichText: true);
-    final timeLeftFinder = find.textContaining(locale.generalMinutes(2), findRichText: true);
+    final AppLocalizations l10n = await TestUtils.englishLocalizations;
+    final leadingTextFinder = find.textContaining(l10n.pinTimeoutScreenTimeoutPrefix, findRichText: true);
+    final timeLeftFinder = find.textContaining(l10n.generalMinutes(2), findRichText: true);
 
     // Verify all expected widgets show up once
     expect(leadingTextFinder, findsOneWidget);
@@ -42,9 +42,9 @@ void main() {
     );
 
     // Setup finders
-    final AppLocalizations locale = await AppLocalizations.delegate.load(const Locale('en'));
-    final leadingTextFinder = find.textContaining(locale.pinTimeoutScreenTimeoutPrefix, findRichText: true);
-    final timeLeftFinder = find.textContaining(locale.generalSeconds(30), findRichText: true);
+    final AppLocalizations l10n = await TestUtils.englishLocalizations;
+    final leadingTextFinder = find.textContaining(l10n.pinTimeoutScreenTimeoutPrefix, findRichText: true);
+    final timeLeftFinder = find.textContaining(l10n.generalSeconds(30), findRichText: true);
 
     // Verify all expected widgets show up once
     expect(leadingTextFinder, findsOneWidget);

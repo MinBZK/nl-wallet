@@ -13,7 +13,7 @@ class SplashLoaded extends SplashState {
   final bool isRegistered;
   final bool hasPid;
 
-  const SplashLoaded({required this.isRegistered, required this.hasPid});
+  const SplashLoaded({required this.isRegistered, required this.hasPid}) : assert(!hasPid || isRegistered);
 
   @override
   List<Object> get props => [isRegistered, hasPid];

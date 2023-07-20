@@ -88,16 +88,19 @@ class PinPage extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-              const SizedBox(height: 24),
-              _buildPinField(),
-              const SizedBox(height: 18),
-              _buildForgotCodeButton(),
-            ],
+          child: Scrollbar(
+            child: Center(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
+                  const SizedBox(height: 24),
+                  Center(child: _buildPinField()),
+                  const SizedBox(height: 18),
+                  _buildForgotCodeButton(),
+                ],
+              ),
+            ),
           ),
         ),
         Expanded(

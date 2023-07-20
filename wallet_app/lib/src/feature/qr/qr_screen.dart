@@ -35,7 +35,7 @@ class QrScreen extends StatelessWidget {
           body: TabBarView(
             children: [
               BlocProvider(
-                create: (context) => QrScanBloc(context.read()),
+                create: (context) => context.read<QrScanBloc?>() ?? QrScanBloc(context.read()),
                 child: const QrScanTab(),
               ),
               const MyQrTab(),

@@ -7,10 +7,11 @@ import 'package:wallet/src/feature/pin_timeout/pin_timeout_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.accessibilityDeviceBuilder
+    return DeviceUtils.deviceBuilder
       ..addScenario(
         widget: PinTimeoutScreen(
           expiryTime: DateTime.now().add(const Duration(seconds: 15)),
@@ -19,40 +20,42 @@ void main() {
       );
   }
 
-  group('Golden Tests', () {
-    testGoldens('Accessibility Light Test', (tester) async {
+  group('goldens', () {
+    testGoldens('PinTimeoutScreen light', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(),
       );
-      await screenMatchesGolden(tester, 'accessibility_light');
+      await screenMatchesGolden(tester, 'light');
     });
 
-    testGoldens('Accessibility Dark Test', (tester) async {
+    testGoldens('PinTimeoutScreen dark', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
-      await screenMatchesGolden(tester, 'accessibility_dark');
+      await screenMatchesGolden(tester, 'dark');
     });
   });
 
-  testWidgets('verify PinTimeoutScreen renders expected text', (tester) async {
-    await tester.pumpWidget(
-      WalletAppTestWidget(
-        child: PinTimeoutScreen(
-          expiryTime: DateTime.now().add(const Duration(seconds: 5)),
+  group('widgets', () {
+    testWidgets('verify PinTimeoutScreen renders expected text', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: PinTimeoutScreen(
+            expiryTime: DateTime.now().add(const Duration(seconds: 5)),
+          ),
         ),
-      ),
-    );
+      );
 
-    final AppLocalizations locale = await AppLocalizations.delegate.load(const Locale('en'));
-    final titleFinder = find.textContaining(locale.pinTimeoutScreenTitle, findRichText: true);
-    final headlineFinder = find.textContaining(locale.pinTimeoutScreenHeadline, findRichText: true);
-    final ctaFinder = find.textContaining(locale.pinTimeoutScreenForgotPinCta, findRichText: true);
+      final AppLocalizations locale = await TestUtils.englishLocalizations;
+      final titleFinder = find.textContaining(locale.pinTimeoutScreenTitle, findRichText: true);
+      final headlineFinder = find.textContaining(locale.pinTimeoutScreenHeadline, findRichText: true);
+      final ctaFinder = find.textContaining(locale.pinTimeoutScreenForgotPinCta, findRichText: true);
 
-    expect(titleFinder, findsOneWidget);
-    expect(headlineFinder, findsOneWidget);
-    expect(ctaFinder, findsOneWidget);
+      expect(titleFinder, findsOneWidget);
+      expect(headlineFinder, findsOneWidget);
+      expect(ctaFinder, findsOneWidget);
+    });
   });
 }

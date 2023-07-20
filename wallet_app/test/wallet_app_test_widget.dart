@@ -25,6 +25,13 @@ class WalletAppTestWidget extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (_, __, ___) => Text(
+          settings.name ?? 'unnamed route',
+          style: const TextStyle(fontSize: 0 /* rendered but hidden */),
+        ),
+      ),
       home: Scaffold(body: child),
     );
   }
@@ -50,12 +57,12 @@ extension TestWidgetExtensions on Widget {
           assert(bloc is MockBloc, 'Can only provide mocked state on MockBloc');
           whenListen(
             bloc,
-            Stream<S>.empty(),
+            Stream<S>.value(state),
             initialState: state,
           );
           return bloc;
         },
-        child: this,
+        child: Builder(builder: (context) => this),
       );
 }
 
@@ -74,5 +81,9 @@ extension WidgetTesterExtensions on WidgetTester {
       textScaleSize: textScaleSize,
       wrapper: walletAppWrapper(brightness: brightness),
     );
+  }
+
+  Future<void> pumpDeviceBuilderWithAppWrapper(DeviceBuilder deviceBuilder) {
+    return pumpDeviceBuilder(deviceBuilder, wrapper: walletAppWrapper());
   }
 }

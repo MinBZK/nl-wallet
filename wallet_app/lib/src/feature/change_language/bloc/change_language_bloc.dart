@@ -47,5 +47,5 @@ class Language {
   final String name;
   final Locale locale;
 
-  Language(this.name, this.locale);
+  const Language(this.name, this.locale);
 }

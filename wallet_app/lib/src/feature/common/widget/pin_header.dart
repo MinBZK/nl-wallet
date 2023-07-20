@@ -16,10 +16,17 @@ class PinHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: _buildHeader(context),
+    return PrimaryScrollController(
+      controller: ScrollController(),
+      child: Scrollbar(
+        child: SingleChildScrollView(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: _buildHeader(context),
+          ),
+        ),
+      ),
     );
   }
 

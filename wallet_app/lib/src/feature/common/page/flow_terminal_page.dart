@@ -48,50 +48,51 @@ class FlowTerminalPage extends StatelessWidget {
 
   Widget _buildScrollableSection(BuildContext context) {
     return Expanded(
-      child: ListView(
-        primary: false /* Avoid PrimaryScrollController clash */,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        children: [
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-              child: StatusIcon(
-                icon: icon,
-                color: iconColor,
+      child: Scrollbar(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: StatusIcon(
+                  icon: icon,
+                  color: iconColor,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.all(16),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.all(16),
 
-            /// The [Column] is added to improve semantics; reading title and description together
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: context.textTheme.displayMedium,
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: context.textTheme.bodyLarge,
-                  textAlign: TextAlign.start,
-                )
-              ],
+              /// The [Column] is added to improve semantics; reading title and description together
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: context.textTheme.displayMedium,
+                    textAlign: TextAlign.start,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: context.textTheme.bodyLarge,
+                    textAlign: TextAlign.start,
+                  )
+                ],
+              ),
             ),
-          ),
-          if (tertiaryButtonCta != null)
-            LinkButton(
-              customPadding: const EdgeInsets.symmetric(horizontal: 16),
-              onPressed: onTertiaryButtonPressed,
-              child: Text(tertiaryButtonCta!),
-            ),
-          if (content != null) content!,
-        ],
+            if (tertiaryButtonCta != null)
+              LinkButton(
+                customPadding: const EdgeInsets.symmetric(horizontal: 16),
+                onPressed: onTertiaryButtonPressed,
+                child: Text(tertiaryButtonCta!),
+              ),
+            if (content != null) content!,
+          ],
+        ),
       ),
     );
   }

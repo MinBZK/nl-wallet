@@ -97,14 +97,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
-            attribute: InteractionTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
-              dateTime: DateTime(2023, 1, 1),
-              organization: WalletMockData.organization,
-              status: InteractionStatus.success,
-              requestPurpose: 'Purpose',
-              policy: WalletMockData.policy,
-            ),
+            attribute: WalletMockData.interactionTimelineAttribute,
             onPressed: () {},
           ),
           surfaceSize: const Size(350, 89),
@@ -118,14 +111,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
-            attribute: InteractionTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
-              dateTime: DateTime(2023, 1, 1),
-              organization: WalletMockData.organization,
-              status: InteractionStatus.failed,
-              requestPurpose: 'Purpose',
-              policy: WalletMockData.policy,
-            ),
+            attribute: WalletMockData.interactionTimelineAttribute.copyWith(status: InteractionStatus.failed),
             onPressed: () {},
           ),
           surfaceSize: kGoldenSize,
@@ -139,14 +125,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
-            attribute: InteractionTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
-              dateTime: DateTime(2023, 1, 1),
-              organization: WalletMockData.organization,
-              status: InteractionStatus.rejected,
-              requestPurpose: 'Purpose',
-              policy: WalletMockData.policy,
-            ),
+            attribute: WalletMockData.interactionTimelineAttribute.copyWith(status: InteractionStatus.rejected),
             onPressed: () {},
           ),
           surfaceSize: kGoldenSize,
@@ -160,14 +139,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
-            attribute: SigningTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
-              dateTime: DateTime(2023, 1, 1),
-              organization: WalletMockData.organization,
-              status: SigningStatus.success,
-              policy: WalletMockData.policy,
-              document: WalletMockData.document,
-            ),
+            attribute: WalletMockData.signingTimelineAttribute,
             onPressed: () {},
           ),
           surfaceSize: kGoldenSize,
@@ -180,14 +152,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
-            attribute: SigningTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
-              dateTime: DateTime(2023, 1, 1),
-              organization: WalletMockData.organization,
-              status: SigningStatus.rejected,
-              policy: WalletMockData.policy,
-              document: WalletMockData.document,
-            ),
+            attribute: WalletMockData.signingTimelineAttribute.copyWith(status: SigningStatus.rejected),
             onPressed: () {},
           ),
           surfaceSize: kGoldenSize,
@@ -198,23 +163,17 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('button is visible', (tester) async {
+    testWidgets('onPressed is triggered', (tester) async {
       bool tapped = false;
       await tester.pumpWidgetWithAppWrapper(
         TimelineAttributeRow(
-          attribute: OperationTimelineAttribute(
-            dataAttributes: const [WalletMockData.textDataAttribute],
-            dateTime: DateTime(2023, 1, 1),
-            organization: WalletMockData.organization,
-            status: OperationStatus.issued,
-            cardTitle: 'Card Title',
-          ),
+          attribute: WalletMockData.operationTimelineAttribute,
           onPressed: () => tapped = true,
         ),
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text('Card Title');
+      final titleFinder = find.text(WalletMockData.operationTimelineAttribute.cardTitle);
       expect(titleFinder, findsOneWidget);
 
       await tester.tap(titleFinder);

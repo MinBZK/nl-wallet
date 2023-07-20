@@ -21,9 +21,9 @@ class SigningTimelineAttribute extends TimelineAttribute {
   List<Object?> get props => [status, policy, document, ...super.props];
 
   @override
-  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes}) {
+  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, SigningStatus? status}) {
     return SigningTimelineAttribute(
-      status: status,
+      status: status ?? this.status,
       policy: policy,
       document: document,
       dateTime: dateTime,

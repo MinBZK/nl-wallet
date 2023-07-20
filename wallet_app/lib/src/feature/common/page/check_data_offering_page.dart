@@ -90,7 +90,6 @@ class CheckDataOfferingPage extends StatelessWidget {
                 child: Text(
                   subtitle,
                   style: context.textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
                 ),
               )
           ],

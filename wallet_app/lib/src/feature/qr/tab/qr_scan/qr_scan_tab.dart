@@ -3,32 +3,39 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../../environment.dart';
 import '../../../../domain/model/qr/qr_request.dart';
 import '../../../../navigation/wallet_routes.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../common/sheet/explanation_sheet.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
-import '../../../common/sheet/explanation_sheet.dart';
+import '../../../common/widget/loading_indicator.dart';
 import '../../../common/widget/utility/check_permission_on_resume.dart';
 import '../../../issuance/argument/issuance_screen_argument.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
 import 'bloc/qr_scan_bloc.dart';
 
-final _scannerKey = GlobalKey();
+final _scannerKey = Environment.isTest ? ValueKey(DateTime.now()) : GlobalKey();
+const _kLandscapePaddingPercent = 0.2;
 
 class QrScanTab extends StatelessWidget {
   const QrScanTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return BlocListener<QrScanBloc, QrScanState>(
       listenWhen: (prev, current) => current is QrScanSuccess,
       listener: (context, state) {
         if (state is QrScanSuccess) _handleScanSuccess(context, state);
       },
       child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: context.isLandscape ? screenWidth * _kLandscapePaddingPercent : 0,
+        ),
         children: [
           BlocListener<QrScanBloc, QrScanState>(
             listener: (context, state) {
@@ -72,7 +79,7 @@ class QrScanTab extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           alignment: Alignment.center,
           decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-          child: const CircularProgressIndicator(),
+          child: const LoadingIndicator(),
         ),
       ],
     );
@@ -129,7 +136,10 @@ class QrScanTab extends StatelessWidget {
                     context.read<QrScanBloc>().add(const QrScanCheckPermission());
                   }
                 },
-                child: Text(context.l10n.qrScanTabGrantPermissionCta),
+                child: Text(
+                  context.l10n.qrScanTabGrantPermissionCta,
+                  textAlign: TextAlign.center,
+                ),
               ),
             )
           ],

@@ -15,6 +15,9 @@ import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
 import 'widget/data_privacy_banner.dart';
 
+@visibleForTesting
+const kPrivacyBannerKey = Key('privacyBanner');
+
 class CardDataScreen extends StatelessWidget {
   static CardDataScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
@@ -67,6 +70,7 @@ class CardDataScreen extends StatelessWidget {
       SliverToBoxAdapter(
         child: DataPrivacyBanner(
           onPressed: () => _showDataPrivacySheet(context),
+          key: kPrivacyBannerKey,
         ),
       ),
     );

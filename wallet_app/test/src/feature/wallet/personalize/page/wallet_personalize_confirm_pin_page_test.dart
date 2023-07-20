@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
@@ -9,54 +8,56 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_co
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mocks.dart';
 import '../../../../util/device_utils.dart';
+import '../../../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.accessibilityDeviceBuilder
+    return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
         widget: WalletPersonalizeConfirmPinPage(
           bloc: PinBloc(Mocks.create()),
           onPinValidated: () {},
         ),
-        name: 'error_screen',
       );
   }
 
-  group('Golden Tests', () {
-    testGoldens('Accessibility Light Test', (tester) async {
+  group('goldens', () {
+    testGoldens('WalletPersonalizeConfirmPinPage light', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(),
       );
-      await screenMatchesGolden(tester, 'accessibility_light');
+      await screenMatchesGolden(tester, 'wallet_personalize_confirm_pin/light');
     });
 
-    testGoldens('Accessibility Dark Test', (tester) async {
+    testGoldens('WalletPersonalizeConfirmPinPage dark', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
-      await screenMatchesGolden(tester, 'accessibility_dark');
+      await screenMatchesGolden(tester, 'wallet_personalize_confirm_pin/dark');
     });
   });
 
-  testWidgets('WalletPersonalizeConfirmPinPage renders the correct title & subtitle', (tester) async {
-    final locale = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.pumpWidget(
-      WalletAppTestWidget(
-        child: WalletPersonalizeConfirmPinPage(
-          onPinValidated: () {},
-          bloc: PinBloc(Mocks.create()),
+  group('widgets', () {
+    testWidgets('WalletPersonalizeConfirmPinPage renders the correct title & subtitle', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: WalletPersonalizeConfirmPinPage(
+            onPinValidated: () {},
+            bloc: PinBloc(Mocks.create()),
+          ),
         ),
-      ),
-    );
+      );
 
-    // Setup finders
-    final titleFinder = find.text(locale.walletPersonalizeConfirmPinPageTitle);
-    final descriptionFinder = find.text(locale.walletPersonalizeConfirmPinPageDescription);
+      // Setup finders
+      final titleFinder = find.text(l10n.walletPersonalizeConfirmPinPageTitle);
+      final descriptionFinder = find.text(l10n.walletPersonalizeConfirmPinPageDescription);
 
-    // Verify all expected widgets show up once
-    expect(titleFinder, findsOneWidget);
-    expect(descriptionFinder, findsOneWidget);
+      // Verify all expected widgets show up once
+      expect(titleFinder, findsOneWidget);
+      expect(descriptionFinder, findsOneWidget);
+    });
   });
 }

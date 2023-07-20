@@ -14,12 +14,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: WillPopScope(
-        child: _buildBody(),
-        onWillPop: () async {
-          return false; // Back gesture disabled for demo purposes
-        },
-      ),
+      body: _buildBody(),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
@@ -53,6 +48,7 @@ class HomeScreen extends StatelessWidget {
 
     final indicatorWidth = MediaQuery.of(context).size.width / items.length;
     const indicatorHeight = 2.0;
+    const dividerHeight = 1.0;
 
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
@@ -66,7 +62,13 @@ class HomeScreen extends StatelessWidget {
               },
               items: items,
             ),
+            Container(
+              height: dividerHeight,
+              width: double.infinity,
+              color: context.colorScheme.outlineVariant,
+            ),
             AnimatedPositioned(
+              top: dividerHeight,
               height: indicatorHeight,
               width: indicatorWidth,
               left: indicatorWidth * state.tab.index,

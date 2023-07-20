@@ -9,7 +9,7 @@ import '../../util/device_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.accessibilityDeviceBuilder
+    return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
         widget: ErrorScreen(
           title: 'Title',
@@ -24,51 +24,53 @@ void main() {
       );
   }
 
-  group('Golden Tests', () {
-    testGoldens('Accessibility Light Test', (tester) async {
+  group('goldens', () {
+    testGoldens('ErrorScreen light', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(),
       );
-      await screenMatchesGolden(tester, 'accessibility_light');
+      await screenMatchesGolden(tester, 'light');
     });
 
-    testGoldens('Accessibility Dark Test', (tester) async {
+    testGoldens('ErrorScreen dark', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
-      await screenMatchesGolden(tester, 'accessibility_dark');
+      await screenMatchesGolden(tester, 'dark');
     });
   });
 
-  testWidgets('ErrorScreen renders expected widgets', (tester) async {
-    await tester.pumpWidget(
-      WalletAppTestWidget(
-        child: ErrorScreen(
-          title: 'T',
-          description: 'D',
-          headline: 'H',
-          primaryActionText: 'P',
-          onPrimaryActionPressed: () {},
-          secondaryActionText: 'S',
-          onSecondaryActionPressed: () {},
+  group('widgets', () {
+    testWidgets('ErrorScreen renders expected widgets', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: ErrorScreen(
+            title: 'T',
+            description: 'D',
+            headline: 'H',
+            primaryActionText: 'P',
+            onPrimaryActionPressed: () {},
+            secondaryActionText: 'S',
+            onSecondaryActionPressed: () {},
+          ),
         ),
-      ),
-    );
+      );
 
-    // Setup finders
-    final titleFinder = find.text('T');
-    final descriptionFinder = find.text('D');
-    final headlineFinder = find.text('H');
-    final primaryActionFinder = find.text('P');
-    final secondaryActionFinder = find.text('S');
+      // Setup finders
+      final titleFinder = find.text('T');
+      final descriptionFinder = find.text('D');
+      final headlineFinder = find.text('H');
+      final primaryActionFinder = find.text('P');
+      final secondaryActionFinder = find.text('S');
 
-    // Verify all expected widgets show up once
-    expect(titleFinder, findsOneWidget);
-    expect(descriptionFinder, findsOneWidget);
-    expect(headlineFinder, findsOneWidget);
-    expect(primaryActionFinder, findsOneWidget);
-    expect(secondaryActionFinder, findsOneWidget);
+      // Verify all expected widgets show up once
+      expect(titleFinder, findsOneWidget);
+      expect(descriptionFinder, findsOneWidget);
+      expect(headlineFinder, findsOneWidget);
+      expect(primaryActionFinder, findsOneWidget);
+      expect(secondaryActionFinder, findsOneWidget);
+    });
   });
 }
