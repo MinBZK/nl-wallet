@@ -15,12 +15,12 @@ class IntroductionPrivacyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PrimaryScrollController(
-      controller: ScrollController(),
+    return SafeArea(
       child: Column(
         children: [
           Expanded(
             child: Scrollbar(
+              thumbVisibility: true,
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
