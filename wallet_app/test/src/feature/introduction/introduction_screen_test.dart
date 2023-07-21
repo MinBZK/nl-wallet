@@ -7,26 +7,23 @@ import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
 
 void main() {
-  DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilder;
-  }
-
   group('goldens', () {
     testGoldens('Page 1 light', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: const IntroductionScreen(),
             name: 'page_1',
           ),
         wrapper: walletAppWrapper(),
       );
+      await tester.pumpAndSettle();
       await screenMatchesGolden(tester, 'page_1.light');
     });
 
     testGoldens('Page 2 light', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: const IntroductionScreen(),
             name: 'page_2',
@@ -40,7 +37,7 @@ void main() {
     });
     testGoldens('Page 3 light', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: const IntroductionScreen(),
             name: 'page_3',
@@ -55,7 +52,7 @@ void main() {
     });
     testGoldens('Page 4 light', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: const IntroductionScreen(),
             name: 'page_4',
@@ -70,9 +67,27 @@ void main() {
       await screenMatchesGolden(tester, 'page_4.light');
     });
 
+    testGoldens('Page 5 light', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
+          ..addScenario(
+            widget: const IntroductionScreen(),
+            name: 'page_5',
+            onCreate: (scenarioWidgetKey) async {
+              await _skipPage(scenarioWidgetKey, tester);
+              await _skipPage(scenarioWidgetKey, tester);
+              await _skipPage(scenarioWidgetKey, tester);
+              await _skipPage(scenarioWidgetKey, tester);
+            },
+          ),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'page_5.light');
+    });
+
     testGoldens('Page 1 dark', (tester) async {
       await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: const IntroductionScreen(),
             name: 'page_1',
@@ -80,6 +95,11 @@ void main() {
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
       await screenMatchesGolden(tester, 'page_1.dark');
+    });
+
+    testGoldens('Page 1 individual to render portrait and thus show stepper correctly', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
+      await screenMatchesGolden(tester, 'page_1.stepper.light');
     });
   });
 }

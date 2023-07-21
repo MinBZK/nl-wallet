@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../common/widget/icon_row.dart';
 
 const _kCoverHeaderImageDesiredHeight = 250.0;
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
@@ -8,14 +9,17 @@ const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label
 class IntroductionPage extends StatelessWidget {
   final ImageProvider image;
   final Widget? header, footer;
-  final String title, subtitle;
+  final String title;
+  final String? subtitle;
+  final List<String> bulletPoints;
 
   const IntroductionPage({
     required this.image,
     this.header,
     this.footer,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.bulletPoints = const [],
     super.key,
   });
 
@@ -61,6 +65,7 @@ class IntroductionPage extends StatelessWidget {
         Expanded(child: _buildLandscapeImage(context)),
         Expanded(
           child: SafeArea(
+            bottom: false,
             child: Scrollbar(
               child: Column(
                 children: [
@@ -134,13 +139,41 @@ class IntroductionPage extends StatelessWidget {
             textAlign: TextAlign.start,
             textScaleFactor: 1,
           ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.start,
-          ),
+          SizedBox(height: subtitle == null ? 0 : 8),
+          if (subtitle != null)
+            Text(
+              subtitle!,
+              style: context.textTheme.bodyLarge,
+              textAlign: TextAlign.start,
+            ),
+          _buildBulletPoints(context),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBulletPoints(BuildContext context) {
+    if (bulletPoints.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: bulletPoints.map((point) {
+          return IconRow(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            icon: SizedBox(
+              height: 24,
+              width: 24,
+              child: Icon(
+                Icons.check,
+                color: context.colorScheme.primary,
+                size: 18,
+              ),
+            ),
+            text: Text(point),
+          );
+        }).toList(),
       ),
     );
   }

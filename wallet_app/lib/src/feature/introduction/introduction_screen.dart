@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:after_layout/after_layout.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -8,14 +11,14 @@ import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
-import '../common/widget/button/text_icon_button.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/text_icon_button.dart';
 import 'page/introduction_page.dart';
 import 'page/introduction_privacy_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 
 // Progress constants
-const _kNrOfPages = 4;
+const _kNrOfPages = 5;
 
 // Semantic constants
 const _kBackButtonSortKey = -1.0;
@@ -27,8 +30,10 @@ class IntroductionScreen extends StatefulWidget {
   State<IntroductionScreen> createState() => _IntroductionScreenState();
 }
 
-class _IntroductionScreenState extends State<IntroductionScreen> {
+class _IntroductionScreenState extends State<IntroductionScreen> with AfterLayoutMixin<IntroductionScreen> {
   final PageController _pageController = PageController();
+  final GlobalKey _placeholderKey = GlobalKey();
+  OverlayEntry? _overlayEntry;
 
   double get _currentPage => _pageController.hasClients ? _pageController.page ?? 0 : 0;
 
@@ -38,14 +43,43 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     _pageController.addListener(_onPageChanged);
   }
 
-  void _onPageChanged() {
-    setState(() {});
-  }
+  void _onPageChanged() => setState(() => _overlayEntry?.markNeedsBuild());
 
   @override
   void dispose() {
     _pageController.dispose();
+    _overlayEntry?.remove();
+    _overlayEntry?.dispose();
     super.dispose();
+  }
+
+  @override
+  void afterFirstLayout(BuildContext context) async {
+    _overlayEntry = _createOverlayEntry();
+    if (_overlayEntry != null) {
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+  }
+
+  OverlayEntry? _createOverlayEntry() {
+    Offset? cachedOffset;
+    return OverlayEntry(
+      builder: (context) {
+        // Hide stepper in landscape
+        if (context.isLandscape) return const SizedBox.shrink();
+        // Hide stepper when no placeholder or cache can be found
+        RenderObject? renderBox = _placeholderKey.currentContext?.findRenderObject();
+        if ((renderBox == null || renderBox is! RenderBox) && cachedOffset == null) return const SizedBox.shrink();
+        // Update offset cache when possible
+        if (renderBox is RenderBox) cachedOffset = renderBox.localToGlobal(Offset.zero);
+        // Render the actual progress stepper!
+        return Positioned(
+          left: 0,
+          top: cachedOffset!.dy,
+          child: _buildProgressStepper(_currentPage),
+        );
+      },
+    );
   }
 
   @override
@@ -69,9 +103,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         PageView(
           controller: _pageController,
           children: [
-            _buildAppIntroductionPage(context),
-            _buildAppBenefitsPage(context),
-            _buildAppSecurityPage(context),
+            _buildAppIntroPage1(context),
+            _buildAppIntroPage2(context),
+            _buildAppIntroPage3(context),
+            _buildAppIntroPage4(context),
             _buildAppPrivacyPage(context),
           ],
         ),
@@ -84,32 +119,43 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     );
   }
 
-  Widget _buildAppIntroductionPage(BuildContext context) {
+  Widget _buildAppIntroPage1(BuildContext context) {
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_introduction_app_introduction.png'),
-      title: context.l10n.introductionAppIntroPageTitle,
-      subtitle: context.l10n.introductionAppIntroPageSubtitle,
-      header: _buildProgressStepper(_currentPage),
+      image: const AssetImage('assets/non-free/images/image_intro_page_1.png'),
+      title: context.l10n.introductionPage1Title,
+      subtitle: context.l10n.introductionPage1Description,
+      header: _buildProgressStepperPlaceHolder(step: 1, key: _placeholderKey),
       footer: _buildBottomSection(context),
     );
   }
 
-  Widget _buildAppBenefitsPage(BuildContext context) {
+  Widget _buildAppIntroPage2(BuildContext context) {
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_introduction_app_benefits.png'),
-      title: context.l10n.introductionAppBenefitsPageTitle,
-      subtitle: context.l10n.introductionAppBenefitsPageSubtitle,
-      header: _buildProgressStepper(_currentPage),
+      image: const AssetImage('assets/non-free/images/image_intro_page_2.png'),
+      title: context.l10n.introductionPage2Title,
+      subtitle: context.l10n.introductionPage2Description,
+      bulletPoints: context.l10n.introductionPage2BulletPoints.split('\n'),
+      header: _buildProgressStepperPlaceHolder(step: 2),
       footer: _buildBottomSection(context),
     );
   }
 
-  Widget _buildAppSecurityPage(BuildContext context) {
+  Widget _buildAppIntroPage3(BuildContext context) {
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_introduction_app_security.png'),
-      title: context.l10n.introductionAppSecurityPageTitle,
-      subtitle: context.l10n.introductionAppSecurityPageSubtitle,
-      header: _buildProgressStepper(_currentPage),
+      image: const AssetImage('assets/non-free/images/image_intro_page_3.png'),
+      title: context.l10n.introductionPage3Title,
+      subtitle: context.l10n.introductionPage3Description,
+      header: _buildProgressStepperPlaceHolder(step: 3),
+      footer: _buildBottomSection(context),
+    );
+  }
+
+  Widget _buildAppIntroPage4(BuildContext context) {
+    return IntroductionPage(
+      image: const AssetImage('assets/non-free/images/image_intro_page_4.png'),
+      title: context.l10n.introductionPage4Title,
+      bulletPoints: context.l10n.introductionPage4BulletPoints.split('\n'),
+      header: _buildProgressStepperPlaceHolder(step: 4),
       footer: _buildBottomSection(context),
     );
   }
@@ -121,11 +167,37 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildProgressStepper(double currentStep) {
-    return Semantics(
-      label: context.l10n.introductionWCAGCurrentPageAnnouncement(currentStep.toInt() + 1, _kNrOfPages - 1),
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
-        child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
+    const indexOfLastPageWithStepper = (_kNrOfPages - 2);
+    final alpha = min(1 - (_currentPage - indexOfLastPageWithStepper), 1.0);
+    return Opacity(
+      opacity: context.isLandscape ? 0 : alpha,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          child: IntroductionProgressStepper(currentStep: currentStep, totalSteps: _kNrOfPages - 1),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressStepperPlaceHolder({required int step, Key? key}) {
+    const stepperPadding = 8.0;
+    const stepperWidth = (_kNrOfPages - 1) * 16 + 8.0;
+    // This [Container] construction is only there to make sure the accessibility rectangle is drawn correctly.
+    return Container(
+      key: key,
+      margin: const EdgeInsets.only(left: stepperPadding),
+      alignment: Alignment.centerLeft,
+      child: Transform.translate(
+        offset: const Offset(0, stepperPadding),
+        child: Semantics(
+          container: true,
+          label: context.l10n.introductionWCAGCurrentPageAnnouncement(step, _kNrOfPages - 1),
+          child: const SizedBox(
+            height: 22,
+            width: stepperWidth,
+          ),
+        ),
       ),
     );
   }
@@ -184,7 +256,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               await context.read<SetupMockedWalletUseCase>().invoke();
               navigator.pushReplacementNamed(WalletRoutes.homeRoute);
             },
-            child: const Text('Skip Setup (Dev)'),
+            child: const Text('Skip Setup'),
           ),
         ],
       );
