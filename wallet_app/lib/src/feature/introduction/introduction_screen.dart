@@ -67,6 +67,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> with AfterLayou
       builder: (context) {
         // Hide stepper in landscape
         if (context.isLandscape) return const SizedBox.shrink();
+        // Hide stepper when the screen or placeholder isn't mounted (e.g. when navigating away)
+        if (!mounted || _placeholderKey.currentContext?.mounted == false) return const SizedBox.shrink();
         // Hide stepper when no placeholder or cache can be found
         RenderObject? renderBox = _placeholderKey.currentContext?.findRenderObject();
         if ((renderBox == null || renderBox is! RenderBox) && cachedOffset == null) return const SizedBox.shrink();
