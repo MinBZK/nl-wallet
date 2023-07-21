@@ -1,5 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
+use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::NistP256;
 use x509_parser::nom::AsBytes;
@@ -11,6 +12,7 @@ use crate::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        time::now,
         x509::{CertificateUsage, TrustAnchors},
     },
     Result,
@@ -40,6 +42,8 @@ pub enum VerificationError {
     AttributeVerificationFailed,
     #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
     EphemeralKeyMissing,
+    #[error("validity error: {0}")]
+    Validity(#[from] ValidityError),
 }
 
 impl DeviceResponse {
@@ -94,11 +98,45 @@ impl DeviceResponse {
 
 pub type X509Subject = IndexMap<String, String>;
 
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum ValidityError {
+    #[error("validity parsing failed: {0}")]
+    ParsingFailed(#[from] chrono::ParseError),
+    #[error("not yet valid: valid from {0}")]
+    NotYetValid(String),
+    #[error("expired at {0}")]
+    Expired(String),
+}
+
+impl ValidityInfo {
+    pub fn verify_is_valid_at(&self, time: DateTime<Utc>) -> std::result::Result<(), ValidityError> {
+        if time < DateTime::<Utc>::try_from(&self.valid_from)? {
+            Err(ValidityError::NotYetValid(self.valid_from.0 .0.clone()))
+        } else if time > DateTime::<Utc>::try_from(&self.valid_until)? {
+            Err(ValidityError::Expired(self.valid_from.0 .0.clone()))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl TryFrom<&Tdate> for DateTime<Utc> {
+    type Error = ValidityError;
+    fn try_from(value: &Tdate) -> std::result::Result<DateTime<Utc>, ValidityError> {
+        let parsed = DateTime::parse_from_rfc3339(&value.0 .0).map(|t| t.with_timezone(&Utc))?;
+        Ok(parsed)
+    }
+}
+
 impl IssuerSigned {
     pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
-        let (mso, _) = self
+        let (TaggedBytes(mso), _) = self
             .issuer_auth
             .verify_against_trust_anchors(CertificateUsage::Mdl, trust_anchors)?;
+
+        mso.validity_info
+            .verify_is_valid_at(now())
+            .map_err(VerificationError::Validity)?;
 
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
         if let Some(namespaces) = &self.name_spaces {
@@ -108,7 +146,6 @@ impl IssuerSigned {
                 for item in &items.0 {
                     let digest_id = item.0.digest_id;
                     let digest_ids = mso
-                        .0
                         .value_digests
                         .0
                         .get(namespace)
@@ -128,7 +165,7 @@ impl IssuerSigned {
             }
         }
 
-        Ok((attrs, mso.0))
+        Ok((attrs, mso))
     }
 }
 

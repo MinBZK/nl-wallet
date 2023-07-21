@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
         signer::SoftwareEcdsaKey,
-        time::mock_time::set_mock_time,
+        time::mock_time::{clear_mock_time, set_mock_time},
         x509::{Certificate, CertificateUsage},
     },
     Error,
@@ -33,6 +33,9 @@ use mdocs_map::MdocsMap;
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
 fn iso_examples_consistency() {
+    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
+
     let static_device_key = Examples::static_device_key();
 
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
@@ -49,6 +52,8 @@ fn iso_examples_consistency() {
         static_device_key.verifying_key(),
         ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
     );
+
+    clear_mock_time();
 }
 
 #[test]
@@ -101,6 +106,8 @@ fn iso_examples_disclosure() {
         "Disclosure: {:#?}",
         DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
     );
+
+    clear_mock_time();
 }
 
 #[test]
@@ -140,6 +147,8 @@ fn iso_examples_custom_disclosure() {
         "My Disclosure: {:#?}",
         DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
     );
+
+    clear_mock_time();
 }
 
 const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
