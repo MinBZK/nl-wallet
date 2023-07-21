@@ -62,22 +62,33 @@ class _IntroductionScreenState extends State<IntroductionScreen> with AfterLayou
   }
 
   OverlayEntry? _createOverlayEntry() {
-    Offset? cachedOffset;
+    double? yCache;
+    // Local helper method to build the positioned stepper, to keep things consise.
+    Widget buildStepper(double y) {
+      return Positioned(
+        left: 0,
+        top: y,
+        child: _buildProgressStepper(_currentPage),
+      );
+    }
+
     return OverlayEntry(
       builder: (context) {
         // Hide stepper in landscape
         if (context.isLandscape) return const SizedBox.shrink();
+        // If we already know where to position the stepper, simply build it!
+        if (yCache != null) return buildStepper(yCache!);
         // Hide stepper when the screen or placeholder isn't mounted (e.g. when navigating away)
         if (!mounted || _placeholderKey.currentContext?.mounted == false) return const SizedBox.shrink();
-        // Hide stepper when no placeholder or cache can be found
+        // Hide stepper when we can't determine the position of the placeholder
         RenderObject? renderBox = _placeholderKey.currentContext?.findRenderObject();
-        if ((renderBox == null || renderBox is! RenderBox) && cachedOffset == null) return const SizedBox.shrink();
-        // Update offset cache when possible
-        if (renderBox is RenderBox) cachedOffset = renderBox.localToGlobal(Offset.zero);
+        if (renderBox == null || renderBox is! RenderBox) return const SizedBox.shrink();
+        // Set the yCache for future rebuilds
+        yCache = renderBox.localToGlobal(Offset.zero).dy;
         // Render the actual progress stepper!
         return Positioned(
           left: 0,
-          top: cachedOffset!.dy,
+          top: yCache,
           child: _buildProgressStepper(_currentPage),
         );
       },
