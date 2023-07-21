@@ -3,7 +3,7 @@ use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
@@ -18,8 +18,8 @@ use nl_wallet_mdoc::{
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
         signer::SoftwareEcdsaKey,
-        time::mock_time::{clear_mock_time, set_mock_time},
         x509::{Certificate, CertificateUsage},
+        Generator,
     },
     Error,
 };
@@ -30,18 +30,35 @@ use examples::*;
 mod mdocs_map;
 use mdocs_map::MdocsMap;
 
+/// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+/// This generator returns a time in that window.
+struct IsoCertTimeGenerator;
+impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
+    }
+}
+
+struct TimeGenerator;
+impl Generator<DateTime<Utc>> for TimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc::now()
+    }
+}
+
 /// Verify that the static device key example from the spec is the public key in the MSO.
 #[test]
 fn iso_examples_consistency() {
-    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
-    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
-
     let static_device_key = Examples::static_device_key();
 
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
         .issuer_signed
         .issuer_auth
-        .verify_against_trust_anchors(CertificateUsage::Mdl, &Examples::issuer_ca_cert())
+        .verify_against_trust_anchors(
+            CertificateUsage::Mdl,
+            &IsoCertTimeGenerator,
+            &Examples::issuer_ca_cert(),
+        )
         .unwrap()
         .0
          .0
@@ -52,15 +69,10 @@ fn iso_examples_consistency() {
         static_device_key.verifying_key(),
         ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
     );
-
-    clear_mock_time();
 }
 
 #[test]
 fn iso_examples_disclosure() {
-    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
-    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
-
     let ca_cert = Examples::issuer_ca_cert();
     let eph_reader_key = Examples::ephemeral_reader_key();
     let device_response = DeviceResponse::example();
@@ -71,6 +83,7 @@ fn iso_examples_disclosure() {
         .verify(
             Some(&eph_reader_key),
             &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
+            &IsoCertTimeGenerator,
             &ca_cert,
         )
         .unwrap();
@@ -83,7 +96,11 @@ fn iso_examples_disclosure() {
     println!(
         "Reader: {:#?}",
         device_request
-            .verify(&reader_ca_cert, &ReaderAuthenticationBytes::example_bts())
+            .verify(
+                &IsoCertTimeGenerator,
+                &reader_ca_cert,
+                &ReaderAuthenticationBytes::example_bts()
+            )
             .unwrap(),
     );
 
@@ -92,6 +109,7 @@ fn iso_examples_disclosure() {
     let cred = Mdoc::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
+        &IsoCertTimeGenerator,
         &ca_cert,
     )
     .unwrap();
@@ -104,17 +122,17 @@ fn iso_examples_disclosure() {
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
     println!(
         "Disclosure: {:#?}",
-        DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
+        DebugCollapseBts(resp.verify(
+            None,
+            &DeviceAuthenticationBytes::example_bts(),
+            &IsoCertTimeGenerator,
+            &ca_cert
+        )),
     );
-
-    clear_mock_time();
 }
 
 #[test]
 fn iso_examples_custom_disclosure() {
-    // Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
-    set_mock_time(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap());
-
     let ca_cert = Examples::issuer_ca_cert();
     let device_response = DeviceResponse::example();
 
@@ -133,6 +151,7 @@ fn iso_examples_custom_disclosure() {
     let cred = Mdoc::<SoftwareEcdsaKey>::new(
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
+        &IsoCertTimeGenerator,
         &ca_cert,
     )
     .unwrap();
@@ -145,10 +164,13 @@ fn iso_examples_custom_disclosure() {
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
     println!(
         "My Disclosure: {:#?}",
-        DebugCollapseBts(resp.verify(None, &DeviceAuthenticationBytes::example_bts(), &ca_cert)),
+        DebugCollapseBts(resp.verify(
+            None,
+            &DeviceAuthenticationBytes::example_bts(),
+            &IsoCertTimeGenerator,
+            &ca_cert
+        )),
     );
-
-    clear_mock_time();
 }
 
 const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
@@ -345,7 +367,12 @@ fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
         "Disclosure: {:#?}",
         DebugCollapseBts(
             disclosed
-                .verify(None, &challenge, &[(&ca).try_into().unwrap()].as_slice().into())
+                .verify(
+                    None,
+                    &challenge,
+                    &TimeGenerator,
+                    &[(&ca).try_into().unwrap()].as_slice().into()
+                )
                 .unwrap()
         )
     );

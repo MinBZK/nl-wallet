@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::pkcs8::DecodePublicKey,
@@ -16,7 +17,7 @@ use x509_parser::{
     prelude::{FromDer, X509Certificate, X509Error},
 };
 
-use super::time::now;
+use super::Generator;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateError {
@@ -97,6 +98,7 @@ impl Certificate {
         &self,
         usage: CertificateUsage,
         intermediate_certs: &[&[u8]],
+        time: &impl Generator<DateTime<Utc>>,
         TrustAnchors(trust_anchors): &TrustAnchors,
     ) -> Result<(), CertificateError> {
         self.to_webpki()?
@@ -104,7 +106,7 @@ impl Certificate {
                 &[&ECDSA_P256_SHA256],
                 &NonTlsTrustAnchors(trust_anchors),
                 intermediate_certs,
-                Time::from_seconds_since_unix_epoch(now().timestamp() as u64),
+                Time::from_seconds_since_unix_epoch(time.generate().timestamp() as u64),
                 webpki::ExtendedKeyUsage::Required(KeyPurposeId::new(usage.to_eku())),
                 &[],
             )
@@ -208,8 +210,11 @@ impl CertificateUsage {
 
 #[cfg(test)]
 mod test {
+    use chrono::{DateTime, Utc};
     use p256::pkcs8::ObjectIdentifier;
     use webpki::TrustAnchor;
+
+    use crate::utils::Generator;
 
     use super::{Certificate, CertificateUsage};
 
@@ -219,6 +224,13 @@ mod test {
         CertificateUsage::ReaderAuth.to_eku();
     }
 
+    struct TimeGenerator;
+    impl Generator<DateTime<Utc>> for TimeGenerator {
+        fn generate(&self) -> DateTime<Utc> {
+            Utc::now()
+        }
+    }
+
     #[test]
     fn generate_and_verify_cert() {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
@@ -226,8 +238,13 @@ mod test {
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", CertificateUsage::Mdl).unwrap();
 
-        cert.verify(CertificateUsage::Mdl, &[], &[ca_trustanchor].as_slice().into())
-            .unwrap();
+        cert.verify(
+            CertificateUsage::Mdl,
+            &[],
+            &TimeGenerator,
+            &[ca_trustanchor].as_slice().into(),
+        )
+        .unwrap();
     }
 
     #[test]

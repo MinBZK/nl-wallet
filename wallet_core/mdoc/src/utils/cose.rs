@@ -2,6 +2,7 @@
 
 use std::marker::PhantomData;
 
+use chrono::{DateTime, Utc};
 use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
 use ecdsa::signature::{Signature, Verifier};
@@ -16,7 +17,10 @@ use crate::{
     Result,
 };
 
-use super::x509::{Certificate, CertificateError, CertificateUsage, TrustAnchors};
+use super::{
+    x509::{Certificate, CertificateError, CertificateUsage, TrustAnchors},
+    Generator,
+};
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -157,6 +161,7 @@ impl<T> MdocCose<CoseSign1, T> {
     pub fn verify_against_trust_anchors(
         &self,
         usage: CertificateUsage,
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(T, X509Subject)>
     where
@@ -172,7 +177,8 @@ impl<T> MdocCose<CoseSign1, T> {
         let cert = Certificate::from(cert_bts);
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &[], trust_anchors).map_err(CoseError::Certificate)?;
+        cert.verify(usage, &[], time, trust_anchors)
+            .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
         let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;

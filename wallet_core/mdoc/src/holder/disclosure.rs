@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
 use indexmap::IndexMap;
 use x509_parser::nom::AsBytes;
@@ -10,6 +11,7 @@ use crate::{
         serialization::cbor_deserialize,
         signer::{MdocEcdsaKey, SecureEcdsaKey},
         x509::{CertificateUsage, TrustAnchors},
+        Generator,
     },
     verifier::X509Subject,
     Error, Result,
@@ -135,6 +137,7 @@ impl DeviceRequest {
     // TODO use in client
     pub fn verify(
         &self,
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         reader_authentication_bts: &[u8],
     ) -> Result<Option<X509Subject>> {
@@ -152,7 +155,7 @@ impl DeviceRequest {
                 .as_ref()
                 .unwrap()
                 .clone_with_payload(reader_authentication_bts.to_vec())
-                .verify_against_trust_anchors(CertificateUsage::ReaderAuth, trust_anchors)?;
+                .verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
             if reader.is_none() {
                 reader.replace(found);
             } else if *reader.as_ref().unwrap() != found {

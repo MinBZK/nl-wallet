@@ -16,6 +16,7 @@ use crate::{
         serialization::{cbor_serialize, TaggedBytes},
         signer::MdocEcdsaKey,
         x509::TrustAnchors,
+        TimeGenerator,
     },
     Result,
 };
@@ -183,7 +184,7 @@ impl SparseIssuerSigned {
             name_spaces: Some(name_spaces),
             issuer_auth,
         };
-        issuer_signed.verify(trust_anchors)?;
+        issuer_signed.verify(&TimeGenerator, trust_anchors)?;
 
         let cred = Mdoc::_new(
             unsigned.doc_type.clone(),

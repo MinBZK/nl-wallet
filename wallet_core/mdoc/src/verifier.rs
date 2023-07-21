@@ -12,8 +12,8 @@ use crate::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
-        time::now,
         x509::{CertificateUsage, TrustAnchors},
+        Generator,
     },
     Result,
 };
@@ -59,6 +59,7 @@ impl DeviceResponse {
         &self,
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication_bts: &Vec<u8>,
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<DisclosedAttributes> {
         if let Some(errors) = &self.document_errors {
@@ -80,6 +81,7 @@ impl DeviceResponse {
                 eph_reader_key,
                 &device_authentication,
                 device_authentication_bts,
+                time,
                 trust_anchors,
             )?;
             if doc_type != doc.doc_type {
@@ -129,13 +131,17 @@ impl TryFrom<&Tdate> for DateTime<Utc> {
 }
 
 impl IssuerSigned {
-    pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
-        let (TaggedBytes(mso), _) = self
-            .issuer_auth
-            .verify_against_trust_anchors(CertificateUsage::Mdl, trust_anchors)?;
+    pub fn verify(
+        &self,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
+        let (TaggedBytes(mso), _) =
+            self.issuer_auth
+                .verify_against_trust_anchors(CertificateUsage::Mdl, time, trust_anchors)?;
 
         mso.validity_info
-            .verify_is_valid_at(now())
+            .verify_is_valid_at(time.generate())
             .map_err(VerificationError::Validity)?;
 
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
@@ -175,9 +181,10 @@ impl Document {
         eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
         device_authentication: &DeviceAuthenticationBytes,
         device_authentication_bts: &[u8],
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
-        let (attrs, mso) = self.issuer_signed.verify(trust_anchors)?;
+        let (attrs, mso) = self.issuer_signed.verify(time, trust_anchors)?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
