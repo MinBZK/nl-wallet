@@ -8,6 +8,7 @@ use crate::{
     basic_sa_ext::Entry,
     iso::*,
     utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, x509::TrustAnchors, Generator},
+    verifier::ValidityRequirement,
     Result,
 };
 
@@ -122,7 +123,7 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<Mdoc<K>> {
-        let (_, mso) = issuer_signed.verify(time, trust_anchors)?;
+        let (_, mso) = issuer_signed.verify(time, ValidityRequirement::AllowNotYetValid, trust_anchors)?;
         Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
     }
 

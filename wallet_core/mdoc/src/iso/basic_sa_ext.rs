@@ -60,6 +60,7 @@ pub struct RequestKeyGenerationMessage {
 pub struct UnsignedMdoc {
     pub doc_type: DocType,
     pub count: u64,
+    pub valid_from: Tdate,
     pub valid_until: Tdate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
 }

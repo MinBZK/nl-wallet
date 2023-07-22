@@ -3,7 +3,7 @@ use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
@@ -180,9 +180,11 @@ const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 fn new_issuance_request() -> Vec<UnsignedMdoc> {
+    let now = chrono::Utc::now();
     vec![UnsignedMdoc {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
         count: 2,
+        valid_from: now.into(),
         valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
         attributes: IndexMap::from([(
             ISSUANCE_NAME_SPACE.to_string(),
@@ -293,17 +295,33 @@ fn user_consent_without_async() -> impl IssuanceUserConsent {
 
 #[test]
 fn issuance_and_disclosure() {
-    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_without_async());
+    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_without_async(), new_issuance_request());
+    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
     custom_disclosure(wallet, ca);
 
-    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_async::<true>());
+    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_async::<true>(), new_issuance_request());
+    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
     custom_disclosure(wallet, ca);
 
-    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>());
-    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty())
+    // Decline issuance
+    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>(), new_issuance_request());
+    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
+
+    // Issue not-yet-valid mdocs
+    let now = Utc::now();
+    let mut request = new_issuance_request();
+    request
+        .iter_mut()
+        .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
+    assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
+    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<true>(), request);
+    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T) -> (Wallet<MdocsMap>, Certificate) {
+fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
+    user_consent: T,
+    request: Vec<UnsignedMdoc>,
+) -> (Wallet<MdocsMap>, Certificate) {
     // Issuer CA certificate and normal certificate
     let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
     let (issuer_cert, issuer_privkey) =
@@ -311,7 +329,6 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(user_consent: T
     let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
 
     // Setup session and issuer
-    let request = new_issuance_request();
     let issuance_server = Server::new(
         "".to_string(),
         MockIssuanceKeyring { issuance_key },

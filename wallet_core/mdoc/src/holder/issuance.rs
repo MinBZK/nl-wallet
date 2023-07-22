@@ -18,6 +18,7 @@ use crate::{
         x509::TrustAnchors,
         TimeGenerator,
     },
+    verifier::ValidityRequirement,
     Result,
 };
 
@@ -184,7 +185,7 @@ impl SparseIssuerSigned {
             name_spaces: Some(name_spaces),
             issuer_auth,
         };
-        issuer_signed.verify(&TimeGenerator, trust_anchors)?;
+        issuer_signed.verify(&TimeGenerator, ValidityRequirement::AllowNotYetValid, trust_anchors)?;
 
         let cred = Mdoc::_new(
             unsigned.doc_type.clone(),

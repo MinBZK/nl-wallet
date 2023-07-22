@@ -110,9 +110,21 @@ pub enum ValidityError {
     Expired(String),
 }
 
+/// Indicate how a [`ValidityInfo`] should be verified against the current date.
+pub enum ValidityRequirement {
+    /// The [`ValidityInfo`] must not be expired, but it is allowed to be not yet valid.
+    AllowNotYetValid,
+    /// The [`ValidityInfo`] must be valid now and not be expired.
+    Valid,
+}
+
 impl ValidityInfo {
-    pub fn verify_is_valid_at(&self, time: DateTime<Utc>) -> std::result::Result<(), ValidityError> {
-        if time < DateTime::<Utc>::try_from(&self.valid_from)? {
+    pub fn verify_is_valid_at(
+        &self,
+        time: DateTime<Utc>,
+        validity: ValidityRequirement,
+    ) -> std::result::Result<(), ValidityError> {
+        if matches!(validity, ValidityRequirement::Valid) && time < DateTime::<Utc>::try_from(&self.valid_from)? {
             Err(ValidityError::NotYetValid(self.valid_from.0 .0.clone()))
         } else if time > DateTime::<Utc>::try_from(&self.valid_until)? {
             Err(ValidityError::Expired(self.valid_from.0 .0.clone()))
@@ -134,6 +146,7 @@ impl IssuerSigned {
     pub fn verify(
         &self,
         time: &impl Generator<DateTime<Utc>>,
+        validity: ValidityRequirement,
         trust_anchors: &TrustAnchors,
     ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
         let (TaggedBytes(mso), _) =
@@ -141,7 +154,7 @@ impl IssuerSigned {
                 .verify_against_trust_anchors(CertificateUsage::Mdl, time, trust_anchors)?;
 
         mso.validity_info
-            .verify_is_valid_at(time.generate())
+            .verify_is_valid_at(time.generate(), validity)
             .map_err(VerificationError::Validity)?;
 
         let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
@@ -184,7 +197,9 @@ impl Document {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
-        let (attrs, mso) = self.issuer_signed.verify(time, trust_anchors)?;
+        let (attrs, mso) = self
+            .issuer_signed
+            .verify(time, ValidityRequirement::Valid, trust_anchors)?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
@@ -216,5 +231,56 @@ impl DeviceAuthentication {
         let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
         let bts = cbor_serialize(&tagged)?;
         Ok(bts)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Add;
+
+    use chrono::{Duration, Utc};
+
+    use crate::{
+        verifier::{
+            ValidityError,
+            ValidityRequirement::{AllowNotYetValid, Valid},
+        },
+        ValidityInfo,
+    };
+
+    fn new_validity_info(add_from_days: i64, add_until_days: i64) -> ValidityInfo {
+        let now = Utc::now();
+        ValidityInfo {
+            signed: now.into(),
+            valid_from: now.add(Duration::days(add_from_days)).into(),
+            valid_until: now.add(Duration::days(add_until_days)).into(),
+            expected_update: None,
+        }
+    }
+
+    #[test]
+    fn validity_info() {
+        let now = Utc::now();
+
+        let validity = new_validity_info(-1, 1);
+        validity.verify_is_valid_at(now, Valid).unwrap();
+        validity.verify_is_valid_at(now, AllowNotYetValid).unwrap();
+
+        let validity = new_validity_info(-2, -1);
+        assert!(matches!(
+            validity.verify_is_valid_at(now, Valid),
+            Err(ValidityError::Expired(_))
+        ));
+        assert!(matches!(
+            validity.verify_is_valid_at(now, AllowNotYetValid),
+            Err(ValidityError::Expired(_))
+        ));
+
+        let validity = new_validity_info(1, 2);
+        assert!(matches!(
+            validity.verify_is_valid_at(now, Valid),
+            Err(ValidityError::NotYetValid(_))
+        ));
+        validity.verify_is_valid_at(now, AllowNotYetValid).unwrap();
     }
 }

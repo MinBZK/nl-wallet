@@ -333,7 +333,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         let now = Utc::now();
         let validity = ValidityInfo {
             signed: now.into(),
-            valid_from: now.into(),
+            valid_from: unsigned_mdoc.valid_from.clone(),
             valid_until: unsigned_mdoc.valid_until.clone(),
             expected_update: None,
         };
