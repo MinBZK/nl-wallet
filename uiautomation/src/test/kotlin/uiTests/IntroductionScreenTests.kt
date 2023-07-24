@@ -28,6 +28,7 @@ class IntroductionScreenTests : TestBase() {
         introductionScreens.clickNextButton()
         introductionScreens.clickNextButton()
         introductionScreens.clickNextButton()
+        introductionScreens.clickNextButton()
         introductionScreens.clickPrivacyPolicyButton()
 
         introductionPrivacyPolicyScreen.verifyPlaceholderScreenIsVisible()?.let {

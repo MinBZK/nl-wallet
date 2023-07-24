@@ -66,6 +66,6 @@ class BrowserstackMobileDriver : WebDriverProvider {
     }
 
     companion object {
-        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 30
+        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default is 90 seconds
     }
 }

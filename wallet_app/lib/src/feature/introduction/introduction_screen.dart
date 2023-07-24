@@ -279,21 +279,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> with AfterLayou
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ElevatedButton(
-            key: const Key('introductionNextPageCta'),
-            onPressed: () => _onNextPressed(context),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.arrow_forward, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  context.l10n.introductionNextPageCta,
-                  key: const Key('introductionNextPageCtaText'),
-                ),
-              ],
-            ),
-          ),
+          _buildNextButton(),
           const SizedBox(height: 16),
           skipButton,
         ],
@@ -309,19 +295,24 @@ class _IntroductionScreenState extends State<IntroductionScreen> with AfterLayou
         children: [
           _buildPrivacyPolicyCta(context),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => _onNextPressed(context),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.arrow_forward, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  context.l10n.introductionNextPageCta,
-                  key: const Key('introductionNextPageCtaText'),
-                ),
-              ],
-            ),
+          _buildNextButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNextButton() {
+    return ElevatedButton(
+      key: const Key('introductionNextPageCta'),
+      onPressed: () => _onNextPressed(context),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.arrow_forward, size: 16),
+          const SizedBox(width: 8),
+          Text(
+            context.l10n.introductionNextPageCta,
+            key: const Key('introductionNextPageCtaText'),
           ),
         ],
       ),
