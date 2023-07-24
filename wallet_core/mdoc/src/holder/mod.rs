@@ -1,9 +1,7 @@
 //! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
 //! See [`Storage`], [`Wallet::do_issuance()`], and [`Wallet::disclose()`] respectively.
 
-use x509_parser::prelude::X509Error;
-
-use crate::iso::*;
+use crate::{iso::*, utils::x509::CertificateError};
 
 pub mod disclosure;
 pub mod issuance;
@@ -23,8 +21,8 @@ pub enum HolderError {
     ReaderAuthsInconsistent,
     #[error("issuer not trusted for doctype {0}")]
     UntrustedIssuer(DocType),
-    #[error("failed to parse certificate: {0}")]
-    CertificateParsingFailed(#[from] x509_parser::nom::Err<X509Error>),
+    #[error("certificate error: {0}")]
+    CertificateError(#[from] CertificateError),
     #[error("wrong private key type")]
     PrivateKeyTypeMismatch { expected: String, have: String },
 }

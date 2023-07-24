@@ -149,7 +149,7 @@ impl IssuerSigned {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
-        let (TaggedBytes(mso), _) =
+        let TaggedBytes(mso) =
             self.issuer_auth
                 .verify_against_trust_anchors(CertificateUsage::Mdl, time, trust_anchors)?;
 

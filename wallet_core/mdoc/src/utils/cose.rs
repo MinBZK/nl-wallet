@@ -13,7 +13,6 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
     utils::signer::SecureEcdsaKey,
-    verifier::X509Subject,
     Result,
 };
 
@@ -139,6 +138,9 @@ impl<C, T> From<C> for MdocCose<C, T> {
     }
 }
 
+/// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
+const COSE_X5CHAIN_HEADER_LABEL: &Label = &Label::Int(33);
+
 impl<T> MdocCose<CoseSign1, T> {
     pub fn sign(
         obj: &T,
@@ -158,23 +160,31 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose)
     }
 
+    // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
+    /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
+    pub fn signing_cert(&self) -> Result<Certificate>
+    where
+        T: DeserializeOwned,
+    {
+        let cert_bts = self
+            .unprotected_header_item(COSE_X5CHAIN_HEADER_LABEL)?
+            .as_bytes()
+            .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
+
+        let cert = Certificate::from(cert_bts);
+        Ok(cert)
+    }
+
     pub fn verify_against_trust_anchors(
         &self,
         usage: CertificateUsage,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
-    ) -> Result<(T, X509Subject)>
+    ) -> Result<T>
     where
         T: DeserializeOwned,
     {
-        // Take certificate containing the public key with which the MSO is signed from the unsigned COSE header
-        // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
-        let cert_bts = self
-            .unprotected_header_item(&Label::Int(33))?
-            .as_bytes()
-            .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
-
-        let cert = Certificate::from(cert_bts);
+        let cert = self.signing_cert()?;
 
         // Verify the certificate against the trusted IACAs
         cert.verify(usage, &[], time, trust_anchors)
@@ -184,21 +194,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
         let parsed = self.verify_and_parse(&issuer_pk)?;
 
-        let subject = cert
-            .to_x509()
-            .map_err(CoseError::Certificate)?
-            .subject
-            .iter_attributes()
-            .map(|attr| {
-                (
-                    x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
-                        .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
-                    attr.as_str().unwrap().to_string(), // TODO handle non-stringable values?
-                )
-            })
-            .collect();
-
-        Ok((parsed, subject))
+        Ok(parsed)
     }
 }
 

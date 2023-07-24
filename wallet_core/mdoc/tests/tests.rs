@@ -148,7 +148,6 @@ fn iso_examples_consistency() {
         )
         .unwrap()
         .0
-         .0
         .device_key_info
         .device_key;
 

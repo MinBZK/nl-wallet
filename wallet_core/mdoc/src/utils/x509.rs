@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::pkcs8::DecodePublicKey,
@@ -168,6 +169,23 @@ impl Certificate {
         let cert_privkey = Self::rcgen_cert_privkey(&cert_unsigned)?;
 
         Ok((cert_bts.into(), cert_privkey))
+    }
+
+    pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
+        let subject = self
+            .to_x509()?
+            .subject
+            .iter_attributes()
+            .map(|attr| {
+                (
+                    x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
+                        .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
+                    attr.as_str().unwrap().to_string(), // TODO handle non-stringable values?
+                )
+            })
+            .collect();
+
+        Ok(subject)
     }
 
     fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {

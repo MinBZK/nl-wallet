@@ -150,12 +150,13 @@ impl DeviceRequest {
 
         let mut reader: Option<X509Subject> = None;
         for doc_request in &self.doc_requests {
-            let (_, found) = doc_request
+            let cose = doc_request
                 .reader_auth
                 .as_ref()
                 .unwrap()
-                .clone_with_payload(reader_authentication_bts.to_vec())
-                .verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
+                .clone_with_payload(reader_authentication_bts.to_vec());
+            cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
+            let found = cose.signing_cert()?.subject().map_err(HolderError::CertificateError)?;
             if reader.is_none() {
                 reader.replace(found);
             } else if *reader.as_ref().unwrap() != found {
