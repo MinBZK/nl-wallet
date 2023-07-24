@@ -52,7 +52,6 @@ impl<'a> From<&'a [TrustAnchor<'a>]> for TrustAnchors<'a> {
     }
 }
 
-// We might consider using https://docs.rs/owning_ref/latest/owning_ref/index.html.
 /// An x509 certificate, unifying functionality from the following crates:
 ///
 /// - parsing data: `x509_parser`
@@ -93,8 +92,7 @@ impl Certificate {
         self.0.as_bytes()
     }
 
-    /// Verify the certificate against the specified trust anchors, additionally enforcing that it has the specified
-    /// certificate usage EKU (Extended Key Usage).
+    /// Verify the certificate against the specified trust anchors.
     pub fn verify(
         &self,
         usage: CertificateUsage,
@@ -115,10 +113,8 @@ impl Certificate {
     }
 
     pub fn public_key(&self) -> Result<VerifyingKey, CertificateError> {
-        let parsed: X509Certificate = self.try_into()?;
-        let key = ecdsa::VerifyingKey::from_public_key_der(parsed.public_key().raw)
-            .map_err(CertificateError::KeyParsingFailed)?;
-        Ok(key)
+        ecdsa::VerifyingKey::from_public_key_der(self.to_x509()?.public_key().raw)
+            .map_err(CertificateError::KeyParsingFailed)
     }
 
     /// Convert the certificate to a [`X509Certificate`] from the `x509_parser` crate, to read its contents.
@@ -189,11 +185,8 @@ impl Certificate {
     }
 
     fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
-        let cert_privkey: ecdsa::SigningKey<p256::NistP256> =
-            ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
-                .map_err(CertificateError::GeneratingPrivateKey)?;
-
-        Ok(cert_privkey)
+        ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
+            .map_err(CertificateError::GeneratingPrivateKey)
     }
 }
 

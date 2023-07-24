@@ -24,12 +24,13 @@ pub enum CborError {
     Serialization(#[from] ciborium::ser::Error<std::io::Error>),
 }
 
-// Wrapper for [`ciborium::de::from_reader`] returning our own error type.
+/// Wrapper for [`ciborium::de::from_reader`] returning our own error type.
 pub fn cbor_deserialize<'de, T: de::Deserialize<'de>, R: std::io::Read>(reader: R) -> Result<T, CborError> {
     let deserialized = ciborium::de::from_reader(reader)?;
     Ok(deserialized)
 }
 
+/// Wrapper for [`ciborium::ser::into_writer`] returning our own error type.
 pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;

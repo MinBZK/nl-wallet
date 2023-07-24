@@ -4,11 +4,12 @@
 use crate::{iso::*, utils::x509::CertificateError};
 
 pub mod disclosure;
-pub mod issuance;
-pub mod mdocs;
-
 pub use disclosure::*;
+
+pub mod issuance;
 pub use issuance::*;
+
+pub mod mdocs;
 pub use mdocs::*;
 
 #[derive(thiserror::Error, Debug)]

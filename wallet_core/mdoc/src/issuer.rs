@@ -22,7 +22,7 @@ use crate::{
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
     utils::{
-        cose::{ClonePayload, MdocCose},
+        cose::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         crypto::random_bytes,
         serialization::{cbor_deserialize, TaggedBytes},
         signer::{EcdsaKey, SecureEcdsaKey},
@@ -350,7 +350,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         let key = self.keys.private_key(&unsigned_mdoc.doc_type).unwrap();
 
         let headers = HeaderBuilder::new()
-            .value(33, Value::Bytes(key.cert_bts.clone()))
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.cert_bts.clone()))
             .build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> = MdocCose::sign(&mso.into(), headers, key)?;
 

@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
+/// Implement the [`FieldNames`](fieldnames::FieldNames) trait, listing the field names of a struct
+/// in the generated `field_names()` method.
 #[proc_macro_derive(FieldNames)]
 pub fn derive_field_names(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

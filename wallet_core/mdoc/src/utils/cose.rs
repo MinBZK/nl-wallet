@@ -139,7 +139,7 @@ impl<C, T> From<C> for MdocCose<C, T> {
 }
 
 /// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
-const COSE_X5CHAIN_HEADER_LABEL: &Label = &Label::Int(33);
+pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
 impl<T> MdocCose<CoseSign1, T> {
     pub fn sign(
@@ -167,7 +167,7 @@ impl<T> MdocCose<CoseSign1, T> {
         T: DeserializeOwned,
     {
         let cert_bts = self
-            .unprotected_header_item(COSE_X5CHAIN_HEADER_LABEL)?
+            .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))?
             .as_bytes()
             .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
 
@@ -175,6 +175,8 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cert)
     }
 
+    /// Verify the COSE against the specified trust anchors, using the certificate(s) in the `x5chain` COSE header
+    /// as intermediate certificates.
     pub fn verify_against_trust_anchors(
         &self,
         usage: CertificateUsage,
@@ -192,9 +194,7 @@ impl<T> MdocCose<CoseSign1, T> {
 
         // Grab the certificate's public key and verify the Cose
         let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
-        let parsed = self.verify_and_parse(&issuer_pk)?;
-
-        Ok(parsed)
+        self.verify_and_parse(&issuer_pk)
     }
 }
 

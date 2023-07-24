@@ -53,7 +53,8 @@ impl DeviceResponse {
     /// - `eph_reader_key` - the ephemeral reader public key in case the mdoc is authentication with a MAC.
     /// - `device_authentication_bts` - the [`DeviceAuthenticationBytes`] acting as the challenge, i.e., that have
     ///   to be signed by the holder.
-    /// - `ca_cert` - the CA certificate of the issuer against which the disclosure must verify.
+    /// - `time` - a generator of the current time.
+    /// - `trust_anchors` - trust anchors against which verification is done.
     #[allow(dead_code)] // TODO use this in verifier
     pub fn verify(
         &self,
@@ -163,12 +164,12 @@ impl IssuerSigned {
                 attrs.insert(namespace.clone(), Vec::new());
                 let namespace_attrs = attrs.get_mut(namespace).unwrap();
                 for item in &items.0 {
-                    let digest_id = item.0.digest_id;
                     let digest_ids = mso
                         .value_digests
                         .0
                         .get(namespace)
                         .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?;
+                    let digest_id = item.0.digest_id;
                     let digest = digest_ids
                         .0
                         .get(&digest_id)
