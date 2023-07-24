@@ -1,12 +1,11 @@
 use core::fmt::Debug;
-use std::{ops::Add, sync::Arc};
+use std::ops::Add;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
-use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Serialize};
 
 use nl_wallet_mdoc::{
@@ -235,7 +234,7 @@ impl KeyRing for MockIssuanceKeyring {
     }
 }
 
-fn user_consent_async<const CONSENT: bool>() -> impl IssuanceUserConsent {
+fn user_consent<const CONSENT: bool>() -> impl IssuanceUserConsent {
     struct MockUserConsent<const CONSENT: bool>;
     #[async_trait]
     impl<const CONSENT: bool> IssuanceUserConsent for MockUserConsent<CONSENT> {
@@ -246,51 +245,15 @@ fn user_consent_async<const CONSENT: bool>() -> impl IssuanceUserConsent {
     MockUserConsent::<CONSENT>
 }
 
-fn user_consent_without_async() -> impl IssuanceUserConsent {
-    #[derive(Default, Clone)]
-    struct MockIssuanceSessionReceiver {
-        /// Keep track of the `IssuanceSessions` as we need to invoke `provide_consent()` on it.
-        /// This is a `OnceCell` because we have to instantiate this struct before the `IssuanceSessions`,
-        /// while in `receive()` below we have to refer that same `IssuanceSessions`.
-        ///
-        /// In real-world implementations of `IssuanceSessionReceiver`, receiving session requests and
-        /// providing consent for a session is expected to be be much less tightly coupled, since the latter happens by
-        /// user initiative.
-        sessions: Arc<OnceCell<IssuanceSessions<MockIssuanceSessionReceiver>>>,
-    }
-    impl IssuanceSessionReceiver for MockIssuanceSessionReceiver {
-        fn receive(&self, msg: &RequestKeyGenerationMessage) {
-            let sessions = self.sessions.get().unwrap();
-            sessions.provide_consent(&msg.e_session_id, true)
-        }
-    }
-
-    #[async_trait]
-    impl IssuanceUserConsent for MockIssuanceSessionReceiver {
-        async fn ask(&self, msg: &RequestKeyGenerationMessage) -> bool {
-            self.sessions.get().unwrap().ask(msg).await
-        }
-    }
-
-    let user_consent = MockIssuanceSessionReceiver::default();
-    let sessions = IssuanceSessions::new(user_consent.clone());
-    assert!(user_consent.sessions.set(sessions).is_ok());
-
-    user_consent
-}
-
 #[test]
 fn issuance_and_disclosure() {
-    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_without_async(), new_issuance_request());
-    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
-    custom_disclosure(wallet, ca);
-
-    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent_async::<true>(), new_issuance_request());
+    // Agree with issuance
+    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent::<true>(), new_issuance_request());
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
     custom_disclosure(wallet, ca);
 
     // Decline issuance
-    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<false>(), new_issuance_request());
+    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent::<false>(), new_issuance_request());
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Issue not-yet-valid mdocs
@@ -300,7 +263,7 @@ fn issuance_and_disclosure() {
         .iter_mut()
         .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
     assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
-    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent_async::<true>(), request);
+    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent::<true>(), request);
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 }
 
