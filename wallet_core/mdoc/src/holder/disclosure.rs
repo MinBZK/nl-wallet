@@ -137,9 +137,9 @@ impl DeviceRequest {
     // TODO use in client
     pub fn verify(
         &self,
+        reader_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
-        reader_authentication_bts: &[u8],
     ) -> Result<Option<X509Subject>> {
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);

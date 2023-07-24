@@ -97,9 +97,9 @@ fn iso_examples_disclosure() {
         "Reader: {:#?}",
         device_request
             .verify(
+                &ReaderAuthenticationBytes::example_bts(),
                 &IsoCertTimeGenerator,
                 &reader_ca_cert,
-                &ReaderAuthenticationBytes::example_bts()
             )
             .unwrap(),
     );

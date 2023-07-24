@@ -123,7 +123,7 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<Mdoc<K>> {
-        let (_, mso) = issuer_signed.verify(time, ValidityRequirement::AllowNotYetValid, trust_anchors)?;
+        let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
         Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
     }
 

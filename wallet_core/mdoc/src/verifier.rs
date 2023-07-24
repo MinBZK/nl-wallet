@@ -145,8 +145,8 @@ impl TryFrom<&Tdate> for DateTime<Utc> {
 impl IssuerSigned {
     pub fn verify(
         &self,
-        time: &impl Generator<DateTime<Utc>>,
         validity: ValidityRequirement,
+        time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
         let (TaggedBytes(mso), _) =
@@ -199,7 +199,7 @@ impl Document {
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
         let (attrs, mso) = self
             .issuer_signed
-            .verify(time, ValidityRequirement::Valid, trust_anchors)?;
+            .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
