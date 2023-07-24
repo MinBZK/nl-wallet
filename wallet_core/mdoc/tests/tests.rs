@@ -30,47 +30,7 @@ use examples::*;
 mod mdocs_map;
 use mdocs_map::MdocsMap;
 
-/// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
-/// This generator returns a time in that window.
-struct IsoCertTimeGenerator;
-impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
-    }
-}
-
-struct TimeGenerator;
-impl Generator<DateTime<Utc>> for TimeGenerator {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc::now()
-    }
-}
-
-/// Verify that the static device key example from the spec is the public key in the MSO.
-#[test]
-fn iso_examples_consistency() {
-    let static_device_key = Examples::static_device_key();
-
-    let device_key = &DeviceResponse::example().documents.unwrap()[0]
-        .issuer_signed
-        .issuer_auth
-        .verify_against_trust_anchors(
-            CertificateUsage::Mdl,
-            &IsoCertTimeGenerator,
-            &Examples::issuer_ca_cert(),
-        )
-        .unwrap()
-        .0
-         .0
-        .device_key_info
-        .device_key;
-
-    assert_eq!(
-        static_device_key.verifying_key(),
-        ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
-    );
-}
-
+/// Verify the example disclosure from the standard.
 #[test]
 fn iso_examples_disclosure() {
     let ca_cert = Examples::issuer_ca_cert();
@@ -131,6 +91,7 @@ fn iso_examples_disclosure() {
     );
 }
 
+/// Disclose some of the attributes of the example mdoc from the spec.
 #[test]
 fn iso_examples_custom_disclosure() {
     let ca_cert = Examples::issuer_ca_cert();
@@ -170,6 +131,31 @@ fn iso_examples_custom_disclosure() {
             &IsoCertTimeGenerator,
             &ca_cert
         )),
+    );
+}
+
+/// Verify that the static device key example from the spec is the public key in the MSO.
+#[test]
+fn iso_examples_consistency() {
+    let static_device_key = Examples::static_device_key();
+
+    let device_key = &DeviceResponse::example().documents.unwrap()[0]
+        .issuer_signed
+        .issuer_auth
+        .verify_against_trust_anchors(
+            CertificateUsage::Mdl,
+            &IsoCertTimeGenerator,
+            &Examples::issuer_ca_cert(),
+        )
+        .unwrap()
+        .0
+         .0
+        .device_key_info
+        .device_key;
+
+    assert_eq!(
+        static_device_key.verifying_key(),
+        ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
     );
 }
 
@@ -393,6 +379,22 @@ fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
                 .unwrap()
         )
     );
+}
+
+/// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+/// This generator returns a time in that window.
+struct IsoCertTimeGenerator;
+impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
+    }
+}
+
+struct TimeGenerator;
+impl Generator<DateTime<Utc>> for TimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc::now()
+    }
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
