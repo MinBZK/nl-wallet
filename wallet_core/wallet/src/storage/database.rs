@@ -8,8 +8,6 @@ use tracing::log::LevelFilter;
 
 use super::sql_cipher_key::SqlCipherKey;
 
-const PRAGMA_KEY: &str = "key";
-
 /// This represents a URL to a SQLite database, either on the filesystem or in memory.
 #[derive(Debug)]
 pub enum SqliteUrl {
@@ -57,12 +55,8 @@ impl Database {
         // Open database connection and set database key
         let mut connection_options = ConnectOptions::new((&url).into());
         connection_options.sqlx_logging_level(LevelFilter::Trace);
+        connection_options.sqlcipher_key(format!("\"{}\"", String::from(key)));
         let connection = sea_orm::Database::connect(connection_options).await?;
-
-        // Set database password using PRAGMA statement
-        connection
-            .execute_unprepared(&format!(r#"PRAGMA {} = "{}";"#, PRAGMA_KEY, String::from(key)))
-            .await?;
 
         // Execute all migrations
         Migrator::up(&connection, None).await?;
