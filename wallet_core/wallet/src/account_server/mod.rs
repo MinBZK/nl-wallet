@@ -11,8 +11,9 @@ use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
         errors::ErrorData,
+        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
     },
-    signed::SignedDouble,
+    signed::{Signed, SignedDouble},
 };
 
 pub use self::remote::RemoteAccountServerClient;
@@ -44,8 +45,19 @@ pub trait AccountServerClient {
         Self: Sized;
 
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError>;
+
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError>;
+
+    async fn instruction_challenge(
+        &self,
+        challenge_request: InstructionChallengeRequest,
+    ) -> Result<Vec<u8>, AccountServerClientError>;
+
+    async fn check_pin(
+        &self,
+        instruction: Instruction<CheckPin>,
+    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError>;
 }

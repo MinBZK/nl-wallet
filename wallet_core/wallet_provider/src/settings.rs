@@ -8,8 +8,10 @@ use wallet_common::account::serialization::Base64Bytes;
 #[derive(Deserialize)]
 pub struct Settings {
     pub signing_private_key: Base64Bytes,
+    pub instruction_result_private_key: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
+    pub pin_policy: PinPolicySettings,
 }
 
 #[derive(Deserialize)]
@@ -26,6 +28,13 @@ pub struct Webserver {
     pub port: u16,
 }
 
+#[derive(Deserialize)]
+pub struct PinPolicySettings {
+    pub rounds: u8,
+    pub attempts_per_round: u8,
+    pub timeouts_in_ms: Vec<u32>,
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
@@ -39,6 +48,9 @@ impl Settings {
             .set_default("database.name", "wallet_provider")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
+            .set_default("pin_policy.rounds", 4)?
+            .set_default("pin_policy.attempts_per_round", 4)?
+            .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .add_source(File::from(config_path.join("config")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
@@ -47,5 +59,15 @@ impl Settings {
             )
             .build()?
             .try_deserialize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::settings::Settings;
+
+    #[test]
+    fn test_settings() {
+        Settings::new().expect("should load settings");
     }
 }

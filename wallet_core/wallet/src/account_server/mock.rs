@@ -2,12 +2,15 @@ use async_trait::async_trait;
 use url::Url;
 
 use wallet_common::account::{
-    messages::auth::{Registration, WalletCertificate},
-    signed::SignedDouble,
+    messages::{
+        auth::{Registration, WalletCertificate},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+    },
+    signed::{Signed, SignedDouble},
 };
 use wallet_provider::{
     errors::{ConvertibleError, WalletProviderError},
-    stub::{self, TestDeps},
+    stub::{self, EpochGenerator, FailingPinPolicy, TestDeps},
     AccountServer,
 };
 
@@ -46,7 +49,25 @@ impl AccountServerClient for AccountServer {
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError> {
-        AccountServer::register(self, &TestDeps, registration_message)
+        AccountServer::register(self, &TestDeps, &TestDeps, registration_message)
+            .await
+            .map_err(AccountServerClientError::from_account_server)
+    }
+
+    async fn instruction_challenge(
+        &self,
+        challenge_request: InstructionChallengeRequest,
+    ) -> Result<Vec<u8>, AccountServerClientError> {
+        AccountServer::instruction_challenge(self, challenge_request, &TestDeps)
+            .await
+            .map_err(AccountServerClientError::from_account_server)
+    }
+
+    async fn check_pin(
+        &self,
+        instruction: Instruction<CheckPin>,
+    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError> {
+        AccountServer::handle_instruction(self, instruction, &TestDeps, &FailingPinPolicy, &EpochGenerator)
             .await
             .map_err(AccountServerClientError::from_account_server)
     }

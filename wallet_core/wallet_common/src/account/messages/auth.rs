@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     account::{
         jwt::{Jwt, JwtClaims},
-        serialization::Base64Bytes,
+        serialization::{Base64Bytes, DerVerifyingKey},
+        signed::SignedDouble,
         signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
-        {serialization::DerVerifyingKey, signed::SignedDouble},
     },
     errors::{Result, ValidationError},
 };

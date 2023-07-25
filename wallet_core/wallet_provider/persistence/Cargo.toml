@@ -7,21 +7,33 @@ edition.workspace = true
 db_test = []
 
 [dependencies]
+wallet_common = { path = "../../wallet_common" }
 wallet_provider_domain = { path = "../domain" }
 
 async-trait.workspace = true
+chrono.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-uuid",
+    "with-chrono",
 ] }
+serde_json.workspace = true #todo: remove
 serial_test = { workspace = true, optional = true }
+p256.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-uuid = { workspace = true, features = ["v4"], optional = true }
+uuid = { workspace = true, features = ["v4"], optional = false }
 
 [dev-dependencies]
+wallet_provider_domain = { path = "../domain", features = ["stub"] }
+
+sea-orm = { workspace = true, features = ["debug-print"] }
 serial_test.workspace = true
 tokio = { workspace = true, features = ["macros", "parking_lot"] }
+tracing-subscriber = { workspace = true, features = [
+    "env-filter",
+    "parking_lot",
+] }
 uuid.workspace = true

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
 use tokio::task;
 
-use wallet_provider_domain::repository::{Committable, PersistenceError};
+use wallet_provider_domain::repository::{Committable, PersistenceError, TransactionStarter};
 
 use crate::{database::Db, PersistenceConnection};
 
@@ -32,6 +32,19 @@ impl Committable for Transaction {
             .expect("Wrapped transaction no longer exists")
             .commit()
             .await
+            .map_err(|e| PersistenceError::Transaction(e.into()))
+    }
+}
+
+#[async_trait]
+impl TransactionStarter for Transaction {
+    type TransactionType = Transaction;
+
+    async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
+        self.connection()
+            .begin()
+            .await
+            .map(Transaction::new)
             .map_err(|e| PersistenceError::Transaction(e.into()))
     }
 }

@@ -6,7 +6,7 @@ use p256::{
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use super::signed::{Signed, SignedDouble};
+use super::signed::{Signed, SignedDouble, SignedInner};
 
 /// Bytes that (de)serialize to base64.
 #[derive(Debug, Clone)]
@@ -14,6 +14,11 @@ pub struct Base64Bytes(pub Vec<u8>);
 impl From<Vec<u8>> for Base64Bytes {
     fn from(val: Vec<u8>) -> Self {
         Base64Bytes(val)
+    }
+}
+impl PartialEq for Base64Bytes {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
     }
 }
 
@@ -61,6 +66,12 @@ impl From<VerifyingKey> for DerVerifyingKey {
     }
 }
 
+impl PartialEq for DerVerifyingKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl Serialize for DerVerifyingKey {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         Base64Bytes::serialize(
@@ -88,6 +99,17 @@ impl<T> Serialize for SignedDouble<T> {
     }
 }
 impl<'de, T> Deserialize<'de> for SignedDouble<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
+    }
+}
+
+impl<T> Serialize for SignedInner<T> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
+    }
+}
+impl<'de, T> Deserialize<'de> for SignedInner<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }

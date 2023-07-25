@@ -12,8 +12,33 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WalletUser::Table)
                     .col(ColumnDef::new(WalletUser::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(WalletUser::WalletId).string().not_null())
-                    .col(ColumnDef::new(WalletUser::HwPubkey).string().not_null())
+                    .col(ColumnDef::new(WalletUser::WalletId).string().not_null().unique_key())
+                    .col(ColumnDef::new(WalletUser::HwPubkeyDer).binary().not_null())
+                    .col(ColumnDef::new(WalletUser::PinPubkeyDer).binary().not_null())
+                    .col(
+                        ColumnDef::new(WalletUser::InstructionSequenceNumber)
+                            .unsigned()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(WalletUser::InstructionChallenge).binary().null())
+                    .col(
+                        ColumnDef::new(WalletUser::PinEntries)
+                            .small_unsigned()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(WalletUser::LastUnsuccessfulPin)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(WalletUser::IsBlocked)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -27,5 +52,11 @@ enum WalletUser {
     Table,
     Id,
     WalletId,
-    HwPubkey,
+    HwPubkeyDer,
+    PinPubkeyDer,
+    InstructionSequenceNumber,
+    InstructionChallenge,
+    PinEntries,
+    LastUnsuccessfulPin,
+    IsBlocked,
 }

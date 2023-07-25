@@ -1,5 +1,6 @@
 # Used to sign JWT's sent from wallet_provider to wallet
 signing_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
+instruction_result_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
 
 [database]
 host = "localhost"
@@ -10,3 +11,8 @@ name = "wallet_provider"
 [webserver]
 ip = "0.0.0.0"
 port = 3000
+
+[pin_policy]
+rounds = 4
+attempts_per_round = 4
+timeouts_in_ms = [60_000, 300_000, 3_600_000]

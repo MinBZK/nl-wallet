@@ -7,9 +7,10 @@ use axum::{
 use http::{header, HeaderValue};
 use mime::Mime;
 use once_cell::sync::Lazy;
+use tracing::log::debug;
 
 use wallet_common::account::messages::errors::{DataValue, ErrorData, ErrorType};
-use wallet_provider_service::account_server::{ChallengeError, RegistrationError};
+use wallet_provider_service::account_server::{ChallengeError, InstructionError, RegistrationError};
 
 pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
     Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
@@ -41,6 +42,8 @@ pub trait ConvertibleError: Error {
 impl IntoResponse for WalletProviderError {
     fn into_response(self) -> Response {
         // Panic because the JSON encoding should always succeed.
+        debug!("error result: {:?}", self);
+
         let bytes = serde_json::to_vec(&self.body).expect("Could not encode ErrorData to JSON.");
 
         (
@@ -80,7 +83,7 @@ where
 
 impl ConvertibleError for ChallengeError {
     fn error_type(&self) -> ErrorType {
-        ErrorType::Unexpected
+        ErrorType::ChallengeValidation
     }
 }
 
@@ -95,10 +98,45 @@ impl ConvertibleError for RegistrationError {
                 expected: _,
                 received: _,
             } => ErrorType::RegistrationParsing,
-            RegistrationError::PinPubKeyDecoding(_) => ErrorType::Unexpected,
+            RegistrationError::PinPubKeyDecoding(_) | RegistrationError::HwPubKeyDecoding(_) => ErrorType::Unexpected,
             RegistrationError::PinPubKeyEncoding(_) => ErrorType::Unexpected,
             RegistrationError::JwtSigning(_) => ErrorType::Unexpected,
             RegistrationError::CertificateStorage(_) => ErrorType::Unexpected,
+            RegistrationError::WalletCertificate(_) => ErrorType::Unexpected,
+        }
+    }
+}
+
+impl ConvertibleError for InstructionError {
+    fn error_type(&self) -> ErrorType {
+        match self {
+            InstructionError::IncorrectPin {
+                attempts_left: _,
+                is_final_attempt: _,
+            } => ErrorType::IncorrectPin,
+            InstructionError::PinTimeout { time_left_in_ms: _ } => ErrorType::PinTimeout,
+            InstructionError::AccountBlocked => ErrorType::AccountBlocked,
+            InstructionError::Validation(_) => ErrorType::InstructionValidation,
+            InstructionError::Signing(_) | InstructionError::Storage(_) | InstructionError::WalletCertificate(_) => {
+                ErrorType::Unexpected
+            }
+        }
+    }
+
+    fn error_extra_data(&self) -> Option<HashMap<String, DataValue>> {
+        match self {
+            InstructionError::IncorrectPin {
+                attempts_left,
+                is_final_attempt,
+            } => Some(HashMap::from([
+                ("leftover_attempts".to_string(), u64::from(*attempts_left).into()),
+                ("is_final_attempt".to_string(), (*is_final_attempt).into()),
+            ])),
+            InstructionError::PinTimeout { time_left_in_ms } => Some(HashMap::from([(
+                "time_left_in_millis".to_string(),
+                (*time_left_in_ms).into(),
+            )])),
+            _ => None,
         }
     }
 }
