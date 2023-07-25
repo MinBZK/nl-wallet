@@ -28,7 +28,7 @@ use wallet_provider_persistence::{entity::wallet_user, postgres};
 fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, DerVerifyingKey) {
     (
         EcdsaDecodingKey::from_sec1(
-            SigningKey::from_pkcs8_der(&settings.signing_private_key.0)
+            SigningKey::from_pkcs8_der(&settings.certificate_private_key.0)
                 .expect("Could not decode private key")
                 .verifying_key()
                 .to_encoded_point(false)
@@ -66,7 +66,7 @@ async fn create_test_wallet(
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
     config.0.account_server.base_url = base_url;
-    config.0.account_server.public_key = public_key;
+    config.0.account_server.certificate_public_key = public_key;
     config.0.account_server.instruction_result_public_key = instruction_result_public_key;
 
     Wallet::new(config).await.expect("Could not create test wallet")

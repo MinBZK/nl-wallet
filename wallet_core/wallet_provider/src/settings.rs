@@ -7,8 +7,9 @@ use wallet_common::account::serialization::Base64Bytes;
 
 #[derive(Deserialize)]
 pub struct Settings {
-    pub signing_private_key: Base64Bytes,
+    pub certificate_private_key: Base64Bytes,
     pub instruction_result_private_key: Base64Bytes,
+    pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
     pub pin_policy: PinPolicySettings,

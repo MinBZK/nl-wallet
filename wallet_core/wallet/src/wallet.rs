@@ -360,7 +360,7 @@ where
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert
-            .parse_and_verify(&self.config_repository.config().account_server.public_key)
+            .parse_and_verify(&self.config_repository.config().account_server.certificate_public_key)
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
@@ -419,7 +419,8 @@ mod tests {
                 None => Wallet::new(config).await,
             }?;
 
-        wallet.config_repository.0.account_server.public_key = wallet.account_server.certificate_pubkey.clone();
+        wallet.config_repository.0.account_server.certificate_public_key =
+            wallet.account_server.certificate_pubkey.clone();
 
         Ok(wallet)
     }

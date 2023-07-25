@@ -22,7 +22,7 @@ pub struct AccountServerConfiguration {
     // The base URL for the Account Server API
     pub base_url: Url,
     // The known public key for the Wallet Provider
-    pub public_key: EcdsaDecodingKey,
+    pub certificate_public_key: EcdsaDecodingKey,
     pub instruction_result_public_key: DerVerifyingKey,
 }
 

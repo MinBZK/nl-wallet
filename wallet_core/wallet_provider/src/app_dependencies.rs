@@ -3,7 +3,6 @@ use std::error::Error;
 use chrono::{DateTime, Duration, Local};
 use uuid::Uuid;
 
-use wallet_common::utils::random_bytes;
 use wallet_provider_domain::generator::Generator;
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{account_server::AccountServer, pin_policy::PinPolicy};
@@ -19,9 +18,9 @@ pub struct AppDependencies {
 impl AppDependencies {
     pub async fn new_from_settings(settings: Settings) -> Result<Self, Box<dyn Error>> {
         let account_server = AccountServer::new(
-            settings.signing_private_key.0,
+            settings.certificate_private_key.0,
             settings.instruction_result_private_key.0,
-            random_bytes(32),
+            settings.pin_hash_salt.0,
             "account_server".into(),
         )?;
 

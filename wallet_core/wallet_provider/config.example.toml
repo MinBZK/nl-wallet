@@ -1,6 +1,7 @@
 # Used to sign JWT's sent from wallet_provider to wallet
-signing_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
+certificate_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
 instruction_result_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
+pin_hash_salt = "AIZwpO3BYBpjMLPsTqF2bExLEj1i4zKUCsgOUhSlK60"
 
 [database]
 host = "localhost"
