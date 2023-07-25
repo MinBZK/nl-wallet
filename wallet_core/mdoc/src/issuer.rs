@@ -49,7 +49,7 @@ impl Signer<Signature> for PrivateKey {
 impl EcdsaKey for PrivateKey {
     type Error = p256::ecdsa::Error;
     fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
-        Ok(self.private_key.verifying_key())
+        Ok(*self.private_key.verifying_key())
     }
 }
 impl SecureEcdsaKey for PrivateKey {}

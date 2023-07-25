@@ -294,10 +294,10 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let key = SigningKey::random(OsRng);
+        let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
         let cose = MdocCose::<CoseSign1, ToyMessage>::sign(&payload, Header::default(), &key).unwrap();
-        let verified = cose.verify_and_parse(&key.verifying_key()).unwrap();
+        let verified = cose.verify_and_parse(key.verifying_key()).unwrap();
         assert_eq!(payload, verified);
     }
 }

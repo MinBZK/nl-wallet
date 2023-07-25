@@ -153,7 +153,7 @@ fn iso_examples_consistency() {
         .device_key;
 
     assert_eq!(
-        static_device_key.verifying_key(),
+        *static_device_key.verifying_key(),
         VerifyingKey::try_from(device_key).unwrap(),
     );
 }

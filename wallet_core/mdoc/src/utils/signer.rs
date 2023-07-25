@@ -57,12 +57,10 @@ impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(SIGNING_KEYS
-            .lock()
-            .expect("Could not get lock on SIGNING_KEYS")
-            .get(&self.identifier)
-            .unwrap()
-            .verifying_key())
+        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        let key = signing_keys.get(&self.identifier).unwrap().verifying_key();
+
+        Ok(*key)
     }
 }
 impl ConstructableWithIdentifier for SoftwareEcdsaKey {
@@ -97,7 +95,7 @@ mod mock {
         type Error = p256::ecdsa::Error;
 
         fn verifying_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
-            Ok(self.verifying_key())
+            Ok(*self.verifying_key())
         }
     }
     impl SecureEcdsaKey for SigningKey {}

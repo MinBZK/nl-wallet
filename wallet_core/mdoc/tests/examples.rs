@@ -118,13 +118,13 @@ impl Examples {
 // Functions for parsing ECDSA private/public key strings from ISO spec appendix D
 fn ecdsa_keypair(x: &str, y: &str, d: &str) -> Result<SigningKey> {
     let sk = ecdsa_privkey(d)?;
-    if sk.verifying_key() != ecdsa_pubkey(x, y)? {
+    if *sk.verifying_key() != ecdsa_pubkey(x, y)? {
         bail!("keys don't match")
     }
     Ok(sk)
 }
 fn ecdsa_privkey(d: &str) -> Result<SigningKey> {
-    let privkey = SigningKey::from_bytes(hex::decode(d)?.as_slice())?;
+    let privkey = SigningKey::try_from(hex::decode(d)?.as_slice())?;
     Ok(privkey)
 }
 fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
