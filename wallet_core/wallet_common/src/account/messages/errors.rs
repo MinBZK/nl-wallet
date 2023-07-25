@@ -25,13 +25,76 @@ pub struct ErrorData {
     pub data: Option<HashMap<String, DataValue>>,
 }
 
+impl ErrorData {
+    pub fn try_get<T>(&self, key: &str) -> Option<T>
+    where
+        T: From<DataValue>,
+    {
+        self.clone().data.and_then(|d| d.get(key).cloned()).map(|d| d.into())
+    }
+
+    pub fn unwrap_get<T>(&self, key: &str) -> T
+    where
+        T: From<DataValue>,
+    {
+        self.try_get(key)
+            .unwrap_or_else(|| panic!("data should contain key {}", key))
+    }
+}
+
 /// This enum exists to allow the key-value error data to contain
 /// multiple types of values. It will most likely be expanded later.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DataValue {
-    #[allow(dead_code)]
     String(String),
+    Number(u64),
+    Boolean(bool),
+}
+
+impl From<String> for DataValue {
+    fn from(value: String) -> Self {
+        DataValue::String(value)
+    }
+}
+
+impl From<DataValue> for String {
+    fn from(value: DataValue) -> Self {
+        match value {
+            DataValue::String(s) => s,
+            _ => panic!("cannot be converted to String: {:?}", value),
+        }
+    }
+}
+
+impl From<u64> for DataValue {
+    fn from(value: u64) -> Self {
+        DataValue::Number(value)
+    }
+}
+
+impl From<DataValue> for u64 {
+    fn from(value: DataValue) -> Self {
+        match value {
+            DataValue::Number(n) => n,
+            _ => panic!("cannot be converted to u64: {:?}", value),
+        }
+    }
+}
+
+impl From<bool> for DataValue {
+    fn from(value: bool) -> Self {
+        DataValue::Boolean(value)
+    }
+}
+
+impl From<DataValue> for bool {
+    fn from(value: DataValue) -> Self {
+        match value {
+            DataValue::Boolean(b) => b,
+            _ => panic!("cannot be converted to bool: {:?}", value),
+        }
+    }
 }
 
 /// The list of uniquely identifiable error types. A client
@@ -41,6 +104,10 @@ pub enum ErrorType {
     Unexpected,
     ChallengeValidation,
     RegistrationParsing,
+    IncorrectPin,
+    PinTimeout,
+    AccountBlocked,
+    InstructionValidation,
 }
 
 impl Display for ErrorData {
@@ -58,6 +125,10 @@ impl From<ErrorType> for StatusCode {
             ErrorType::Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorType::ChallengeValidation => StatusCode::UNAUTHORIZED,
             ErrorType::RegistrationParsing => StatusCode::BAD_REQUEST,
+            ErrorType::IncorrectPin => StatusCode::FORBIDDEN,
+            ErrorType::PinTimeout => StatusCode::FORBIDDEN,
+            ErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
+            ErrorType::InstructionValidation => StatusCode::FORBIDDEN,
         }
     }
 }

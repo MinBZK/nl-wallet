@@ -76,4 +76,18 @@ impl Storage for MockStorage {
 
         Ok(())
     }
+
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+        if !matches!(self.state, StorageState::Opened) {
+            return Err(StorageError::NotOpened);
+        }
+
+        if !self.data.contains_key(D::KEY) {
+            panic!("Registration not present");
+        }
+
+        self.data.insert(D::KEY, Box::new(data.clone()));
+
+        Ok(())
+    }
 }

@@ -1,8 +1,9 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
+use p256::ecdsa::VerifyingKey;
 use url::Url;
 
 use platform_support::preferred;
-use wallet_common::account::jwt::EcdsaDecodingKey;
+use wallet_common::account::{jwt::EcdsaDecodingKey, serialization::DerVerifyingKey};
 
 use crate::{
     account_server::RemoteAccountServerClient,
@@ -30,6 +31,9 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
         account_server: AccountServerConfiguration {
             base_url: Url::parse("http://localhost:3000/api/v1/").unwrap(),
             public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
+            instruction_result_public_key: DerVerifyingKey::from(
+                VerifyingKey::from_sec1_bytes(&STANDARD.decode("").unwrap()).unwrap(),
+            ),
         },
     });
 

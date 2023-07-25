@@ -8,4 +8,6 @@ pub enum PersistenceError {
     Transaction(#[source] Box<dyn Error + Send + Sync>),
     #[error("execution error: {0}")]
     Execution(#[source] Box<dyn Error + Send + Sync>),
+    #[error("not found: {0}")]
+    NotFound(String),
 }

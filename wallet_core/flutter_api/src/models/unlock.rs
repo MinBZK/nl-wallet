@@ -3,11 +3,11 @@ use wallet::wallet::WalletUnlockError;
 pub enum WalletUnlockResult {
     Ok,
     IncorrectPin {
-        leftover_attempts: u8,
+        leftover_attempts: u64,
         is_final_attempt: bool,
     },
     Timeout {
-        timeout_millis: u32,
+        timeout_millis: u64,
     },
     Blocked,
 }

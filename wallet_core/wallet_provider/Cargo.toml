@@ -35,6 +35,7 @@ axum = { workspace = true, features = [
     "tracing",
 ] }
 base64.workspace = true
+chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
 mime.workspace = true
@@ -60,10 +61,12 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = ["mock"] }
 
+assert_matches.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-uuid",
 ] }
+serial_test.workspace = true
 url.workspace = true

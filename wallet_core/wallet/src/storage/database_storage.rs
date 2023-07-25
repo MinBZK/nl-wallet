@@ -2,7 +2,8 @@ use std::{panic, path::PathBuf};
 
 use async_trait::async_trait;
 use futures::TryFutureExt;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
 use tokio::{fs, task};
 
 use entity::keyed_data;
@@ -157,6 +158,19 @@ impl Storage for DatabaseStorage {
 
         Ok(())
     }
+
+    /// Update data entry in the key-value table using the provided key.
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+        let database = self.database()?;
+
+        keyed_data::Entity::update_many()
+            .col_expr(keyed_data::Column::Data, Expr::value(serde_json::to_value(data)?))
+            .filter(keyed_data::Column::Key.eq(D::KEY.to_string()))
+            .exec(database.connection())
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -203,6 +217,7 @@ mod tests {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4].into(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
+            instruction_sequence_number: 1,
         };
 
         // Create a test database, pass it to the private new() constructor.
@@ -242,11 +257,41 @@ mod tests {
             fetched_registration.wallet_certificate.0,
             registration.wallet_certificate.0
         );
+        assert_eq!(
+            fetched_registration.instruction_sequence_number,
+            registration.instruction_sequence_number
+        );
 
         // Save the registration again, should result in an error.
         let save_result = storage.insert_data(&registration).await;
-
         assert!(save_result.is_err());
+
+        // Update registration
+        let updated_registration = RegistrationData {
+            pin_salt: registration.pin_salt.clone(),
+            wallet_certificate: registration.wallet_certificate.clone(),
+            instruction_sequence_number: registration.instruction_sequence_number + 1,
+        };
+        storage
+            .update_data(&updated_registration)
+            .await
+            .expect("Could not update registration");
+
+        let fetched_after_update_registration = storage
+            .fetch_data::<RegistrationData>()
+            .await
+            .expect("Could not get registration");
+        assert!(fetched_after_update_registration.is_some());
+        let fetched_after_update_registration = fetched_after_update_registration.unwrap();
+        assert_eq!(fetched_after_update_registration.pin_salt.0, registration.pin_salt.0);
+        assert_eq!(
+            fetched_after_update_registration.wallet_certificate.0,
+            registration.wallet_certificate.0
+        );
+        assert_eq!(
+            fetched_after_update_registration.instruction_sequence_number,
+            registration.instruction_sequence_number + 1,
+        );
 
         // Clear database, state should be uninitialized.
 

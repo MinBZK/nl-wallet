@@ -4,14 +4,14 @@ use tokio::task;
 use tracing::{info, instrument};
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::messages::auth::Registration;
-
-pub use crate::{
-    account_server::{AccountServerClient, AccountServerClientError},
-    config::{Configuration, ConfigurationRepository},
-    storage::Storage,
+use wallet_common::account::messages::{
+    auth::Registration,
+    errors::ErrorType,
+    instructions::{CheckPin, Instruction, InstructionChallenge, InstructionChallengeRequest},
 };
+
 use crate::{
+    account_server::AccountServerResponseError,
     lock::WalletLock,
     pin::{
         key::{new_pin_salt, PinKey},
@@ -19,6 +19,11 @@ use crate::{
     },
     storage::{RegistrationData, StorageError, StorageState},
     PinValidationError,
+};
+pub use crate::{
+    account_server::{AccountServerClient, AccountServerClientError},
+    config::{Configuration, ConfigurationRepository},
+    storage::Storage,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -53,17 +58,52 @@ pub enum WalletRegistrationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletUnlockError {
+    #[error("wallet is not registered")]
+    NotRegistered,
     #[error("PIN provided is incorrect")]
     IncorrectPin {
-        leftover_attempts: u8,
+        leftover_attempts: u64,
         is_final_attempt: bool,
     },
     #[error("unlock disabled due to timeout")]
-    Timeout { timeout_millis: u32 },
+    Timeout { timeout_millis: u64 },
     #[error("unlock permanently disabled")]
     Blocked,
-    #[error("server error")]
-    ServerError,
+    #[error("server error: {0}")]
+    ServerError(#[source] AccountServerClientError),
+    #[error("could not request instruction challenge from Wallet Provider: {0}")]
+    ChallengeRequest(#[source] AccountServerClientError),
+    #[error("Wallet Provider could not validate instruction")]
+    InstructionValidation,
+    #[error("could not get hardware public key: {0}")]
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    #[error("could not sign instruction: {0}")]
+    Signing(#[source] wallet_common::errors::Error),
+    #[error("could not validate instruction result received from Wallet Provider: {0}")]
+    InstructionResultValidation(#[source] wallet_common::errors::Error),
+    #[error("could not store instruction sequence number in database: {0}")]
+    StoreInstructionSequenceNumber(#[from] StorageError),
+}
+
+impl From<AccountServerClientError> for WalletUnlockError {
+    fn from(value: AccountServerClientError) -> Self {
+        if let AccountServerClientError::Response(AccountServerResponseError::Data(_, errordata)) = &value {
+            match errordata.typ {
+                ErrorType::PinTimeout => WalletUnlockError::Timeout {
+                    timeout_millis: errordata.unwrap_get("time_left_in_millis"),
+                },
+                ErrorType::IncorrectPin => WalletUnlockError::IncorrectPin {
+                    leftover_attempts: errordata.unwrap_get("leftover_attempts"),
+                    is_final_attempt: errordata.unwrap_get("is_final_attempt"),
+                },
+                ErrorType::AccountBlocked => WalletUnlockError::Blocked,
+                ErrorType::InstructionValidation => WalletUnlockError::InstructionValidation,
+                _ => WalletUnlockError::ServerError(value),
+            }
+        } else {
+            WalletUnlockError::ServerError(value)
+        }
+    }
 }
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
@@ -126,11 +166,76 @@ where
         Ok(())
     }
 
+    async fn increment_sequence_number(&mut self) -> Result<(), StorageError> {
+        let storage_state = self.storage.state().await?;
+        if !matches!(storage_state, StorageState::Opened) {
+            self.storage.open().await?;
+        }
+
+        let registration_data = self.registration.as_mut().unwrap();
+        registration_data.instruction_sequence_number += 1;
+
+        // Update the registration data in storage with incremented instruction sequence number.
+        self.storage.update_data(registration_data).await?;
+
+        Ok(())
+    }
+
+    async fn new_instruction_challenge_request(&mut self) -> Result<InstructionChallengeRequest, WalletUnlockError> {
+        self.increment_sequence_number().await?;
+
+        let registration_data = self.registration.as_ref().unwrap();
+
+        Ok(InstructionChallengeRequest {
+            message: InstructionChallenge::new_signed(
+                registration_data.instruction_sequence_number,
+                &self.hw_privkey.clone(),
+            )
+            .map_err(WalletUnlockError::Signing)?,
+            certificate: registration_data.wallet_certificate.clone(),
+        })
+    }
+
+    async fn new_check_pin_request(
+        &mut self,
+        pin: String,
+        challenge: Vec<u8>,
+    ) -> Result<Instruction<CheckPin>, WalletUnlockError> {
+        self.increment_sequence_number().await?;
+
+        let registration_data = self.registration.as_ref().unwrap();
+
+        let hw_privkey = self.hw_privkey.clone();
+        let pin_salt = registration_data.pin_salt.0.clone();
+
+        let seq_num = registration_data.instruction_sequence_number;
+
+        let signed = task::spawn_blocking(move || {
+            let pin_key = PinKey::new(&pin, &pin_salt);
+
+            let signed =
+                CheckPin::new_signed(seq_num, &hw_privkey, &pin_key, &challenge).map_err(WalletUnlockError::Signing)?;
+
+            // Return ownership of the signed instruction.
+            Ok::<_, WalletUnlockError>(signed)
+        })
+        .await
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
+
+        let instruction = Instruction {
+            instruction: signed,
+            certificate: registration_data.wallet_certificate.clone(),
+        };
+
+        Ok(instruction)
+    }
+
     pub fn set_lock_callback<F>(&mut self, callback: F)
     where
         F: Fn(bool) + Send + Sync + 'static,
     {
-        self.lock.set_lock_callback(callback)
+        callback(self.lock.is_locked());
+        self.lock.set_lock_callback(callback);
     }
 
     pub fn clear_lock_callback(&mut self) {
@@ -165,54 +270,34 @@ where
 
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
         info!("Validating pin");
-        // TODO: Validate pin with account server, currently mocking all possible responses based on pin
-        if pin == "000000" {
-            info!("Mock unlock() pin valid");
-            self.lock.unlock();
 
-            return Ok(());
-        }
-        if pin == "100000" {
-            info!("Mock unlock() IncorrectPin (3 attempts left)");
-            self.lock.lock();
-            return Err(WalletUnlockError::IncorrectPin {
-                leftover_attempts: 3,
-                is_final_attempt: false,
-            });
-        }
-        if pin == "200000" {
-            info!("Mock unlock() IncorrectPinTimeout");
-            self.lock.lock();
-            return Err(WalletUnlockError::Timeout {
-                timeout_millis: 10 * 1000,
-                /* 10 Sec */
-            });
-        }
-        if pin == "300000" {
-            info!("Mock unlock() active Timeout");
-            self.lock.lock();
-            return Err(WalletUnlockError::Timeout {
-                timeout_millis: 75 * 1000,
-                /* 1 min  15 secs */
-            });
-        }
-        if pin == "400000" {
-            info!("Mock unlock() Blocked");
-            self.lock.lock();
-            return Err(WalletUnlockError::Blocked);
-        }
-        if pin == "500000" {
-            info!("Mock unlock() ServerError");
-            self.lock.lock();
-            return Err(WalletUnlockError::ServerError);
+        if self.registration.is_none() {
+            return Err(WalletUnlockError::NotRegistered);
         }
 
-        info!("Mock unlock() IncorrectPin (1 attempts left)");
-        self.lock.lock();
-        Err(WalletUnlockError::IncorrectPin {
-            leftover_attempts: 1,
-            is_final_attempt: true,
-        })
+        let challenge_request = self.new_instruction_challenge_request().await?;
+        // Retrieve a challenge from the account server
+        let challenge = self
+            .account_server
+            .instruction_challenge(challenge_request)
+            .await
+            .map_err(WalletUnlockError::ChallengeRequest)?;
+
+        let instruction = self.new_check_pin_request(pin, challenge).await?;
+        let signed_result = self.account_server.check_pin(instruction).await?;
+
+        let result = signed_result
+            .parse_and_verify(
+                &self
+                    .config_repository
+                    .config()
+                    .account_server
+                    .instruction_result_public_key
+                    .0,
+            )
+            .map_err(WalletUnlockError::InstructionResultValidation);
+
+        result.map(|_| self.lock.unlock())
     }
 
     #[instrument(skip_all)]
@@ -293,6 +378,7 @@ where
         let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
+            instruction_sequence_number: 0,
         };
         self.storage.insert_data(&registration_data).await?;
 
@@ -333,7 +419,7 @@ mod tests {
                 None => Wallet::new(config).await,
             }?;
 
-        wallet.config_repository.0.account_server.public_key = wallet.account_server.pubkey.clone();
+        wallet.config_repository.0.account_server.public_key = wallet.account_server.certificate_pubkey.clone();
 
         Ok(wallet)
     }
@@ -371,6 +457,7 @@ mod tests {
             Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
+                instruction_sequence_number: 0,
             }),
         )))
         .await
@@ -406,26 +493,5 @@ mod tests {
 
         // Registering again should result in an error.
         assert!(wallet.register("112233".to_owned()).await.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_lock_mechanism() {
-        let mut wallet = init_wallet(None).await.expect("Could not initialize wallet");
-
-        // Wallet should initialize in locked state
-        assert!(wallet.is_locked());
-
-        wallet
-            .unlock("000000".to_string())
-            .await
-            .expect("Could not unlock wallet");
-
-        // Wallet should be unlocked after valid unlock attempt
-        assert!(!wallet.is_locked());
-
-        wallet.lock();
-
-        // Wallet should be locked after valid lock attempt
-        assert!(wallet.is_locked());
     }
 }

@@ -22,6 +22,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     );
 
+    debug!(
+        "Instruction signing public key: {}",
+        STANDARD.encode(
+            SigningKey::from_pkcs8_der(&settings.instruction_result_private_key.0)?
+                .verifying_key()
+                .to_encoded_point(false)
+                .as_bytes()
+        )
+    );
+
     server::serve(settings).await?;
 
     Ok(())

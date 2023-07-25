@@ -5,12 +5,14 @@ edition.workspace = true
 
 [features]
 stub = ["wallet_provider_domain/stub", "dep:async-trait", "dep:rand"]
+db_test = []
 
 [dependencies]
 wallet_provider_domain = { path = "../domain" }
 wallet_common = { path = "../../wallet_common" }
 
 async-trait = { workspace = true, optional = true }
+chrono.workspace = true
 der = { workspace = true, features = ["std"] }
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
@@ -24,7 +26,16 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 [dev-dependencies]
 wallet_common = { path = "../../wallet_common", features = ["mock"] }
 wallet_provider_domain = { path = "../domain", features = ["stub"] }
+wallet_provider_persistence = { path = "../persistence" }
+wallet_provider_service = { path = ".", features = ["stub"] }
 
+assert_matches.workspace = true
 async-trait.workspace = true
 rand.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+rstest.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "parking_lot"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = [
+    "env-filter",
+    "parking_lot",
+] }

@@ -6,15 +6,16 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
     Client, Request,
 };
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use url::{ParseError, Url};
 
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
+        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
     },
-    signed::SignedDouble,
+    signed::{Signed, SignedDouble},
 };
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
@@ -44,6 +45,15 @@ impl RemoteAccountServerClient {
 
     fn url(&self, path: &str) -> Result<Url, ParseError> {
         self.base_url.join(path)
+    }
+
+    async fn send_json_post_request<S, T>(&self, path: &str, json: &S) -> Result<T, AccountServerClientError>
+    where
+        S: Serialize,
+        T: DeserializeOwned,
+    {
+        let request = self.client.post(self.url(path)?).json(json).build()?;
+        self.send_json_request::<T>(request).await
     }
 
     async fn send_json_request<T>(&self, request: Request) -> Result<T, AccountServerClientError>
@@ -121,14 +131,33 @@ impl AccountServerClient for RemoteAccountServerClient {
         &self,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountServerClientError> {
-        let request = self
-            .client
-            .post(self.url("createwallet")?)
-            .json(&registration_message)
-            .build()?;
-        let certificate = self.send_json_request::<Certificate>(request).await?.certificate;
+        let cert: Certificate = self
+            .send_json_post_request("createwallet", &registration_message)
+            .await?;
 
-        Ok(certificate)
+        Ok(cert.certificate)
+    }
+
+    async fn instruction_challenge(
+        &self,
+        challenge_request: InstructionChallengeRequest,
+    ) -> Result<Vec<u8>, AccountServerClientError> {
+        let challenge: Challenge = self
+            .send_json_post_request("instructions/challenge", &challenge_request)
+            .await?;
+
+        Ok(challenge.challenge.0)
+    }
+
+    async fn check_pin(
+        &self,
+        instruction: Instruction<CheckPin>,
+    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError> {
+        let result: Signed<InstructionResult<()>> = self
+            .send_json_post_request("instructions/check_pin", &instruction)
+            .await?;
+
+        Ok(result)
     }
 }
 

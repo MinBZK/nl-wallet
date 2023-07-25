@@ -19,8 +19,10 @@ impl Db {
         password: Option<&str>,
     ) -> Result<Db, PersistenceError> {
         let mut connection_options = ConnectOptions::new(connection_string(host, db_name, username, password));
-        connection_options.connect_timeout(DB_CONNECT_TIMEOUT);
-        connection_options.sqlx_logging_level(LevelFilter::Trace);
+        connection_options
+            .connect_timeout(DB_CONNECT_TIMEOUT)
+            .sqlx_logging(true)
+            .sqlx_logging_level(LevelFilter::Trace);
 
         let db = Database::connect(connection_options)
             .await

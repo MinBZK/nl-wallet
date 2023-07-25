@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use axum::{
-    routing::post,
-    {extract::State, http::StatusCode, response::Json, Router},
-};
+use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
 use tower_http::trace::TraceLayer;
 
 use wallet_common::account::{
-    messages::auth::{Certificate, Challenge, Registration},
-    signed::SignedDouble,
+    messages::{
+        auth::{Certificate, Challenge, Registration},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+    },
+    signed::{Signed, SignedDouble},
 };
 
 use crate::{app_dependencies::AppDependencies, errors::WalletProviderError};
@@ -32,6 +32,8 @@ pub fn router(dependencies: Arc<AppDependencies>) -> Router {
         Router::new()
             .route("/enroll", post(enroll))
             .route("/createwallet", post(create_wallet))
+            .route("/instructions/challenge", post(instruction_challenge))
+            .route("/instructions/check_pin", post(check_pin))
             .layer(TraceLayer::new_for_http())
             .with_state(dependencies),
     )
@@ -50,8 +52,36 @@ async fn create_wallet(
     State(state): State<Arc<AppDependencies>>,
     Json(payload): Json<SignedDouble<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)> {
-    let cert = state.account_server.register(state.as_ref(), payload).await?;
+    let cert = state
+        .account_server
+        .register(state.as_ref(), &state.repositories, payload)
+        .await?;
     let body = Certificate { certificate: cert };
 
     Ok((StatusCode::CREATED, body.into()))
+}
+
+async fn instruction_challenge(
+    State(state): State<Arc<AppDependencies>>,
+    Json(payload): Json<InstructionChallengeRequest>,
+) -> Result<(StatusCode, Json<Challenge>)> {
+    let challenge = state
+        .account_server
+        .instruction_challenge(payload, &state.repositories)
+        .await?;
+    let body = Challenge {
+        challenge: challenge.into(),
+    };
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn check_pin(
+    State(state): State<Arc<AppDependencies>>,
+    Json(payload): Json<Instruction<CheckPin>>,
+) -> Result<(StatusCode, Json<Signed<InstructionResult<()>>>)> {
+    let result = state
+        .account_server
+        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
+        .await?;
+    Ok((StatusCode::OK, result.into()))
 }
