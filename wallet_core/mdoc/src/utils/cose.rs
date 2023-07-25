@@ -5,8 +5,7 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc};
 use ciborium::value::Value;
 use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
-use ecdsa::signature::{Signature, Verifier};
-use p256::NistP256;
+use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -36,9 +35,9 @@ pub enum CoseError {
     #[error("missing label {0:?}")]
     MissingLabel(Label),
     #[error("ECDSA signature parsing failed: {0}")]
-    EcdsaSignatureParsingFailed(ecdsa::Error),
+    EcdsaSignatureParsingFailed(p256::ecdsa::Error),
     #[error("ECDSA signature verification failed: {0}")]
-    EcdsaSignatureVerificationFailed(ecdsa::Error),
+    EcdsaSignatureVerificationFailed(p256::ecdsa::Error),
     #[error("MAC verification failed")]
     MacVerificationFailed,
     #[error(transparent)]
@@ -50,16 +49,16 @@ pub enum CoseError {
 }
 
 impl Cose for CoseSign1 {
-    type Key = ecdsa::VerifyingKey<NistP256>;
+    type Key = VerifyingKey;
     fn payload(&self) -> &Option<Vec<u8>> {
         &self.payload
     }
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
-    fn verify(&self, key: &ecdsa::VerifyingKey<NistP256>) -> Result<()> {
+    fn verify(&self, key: &VerifyingKey) -> Result<()> {
         self.verify_signature(b"", |sig, data| {
-            let sig = &ecdsa::Signature::<NistP256>::from_bytes(sig).map_err(CoseError::EcdsaSignatureParsingFailed)?;
+            let sig = &Signature::try_from(sig).map_err(CoseError::EcdsaSignatureParsingFailed)?;
             key.verify(data, sig)
                 .map_err(CoseError::EcdsaSignatureVerificationFailed)?;
             Ok(())
@@ -274,8 +273,7 @@ impl coset::AsCborValue for CoseKey {
 #[cfg(test)]
 mod tests {
     use coset::{CoseSign1, Header};
-    use ecdsa::signature::rand_core::OsRng;
-    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::{signature::rand_core::OsRng, SigningKey};
     use serde::{Deserialize, Serialize};
 
     use super::MdocCose;

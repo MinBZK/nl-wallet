@@ -113,8 +113,7 @@ impl Certificate {
     }
 
     pub fn public_key(&self) -> Result<VerifyingKey, CertificateError> {
-        ecdsa::VerifyingKey::from_public_key_der(self.to_x509()?.public_key().raw)
-            .map_err(CertificateError::KeyParsingFailed)
+        VerifyingKey::from_public_key_der(self.to_x509()?.public_key().raw).map_err(CertificateError::KeyParsingFailed)
     }
 
     /// Convert the certificate to a [`X509Certificate`] from the `x509_parser` crate, to read its contents.
@@ -185,8 +184,7 @@ impl Certificate {
     }
 
     fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
-        ecdsa::SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
-            .map_err(CertificateError::GeneratingPrivateKey)
+        SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
     }
 }
 

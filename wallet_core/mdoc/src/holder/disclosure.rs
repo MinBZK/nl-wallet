@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
 use indexmap::IndexMap;
+use p256::ecdsa::{SigningKey, VerifyingKey};
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -99,11 +100,7 @@ impl DeviceSigned {
     }
 
     #[allow(dead_code)] // TODO test this
-    pub fn new_mac(
-        private_key: &ecdsa::SigningKey<p256::NistP256>,
-        reader_pub_key: &ecdsa::VerifyingKey<p256::NistP256>,
-        challenge: &[u8],
-    ) -> Result<DeviceSigned> {
+    pub fn new_mac(private_key: &SigningKey, reader_pub_key: &VerifyingKey, challenge: &[u8]) -> Result<DeviceSigned> {
         let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge)?;
         let key = dh_hmac_key(
             private_key,

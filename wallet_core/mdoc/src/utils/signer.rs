@@ -120,7 +120,7 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use ecdsa::signature::{Signer, Verifier};
+    use p256::ecdsa::signature::{Signer, Verifier};
 
     use super::{ConstructableWithIdentifier, EcdsaKey, SoftwareEcdsaKey};
 

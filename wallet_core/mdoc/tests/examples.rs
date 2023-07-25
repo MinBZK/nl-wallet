@@ -3,7 +3,10 @@
 
 use anyhow::{bail, Context, Result};
 use hex_literal::hex;
-use p256::NistP256;
+use p256::{
+    ecdsa::{SigningKey, VerifyingKey},
+    EncodedPoint,
+};
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{
@@ -92,7 +95,7 @@ impl Examples {
     }
 
     /// Reader ephemeral private key, for deriving MAC key
-    pub fn ephemeral_reader_key() -> ecdsa::SigningKey<p256::NistP256> {
+    pub fn ephemeral_reader_key() -> SigningKey {
         ecdsa_keypair(
             "60e3392385041f51403051f2415531cb56dd3f999c71687013aac6768bc8187e",
             "e58deb8fdbe907f7dd5368245551a34796f7d2215c440c339bb0f7b67beccdfa",
@@ -102,7 +105,7 @@ impl Examples {
     }
 
     /// Device private key corresponding to the public key in the MSO
-    pub fn static_device_key() -> ecdsa::SigningKey<p256::NistP256> {
+    pub fn static_device_key() -> SigningKey {
         ecdsa_keypair(
             "96313d6c63e24e3372742bfdb1a33ba2c897dcd68ab8c753e4fbd48dca6b7f9a",
             "1fb3269edd418857de1b39a4e4a44b92fa484caa722c228288f01d0c03a2c3d6",
@@ -113,19 +116,19 @@ impl Examples {
 }
 
 // Functions for parsing ECDSA private/public key strings from ISO spec appendix D
-fn ecdsa_keypair(x: &str, y: &str, d: &str) -> Result<ecdsa::SigningKey<NistP256>> {
+fn ecdsa_keypair(x: &str, y: &str, d: &str) -> Result<SigningKey> {
     let sk = ecdsa_privkey(d)?;
     if sk.verifying_key() != ecdsa_pubkey(x, y)? {
         bail!("keys don't match")
     }
     Ok(sk)
 }
-fn ecdsa_privkey(d: &str) -> Result<ecdsa::SigningKey<NistP256>> {
-    let privkey = ecdsa::SigningKey::<NistP256>::from_bytes(hex::decode(d)?.as_slice())?;
+fn ecdsa_privkey(d: &str) -> Result<SigningKey> {
+    let privkey = SigningKey::from_bytes(hex::decode(d)?.as_slice())?;
     Ok(privkey)
 }
-fn ecdsa_pubkey(x: &str, y: &str) -> Result<ecdsa::VerifyingKey<NistP256>> {
-    ecdsa::VerifyingKey::<NistP256>::from_encoded_point(&ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
+fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
+    VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
         hex::decode(x)?.as_slice().into(),
         hex::decode(y)?.as_slice().into(),
         false,

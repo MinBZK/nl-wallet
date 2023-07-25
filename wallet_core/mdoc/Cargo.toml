@@ -12,9 +12,9 @@ mock = []
 [dependencies]
 ciborium = "0.2.0"
 coset = "0.3.3"
-ecdsa = { version = "0.14.8", features = ["verify", "sign", "pem"] }
+# ecdsa = { version = "0.14.8", features = ["verify", "sign", "pem"] }
 hex = "0.4.3"
-p256 = { version = "0.11.1", features = ["ecdh", "serde"] }
+p256 = { version = "0.11.1", features = ["ecdh", "serde", "pem"] }
 rand = "0.8.5"
 ring = "0.16.20"
 serde = { version = "1.0.147", features = ["serde_derive"] }

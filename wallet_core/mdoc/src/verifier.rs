@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use p256::NistP256;
+use p256::ecdsa::SigningKey;
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -58,7 +58,7 @@ impl DeviceResponse {
     #[allow(dead_code)] // TODO use this in verifier
     pub fn verify(
         &self,
-        eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
+        eph_reader_key: Option<&SigningKey>,
         device_authentication_bts: &Vec<u8>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -192,7 +192,7 @@ impl IssuerSigned {
 impl Document {
     pub fn verify(
         &self,
-        eph_reader_key: Option<&ecdsa::SigningKey<NistP256>>,
+        eph_reader_key: Option<&SigningKey>,
         device_authentication: &DeviceAuthenticationBytes,
         device_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,

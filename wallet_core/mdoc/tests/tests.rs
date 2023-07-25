@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
+use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Serialize};
 
 use nl_wallet_mdoc::{
@@ -153,7 +154,7 @@ fn iso_examples_consistency() {
 
     assert_eq!(
         static_device_key.verifying_key(),
-        ecdsa::VerifyingKey::<p256::NistP256>::try_from(device_key).unwrap(),
+        VerifyingKey::try_from(device_key).unwrap(),
     );
 }
 

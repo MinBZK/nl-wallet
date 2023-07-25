@@ -2,7 +2,11 @@
 
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
-use p256::{ecdh, NistP256};
+use p256::{
+    ecdh,
+    ecdsa::{SigningKey, VerifyingKey},
+    EncodedPoint,
+};
 use rand::{
     distributions::{Alphanumeric, DistString},
     Rng,
@@ -33,7 +37,7 @@ pub enum CryptoError {
     #[error("coordinate parse failed")]
     KeyCoordinateParseFailed,
     #[error("key parse failed: {0}")]
-    KeyParseFailed(#[from] ecdsa::Error),
+    KeyParseFailed(#[from] p256::ecdsa::Error),
 }
 
 pub fn sha256(bts: &[u8]) -> Vec<u8> {
@@ -48,8 +52,8 @@ pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborEr
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
 pub fn dh_hmac_key(
-    privkey: &ecdsa::SigningKey<NistP256>,
-    pubkey: &ecdsa::VerifyingKey<NistP256>,
+    privkey: &SigningKey,
+    pubkey: &VerifyingKey,
     salt: &[u8],
     info: &str,
     len: usize,
@@ -81,9 +85,9 @@ pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) 
     Ok(key)
 }
 
-impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
+impl TryFrom<&VerifyingKey> for CoseKey {
     type Error = Error;
-    fn try_from(key: &ecdsa::VerifyingKey<NistP256>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(key: &VerifyingKey) -> std::result::Result<Self, Self::Error> {
         let encoded_point = key.to_encoded_point(false);
         let x = encoded_point.x().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
         let y = encoded_point.y().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
@@ -93,7 +97,7 @@ impl TryFrom<&ecdsa::VerifyingKey<NistP256>> for CoseKey {
     }
 }
 
-impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
+impl TryFrom<&CoseKey> for VerifyingKey {
     type Error = Error;
     fn try_from(key: &CoseKey) -> Result<Self> {
         if key.0.kty != coset::RegisteredLabel::Assigned(iana::KeyType::EC2) {
@@ -114,19 +118,17 @@ impl TryFrom<&CoseKey> for ecdsa::VerifyingKey<NistP256> {
             return Err(CryptoError::KeyUnepectedCoseLabel.into());
         }
 
-        let key = ecdsa::VerifyingKey::<NistP256>::from_encoded_point(
-            &ecdsa::EncodedPoint::<NistP256>::from_affine_coordinates(
-                x.1.as_bytes()
-                    .ok_or(CryptoError::KeyCoordinateParseFailed)?
-                    .as_bytes()
-                    .into(),
-                y.1.as_bytes()
-                    .ok_or(CryptoError::KeyCoordinateParseFailed)?
-                    .as_bytes()
-                    .into(),
-                false,
-            ),
-        )
+        let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
+            x.1.as_bytes()
+                .ok_or(CryptoError::KeyCoordinateParseFailed)?
+                .as_bytes()
+                .into(),
+            y.1.as_bytes()
+                .ok_or(CryptoError::KeyCoordinateParseFailed)?
+                .as_bytes()
+                .into(),
+            false,
+        ))
         .map_err(CryptoError::KeyParseFailed)?;
         Ok(key)
     }

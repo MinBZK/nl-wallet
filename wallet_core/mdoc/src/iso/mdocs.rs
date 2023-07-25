@@ -6,8 +6,8 @@
 
 use chrono::Utc;
 use ciborium::{tag, value::Value};
-use ecdsa::VerifyingKey;
 use indexmap::IndexMap;
+use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
@@ -106,9 +106,9 @@ pub struct DeviceKeyInfo {
     pub key_info: Option<KeyInfo>,
 }
 
-impl TryFrom<VerifyingKey<p256::NistP256>> for DeviceKeyInfo {
+impl TryFrom<VerifyingKey> for DeviceKeyInfo {
     type Error = Error;
-    fn try_from(value: VerifyingKey<p256::NistP256>) -> Result<Self> {
+    fn try_from(value: VerifyingKey) -> Result<Self> {
         let key_info = DeviceKeyInfo {
             device_key: (&value).try_into()?,
             key_authorizations: None,

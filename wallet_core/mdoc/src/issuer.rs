@@ -8,8 +8,8 @@ use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
-use ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
+use p256::ecdsa::{signature::Signer, SigningKey};
 use serde::Deserialize;
 use serde_bytes::ByteBuf;
 
@@ -31,23 +31,23 @@ use crate::{
 };
 
 pub struct PrivateKey {
-    private_key: ecdsa::SigningKey<p256::NistP256>,
+    private_key: SigningKey,
     cert_bts: Vec<u8>,
 }
 
 impl PrivateKey {
-    pub fn new(private_key: ecdsa::SigningKey<p256::NistP256>, cert_bts: Vec<u8>) -> PrivateKey {
+    pub fn new(private_key: SigningKey, cert_bts: Vec<u8>) -> PrivateKey {
         PrivateKey { private_key, cert_bts }
     }
 }
 
 impl Signer<Signature> for PrivateKey {
-    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, ecdsa::Error> {
+    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
         self.private_key.try_sign(msg)
     }
 }
 impl EcdsaKey for PrivateKey {
-    type Error = ecdsa::Error;
+    type Error = p256::ecdsa::Error;
     fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
         Ok(self.private_key.verifying_key())
     }

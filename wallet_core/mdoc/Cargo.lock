@@ -194,9 +194,9 @@ dependencies = [
 
 [[package]]
 name = "const-oid"
-version = "0.9.1"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cec318a675afcb6a1ea1d4340e2d377e56e47c266f28043ceccbf4412ddfdd3b"
+checksum = "795bc6e66a8e340f075fcf6227e417a2dc976b92b91f3cdc778bb858778b6747"
 
 [[package]]
 name = "core-foundation-sys"
@@ -687,7 +687,6 @@ dependencies = [
  "ciborium",
  "coset",
  "dashmap",
- "ecdsa",
  "fieldnames",
  "fieldnames_derive",
  "hex",
