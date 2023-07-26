@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
 pub trait EcdsaKey: Signer<Signature> {
     type Error: Error + Send + Sync + 'static;
