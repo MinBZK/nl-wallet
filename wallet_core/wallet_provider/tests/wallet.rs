@@ -166,7 +166,7 @@ async fn test_unlock_ok() {
 
 #[tokio::test]
 #[serial]
-// #[cfg_attr(not(feature = "db_test"), ignore)]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_error() {
     let settings = Settings::new().expect("Could not read settings");
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
