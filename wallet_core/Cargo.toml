@@ -1,6 +1,9 @@
 [workspace]
 members = [
     "flutter_api",
+    "mdoc",
+    "mdoc/fieldnames",
+    "mdoc/fieldnames_derive",
     "platform_support",
     "wallet",
     "wallet_common",
