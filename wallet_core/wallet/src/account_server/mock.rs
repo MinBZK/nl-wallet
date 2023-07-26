@@ -6,7 +6,7 @@ use wallet_common::account::{
         auth::{Registration, WalletCertificate},
         instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
     },
-    signed::{Signed, SignedDouble},
+    signed::SignedDouble,
 };
 use wallet_provider::{
     errors::{ConvertibleError, WalletProviderError},
@@ -66,7 +66,7 @@ impl AccountServerClient for AccountServer {
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError> {
+    ) -> Result<InstructionResult<()>, AccountServerClientError> {
         AccountServer::handle_instruction(self, instruction, &TestDeps, &FailingPinPolicy, &EpochGenerator)
             .await
             .map_err(AccountServerClientError::from_account_server)

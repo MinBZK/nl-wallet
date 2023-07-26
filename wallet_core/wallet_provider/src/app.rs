@@ -6,9 +6,9 @@ use tower_http::trace::TraceLayer;
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResultMessage},
     },
-    signed::{Signed, SignedDouble},
+    signed::SignedDouble,
 };
 
 use crate::{app_dependencies::AppDependencies, errors::WalletProviderError};
@@ -56,6 +56,7 @@ async fn create_wallet(
         .account_server
         .register(state.as_ref(), &state.repositories, payload)
         .await?;
+
     let body = Certificate { certificate: cert };
 
     Ok((StatusCode::CREATED, body.into()))
@@ -69,19 +70,24 @@ async fn instruction_challenge(
         .account_server
         .instruction_challenge(payload, &state.repositories)
         .await?;
+
     let body = Challenge {
         challenge: challenge.into(),
     };
+
     Ok((StatusCode::OK, body.into()))
 }
 
 async fn check_pin(
     State(state): State<Arc<AppDependencies>>,
     Json(payload): Json<Instruction<CheckPin>>,
-) -> Result<(StatusCode, Json<Signed<InstructionResult<()>>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     let result = state
         .account_server
         .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
         .await?;
-    Ok((StatusCode::OK, result.into()))
+
+    let body = InstructionResultMessage { result };
+
+    Ok((StatusCode::OK, body.into()))
 }

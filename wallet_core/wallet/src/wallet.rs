@@ -189,6 +189,7 @@ where
         Ok(InstructionChallengeRequest {
             message: InstructionChallenge::new_signed(
                 registration_data.instruction_sequence_number,
+                "wallet",
                 &self.hw_privkey.clone(),
             )
             .map_err(WalletUnlockError::Signing)?,
@@ -292,8 +293,7 @@ where
                     .config_repository
                     .config()
                     .account_server
-                    .instruction_result_public_key
-                    .0,
+                    .instruction_result_public_key,
             )
             .map_err(WalletUnlockError::InstructionResultValidation);
 

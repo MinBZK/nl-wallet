@@ -13,7 +13,7 @@ use wallet_common::account::{
         errors::ErrorData,
         instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
     },
-    signed::{Signed, SignedDouble},
+    signed::SignedDouble,
 };
 
 pub use self::remote::RemoteAccountServerClient;
@@ -59,5 +59,5 @@ pub trait AccountServerClient {
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError>;
+    ) -> Result<InstructionResult<()>, AccountServerClientError>;
 }

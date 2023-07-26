@@ -23,9 +23,7 @@ use crate::errors::{Error, Result, SigningError, ValidationError};
 #[derive(Debug)]
 pub struct SignedDouble<T>(pub String, PhantomData<T>);
 #[derive(Debug)]
-pub struct SignedInner<T>(pub String, PhantomData<T>);
-#[derive(Debug)]
-pub struct Signed<T>(pub String, PhantomData<T>);
+pub(crate) struct SignedInner<T>(pub String, PhantomData<T>);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignedMessage<T> {
@@ -55,7 +53,7 @@ pub enum SignedType {
     HW,
 }
 
-fn verify_signed_with_challenge(signed: &str, challenge: &[u8], typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
+fn verify_signed(signed: &str, challenge: &[u8], typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
     let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
     let json = msg.signed.get().as_bytes();
     pubkey.verify(json, &msg.signature.0).map_err(ValidationError::from)?;
@@ -75,23 +73,6 @@ fn verify_signed_with_challenge(signed: &str, challenge: &[u8], typ: SignedType,
     Ok(())
 }
 
-fn verify_signed(signed: &str, typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
-    let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
-    let json = msg.signed.get().as_bytes();
-    pubkey.verify(json, &msg.signature.0).map_err(ValidationError::from)?;
-
-    if msg.typ != typ {
-        return Err(Error::TypeMismatch {
-            expected: typ,
-            received: msg.typ,
-        });
-    }
-
-    let _signed: SignedPayload<&RawValue> = serde_json::from_slice(json)?;
-
-    Ok(())
-}
-
 fn sign_inner<T: Serialize>(
     payload: T,
     challenge: &[u8],
@@ -107,19 +88,6 @@ fn sign_inner<T: Serialize>(
     Ok(sign_message(message, typ, privkey)?.into())
 }
 
-fn sign<T: Serialize>(
-    payload: T,
-    issuer: String,
-    typ: SignedType,
-    privkey: &impl Signer<Signature>,
-) -> Result<Signed<T>> {
-    let message = serde_json::to_string(&SignedPayload {
-        payload: &payload,
-        issuer,
-    })?;
-    Ok(sign_message(message, typ, privkey)?.into())
-}
-
 fn sign_message(message: String, typ: SignedType, privkey: &impl Signer<Signature>) -> Result<String> {
     let signature = privkey.try_sign(message.as_bytes()).map_err(SigningError::from)?.into();
     Ok(serde_json::to_string(&SignedMessage {
@@ -127,61 +95,6 @@ fn sign_message(message: String, typ: SignedType, privkey: &impl Signer<Signatur
         signature,
         typ,
     })?)
-}
-
-impl<'de, T> Signed<T>
-where
-    T: Serialize + Deserialize<'de>,
-{
-    /// Value of the `typ` field of [`SignedMessage<T>`].
-    const TYP: SignedType = SignedType::HW;
-
-    fn verify(&self, pubkey: &VerifyingKey) -> Result<()> {
-        verify_signed(&self.0, Signed::<T>::TYP, pubkey)
-    }
-
-    fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
-        Ok(serde_json::from_str::<SignedMessage<SignedPayload<T>>>(&self.0)?.signed)
-    }
-
-    pub fn parse_and_verify(&'de self, pubkey: &VerifyingKey) -> Result<SignedPayload<T>> {
-        self.verify(pubkey)?;
-        self.dangerous_parse_unverified()
-    }
-
-    pub fn sign(payload: T, issuer: String, privkey: &impl Signer<Signature>) -> Result<Signed<T>> {
-        sign(payload, issuer, Signed::<T>::TYP, privkey)
-    }
-}
-
-impl<'de, T> SignedInner<T>
-where
-    T: Serialize + Deserialize<'de>,
-{
-    /// Value of the `typ` field of [`SignedMessage<T>`].
-    const TYP: SignedType = SignedType::HW;
-
-    fn verify(&self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<()> {
-        verify_signed_with_challenge(&self.0, challenge, SignedInner::<T>::TYP, pubkey)
-    }
-
-    fn dangerous_parse_unverified(&'de self) -> Result<ChallengeResponsePayload<T>> {
-        Ok(serde_json::from_str::<SignedMessage<ChallengeResponsePayload<T>>>(&self.0)?.signed)
-    }
-
-    pub fn parse_and_verify(&'de self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<ChallengeResponsePayload<T>> {
-        self.verify(challenge, pubkey)?;
-        self.dangerous_parse_unverified()
-    }
-
-    pub fn sign(
-        payload: T,
-        challenge: &[u8],
-        serial_number: u64,
-        privkey: &impl Signer<Signature>,
-    ) -> Result<SignedInner<T>> {
-        sign_inner(payload, challenge, serial_number, SignedInner::<T>::TYP, privkey)
-    }
 }
 
 impl<'de, T> SignedDouble<T>
@@ -193,7 +106,7 @@ where
         hw_pubkey
             .verify(outer.signed.get().as_bytes(), &outer.signature.0)
             .map_err(ValidationError::from)?;
-        verify_signed_with_challenge(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
+        verify_signed(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
     }
 
     pub fn dangerous_parse_unverified(&'de self) -> Result<ChallengeResponsePayload<T>> {
@@ -236,11 +149,6 @@ impl<T, S: Into<String>> From<S> for SignedInner<T> {
         SignedInner(val.into(), PhantomData)
     }
 }
-impl<T, S: Into<String>> From<S> for Signed<T> {
-    fn from(val: S) -> Self {
-        Signed(val.into(), PhantomData)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -260,19 +168,6 @@ mod tests {
                 string: "Hello, world!".to_string(),
             }
         }
-    }
-
-    #[test]
-    fn hw_signed() {
-        let challenge = b"challenge";
-        let hw_privkey = SigningKey::random(&mut OsRng);
-
-        let signed = SignedInner::sign(ToyMessage::default(), challenge, 1337, &hw_privkey).unwrap();
-        println!("{}", signed.0);
-
-        let verified = signed.parse_and_verify(challenge, hw_privkey.verifying_key()).unwrap();
-
-        dbg!(verified);
     }
 
     #[test]

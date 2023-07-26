@@ -92,7 +92,7 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequest {
                 certificate: certificate.clone(),
-                message: InstructionChallenge::new_signed(1, &hw_privkey).unwrap(),
+                message: InstructionChallenge::new_signed(1, "wallet", &hw_privkey).unwrap(),
             },
             &repos,
         )
@@ -105,7 +105,7 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequest {
                 certificate,
-                message: InstructionChallenge::new_signed(2, &hw_privkey).unwrap(),
+                message: InstructionChallenge::new_signed(2, "wallet", &hw_privkey).unwrap(),
             },
             &repos,
         )

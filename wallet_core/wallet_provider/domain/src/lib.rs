@@ -1,4 +1,5 @@
 pub mod generator;
+pub mod hsm_key;
 pub mod model;
 pub mod repository;
 
