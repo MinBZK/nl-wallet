@@ -4,7 +4,13 @@ use ciborium::{tag, value::Value};
 use core::fmt::Debug;
 use coset::AsCborValue;
 use indexmap::IndexMap;
-use serde::{de, de::Deserializer, ser, ser::Serializer, Deserialize, Serialize};
+use serde::{
+    de,
+    de::{DeserializeOwned, Deserializer},
+    ser,
+    ser::Serializer,
+    Deserialize, Serialize,
+};
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 
@@ -25,7 +31,7 @@ pub enum CborError {
 }
 
 /// Wrapper for [`ciborium::de::from_reader`] returning our own error type.
-pub fn cbor_deserialize<'de, T: de::Deserialize<'de>, R: std::io::Read>(reader: R) -> Result<T, CborError> {
+pub fn cbor_deserialize<T: DeserializeOwned, R: std::io::Read>(reader: R) -> Result<T, CborError> {
     let deserialized = ciborium::de::from_reader(reader)?;
     Ok(deserialized)
 }
@@ -58,7 +64,7 @@ where
 }
 impl<'de, T> Deserialize<'de> for TaggedBytes<T>
 where
-    T: Deserialize<'de>,
+    T: DeserializeOwned,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let buf = tag::Required::<ByteBuf, CBOR_TAG_ENC_CBOR>::deserialize(deserializer)?.0;
