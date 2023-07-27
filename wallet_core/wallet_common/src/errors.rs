@@ -21,7 +21,7 @@ pub enum SigningError {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("key deserialization error: {0}")]
-    KeyDeserialize(#[from] pkcs8::Error),
+    KeyDeserialization(#[from] pkcs8::Error),
     #[error("incorrect signing type (expected: {expected:?}, received: {received:?})")]
     TypeMismatch { expected: SignedType, received: SignedType },
     #[error("challenge does not match")]
