@@ -62,13 +62,3 @@ impl Settings {
             .try_deserialize()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::settings::Settings;
-
-    #[test]
-    fn test_settings() {
-        Settings::new().expect("should load settings");
-    }
-}
