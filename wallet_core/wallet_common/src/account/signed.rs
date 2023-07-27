@@ -13,8 +13,8 @@ use super::{
 };
 use crate::errors::{Error, Result, SigningError, ValidationError};
 
-// Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.
-// They are generic over the data type that they contain, so that the signed data type is encoded in the type structure
+// Signed data by the wallet, with both the hardware and PIN keys.
+// It is generic over the data type that it contains, so that the signed data type is encoded in the type structure
 // of users of `SignedDouble<T>`, and so that all methods of `SignedDouble<T>` for verification and deserialization
 // also have access to the same type `T`. Instead of containing T directly, however, `SignedDouble<T>` wraps strings
 // containing a JSON-serialized version of T, because that stores not only the data itself but also the order of the
