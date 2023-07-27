@@ -287,7 +287,7 @@ where
         let instruction = self.new_check_pin_request(pin, challenge).await?;
         let signed_result = self.account_server.check_pin(instruction).await?;
 
-        let result = signed_result
+        signed_result
             .parse_and_verify(
                 &self
                     .config_repository
@@ -295,9 +295,10 @@ where
                     .account_server
                     .instruction_result_public_key,
             )
-            .map_err(WalletUnlockError::InstructionResultValidation);
+            .map_err(WalletUnlockError::InstructionResultValidation)?;
 
-        result.map(|_| self.lock.unlock())
+        self.lock.unlock();
+        Ok(())
     }
 
     #[instrument(skip_all)]

@@ -178,14 +178,15 @@ impl JwtClaims for InstructionChallengeClaims {
     const SUB: &'static str = "instruction_challenge";
 }
 
-pub trait HandleInstruction<T, R>
-where
-    R: Serialize + DeserializeOwned,
-{
-    fn handle(&self) -> Result<R, InstructionError>;
+pub trait HandleInstruction<T> {
+    type Result: Serialize + DeserializeOwned;
+
+    fn handle(&self) -> Result<Self::Result, InstructionError>;
 }
 
-impl HandleInstruction<CheckPin, ()> for CheckPin {
+impl HandleInstruction<CheckPin> for CheckPin {
+    type Result = ();
+
     fn handle(&self) -> Result<(), InstructionError> {
         Ok(())
     }
@@ -285,7 +286,7 @@ impl AccountServer {
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         T: Committable,
-        I: HandleInstruction<I, R> + Serialize + DeserializeOwned,
+        I: HandleInstruction<I, Result = R> + Serialize + DeserializeOwned,
         R: Serialize + DeserializeOwned,
     {
         let wallet_user = self
@@ -467,8 +468,7 @@ impl AccountServer {
         wallet_user: &WalletUser,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
-        I: HandleInstruction<I, R> + Serialize + DeserializeOwned,
-        R: Serialize + DeserializeOwned,
+        I: HandleInstruction<I, Result = R> + Serialize + DeserializeOwned,
     {
         let challenge = wallet_user
             .instruction_challenge
