@@ -139,7 +139,7 @@ mod tests {
 
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct ToyMessage {
         number: u8,
         string: String,
@@ -151,12 +151,6 @@ mod tests {
                 number: 42,
                 string: "Hello, world!".to_string(),
             }
-        }
-    }
-
-    impl PartialEq for ToyMessage {
-        fn eq(&self, other: &Self) -> bool {
-            self.number == other.number && self.string == other.string
         }
     }
 

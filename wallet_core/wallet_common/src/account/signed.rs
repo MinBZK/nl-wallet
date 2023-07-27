@@ -151,7 +151,7 @@ mod tests {
 
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct ToyMessage {
         number: u8,
         string: String,
@@ -178,6 +178,6 @@ mod tests {
             .parse_and_verify(challenge, hw_privkey.verifying_key(), pin_privkey.verifying_key())
             .unwrap();
 
-        dbg!(verified);
+        assert_eq!(ToyMessage::default(), verified.payload);
     }
 }
