@@ -477,10 +477,6 @@ impl AccountServer {
             .parse_and_verify(challenge, &wallet_user.hw_pubkey.0, &wallet_user.pin_pubkey.0)
             .map_err(InstructionValidationError::VerificationFailed)?;
 
-        if parsed.challenge.0 != *challenge {
-            return Err(InstructionValidationError::ChallengeMismatch);
-        }
-
         if parsed.sequence_number <= wallet_user.instruction_sequence_number {
             return Err(InstructionValidationError::SequenceNumberMismatch);
         }
