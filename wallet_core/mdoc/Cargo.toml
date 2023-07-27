@@ -1,8 +1,9 @@
 [package]
-name = "nl-wallet-mdoc"
+name = "nl_wallet_mdoc"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -39,6 +40,6 @@ x509-parser = { workspace = true , features = ["verify", "validate"] }
 
 [dev-dependencies]
 anyhow = "1.0.66"
-nl-wallet-mdoc = { path = ".", features = ["mock"] }
+nl_wallet_mdoc = { path = ".", features = ["mock"] }
 
 [lib]
