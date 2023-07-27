@@ -35,6 +35,8 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       // as they can contain references to the previous Flutter engine.
       await _walletCore.clearLockStream();
       await _walletCore.clearConfigurationStream();
+      // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
+      await _walletCore.lockWallet();
     }
     _isInitialized.complete();
   }
