@@ -77,10 +77,15 @@ impl From<SigningKey> for DerSigningKey {
     }
 }
 
-/// Printing a signing key will display the public key.
-impl Display for DerSigningKey {
+impl From<&DerSigningKey> for DerVerifyingKey {
+    fn from(value: &DerSigningKey) -> Self {
+        (*value.0.verifying_key()).into()
+    }
+}
+
+impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let pubkey = STANDARD_NO_PAD.encode(self.0.verifying_key().to_encoded_point(false).as_bytes());
+        let pubkey = STANDARD_NO_PAD.encode(self.0.to_encoded_point(false).as_bytes());
         write!(f, "{}", pubkey)
     }
 }
