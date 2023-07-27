@@ -14,7 +14,7 @@ use wallet_common::account::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
         instructions::{
-            CheckPin, Instruction, InstructionChallengeRequest, InstructionResult, InstructionResultMessage,
+            CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage,
         },
     },
     signed::SignedDouble,
@@ -142,7 +142,7 @@ impl AccountServerClient for RemoteAccountServerClient {
 
     async fn instruction_challenge(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge: Challenge = self
             .send_json_post_request("instructions/challenge", &challenge_request)

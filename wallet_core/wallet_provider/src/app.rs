@@ -6,7 +6,7 @@ use tower_http::trace::TraceLayer;
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResultMessage},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResultMessage},
     },
     signed::SignedDouble,
 };
@@ -64,7 +64,7 @@ async fn create_wallet(
 
 async fn instruction_challenge(
     State(state): State<Arc<AppDependencies>>,
-    Json(payload): Json<InstructionChallengeRequest>,
+    Json(payload): Json<InstructionChallengeRequestMessage>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     let challenge = state
         .account_server

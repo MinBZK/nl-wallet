@@ -4,7 +4,7 @@ use url::Url;
 use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult},
     },
     signed::SignedDouble,
 };
@@ -56,7 +56,7 @@ impl AccountServerClient for AccountServer {
 
     async fn instruction_challenge(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountServerClientError> {
         AccountServer::instruction_challenge(self, challenge_request, &TestDeps)
             .await

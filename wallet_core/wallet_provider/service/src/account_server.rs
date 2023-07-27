@@ -10,7 +10,7 @@ use wallet_common::{
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             instructions::{
-                CheckPin, Instruction, InstructionChallengeRequest, InstructionResult, InstructionResultClaims,
+                CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
             },
         },
         serialization::Base64Bytes,
@@ -159,20 +159,8 @@ struct RegistrationChallengeClaims {
     random: Base64Bytes,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct InstructionChallengeClaims {
-    exp: u64,
-
-    /// Random bytes to serve as the actual challenge for the wallet to sign.
-    random: Base64Bytes,
-}
-
 impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
-}
-
-impl JwtClaims for InstructionChallengeClaims {
-    const SUB: &'static str = "instruction_challenge";
 }
 
 pub trait HandleInstruction<T> {
@@ -240,7 +228,7 @@ impl AccountServer {
 
     pub async fn instruction_challenge<T>(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
     ) -> Result<Vec<u8>, ChallengeError>
     where
@@ -651,7 +639,7 @@ mod tests {
     use rand::rngs::OsRng;
     use uuid::uuid;
 
-    use wallet_common::account::{messages::instructions::InstructionChallenge, serialization::DerVerifyingKey};
+    use wallet_common::account::{messages::instructions::InstructionChallengeRequest, serialization::DerVerifyingKey};
     use wallet_provider_domain::{
         model::TimeoutPinPolicy,
         repository::{TransactionStarterStub, WalletUserRepositoryStub},
@@ -800,8 +788,8 @@ mod tests {
         assert_matches!(
             account_server
                 .instruction_challenge(
-                    InstructionChallengeRequest {
-                        message: InstructionChallenge::new_signed(9, "wallet", &hw_privkey).unwrap(),
+                    InstructionChallengeRequestMessage {
+                        message: InstructionChallengeRequest::new_signed(9, "wallet", &hw_privkey).unwrap(),
                         certificate: cert.clone(),
                     },
                     &deps,
@@ -813,8 +801,8 @@ mod tests {
 
         let challenge = account_server
             .instruction_challenge(
-                InstructionChallengeRequest {
-                    message: InstructionChallenge::new_signed(43, "wallet", &hw_privkey).unwrap(),
+                InstructionChallengeRequestMessage {
+                    message: InstructionChallengeRequest::new_signed(43, "wallet", &hw_privkey).unwrap(),
                     certificate: cert.clone(),
                 },
                 &deps,
@@ -873,8 +861,8 @@ mod tests {
 
         let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
 
-        let challenge_request = InstructionChallengeRequest {
-            message: InstructionChallenge::new_signed(1, "wallet", &hw_privkey).unwrap(),
+        let challenge_request = InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey).unwrap(),
             certificate: cert.clone(),
         };
 

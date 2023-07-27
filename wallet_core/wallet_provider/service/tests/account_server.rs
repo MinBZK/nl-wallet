@@ -4,7 +4,7 @@ use std::env;
 use uuid::Uuid;
 use wallet_common::account::messages::{
     auth::{Registration, WalletCertificate, WalletCertificateClaims},
-    instructions::{InstructionChallenge, InstructionChallengeRequest},
+    instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
 };
 use wallet_provider_domain::{
     generator::Generator,
@@ -90,9 +90,9 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest {
+            InstructionChallengeRequestMessage {
                 certificate: certificate.clone(),
-                message: InstructionChallenge::new_signed(1, "wallet", &hw_privkey).unwrap(),
+                message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey).unwrap(),
             },
             &repos,
         )
@@ -103,9 +103,9 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest {
+            InstructionChallengeRequestMessage {
                 certificate,
-                message: InstructionChallenge::new_signed(2, "wallet", &hw_privkey).unwrap(),
+                message: InstructionChallengeRequest::new_signed(2, "wallet", &hw_privkey).unwrap(),
             },
             &repos,
         )

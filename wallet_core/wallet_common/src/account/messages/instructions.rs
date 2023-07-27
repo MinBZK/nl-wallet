@@ -39,12 +39,6 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct InstructionChallengeRequest {
-    pub message: InstructionChallenge,
-    pub certificate: WalletCertificate,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstructionChallengeRequestClaims {
     pub sequence_number: u64,
@@ -57,9 +51,15 @@ impl JwtClaims for InstructionChallengeRequestClaims {
     const SUB: &'static str = "instruction_challenge_request";
 }
 
-pub type InstructionChallenge = Jwt<InstructionChallengeRequestClaims>;
+pub type InstructionChallengeRequest = Jwt<InstructionChallengeRequestClaims>;
 
-impl InstructionChallenge {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstructionChallengeRequestMessage {
+    pub message: InstructionChallengeRequest,
+    pub certificate: WalletCertificate,
+}
+
+impl InstructionChallengeRequest {
     pub fn new_signed(
         instruction_sequence_number: u64,
         issuer: &str,

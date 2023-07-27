@@ -7,7 +7,7 @@ pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::{
     auth::Registration,
     errors::ErrorType,
-    instructions::{CheckPin, Instruction, InstructionChallenge, InstructionChallengeRequest},
+    instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage},
 };
 
 use crate::{
@@ -181,13 +181,15 @@ where
         Ok(())
     }
 
-    async fn new_instruction_challenge_request(&mut self) -> Result<InstructionChallengeRequest, WalletUnlockError> {
+    async fn new_instruction_challenge_request(
+        &mut self,
+    ) -> Result<InstructionChallengeRequestMessage, WalletUnlockError> {
         self.increment_sequence_number().await?;
 
         let registration_data = self.registration.as_ref().unwrap();
 
-        Ok(InstructionChallengeRequest {
-            message: InstructionChallenge::new_signed(
+        Ok(InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(
                 registration_data.instruction_sequence_number,
                 "wallet",
                 &self.hw_privkey.clone(),
