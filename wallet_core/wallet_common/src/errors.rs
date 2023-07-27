@@ -26,6 +26,8 @@ pub enum Error {
     TypeMismatch { expected: SignedType, received: SignedType },
     #[error("challenge does not match")]
     ChallengeMismatch,
+    #[error("sequence number does not match")]
+    SequenceNumberMismatch,
     #[error("JSON parsing error: {0}")]
     JsonParsing(#[from] serde_json::Error),
     #[error(transparent)]

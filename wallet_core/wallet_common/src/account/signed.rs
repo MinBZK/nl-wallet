@@ -53,6 +53,20 @@ pub enum SignedType {
     HW,
 }
 
+pub enum SequenceNumberComparison {
+    EqualTo(u64),
+    LargerThan(u64),
+}
+
+impl SequenceNumberComparison {
+    pub fn verify(&self, expected_sequence_number: u64) -> bool {
+        match self {
+            SequenceNumberComparison::EqualTo(sequence_number) => expected_sequence_number == *sequence_number,
+            SequenceNumberComparison::LargerThan(sequence_number) => expected_sequence_number > *sequence_number,
+        }
+    }
+}
+
 fn parse_and_verify_message<'a>(
     signed: &'a str,
     typ: SignedType,
@@ -87,13 +101,24 @@ impl<'de, T> SignedDouble<T>
 where
     T: Serialize + Deserialize<'de>,
 {
-    fn verify(&self, challenge: &[u8], hw_pubkey: &VerifyingKey, pin_pubkey: &VerifyingKey) -> Result<()> {
+    fn verify(
+        &self,
+        challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
+        hw_pubkey: &VerifyingKey,
+        pin_pubkey: &VerifyingKey,
+    ) -> Result<()> {
         let outer = parse_and_verify_message(&self.0, SignedType::HW, hw_pubkey)?;
         let inner = parse_and_verify_message(outer.signed.get(), SignedType::Pin, pin_pubkey)?;
 
         let signed: ChallengeResponsePayload<&RawValue> = serde_json::from_str(inner.signed.get())?;
+
         if challenge != signed.challenge.0 {
             return Err(Error::ChallengeMismatch);
+        }
+
+        if !sequence_number_comparison.verify(signed.sequence_number) {
+            return Err(Error::SequenceNumberMismatch);
         }
 
         Ok(())
@@ -109,10 +134,11 @@ where
     pub fn parse_and_verify(
         &'de self,
         challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
         hw_pubkey: &VerifyingKey,
         pin_pubkey: &VerifyingKey,
     ) -> Result<ChallengeResponsePayload<T>> {
-        self.verify(challenge, hw_pubkey, pin_pubkey)?;
+        self.verify(challenge, sequence_number_comparison, hw_pubkey, pin_pubkey)?;
         self.dangerous_parse_unverified()
     }
 
@@ -175,7 +201,12 @@ mod tests {
         println!("{}", signed.0);
 
         let verified = signed
-            .parse_and_verify(challenge, hw_privkey.verifying_key(), pin_privkey.verifying_key())
+            .parse_and_verify(
+                challenge,
+                SequenceNumberComparison::LargerThan(1336),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
             .unwrap();
 
         assert_eq!(ToyMessage::default(), verified.payload);

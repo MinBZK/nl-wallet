@@ -75,6 +75,7 @@ pub struct Certificate {
 
 #[cfg(test)]
 mod tests {
+    use crate::account::signed::SequenceNumberComparison;
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
     use super::*;
@@ -96,6 +97,7 @@ mod tests {
         // wallet provider takes the public keys from the message, and verifies the signatures
         dbg!(msg.parse_and_verify(
             challenge,
+            SequenceNumberComparison::EqualTo(0),
             &unverified.payload.hw_pubkey.0,
             &unverified.payload.pin_pubkey.0,
         )?);

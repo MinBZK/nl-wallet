@@ -14,7 +14,7 @@ use wallet_common::{
             },
         },
         serialization::Base64Bytes,
-        signed::{ChallengeResponsePayload, SignedDouble},
+        signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
         signing_key::EcdsaKey,
     },
     utils::{random_bytes, random_string},
@@ -349,16 +349,10 @@ impl AccountServer {
 
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
-        let signed = registration_message
-            .parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)
-            .map_err(RegistrationError::MessageValidation)?;
 
-        if signed.sequence_number != 0 {
-            return Err(RegistrationError::SerialNumberMismatch {
-                expected: 0,
-                received: signed.sequence_number,
-            });
-        }
+        registration_message
+            .parse_and_verify(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
+            .map_err(RegistrationError::MessageValidation)?;
 
         let tx = repositories.begin_transaction().await?;
 
@@ -462,12 +456,13 @@ impl AccountServer {
 
         let parsed = instruction
             .instruction
-            .parse_and_verify(challenge, &wallet_user.hw_pubkey.0, &wallet_user.pin_pubkey.0)
+            .parse_and_verify(
+                challenge,
+                SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
+                &wallet_user.hw_pubkey.0,
+                &wallet_user.pin_pubkey.0,
+            )
             .map_err(InstructionValidationError::VerificationFailed)?;
-
-        if parsed.sequence_number <= wallet_user.instruction_sequence_number {
-            return Err(InstructionValidationError::SequenceNumberMismatch);
-        }
 
         Ok(parsed)
     }
@@ -641,7 +636,7 @@ mod tests {
 
     use wallet_common::account::{messages::instructions::InstructionChallengeRequest, serialization::DerVerifyingKey};
     use wallet_provider_domain::{
-        model::TimeoutPinPolicy,
+        model::{FailingPinPolicy, TimeoutPinPolicy},
         repository::{TransactionStarterStub, WalletUserRepositoryStub},
         EpochGenerator,
     };
@@ -823,12 +818,15 @@ mod tests {
                         challenge: Some(challenge.clone()),
                         instruction_sequence_number: 43,
                     },
-                    &TimeoutPinPolicy,
+                    &FailingPinPolicy,
                     &EpochGenerator,
                 )
                 .await
-                .expect_err("should return instruction sequence number mismatch error"),
-            InstructionError::Validation(_)
+                .expect_err("sequence number mismatch error should result in IncorrectPin error"),
+            InstructionError::IncorrectPin {
+                attempts_left: _,
+                is_final_attempt: _
+            }
         );
 
         account_server

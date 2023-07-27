@@ -90,6 +90,7 @@ where
             .map_err(ValidationError::from)?
             .claims
             .payload;
+
         Ok(payload)
     }
 
