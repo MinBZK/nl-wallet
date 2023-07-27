@@ -1,8 +1,5 @@
 use chrono::{DateTime, Local};
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    pkcs8::EncodePublicKey,
-};
+use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::Digest;
 use uuid::Uuid;
@@ -16,7 +13,7 @@ use wallet_common::{
                 CheckPin, Instruction, InstructionChallengeRequest, InstructionResult, InstructionResultClaims,
             },
         },
-        serialization::{Base64Bytes, DerSigningKey},
+        serialization::Base64Bytes,
         signed::{ChallengeResponsePayload, SignedDouble},
         signing_key::EcdsaKey,
     },
@@ -524,7 +521,9 @@ fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64
 #[cfg(any(test, feature = "stub"))]
 pub mod stub {
     use async_trait::async_trait;
+    use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
+    use wallet_common::account::serialization::DerSigningKey;
 
     use wallet_provider_domain::{
         generator::stub::FixedGenerator,
@@ -652,6 +651,7 @@ pub mod stub {
 mod tests {
     use assert_matches::assert_matches;
     use async_trait::async_trait;
+    use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
     use uuid::uuid;
 
