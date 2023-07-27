@@ -21,12 +21,12 @@ use wallet_common::{
 };
 use wallet_provider_domain::{
     generator::Generator,
-    hsm_key::HsmEcdsaKey,
     model::{
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
         wallet_user::{WalletUser, WalletUserCreate},
     },
     repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
+    wallet_provider_signing_key::WalletProviderEcdsaKey,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -178,8 +178,8 @@ impl HandleInstruction<CheckPin> for CheckPin {
 }
 
 pub struct AccountServer {
-    certificate_signing_key: HsmEcdsaKey,
-    instruction_result_signing_key: HsmEcdsaKey,
+    certificate_signing_key: WalletProviderEcdsaKey,
+    instruction_result_signing_key: WalletProviderEcdsaKey,
 
     pin_hash_salt: Vec<u8>,
 
@@ -190,8 +190,8 @@ pub struct AccountServer {
 
 impl AccountServer {
     pub fn new(
-        certificate_signing_key: HsmEcdsaKey,
-        instruction_result_signing_key: HsmEcdsaKey,
+        certificate_signing_key: WalletProviderEcdsaKey,
+        instruction_result_signing_key: WalletProviderEcdsaKey,
         pin_hash_salt: Vec<u8>,
         name: String,
     ) -> Result<AccountServer, AccountServerInitError> {

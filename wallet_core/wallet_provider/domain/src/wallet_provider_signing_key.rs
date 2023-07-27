@@ -4,15 +4,15 @@ use wallet_common::account::{
     signing_key::{EcdsaKey, SecureEcdsaKey},
 };
 
-pub struct HsmEcdsaKey(DerSigningKey);
+pub struct WalletProviderEcdsaKey(DerSigningKey);
 
-impl From<DerSigningKey> for HsmEcdsaKey {
+impl From<DerSigningKey> for WalletProviderEcdsaKey {
     fn from(val: DerSigningKey) -> Self {
-        HsmEcdsaKey(val)
+        WalletProviderEcdsaKey(val)
     }
 }
 
-impl EcdsaKey for HsmEcdsaKey {
+impl EcdsaKey for WalletProviderEcdsaKey {
     type Error = signature::Error;
 
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -20,10 +20,10 @@ impl EcdsaKey for HsmEcdsaKey {
     }
 }
 
-impl Signer<Signature> for HsmEcdsaKey {
+impl Signer<Signature> for WalletProviderEcdsaKey {
     fn try_sign(&self, msg: &[u8]) -> Result<Signature, Error> {
         self.0 .0.try_sign(msg)
     }
 }
 
-impl SecureEcdsaKey for HsmEcdsaKey {}
+impl SecureEcdsaKey for WalletProviderEcdsaKey {}
