@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
 use indexmap::IndexMap;
 use p256::ecdsa::{SigningKey, VerifyingKey};
+use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
         crypto::dh_hmac_key,
         serialization::cbor_deserialize,
         signer::{MdocEcdsaKey, SecureEcdsaKey},
-        x509::{CertificateUsage, TrustAnchors},
+        x509::CertificateUsage,
         Generator,
     },
     verifier::X509Subject,
@@ -136,7 +137,7 @@ impl DeviceRequest {
         &self,
         reader_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<Option<X509Subject>> {
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);

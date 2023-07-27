@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
+use webpki::TrustAnchor;
 
 use crate::{
     basic_sa_ext::{
@@ -15,7 +16,6 @@ use crate::{
         crypto::random_string,
         serialization::{cbor_serialize, TaggedBytes},
         signer::MdocEcdsaKey,
-        x509::TrustAnchors,
         TimeGenerator,
     },
     verifier::ValidityRequirement,
@@ -53,7 +53,7 @@ impl<C: Storage> Wallet<C> {
         service_engagement: ServiceEngagement,
         user_consent: &impl IssuanceUserConsent,
         client_builder: &impl HttpClientBuilder,
-        trust_anchors: &TrustAnchors<'_>,
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<()> {
         let client = client_builder.build(service_engagement);
 
@@ -124,7 +124,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
     pub fn issuance_finish(
         self,
         issuer_response: DataToIssueMessage,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<Vec<MdocCopies<K>>> {
         issuer_response
             .mobile_id_documents
@@ -139,7 +139,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &Vec<K>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<MdocCopies<K>> {
         let cred_copies = doc
             .sparse_issuer_signed
@@ -157,7 +157,7 @@ impl SparseIssuerSigned {
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<Mdoc<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes

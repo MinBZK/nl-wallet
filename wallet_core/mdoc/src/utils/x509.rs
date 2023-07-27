@@ -12,7 +12,7 @@ use rcgen::{
     BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, RcgenError,
 };
 use serde_bytes::ByteBuf;
-use webpki::{EndEntityCert, KeyPurposeId, NonTlsTrustAnchors, Time, TrustAnchor, ECDSA_P256_SHA256};
+use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
     nom::AsBytes,
     prelude::{FromDer, X509Certificate, X509Error},
@@ -41,16 +41,6 @@ pub enum CertificateError {
 }
 
 const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
-
-/// Trust anchors against which certificate (chains) must verify, for use in [`Certificate::verify()`].
-/// Commonly encoded as self-signed CA X509 certificates.
-pub struct TrustAnchors<'a>(&'a [TrustAnchor<'a>]);
-
-impl<'a> From<&'a [TrustAnchor<'a>]> for TrustAnchors<'a> {
-    fn from(value: &'a [TrustAnchor<'a>]) -> Self {
-        Self(value)
-    }
-}
 
 /// An x509 certificate, unifying functionality from the following crates:
 ///
@@ -98,15 +88,15 @@ impl Certificate {
         usage: CertificateUsage,
         intermediate_certs: &[&[u8]],
         time: &impl Generator<DateTime<Utc>>,
-        TrustAnchors(trust_anchors): &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<(), CertificateError> {
         self.to_webpki()?
-            .verify_is_valid_cert_with_eku(
+            .verify_for_usage(
                 &[&ECDSA_P256_SHA256],
-                &NonTlsTrustAnchors(trust_anchors),
+                trust_anchors,
                 intermediate_certs,
                 Time::from_seconds_since_unix_epoch(time.generate().timestamp() as u64),
-                webpki::ExtendedKeyUsage::Required(KeyPurposeId::new(usage.to_eku())),
+                webpki::KeyUsage::required(usage.to_eku()),
                 &[],
             )
             .map_err(CertificateError::Verification)
@@ -247,13 +237,8 @@ mod test {
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", CertificateUsage::Mdl).unwrap();
 
-        cert.verify(
-            CertificateUsage::Mdl,
-            &[],
-            &TimeGenerator,
-            &[ca_trustanchor].as_slice().into(),
-        )
-        .unwrap();
+        cert.verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+            .unwrap();
     }
 
     #[test]
@@ -261,7 +246,5 @@ mod test {
         let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
         let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
         assert_eq!(mdl_kp, CertificateUsage::Mdl.to_eku());
-
-        webpki::KeyPurposeId::new(mdl_kp);
     }
 }

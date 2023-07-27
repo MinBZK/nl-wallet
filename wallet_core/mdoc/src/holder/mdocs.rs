@@ -3,11 +3,12 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use webpki::TrustAnchor;
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, x509::TrustAnchors, Generator},
+    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, Generator},
     verifier::ValidityRequirement,
     Result,
 };
@@ -121,7 +122,7 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
         private_key: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<Mdoc<K>> {
         let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
         Ok(Self::_new(mso.doc_type, private_key, issuer_signed))

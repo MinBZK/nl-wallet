@@ -44,7 +44,7 @@ fn iso_examples_disclosure() {
             Some(&eph_reader_key),
             &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
             &IsoCertTimeGenerator,
-            &ca_cert,
+            ca_cert,
         )
         .unwrap();
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts(disclosed_attributes));
@@ -59,7 +59,7 @@ fn iso_examples_disclosure() {
             .verify(
                 &ReaderAuthenticationBytes::example_bts(),
                 &IsoCertTimeGenerator,
-                &reader_ca_cert,
+                reader_ca_cert,
             )
             .unwrap(),
     );
@@ -70,7 +70,7 @@ fn iso_examples_disclosure() {
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &IsoCertTimeGenerator,
-        &ca_cert,
+        ca_cert,
     )
     .unwrap();
 
@@ -86,7 +86,7 @@ fn iso_examples_disclosure() {
             None,
             &DeviceAuthenticationBytes::example_bts(),
             &IsoCertTimeGenerator,
-            &ca_cert
+            ca_cert
         )),
     );
 }
@@ -113,7 +113,7 @@ fn iso_examples_custom_disclosure() {
         "example_static_device_key".to_string(),
         device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
         &IsoCertTimeGenerator,
-        &ca_cert,
+        ca_cert,
     )
     .unwrap();
 
@@ -129,7 +129,7 @@ fn iso_examples_custom_disclosure() {
             None,
             &DeviceAuthenticationBytes::example_bts(),
             &IsoCertTimeGenerator,
-            &ca_cert
+            ca_cert
         )),
     );
 }
@@ -142,11 +142,7 @@ fn iso_examples_consistency() {
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
         .issuer_signed
         .issuer_auth
-        .verify_against_trust_anchors(
-            CertificateUsage::Mdl,
-            &IsoCertTimeGenerator,
-            &Examples::issuer_ca_cert(),
-        )
+        .verify_against_trust_anchors(CertificateUsage::Mdl, &IsoCertTimeGenerator, Examples::issuer_ca_cert())
         .unwrap()
         .0
         .device_key_info
@@ -302,7 +298,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
                     service_engagement,
                     &user_consent,
                     &client_builder,
-                    &[(&ca).try_into().unwrap()].as_slice().into(),
+                    &[(&ca).try_into().unwrap()],
                 )
                 .await
                 .unwrap();
@@ -333,12 +329,7 @@ fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
         "Disclosure: {:#?}",
         DebugCollapseBts(
             disclosed
-                .verify(
-                    None,
-                    &challenge,
-                    &TimeGenerator,
-                    &[(&ca).try_into().unwrap()].as_slice().into()
-                )
+                .verify(None, &challenge, &TimeGenerator, &[(&ca).try_into().unwrap()])
                 .unwrap()
         )
     );

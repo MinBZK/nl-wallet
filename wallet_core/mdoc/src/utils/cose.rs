@@ -8,6 +8,7 @@ use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
+use webpki::TrustAnchor;
 
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
@@ -16,7 +17,7 @@ use crate::{
 };
 
 use super::{
-    x509::{Certificate, CertificateError, CertificateUsage, TrustAnchors},
+    x509::{Certificate, CertificateError, CertificateUsage},
     Generator,
 };
 
@@ -180,7 +181,7 @@ impl<T> MdocCose<CoseSign1, T> {
         &self,
         usage: CertificateUsage,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<T>
     where
         T: DeserializeOwned,

@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
+use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
-        x509::{CertificateUsage, TrustAnchors},
+        x509::CertificateUsage,
         Generator,
     },
     Result,
@@ -61,7 +62,7 @@ impl DeviceResponse {
         eph_reader_key: Option<&SigningKey>,
         device_authentication_bts: &Vec<u8>,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes> {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
@@ -148,7 +149,7 @@ impl IssuerSigned {
         &self,
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
         let TaggedBytes(mso) =
             self.issuer_auth
@@ -196,7 +197,7 @@ impl Document {
         device_authentication: &DeviceAuthenticationBytes,
         device_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: &[TrustAnchor],
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
         let (attrs, mso) = self
             .issuer_signed
