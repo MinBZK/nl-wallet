@@ -134,7 +134,7 @@ where
 
 impl<C, T> From<C> for MdocCose<C, T> {
     fn from(cose: C) -> Self {
-        MdocCose(cose, PhantomData::default())
+        MdocCose(cose, PhantomData)
     }
 }
 
