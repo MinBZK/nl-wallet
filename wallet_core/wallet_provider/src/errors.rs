@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::error::Error;
 
 use axum::{
     http::StatusCode,
@@ -9,7 +9,7 @@ use mime::Mime;
 use once_cell::sync::Lazy;
 use tracing::log::debug;
 
-use wallet_common::account::messages::errors::{DataValue, ErrorData, ErrorType};
+use wallet_common::account::messages::errors::{ErrorData, ErrorType};
 use wallet_provider_service::account_server::{ChallengeError, InstructionError, RegistrationError};
 
 pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
@@ -27,12 +27,8 @@ pub struct WalletProviderError {
 /// convertible to a [`WalletProviderError`].
 pub trait ConvertibleError: Error {
     fn error_type(&self) -> ErrorType;
-
     fn error_title(&self) -> String {
         self.to_string()
-    }
-    fn error_extra_data(&self) -> Option<HashMap<String, DataValue>> {
-        None
     }
 }
 
@@ -73,7 +69,6 @@ where
             body: ErrorData {
                 typ: error_type,
                 title: value.error_title(),
-                data: value.error_extra_data(),
             },
         }
     }
@@ -110,11 +105,8 @@ impl ConvertibleError for RegistrationError {
 impl ConvertibleError for InstructionError {
     fn error_type(&self) -> ErrorType {
         match self {
-            InstructionError::IncorrectPin {
-                attempts_left: _,
-                is_final_attempt: _,
-            } => ErrorType::IncorrectPin,
-            InstructionError::PinTimeout { time_left_in_ms: _ } => ErrorType::PinTimeout,
+            InstructionError::IncorrectPin(data) => ErrorType::IncorrectPin(*data),
+            InstructionError::PinTimeout(data) => ErrorType::PinTimeout(*data),
             InstructionError::AccountBlocked => ErrorType::AccountBlocked,
             InstructionError::Validation(_) => ErrorType::InstructionValidation,
             InstructionError::Signing(_) | InstructionError::Storage(_) | InstructionError::WalletCertificate(_) => {
@@ -122,28 +114,12 @@ impl ConvertibleError for InstructionError {
             }
         }
     }
-
-    fn error_extra_data(&self) -> Option<HashMap<String, DataValue>> {
-        match self {
-            InstructionError::IncorrectPin {
-                attempts_left,
-                is_final_attempt,
-            } => Some(HashMap::from([
-                ("leftover_attempts".to_string(), u64::from(*attempts_left).into()),
-                ("is_final_attempt".to_string(), (*is_final_attempt).into()),
-            ])),
-            InstructionError::PinTimeout { time_left_in_ms } => Some(HashMap::from([(
-                "time_left_in_millis".to_string(),
-                (*time_left_in_ms).into(),
-            )])),
-            _ => None,
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use wallet_common::account::messages::errors::IncorrectPinData;
 
     use super::*;
 
@@ -152,22 +128,21 @@ mod tests {
         let error = WalletProviderError {
             status_code: StatusCode::OK,
             body: ErrorData {
-                typ: ErrorType::ChallengeValidation,
+                typ: ErrorType::IncorrectPin(IncorrectPinData {
+                    attempts_left: 8,
+                    is_final_attempt: false,
+                }),
                 title: "Error title".to_string(),
-                data: Some(HashMap::from([
-                    ("foo".to_string(), DataValue::String("bar".to_string())),
-                    ("bleh".to_string(), DataValue::String("blah".to_string())),
-                ])),
             },
         };
         let error_body = serde_json::to_value(error.body).expect("Could not encode error to JSON");
 
         let expected_body = json!({
-            "type": "ChallengeValidation",
+            "type": "IncorrectPin",
             "title": "Error title",
             "data": {
-                "foo": "bar",
-                "bleh": "blah",
+                "attempts_left": 8,
+                "is_final_attempt": false,
             }
         });
         assert_eq!(error_body, expected_body);

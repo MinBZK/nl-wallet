@@ -3,7 +3,7 @@ use wallet::wallet::WalletUnlockError;
 pub enum WalletUnlockResult {
     Ok,
     IncorrectPin {
-        leftover_attempts: u64,
+        leftover_attempts: u8,
         is_final_attempt: bool,
     },
     Timeout {

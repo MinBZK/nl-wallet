@@ -387,7 +387,7 @@ class WalletCoreImpl implements WalletCore {
         return WalletUnlockResult_Ok();
       case 1:
         return WalletUnlockResult_IncorrectPin(
-          leftoverAttempts: _wire2api_u64(raw[1]),
+          leftoverAttempts: _wire2api_u8(raw[1]),
           isFinalAttempt: _wire2api_bool(raw[2]),
         );
       case 2:
