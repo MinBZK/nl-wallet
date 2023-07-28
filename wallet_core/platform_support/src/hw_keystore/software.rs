@@ -13,7 +13,7 @@ use wallet_common::{
     utils::random_bytes,
 };
 
-use super::{ConstructableWithIdentifier, HardwareKeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
+use super::{ConstructableWithIdentifier, PlatformEcdsaKey, PlatformEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -101,7 +101,9 @@ impl ConstructableWithIdentifier for SoftwareEncryptionKey {
     }
 }
 impl PlatformEncryptionKey for SoftwareEncryptionKey {
-    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+    type Error = aes_gcm::Error;
+
+    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Generate a random nonce
         let nonce_bytes = random_bytes(12);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
@@ -123,7 +125,7 @@ impl PlatformEncryptionKey for SoftwareEncryptionKey {
         Ok(result)
     }
 
-    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
+    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Re-create the nonce from the first 12 bytes
         let nonce = Nonce::from_slice(&msg[..12]);
 

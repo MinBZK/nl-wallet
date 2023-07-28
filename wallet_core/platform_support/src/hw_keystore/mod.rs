@@ -4,6 +4,8 @@ pub mod hardware;
 #[cfg(feature = "software")]
 pub mod software;
 
+use std::error::Error;
+
 use wallet_common::account::signing_key::SecureEcdsaKey;
 
 #[derive(Debug, thiserror::Error)]
@@ -46,7 +48,8 @@ pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
 /// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
 pub trait PlatformEncryptionKey: ConstructableWithIdentifier {
     // from ConstructableWithIdentifier: new(), identifier()
+    type Error: Error + Send + Sync + 'static;
 
-    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
-    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
+    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
+    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
 }

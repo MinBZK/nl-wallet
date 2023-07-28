@@ -6,7 +6,7 @@ use std::{
 use tokio::{fs, task};
 
 use platform_support::{
-    hw_keystore::{HardwareKeyStoreError, PlatformEncryptionKey},
+    hw_keystore::PlatformEncryptionKey,
     utils::{PlatformUtilities, UtilitiesError},
 };
 use wallet_common::utils::random_bytes;
@@ -20,7 +20,7 @@ pub enum KeyFileError {
     #[error("key file platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),
     #[error("key file platform key store error: {0}")]
-    PlatformKeyStore(#[from] HardwareKeyStoreError),
+    Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtilities>(
@@ -78,7 +78,9 @@ async fn write_encrypted_file(
     encryption_key: &impl PlatformEncryptionKey,
 ) -> Result<(), KeyFileError> {
     // Encrypt the contents as bytes and write to a new file at the path.
-    let encrypted_contents = encryption_key.encrypt(contents)?;
+    let encrypted_contents = encryption_key
+        .encrypt(contents)
+        .map_err(|e| KeyFileError::Encryption(e.into()))?;
     fs::write(path, &encrypted_contents).await?;
 
     Ok(())
@@ -90,7 +92,9 @@ async fn read_encrypted_file(
 ) -> Result<Vec<u8>, KeyFileError> {
     // Decrypt the bytes of a file at the path.
     let contents = fs::read(path).await?;
-    let decrypted_contents = encryption_key.decrypt(&contents)?;
+    let decrypted_contents = encryption_key
+        .decrypt(&contents)
+        .map_err(|e| KeyFileError::Encryption(e.into()))?;
 
     Ok(decrypted_contents)
 }

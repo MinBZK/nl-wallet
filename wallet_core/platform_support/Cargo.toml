@@ -16,7 +16,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 wallet_common = { path = "../wallet_common" }
-aes-gcm = { workspace = true, optional = true }
+aes-gcm = { workspace = true, optional = true, features = ["std"]}
 jni = { workspace = true, optional = true }
 never.workspace = true
 once_cell = { workspace = true, optional = true }
