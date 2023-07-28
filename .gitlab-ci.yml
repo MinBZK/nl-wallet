@@ -466,6 +466,7 @@ deploy-wallet-provider:
     - envsubst < kubernetes/wallet-provider-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/wallet-provider-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/wallet-provider-service.yaml
+    - kubectl apply -f kubernetes/wallet-provider-network-policy.yaml
     - kubectl rollout status deployment/wallet-provider
 
 deploy-wallet-provider-staging-cert:
