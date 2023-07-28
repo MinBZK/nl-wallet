@@ -18,8 +18,8 @@ pub struct AppDependencies {
 impl AppDependencies {
     pub async fn new_from_settings(settings: Settings) -> Result<Self, Box<dyn Error>> {
         let account_server = AccountServer::new(
-            settings.certificate_private_key.0,
-            settings.instruction_result_private_key.0,
+            settings.certificate_private_key.into(),
+            settings.instruction_result_private_key.into(),
             settings.pin_hash_salt.0,
             "account_server".into(),
         )?;

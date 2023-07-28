@@ -4,9 +4,9 @@ use url::Url;
 use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult},
     },
-    signed::{Signed, SignedDouble},
+    signed::SignedDouble,
 };
 use wallet_provider::{
     errors::{ConvertibleError, WalletProviderError},
@@ -56,7 +56,7 @@ impl AccountServerClient for AccountServer {
 
     async fn instruction_challenge(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountServerClientError> {
         AccountServer::instruction_challenge(self, challenge_request, &TestDeps)
             .await
@@ -66,7 +66,7 @@ impl AccountServerClient for AccountServer {
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError> {
+    ) -> Result<InstructionResult<()>, AccountServerClientError> {
         AccountServer::handle_instruction(self, instruction, &TestDeps, &FailingPinPolicy, &EpochGenerator)
             .await
             .map_err(AccountServerClientError::from_account_server)

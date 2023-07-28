@@ -4,11 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [features]
-stub = ["p256"]
+stub = []
 
 [dependencies]
 wallet_common = { path = "../../wallet_common" }
-p256 = { workspace = true, optional = true }
+p256 = { workspace = true }
 
 async-trait.workspace = true
 chrono = { workspace = true, features = ["default", "serde"] }

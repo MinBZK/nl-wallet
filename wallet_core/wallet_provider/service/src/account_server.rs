@@ -1,8 +1,5 @@
 use chrono::{DateTime, Local};
-use p256::{
-    ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
-    pkcs8::{DecodePrivateKey, EncodePrivateKey, EncodePublicKey},
-};
+use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::Digest;
 use uuid::Uuid;
@@ -12,10 +9,13 @@ use wallet_common::{
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
-            instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+            instructions::{
+                CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
+            },
         },
         serialization::Base64Bytes,
-        signed::{ChallengeResponsePayload, Signed, SignedDouble},
+        signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
+        signing_key::EcdsaKey,
     },
     utils::{random_bytes, random_string},
 };
@@ -26,6 +26,7 @@ use wallet_provider_domain::{
         wallet_user::{WalletUser, WalletUserCreate},
     },
     repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
+    wallet_provider_signing_key::WalletProviderEcdsaKey,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +34,8 @@ pub enum AccountServerInitError {
     // Do not format original error to prevent potentially leaking key material
     #[error("server private key decoding error")]
     PrivateKeyDecoding(#[from] p256::pkcs8::Error),
+    #[error("server public key decoding error")]
+    PublicKeyDecoding(#[from] p256::ecdsa::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -146,24 +149,6 @@ impl From<PinPolicyEvaluation> for InstructionError {
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
-pub struct WalletProviderSigningKey(SigningKey);
-impl Signer<Signature> for WalletProviderSigningKey {
-    fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
-        self.0.try_sign(msg)
-    }
-}
-
-pub struct AccountServer {
-    certificate_signing_key: SigningKey,
-    instruction_result_signing_key: SigningKey,
-
-    pin_hash_salt: Vec<u8>,
-
-    pub name: String,
-    pub certificate_pubkey: EcdsaDecodingKey,
-    pub instruction_result_pubkey: EcdsaDecodingKey,
-}
-
 /// Used as the challenge in the challenge-response protocol during wallet registration.
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
@@ -174,57 +159,44 @@ struct RegistrationChallengeClaims {
     random: Base64Bytes,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct InstructionChallengeClaims {
-    exp: u64,
-
-    /// Random bytes to serve as the actual challenge for the wallet to sign.
-    random: Base64Bytes,
-}
-
 impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
-impl JwtClaims for InstructionChallengeClaims {
-    const SUB: &'static str = "instruction_challenge";
+pub trait HandleInstruction {
+    type Result: Serialize + DeserializeOwned;
+
+    fn handle(&self) -> Result<Self::Result, InstructionError>;
 }
 
-pub trait HandleInstruction<T, R>
-where
-    R: Serialize + DeserializeOwned,
-{
-    fn handle(&self) -> Result<InstructionResult<R>, InstructionError>;
-}
+impl HandleInstruction for CheckPin {
+    type Result = ();
 
-impl HandleInstruction<CheckPin, ()> for CheckPin {
-    fn handle(&self) -> Result<InstructionResult<()>, InstructionError> {
-        Ok(InstructionResult::new(()))
+    fn handle(&self) -> Result<(), InstructionError> {
+        Ok(())
     }
+}
+
+pub struct AccountServer {
+    certificate_signing_key: WalletProviderEcdsaKey,
+    instruction_result_signing_key: WalletProviderEcdsaKey,
+
+    pin_hash_salt: Vec<u8>,
+
+    pub name: String,
+    pub certificate_pubkey: EcdsaDecodingKey,
+    pub instruction_result_pubkey: EcdsaDecodingKey,
 }
 
 impl AccountServer {
     pub fn new(
-        certificate_privkey: Vec<u8>,
-        instruction_result_privkey: Vec<u8>,
+        certificate_signing_key: WalletProviderEcdsaKey,
+        instruction_result_signing_key: WalletProviderEcdsaKey,
         pin_hash_salt: Vec<u8>,
         name: String,
     ) -> Result<AccountServer, AccountServerInitError> {
-        let certificate_signing_key = SigningKey::from_pkcs8_der(&certificate_privkey)?;
-        let instruction_result_signing_key = SigningKey::from_pkcs8_der(&instruction_result_privkey)?;
-
-        let certificate_pubkey = EcdsaDecodingKey::from_sec1(
-            certificate_signing_key
-                .verifying_key()
-                .to_encoded_point(false)
-                .as_bytes(),
-        );
-        let instruction_result_pubkey = EcdsaDecodingKey::from_sec1(
-            instruction_result_signing_key
-                .verifying_key()
-                .to_encoded_point(false)
-                .as_bytes(),
-        );
+        let certificate_pubkey = certificate_signing_key.verifying_key()?.into();
+        let instruction_result_pubkey = instruction_result_signing_key.verifying_key()?.into();
 
         Ok(AccountServer {
             certificate_signing_key,
@@ -245,7 +217,7 @@ impl AccountServer {
                 random: random_bytes(32).into(),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
-            self.certificate_signing_key.to_pkcs8_der().unwrap().as_bytes(),
+            &self.certificate_signing_key,
         )
         .map_err(ChallengeError::ChallengeSigning)?
         .0
@@ -256,7 +228,7 @@ impl AccountServer {
 
     pub async fn instruction_challenge<T>(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
     ) -> Result<Vec<u8>, ChallengeError>
     where
@@ -268,9 +240,9 @@ impl AccountServer {
             .verify_wallet_certificate(&challenge_request.certificate, repositories)
             .await?;
 
-        let parsed = challenge_request.message.parse_and_verify(&user.hw_pubkey.0)?;
+        let parsed = challenge_request.message.parse_and_verify(&user.hw_pubkey.into())?;
 
-        if parsed.payload.sequence_number <= user.instruction_sequence_number {
+        if parsed.sequence_number <= user.instruction_sequence_number {
             tx.commit().await?;
             return Err(ChallengeError::SequenceNumberValidation);
         }
@@ -282,7 +254,7 @@ impl AccountServer {
                 &tx,
                 &user.wallet_id,
                 Some(challenge.clone()),
-                parsed.payload.sequence_number,
+                parsed.sequence_number,
             )
             .await?;
         tx.commit().await?;
@@ -296,10 +268,10 @@ impl AccountServer {
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
         pin_policy: &impl PinPolicyEvaluator,
         time_generator: &impl Generator<DateTime<Local>>,
-    ) -> Result<Signed<InstructionResult<R>>, InstructionError>
+    ) -> Result<InstructionResult<R>, InstructionError>
     where
         T: Committable,
-        I: HandleInstruction<I, R> + Serialize + DeserializeOwned,
+        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
         R: Serialize + DeserializeOwned,
     {
         let wallet_user = self
@@ -334,12 +306,7 @@ impl AccountServer {
 
                 tx.commit().await?;
 
-                Ok(Signed::sign(
-                    payload.payload.handle()?,
-                    self.name.to_string(),
-                    &self.instruction_result_signing_key,
-                )
-                .map_err(InstructionError::Signing)?)
+                self.sign_instruction_result(payload.payload.handle()?)
             }
             Err(validation_error) => {
                 let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
@@ -382,16 +349,10 @@ impl AccountServer {
 
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
-        let signed = registration_message
-            .parse_and_verify(challenge, &hw_pubkey, &pin_pubkey)
-            .map_err(RegistrationError::MessageValidation)?;
 
-        if signed.sequence_number != 0 {
-            return Err(RegistrationError::SerialNumberMismatch {
-                expected: 0,
-                received: signed.sequence_number,
-            });
-        }
+        registration_message
+            .parse_and_verify(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
+            .map_err(RegistrationError::MessageValidation)?;
 
         let tx = repositories.begin_transaction().await?;
 
@@ -413,13 +374,11 @@ impl AccountServer {
             )
             .await?;
 
-        let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey);
+        let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)?;
 
-        if cert_result.is_ok() {
-            tx.commit().await?;
-        }
+        tx.commit().await?;
 
-        cert_result
+        Ok(cert_result)
     }
 
     fn new_wallet_certificate(
@@ -438,8 +397,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, self.certificate_signing_key.to_pkcs8_der().unwrap().as_bytes())
-            .map_err(RegistrationError::JwtSigning)
+        Jwt::sign(&cert, &self.certificate_signing_key).map_err(RegistrationError::JwtSigning)
     }
 
     fn verify_registration_challenge(
@@ -489,8 +447,7 @@ impl AccountServer {
         wallet_user: &WalletUser,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
-        I: HandleInstruction<I, R> + Serialize + DeserializeOwned,
-        R: Serialize + DeserializeOwned,
+        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -499,18 +456,28 @@ impl AccountServer {
 
         let parsed = instruction
             .instruction
-            .parse_and_verify(challenge, &wallet_user.hw_pubkey.0, &wallet_user.pin_pubkey.0)
+            .parse_and_verify(
+                challenge,
+                SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
+                &wallet_user.hw_pubkey.0,
+                &wallet_user.pin_pubkey.0,
+            )
             .map_err(InstructionValidationError::VerificationFailed)?;
 
-        if parsed.challenge.0 == *challenge {
-            if parsed.sequence_number > wallet_user.instruction_sequence_number {
-                Ok(parsed)
-            } else {
-                Err(InstructionValidationError::SequenceNumberMismatch)
-            }
-        } else {
-            Err(InstructionValidationError::ChallengeMismatch)
-        }
+        Ok(parsed)
+    }
+
+    fn sign_instruction_result<R>(&self, result: R) -> Result<InstructionResult<R>, InstructionError>
+    where
+        R: Serialize + DeserializeOwned,
+    {
+        let claims = InstructionResultClaims {
+            result,
+            iss: self.name.to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        };
+
+        Jwt::sign(&claims, &self.instruction_result_signing_key).map_err(InstructionError::Signing)
     }
 }
 
@@ -533,8 +500,9 @@ fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64
 #[cfg(any(test, feature = "stub"))]
 pub mod stub {
     use async_trait::async_trait;
-    use p256::pkcs8::EncodePrivateKey;
+    use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
+    use wallet_common::account::serialization::DerSigningKey;
 
     use wallet_provider_domain::{
         generator::stub::FixedGenerator,
@@ -545,12 +513,12 @@ pub mod stub {
     use super::*;
 
     pub fn account_server() -> AccountServer {
-        let account_server_privkey = SigningKey::random(&mut OsRng);
-        let instruction_result_privkey = SigningKey::random(&mut OsRng);
+        let account_server_privkey: DerSigningKey = SigningKey::random(&mut OsRng).into();
+        let instruction_result_privkey: DerSigningKey = SigningKey::random(&mut OsRng).into();
 
         AccountServer::new(
-            account_server_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
-            instruction_result_privkey.to_pkcs8_der().unwrap().as_bytes().to_vec(),
+            account_server_privkey.into(),
+            instruction_result_privkey.into(),
             random_bytes(32),
             "stub_account_server".into(),
         )
@@ -662,12 +630,13 @@ pub mod stub {
 mod tests {
     use assert_matches::assert_matches;
     use async_trait::async_trait;
+    use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
     use uuid::uuid;
 
-    use wallet_common::account::{messages::instructions::InstructionChallenge, serialization::DerVerifyingKey};
+    use wallet_common::account::{messages::instructions::InstructionChallengeRequest, serialization::DerVerifyingKey};
     use wallet_provider_domain::{
-        model::TimeoutPinPolicy,
+        model::{FailingPinPolicy, TimeoutPinPolicy},
         repository::{TransactionStarterStub, WalletUserRepositoryStub},
         EpochGenerator,
     };
@@ -814,8 +783,8 @@ mod tests {
         assert_matches!(
             account_server
                 .instruction_challenge(
-                    InstructionChallengeRequest {
-                        message: InstructionChallenge::new_signed(9, &hw_privkey).unwrap(),
+                    InstructionChallengeRequestMessage {
+                        message: InstructionChallengeRequest::new_signed(9, "wallet", &hw_privkey).unwrap(),
                         certificate: cert.clone(),
                     },
                     &deps,
@@ -827,8 +796,8 @@ mod tests {
 
         let challenge = account_server
             .instruction_challenge(
-                InstructionChallengeRequest {
-                    message: InstructionChallenge::new_signed(43, &hw_privkey).unwrap(),
+                InstructionChallengeRequestMessage {
+                    message: InstructionChallengeRequest::new_signed(43, "wallet", &hw_privkey).unwrap(),
                     certificate: cert.clone(),
                 },
                 &deps,
@@ -849,12 +818,15 @@ mod tests {
                         challenge: Some(challenge.clone()),
                         instruction_sequence_number: 43,
                     },
-                    &TimeoutPinPolicy,
+                    &FailingPinPolicy,
                     &EpochGenerator,
                 )
                 .await
-                .expect_err("should return instruction sequence number mismatch error"),
-            InstructionError::Validation(_)
+                .expect_err("sequence number mismatch error should result in IncorrectPin error"),
+            InstructionError::IncorrectPin {
+                attempts_left: _,
+                is_final_attempt: _
+            }
         );
 
         account_server
@@ -887,8 +859,8 @@ mod tests {
 
         let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
 
-        let challenge_request = InstructionChallengeRequest {
-            message: InstructionChallenge::new_signed(1, &hw_privkey).unwrap(),
+        let challenge_request = InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey).unwrap(),
             certificate: cert.clone(),
         };
 

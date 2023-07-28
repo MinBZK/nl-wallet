@@ -1,15 +1,11 @@
-use assert_matches::assert_matches;
 use std::{
     net::{IpAddr, TcpListener},
     str::FromStr,
     time::Duration,
 };
 
+use assert_matches::assert_matches;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    pkcs8::DecodePrivateKey,
-};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use serial_test::serial;
 use tokio::time::sleep;
@@ -21,24 +17,14 @@ use wallet::{
     mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
     wallet::{AccountServerClient, ConfigurationRepository, Storage, Wallet, WalletUnlockError},
 };
-use wallet_common::account::{jwt::EcdsaDecodingKey, serialization::DerVerifyingKey};
+use wallet_common::account::jwt::EcdsaDecodingKey;
 use wallet_provider::{server, settings::Settings};
 use wallet_provider_persistence::{entity::wallet_user, postgres};
 
-fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, DerVerifyingKey) {
+fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, EcdsaDecodingKey) {
     (
-        EcdsaDecodingKey::from_sec1(
-            SigningKey::from_pkcs8_der(&settings.certificate_private_key.0)
-                .expect("Could not decode private key")
-                .verifying_key()
-                .to_encoded_point(false)
-                .as_bytes(),
-        ),
-        DerVerifyingKey::from(
-            *SigningKey::from_pkcs8_der(&settings.instruction_result_private_key.0)
-                .expect("Could not decode private key")
-                .verifying_key(),
-        ),
+        (*settings.certificate_private_key.0.verifying_key()).into(),
+        (*settings.instruction_result_private_key.0.verifying_key()).into(),
     )
 }
 
@@ -61,7 +47,7 @@ async fn database_connection(settings: &Settings) -> DatabaseConnection {
 async fn create_test_wallet(
     base_url: Url,
     public_key: EcdsaDecodingKey,
-    instruction_result_public_key: DerVerifyingKey,
+    instruction_result_public_key: EcdsaDecodingKey,
 ) -> Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> {
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
@@ -145,7 +131,7 @@ async fn test_wallet_registration_in_process() {
 async fn test_wallet_registration_live() {
     let base_url = Url::parse("http://localhost:3000/api/v1").unwrap();
     let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
-    let instr_pub_key = DerVerifyingKey::from(VerifyingKey::from_sec1_bytes(&STANDARD.decode("").unwrap()).unwrap());
+    let instr_pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
     let wallet = create_test_wallet(base_url, pub_key, instr_pub_key).await;
 
     test_wallet_registration(wallet).await;

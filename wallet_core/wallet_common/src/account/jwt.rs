@@ -1,9 +1,15 @@
 use std::marker::PhantomData;
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
+use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::errors::{Result, SigningError, ValidationError};
+use crate::{
+    account::{serialization::DerVerifyingKey, signing_key::SecureEcdsaKey},
+    errors::{Result, SigningError, ValidationError},
+};
 
 // TODO implement keyring and use kid header item for key rollover
 
@@ -44,11 +50,25 @@ pub trait JwtClaims {
 /// `public_key.to_encoded_point(false).as_bytes()`.
 #[derive(Clone)]
 pub struct EcdsaDecodingKey(DecodingKey);
+
 impl From<DecodingKey> for EcdsaDecodingKey {
     fn from(value: DecodingKey) -> Self {
         EcdsaDecodingKey(value)
     }
 }
+
+impl From<DerVerifyingKey> for EcdsaDecodingKey {
+    fn from(value: DerVerifyingKey) -> Self {
+        value.0.into()
+    }
+}
+
+impl From<VerifyingKey> for EcdsaDecodingKey {
+    fn from(value: VerifyingKey) -> Self {
+        EcdsaDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
+    }
+}
+
 impl EcdsaDecodingKey {
     pub fn from_sec1(key: &[u8]) -> Self {
         DecodingKey::from_ec_der(key).into()
@@ -64,30 +84,35 @@ where
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
         validation_options.sub = T::SUB.to_owned().into();
+        validation_options.leeway = 60;
 
         let payload = jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &pubkey.0, &validation_options)
             .map_err(ValidationError::from)?
             .claims
             .payload;
+
         Ok(payload)
     }
 
-    pub fn sign(payload: &T, privkey: &[u8]) -> Result<Jwt<T>> {
-        let message = jsonwebtoken::encode(
-            &Header {
-                alg: Algorithm::ES256,
-                kid: "0".to_owned().into(),
-                ..Default::default()
-            },
-            &JwtPayload {
-                payload,
-                sub: T::SUB.to_owned(),
-            },
-            &jsonwebtoken::EncodingKey::from_ec_der(privkey),
-        )
-        .map_err(SigningError::from)?;
+    pub fn sign(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+        let header = &Header {
+            alg: Algorithm::ES256,
+            kid: "0".to_owned().into(),
+            ..Default::default()
+        };
+        let claims = &JwtPayload {
+            payload,
+            sub: T::SUB.to_owned(),
+        };
 
-        Ok(message.into())
+        let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
+        let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(claims)?);
+        let message = [encoded_header, encoded_claims].join(".");
+
+        let signature = privkey.try_sign(message.as_bytes()).map_err(SigningError::from)?;
+        let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
+
+        Ok([message, encoded_signature].join(".").into())
     }
 }
 
@@ -106,5 +131,42 @@ impl<T> Serialize for Jwt<T> {
 impl<'de, T> Deserialize<'de> for Jwt<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         String::deserialize(deserializer).map(Jwt::from)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+
+    use super::*;
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct ToyMessage {
+        number: u8,
+        string: String,
+    }
+
+    impl Default for ToyMessage {
+        fn default() -> Self {
+            Self {
+                number: 42,
+                string: "Hello, world!".to_string(),
+            }
+        }
+    }
+
+    impl JwtClaims for ToyMessage {
+        const SUB: &'static str = "toy_message";
+    }
+
+    #[test]
+    fn test_sign_and_verify() {
+        let private_key = SigningKey::random(&mut OsRng);
+
+        let t = ToyMessage::default();
+        let jwt = Jwt::sign(&t, &private_key).unwrap();
+        let parsed = jwt.parse_and_verify(&(*private_key.verifying_key()).into()).unwrap();
+
+        assert_eq!(t, parsed);
     }
 }

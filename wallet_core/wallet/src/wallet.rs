@@ -7,7 +7,7 @@ pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::{
     auth::Registration,
     errors::ErrorType,
-    instructions::{CheckPin, Instruction, InstructionChallenge, InstructionChallengeRequest},
+    instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage},
 };
 
 use crate::{
@@ -181,14 +181,17 @@ where
         Ok(())
     }
 
-    async fn new_instruction_challenge_request(&mut self) -> Result<InstructionChallengeRequest, WalletUnlockError> {
+    async fn new_instruction_challenge_request(
+        &mut self,
+    ) -> Result<InstructionChallengeRequestMessage, WalletUnlockError> {
         self.increment_sequence_number().await?;
 
         let registration_data = self.registration.as_ref().unwrap();
 
-        Ok(InstructionChallengeRequest {
-            message: InstructionChallenge::new_signed(
+        Ok(InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(
                 registration_data.instruction_sequence_number,
+                "wallet",
                 &self.hw_privkey.clone(),
             )
             .map_err(WalletUnlockError::Signing)?,
@@ -286,18 +289,18 @@ where
         let instruction = self.new_check_pin_request(pin, challenge).await?;
         let signed_result = self.account_server.check_pin(instruction).await?;
 
-        let result = signed_result
+        signed_result
             .parse_and_verify(
                 &self
                     .config_repository
                     .config()
                     .account_server
-                    .instruction_result_public_key
-                    .0,
+                    .instruction_result_public_key,
             )
-            .map_err(WalletUnlockError::InstructionResultValidation);
+            .map_err(WalletUnlockError::InstructionResultValidation)?;
 
-        result.map(|_| self.lock.unlock())
+        self.lock.unlock();
+        Ok(())
     }
 
     #[instrument(skip_all)]

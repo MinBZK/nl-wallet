@@ -3,12 +3,12 @@ use std::{env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-use wallet_common::account::serialization::Base64Bytes;
+use wallet_common::account::serialization::{Base64Bytes, DerSigningKey};
 
 #[derive(Deserialize)]
 pub struct Settings {
-    pub certificate_private_key: Base64Bytes,
-    pub instruction_result_private_key: Base64Bytes,
+    pub certificate_private_key: DerSigningKey,
+    pub instruction_result_private_key: DerSigningKey,
     pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
@@ -60,15 +60,5 @@ impl Settings {
             )
             .build()?
             .try_deserialize()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::settings::Settings;
-
-    #[test]
-    fn test_settings() {
-        Settings::new().expect("should load settings");
     }
 }

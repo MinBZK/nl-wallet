@@ -1,12 +1,14 @@
+use crate::errors::Error;
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use p256::{
-    ecdsa::{Signature, VerifyingKey},
-    pkcs8::{DecodePublicKey, EncodePublicKey},
+    ecdsa::{Signature, SigningKey, VerifyingKey},
+    pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePublicKey},
 };
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
+use std::fmt::{Display, Formatter};
 
-use super::signed::{Signed, SignedDouble, SignedInner};
+use super::signed::{SignedDouble, SignedInner};
 
 /// Bytes that (de)serialize to base64.
 #[derive(Debug, Clone)]
@@ -19,6 +21,14 @@ impl From<Vec<u8>> for Base64Bytes {
 impl PartialEq for Base64Bytes {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
+    }
+}
+
+impl TryFrom<Base64Bytes> for SigningKey {
+    type Error = Error;
+
+    fn try_from(value: Base64Bytes) -> Result<Self, Self::Error> {
+        Ok(SigningKey::from_pkcs8_der(&value.0)?)
     }
 }
 
@@ -57,9 +67,42 @@ impl<'de> Deserialize<'de> for DerSignature {
     }
 }
 
+/// ECDSA private key that deserializes from base64-encoded DER.
+#[derive(Debug, Clone)]
+pub struct DerSigningKey(pub SigningKey);
+
+impl From<SigningKey> for DerSigningKey {
+    fn from(val: SigningKey) -> Self {
+        DerSigningKey(val)
+    }
+}
+
+impl From<&DerSigningKey> for DerVerifyingKey {
+    fn from(value: &DerSigningKey) -> Self {
+        (*value.0.verifying_key()).into()
+    }
+}
+
+impl Display for DerVerifyingKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let pubkey = STANDARD_NO_PAD.encode(self.0.to_encoded_point(false).as_bytes());
+        write!(f, "{}", pubkey)
+    }
+}
+
+impl<'de> Deserialize<'de> for DerSigningKey {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let key: SigningKey = Base64Bytes::deserialize(deserializer)?
+            .try_into()
+            .map_err(de::Error::custom)?;
+        Ok(key.into())
+    }
+}
+
 /// ECDSA public key that (de)serializes from/to base64-encoded DER.
 #[derive(Debug, Clone)]
 pub struct DerVerifyingKey(pub VerifyingKey);
+
 impl From<VerifyingKey> for DerVerifyingKey {
     fn from(val: VerifyingKey) -> Self {
         DerVerifyingKey(val)
@@ -110,17 +153,6 @@ impl<T> Serialize for SignedInner<T> {
     }
 }
 impl<'de, T> Deserialize<'de> for SignedInner<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
-    }
-}
-
-impl<T> Serialize for Signed<T> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
-    }
-}
-impl<'de, T> Deserialize<'de> for Signed<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }

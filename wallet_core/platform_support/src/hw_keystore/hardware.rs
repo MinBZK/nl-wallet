@@ -32,6 +32,7 @@ impl Signer<Signature> for HardwareEcdsaKey {
         Signature::from_der(&signature_bytes)
     }
 }
+
 impl EcdsaKey for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 

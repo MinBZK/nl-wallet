@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use url::Url;
 
-use wallet_common::account::{jwt::EcdsaDecodingKey, serialization::DerVerifyingKey};
+use wallet_common::account::jwt::EcdsaDecodingKey;
 
 #[derive(Debug)]
 pub struct Configuration {
@@ -23,7 +23,7 @@ pub struct AccountServerConfiguration {
     pub base_url: Url,
     // The known public key for the Wallet Provider
     pub certificate_public_key: EcdsaDecodingKey,
-    pub instruction_result_public_key: DerVerifyingKey,
+    pub instruction_result_public_key: EcdsaDecodingKey,
 }
 
 impl Debug for AccountServerConfiguration {

@@ -13,8 +13,8 @@ use super::{
 };
 use crate::errors::{Error, Result, SigningError, ValidationError};
 
-// Signed data by the wallet, either with both the hardware and PIN keys, or just the hardware key.
-// They are generic over the data type that they contain, so that the signed data type is encoded in the type structure
+// Signed data by the wallet, with both the hardware and PIN keys.
+// It is generic over the data type that it contains, so that the signed data type is encoded in the type structure
 // of users of `SignedDouble<T>`, and so that all methods of `SignedDouble<T>` for verification and deserialization
 // also have access to the same type `T`. Instead of containing T directly, however, `SignedDouble<T>` wraps strings
 // containing a JSON-serialized version of T, because that stores not only the data itself but also the order of the
@@ -23,9 +23,7 @@ use crate::errors::{Error, Result, SigningError, ValidationError};
 #[derive(Debug)]
 pub struct SignedDouble<T>(pub String, PhantomData<T>);
 #[derive(Debug)]
-pub struct SignedInner<T>(pub String, PhantomData<T>);
-#[derive(Debug)]
-pub struct Signed<T>(pub String, PhantomData<T>);
+pub(crate) struct SignedInner<T>(pub String, PhantomData<T>);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignedMessage<T> {
@@ -55,69 +53,39 @@ pub enum SignedType {
     HW,
 }
 
-fn verify_signed_with_challenge(signed: &str, challenge: &[u8], typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
-    let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
-    let json = msg.signed.get().as_bytes();
-    pubkey.verify(json, &msg.signature.0).map_err(ValidationError::from)?;
+pub enum SequenceNumberComparison {
+    EqualTo(u64),
+    LargerThan(u64),
+}
 
-    if msg.typ != typ {
+impl SequenceNumberComparison {
+    pub fn verify(&self, expected_sequence_number: u64) -> bool {
+        match self {
+            SequenceNumberComparison::EqualTo(sequence_number) => expected_sequence_number == *sequence_number,
+            SequenceNumberComparison::LargerThan(sequence_number) => expected_sequence_number > *sequence_number,
+        }
+    }
+}
+
+fn parse_and_verify_message<'a>(
+    signed: &'a str,
+    typ: SignedType,
+    pubkey: &VerifyingKey,
+) -> Result<SignedMessage<&'a RawValue>> {
+    let message: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
+    let json = message.signed.get().as_bytes();
+    pubkey
+        .verify(json, &message.signature.0)
+        .map_err(ValidationError::from)?;
+
+    if message.typ != typ {
         return Err(Error::TypeMismatch {
             expected: typ,
-            received: msg.typ,
+            received: message.typ,
         });
     }
 
-    let signed: ChallengeResponsePayload<&RawValue> = serde_json::from_slice(json)?;
-    if challenge != signed.challenge.0 {
-        return Err(Error::ChallengeMismatch);
-    }
-
-    Ok(())
-}
-
-fn verify_signed(signed: &str, typ: SignedType, pubkey: &VerifyingKey) -> Result<()> {
-    let msg: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
-    let json = msg.signed.get().as_bytes();
-    pubkey.verify(json, &msg.signature.0).map_err(ValidationError::from)?;
-
-    if msg.typ != typ {
-        return Err(Error::TypeMismatch {
-            expected: typ,
-            received: msg.typ,
-        });
-    }
-
-    let _signed: SignedPayload<&RawValue> = serde_json::from_slice(json)?;
-
-    Ok(())
-}
-
-fn sign_inner<T: Serialize>(
-    payload: T,
-    challenge: &[u8],
-    serial_number: u64,
-    typ: SignedType,
-    privkey: &impl Signer<Signature>,
-) -> Result<SignedInner<T>> {
-    let message = serde_json::to_string(&ChallengeResponsePayload {
-        payload: &payload,
-        challenge: challenge.to_vec().into(),
-        sequence_number: serial_number,
-    })?;
-    Ok(sign_message(message, typ, privkey)?.into())
-}
-
-fn sign<T: Serialize>(
-    payload: T,
-    issuer: String,
-    typ: SignedType,
-    privkey: &impl Signer<Signature>,
-) -> Result<Signed<T>> {
-    let message = serde_json::to_string(&SignedPayload {
-        payload: &payload,
-        issuer,
-    })?;
-    Ok(sign_message(message, typ, privkey)?.into())
+    Ok(message)
 }
 
 fn sign_message(message: String, typ: SignedType, privkey: &impl Signer<Signature>) -> Result<String> {
@@ -129,71 +97,31 @@ fn sign_message(message: String, typ: SignedType, privkey: &impl Signer<Signatur
     })?)
 }
 
-impl<'de, T> Signed<T>
-where
-    T: Serialize + Deserialize<'de>,
-{
-    /// Value of the `typ` field of [`SignedMessage<T>`].
-    const TYP: SignedType = SignedType::HW;
-
-    fn verify(&self, pubkey: &VerifyingKey) -> Result<()> {
-        verify_signed(&self.0, Signed::<T>::TYP, pubkey)
-    }
-
-    fn dangerous_parse_unverified(&'de self) -> Result<SignedPayload<T>> {
-        Ok(serde_json::from_str::<SignedMessage<SignedPayload<T>>>(&self.0)?.signed)
-    }
-
-    pub fn parse_and_verify(&'de self, pubkey: &VerifyingKey) -> Result<SignedPayload<T>> {
-        self.verify(pubkey)?;
-        self.dangerous_parse_unverified()
-    }
-
-    pub fn sign(payload: T, issuer: String, privkey: &impl Signer<Signature>) -> Result<Signed<T>> {
-        sign(payload, issuer, Signed::<T>::TYP, privkey)
-    }
-}
-
-impl<'de, T> SignedInner<T>
-where
-    T: Serialize + Deserialize<'de>,
-{
-    /// Value of the `typ` field of [`SignedMessage<T>`].
-    const TYP: SignedType = SignedType::HW;
-
-    fn verify(&self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<()> {
-        verify_signed_with_challenge(&self.0, challenge, SignedInner::<T>::TYP, pubkey)
-    }
-
-    fn dangerous_parse_unverified(&'de self) -> Result<ChallengeResponsePayload<T>> {
-        Ok(serde_json::from_str::<SignedMessage<ChallengeResponsePayload<T>>>(&self.0)?.signed)
-    }
-
-    pub fn parse_and_verify(&'de self, challenge: &[u8], pubkey: &VerifyingKey) -> Result<ChallengeResponsePayload<T>> {
-        self.verify(challenge, pubkey)?;
-        self.dangerous_parse_unverified()
-    }
-
-    pub fn sign(
-        payload: T,
-        challenge: &[u8],
-        serial_number: u64,
-        privkey: &impl Signer<Signature>,
-    ) -> Result<SignedInner<T>> {
-        sign_inner(payload, challenge, serial_number, SignedInner::<T>::TYP, privkey)
-    }
-}
-
 impl<'de, T> SignedDouble<T>
 where
     T: Serialize + Deserialize<'de>,
 {
-    fn verify(&self, challenge: &[u8], hw_pubkey: &VerifyingKey, pin_pubkey: &VerifyingKey) -> Result<()> {
-        let outer: SignedMessage<&RawValue> = serde_json::from_str(&self.0)?;
-        hw_pubkey
-            .verify(outer.signed.get().as_bytes(), &outer.signature.0)
-            .map_err(ValidationError::from)?;
-        verify_signed_with_challenge(outer.signed.get(), challenge, SignedType::Pin, pin_pubkey)
+    fn verify(
+        &self,
+        challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
+        hw_pubkey: &VerifyingKey,
+        pin_pubkey: &VerifyingKey,
+    ) -> Result<()> {
+        let outer = parse_and_verify_message(&self.0, SignedType::HW, hw_pubkey)?;
+        let inner = parse_and_verify_message(outer.signed.get(), SignedType::Pin, pin_pubkey)?;
+
+        let signed: ChallengeResponsePayload<&RawValue> = serde_json::from_str(inner.signed.get())?;
+
+        if challenge != signed.challenge.0 {
+            return Err(Error::ChallengeMismatch);
+        }
+
+        if !sequence_number_comparison.verify(signed.sequence_number) {
+            return Err(Error::SequenceNumberMismatch);
+        }
+
+        Ok(())
     }
 
     pub fn dangerous_parse_unverified(&'de self) -> Result<ChallengeResponsePayload<T>> {
@@ -206,10 +134,11 @@ where
     pub fn parse_and_verify(
         &'de self,
         challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
         hw_pubkey: &VerifyingKey,
         pin_pubkey: &VerifyingKey,
     ) -> Result<ChallengeResponsePayload<T>> {
-        self.verify(challenge, hw_pubkey, pin_pubkey)?;
+        self.verify(challenge, sequence_number_comparison, hw_pubkey, pin_pubkey)?;
         self.dangerous_parse_unverified()
     }
 
@@ -220,9 +149,14 @@ where
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
     ) -> Result<SignedDouble<T>> {
-        let inner = sign_inner(payload, challenge, serial_number, SignedType::Pin, pin_privkey)?.0;
-        let signed_message = sign_message(inner, SignedType::HW, hw_privkey)?;
-        Ok(signed_message.into())
+        let message = serde_json::to_string(&ChallengeResponsePayload {
+            payload: &payload,
+            challenge: challenge.to_vec().into(),
+            sequence_number: serial_number,
+        })?;
+        let signed_inner = sign_message(message, SignedType::Pin, pin_privkey)?;
+        let signed_double = sign_message(signed_inner, SignedType::HW, hw_privkey)?;
+        Ok(signed_double.into())
     }
 }
 
@@ -236,11 +170,6 @@ impl<T, S: Into<String>> From<S> for SignedInner<T> {
         SignedInner(val.into(), PhantomData)
     }
 }
-impl<T, S: Into<String>> From<S> for Signed<T> {
-    fn from(val: S) -> Self {
-        Signed(val.into(), PhantomData)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -248,7 +177,7 @@ mod tests {
 
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct ToyMessage {
         number: u8,
         string: String,
@@ -263,19 +192,6 @@ mod tests {
     }
 
     #[test]
-    fn hw_signed() {
-        let challenge = b"challenge";
-        let hw_privkey = SigningKey::random(&mut OsRng);
-
-        let signed = SignedInner::sign(ToyMessage::default(), challenge, 1337, &hw_privkey).unwrap();
-        println!("{}", signed.0);
-
-        let verified = signed.parse_and_verify(challenge, hw_privkey.verifying_key()).unwrap();
-
-        dbg!(verified);
-    }
-
-    #[test]
     fn double_signed() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
@@ -285,9 +201,14 @@ mod tests {
         println!("{}", signed.0);
 
         let verified = signed
-            .parse_and_verify(challenge, hw_privkey.verifying_key(), pin_privkey.verifying_key())
+            .parse_and_verify(
+                challenge,
+                SequenceNumberComparison::LargerThan(1336),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
             .unwrap();
 
-        dbg!(verified);
+        assert_eq!(ToyMessage::default(), verified.payload);
     }
 }

@@ -1,11 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
 use url::Url;
 
-use wallet_common::account::{jwt::EcdsaDecodingKey, serialization::DerVerifyingKey};
+use wallet_common::account::jwt::EcdsaDecodingKey;
 
 use super::{AccountServerConfiguration, Configuration, ConfigurationRepository, LockTimeoutConfiguration};
 
@@ -27,9 +23,7 @@ impl Default for MockConfigurationRepository {
             account_server: AccountServerConfiguration {
                 base_url: Url::parse("https://example.com").unwrap(),
                 certificate_public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
-                instruction_result_public_key: DerVerifyingKey::from(VerifyingKey::from(&SigningKey::random(
-                    &mut OsRng,
-                ))),
+                instruction_result_public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
             },
         })
     }

@@ -13,9 +13,11 @@ use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
-        instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionResult},
+        instructions::{
+            CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage,
+        },
     },
-    signed::{Signed, SignedDouble},
+    signed::SignedDouble,
 };
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
@@ -140,7 +142,7 @@ impl AccountServerClient for RemoteAccountServerClient {
 
     async fn instruction_challenge(
         &self,
-        challenge_request: InstructionChallengeRequest,
+        challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountServerClientError> {
         let challenge: Challenge = self
             .send_json_post_request("instructions/challenge", &challenge_request)
@@ -152,12 +154,12 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<Signed<InstructionResult<()>>, AccountServerClientError> {
-        let result: Signed<InstructionResult<()>> = self
+    ) -> Result<InstructionResult<()>, AccountServerClientError> {
+        let message: InstructionResultMessage<()> = self
             .send_json_post_request("instructions/check_pin", &instruction)
             .await?;
 
-        Ok(result)
+        Ok(message.result)
     }
 }
 

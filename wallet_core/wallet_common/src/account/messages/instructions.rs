@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     account::{
-        signed::{Signed, SignedDouble},
+        jwt::{Jwt, JwtClaims},
+        signed::SignedDouble,
         signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
     },
     errors::Result,
@@ -19,35 +20,58 @@ pub struct Instruction<T> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CheckPin;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionResult<R>(R);
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstructionResultClaims<R> {
+    pub result: R,
 
-impl<R> InstructionResult<R> {
-    pub fn new(result: R) -> Self {
-        Self(result)
-    }
+    pub iss: String,
+    pub iat: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct InstructionChallengeRequest {
-    pub message: Signed<InstructionChallenge>,
+impl<R> JwtClaims for InstructionResultClaims<R> {
+    const SUB: &'static str = "instruction_result";
+}
+
+pub type InstructionResult<R> = Jwt<InstructionResultClaims<R>>;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstructionResultMessage<R> {
+    pub result: InstructionResult<R>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstructionChallengeRequestClaims {
+    pub sequence_number: u64,
+
+    pub iss: String,
+    pub iat: u64,
+}
+
+impl JwtClaims for InstructionChallengeRequestClaims {
+    const SUB: &'static str = "instruction_challenge_request";
+}
+
+pub type InstructionChallengeRequest = Jwt<InstructionChallengeRequestClaims>;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstructionChallengeRequestMessage {
+    pub message: InstructionChallengeRequest,
     pub certificate: WalletCertificate,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionChallenge {
-    pub sequence_number: u64,
-}
+impl InstructionChallengeRequest {
+    pub fn new_signed(
+        instruction_sequence_number: u64,
+        issuer: &str,
+        hw_privkey: &impl SecureEcdsaKey,
+    ) -> Result<Self> {
+        let cert = InstructionChallengeRequestClaims {
+            sequence_number: instruction_sequence_number,
+            iss: issuer.to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        };
 
-impl InstructionChallenge {
-    pub fn new_signed(instruction_sequence_number: u64, hw_privkey: &impl SecureEcdsaKey) -> Result<Signed<Self>> {
-        Signed::sign(
-            Self {
-                sequence_number: instruction_sequence_number,
-            },
-            "wallet".to_string(),
-            hw_privkey,
-        )
+        Jwt::sign(&cert, hw_privkey)
     }
 }
 
