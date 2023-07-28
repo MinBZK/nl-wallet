@@ -23,6 +23,7 @@ class WalletDependencyProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WalletDataSourceProvider(
+      provideMocks: Environment.mockRepositories,
       child: WalletRepositoryProvider(
         provideMocks: Environment.mockRepositories,
         child: WalletUseCaseProvider(

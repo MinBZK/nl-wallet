@@ -15,6 +15,15 @@ class MainActivity : FlutterActivity() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
