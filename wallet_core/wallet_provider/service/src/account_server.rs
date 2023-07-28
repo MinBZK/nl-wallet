@@ -9,6 +9,7 @@ use wallet_common::{
         jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
+            errors::{IncorrectPinData, PinTimeoutData},
             instructions::{
                 CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
             },
@@ -102,12 +103,10 @@ pub enum InstructionError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction validation error: {0}")]
     Validation(#[from] InstructionValidationError),
-    #[error(
-        "instruction validation pin error (attempts_left: {attempts_left:?}, is_final_attempt: {is_final_attempt:?})"
-    )]
-    IncorrectPin { attempts_left: u8, is_final_attempt: bool },
-    #[error("instruction validation pin timeout (time_left_in_ms: {time_left_in_ms:?})")]
-    PinTimeout { time_left_in_ms: u64 },
+    #[error("instruction validation pin error ({0:?})")]
+    IncorrectPin(IncorrectPinData),
+    #[error("instruction validation pin timeout ({0:?})")]
+    PinTimeout(PinTimeoutData),
     #[error("account is blocked")]
     AccountBlocked,
     #[error("instruction result signing error: {0}")]
@@ -132,15 +131,15 @@ impl From<PinPolicyEvaluation> for InstructionError {
             PinPolicyEvaluation::Failed {
                 attempts_left,
                 is_final_attempt,
-            } => InstructionError::IncorrectPin {
+            } => InstructionError::IncorrectPin(IncorrectPinData {
                 attempts_left,
                 is_final_attempt,
-            },
+            }),
             PinPolicyEvaluation::Timeout { timeout } | PinPolicyEvaluation::InTimeout { timeout } => {
-                InstructionError::PinTimeout {
+                InstructionError::PinTimeout(PinTimeoutData {
                     time_left_in_ms: u64::try_from(timeout.num_milliseconds())
                         .expect("number of milliseconds in timeout cannot be negative"),
-                }
+                })
             }
             PinPolicyEvaluation::BlockedPermanently => InstructionError::AccountBlocked,
         }
@@ -823,10 +822,10 @@ mod tests {
                 )
                 .await
                 .expect_err("sequence number mismatch error should result in IncorrectPin error"),
-            InstructionError::IncorrectPin {
+            InstructionError::IncorrectPin(IncorrectPinData {
                 attempts_left: _,
                 is_final_attempt: _
-            }
+            })
         );
 
         account_server

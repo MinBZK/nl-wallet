@@ -60,9 +60,11 @@ pub enum WalletRegistrationError {
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     NotRegistered,
-    #[error("PIN provided is incorrect")]
+    #[error(
+        "PIN provided is incorrect: (leftover_attempts: {leftover_attempts}, is_final_attempt: {is_final_attempt})"
+    )]
     IncorrectPin {
-        leftover_attempts: u64,
+        leftover_attempts: u8,
         is_final_attempt: bool,
     },
     #[error("unlock disabled due to timeout")]
@@ -89,12 +91,12 @@ impl From<AccountServerClientError> for WalletUnlockError {
     fn from(value: AccountServerClientError) -> Self {
         if let AccountServerClientError::Response(AccountServerResponseError::Data(_, errordata)) = &value {
             match errordata.typ {
-                ErrorType::PinTimeout => WalletUnlockError::Timeout {
-                    timeout_millis: errordata.unwrap_get("time_left_in_millis"),
+                ErrorType::PinTimeout(data) => WalletUnlockError::Timeout {
+                    timeout_millis: data.time_left_in_ms,
                 },
-                ErrorType::IncorrectPin => WalletUnlockError::IncorrectPin {
-                    leftover_attempts: errordata.unwrap_get("leftover_attempts"),
-                    is_final_attempt: errordata.unwrap_get("is_final_attempt"),
+                ErrorType::IncorrectPin(data) => WalletUnlockError::IncorrectPin {
+                    leftover_attempts: data.attempts_left,
+                    is_final_attempt: data.is_final_attempt,
                 },
                 ErrorType::AccountBlocked => WalletUnlockError::Blocked,
                 ErrorType::InstructionValidation => WalletUnlockError::InstructionValidation,

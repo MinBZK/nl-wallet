@@ -178,7 +178,7 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use wallet_common::account::messages::errors::{DataValue, ErrorType};
+    use wallet_common::account::messages::errors::ErrorType;
 
     use super::*;
 
@@ -289,10 +289,6 @@ mod tests {
                         serde_json::to_vec(&json!({
                             "type": "ChallengeValidation",
                             "title": "Error title",
-                            "data": {
-                                "foo": "bar",
-                                "bleh": "blah"
-                            }
                         }))
                         .unwrap(),
                     ),
@@ -310,15 +306,6 @@ mod tests {
         {
             assert!(matches!(data.typ, ErrorType::ChallengeValidation));
             assert_eq!(data.title, "Error title");
-
-            if let Some(data) = data.data {
-                assert!(matches!(data.get("foo"), Some(DataValue::String(string)) if string == "bar"));
-                assert!(matches!(data.get("bleh"), Some(DataValue::String(string)) if string == "blah"));
-            } else {
-                panic!("Error has no additional data")
-            }
-        } else {
-            panic!("No error data received")
         }
     }
 
