@@ -43,7 +43,7 @@ pub fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     contents == original_message
 }
 
-#[cfg(all(feature = "hardware-integration-test"))]
+#[cfg(feature = "hardware-integration-test")]
 mod hardware {
     use jni::{objects::JClass, JNIEnv};
 
