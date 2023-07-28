@@ -41,11 +41,21 @@ spec:
             - configMapRef:
                 name: wallet-provider-config
           env:
-            - name: WALLET_PROVIDER_SIGNING_PRIVATE_KEY
+            - name: WALLET_PROVIDER_CERTIFICATE_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: nl-wallet-provider-signing-key
-                  key: private
+                  name: nl-wallet-secret-signing-keys
+                  key: certificate_private_key
+            - name: WALLET_PROVIDER_INSTRUCTION_RESULT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-secret-signing-keys
+                  key: instruction_result_private_key
+            - name: WALLET_PROVIDER_PIN_HASH_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-secret-signing-keys
+                  key: pin_hash_salt
             - name: WALLET_PROVIDER_DATABASE__NAME
               value: wallet_provider
             - name: WALLET_PROVIDER_DATABASE__HOST
