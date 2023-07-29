@@ -8,13 +8,17 @@ rust-version.workspace = true
 
 [features]
 mock = []
+software = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
 
 [dependencies]
+aes-gcm = { workspace = true, optional = true, features = ["std"]}
 base64.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
+once_cell = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rand.workspace = true
+rand_core = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true

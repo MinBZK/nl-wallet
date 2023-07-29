@@ -12,12 +12,12 @@ use tokio::time::sleep;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use platform_support::hw_keystore::{software::SoftwareEcdsaKey, PlatformEcdsaKey};
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
     wallet::{AccountServerClient, ConfigurationRepository, Storage, Wallet, WalletUnlockError},
 };
-use wallet_common::account::jwt::EcdsaDecodingKey;
+use wallet_common::account::{jwt::EcdsaDecodingKey, software_keys::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
 use wallet_provider_persistence::{entity::wallet_user, postgres};
 

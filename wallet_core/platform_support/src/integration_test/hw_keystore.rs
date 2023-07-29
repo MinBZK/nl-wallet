@@ -1,6 +1,7 @@
 use p256::ecdsa::signature::Verifier;
+use wallet_common::account::signing_key::PlatformEncryptionKey;
 
-use crate::hw_keystore::{PlatformEcdsaKey, PlatformEncryptionKey};
+use crate::hw_keystore::PlatformEcdsaKey;
 
 // This utility function is used both by the Rust integration test for the "software" feature
 // and by integration test performed from Android / iOS for the "hardware" feature.

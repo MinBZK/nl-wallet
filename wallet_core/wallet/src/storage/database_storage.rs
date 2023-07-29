@@ -7,7 +7,8 @@ use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, Query
 use tokio::{fs, task};
 
 use entity::keyed_data;
-use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
+use platform_support::{preferred, utils::PlatformUtilities};
+use wallet_common::account::signing_key::PlatformEncryptionKey;
 
 use super::{
     data::KeyedData,
@@ -175,10 +176,13 @@ impl Storage for DatabaseStorage {
 
 #[cfg(test)]
 mod tests {
-    use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
+    use platform_support::utils::software::SoftwareUtilities;
     use tokio::fs;
 
-    use wallet_common::{account::messages::auth::WalletCertificate, utils::random_bytes};
+    use wallet_common::{
+        account::{messages::auth::WalletCertificate, software_keys::SoftwareEncryptionKey},
+        utils::random_bytes,
+    };
 
     use crate::storage::data::RegistrationData;
 

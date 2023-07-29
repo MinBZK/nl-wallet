@@ -399,7 +399,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use platform_support::hw_keystore::software::SoftwareEcdsaKey;
+    use wallet_common::account::software_keys::SoftwareEcdsaKey;
     use wallet_provider::AccountServer;
 
     use crate::{config::MockConfigurationRepository, storage::MockStorage};

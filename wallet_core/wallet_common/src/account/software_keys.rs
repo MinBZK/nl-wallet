@@ -8,12 +8,12 @@ use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
-use wallet_common::{
+use crate::{
     account::signing_key::{EcdsaKey, SecureEcdsaKey},
     utils::random_bytes,
 };
 
-use super::{ConstructableWithIdentifier, PlatformEcdsaKey, PlatformEncryptionKey};
+use super::signing_key::{ConstructableWithIdentifier, PlatformEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -66,7 +66,6 @@ impl ConstructableWithIdentifier for SoftwareEcdsaKey {
         &self.identifier
     }
 }
-impl PlatformEcdsaKey for SoftwareEcdsaKey {}
 
 #[derive(Clone)]
 pub struct SoftwareEncryptionKey {
@@ -100,6 +99,7 @@ impl ConstructableWithIdentifier for SoftwareEncryptionKey {
         &self.identifier
     }
 }
+
 impl PlatformEncryptionKey for SoftwareEncryptionKey {
     type Error = aes_gcm::Error;
 

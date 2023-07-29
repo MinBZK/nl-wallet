@@ -2175,12 +2175,11 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
- "aes-gcm",
  "jni",
  "never",
  "once_cell",
  "p256",
- "rand_core 0.6.4",
+ "platform_support",
  "thiserror",
  "uniffi",
  "wallet_common",
@@ -3873,14 +3872,18 @@ dependencies = [
 name = "wallet_common"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "base64 0.21.2",
  "http",
  "jsonwebtoken",
+ "once_cell",
  "p256",
  "rand 0.8.5",
+ "rand_core 0.6.4",
  "serde",
  "serde_json",
  "thiserror",
+ "wallet_common",
 ]
 
 [[package]]

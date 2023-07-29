@@ -5,11 +5,8 @@ use std::{
 
 use tokio::{fs, task};
 
-use platform_support::{
-    hw_keystore::PlatformEncryptionKey,
-    utils::{PlatformUtilities, UtilitiesError},
-};
-use wallet_common::utils::random_bytes;
+use platform_support::utils::{PlatformUtilities, UtilitiesError};
+use wallet_common::{account::signing_key::PlatformEncryptionKey, utils::random_bytes};
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
@@ -103,11 +100,9 @@ async fn read_encrypted_file(
 mod tests {
     use std::cell::RefCell;
 
-    use platform_support::{
-        hw_keystore::{software::SoftwareEncryptionKey, ConstructableWithIdentifier},
-        utils::software::SoftwareUtilities,
-    };
+    use platform_support::utils::software::SoftwareUtilities;
     use tempfile::{NamedTempFile, TempPath};
+    use wallet_common::account::{signing_key::ConstructableWithIdentifier, software_keys::SoftwareEncryptionKey};
 
     use super::*;
 
