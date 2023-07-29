@@ -53,6 +53,6 @@ platform_support = { path = "../platform_support", features = ["software"] }
 [dev-dependencies]
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
 platform_support = { path = "../platform_support", features = [
-    "software-integration-test",
+    "software",
 ] }
 

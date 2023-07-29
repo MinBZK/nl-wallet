@@ -1,4 +1,4 @@
-#[cfg(feature = "software-integration-test")]
+#[cfg(feature = "software")]
 #[test]
 fn test_software_signature() {
     use platform_support::{
@@ -11,7 +11,7 @@ fn test_software_signature() {
     assert!(sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier));
 }
 
-#[cfg(feature = "software-integration-test")]
+#[cfg(feature = "software")]
 #[test]
 fn test_software_encryption() {
     use platform_support::{

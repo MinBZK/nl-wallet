@@ -9,7 +9,6 @@ hardware = ["dep:once_cell", "dep:uniffi"]
 software = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
 integration-test = []
 hardware-integration-test = ["integration-test", "hardware", "dep:jni"]
-software-integration-test = ["integration-test", "software"]
 
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]
@@ -24,6 +23,9 @@ p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 rand_core = { workspace = true, optional = true }
 thiserror.workspace = true
 uniffi = { workspace = true, optional = true }
+
+[dev-dependencies]
+platform_support = { path = ".", features = ["software", "integration-test"] }
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build"], optional = true }
