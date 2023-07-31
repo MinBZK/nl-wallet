@@ -5,9 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-hardware = ["dep:uniffi"]
+hardware = ["dep:once_cell", "dep:uniffi"]
 software = ["wallet_common/software-keys"]
-integration-test = []
+integration-test = ["wallet_common/integration-test"]
 hardware-integration-test = ["integration-test", "hardware", "dep:jni"]
 
 [lib]
@@ -17,6 +17,7 @@ crate-type = ["staticlib", "cdylib", "lib"]
 wallet_common = { path = "../wallet_common" }
 jni = { workspace = true, optional = true }
 never.workspace = true
+once_cell = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 thiserror.workspace = true
 uniffi = { workspace = true, optional = true }

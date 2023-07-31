@@ -3,12 +3,11 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::account::keys::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::keys::{ConstructableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
-use super::{
-    ConstructableWithIdentifier, HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey,
-};
 use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
+
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
     // wrap KeyStoreError in p256::ecdsa::signature::error,
@@ -75,7 +74,9 @@ impl ConstructableWithIdentifier for HardwareEncryptionKey {
         &self.identifier
     }
 }
-impl PlatformEncryptionKey for HardwareEncryptionKey {
+impl SecureEncryptionKey for HardwareEncryptionKey {
+    type Error = HardwareKeyStoreError;
+
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let result = get_encryption_key_bridge().encrypt(self.identifier.to_owned(), msg.to_vec())?;
 
