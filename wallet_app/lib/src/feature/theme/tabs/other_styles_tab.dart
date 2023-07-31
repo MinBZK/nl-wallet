@@ -28,6 +28,7 @@ import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
+import '../../common/sheet/help_sheet.dart';
 import '../../verification/model/organization.dart';
 import '../../verification/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
@@ -88,6 +89,17 @@ class OtherStylesTab extends StatelessWidget {
             )
           },
           child: const Text('Confirm Action Sheet'),
+        ),
+        const ThemeSectionSubHeader(title: '(Error) Help Sheet'),
+        TextButton(
+          onPressed: () => {
+            HelpSheet.show(
+              context,
+              errorCode: 'xxyyzz',
+              supportCode: '1337',
+            )
+          },
+          child: const Text('(Error) Help Sheet'),
         ),
       ],
     );

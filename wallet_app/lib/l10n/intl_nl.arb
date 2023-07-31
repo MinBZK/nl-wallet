@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-07-19T14:35:27+02:00",
+    "@@last_modified": "2023-07-31T11:47:49+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Geef feedback",
     "aboutScreenPrivacyCta": "Privacybeleid",
@@ -178,10 +178,16 @@
     "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
     "dataIncorrectScreenTitle": "Gegevens ophalen",
-    "errorScreenGenericCloseCta": "Sluit",
-    "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+    "errorScreenGeneralHelpCta": "Hulp nodig?",
+    "errorScreenGenericCloseCta": "Sluiten",
+    "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
     "errorScreenGenericHeadline": "Er gaat iets mis",
     "errorScreenGenericTitle": "Fout",
+    "errorScreenServerCloseCta": "Sluiten",
+    "errorScreenServerDescription": "Controleer of je verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+    "errorScreenServerHeadline": "Er gaat iets mis",
+    "errorScreenServerHelpCta": "Hulp nodig?",
+    "errorScreenServerTitle": "Fout",
     "forgotPinScreenCta": "Wallet wissen",
     "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
     "forgotPinScreenHeadline": "Code vergeten?",
@@ -216,6 +222,15 @@
         }
     },
     "generalOnDate": "Op",
+    "generalOsVersionText": "Besturingssysteem: {versionName}",
+    "@generalOsVersionText": {
+        "placeholders": {
+            "versionName": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
     "generalPolicyAllTermsCta": "Alle voorwaarden",
     "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -260,6 +275,28 @@
         }
     },
     "generalWCAGBack": "Terug",
+    "helpSheetCloseCta": "Sluiten",
+    "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
+    "helpSheetErrorCode": "Foutcode: {code}",
+    "@helpSheetErrorCode": {
+        "placeholders": {
+            "code": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
+    "helpSheetHelpdeskCta": "Naar de Help desk",
+    "helpSheetSupportCode": "Supportcode: {code}",
+    "@helpSheetSupportCode": {
+        "placeholders": {
+            "code": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
+    "helpSheetTitle": "Hulp nodig?",
     "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
     "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",

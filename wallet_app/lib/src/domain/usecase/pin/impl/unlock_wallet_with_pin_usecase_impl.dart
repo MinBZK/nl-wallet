@@ -20,8 +20,9 @@ class UnlockWalletWithPinUseCaseImpl extends UnlockWalletWithPinUseCase {
       if (ex is FlutterApiError) {
         switch (ex.type) {
           case FlutterApiErrorType.generic:
-          case FlutterApiErrorType.networking:
             return CheckPinResultGenericError();
+          case FlutterApiErrorType.networking:
+            return CheckPinResultServerError(null /* TODO: add statusCode */);
         }
       }
       rethrow;

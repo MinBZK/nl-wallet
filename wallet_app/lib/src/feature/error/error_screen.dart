@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/model/error/server_error.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
+import '../common/sheet/help_sheet.dart';
 
 class ErrorScreen extends StatelessWidget {
+  final String? illustration;
   final String title;
   final String headline;
   final String description;
@@ -20,6 +23,7 @@ class ErrorScreen extends StatelessWidget {
     required this.description,
     required this.primaryActionText,
     required this.onPrimaryActionPressed,
+    this.illustration,
     this.secondaryActionText,
     this.onSecondaryActionPressed,
     Key? key,
@@ -41,16 +45,7 @@ class ErrorScreen extends StatelessWidget {
             slivers: [
               const SliverSizedBox(height: 24),
               SliverToBoxAdapter(
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5FD),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  width: double.infinity,
-                  height: 100,
-                  child: const Text('Placeholder image'),
-                ),
+                child: _buildIllustration(),
               ),
               const SliverSizedBox(height: 24),
               SliverToBoxAdapter(
@@ -79,6 +74,26 @@ class ErrorScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildIllustration() {
+    if (illustration == null) {
+      return Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5FD),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        width: double.infinity,
+        height: 100,
+        child: const Text('Placeholder image'),
+      );
+    } else {
+      return Image.asset(
+        illustration!,
+        fit: BoxFit.fitWidth,
+      );
+    }
   }
 
   Widget _buildBottomSection(BuildContext context) {
@@ -111,6 +126,7 @@ class ErrorScreen extends StatelessWidget {
     required String description,
     required String primaryActionText,
     required VoidCallback onPrimaryActionPressed,
+    String? illustration,
     String? secondaryActionText,
     VoidCallback? onSecondaryActionPressed,
   }) {
@@ -122,6 +138,7 @@ class ErrorScreen extends StatelessWidget {
                 title: title,
                 headline: headline,
                 description: description,
+                illustration: illustration,
                 primaryActionText: primaryActionText,
                 onPrimaryActionPressed: onPrimaryActionPressed,
                 secondaryActionText: secondaryActionText,
@@ -133,6 +150,7 @@ class ErrorScreen extends StatelessWidget {
                 title: title,
                 headline: headline,
                 description: description,
+                illustration: illustration,
                 primaryActionText: primaryActionText,
                 onPrimaryActionPressed: onPrimaryActionPressed,
                 secondaryActionText: secondaryActionText,
@@ -153,8 +171,32 @@ class ErrorScreen extends StatelessWidget {
       title: context.l10n.errorScreenGenericTitle,
       headline: context.l10n.errorScreenGenericHeadline,
       description: context.l10n.errorScreenGenericDescription,
+      illustration: 'assets/non-free/images/general_error_illustration.png',
       primaryActionText: context.l10n.errorScreenGenericCloseCta,
+      secondaryActionText: context.l10n.errorScreenGeneralHelpCta,
       onPrimaryActionPressed: () => Navigator.pop(context),
+      onSecondaryActionPressed: () => HelpSheet.show(context),
+    );
+  }
+
+  /// Shows the [ErrorScreen] focussed on communicating
+  /// a server error. The error displayed to the user is
+  /// based on the provided [ServerError], and defaults to
+  /// 'something went wrong, check the internet and try again'
+  /// when no [ServerError] is provided.
+  static void showServer(BuildContext context, {bool secured = true, ServerError? serverError}) {
+    //TODO: We eventually want to select different copy based on the provided [ServerError].
+    show(
+      context,
+      secured: secured,
+      title: context.l10n.errorScreenServerTitle,
+      headline: context.l10n.errorScreenServerHeadline,
+      description: context.l10n.errorScreenServerDescription,
+      illustration: 'assets/non-free/images/server_error_illustration.png',
+      primaryActionText: context.l10n.errorScreenServerCloseCta,
+      secondaryActionText: context.l10n.errorScreenServerHelpCta,
+      onPrimaryActionPressed: () => Navigator.pop(context),
+      onSecondaryActionPressed: () => HelpSheet.show(context),
     );
   }
 }

@@ -4,7 +4,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class VersionText extends StatelessWidget {
-  const VersionText({Key? key}) : super(key: key);
+  final TextStyle? textStyle;
+
+  const VersionText({this.textStyle, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +20,7 @@ class VersionText extends StatelessWidget {
               data.buildNumber,
               data.version,
             ),
-            style: context.textTheme.bodyMedium,
+            style: textStyle ?? context.textTheme.bodyMedium,
           );
         } else {
           return const SizedBox.shrink();

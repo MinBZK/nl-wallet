@@ -107,11 +107,21 @@ void main() {
       expect: () => [isA<PinValidateTimeout>()],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that WalletUnlockResultServerError results in PinValidateServerError',
+      'Verify that CheckPinResultGenericError results in PinValidateGenericError',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
         CheckPinResultGenericError(),
+      ),
+      skip: 6,
+      expect: () => [const PinValidateGenericError()],
+    );
+    blocTest<PinBloc, PinState>(
+      'Verify that CheckPinResultServerError results in PinValidateServerError',
+      build: () => bloc,
+      act: (bloc) => triggerValidateFromCleanBloc(
+        bloc,
+        CheckPinResultServerError(-1),
       ),
       skip: 6,
       expect: () => [const PinValidateServerError()],

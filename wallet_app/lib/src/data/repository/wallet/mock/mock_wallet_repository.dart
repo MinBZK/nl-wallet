@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -6,6 +7,7 @@ import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../../../util/extension/wallet_unlock_result_extension.dart';
 import '../../../../wallet_constants.dart';
+import '../../../../wallet_core/error/flutter_api_error.dart';
 import '../../../source/wallet_datasource.dart';
 import '../wallet_repository.dart';
 
@@ -31,6 +33,21 @@ class MockWalletRepository implements WalletRepository {
   Future<WalletUnlockResult> unlockWallet(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     await Future.delayed(const Duration(milliseconds: 500));
+    if (kDebugMode && pin != _pin) {
+      /// This allows us to test all expected errors (and UI states) on mock builds.
+      switch (pin) {
+        case '111111':
+          return const WalletUnlockResult.timeout(timeoutMillis: 10000);
+        case '222222':
+          return const WalletUnlockResult.incorrectPin(leftoverAttempts: 5, isFinalAttempt: false);
+        case '333333':
+          return const WalletUnlockResult.blocked();
+        case '444444':
+          throw FlutterApiError(type: FlutterApiErrorType.generic);
+        case '555555':
+          throw FlutterApiError(type: FlutterApiErrorType.networking);
+      }
+    }
     if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;

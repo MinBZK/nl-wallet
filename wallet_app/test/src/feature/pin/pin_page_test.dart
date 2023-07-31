@@ -62,6 +62,17 @@ void main() {
       await screenMatchesGolden(tester, 'pin_page/pin_validate_final_chance');
     });
 
+    testGoldens('PinValidateGenericError', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const PinPage().withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateGenericError(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await screenMatchesGolden(tester, 'pin_page/pin_validate_generic_error');
+    });
+
     testGoldens('PinValidateServerError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const PinPage().withState<PinBloc, PinState>(

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-07-19T14:35:27+02:00",
+    "@@last_modified": "2023-07-31T11:47:49+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Give feedback",
     "aboutScreenPrivacyCta": "Privacy policy",
@@ -178,10 +178,16 @@
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Is the information incorrect?",
     "dataIncorrectScreenTitle": "Retrieve data",
-    "errorScreenGenericCloseCta": "Sluit",
-    "errorScreenGenericDescription": "Controleer of verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
-    "errorScreenGenericHeadline": "Er gaat iets mis",
-    "errorScreenGenericTitle": "Fout",
+    "errorScreenGeneralHelpCta": "Need help?",
+    "errorScreenGenericCloseCta": "Close",
+    "errorScreenGenericDescription": "It didn't work. Would you like to try again?",
+    "errorScreenGenericHeadline": "Something went wrong",
+    "errorScreenGenericTitle": "Error",
+    "errorScreenServerCloseCta": "Close",
+    "errorScreenServerDescription": "Check if you're connected to the internet or use a different network. Try again after doing so.",
+    "errorScreenServerHeadline": "An error occurred",
+    "errorScreenServerHelpCta": "Need help?",
+    "errorScreenServerTitle": "Error",
     "forgotPinScreenCta": "Clear Wallet",
     "forgotPinScreenDescription": "When you forget your pin you can no longer use your Wallet.\n\nTo continue using the Wallet you have to start over. Clear your wallet and select a new pin.",
     "forgotPinScreenHeadline": "Forgot your pin?",
@@ -216,6 +222,15 @@
         }
     },
     "generalOnDate": "On",
+    "generalOsVersionText": "OS version: {versionName}",
+    "@generalOsVersionText": {
+        "placeholders": {
+            "versionName": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
     "generalPolicyAllTermsCta": "All terms",
     "generalPolicyDataCanBeDeleted": "You can request data deletion",
     "generalPolicyDataCanNotBeDeleted": "You can not request data deletion",
@@ -260,6 +275,28 @@
         }
     },
     "generalWCAGBack": "Back",
+    "helpSheetCloseCta": "Close",
+    "helpSheetDescription": "Contact support. The following information could be required.",
+    "helpSheetErrorCode": "Error code: {code}",
+    "@helpSheetErrorCode": {
+        "placeholders": {
+            "code": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
+    "helpSheetHelpdeskCta": "To support",
+    "helpSheetSupportCode": "Support code: {code}",
+    "@helpSheetSupportCode": {
+        "placeholders": {
+            "code": {
+                "example": "0.1.3",
+                "type": "String"
+            }
+        }
+    },
+    "helpSheetTitle": "Need help?",
     "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
     "historyDetailScreenHelpdeskTitle": "Open helpdesk",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 attribute} other {Shared {attributes} attributes}}",

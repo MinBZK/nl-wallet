@@ -7,7 +7,7 @@ import '../../../wallet_app_test_widget.dart';
 import '../../util/test_utils.dart';
 
 void main() {
-  const otherTabSize = Size(375, 2900);
+  const otherTabSize = Size(375, 3100);
 
   setUp(() => TestUtils.mockAccelerometerPlugin());
 

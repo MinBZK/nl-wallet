@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
@@ -39,6 +38,42 @@ void main() {
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
       await screenMatchesGolden(tester, 'dark');
+    });
+
+    testGoldens('ErrorScreen.showGeneric()', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () => ErrorScreen.showGeneric(context, secured: false),
+              child: const Text('generic'),
+            );
+          },
+        ),
+      );
+      // Tap the button to open the generic error screen
+      await tester.tap(find.text('generic'));
+      await tester.pumpAndSettle();
+      // Verify it's displayed correctly
+      await screenMatchesGolden(tester, 'generic.light');
+    });
+
+    testGoldens('ErrorScreen.showServer()', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () => ErrorScreen.showServer(context, secured: false),
+              child: const Text('server'),
+            );
+          },
+        ),
+      );
+      // Tap the button to open the server error screen
+      await tester.tap(find.text('server'));
+      await tester.pumpAndSettle();
+      // Verify it's displayed correctly
+      await screenMatchesGolden(tester, 'server.light');
     });
   });
 

@@ -64,3 +64,10 @@ class PinValidateServerError extends PinState {
   @override
   List<Object> get props => [];
 }
+
+class PinValidateGenericError extends PinState {
+  const PinValidateGenericError();
+
+  @override
+  List<Object> get props => [];
+}

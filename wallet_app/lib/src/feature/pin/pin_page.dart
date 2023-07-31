@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/text_icon_button.dart';
@@ -47,8 +48,11 @@ class PinPage extends StatelessWidget {
         if (state is PinValidateSuccess) {
           onPinValidated?.call();
         }
-        if (state is PinValidateServerError) {
+        if (state is PinValidateGenericError) {
           ErrorScreen.showGeneric(context, secured: false);
+        }
+        if (state is PinValidateServerError) {
+          ErrorScreen.showServer(context, secured: false, serverError: tryCast(state));
         }
         if (state is PinValidateTimeout) {
           PinTimeoutScreen.show(context, state.expiryTime);
@@ -222,6 +226,7 @@ class PinPage extends StatelessWidget {
       PinValidateFailure() => true,
       PinValidateTimeout() => true,
       PinValidateServerError() => true,
+      PinValidateGenericError() => true,
       PinValidateInProgress() => false,
       PinValidateSuccess() => false,
       PinValidateBlocked() => false,
@@ -237,6 +242,7 @@ class PinPage extends StatelessWidget {
       PinValidateTimeout() => false,
       PinValidateBlocked() => false,
       PinValidateServerError() => false,
+      PinValidateGenericError() => false,
     };
   }
 
@@ -249,6 +255,7 @@ class PinPage extends StatelessWidget {
       PinValidateTimeout() => 0,
       PinValidateBlocked() => 0,
       PinValidateServerError() => 0,
+      PinValidateGenericError() => 0,
     };
   }
 
