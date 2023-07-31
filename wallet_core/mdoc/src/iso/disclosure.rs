@@ -1,0 +1,95 @@
+//! Data structures used in disclosure, created by the holder and sent to the RP.
+//!
+//! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
+//! verification, and [`IssuerSigned`], which contains the entire issuer-signed mdoc and the disclosed attributes.
+
+use coset::{CoseMac0, CoseSign1};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+use std::fmt::Debug;
+
+use crate::{
+    iso::mdocs::*,
+    utils::{
+        cose::MdocCose,
+        serialization::{NullCborValue, RequiredValue, TaggedBytes},
+    },
+};
+
+/// A disclosure of a holder, containing multiple [`Document`]s, containing some or all of their attributes.
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceResponse {
+    pub version: String,
+    pub documents: Option<Vec<Document>>,
+    pub document_errors: Option<Vec<DocumentError>>,
+    pub status: u64,
+}
+
+pub type DocumentError = IndexMap<DocType, ErrorCode>;
+
+/// A disclosed mdoc, containing:
+/// - the MSO signed by the issuer including the mdoc's public key and the digests of the attributes,
+/// - the values and `random` bytes of the disclosed (i.e. included) attributes,
+/// - the holder signature (over the session transcript so far, which is not included here; see
+///   [`DeviceAuthentication`](super::DeviceAuthentication)), using the private key corresponding to the public key
+///   contained in the mdoc; this acts as challenge-response mechanism.
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Document {
+    pub doc_type: DocType,
+    pub issuer_signed: IssuerSigned,
+    pub device_signed: DeviceSigned,
+    pub errors: Option<Errors>,
+}
+
+/// The issuer-signed MSO in Cose format, as well as some or all of the attributes including their randoms
+/// (i.e. [`IssuerSignedItem`]s) contained in the mdoc. This includes the public key of the MSO,
+/// but not the private key (for that, see [`Mdoc`](crate::holder::Mdoc)).
+///
+/// This data structure is used as part of mdocs (in which case `name_spaces` necessarily contains all attributes
+/// of the mdoc), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
+/// attributes may be absent, i.e., not disclosed).
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct IssuerSigned {
+    pub name_spaces: Option<IssuerNameSpaces>,
+    pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
+}
+
+/// The holder signature as during disclosure of an mdoc (see [`Document`]) computed with the mdoc private key, as well
+/// as any self-asserted attributes.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceSigned {
+    pub name_spaces: DeviceNameSpacesBytes,
+    pub device_auth: DeviceAuth,
+}
+
+/// Attributes included in a holder disclosure that have not been signed by the issuer, but only
+/// by the holder: self-asserted attributes. See also [`DeviceSigned`] and
+/// [`DeviceAuthentication`](super::DeviceAuthentication).
+pub type DeviceNameSpaces = IndexMap<NameSpace, DeviceSignedItems>;
+
+/// See [`DeviceNameSpaces`].
+pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;
+
+/// Self-asserted attributes as part of an mdoc disclosure.
+pub type DeviceSignedItems = IndexMap<DataElementIdentifier, DataElementValue>;
+
+/// The signature or MAC created by the holder during disclosure of an mdoc, with the private key of the mdoc
+/// (whose public key is included in its MSO).
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum DeviceAuth {
+    DeviceSignature(MdocCose<CoseSign1, RequiredValue<NullCborValue>>),
+    DeviceMac(MdocCose<CoseMac0, RequiredValue<NullCborValue>>),
+}
+
+pub type Errors = IndexMap<NameSpace, ErrorItems>;
+pub type ErrorItems = IndexMap<DataElementIdentifier, ErrorCode>;
+pub type ErrorCode = i32;
