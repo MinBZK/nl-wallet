@@ -6,7 +6,8 @@ extension CheckPinResultExtension on CheckPinResult {
     Function(CheckPinResultIncorrect)? onCheckPinResultIncorrectPin,
     Function(CheckPinResultTimeout)? onCheckPinResultTimeout,
     Function(CheckPinResultBlocked)? onCheckPinResultBlocked,
-    Function(CheckPinResultGenericError)? onCheckPinResultServerError,
+    Function(CheckPinResultGenericError)? onCheckPinResultGenericError,
+    Function(CheckPinResultServerError)? onCheckPinResultServerError,
   }) {
     if (this is CheckPinResultOk) {
       onCheckPinResultOk?.call(this as CheckPinResultOk);
@@ -15,7 +16,9 @@ extension CheckPinResultExtension on CheckPinResult {
     } else if (this is CheckPinResultTimeout) {
       onCheckPinResultTimeout?.call(this as CheckPinResultTimeout);
     } else if (this is CheckPinResultGenericError) {
-      onCheckPinResultServerError?.call(this as CheckPinResultGenericError);
+      onCheckPinResultGenericError?.call(this as CheckPinResultGenericError);
+    } else if (this is CheckPinResultServerError) {
+      onCheckPinResultServerError?.call(this as CheckPinResultServerError);
     } else if (this is CheckPinResultBlocked) {
       onCheckPinResultBlocked?.call(this as CheckPinResultBlocked);
     }

@@ -41,13 +41,13 @@ class PinBloc extends Bloc<PinEvent, PinState> {
     final checkPinResult = await checkPinUseCase.invoke(_currentPin);
     if (checkPinResult is! CheckPinResultOk) _currentPin = '';
     checkPinResult.when(
-      onCheckPinResultOk: (it) => emit(const PinValidateSuccess()),
-      onCheckPinResultIncorrectPin: (it) =>
-          emit(PinValidateFailure(leftoverAttempts: it.leftoverAttempts, isFinalAttempt: it.isFinalAttempt)),
-      onCheckPinResultTimeout: (it) =>
-          emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: it.timeoutMillis)))),
-      onCheckPinResultBlocked: (it) => emit(const PinValidateBlocked()),
-      onCheckPinResultServerError: (it) => emit(const PinValidateServerError()),
-    );
+        onCheckPinResultOk: (it) => emit(const PinValidateSuccess()),
+        onCheckPinResultIncorrectPin: (it) =>
+            emit(PinValidateFailure(leftoverAttempts: it.leftoverAttempts, isFinalAttempt: it.isFinalAttempt)),
+        onCheckPinResultTimeout: (it) =>
+            emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: it.timeoutMillis)))),
+        onCheckPinResultBlocked: (it) => emit(const PinValidateBlocked()),
+        onCheckPinResultServerError: (it) => emit(const PinValidateServerError()),
+        onCheckPinResultGenericError: (it) => emit(const PinValidateGenericError()));
   }
 }
