@@ -180,7 +180,7 @@ mod tests {
     use tokio::fs;
 
     use wallet_common::{
-        account::messages::auth::WalletCertificate, keys::software_keys::SoftwareEncryptionKey, utils::random_bytes,
+        account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
 
     use crate::storage::data::RegistrationData;

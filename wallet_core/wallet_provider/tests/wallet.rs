@@ -17,7 +17,7 @@ use wallet::{
     mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
     wallet::{AccountServerClient, ConfigurationRepository, Storage, Wallet, WalletUnlockError},
 };
-use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software_keys::SoftwareEcdsaKey};
+use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
 use wallet_provider_persistence::{entity::wallet_user, postgres};
 

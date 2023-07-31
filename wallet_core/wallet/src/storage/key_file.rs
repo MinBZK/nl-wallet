@@ -99,7 +99,7 @@ mod tests {
 
     use platform_support::utils::software::SoftwareUtilities;
     use tempfile::{NamedTempFile, TempPath};
-    use wallet_common::keys::{software_keys::SoftwareEncryptionKey, ConstructableWithIdentifier};
+    use wallet_common::keys::{software::SoftwareEncryptionKey, ConstructableWithIdentifier};
 
     use super::*;
 

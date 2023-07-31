@@ -29,4 +29,4 @@ pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
 }
 
 #[cfg(feature = "software")]
-impl PlatformEcdsaKey for wallet_common::keys::software_keys::SoftwareEcdsaKey {}
+impl PlatformEcdsaKey for wallet_common::keys::software::SoftwareEcdsaKey {}
