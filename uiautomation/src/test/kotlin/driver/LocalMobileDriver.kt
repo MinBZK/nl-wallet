@@ -1,4 +1,4 @@
-package drivers
+package driver
 
 import com.codeborne.selenide.WebDriverProvider
 import config.TestDataConfig.Companion.testDataConfig

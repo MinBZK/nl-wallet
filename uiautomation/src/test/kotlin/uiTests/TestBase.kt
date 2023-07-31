@@ -4,10 +4,10 @@ import com.codeborne.selenide.Configuration
 import com.codeborne.selenide.Selenide
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import com.codeborne.selenide.logevents.SelenideLogger
+import config.RemoteOrLocal
 import config.TestDataConfig.Companion.testDataConfig
-import config.TestDataConfig.RemoteOrLocal
-import drivers.BrowserstackMobileDriver
-import drivers.LocalMobileDriver
+import driver.BrowserstackMobileDriver
+import driver.LocalMobileDriver
 import helper.Attach
 import helper.TestResultsListener
 import io.qameta.allure.Allure
@@ -38,7 +38,7 @@ open class TestBase {
     fun afterEach() {
         val sessionId: String = Attach.sessionId()
         Attach.screenshotWithTimeStamp()
-        if (testDataConfig.remoteOrLocal == RemoteOrLocal.remote) {
+        if (testDataConfig.remoteOrLocal == RemoteOrLocal.Remote) {
             Attach.video(sessionId)
         } else {
             Allure.step("Close driver", ThrowableRunnableVoid {
@@ -54,7 +54,7 @@ open class TestBase {
         @JvmStatic
         @BeforeAll
         fun setup() {
-            if (testDataConfig.remoteOrLocal == RemoteOrLocal.remote) {
+            if (testDataConfig.remoteOrLocal == RemoteOrLocal.Remote) {
                 Configuration.browser = BrowserstackMobileDriver::class.java.name
             } else {
                 Configuration.browser = LocalMobileDriver::class.java.name

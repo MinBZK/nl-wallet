@@ -15,27 +15,16 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
-    // https://mvnrepository.com/artifact/com.squareup.moshi/moshi
-    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
-    // https://mvnrepository.com/artifact/com.codeborne/selenide-appium
     implementation("com.codeborne:selenide-appium:2.6.1")
-    // https://mvnrepository.com/artifact/io.qameta.allure/allure-selenide
-    implementation("io.qameta.allure:allure-selenide:2.21.0")
-    // https://mvnrepository.com/artifact/io.appium/java-client
+    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
     implementation("io.appium:java-client:8.3.0")
-    // https://mvnrepository.com/artifact/io.github.ashwithpoojary98/appium_flutterfinder_java
+    implementation("io.qameta.allure:allure-selenide:2.21.0")
     implementation("io.github.ashwithpoojary98:appium_flutterfinder_java:1.0.1")
-
-    // https://mvnrepository.com/artifact/org.junit-pioneer/junit-pioneer
-    testImplementation("org.junit-pioneer:junit-pioneer:2.0.0")
-    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
-    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
-    // https://mvnrepository.com/artifact/io.rest-assured/rest-assured
-    testImplementation("io.rest-assured:rest-assured:5.3.0")
-    // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
-    testImplementation("org.slf4j:slf4j-simple:2.0.6")
-    // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite-engine
-    testImplementation("org.junit.platform:junit-platform-suite-engine:1.9.3")
+    implementation("io.rest-assured:rest-assured:5.3.0")
+    implementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    implementation("org.junit-pioneer:junit-pioneer:2.0.0")
+    implementation("org.junit.platform:junit-platform-suite-engine:1.9.3")
+    implementation("org.slf4j:slf4j-simple:2.0.6")
 }
 
 tasks.test {

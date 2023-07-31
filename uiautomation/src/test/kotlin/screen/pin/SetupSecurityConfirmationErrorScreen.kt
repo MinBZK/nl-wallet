@@ -1,4 +1,4 @@
-package screens.pin
+package screen.pin
 
 import com.codeborne.selenide.WebDriverRunner
 import io.github.ashwith.flutter.FlutterFinder
@@ -9,12 +9,9 @@ import util.MobileActions
 class SetupSecurityConfirmationErrorScreen : MobileActions() {
 
     private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
-    private val fatalErrorTitle =
-        find.byValueKey("setupSecurityConfirmationErrorPageFatalTitle")
-    private val fatalErrorDescription =
-        find.byValueKey("setupSecurityConfirmationErrorPageFatalDescription")
-    private val selectNewCode =
-        find.byValueKey("setupSecurityConfirmationErrorPageFatalCta")
+    private val fatalErrorTitle = find.byValueKey("setupSecurityConfirmationErrorPageFatalTitle")
+    private val fatalErrorDescription = find.byValueKey("setupSecurityConfirmationErrorPageFatalDescription")
+    private val selectNewCode = find.byValueKey("setupSecurityConfirmationErrorPageFatalCta")
 
     @Step("click select new code button")
     fun clickSelectNewCodeButton() {
@@ -22,12 +19,12 @@ class SetupSecurityConfirmationErrorScreen : MobileActions() {
     }
 
     @Step("verify if fatal error title is visible")
-    fun verifyErrorConfirmationFatalErrorTitle(): String? {
-        return verifyText(fatalErrorTitle)
+    fun readErrorConfirmationFatalErrorTitleText(): String? {
+        return readText(fatalErrorTitle)
     }
 
     @Step("verify if fatal error description is visible")
-    fun verifyErrorConfirmationFatalErrorDescription(): String? {
-        return verifyText(fatalErrorDescription)
+    fun readErrorConfirmationFatalErrorDescriptionText(): String? {
+        return readText(fatalErrorDescription)
     }
 }

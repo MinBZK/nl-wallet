@@ -1,4 +1,4 @@
-package drivers
+package driver
 
 import com.codeborne.selenide.WebDriverProvider
 import config.TestDataConfig.Companion.browserstackAccessKey
@@ -13,7 +13,6 @@ import uiTests.TestBase
 
 import util.SetupTestTagHandler
 
-import java.net.MalformedURLException
 import java.net.URL
 
 class BrowserstackMobileDriver : WebDriverProvider {
@@ -41,31 +40,26 @@ class BrowserstackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:deviceName", remoteDevice.deviceName)
         caps.setCapability("appium:language", SetupTestTagHandler.language)
         caps.setCapability("appium:locale", SetupTestTagHandler.locale)
-        caps.setCapability("appium:retryBackoffTime", 500)
+        caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
+
         // Set URL of the application under test
         caps.setCapability(
-            "appium:app", when (remoteDevice.platformName) {
+            "appium:app",
+            when (remoteDevice.platformName) {
                 "android" -> Browserstack.getAppUrl("NLWalletAndroid")
                 "ios" -> Browserstack.getAppUrl("NLWalletios")
                 else -> throw IllegalArgumentException("Invalid app: ${remoteDevice.platformName}")
-            }
+            },
         )
 
         return RemoteWebDriver(
             URL("http://$browserstackUserName:$browserstackAccessKey@hub-cloud.browserstack.com/wd/hub"),
-            caps
+            caps,
         )
     }
 
-    private fun getBrowserstackUrl(): URL? {
-        return try {
-            URL(testDataConfig.server)
-        } catch (e: MalformedURLException) {
-            throw RuntimeException(e)
-        }
-    }
-
     companion object {
-        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default is 90 seconds
+        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500
+        private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default: 90 seconds
     }
 }
