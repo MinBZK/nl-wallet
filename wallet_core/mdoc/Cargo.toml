@@ -17,13 +17,13 @@ fieldnames_derive = { path = "./fieldnames_derive" }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 ciborium = { workspace = true }
-coset = { workspace = true }
+coset = { workspace = true, features = ["std"] }
 dashmap = { workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
 indexmap = { workspace = true , features = ["serde"] }
 once_cell = { workspace = true }
-p256 = { workspace = true , features = ["ecdh", "serde", "pem"] }
+p256 = { workspace = true , features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 rand = { workspace = true }
 rcgen = { workspace = true , features = ["x509-parser"] }
 regex = { workspace = true }
