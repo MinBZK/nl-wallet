@@ -2,6 +2,9 @@ use std::error::Error;
 
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
+#[cfg(feature = "software")]
+pub mod software_keys;
+
 pub trait EcdsaKey: Signer<Signature> {
     type Error: Error + Send + Sync + 'static;
 

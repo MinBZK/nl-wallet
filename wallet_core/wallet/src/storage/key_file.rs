@@ -6,7 +6,7 @@ use std::{
 use tokio::{fs, task};
 
 use platform_support::utils::{PlatformUtilities, UtilitiesError};
-use wallet_common::{account::signing_key::PlatformEncryptionKey, utils::random_bytes};
+use wallet_common::{keys::PlatformEncryptionKey, utils::random_bytes};
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
@@ -102,7 +102,7 @@ mod tests {
 
     use platform_support::utils::software::SoftwareUtilities;
     use tempfile::{NamedTempFile, TempPath};
-    use wallet_common::account::{signing_key::ConstructableWithIdentifier, software_keys::SoftwareEncryptionKey};
+    use wallet_common::keys::{software_keys::SoftwareEncryptionKey, ConstructableWithIdentifier};
 
     use super::*;
 

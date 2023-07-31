@@ -7,8 +7,9 @@ use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    account::{serialization::DerVerifyingKey, signing_key::SecureEcdsaKey},
+    account::serialization::DerVerifyingKey,
     errors::{Result, SigningError, ValidationError},
+    keys::SecureEcdsaKey,
 };
 
 // TODO implement keyring and use kid header item for key rollover

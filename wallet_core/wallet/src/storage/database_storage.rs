@@ -8,7 +8,7 @@ use tokio::{fs, task};
 
 use entity::keyed_data;
 use platform_support::{preferred, utils::PlatformUtilities};
-use wallet_common::account::signing_key::PlatformEncryptionKey;
+use wallet_common::keys::PlatformEncryptionKey;
 
 use super::{
     data::KeyedData,
@@ -180,8 +180,7 @@ mod tests {
     use tokio::fs;
 
     use wallet_common::{
-        account::{messages::auth::WalletCertificate, software_keys::SoftwareEncryptionKey},
-        utils::random_bytes,
+        account::messages::auth::WalletCertificate, keys::software_keys::SoftwareEncryptionKey, utils::random_bytes,
     };
 
     use crate::storage::data::RegistrationData;

@@ -1,7 +1,7 @@
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
-use wallet_common::account::signing_key::{ConstructableWithIdentifier, SecureEcdsaKey};
+use wallet_common::keys::{ConstructableWithIdentifier, SecureEcdsaKey};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -29,4 +29,4 @@ pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
 }
 
 #[cfg(feature = "software")]
-impl PlatformEcdsaKey for wallet_common::account::software_keys::SoftwareEcdsaKey {}
+impl PlatformEcdsaKey for wallet_common::keys::software_keys::SoftwareEcdsaKey {}

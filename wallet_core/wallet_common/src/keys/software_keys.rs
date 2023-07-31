@@ -9,11 +9,11 @@ use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
 use crate::{
-    account::signing_key::{EcdsaKey, SecureEcdsaKey},
+    keys::{EcdsaKey, SecureEcdsaKey},
     utils::random_bytes,
 };
 
-use super::signing_key::{ConstructableWithIdentifier, PlatformEncryptionKey};
+use crate::keys::{ConstructableWithIdentifier, PlatformEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));

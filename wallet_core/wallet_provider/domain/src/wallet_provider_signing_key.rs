@@ -1,7 +1,7 @@
 use p256::ecdsa::{signature, signature::Signer, Error, Signature, VerifyingKey};
-use wallet_common::account::{
-    serialization::DerSigningKey,
-    signing_key::{EcdsaKey, SecureEcdsaKey},
+use wallet_common::{
+    account::serialization::DerSigningKey,
+    keys::{EcdsaKey, SecureEcdsaKey},
 };
 
 pub struct WalletProviderEcdsaKey(DerSigningKey);

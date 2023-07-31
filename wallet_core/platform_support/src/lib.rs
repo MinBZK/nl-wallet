@@ -33,7 +33,7 @@ pub mod preferred {
 #[cfg(all(not(feature = "hardware"), feature = "software"))]
 pub mod preferred {
     use crate::utils::software::SoftwareUtilities;
-    use wallet_common::account::software_keys::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+    use wallet_common::keys::software_keys::{SoftwareEcdsaKey, SoftwareEncryptionKey};
 
     pub type PlatformEcdsaKey = SoftwareEcdsaKey;
     pub type PlatformEncryptionKey = SoftwareEncryptionKey;

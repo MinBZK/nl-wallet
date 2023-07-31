@@ -1,5 +1,5 @@
 use p256::ecdsa::signature::Verifier;
-use wallet_common::account::signing_key::PlatformEncryptionKey;
+use wallet_common::keys::PlatformEncryptionKey;
 
 use crate::hw_keystore::PlatformEcdsaKey;
 

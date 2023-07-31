@@ -16,8 +16,8 @@ use wallet_common::{
         },
         serialization::Base64Bytes,
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
-        signing_key::EcdsaKey,
     },
+    keys::EcdsaKey,
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{

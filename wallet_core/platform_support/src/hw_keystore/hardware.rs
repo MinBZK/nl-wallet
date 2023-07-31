@@ -3,7 +3,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::account::signing_key::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::account::keys::{EcdsaKey, SecureEcdsaKey};
 
 use super::{
     ConstructableWithIdentifier, HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey,
