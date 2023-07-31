@@ -7,5 +7,4 @@ import org.junit.platform.suite.api.SuiteDisplayName
 @SelectPackages("uiTests")
 @Suite
 @SuiteDisplayName("Run all tests")
-object RunTests {
-}
+object RunTests

@@ -25,8 +25,8 @@
         2. Platform tools
         3. Android Emulator
         4. Create an emulator device with API version 33 from AVD manager
-5. `iOS`</b> - Install XCode on your machine & download required iPhone/iPad simulators.
-6. `Allure Report`</b> - Install Allure Report library on your machine. Please follow below link to install it on MAC.
+6. `iOS`</b> - Install XCode on your machine & download required iPhone/iPad simulators.
+7`Allure Report`</b> - Install Allure Report library on your machine. Please follow below link to install it on MAC.
    https://docs.qameta.io/allure/#_installing_a_commandline
 
 
@@ -49,6 +49,7 @@
 ## Run Automation Tests:
 
 ### Local run:
+
 #### Precondition:
 - Run Android emulator with API level 33. Emulator or devices needs to be started and should be unlocked.
 - First, fetch the dependencies by running `flutter pub get`, and then create an APK by executing `flutter build apk --profile`
@@ -56,7 +57,7 @@
 
 1. Open `device.conf.json` file in the resource directory
 2. Replace the value of `device` with one of the devices listed under localDevices, such as `emulator-5554`
-3. Set `remoteOrLocal` to `local`
+3. Set `remoteOrLocal` to `Local`
 4. Make sure that you are in the correct directory: `uiautomation` where the Gradle project is located.
 5. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it
 by running: `gradle wrapper`.
@@ -67,6 +68,7 @@ by running: `gradle wrapper`.
 The Appium Server will start automatically. Appium Server will handle the process of running the tests and displaying the results on the console.
 
 ### Browserstack run:
+
 #### Precondition:
 - First, add the following environment variables to the `~/.bash_profile` or `~/.zshrc` file:
     - `export BROWSERSTACK_USER={USERNAME}`
@@ -78,7 +80,7 @@ The Appium Server will start automatically. Appium Server will handle the proces
 
 1. Open `device.conf.json` file in the resource directory
 2. Replace the value of `device` with one of the devices listed under browserstackDevices, such as `Google Pixel 7 Pro`
-3. Set `remoteOrLocal` to `remote`
+3. Set `remoteOrLocal` to `Remote`
 4. Make sure you are in the correct directory: `uiautomation`, where the Gradle project is located.
 5. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it
    by running: `gradle wrapper`.
@@ -108,7 +110,7 @@ By applying the @RetryingTest annotation with the following attributes, you can 
 The @DisplayName enables the creation of custom names for test classes and methods. By using this annotation, you can provide more meaningful and descriptive names that accurately convey the purpose and functionality of your tests.
 
 ### @Tag
-#### @Tags(Tag("smoke"), Tag("android"), Tag("iOS"))
+#### @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
 
 The @Tag annotation allows you to assign tags to your test classes or methods. These tags can then be used for filtering, allowing you to selectively run specific tests based on the desired criteria.
 

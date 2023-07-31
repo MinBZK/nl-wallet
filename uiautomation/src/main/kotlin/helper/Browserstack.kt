@@ -2,14 +2,14 @@ package helper
 
 import com.codeborne.selenide.Selenide
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
-import config.TestDataConfig
+import config.RemoteOrLocal
 import config.TestDataConfig.Companion.browserstackAccessKey
 import config.TestDataConfig.Companion.browserstackUserName
 import config.TestDataConfig.Companion.testDataConfig
 import io.restassured.RestAssured
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.remote.RemoteWebDriver
-import util.EnvUtilities.getEnvVar
+import util.EnvironmentUtil
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -44,15 +44,15 @@ object Browserstack {
 
     private fun generateBuildName(): String {
         val currentDateTime = LocalDateTime.now()
-        val formatter = getEnvVar("BUILD_NAME_DATE_FORMAT_OVERRIDE").takeIf { it.isNotEmpty() }
+        val formatter = EnvironmentUtil.getVar("BUILD_NAME_DATE_FORMAT_OVERRIDE").takeIf { it.isNotEmpty() }
             ?.let { DateTimeFormatter.ofPattern(it) }
-            ?: DateTimeFormatter.ofPattern("dd/MM-HH:mmss")
+            ?: DateTimeFormatter.ofPattern("dd/MM-HH:mm:ss")
         val formattedDateTime = currentDateTime.format(formatter)
         return "build-$formattedDateTime"
     }
 
     fun markTest(status: String) {
-        if (testDataConfig.remoteOrLocal != TestDataConfig.RemoteOrLocal.remote) return
+        if (testDataConfig.remoteOrLocal != RemoteOrLocal.Remote) return
 
         val jse: JavascriptExecutor = getWebDriver() as RemoteWebDriver
         jse.executeScript("browserstack_executor: {\"action\": \"setSessionStatus\", \"arguments\": {\"status\": \"$status\"}}")

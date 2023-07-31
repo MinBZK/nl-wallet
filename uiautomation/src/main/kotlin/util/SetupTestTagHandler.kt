@@ -1,6 +1,6 @@
 package util
 
-import config.TestDataConfig
+import config.RemoteOrLocal
 import config.TestDataConfig.Companion.testDataConfig
 import org.junit.jupiter.api.TestInfo
 import javax.naming.ConfigurationException
@@ -17,8 +17,8 @@ class SetupTestTagHandler {
 
         fun handleTestTags(testInfo: TestInfo) {
             platformName = when (testDataConfig.remoteOrLocal) {
-                TestDataConfig.RemoteOrLocal.remote -> testDataConfig.defaultRemoteDevice?.platformName
-                TestDataConfig.RemoteOrLocal.local -> testDataConfig.defaultLocalDevice?.platformName
+                RemoteOrLocal.Remote -> testDataConfig.defaultRemoteDevice?.platformName
+                RemoteOrLocal.Local -> testDataConfig.defaultLocalDevice?.platformName
             }
                 ?: throw UninitializedPropertyAccessException("Make sure 'device' in setupTestTagHandler resolves to a platformName")
 
