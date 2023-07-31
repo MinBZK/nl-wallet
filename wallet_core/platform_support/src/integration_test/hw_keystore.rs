@@ -1,5 +1,5 @@
 use p256::ecdsa::signature::Verifier;
-use wallet_common::keys::PlatformEncryptionKey;
+use wallet_common::keys::SecureEncryptionKey;
 
 use crate::hw_keystore::PlatformEcdsaKey;
 
@@ -27,7 +27,7 @@ pub fn sign_and_verify_signature<K: PlatformEcdsaKey>(payload: &[u8], key_identi
     public_key.verify(payload, &signature).is_ok()
 }
 
-pub fn encrypt_and_decrypt_message<K: PlatformEncryptionKey>(payload: &[u8], key_identifier: &str) -> bool {
+pub fn encrypt_and_decrypt_message<K: SecureEncryptionKey>(payload: &[u8], key_identifier: &str) -> bool {
     // Create an encryption key for the identifier
     let encryption_key1 = K::new(key_identifier);
     // Create another encryption key with the same identifier, should use the same key

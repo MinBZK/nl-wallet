@@ -13,7 +13,7 @@ use crate::{
     utils::random_bytes,
 };
 
-use crate::keys::{ConstructableWithIdentifier, PlatformEncryptionKey};
+use crate::keys::{ConstructableWithIdentifier, SecureEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -100,7 +100,7 @@ impl ConstructableWithIdentifier for SoftwareEncryptionKey {
     }
 }
 
-impl PlatformEncryptionKey for SoftwareEncryptionKey {
+impl SecureEncryptionKey for SoftwareEncryptionKey {
     type Error = aes_gcm::Error;
 
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {

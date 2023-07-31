@@ -28,7 +28,7 @@ pub trait ConstructableWithIdentifier {
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
-pub trait PlatformEncryptionKey: ConstructableWithIdentifier {
+pub trait SecureEncryptionKey: ConstructableWithIdentifier {
     // from ConstructableWithIdentifier: new(), identifier()
     type Error: Error + Send + Sync + 'static;
 

@@ -6,7 +6,7 @@ use std::{
 use tokio::{fs, task};
 
 use platform_support::utils::{PlatformUtilities, UtilitiesError};
-use wallet_common::{keys::PlatformEncryptionKey, utils::random_bytes};
+use wallet_common::{keys::SecureEncryptionKey, utils::random_bytes};
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
@@ -20,7 +20,7 @@ pub enum KeyFileError {
     Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-pub async fn get_or_create_key_file<K: PlatformEncryptionKey, U: PlatformUtilities>(
+pub async fn get_or_create_key_file<K: SecureEncryptionKey, U: PlatformUtilities>(
     alias: &str,
     byte_length: usize,
 ) -> Result<Vec<u8>, KeyFileError> {
@@ -53,7 +53,7 @@ async fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf,
 
 async fn get_or_create_encrypted_file_contents(
     path: &Path,
-    encryption_key: &impl PlatformEncryptionKey,
+    encryption_key: &impl SecureEncryptionKey,
     default: impl FnOnce() -> Vec<u8>,
 ) -> Result<Vec<u8>, KeyFileError> {
     // If no file at the path exsits, call the default closure to get the desired contents,
@@ -72,7 +72,7 @@ async fn get_or_create_encrypted_file_contents(
 async fn write_encrypted_file(
     path: &Path,
     contents: &[u8],
-    encryption_key: &impl PlatformEncryptionKey,
+    encryption_key: &impl SecureEncryptionKey,
 ) -> Result<(), KeyFileError> {
     // Encrypt the contents as bytes and write to a new file at the path.
     let encrypted_contents = encryption_key
@@ -83,10 +83,7 @@ async fn write_encrypted_file(
     Ok(())
 }
 
-async fn read_encrypted_file(
-    path: &Path,
-    encryption_key: &impl PlatformEncryptionKey,
-) -> Result<Vec<u8>, KeyFileError> {
+async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryptionKey) -> Result<Vec<u8>, KeyFileError> {
     // Decrypt the bytes of a file at the path.
     let contents = fs::read(path).await?;
     let decrypted_contents = encryption_key

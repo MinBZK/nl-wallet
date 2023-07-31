@@ -8,7 +8,7 @@ use tokio::{fs, task};
 
 use entity::keyed_data;
 use platform_support::{preferred, utils::PlatformUtilities};
-use wallet_common::keys::PlatformEncryptionKey;
+use wallet_common::keys::SecureEncryptionKey;
 
 use super::{
     data::KeyedData,
@@ -40,7 +40,7 @@ async fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<Path
 /// This helper function uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
 /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
 /// instance.
-async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(
+async fn open_encrypted_database<K: SecureEncryptionKey, U: PlatformUtilities>(
     name: &str,
 ) -> Result<Database, StorageError> {
     let key_file_alias = key_file_alias_for_name(name);
