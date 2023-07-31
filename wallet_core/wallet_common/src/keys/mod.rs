@@ -2,7 +2,9 @@ use std::error::Error;
 
 use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 
-#[cfg(feature = "software")]
+#[cfg(feature = "integration-test")]
+pub mod integration_test;
+#[cfg(feature = "software-keys")]
 pub mod software_keys;
 
 pub trait EcdsaKey: Signer<Signature> {

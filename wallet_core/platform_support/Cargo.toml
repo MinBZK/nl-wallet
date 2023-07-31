@@ -6,7 +6,7 @@ rust-version.workspace = true
 
 [features]
 hardware = ["dep:uniffi"]
-software = ["wallet_common/software"]
+software = ["wallet_common/software-keys"]
 integration-test = []
 hardware-integration-test = ["integration-test", "hardware", "dep:jni"]
 

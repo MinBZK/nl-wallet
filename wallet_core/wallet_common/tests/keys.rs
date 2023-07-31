@@ -1,7 +1,7 @@
-#[cfg(feature = "software")]
+#[cfg(feature = "software-keys")]
 #[test]
 fn test_software_signature() {
-    use platform_support::integration_test::hw_keystore::sign_and_verify_signature;
+    use wallet_common::keys::integration_test::sign_and_verify_signature;
     use wallet_common::keys::software_keys::SoftwareEcdsaKey;
 
     let payload = b"This is a message that will be signed.";
@@ -10,11 +10,10 @@ fn test_software_signature() {
     assert!(sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier));
 }
 
-#[cfg(feature = "software")]
+#[cfg(feature = "software-keys")]
 #[test]
 fn test_software_encryption() {
-    use platform_support::integration_test::hw_keystore::encrypt_and_decrypt_message;
-    use wallet_common::keys::software_keys::SoftwareEncryptionKey;
+    use wallet_common::keys::{integration_test::encrypt_and_decrypt_message, software_keys::SoftwareEncryptionKey};
 
     let payload = b"This message will be encrypted.";
     let identifier = "key";

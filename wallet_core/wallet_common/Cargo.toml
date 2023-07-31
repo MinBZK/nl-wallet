@@ -8,7 +8,8 @@ rust-version.workspace = true
 
 [features]
 mock = []
-software = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
+software-keys = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
+integration-test = []
 
 [dependencies]
 aes-gcm = { workspace = true, optional = true, features = ["std"]}
@@ -22,3 +23,6 @@ rand_core = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true
+
+[dev-dependencies]
+wallet_common = { path = ".", features = ["software-keys", "integration-test"] }
