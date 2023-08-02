@@ -12,7 +12,11 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::{signature::Signer, SigningKey};
 use serde::Deserialize;
 use serde_bytes::ByteBuf;
-use wallet_common::utils::random_bytes;
+
+use wallet_common::{
+    keys::{EcdsaKey, SecureEcdsaKey},
+    utils::random_bytes,
+};
 
 use crate::{
     basic_sa_ext::{
@@ -25,7 +29,6 @@ use crate::{
     utils::{
         cose::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, TaggedBytes},
-        signer::{EcdsaKey, SecureEcdsaKey},
     },
     Error, Result,
 };

@@ -6,10 +6,11 @@ use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies, Storage},
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
-        signer::{MdocEcdsaKey, SoftwareEcdsaKey},
+        signer::MdocEcdsaKey,
     },
     DocType, Error, NameSpace,
 };
+use wallet_common::keys::software::SoftwareEcdsaKey;
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,

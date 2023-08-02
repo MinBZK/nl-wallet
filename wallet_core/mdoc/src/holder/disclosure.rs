@@ -5,15 +5,13 @@ use p256::ecdsa::{SigningKey, VerifyingKey};
 use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
+use wallet_common::keys::SecureEcdsaKey;
+
 use crate::{
     iso::*,
     utils::{
-        cose::ClonePayload,
-        crypto::dh_hmac_key,
-        serialization::cbor_deserialize,
-        signer::{MdocEcdsaKey, SecureEcdsaKey},
-        x509::CertificateUsage,
-        Generator,
+        cose::ClonePayload, crypto::dh_hmac_key, serialization::cbor_deserialize, signer::MdocEcdsaKey,
+        x509::CertificateUsage, Generator,
     },
     verifier::X509Subject,
     Error, Result,

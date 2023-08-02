@@ -9,6 +9,8 @@ use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Serialize};
 
+use wallet_common::keys::software::SoftwareEcdsaKey;
+
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
     holder::*,
@@ -17,7 +19,6 @@ use nl_wallet_mdoc::{
     issuer_shared::SessionToken,
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
-        signer::SoftwareEcdsaKey,
         x509::{Certificate, CertificateUsage},
         Generator,
     },
