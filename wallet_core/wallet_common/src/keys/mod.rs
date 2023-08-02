@@ -13,8 +13,11 @@ pub trait EcdsaKey: Signer<Signature> {
     fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
+/// Contract for ECDSA private keys which are short-lived and deterministically derived from a PIN.
 pub trait EphemeralEcdsaKey: EcdsaKey {}
 
+/// Contract for ECDSA private keys that are stored in some form of secure hardware from which they cannot be extracted,
+/// e.g., a HSM, Android's TEE/StrongBox, or Apple's SE.
 pub trait SecureEcdsaKey: EcdsaKey {}
 
 /// The contract of this trait includes that a constructed type with the same
