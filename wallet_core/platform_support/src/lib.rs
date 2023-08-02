@@ -32,8 +32,9 @@ pub mod preferred {
 // otherwise if the software feature is enabled, prefer software fallbacks
 #[cfg(all(not(feature = "hardware"), feature = "software"))]
 pub mod preferred {
-    use crate::utils::software::SoftwareUtilities;
     use wallet_common::keys::software::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+
+    use crate::utils::software::SoftwareUtilities;
 
     pub type PlatformEcdsaKey = SoftwareEcdsaKey;
     pub type PlatformEncryptionKey = SoftwareEncryptionKey;
