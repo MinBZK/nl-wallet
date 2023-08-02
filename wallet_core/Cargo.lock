@@ -1942,7 +1942,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_with",
- "sha2",
  "thiserror",
  "tokio",
  "typetag",
@@ -4131,6 +4130,7 @@ dependencies = [
  "ring",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "wallet_common",
 ]

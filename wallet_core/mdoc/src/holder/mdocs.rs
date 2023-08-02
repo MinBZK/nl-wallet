@@ -3,12 +3,13 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use wallet_common::utils::sha256;
 use webpki::TrustAnchor;
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{crypto::sha256, keys::MdocEcdsaKey, serialization::cbor_serialize, Generator},
+    utils::{keys::MdocEcdsaKey, serialization::cbor_serialize, Generator},
     verifier::ValidityRequirement,
     Result,
 };

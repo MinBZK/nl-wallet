@@ -9,10 +9,9 @@ use p256::{
 };
 use ring::hmac;
 use serde::Serialize;
-use sha2::Digest;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::utils::hkdf;
+use wallet_common::utils::{hkdf, sha256};
 
 use crate::{
     utils::cose::CoseKey,
@@ -36,10 +35,6 @@ pub enum CryptoError {
     KeyCoordinateParseFailed,
     #[error("key parse failed: {0}")]
     KeyParseFailed(#[from] p256::ecdsa::Error),
-}
-
-pub fn sha256(bts: &[u8]) -> Vec<u8> {
-    sha2::Sha256::digest(bts).to_vec()
 }
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
