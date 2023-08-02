@@ -10,7 +10,7 @@ use wallet_common::keys::SecureEcdsaKey;
 use crate::{
     iso::*,
     utils::{
-        cose::ClonePayload, crypto::dh_hmac_key, serialization::cbor_deserialize, signer::MdocEcdsaKey,
+        cose::ClonePayload, crypto::dh_hmac_key, keys::MdocEcdsaKey, serialization::cbor_deserialize,
         x509::CertificateUsage, Generator,
     },
     verifier::X509Subject,

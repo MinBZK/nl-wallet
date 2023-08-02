@@ -8,7 +8,7 @@ use webpki::TrustAnchor;
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, Generator},
+    utils::{crypto::sha256, keys::MdocEcdsaKey, serialization::cbor_serialize, Generator},
     verifier::ValidityRequirement,
     Result,
 };

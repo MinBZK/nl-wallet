@@ -14,8 +14,8 @@ use crate::{
     issuer_shared::IssuanceError,
     utils::{
         cose::ClonePayload,
+        keys::MdocEcdsaKey,
         serialization::{cbor_serialize, TaggedBytes},
-        signer::MdocEcdsaKey,
         TimeGenerator,
     },
     verifier::ValidityRequirement,
