@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
+use wallet_common::utils::random_string;
 use webpki::TrustAnchor;
 
 use crate::{
@@ -13,7 +14,6 @@ use crate::{
     issuer_shared::IssuanceError,
     utils::{
         cose::ClonePayload,
-        crypto::random_string,
         serialization::{cbor_serialize, TaggedBytes},
         signer::MdocEcdsaKey,
         TimeGenerator,

@@ -12,14 +12,11 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+use wallet_common::utils::random_bytes;
 
 use crate::{
     basic_sa_ext::Entry,
-    utils::{
-        cose::CoseKey,
-        crypto::{cbor_digest, random_bytes},
-        serialization::TaggedBytes,
-    },
+    utils::{cose::CoseKey, crypto::cbor_digest, serialization::TaggedBytes},
     Error, Result,
 };
 

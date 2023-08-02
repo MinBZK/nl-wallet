@@ -1946,6 +1946,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "typetag",
+ "wallet_common",
  "x509-parser",
 ]
 

@@ -38,6 +38,8 @@ tokio = { workspace = true , features = ["macros", "rt"] }
 typetag = { workspace = true }
 x509-parser = { workspace = true , features = ["verify", "validate"] }
 
+wallet_common = { path = "../wallet_common" }
+
 [dev-dependencies]
 anyhow = "1.0.66"
 nl_wallet_mdoc = { path = ".", features = ["mock"] }
