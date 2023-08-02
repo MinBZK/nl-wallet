@@ -46,8 +46,7 @@ platform_support = { path = "../platform_support", features = ["hardware"] }
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
 
-# enable the "software-integration-test" feature for platform_support when running tests,
-# which includes the "software" feature
+# enable the "software" feature for platform_support when running tests
 [dev-dependencies]
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
 platform_support = { path = "../platform_support", features = [
