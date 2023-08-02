@@ -8,12 +8,9 @@ use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
-use crate::{
-    keys::{EcdsaKey, SecureEcdsaKey},
-    utils::random_bytes,
-};
+use crate::utils::random_bytes;
 
-use crate::keys::{ConstructableWithIdentifier, SecureEncryptionKey};
+use super::{ConstructableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
