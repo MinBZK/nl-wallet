@@ -2,6 +2,7 @@ use rand::{
     distributions::{Alphanumeric, DistString},
     Rng,
 };
+use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
 pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];
@@ -11,4 +12,23 @@ pub fn random_bytes(len: usize) -> Vec<u8> {
 
 pub fn random_string(len: usize) -> String {
     Alphanumeric.sample_string(&mut rand::thread_rng(), len)
+}
+
+/// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
+pub fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<Vec<u8>, UnspecifiedRingError> {
+    struct HkdfLen(usize);
+    impl hkdf::KeyType for HkdfLen {
+        fn len(&self) -> usize {
+            self.0
+        }
+    }
+
+    let mut bts = vec![0u8; len];
+    let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, salt);
+
+    salt.extract(input_key_material)
+        .expand(&[info.as_bytes()], HkdfLen(len))?
+        .fill(bts.as_mut_slice())?;
+
+    Ok(bts)
 }

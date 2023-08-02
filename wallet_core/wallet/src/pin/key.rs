@@ -25,11 +25,11 @@ use p256::{
     },
     NistP256, Scalar, SecretKey, U256,
 };
-use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
+use ring::error::Unspecified as UnspecifiedRingError;
 
 use wallet_common::{
     keys::{EcdsaKey, EphemeralEcdsaKey},
-    utils::random_bytes,
+    utils::{hkdf, random_bytes},
 };
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
@@ -132,25 +132,6 @@ fn bytes_to_ecdsa_scalar(mut bts: Vec<u8>) -> U256 {
         .add_mod(&U384::ONE, &q);
 
     u384_to_u256(&int)
-}
-
-/// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
-fn hkdf(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<Vec<u8>, UnspecifiedRingError> {
-    struct HkdfLen(usize);
-    impl hkdf::KeyType for HkdfLen {
-        fn len(&self) -> usize {
-            self.0
-        }
-    }
-
-    let mut bts = vec![0u8; len];
-    let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, salt);
-
-    salt.extract(input_key_material)
-        .expand(&[info.as_bytes()], HkdfLen(len))?
-        .fill(bts.as_mut_slice())?;
-
-    Ok(bts)
 }
 
 // The U... bigint types (U256 and U384) offer no API to convert them from one size

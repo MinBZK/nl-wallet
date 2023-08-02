@@ -7,10 +7,12 @@ use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     EncodedPoint,
 };
-use ring::{hkdf, hmac};
+use ring::hmac;
 use serde::Serialize;
 use sha2::Digest;
 use x509_parser::nom::AsBytes;
+
+use wallet_common::utils::hkdf;
 
 use crate::{
     utils::cose::CoseKey,
@@ -61,23 +63,8 @@ pub fn dh_hmac_key(
 // TODO support no salt
 /// Using the HKDF from RFC 5869, compute a HMAC key.
 pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
-    let mut bts = vec![0u8; len];
-    let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, sha256(salt).as_slice());
-
-    struct HkdfLen(usize);
-    impl hkdf::KeyType for HkdfLen {
-        fn len(&self) -> usize {
-            self.0
-        }
-    }
-
-    salt.extract(input_key_material)
-        .expand(&[info.as_bytes()], HkdfLen(len))
-        .map_err(|_| CryptoError::Hkdf)?
-        .fill(bts.as_mut_slice())
-        .map_err(|_| CryptoError::Hkdf)?;
-
-    let key = hmac::Key::new(hmac::HMAC_SHA256, bts.as_slice());
+    let bts = hkdf(input_key_material, sha256(salt).as_slice(), info, len).map_err(|_| CryptoError::Hkdf)?;
+    let key = hmac::Key::new(hmac::HMAC_SHA256, &bts);
     Ok(key)
 }
 
