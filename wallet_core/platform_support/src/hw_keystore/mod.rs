@@ -1,4 +1,3 @@
-#[cfg(feature = "hardware")]
 pub mod hardware;
 
 use wallet_common::keys::{ConstructableWithIdentifier, SecureEcdsaKey};
@@ -11,7 +10,7 @@ pub enum HardwareKeyStoreError {
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
 }
 
-// implementation of KeyStoreError from UDL, only with "hardware" flag
+// implementation of KeyStoreError from UDL
 #[derive(Debug, thiserror::Error)]
 pub enum KeyStoreError {
     #[error("key error: {reason}")]

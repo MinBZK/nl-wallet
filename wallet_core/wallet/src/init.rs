@@ -1,7 +1,10 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use url::Url;
 
-use platform_support::preferred;
+use platform_support::{
+    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+    utils::hardware::HardwareUtilities,
+};
 use wallet_common::account::jwt::EcdsaDecodingKey;
 
 use crate::{
@@ -14,8 +17,8 @@ use crate::{
 pub type Wallet = crate::wallet::Wallet<
     LocalConfigurationRepository,
     RemoteAccountServerClient,
-    DatabaseStorage,
-    preferred::PlatformEcdsaKey,
+    DatabaseStorage<HardwareEncryptionKey, HardwareUtilities>,
+    HardwareEcdsaKey,
 >;
 
 pub async fn init_wallet() -> Result<Wallet, WalletInitError> {

@@ -1,4 +1,4 @@
-use std::{panic, path::PathBuf};
+use std::{marker::PhantomData, panic, path::PathBuf};
 
 use async_trait::async_trait;
 use futures::TryFutureExt;
@@ -7,7 +7,7 @@ use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, Query
 use tokio::{fs, task};
 
 use entity::keyed_data;
-use platform_support::{preferred, utils::PlatformUtilities};
+use platform_support::utils::PlatformUtilities;
 use wallet_common::keys::SecureEncryptionKey;
 
 use super::{
@@ -65,13 +65,19 @@ async fn open_encrypted_database<K: SecureEncryptionKey, U: PlatformUtilities>(
 /// * Executing queries on the database by accepting / returning data structures that are used by
 ///   [`crate::Wallet`].
 #[derive(Debug)]
-pub struct DatabaseStorage {
+pub struct DatabaseStorage<K, U> {
     database: Option<Database>,
+    _key: PhantomData<K>,
+    _utils: PhantomData<U>,
 }
 
-impl DatabaseStorage {
+impl<K, U> DatabaseStorage<K, U> {
     fn new(database: Option<Database>) -> Self {
-        DatabaseStorage { database }
+        DatabaseStorage {
+            database,
+            _key: PhantomData,
+            _utils: PhantomData,
+        }
     }
 
     // Helper method, should be called before accessing database.
@@ -81,14 +87,18 @@ impl DatabaseStorage {
 }
 
 // The ::default() method is the primary way of instantiating DatabaseStorage.
-impl Default for DatabaseStorage {
+impl<K, U> Default for DatabaseStorage<K, U> {
     fn default() -> Self {
         Self::new(None)
     }
 }
 
 #[async_trait]
-impl Storage for DatabaseStorage {
+impl<K, U> Storage for DatabaseStorage<K, U>
+where
+    K: SecureEncryptionKey + Send + Sync,
+    U: PlatformUtilities + Send + Sync,
+{
     /// Indiciate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
     async fn state(&self) -> Result<StorageState, StorageError> {
@@ -96,7 +106,7 @@ impl Storage for DatabaseStorage {
             return Ok(StorageState::Opened);
         }
 
-        let database_path = database_path_for_name::<preferred::PlatformUtilities>(DATABASE_NAME).await?;
+        let database_path = database_path_for_name::<U>(DATABASE_NAME).await?;
 
         if fs::try_exists(database_path).await? {
             return Ok(StorageState::Unopened);
@@ -111,9 +121,7 @@ impl Storage for DatabaseStorage {
             return Err(StorageError::AlreadyOpened);
         }
 
-        let database =
-            open_encrypted_database::<preferred::PlatformEncryptionKey, preferred::PlatformUtilities>(DATABASE_NAME)
-                .await?;
+        let database = open_encrypted_database::<K, U>(DATABASE_NAME).await?;
         self.database.replace(database);
 
         Ok(())
@@ -128,7 +136,7 @@ impl Storage for DatabaseStorage {
         // Delete the database and key file in parallel
         tokio::try_join!(
             database.close_and_delete().map_err(StorageError::from),
-            delete_key_file::<preferred::PlatformUtilities>(&key_file_alias).map_err(StorageError::from)
+            delete_key_file::<U>(&key_file_alias).map_err(StorageError::from)
         )
         .map(|_| ())
     }
@@ -228,7 +236,7 @@ mod tests {
         let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
             .await
             .expect("Could not open in-memory database");
-        let mut storage = DatabaseStorage::new(Some(database));
+        let mut storage = DatabaseStorage::<SoftwareEncryptionKey, SoftwareUtilities>::new(Some(database));
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
