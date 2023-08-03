@@ -1,11 +1,10 @@
-use std::thread::sleep;
-use std::time::Duration;
-
 use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
+use tracing::{info, warn};
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
+use wallet::digid;
 use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
@@ -155,33 +154,39 @@ pub async fn register(pin: String) -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
-    // TODO: Replace with real implementation.
-    Ok("https://example.com".to_string())
+    let connector = digid::get_or_initialize_digid_connector().await?;
+    let authorization_url = connector.get_digid_authorization_url()?;
+    Ok(authorization_url.into())
 }
 
 #[async_runtime]
 #[flutter_api_error]
 pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
-    // TODO: The code below is POC sample code, to be replace with a real implementation.
     let sink = ClosingStreamSink::from(sink);
 
     if uri.contains("authentication") {
         let auth_event = UriFlowEvent::DigidAuth {
             state: DigidState::Authenticating,
         };
+
         sink.add(auth_event);
-        sleep(Duration::from_secs(5));
-        if uri.contains("success") {
-            let success_event = UriFlowEvent::DigidAuth {
+
+        let connector = digid::get_or_initialize_digid_connector().await?;
+        let issue_event = connector.get_access_token(uri.parse()?).await.map_or_else(
+            |error| {
+                warn!("Issue PID error: {}", error);
+                info!("Issue PID error details: {:?}", error);
+
+                UriFlowEvent::DigidAuth {
+                    state: DigidState::Error,
+                }
+            },
+            |_| UriFlowEvent::DigidAuth {
                 state: DigidState::Success,
-            };
-            sink.add(success_event);
-        } else {
-            let error_event = UriFlowEvent::DigidAuth {
-                state: DigidState::Error,
-            };
-            sink.add(error_event);
-        }
+            },
+        );
+
+        sink.add(issue_event);
     } else {
         return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
     }

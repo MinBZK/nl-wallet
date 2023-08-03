@@ -9,6 +9,7 @@
 .history
 .svn/
 migrate_working_dir/
+.env*
 
 # IntelliJ related
 *.iml
@@ -46,7 +47,6 @@ jniLibs/
 /fastlane/Preview.html
 /fastlane/screenshots
 /fastlane/test_output
-/.env*
 
 # Golden test failures
 **/failures/*.png
