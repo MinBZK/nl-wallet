@@ -35,7 +35,7 @@ axum = { workspace = true, features = [
     "tracing",
 ] }
 base64.workspace = true
-chrono.workspace = true
+chrono = { workspace = true, features = ["std", "clock"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
 mime.workspace = true
