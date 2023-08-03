@@ -1,10 +1,7 @@
 #[cfg(feature = "hardware")]
 pub mod hardware;
 
-#[cfg(feature = "software")]
-pub mod software;
-
-use wallet_common::account::signing_key::SecureEcdsaKey;
+use wallet_common::keys::{ConstructableWithIdentifier, SecureEcdsaKey};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -23,16 +20,6 @@ pub enum KeyStoreError {
     BridgingError { reason: String },
 }
 
-/// The contract of this trait includes that a constructed type with the same
-/// identifier behaves exactly the same, i.e. has the same key material backing it.
-pub trait ConstructableWithIdentifier {
-    fn new(identifier: &str) -> Self
-    where
-        Self: Sized;
-
-    fn identifier(&self) -> &str;
-}
-
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
@@ -41,12 +28,5 @@ pub trait PlatformEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
-/// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
-/// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
-pub trait PlatformEncryptionKey: ConstructableWithIdentifier {
-    // from ConstructableWithIdentifier: new(), identifier()
-
-    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
-    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError>;
-}
+#[cfg(feature = "software")]
+impl PlatformEcdsaKey for wallet_common::keys::software::SoftwareEcdsaKey {}

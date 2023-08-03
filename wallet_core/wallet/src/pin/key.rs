@@ -28,7 +28,7 @@ use p256::{
 use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
 
 use wallet_common::{
-    account::signing_key::{EcdsaKey, EphemeralEcdsaKey},
+    keys::{EcdsaKey, EphemeralEcdsaKey},
     utils::random_bytes,
 };
 

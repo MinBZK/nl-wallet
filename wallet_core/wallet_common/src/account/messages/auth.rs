@@ -5,9 +5,9 @@ use crate::{
         jwt::{Jwt, JwtClaims},
         serialization::{Base64Bytes, DerVerifyingKey},
         signed::SignedDouble,
-        signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
     },
     errors::{Result, ValidationError},
+    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 // Registration challenge response

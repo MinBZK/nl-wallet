@@ -4,9 +4,9 @@ use crate::{
     account::{
         jwt::{Jwt, JwtClaims},
         signed::SignedDouble,
-        signing_key::{EphemeralEcdsaKey, SecureEcdsaKey},
     },
     errors::Result,
+    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 use super::auth::WalletCertificate;

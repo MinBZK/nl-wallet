@@ -7,7 +7,8 @@ use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, Query
 use tokio::{fs, task};
 
 use entity::keyed_data;
-use platform_support::{hw_keystore::PlatformEncryptionKey, preferred, utils::PlatformUtilities};
+use platform_support::{preferred, utils::PlatformUtilities};
+use wallet_common::keys::SecureEncryptionKey;
 
 use super::{
     data::KeyedData,
@@ -39,7 +40,7 @@ async fn database_path_for_name<U: PlatformUtilities>(name: &str) -> Result<Path
 /// This helper function uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
 /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
 /// instance.
-async fn open_encrypted_database<K: PlatformEncryptionKey, U: PlatformUtilities>(
+async fn open_encrypted_database<K: SecureEncryptionKey, U: PlatformUtilities>(
     name: &str,
 ) -> Result<Database, StorageError> {
     let key_file_alias = key_file_alias_for_name(name);
@@ -175,10 +176,12 @@ impl Storage for DatabaseStorage {
 
 #[cfg(test)]
 mod tests {
-    use platform_support::{hw_keystore::software::SoftwareEncryptionKey, utils::software::SoftwareUtilities};
+    use platform_support::utils::software::SoftwareUtilities;
     use tokio::fs;
 
-    use wallet_common::{account::messages::auth::WalletCertificate, utils::random_bytes};
+    use wallet_common::{
+        account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
+    };
 
     use crate::storage::data::RegistrationData;
 
