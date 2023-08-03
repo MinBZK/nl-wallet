@@ -1,11 +1,10 @@
 use std::{
-    io, panic,
+    io,
     path::{Path, PathBuf},
 };
 
-use tokio::{fs, task};
+use tokio::fs;
 
-use platform_support::utils::{PlatformUtilities, UtilitiesError};
 use wallet_common::{keys::SecureEncryptionKey, utils::random_bytes};
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
@@ -14,41 +13,34 @@ const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
     Io(#[from] io::Error),
-    #[error("key file platform utilities error: {0}")]
-    PlatformUtilities(#[from] UtilitiesError),
     #[error("key file platform key store error: {0}")]
     Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-pub async fn get_or_create_key_file<K: SecureEncryptionKey, U: PlatformUtilities>(
+pub async fn get_or_create_key_file<K: SecureEncryptionKey>(
+    storage_path: &Path,
     alias: &str,
     byte_length: usize,
 ) -> Result<Vec<u8>, KeyFileError> {
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
-    let path = path_for_key_file::<U>(alias).await?;
+    let path = path_for_key_file(storage_path, alias);
     let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
 
     // Decrypt file at path, create key and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
 }
 
-pub async fn delete_key_file<U: PlatformUtilities>(alias: &str) -> Result<(), KeyFileError> {
-    let path = path_for_key_file::<U>(alias).await?;
+pub async fn delete_key_file(storage_path: &Path, alias: &str) {
+    let path = path_for_key_file(storage_path, alias);
     // Ignore any errors when removing the file,
     // as we do not want this to propagate.
     let _ = fs::remove_file(&path).await;
-
-    Ok(())
 }
 
-async fn path_for_key_file<U: PlatformUtilities>(alias: &str) -> Result<PathBuf, KeyFileError> {
-    let storage_path = task::spawn_blocking(|| U::storage_path())
-        .await
-        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
-    let path = storage_path.join(format!("{}.key", alias));
-
-    Ok(path)
+fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
+    // Get path to key file as "<storage_path>/<alias>.key"
+    storage_path.join(format!("{}.key", alias))
 }
 
 async fn get_or_create_encrypted_file_contents(
@@ -95,9 +87,8 @@ async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryption
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
+    use std::{cell::RefCell, env};
 
-    use platform_support::utils::software::SoftwareUtilities;
     use tempfile::{NamedTempFile, TempPath};
     use wallet_common::keys::{software::SoftwareEncryptionKey, ConstructableWithIdentifier};
 
@@ -172,18 +163,20 @@ mod tests {
         let alias2 = "test_get_or_create_key2".to_string();
         let byte_length: usize = 48;
 
+        let storage_path = env::temp_dir();
+
         // Make sure we start with a clean slate.
-        delete_key_file::<SoftwareUtilities>(&alias1).await.unwrap();
-        delete_key_file::<SoftwareUtilities>(&alias2).await.unwrap();
+        delete_key_file(&storage_path, &alias1).await;
+        delete_key_file(&storage_path, &alias2).await;
 
         // Create three keys, two of them with the same alias.
-        let key1 = get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length)
+        let key1 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
             .await
             .expect("Could not create key file");
-        let key2 = get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias2, byte_length)
+        let key2 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias2, byte_length)
             .await
             .expect("Could not create key file");
-        let key1_again = get_or_create_key_file::<SoftwareEncryptionKey, SoftwareUtilities>(&alias1, byte_length)
+        let key1_again = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
             .await
             .expect("Could not get key file");
 
@@ -193,7 +186,7 @@ mod tests {
         assert_eq!(key1, key1_again);
 
         // Cleanup after ourselves.
-        delete_key_file::<SoftwareUtilities>(&alias1).await.unwrap();
-        delete_key_file::<SoftwareUtilities>(&alias2).await.unwrap();
+        delete_key_file(&storage_path, &alias1).await;
+        delete_key_file(&storage_path, &alias2).await;
     }
 }

@@ -12,7 +12,7 @@ use tokio::time::sleep;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::{hw_keystore::PlatformEcdsaKey, utils::software::SoftwareUtilities};
 use wallet::{
     mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
     wallet::{AccountServerClient, ConfigurationRepository, Storage, Wallet, WalletUnlockError},
@@ -55,7 +55,9 @@ async fn create_test_wallet(
     config.0.account_server.certificate_public_key = public_key;
     config.0.account_server.instruction_result_public_key = instruction_result_public_key;
 
-    Wallet::new(config).await.expect("Could not create test wallet")
+    Wallet::init::<SoftwareUtilities>(config)
+        .await
+        .expect("Could not create test wallet")
 }
 
 async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -90,7 +92,7 @@ async fn test_wallet_registration<C, A, S, K>(mut wallet: Wallet<C, A, S, K>)
 where
     C: ConfigurationRepository,
     A: AccountServerClient,
-    S: Storage + Default,
+    S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
 {
     // No registration should be loaded initially.

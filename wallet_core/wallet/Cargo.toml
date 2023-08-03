@@ -12,7 +12,6 @@ entity = { path = "entity" }
 migration = { path = "migration" }
 async-trait.workspace = true
 base64.workspace = true
-futures.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -42,9 +41,7 @@ platform_support = { path = "../platform_support" }
 # enable the "software" feature for platform_support when running tests
 [dev-dependencies]
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
-platform_support = { path = "../platform_support", features = [
-    "software",
-] }
+platform_support = { path = "../platform_support", features = ["software"] }
 
 tempfile.workspace = true
 wiremock.workspace = true

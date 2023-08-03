@@ -17,7 +17,7 @@ use crate::{
 pub type Wallet = crate::wallet::Wallet<
     LocalConfigurationRepository,
     RemoteAccountServerClient,
-    DatabaseStorage<HardwareEncryptionKey, HardwareUtilities>,
+    DatabaseStorage<HardwareEncryptionKey>,
     HardwareEcdsaKey,
 >;
 
@@ -37,5 +37,5 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
         },
     });
 
-    Wallet::new(config).await
+    Wallet::init::<HardwareUtilities>(config).await
 }

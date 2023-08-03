@@ -34,7 +34,6 @@ cstr = "0.2.11"
 dashmap = { version = "5.4.0" }
 der = "0.7.7"
 flutter_rust_bridge = "1.70.0"
-futures = { version = "0.3.28", default-features = false }
 hex = { version = "0.4.3" }
 hex-literal = { version = "0.3.4" }
 http = "0.2.9"
@@ -50,7 +49,7 @@ p256 = { version = "0.13.2", default-features = false }
 quote = "1.0.26"
 rand = "0.8.5"
 rand_core = "0.6.4"
-rcgen = { version = "0.10.0",  default-features = false }
+rcgen = { version = "0.10.0", default-features = false }
 regex = { version = "1.7.0" }
 reqwest = { version = "0.11.16", default-features = false }
 ring = "0.16.20"
