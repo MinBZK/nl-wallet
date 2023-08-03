@@ -2,8 +2,11 @@ mod account_server;
 mod config;
 mod init;
 mod lock;
+mod openid;
 mod pin;
 mod storage;
+
+pub mod digid;
 pub mod wallet;
 
 pub use crate::{
