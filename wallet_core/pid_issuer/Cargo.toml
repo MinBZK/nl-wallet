@@ -15,11 +15,13 @@ axum = { workspace = true, features = [
     "tracing",
     "headers",
 ] }
+futures.workspace = true
 josekit.workspace = true
 openid.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
