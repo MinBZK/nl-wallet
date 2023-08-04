@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use async_trait::async_trait;
 
@@ -15,7 +15,7 @@ pub struct MockStorage {
 }
 
 impl MockStorage {
-    pub fn new(state: StorageState, registration: Option<RegistrationData>) -> Self {
+    pub fn mock(state: StorageState, registration: Option<RegistrationData>) -> Self {
         let mut data: HashMap<&str, Box<dyn Any + Send + Sync>> = HashMap::new();
 
         if let Some(registration) = registration {
@@ -28,12 +28,19 @@ impl MockStorage {
 
 impl Default for MockStorage {
     fn default() -> Self {
-        Self::new(StorageState::Uninitialized, None)
+        Self::mock(StorageState::Uninitialized, None)
     }
 }
 
 #[async_trait]
 impl Storage for MockStorage {
+    fn new(_: PathBuf) -> Self
+    where
+        Self: Sized,
+    {
+        Self::default()
+    }
+
     async fn state(&self) -> Result<StorageState, StorageError> {
         Ok(self.state)
     }

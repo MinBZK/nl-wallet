@@ -65,7 +65,6 @@ This functionality is provided by traits that have multiple concrete implementat
 
 The module contains the following features:
 
-* `hardware` (enabled by default): This compiles the hardware backed implementations, which uses `uniffi` to bridge to either Android or iOS native code.
 * `software`: This compiles a software fallback implementation, which can be used during both testing and local development.
 * `integration-test`: This feature is automatically enabled when running integration tests, it contains some helper code.
 * `hardware-integration-test`: This should only be enabled when running integration tests from either Android or iOS (see below).

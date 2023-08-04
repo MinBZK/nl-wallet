@@ -13,7 +13,6 @@ migration = { path = "migration" }
 async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-futures.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -40,21 +39,12 @@ thiserror.workspace = true
 url.workspace = true
 
 wallet_common = { path = "../wallet_common" }
-
-# enable the "hardware" feature for platform_support when building for either Android or iOS
-[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-platform_support = { path = "../platform_support", features = ["hardware"] }
-
-# enable the "software" feature for platform_support when NOT building for either Android or iOS
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-platform_support = { path = "../platform_support", features = ["software"] }
+platform_support = { path = "../platform_support" }
 
 # enable the "software" feature for platform_support when running tests
 [dev-dependencies]
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
-platform_support = { path = "../platform_support", features = [
-    "software",
-] }
+platform_support = { path = "../platform_support", features = ["software"] }
 
 tempfile.workspace = true
 wiremock.workspace = true

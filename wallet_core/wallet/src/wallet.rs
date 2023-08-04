@@ -1,5 +1,6 @@
 use std::{error::Error, panic};
 
+use platform_support::utils::PlatformUtilities;
 use tokio::task;
 use tracing::{info, instrument};
 
@@ -124,20 +125,15 @@ impl<C, A, S, K> Wallet<C, A, S, K>
 where
     C: ConfigurationRepository,
     A: AccountServerClient,
-    S: Storage + Default,
+    S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
 {
-    /// Initialize the wallet, but without registration loaded.
-    pub fn new_without_registration(config_repository: C) -> Self {
-        let account_server = A::new(&config_repository.config().account_server.base_url);
-        let storage = S::default();
-        let hw_privkey = K::new(WALLET_KEY_ID);
-
+    fn new(config_repository: C, account_server: A, storage: S) -> Self {
         Wallet {
             config_repository,
             account_server,
             storage,
-            hw_privkey,
+            hw_privkey: K::new(WALLET_KEY_ID),
             registration: None,
             lock: WalletLock::new(true),
             config_callback: None,
@@ -145,8 +141,17 @@ where
     }
 
     /// Initialize the wallet by loading initial state.
-    pub async fn new(config_repository: C) -> Result<Self, WalletInitError> {
-        let mut wallet = Self::new_without_registration(config_repository);
+    pub async fn init<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
+        let storage_path = task::spawn_blocking(|| U::storage_path())
+            .await
+            .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))
+            .map_err(StorageError::from)?;
+
+        let account_server = A::new(&config_repository.config().account_server.base_url);
+        let storage = S::new(storage_path);
+
+        let mut wallet = Self::new(config_repository, account_server, storage);
+
         wallet.fetch_registration().await?;
 
         Ok(wallet)
@@ -399,39 +404,46 @@ where
 
 #[cfg(test)]
 mod tests {
+    use platform_support::utils::software::SoftwareUtilities;
     use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_provider::AccountServer;
+    use wallet_provider::{stub, AccountServer};
 
     use crate::{config::MockConfigurationRepository, storage::MockStorage};
 
     use super::*;
 
-    async fn init_wallet(
-        storage: Option<MockStorage>,
-    ) -> Result<Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey>, WalletInitError>
-    {
-        let config = MockConfigurationRepository::default();
+    type MockWallet = Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey>;
 
-        let mut wallet: Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey> =
-            match storage {
-                Some(storage) => {
-                    let mut wallet = Wallet::new_without_registration(config);
-                    wallet.storage = storage;
-                    wallet.fetch_registration().await?;
+    // Emulate wallet:init(), with the option to override the mock storage.
+    async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
+        let mut config_repository = MockConfigurationRepository::default();
 
-                    Ok(wallet)
-                }
-                None => Wallet::new(config).await,
-            }?;
+        let account_server = stub::account_server();
+        let storage = storage.unwrap_or_default();
 
-        wallet.config_repository.0.account_server.certificate_public_key =
-            wallet.account_server.certificate_pubkey.clone();
+        config_repository.0.account_server.certificate_public_key = account_server.certificate_pubkey.clone();
+
+        let mut wallet = Wallet::new(config_repository, account_server, storage);
+
+        wallet.fetch_registration().await?;
 
         Ok(wallet)
     }
 
+    // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_init() {
+        let config_repository = MockConfigurationRepository::default();
+        let wallet = MockWallet::init::<SoftwareUtilities>(config_repository)
+            .await
+            .expect("Could not initialize wallet");
+
+        assert!(!wallet.has_registration());
+    }
+
+    // Tests the logic of fetching the wallet registration during init and its interaction with the database.
+    #[tokio::test]
+    async fn test_init_fetch_registration() {
         // Test with a wallet without a database file.
         let wallet = init_wallet(None).await.expect("Could not initialize wallet");
 
@@ -447,7 +459,7 @@ mod tests {
         assert!(wallet.is_locked());
 
         // Test with a wallet with a database file, no registration.
-        let wallet = init_wallet(Some(MockStorage::new(StorageState::Unopened, None)))
+        let wallet = init_wallet(Some(MockStorage::mock(StorageState::Unopened, None)))
             .await
             .expect("Could not initialize wallet");
 
@@ -458,7 +470,7 @@ mod tests {
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = new_pin_salt();
-        let wallet = init_wallet(Some(MockStorage::new(
+        let wallet = init_wallet(Some(MockStorage::mock(
             StorageState::Unopened,
             Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
@@ -478,6 +490,10 @@ mod tests {
         assert_eq!(wallet.registration.unwrap().pin_salt.0, pin_salt);
     }
 
+    // Test a full registration with the mock wallet.
+    //
+    // TODO: Since the wallet_provider integration tests also covers this, this should be removed.
+    //       This can be done whenever the AccountServerClient has a proper mock.
     #[tokio::test]
     async fn test_register() {
         let mut wallet = init_wallet(None).await.expect("Could not initialize wallet");
