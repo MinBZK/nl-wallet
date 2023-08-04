@@ -14,7 +14,7 @@ spec:
               service:
                 name: pid-issuer
                 port:
-                  number: 3000
+                  number: 3003
             path: /$PID_ISSUER_EXTERNAL_CONTEXT_PATH/(.+)
             pathType: Prefix
   tls:
