@@ -42,6 +42,8 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
 static mut DIGID_CONNECTOR: OnceCell<DigidConnector> = OnceCell::const_new();
 
+type DigidResult<T> = std::result::Result<T, DigidError>;
+
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {
     #[error("{0}")]
@@ -72,7 +74,10 @@ impl From<ClientError> for DigidError {
     }
 }
 
-type DigidResult<T> = std::result::Result<T, DigidError>;
+#[derive(Deserialize)]
+struct BsnResponse {
+    bsn: String,
+}
 
 pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static mut DigidConnector> {
     unsafe {
@@ -237,9 +242,4 @@ impl DigidConnector {
             .validate_custom_token(&id_token, options.nonce.as_deref(), options.max_age.as_ref())?;
         Ok(())
     }
-}
-
-#[derive(Deserialize)]
-struct BsnResponse {
-    bsn: String,
 }
