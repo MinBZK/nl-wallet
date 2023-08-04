@@ -190,15 +190,21 @@ where
 
         let registration_data = self.registration.as_ref().unwrap();
 
-        Ok(InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(
-                registration_data.instruction_sequence_number,
-                "wallet",
-                &self.hw_privkey.clone(),
-            )
-            .map_err(WalletUnlockError::Signing)?,
-            certificate: registration_data.wallet_certificate.clone(),
+        let hw_privkey = self.hw_privkey.clone();
+        let seq_num = registration_data.instruction_sequence_number;
+
+        let message = task::spawn_blocking(move || {
+            InstructionChallengeRequest::new_signed(seq_num, "wallet", &hw_privkey).map_err(WalletUnlockError::Signing)
         })
+        .await
+        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
+
+        let challenge_request = InstructionChallengeRequestMessage {
+            message,
+            certificate: registration_data.wallet_certificate.clone(),
+        };
+
+        Ok(challenge_request)
     }
 
     async fn new_check_pin_request(
