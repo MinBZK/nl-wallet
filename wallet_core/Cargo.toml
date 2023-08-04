@@ -8,6 +8,7 @@ members = [
     "wallet",
     "wallet_common",
     "wallet_provider",
+    "pid_issuer",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
@@ -23,7 +24,7 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 assert_matches = "1"
 async-trait = "0.1.68"
-axum = { version = "0.6.12", default-features = false }
+axum = { version = "0.6.19", default-features = false }
 backtrace = "0.3.67"
 base64 = "0.21.0"
 chrono = { version = "0.4.26", default-features = false }

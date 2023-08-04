@@ -308,6 +308,25 @@ build-wp-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider-migrations:$CI_COMMIT_SHORT_SHA
       --cache=true
 
+build-pi-image:
+  extends: .kaniko
+  rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: integration-test-rust-wp
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/pid_issuer/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-pid-issuer:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
 build-android-app:
   extends: .env-k8s
   rules: !reference [ .default-or-release, rules ]
@@ -484,6 +503,20 @@ deploy-wallet-provider-live-cert:
   script:
     - envsubst < kubernetes/certificates/live/cert.yaml | kubectl apply -f -
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/cert.yaml
+
+deploy-pid-issuer:
+  extends: .deploy-k8s
+  rules: !reference [ .default-branch, rules ]
+  needs:
+    - job: build-pi-image
+      artifacts: false
+  variables:
+    PID_ISSUER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-pid-issuer:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < kubernetes/pid-issuer-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/pid-issuer-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/pid-issuer-service.yaml
+    - kubectl rollout status deployment/pid-issuer
 
 run-automation-tests:
   extends: .env-k8s

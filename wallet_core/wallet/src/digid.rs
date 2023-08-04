@@ -6,6 +6,7 @@ use openid::{
     error::{ClientError, Error as OpenIdError},
     Bearer, Client, Options, Token,
 };
+use serde::Deserialize;
 use tokio::sync::OnceCell;
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
@@ -26,6 +27,12 @@ const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
 // TODO: read from configuration
 const DIGID_ISSUER_URL: &str = "https://example.com/digid-connector";
+
+/// The base url of the PID issuer.
+// NOTE: MUST end with a slash
+// TODO: read from configuration
+// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
+const PID_ISSUER_BASE_URL: &str = "http://10.0.2.2:3003/";
 
 // TODO: read the following values from configuration, and align with digid-connector configuration
 const WALLET_CLIENT_ID: &str = "SSSS";
@@ -203,6 +210,24 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
+    pub async fn issue_pid(&self, access_token: String) -> DigidResult<String> {
+        let pid_issuer_base_url = Url::parse(PID_ISSUER_BASE_URL)?;
+
+        let bsn_response = self
+            .client
+            .http_client
+            .post(pid_issuer_base_url.join("extract_bsn")?)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|_err| DigidError::GenericError("PID issuer error".to_string()))?
+            .json::<BsnResponse>()
+            .await
+            .map_err(|_err| DigidError::GenericError("PID response error".to_string()))?;
+
+        Ok(bsn_response.bsn)
+    }
+
     fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<(), DigidError> {
         let token: Token = bearer_token.clone().into();
         let mut id_token = token.id_token.expect("No id_token found");
@@ -212,4 +237,9 @@ impl DigidConnector {
             .validate_custom_token(&id_token, options.nonce.as_deref(), options.max_age.as_ref())?;
         Ok(())
     }
+}
+
+#[derive(Deserialize)]
+struct BsnResponse {
+    bsn: String,
 }
