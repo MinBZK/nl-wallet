@@ -1,5 +1,8 @@
 use crate::errors::Error;
-use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
+use base64::{
+    engine::general_purpose::{STANDARD, STANDARD_NO_PAD},
+    Engine,
+};
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePublicKey},
@@ -85,7 +88,7 @@ impl From<&DerSigningKey> for DerVerifyingKey {
 
 impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let pubkey = STANDARD_NO_PAD.encode(self.0.to_encoded_point(false).as_bytes());
+        let pubkey = STANDARD.encode(self.0.to_encoded_point(false).as_bytes());
         write!(f, "{}", pubkey)
     }
 }

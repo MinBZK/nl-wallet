@@ -12,7 +12,7 @@ wallet_provider_domain = { path = "../domain" }
 wallet_common = { path = "../../wallet_common" }
 
 async-trait = { workspace = true, optional = true }
-chrono.workspace = true
+chrono = { workspace = true, features = ["std", "clock"] }
 der = { workspace = true, features = ["std"] }
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
@@ -33,7 +33,11 @@ assert_matches.workspace = true
 async-trait.workspace = true
 rand.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "parking_lot"] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "macros",
+    "parking_lot",
+] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "env-filter",
