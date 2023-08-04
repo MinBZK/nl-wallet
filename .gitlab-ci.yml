@@ -136,7 +136,8 @@ test-rust-compilation-android-linux:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:03c85d08bb17f336ad1142a9ea2e60c110b3592a2d1494357a38b634925a4596"
   script:
-    - cargo check --manifest-path wallet_core/wallet_provider/Cargo.toml --locked --release
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package pid_issuer --bin pid_issuer
     - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
 
 test-rust-compilation-ios:
