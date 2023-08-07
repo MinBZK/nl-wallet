@@ -1,1 +1,1 @@
-pub mod userinfo;
+pub mod userinfo_client;

@@ -9,40 +9,22 @@ use axum::{
 };
 use futures::future::TryFutureExt;
 use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
-use openid::Client;
 use reqwest::{StatusCode, Url};
 use serde::Serialize;
 use serde_json::json;
 use tracing::info;
 
-use pid_issuer::userinfo::{
-    bsn_from_claims, decrypter_from_jwk_file, ClientUserInfoExtension, UserInfoError, UserInfoJWT,
-};
+use pid_issuer::userinfo_client::{self, Client, UserInfoJWT};
 
 // TODO: read from configuration
 const DIGID_ISSUER_URL: &str = "https://example.com/digid-connector";
 
-// TODO: read the following values from configuration, and align with digid-connector configuration
+// TODO: read from configuration
+// TODO: Use separate client ID for mock PID issuer.
 const WALLET_CLIENT_ID: &str = "SSSS";
-const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
 
 const SECRETS_DIR: &str = "secrets";
 const JWK_PRIVATE_KEY_FILE: &str = "private_key.jwk";
-
-async fn create_openid_client() -> anyhow::Result<Client> {
-    let issuer_url = Url::parse(DIGID_ISSUER_URL)?;
-
-    let openid_client = Client::discover_with_client(
-        reqwest::Client::new(),
-        WALLET_CLIENT_ID.to_string(),
-        None,
-        Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-        issuer_url,
-    )
-    .await?;
-
-    Ok(openid_client)
-}
 
 struct ApplicationState {
     openid_client: Client,
@@ -55,21 +37,22 @@ impl ApplicationState {
             .openid_client
             .request_userinfo_decrypted_claims(access_token, &self.jwe_decrypter)
             .await?;
-        let bsn = bsn_from_claims(&userinfo_claims)?.ok_or(PidIssuerError::NoBSN)?;
+        let bsn = Client::bsn_from_claims(&userinfo_claims)?.ok_or(PidIssuerError::NoBSN)?;
 
         Ok(bsn)
     }
 }
 
 async fn serve() -> anyhow::Result<()> {
+    let issuer_url = Url::parse(DIGID_ISSUER_URL).expect("Could not parse DIGID_ISSUER_URL");
     let secrets_path = env::var("CARGO_MANIFEST_DIR")
         .map(PathBuf::from)
         .unwrap_or_default()
         .join(SECRETS_DIR);
 
     let application_state = Arc::new(ApplicationState {
-        openid_client: create_openid_client().await?,
-        jwe_decrypter: decrypter_from_jwk_file(secrets_path.join(JWK_PRIVATE_KEY_FILE))?,
+        openid_client: Client::discover(issuer_url, WALLET_CLIENT_ID).await?,
+        jwe_decrypter: Client::decrypter_from_jwk_file(secrets_path.join(JWK_PRIVATE_KEY_FILE))?,
     });
 
     let app = Router::new()
@@ -95,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
 #[derive(Debug, thiserror::Error)]
 enum PidIssuerError {
     #[error("OIDC client error: {0}")]
-    OidcClient(#[from] UserInfoError),
+    OidcClient(#[from] userinfo_client::Error),
     #[error("no BSN found in response from OIDC server")]
     NoBSN,
 }
