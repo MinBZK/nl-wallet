@@ -7,6 +7,7 @@ use std::{
 };
 
 use futures::future::TryFutureExt;
+use http::header;
 use josekit::{
     jwe::{self, alg::rsaes::RsaesJweDecrypter},
     jwk::Jwk,
@@ -18,16 +19,16 @@ use openid::{
     },
     error as openid_errors, Empty, OAuth2Error,
 };
-use reqwest::{header::ACCEPT, Url};
 use serde_json::Value;
 use tracing::debug;
+use url::Url;
 
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
-// TODO replace with deserializable struct once we're certain about the claim(s)
+// TODO: Replace with deserializable struct once we're certain about the claim(s).
 pub type AttributeMap = HashMap<String, Value>;
 pub type UserInfoJWT = JWT<AttributeMap, Empty>;
 
@@ -128,7 +129,7 @@ impl Client {
 
     pub async fn request_userinfo_decrypted_claims<C, H>(
         &self,
-        access_token: &str,
+        access_token: impl AsRef<str>,
         decrypter: &RsaesJweDecrypter,
     ) -> Result<JWT<C, H>>
     where
@@ -158,8 +159,8 @@ impl Client {
             .0
             .http_client
             .post(endpoint)
-            .header(ACCEPT, APPLICATION_JWT)
-            .bearer_auth(access_token)
+            .header(header::ACCEPT, APPLICATION_JWT)
+            .bearer_auth(access_token.as_ref())
             .send()
             .map_err(openid_errors::ClientError::from)
             .and_then(|response| async {
