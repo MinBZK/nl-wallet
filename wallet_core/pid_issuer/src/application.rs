@@ -11,7 +11,7 @@ use futures::future::TryFutureExt;
 use http::StatusCode;
 use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
 use serde::Serialize;
-use tracing::info;
+use tracing::{debug, info};
 use url::Url;
 
 use crate::userinfo_client::{self, Client, UserInfoJWT};
@@ -46,8 +46,14 @@ pub async fn create_router(
     client_id: impl Into<String>,
     private_key_path: impl AsRef<Path>,
 ) -> Result<Router, userinfo_client::Error> {
+    debug!("Discovering DigiD issuer...");
+
+    let openid_client = Client::discover(issuer_url, client_id).await?;
+
+    debug!("DigiD issuer discovered, starting HTTP server");
+
     let application_state = Arc::new(ApplicationState {
-        openid_client: Client::discover(issuer_url, client_id).await?,
+        openid_client,
         jwe_decrypter: Client::decrypter_from_jwk_file(private_key_path)?,
     });
 
