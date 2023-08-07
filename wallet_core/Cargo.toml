@@ -8,6 +8,7 @@ members = [
     "wallet",
     "wallet_common",
     "wallet_provider",
+    "pid_issuer",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
@@ -23,7 +24,7 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 assert_matches = "1"
 async-trait = "0.1.68"
-axum = { version = "0.6.12", default-features = false }
+axum = { version = "0.6.19", default-features = false }
 backtrace = "0.3.67"
 base64 = "0.21.0"
 chrono = { version = "0.4.26", default-features = false }
@@ -34,6 +35,7 @@ cstr = "0.2.11"
 dashmap = { version = "5.4.0" }
 der = "0.7.7"
 flutter_rust_bridge = "1.70.0"
+futures = "0.3.17"
 hex = { version = "0.4.3" }
 hex-literal = { version = "0.3.4" }
 http = "0.2.9"
@@ -46,6 +48,7 @@ mime = { version = "0.3.17" }
 never = "0.1.0"
 once_cell = "1.17.1"
 openid = "0.12.0"
+openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 pkce = "0.2.0"
