@@ -184,7 +184,15 @@ impl Client {
         // Unfortunately we need to use josekit to decrypt the JWE, as biscuit
         // does not yet support A128CBC_HS256 content decoding.
         // See: https://github.com/lawliet89/biscuit/issues/42
-        let (jwe_payload, _header) = jwe::deserialize_compact(&jwe_token, decrypter)?;
+        let (jwe_payload, header) = jwe::deserialize_compact(&jwe_token, decrypter)?;
+
+        // Check the "enc" header to confirm that that the content is encoded
+        // with the expected algorithm.
+        if header.content_encryption() != Some("A128CBC-HS256") {
+            // This is the error that would have been returned, if the biscuit
+            // crate had done the algorithm checking.
+            return Err(biscuit_errors::ValidationError::WrongAlgorithmHeader)?;
+        }
 
         // Get a JWT from the decrypted JWE and decode it using the JWT set.
         let encoded_jwt = JWT::<C, H>::from_bytes(&jwe_payload)?;
