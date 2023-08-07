@@ -154,7 +154,7 @@ pub async fn register(pin: String) -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
-    let connector = digid::get_or_initialize_digid_connector().await?;
+    let mut connector = digid::get_or_initialize_digid_connector().await?.lock().await;
     let authorization_url = connector.get_digid_authorization_url()?;
     Ok(authorization_url.into())
 }
@@ -171,7 +171,7 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
 
         sink.add(auth_event);
 
-        let connector = digid::get_or_initialize_digid_connector().await?;
+        let mut connector = digid::get_or_initialize_digid_connector().await?.lock().await;
         let access_token: String = connector.get_access_token(uri.parse()?).await.unwrap();
         let issue_event = connector.issue_pid(access_token).await.map_or_else(
             |error| {

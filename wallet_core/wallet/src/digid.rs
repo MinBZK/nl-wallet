@@ -7,7 +7,7 @@ use openid::{
     Bearer, Client, Options, Token,
 };
 use serde::Deserialize;
-use tokio::sync::OnceCell;
+use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use crate::openid::{OpenIdClientExtensions, UrlExtension};
@@ -40,7 +40,7 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 
 /// Global variable to hold our digid connector
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
-static mut DIGID_CONNECTOR: OnceCell<DigidConnector> = OnceCell::const_new();
+static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
 
 type DigidResult<T> = std::result::Result<T, DigidError>;
 
@@ -79,16 +79,14 @@ struct BsnResponse {
     bsn: String,
 }
 
-pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static mut DigidConnector> {
-    unsafe {
-        DIGID_CONNECTOR
-            .get_or_try_init(|| async { DigidConnector::create().await })
-            .await?;
+pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static Mutex<DigidConnector>> {
+    DIGID_CONNECTOR
+        .get_or_try_init(|| async {
+            let connector = DigidConnector::create().await?;
 
-        DIGID_CONNECTOR
-            .get_mut()
-            .ok_or_else(|| DigidError::GenericError("DigidConnector should have been initialized.".to_string()))
-    }
+            Ok(Mutex::new(connector))
+        })
+        .await
 }
 
 pub struct DigidConnector {
