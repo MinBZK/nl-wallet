@@ -2,10 +2,8 @@
 //!
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use openid::{
-    error::{ClientError, Error as OpenIdError},
-    Bearer, Client, Options, Token,
-};
+use futures::future::TryFutureExt;
+use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
@@ -57,27 +55,25 @@ async fn pid_issuer_base_url() -> &'static Url {
         .await
 }
 
-type DigidResult<T> = std::result::Result<T, DigidError>;
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum DigidError {
-    #[error("{0}")]
-    GenericError(String),
-    #[error("{0}")]
-    OpenIdError(OpenIdError),
-    #[error("{0}")]
-    OpenIdClientError(ClientError),
+pub enum Error {
+    #[error("could not perform openid operation: {0}")]
+    OpenId(#[from] openid_errors::Error),
+    #[error("invalid redirect URI received")]
+    RedirectUriMismatch,
+    #[error("invalid state token received")]
+    StateTokenMismatch,
+    #[error("could not get BSN from PID issuer: {0}{}", .1.as_ref().map(|body|
+        format!(", response body: {}", body)
+    ).unwrap_or_default())]
+    PidIssuer(#[source] reqwest::Error, Option<String>),
 }
 
-impl From<OpenIdError> for DigidError {
-    fn from(e: OpenIdError) -> Self {
-        Self::OpenIdError(e)
-    }
-}
-
-impl From<ClientError> for DigidError {
-    fn from(e: ClientError) -> Self {
-        Self::OpenIdClientError(e)
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Error::PidIssuer(value, None)
     }
 }
 
@@ -86,7 +82,7 @@ struct BsnResponse {
     bsn: String,
 }
 
-pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static Mutex<DigidConnector>> {
+pub async fn get_or_initialize_digid_connector() -> Result<&'static Mutex<DigidConnector>> {
     DIGID_CONNECTOR
         .get_or_try_init(|| async {
             let connector = DigidConnector::create().await?;
@@ -109,7 +105,7 @@ struct DigidSessionState {
 }
 
 impl DigidConnector {
-    pub async fn create() -> DigidResult<Self> {
+    pub async fn create() -> Result<Self> {
         let client = Client::discover_with_client(
             reqwest::Client::new(),
             WALLET_CLIENT_ID.to_string(),
@@ -125,7 +121,7 @@ impl DigidConnector {
     }
 
     /// Construct the authorization url, where the user must be redirected
-    pub fn get_digid_authorization_url(&mut self) -> DigidResult<Url> {
+    pub fn get_digid_authorization_url(&mut self) -> Result<Url> {
         let scopes_supported: String = self
             .client
             .config()
@@ -186,11 +182,9 @@ impl DigidConnector {
         body.finish()
     }
 
-    pub async fn get_access_token(&mut self, redirect_url: Url) -> DigidResult<String> {
+    pub async fn get_access_token(&mut self, redirect_url: Url) -> Result<String> {
         if !redirect_url.as_str().starts_with(WALLET_CLIENT_REDIRECT_URI) {
-            return Err(DigidError::GenericError(
-                "Invalid URL; does not match redirect_url".to_string(),
-            ));
+            return Err(Error::RedirectUriMismatch);
         }
 
         let DigidSessionState { options, pkce_verifier } = self.session_state.take().expect("No session state found");
@@ -203,7 +197,7 @@ impl DigidConnector {
 
         // Verify the state token matches the csrf_token
         if &state != options.state.as_ref().expect("No CSRF Token found") {
-            return Err(DigidError::GenericError("Invalid state token".to_string()));
+            return Err(Error::StateTokenMismatch);
         }
 
         let authorization_code = redirect_url
@@ -212,7 +206,10 @@ impl DigidConnector {
 
         let bearer_token = {
             let body = self.get_token_request(&authorization_code, &pkce_verifier);
-            self.client.invoke_token_endpoint(body).await?
+            self.client
+                .invoke_token_endpoint(body)
+                .await
+                .map_err(openid_errors::Error::from)?
         };
 
         self.validate_id_token(&bearer_token, &options)?;
@@ -220,7 +217,7 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
-    pub async fn issue_pid(&self, access_token: String) -> DigidResult<String> {
+    pub async fn issue_pid(&self, access_token: String) -> Result<String> {
         let url = pid_issuer_base_url()
             .await
             .join("extract_bsn")
@@ -232,16 +229,29 @@ impl DigidConnector {
             .post(url)
             .bearer_auth(access_token)
             .send()
-            .await
-            .map_err(|_err| DigidError::GenericError("PID issuer error".to_string()))?
+            .map_err(Error::from)
+            .and_then(|response| async {
+                // Try to get the body from any 4xx or 5xx error responses,
+                // in order to create a more detailed Error::PidIssuer.
+                // TODO: Implement proper JSON-based error reporting
+                //       for the mock PID issuer.
+                match response.error_for_status_ref() {
+                    Ok(_) => Ok(response),
+                    Err(error) => {
+                        let body = response.text().await.ok();
+
+                        Err(Error::PidIssuer(error, body))
+                    }
+                }
+            })
+            .await?
             .json::<BsnResponse>()
-            .await
-            .map_err(|_err| DigidError::GenericError("PID response error".to_string()))?;
+            .await?;
 
         Ok(bsn_response.bsn)
     }
 
-    fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<(), DigidError> {
+    fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<()> {
         let token: Token = bearer_token.clone().into();
         let mut id_token = token.id_token.expect("No id_token found");
         self.client.decode_token(&mut id_token)?;
