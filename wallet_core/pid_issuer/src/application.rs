@@ -51,8 +51,9 @@ pub async fn create_router(
         jwe_decrypter: Client::decrypter_from_jwk_file(private_key_path)?,
     });
 
-    let x = post(extract_bsn_route);
-    let app = Router::new().route("/extract_bsn", x).with_state(application_state);
+    let app = Router::new()
+        .route("/extract_bsn", post(extract_bsn_route))
+        .with_state(application_state);
 
     Ok(app)
 }
