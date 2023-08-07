@@ -12,6 +12,7 @@ class IntroductionPage extends StatelessWidget {
   final String title;
   final String? subtitle;
   final List<String> bulletPoints;
+  final ScrollController? scrollController;
 
   const IntroductionPage({
     required this.image,
@@ -20,13 +21,14 @@ class IntroductionPage extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.bulletPoints = const [],
+    this.scrollController,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return PrimaryScrollController(
-      controller: ScrollController(),
+      controller: scrollController ?? ScrollController(),
       child: OrientationBuilder(builder: (context, orientation) {
         if (orientation == Orientation.portrait) {
           return _buildPortrait(context);
@@ -40,13 +42,12 @@ class IntroductionPage extends StatelessWidget {
   Widget _buildPortrait(BuildContext context) {
     return Column(
       children: [
+        _buildPortraitImage(context),
         Expanded(
           child: Scrollbar(
             child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.only(top: 16),
               children: [
-                _buildPortraitImage(context),
-                const SizedBox(height: 16),
                 header != null ? header! : const SizedBox.shrink(),
                 const SizedBox(height: 8),
                 _buildInfoSection(context),

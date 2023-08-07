@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/mapper/reporting_option_title_mapper.dart';
 import '../common/widget/button/bottom_back_button.dart';
@@ -83,9 +84,11 @@ class ReportIssueScreen extends StatelessWidget {
   }
 
   static Future<ReportingOption?> show(BuildContext context, List<ReportingOption> options) {
-    return Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return ReportIssueScreen(options: options);
-    }));
+    return Navigator.of(context).push(
+      SecuredPageRoute(
+        builder: (context) => ReportIssueScreen(options: options),
+      ),
+    );
   }
 }
 
