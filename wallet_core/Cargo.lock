@@ -2336,6 +2336,7 @@ dependencies = [
  "http",
  "josekit",
  "openid",
+ "openssl",
  "reqwest",
  "serde",
  "serde_json",

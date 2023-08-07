@@ -19,6 +19,7 @@ futures.workspace = true
 http.workspace = true
 josekit.workspace = true
 openid.workspace = true
+openssl = { workspace = true, features = ["vendored"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde.workspace = true
 serde_json.workspace = true

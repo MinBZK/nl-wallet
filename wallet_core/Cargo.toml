@@ -48,6 +48,7 @@ mime = { version = "0.3.17" }
 never = "0.1.0"
 once_cell = "1.17.1"
 openid = "0.12.0"
+openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 pkce = "0.2.0"
