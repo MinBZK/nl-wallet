@@ -10,8 +10,9 @@ use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
-use crate::openid::{OpenIdClientExtensions, UrlExtension};
 use wallet_common::utils::random_bytes;
+
+use crate::openid::{OpenIdClientExtensions, UrlExtension};
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
@@ -25,14 +26,8 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const CHALLENGE_METHOD_S256: &str = "S256";
 const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
-// TODO: read from configuration
-const DIGID_ISSUER_URL: &str = "https://example.com/digid-connector";
-
-/// The base url of the PID issuer.
-// NOTE: MUST end with a slash
-// TODO: read from configuration
-// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-const PID_ISSUER_BASE_URL: &str = "http://10.0.2.2:3003/";
+static DIGID_ISSUER_URL: OnceCell<Url> = OnceCell::const_new();
+static PID_ISSUER_BASE_URL: OnceCell<Url> = OnceCell::const_new();
 
 // TODO: read the following values from configuration, and align with digid-connector configuration
 const WALLET_CLIENT_ID: &str = "SSSS";
@@ -41,6 +36,26 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 /// Global variable to hold our digid connector
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
 static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
+
+// TODO: Read from configuration.
+async fn digid_issuer_url() -> &'static Url {
+    DIGID_ISSUER_URL
+        .get_or_init(|| async {
+            Url::parse("https://example.com/digid-connector")
+                .expect("Could not parse DigiD issuer URL")
+        })
+        .await
+}
+
+/// The base url of the PID issuer.
+// NOTE: MUST end with a slash
+// TODO: read from configuration
+// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
+async fn pid_issuer_base_url() -> &'static Url {
+    PID_ISSUER_BASE_URL
+        .get_or_init(|| async { Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL") })
+        .await
+}
 
 type DigidResult<T> = std::result::Result<T, DigidError>;
 
@@ -52,14 +67,6 @@ pub enum DigidError {
     OpenIdError(OpenIdError),
     #[error("{0}")]
     OpenIdClientError(ClientError),
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(url::ParseError),
-}
-
-impl From<url::ParseError> for DigidError {
-    fn from(e: url::ParseError) -> Self {
-        Self::InvalidUrl(e)
-    }
 }
 
 impl From<OpenIdError> for DigidError {
@@ -108,7 +115,7 @@ impl DigidConnector {
             WALLET_CLIENT_ID.to_string(),
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            Url::parse(DIGID_ISSUER_URL)?,
+            digid_issuer_url().await.clone(),
         )
         .await?;
         Ok(Self {
@@ -214,12 +221,15 @@ impl DigidConnector {
     }
 
     pub async fn issue_pid(&self, access_token: String) -> DigidResult<String> {
-        let pid_issuer_base_url = Url::parse(PID_ISSUER_BASE_URL)?;
+        let url = pid_issuer_base_url()
+            .await
+            .join("extract_bsn")
+            .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 
         let bsn_response = self
             .client
             .http_client
-            .post(pid_issuer_base_url.join("extract_bsn")?)
+            .post(url)
             .bearer_auth(access_token)
             .send()
             .await
