@@ -24,6 +24,7 @@ import '../feature/history/overview/bloc/history_overview_bloc.dart';
 import '../feature/history/overview/history_overview_screen.dart';
 import '../feature/home/bloc/home_bloc.dart';
 import '../feature/home/home_screen.dart';
+import '../feature/introduction/introduction_expectations_screen.dart';
 import '../feature/introduction/introduction_screen.dart';
 import '../feature/issuance/argument/issuance_screen_argument.dart';
 import '../feature/issuance/bloc/issuance_bloc.dart';
@@ -62,6 +63,7 @@ class WalletRoutes {
   static const publicRoutes = [
     splashRoute,
     introductionRoute,
+    introductionExpectationsRoute,
     aboutRoute,
     setupSecurityRoute,
     pinRoute,
@@ -73,6 +75,7 @@ class WalletRoutes {
 
   static const splashRoute = '/';
   static const introductionRoute = '/introduction';
+  static const introductionExpectationsRoute = '/introduction/expectations';
   static const aboutRoute = '/about';
   static const setupSecurityRoute = '/security/setup';
   static const pinRoute = '/pin';
@@ -122,6 +125,8 @@ class WalletRoutes {
         return _createSplashScreenBuilder;
       case WalletRoutes.introductionRoute:
         return _createIntroductionScreenBuilder;
+      case WalletRoutes.introductionExpectationsRoute:
+        return _createIntroductionExpectationsScreenBuilder;
       case WalletRoutes.aboutRoute:
         return _createAboutScreenBuilder;
       case WalletRoutes.pinRoute:
@@ -178,6 +183,8 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
     );
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
+
+Widget _createIntroductionExpectationsScreenBuilder(BuildContext context) => const IntroductionExpectationsScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 

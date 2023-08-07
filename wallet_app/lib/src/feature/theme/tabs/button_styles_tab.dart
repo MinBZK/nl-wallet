@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/rounded_back_button.dart';
 import '../../common/widget/button/text_icon_button.dart';
 import '../theme_screen.dart';
 
@@ -46,6 +47,8 @@ class ButtonStylesTab extends StatelessWidget {
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'BottomBackButton'),
         const BottomBackButton(),
+        const ThemeSectionSubHeader(title: 'RoundedBackButton'),
+        const RoundedBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
         ConfirmButtons(onDeclinePressed: () {}, onAcceptPressed: () {}, acceptText: 'Accept', declineText: 'Decline'),
       ],
