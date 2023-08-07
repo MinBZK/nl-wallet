@@ -106,17 +106,12 @@ impl Client {
     }
 
     pub fn bsn_from_claims(userinfo_token: &UserInfoJWT) -> Result<Option<String>> {
-        debug!("userinfo_token: {:?}", userinfo_token);
+        debug!("Processing userinfo claims");
 
         let userinfo_payload = userinfo_token.payload()?;
-
-        debug!("Registered Claims: {:?}", userinfo_payload.registered);
-
         userinfo_payload.registered.validate(ValidationOptions::default())?;
 
-        for (key, value) in userinfo_payload.private.iter() {
-            debug!("Private Claim {}: {}", key, value);
-        }
+        debug!("Received userinfo claims are valid, extracting BSN");
 
         let bsn = userinfo_payload
             .private
