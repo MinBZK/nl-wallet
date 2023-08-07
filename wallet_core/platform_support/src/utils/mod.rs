@@ -1,4 +1,3 @@
-#[cfg(feature = "hardware")]
 pub mod hardware;
 
 #[cfg(feature = "software")]
@@ -6,7 +5,7 @@ pub mod software;
 
 use std::path::PathBuf;
 
-// implementation of UtilitiesError from UDL, only with "hardware" flag
+// implementation of UtilitiesError from UDL
 #[derive(Debug, thiserror::Error)]
 pub enum UtilitiesError {
     #[error("platform error: {reason}")]

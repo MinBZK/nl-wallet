@@ -4091,7 +4091,6 @@ dependencies = [
  "base64 0.21.2",
  "chrono",
  "entity",
- "futures",
  "libsqlite3-sys",
  "migration",
  "mime",
