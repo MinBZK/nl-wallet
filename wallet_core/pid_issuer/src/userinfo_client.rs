@@ -89,6 +89,12 @@ impl Client {
         let client =
             openid::Client::discover_with_client(http_client, client_id.into(), None, None, issuer_url).await?;
 
+        _ = client
+            .config()
+            .userinfo_endpoint
+            .as_ref()
+            .ok_or(openid_errors::Userinfo::NoUrl)?;
+
         Ok(Client(client))
     }
 
@@ -147,7 +153,7 @@ impl Client {
             .userinfo_endpoint
             .as_ref()
             .cloned()
-            .ok_or(openid_errors::Userinfo::NoUrl)?;
+            .expect("OpenID userinfo endpoint not populated by disovery");
 
         // Use the access_token to retrieve the userinfo as a JWE token.
         let jwe_token = self
