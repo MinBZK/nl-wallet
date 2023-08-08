@@ -20,8 +20,10 @@ once_cell = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rand.workspace = true
 rand_core = { workspace = true, optional = true }
+ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
+sha2 = { workspace = true }
 thiserror.workspace = true
 
 [dev-dependencies]

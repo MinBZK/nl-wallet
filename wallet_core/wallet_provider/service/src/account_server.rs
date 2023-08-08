@@ -1,7 +1,6 @@
 use chrono::{DateTime, Local};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sha2::Digest;
 use uuid::Uuid;
 
 use wallet_common::{
@@ -18,7 +17,7 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     keys::EcdsaKey,
-    utils::{random_bytes, random_string},
+    utils::{random_bytes, random_string, sha256},
 };
 use wallet_provider_domain::{
     generator::Generator,
@@ -493,7 +492,7 @@ fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64
         .to_vec();
     let pin_pubkey_tohash =
         der_encode(vec![pin_hash_salt, pin_pubkey_bts]).map_err(WalletCertificateError::PinPubKeyEncoding)?;
-    Ok(sha2::Sha256::digest(pin_pubkey_tohash).to_vec().into())
+    Ok(sha256(&pin_pubkey_tohash).into())
 }
 
 #[cfg(any(test, feature = "stub"))]

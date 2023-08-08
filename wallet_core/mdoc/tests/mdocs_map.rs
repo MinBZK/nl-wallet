@@ -1,12 +1,14 @@
 use dashmap::DashMap;
-
 use indexmap::IndexMap;
+
+use wallet_common::keys::software::SoftwareEcdsaKey;
+
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Mdoc, MdocCopies, Storage},
     utils::{
+        keys::MdocEcdsaKey,
         serialization::{cbor_deserialize, cbor_serialize},
-        signer::{MdocEcdsaKey, SoftwareEcdsaKey},
     },
     DocType, Error, NameSpace,
 };

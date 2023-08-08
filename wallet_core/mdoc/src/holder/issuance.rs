@@ -4,6 +4,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::TrustAnchor;
 
+use wallet_common::utils::random_string;
+
 use crate::{
     basic_sa_ext::{
         DataToIssueMessage, Entry, KeyGenerationResponseMessage, RequestKeyGenerationMessage, SparseIssuerSigned,
@@ -13,9 +15,8 @@ use crate::{
     issuer_shared::IssuanceError,
     utils::{
         cose::ClonePayload,
-        crypto::random_string,
+        keys::MdocEcdsaKey,
         serialization::{cbor_serialize, TaggedBytes},
-        signer::MdocEcdsaKey,
         TimeGenerator,
     },
     verifier::ValidityRequirement,

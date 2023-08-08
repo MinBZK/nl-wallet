@@ -7,14 +7,11 @@ use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     EncodedPoint,
 };
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    Rng,
-};
-use ring::{hkdf, hmac};
+use ring::hmac;
 use serde::Serialize;
-use sha2::Digest;
 use x509_parser::nom::AsBytes;
+
+use wallet_common::utils::{hkdf, sha256};
 
 use crate::{
     utils::cose::CoseKey,
@@ -40,10 +37,6 @@ pub enum CryptoError {
     KeyParseFailed(#[from] p256::ecdsa::Error),
 }
 
-pub fn sha256(bts: &[u8]) -> Vec<u8> {
-    sha2::Sha256::digest(bts).to_vec()
-}
-
 /// Computes the SHA256 of the CBOR encoding of the argument.
 pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborError> {
     let digest = sha256(cbor_serialize(val)?.as_ref());
@@ -65,23 +58,8 @@ pub fn dh_hmac_key(
 // TODO support no salt
 /// Using the HKDF from RFC 5869, compute a HMAC key.
 pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
-    let mut bts = vec![0u8; len];
-    let salt = hkdf::Salt::new(hkdf::HKDF_SHA256, sha256(salt).as_slice());
-
-    struct HkdfLen(usize);
-    impl hkdf::KeyType for HkdfLen {
-        fn len(&self) -> usize {
-            self.0
-        }
-    }
-
-    salt.extract(input_key_material)
-        .expand(&[info.as_bytes()], HkdfLen(len))
-        .map_err(|_| CryptoError::Hkdf)?
-        .fill(bts.as_mut_slice())
-        .map_err(|_| CryptoError::Hkdf)?;
-
-    let key = hmac::Key::new(hmac::HMAC_SHA256, bts.as_slice());
+    let bts = hkdf(input_key_material, sha256(salt).as_slice(), info, len).map_err(|_| CryptoError::Hkdf)?;
+    let key = hmac::Key::new(hmac::HMAC_SHA256, &bts);
     Ok(key)
 }
 
@@ -132,14 +110,4 @@ impl TryFrom<&CoseKey> for VerifyingKey {
         .map_err(CryptoError::KeyParseFailed)?;
         Ok(key)
     }
-}
-
-pub fn random_bytes(len: usize) -> Vec<u8> {
-    let mut output = vec![0u8; len];
-    rand::thread_rng().fill(&mut output[..]);
-    output
-}
-
-pub fn random_string(len: usize) -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), len)
 }

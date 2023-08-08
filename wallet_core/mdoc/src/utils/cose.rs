@@ -10,9 +10,10 @@ use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
+use wallet_common::keys::SecureEcdsaKey;
+
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
-    utils::signer::SecureEcdsaKey,
     Result,
 };
 

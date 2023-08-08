@@ -5,10 +5,12 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use webpki::TrustAnchor;
 
+use wallet_common::utils::sha256;
+
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{crypto::sha256, serialization::cbor_serialize, signer::MdocEcdsaKey, Generator},
+    utils::{keys::MdocEcdsaKey, serialization::cbor_serialize, Generator},
     verifier::ValidityRequirement,
     Result,
 };
