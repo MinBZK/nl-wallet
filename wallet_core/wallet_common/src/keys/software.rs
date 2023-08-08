@@ -23,9 +23,9 @@ pub struct SoftwareEcdsaKey {
 }
 
 #[cfg(feature = "mock")]
-/// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
-/// (e.g. with the keys in ISO 23220).
 impl SoftwareEcdsaKey {
+    /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
+    /// (e.g. with the keys in ISO 23220).
     pub fn insert(identifier: &str, key: SigningKey) {
         SIGNING_KEYS
             .lock()
