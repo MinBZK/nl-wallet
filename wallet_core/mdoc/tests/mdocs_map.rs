@@ -1,6 +1,8 @@
 use dashmap::DashMap;
-
 use indexmap::IndexMap;
+
+use wallet_common::keys::software::SoftwareEcdsaKey;
+
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Mdoc, MdocCopies, Storage},
@@ -10,7 +12,6 @@ use nl_wallet_mdoc::{
     },
     DocType, Error, NameSpace,
 };
-use wallet_common::keys::software::SoftwareEcdsaKey;
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,

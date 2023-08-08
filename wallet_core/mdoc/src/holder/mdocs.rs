@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use wallet_common::utils::sha256;
 use webpki::TrustAnchor;
+
+use wallet_common::utils::sha256;
 
 use crate::{
     basic_sa_ext::Entry,

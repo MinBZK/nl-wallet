@@ -2,8 +2,9 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
-use wallet_common::utils::random_string;
 use webpki::TrustAnchor;
+
+use wallet_common::utils::random_string;
 
 use crate::{
     basic_sa_ext::{
