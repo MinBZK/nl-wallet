@@ -3,6 +3,7 @@
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
+use once_cell::sync::Lazy;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
@@ -24,8 +25,18 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const CHALLENGE_METHOD_S256: &str = "S256";
 const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
-static DIGID_ISSUER_URL: OnceCell<Url> = OnceCell::const_new();
-static PID_ISSUER_BASE_URL: OnceCell<Url> = OnceCell::const_new();
+// TODO: Read from configuration.
+static DIGID_ISSUER_URL: Lazy<Url> = Lazy::new(|| {
+    Url::parse("https://example.com/digid-connector")
+        .expect("Could not parse DigiD issuer URL")
+});
+
+/// The base url of the PID issuer.
+// NOTE: MUST end with a slash
+// TODO: read from configuration
+// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
+static PID_ISSUER_BASE_URL: Lazy<Url> =
+    Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
 
 // TODO: read the following values from configuration, and align with digid-connector configuration
 const WALLET_CLIENT_ID: &str = "SSSS";
@@ -34,26 +45,6 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 /// Global variable to hold our digid connector
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
 static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
-
-// TODO: Read from configuration.
-async fn digid_issuer_url() -> &'static Url {
-    DIGID_ISSUER_URL
-        .get_or_init(|| async {
-            Url::parse("https://example.com/digid-connector")
-                .expect("Could not parse DigiD issuer URL")
-        })
-        .await
-}
-
-/// The base url of the PID issuer.
-// NOTE: MUST end with a slash
-// TODO: read from configuration
-// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-async fn pid_issuer_base_url() -> &'static Url {
-    PID_ISSUER_BASE_URL
-        .get_or_init(|| async { Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL") })
-        .await
-}
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -105,7 +96,7 @@ impl DigidConnector {
             WALLET_CLIENT_ID.to_string(),
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            digid_issuer_url().await.clone(),
+            DIGID_ISSUER_URL.clone(),
         )
         .await?;
         Ok(Self {
@@ -212,8 +203,7 @@ impl DigidConnector {
     }
 
     pub async fn issue_pid(&self, access_token: String) -> Result<String> {
-        let url = pid_issuer_base_url()
-            .await
+        let url = PID_ISSUER_BASE_URL
             .join("extract_bsn")
             .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 
