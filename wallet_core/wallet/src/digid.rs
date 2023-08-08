@@ -2,16 +2,16 @@
 //!
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use openid::{
-    error::{ClientError, Error as OpenIdError},
-    Bearer, Client, Options, Token,
-};
+use futures::future::TryFutureExt;
+use once_cell::sync::Lazy;
+use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use serde::Deserialize;
-use tokio::sync::OnceCell;
+use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
-use crate::openid::{OpenIdClientExtensions, UrlExtension};
 use wallet_common::utils::random_bytes;
+
+use crate::openid::{OpenIdClientExtensions, UrlExtension};
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
@@ -25,14 +25,18 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const CHALLENGE_METHOD_S256: &str = "S256";
 const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
-// TODO: read from configuration
-const DIGID_ISSUER_URL: &str = "https://example.com/digid-connector";
+// TODO: Read from configuration.
+static DIGID_ISSUER_URL: Lazy<Url> = Lazy::new(|| {
+    Url::parse("https://example.com/digid-connector")
+        .expect("Could not parse DigiD issuer URL")
+});
 
 /// The base url of the PID issuer.
 // NOTE: MUST end with a slash
 // TODO: read from configuration
 // The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-const PID_ISSUER_BASE_URL: &str = "http://10.0.2.2:3003/";
+static PID_ISSUER_BASE_URL: Lazy<Url> =
+    Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
 
 // TODO: read the following values from configuration, and align with digid-connector configuration
 const WALLET_CLIENT_ID: &str = "SSSS";
@@ -40,38 +44,22 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 
 /// Global variable to hold our digid connector
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
-static mut DIGID_CONNECTOR: OnceCell<DigidConnector> = OnceCell::const_new();
+static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
 
-type DigidResult<T> = std::result::Result<T, DigidError>;
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum DigidError {
-    #[error("{0}")]
-    GenericError(String),
-    #[error("{0}")]
-    OpenIdError(OpenIdError),
-    #[error("{0}")]
-    OpenIdClientError(ClientError),
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(url::ParseError),
-}
-
-impl From<url::ParseError> for DigidError {
-    fn from(e: url::ParseError) -> Self {
-        Self::InvalidUrl(e)
-    }
-}
-
-impl From<OpenIdError> for DigidError {
-    fn from(e: OpenIdError) -> Self {
-        Self::OpenIdError(e)
-    }
-}
-
-impl From<ClientError> for DigidError {
-    fn from(e: ClientError) -> Self {
-        Self::OpenIdClientError(e)
-    }
+pub enum Error {
+    #[error("could not perform openid operation: {0}")]
+    OpenId(#[from] openid_errors::Error),
+    #[error("invalid redirect URI received")]
+    RedirectUriMismatch,
+    #[error("invalid state token received")]
+    StateTokenMismatch,
+    #[error("could not get BSN from PID issuer: {0}")]
+    PidIssuer(#[from] reqwest::Error),
+    #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
+    PidIssuerResponse(#[source] reqwest::Error, String),
 }
 
 #[derive(Deserialize)]
@@ -79,16 +67,14 @@ struct BsnResponse {
     bsn: String,
 }
 
-pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static mut DigidConnector> {
-    unsafe {
-        DIGID_CONNECTOR
-            .get_or_try_init(|| async { DigidConnector::create().await })
-            .await?;
+pub async fn get_or_initialize_digid_connector() -> Result<&'static Mutex<DigidConnector>> {
+    DIGID_CONNECTOR
+        .get_or_try_init(|| async {
+            let connector = DigidConnector::create().await?;
 
-        DIGID_CONNECTOR
-            .get_mut()
-            .ok_or_else(|| DigidError::GenericError("DigidConnector should have been initialized.".to_string()))
-    }
+            Ok(Mutex::new(connector))
+        })
+        .await
 }
 
 pub struct DigidConnector {
@@ -104,13 +90,13 @@ struct DigidSessionState {
 }
 
 impl DigidConnector {
-    pub async fn create() -> DigidResult<Self> {
+    pub async fn create() -> Result<Self> {
         let client = Client::discover_with_client(
             reqwest::Client::new(),
             WALLET_CLIENT_ID.to_string(),
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            Url::parse(DIGID_ISSUER_URL)?,
+            DIGID_ISSUER_URL.clone(),
         )
         .await?;
         Ok(Self {
@@ -120,7 +106,7 @@ impl DigidConnector {
     }
 
     /// Construct the authorization url, where the user must be redirected
-    pub fn get_digid_authorization_url(&mut self) -> DigidResult<Url> {
+    pub fn get_digid_authorization_url(&mut self) -> Result<Url> {
         let scopes_supported: String = self
             .client
             .config()
@@ -181,11 +167,9 @@ impl DigidConnector {
         body.finish()
     }
 
-    pub async fn get_access_token(&mut self, redirect_url: Url) -> DigidResult<String> {
+    pub async fn get_access_token(&mut self, redirect_url: Url) -> Result<String> {
         if !redirect_url.as_str().starts_with(WALLET_CLIENT_REDIRECT_URI) {
-            return Err(DigidError::GenericError(
-                "Invalid URL; does not match redirect_url".to_string(),
-            ));
+            return Err(Error::RedirectUriMismatch);
         }
 
         let DigidSessionState { options, pkce_verifier } = self.session_state.take().expect("No session state found");
@@ -198,7 +182,7 @@ impl DigidConnector {
 
         // Verify the state token matches the csrf_token
         if &state != options.state.as_ref().expect("No CSRF Token found") {
-            return Err(DigidError::GenericError("Invalid state token".to_string()));
+            return Err(Error::StateTokenMismatch);
         }
 
         let authorization_code = redirect_url
@@ -207,7 +191,10 @@ impl DigidConnector {
 
         let bearer_token = {
             let body = self.get_token_request(&authorization_code, &pkce_verifier);
-            self.client.invoke_token_endpoint(body).await?
+            self.client
+                .invoke_token_endpoint(body)
+                .await
+                .map_err(openid_errors::Error::from)?
         };
 
         self.validate_id_token(&bearer_token, &options)?;
@@ -215,25 +202,43 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
-    pub async fn issue_pid(&self, access_token: String) -> DigidResult<String> {
-        let pid_issuer_base_url = Url::parse(PID_ISSUER_BASE_URL)?;
+    pub async fn issue_pid(&self, access_token: String) -> Result<String> {
+        let url = PID_ISSUER_BASE_URL
+            .join("extract_bsn")
+            .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 
         let bsn_response = self
             .client
             .http_client
-            .post(pid_issuer_base_url.join("extract_bsn")?)
+            .post(url)
             .bearer_auth(access_token)
             .send()
-            .await
-            .map_err(|_err| DigidError::GenericError("PID issuer error".to_string()))?
+            .map_err(Error::from)
+            .and_then(|response| async {
+                // Try to get the body from any 4xx or 5xx error responses,
+                // in order to create an Error::PidIssuerResponse.
+                // TODO: Implement proper JSON-based error reporting
+                //       for the mock PID issuer.
+                match response.error_for_status_ref() {
+                    Ok(_) => Ok(response),
+                    Err(error) => {
+                        let error = match response.text().await.ok() {
+                            Some(body) => Error::PidIssuerResponse(error, body),
+                            None => Error::PidIssuer(error),
+                        };
+
+                        Err(error)
+                    }
+                }
+            })
+            .await?
             .json::<BsnResponse>()
-            .await
-            .map_err(|_err| DigidError::GenericError("PID response error".to_string()))?;
+            .await?;
 
         Ok(bsn_response.bsn)
     }
 
-    fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<(), DigidError> {
+    fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<()> {
         let token: Token = bearer_token.clone().into();
         let mut id_token = token.id_token.expect("No id_token found");
         self.client.decode_token(&mut id_token)?;
