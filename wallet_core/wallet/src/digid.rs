@@ -226,7 +226,7 @@ impl DigidConnector {
             .map_err(Error::from)
             .and_then(|response| async {
                 // Try to get the body from any 4xx or 5xx error responses,
-                // in order to create a more detailed Error::PidIssuer.
+                // in order to create an Error::PidIssuerResponse.
                 // TODO: Implement proper JSON-based error reporting
                 //       for the mock PID issuer.
                 match response.error_for_status_ref() {
