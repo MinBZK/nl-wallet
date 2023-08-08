@@ -3,7 +3,7 @@ use rand::{
     Rng,
 };
 use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
-use sha2::Digest;
+use sha2::{Digest, Sha256};
 
 pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];
@@ -16,7 +16,7 @@ pub fn random_string(len: usize) -> String {
 }
 
 pub fn sha256(bts: &[u8]) -> Vec<u8> {
-    sha2::Sha256::digest(bts).to_vec()
+    Sha256::digest(bts).to_vec()
 }
 
 /// Compute the HKDF from [RFC 5869](https://tools.ietf.org/html/rfc5869).
