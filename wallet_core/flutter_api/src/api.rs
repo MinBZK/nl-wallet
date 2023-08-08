@@ -172,7 +172,8 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
         sink.add(auth_event);
 
         let connector = digid::get_or_initialize_digid_connector().await?;
-        let issue_event = connector.get_access_token(uri.parse()?).await.map_or_else(
+        let access_token: String = connector.get_access_token(uri.parse()?).await.unwrap();
+        let issue_event = connector.issue_pid(access_token).await.map_or_else(
             |error| {
                 warn!("Issue PID error: {}", error);
                 info!("Issue PID error details: {:?}", error);

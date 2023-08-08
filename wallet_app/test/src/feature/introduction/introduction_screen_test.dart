@@ -6,6 +6,8 @@ import 'package:wallet/src/feature/introduction/introduction_screen.dart';
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
 
+/// Note: The page indicator placement misbehaves when rendering multiple instances of the [IntroductionScreen]
+/// in the same golden. To verify it's normal placement the [page_1.stepper.light] test is added.
 void main() {
   group('goldens', () {
     testGoldens('Page 1 light', (tester) async {
@@ -65,24 +67,6 @@ void main() {
         wrapper: walletAppWrapper(),
       );
       await screenMatchesGolden(tester, 'page_4.light');
-    });
-
-    testGoldens('Page 5 light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_5',
-            onCreate: (scenarioWidgetKey) async {
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-            },
-          ),
-        wrapper: walletAppWrapper(),
-      );
-      await screenMatchesGolden(tester, 'page_5.light');
     });
 
     testGoldens('Page 1 dark', (tester) async {

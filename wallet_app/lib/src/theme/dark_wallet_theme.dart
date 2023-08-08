@@ -12,6 +12,7 @@ class DarkWalletTheme {
     secondary: Color(0xFFA5C8FF),
     error: Color(0xFFFF8989),
     background: Color(0xFF1C1E25),
+    inverseSurface: Color(0xFF414966),
     secondaryContainer: Color(0xFF004785),
     tertiaryContainer: Color(0x0D383EDE),
     onPrimary: Color(0xFF002C71),

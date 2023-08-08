@@ -6,6 +6,7 @@ use openid::{
     error::{ClientError, Error as OpenIdError},
     Bearer, Client, Options, Token,
 };
+use serde::Deserialize;
 use tokio::sync::OnceCell;
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
@@ -27,6 +28,12 @@ const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 // TODO: read from configuration
 const DIGID_ISSUER_URL: &str = "https://example.com/digid-connector";
 
+/// The base url of the PID issuer.
+// NOTE: MUST end with a slash
+// TODO: read from configuration
+// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
+const PID_ISSUER_BASE_URL: &str = "http://10.0.2.2:3003/";
+
 // TODO: read the following values from configuration, and align with digid-connector configuration
 const WALLET_CLIENT_ID: &str = "SSSS";
 const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
@@ -34,6 +41,8 @@ const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.ri
 /// Global variable to hold our digid connector
 // Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
 static mut DIGID_CONNECTOR: OnceCell<DigidConnector> = OnceCell::const_new();
+
+type DigidResult<T> = std::result::Result<T, DigidError>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {
@@ -65,7 +74,10 @@ impl From<ClientError> for DigidError {
     }
 }
 
-type DigidResult<T> = std::result::Result<T, DigidError>;
+#[derive(Deserialize)]
+struct BsnResponse {
+    bsn: String,
+}
 
 pub async fn get_or_initialize_digid_connector() -> DigidResult<&'static mut DigidConnector> {
     unsafe {
@@ -201,6 +213,24 @@ impl DigidConnector {
         self.validate_id_token(&bearer_token, &options)?;
 
         Ok(bearer_token.access_token)
+    }
+
+    pub async fn issue_pid(&self, access_token: String) -> DigidResult<String> {
+        let pid_issuer_base_url = Url::parse(PID_ISSUER_BASE_URL)?;
+
+        let bsn_response = self
+            .client
+            .http_client
+            .post(pid_issuer_base_url.join("extract_bsn")?)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|_err| DigidError::GenericError("PID issuer error".to_string()))?
+            .json::<BsnResponse>()
+            .await
+            .map_err(|_err| DigidError::GenericError("PID response error".to_string()))?;
+
+        Ok(bsn_response.bsn)
     }
 
     fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<(), DigidError> {
