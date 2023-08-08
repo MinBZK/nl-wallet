@@ -1934,7 +1934,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "once_cell",
  "p256",
- "rand 0.8.5",
  "rcgen",
  "regex",
  "ring",
