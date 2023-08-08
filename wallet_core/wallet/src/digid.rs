@@ -65,16 +65,10 @@ pub enum Error {
     RedirectUriMismatch,
     #[error("invalid state token received")]
     StateTokenMismatch,
-    #[error("could not get BSN from PID issuer: {0}{}", .1.as_ref().map(|body|
-        format!(", response body: {}", body)
-    ).unwrap_or_default())]
-    PidIssuer(#[source] reqwest::Error, Option<String>),
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
-        Error::PidIssuer(value, None)
-    }
+    #[error("could not get BSN from PID issuer: {0}")]
+    PidIssuer(#[from] reqwest::Error),
+    #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
+    PidIssuerResponse(#[source] reqwest::Error, String),
 }
 
 #[derive(Deserialize)]
@@ -238,9 +232,12 @@ impl DigidConnector {
                 match response.error_for_status_ref() {
                     Ok(_) => Ok(response),
                     Err(error) => {
-                        let body = response.text().await.ok();
+                        let error = match response.text().await.ok() {
+                            Some(body) => Error::PidIssuerResponse(error, body),
+                            None => Error::PidIssuer(error),
+                        };
 
-                        Err(Error::PidIssuer(error, body))
+                        Err(error)
                     }
                 }
             })
