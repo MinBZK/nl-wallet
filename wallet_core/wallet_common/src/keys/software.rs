@@ -17,9 +17,21 @@ static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mut
 // static for storing identifier -> aes cipher mapping, will only ever grow
 static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
+}
+
+#[cfg(feature = "mock")]
+impl SoftwareEcdsaKey {
+    /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
+    /// (e.g. with the keys in ISO 23220).
+    pub fn insert(identifier: &str, key: SigningKey) {
+        SIGNING_KEYS
+            .lock()
+            .expect("Could not get lock on SIGNING_KEYS")
+            .insert(identifier.to_string(), key);
+    }
 }
 
 // SigningKey from p256::ecdsa almost conforms to the EcdsaKey trait,

@@ -5,6 +5,8 @@ use std::fmt::Display;
 use coset::Header;
 use serde_bytes::ByteBuf;
 
+use wallet_common::{keys::SecureEcdsaKey, utils::random_string};
+
 use crate::{
     basic_sa_ext::{
         KeyGenerationResponseMessage, MdocResponses, RequestKeyGenerationMessage, Response, ResponseSignaturePayload,
@@ -12,9 +14,7 @@ use crate::{
     },
     utils::{
         cose::{ClonePayload, CoseKey, MdocCose},
-        crypto::random_string,
         serialization::cbor_serialize,
-        signer::SecureEcdsaKey,
     },
     DocType, Result, SessionId,
 };

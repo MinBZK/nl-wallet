@@ -1997,7 +1997,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "once_cell",
  "p256",
- "rand 0.8.5",
  "rcgen",
  "regex",
  "ring",
@@ -2005,10 +2004,10 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_with",
- "sha2",
  "thiserror",
  "tokio",
  "typetag",
+ "wallet_common",
  "x509-parser",
 ]
 
@@ -4211,8 +4210,10 @@ dependencies = [
  "p256",
  "rand 0.8.5",
  "rand_core 0.6.4",
+ "ring",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
  "wallet_common",
 ]

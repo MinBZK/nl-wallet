@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 
 pub mod cose;
+pub mod keys;
 pub mod serialization;
-pub mod signer;
 pub mod x509;
 
 pub(crate) mod crypto;
