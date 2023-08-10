@@ -4176,6 +4176,7 @@ dependencies = [
  "chrono",
  "entity",
  "futures",
+ "http",
  "libsqlite3-sys",
  "migration",
  "mime",

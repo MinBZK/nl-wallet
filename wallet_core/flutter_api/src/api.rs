@@ -4,8 +4,7 @@ use tokio::sync::{OnceCell, RwLock};
 use tracing::{info, warn};
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::digid;
-use wallet::{init_wallet, validate_pin, wallet::WalletInitError, Wallet};
+use wallet::{digid, init_wallet, pid_issuer::PID_ISSUER_CLIENT, validate_pin, wallet::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -154,9 +153,19 @@ pub async fn register(pin: String) -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
-    let mut connector = digid::get_or_initialize_digid_connector().await?.lock().await;
-    let authorization_url = connector.get_digid_authorization_url()?;
+    let mut client = digid::get_or_initialize_digid_client().await?.lock().await;
+    let authorization_url = client.start_session();
+
     Ok(authorization_url.into())
+}
+
+async fn process_digid_uri(uri: &str) -> Result<String> {
+    let mut digid_client = digid::get_or_initialize_digid_client().await?.lock().await;
+
+    let access_token = digid_client.get_access_token(uri.parse()?).await?;
+    let bsn = PID_ISSUER_CLIENT.extract_bsn(&access_token).await?;
+
+    Ok(bsn)
 }
 
 #[async_runtime]
@@ -171,12 +180,10 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
 
         sink.add(auth_event);
 
-        let mut connector = digid::get_or_initialize_digid_connector().await?.lock().await;
-        let access_token: String = connector.get_access_token(uri.parse()?).await.unwrap();
-        let issue_event = connector.issue_pid(access_token).await.map_or_else(
+        let issue_event = process_digid_uri(&uri).await.map_or_else(
             |error| {
                 warn!("Issue PID error: {}", error);
-                info!("Issue PID error details: {:?}", error);
+                info!("Issue PID error details: {:?}", error.root_cause());
 
                 UriFlowEvent::DigidAuth {
                     state: DigidState::Error,

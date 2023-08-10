@@ -2,12 +2,12 @@ mod account_server;
 mod config;
 mod init;
 mod lock;
-mod openid;
 mod pin;
 mod storage;
 mod utils;
 
 pub mod digid;
+pub mod pid_issuer;
 pub mod wallet;
 
 pub use crate::{
