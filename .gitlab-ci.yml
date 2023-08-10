@@ -505,20 +505,6 @@ deploy-wallet-provider-live-cert:
     - envsubst < kubernetes/certificates/live/cert.yaml | kubectl apply -f -
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/cert.yaml
 
-deploy-pid-issuer:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
-  needs:
-    - job: build-pi-image
-      artifacts: false
-  variables:
-    PID_ISSUER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-pid-issuer:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < kubernetes/pid-issuer-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/pid-issuer-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/pid-issuer-service.yaml
-    - kubectl rollout status deployment/pid-issuer
-
 run-automation-tests:
   extends: .env-k8s
   rules:
