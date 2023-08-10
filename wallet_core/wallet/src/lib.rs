@@ -5,6 +5,7 @@ mod lock;
 mod openid;
 mod pin;
 mod storage;
+mod utils;
 
 pub mod digid;
 pub mod wallet;

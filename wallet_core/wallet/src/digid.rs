@@ -11,7 +11,7 @@ use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use wallet_common::utils::random_bytes;
 
-use crate::openid::{OpenIdClientExtensions, UrlExtension};
+use crate::{openid::OpenIdClientExtensions, utils::url_find_first_query_value};
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
@@ -176,18 +176,15 @@ impl DigidConnector {
 
         // TODO check redirect_url for error and error_description fields, if so there was an error.
 
-        let state = redirect_url
-            .find_param(PARAM_STATE)
-            .expect("Missing 'state' query parameter");
+        let state = url_find_first_query_value(&redirect_url, PARAM_STATE).expect("Missing 'state' query parameter");
 
         // Verify the state token matches the csrf_token
         if &state != options.state.as_ref().expect("No CSRF Token found") {
             return Err(Error::StateTokenMismatch);
         }
 
-        let authorization_code = redirect_url
-            .find_param(PARAM_CODE)
-            .expect("Missing 'code' query parameter");
+        let authorization_code =
+            url_find_first_query_value(&redirect_url, PARAM_CODE).expect("Missing 'code' query parameter");
 
         let bearer_token = {
             let body = self.get_token_request(&authorization_code, &pkce_verifier);

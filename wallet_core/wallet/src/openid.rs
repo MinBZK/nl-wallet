@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use async_trait::async_trait;
 use chrono::Duration;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
@@ -11,22 +9,8 @@ use openid::{
 };
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use serde_json::Value;
-use url::Url;
 
 const APPLICATION_JWT: &str = "application/jwt";
-
-// Extension trait for more ergonomic parameter extraction
-pub trait UrlExtension {
-    fn find_param(&self, key: &str) -> Option<Cow<str>>;
-}
-
-impl UrlExtension for Url {
-    fn find_param(&self, key_to_find: &str) -> Option<Cow<str>> {
-        self.query_pairs()
-            .find(|(key, _)| key == key_to_find)
-            .map(|(_, value)| value)
-    }
-}
 
 #[async_trait]
 pub trait OpenIdClientExtensions {
