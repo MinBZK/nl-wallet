@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
@@ -12,9 +12,11 @@ use http::StatusCode;
 use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
 use serde::Serialize;
 use tracing::{debug, info};
-use url::Url;
 
-use crate::userinfo_client::{self, Client, UserInfoJWT};
+use crate::{
+    settings::Settings,
+    userinfo_client::{self, Client, UserInfoJWT},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -41,20 +43,16 @@ struct ApplicationState {
     jwe_decrypter: RsaesJweDecrypter,
 }
 
-pub async fn create_router(
-    issuer_url: Url,
-    client_id: impl Into<String>,
-    private_key_path: impl AsRef<Path>,
-) -> Result<Router, userinfo_client::Error> {
+pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client::Error> {
     debug!("Discovering DigiD issuer...");
 
-    let openid_client = Client::discover(issuer_url, client_id).await?;
+    let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.wallet_client_id).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
 
     let application_state = Arc::new(ApplicationState {
         openid_client,
-        jwe_decrypter: Client::decrypter_from_jwk_file(private_key_path)?,
+        jwe_decrypter: Client::decrypter_from_jwk_file(settings.digid.bsn_privkey)?,
     });
 
     let app = Router::new()

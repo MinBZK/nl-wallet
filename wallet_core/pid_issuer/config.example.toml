@@ -1,0 +1,8 @@
+[digid]
+bsn_privkey = "secrets/private_key.jwk"
+wallet_client_id = "SSSS"
+issuer_url = "https://example.com/digid-connector"
+
+[webserver]
+ip = "0.0.0.0"
+port = 3003
