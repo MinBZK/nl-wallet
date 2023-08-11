@@ -46,7 +46,7 @@ struct ApplicationState {
 pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client::Error> {
     debug!("Discovering DigiD issuer...");
 
-    let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.wallet_client_id).await?;
+    let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.client_id).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
 

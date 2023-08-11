@@ -7,14 +7,14 @@ use url::Url;
 #[derive(Deserialize)]
 pub struct Settings {
     pub webserver: Webserver,
-    pub digid: DigiD,
+    pub digid: Digid,
 }
 
 #[derive(Deserialize)]
-pub struct DigiD {
+pub struct Digid {
     pub issuer_url: Url,
     pub bsn_privkey: PathBuf,
-    pub wallet_client_id: String,
+    pub client_id: String,
 }
 
 #[derive(Deserialize)]
@@ -41,7 +41,7 @@ impl Settings {
                 "digid.bsn_privkey",
                 config_path.join("secrets").join("private_key.jwk").to_str().unwrap(),
             )?
-            .set_default("digid.wallet_client_id", "SSSS")?
+            .set_default("digid.client_id", "SSSS")?
             .add_source(File::from(config_path.join("config")).required(false))
             .add_source(
                 Environment::with_prefix("pid_issuer")
