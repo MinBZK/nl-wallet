@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/error/server_error.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -11,6 +12,7 @@ import '../../../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
+import '../../../wallet_core/error/flutter_api_error.dart';
 
 part 'setup_security_event.dart';
 part 'setup_security_state.dart';
@@ -91,7 +93,17 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
       emit(SetupSecurityCompleted());
     } catch (ex, stack) {
       Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);
-      emit(SetupSecurityFailure());
+      if (ex is FlutterApiError) {
+        switch (ex.type) {
+          case FlutterApiErrorType.generic:
+            emit(SetupSecurityGenericError());
+          case FlutterApiErrorType.networking:
+            emit(const SetupSecurityNetworkError());
+        }
+      } else {
+        emit(SetupSecurityGenericError());
+      }
+      _resetFlow(emit);
     }
   }
 
