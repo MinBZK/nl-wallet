@@ -4187,6 +4187,7 @@ dependencies = [
  "platform_support",
  "reqwest",
  "ring",
+ "rstest",
  "sea-orm",
  "serde",
  "serde_json",

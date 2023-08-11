@@ -10,22 +10,18 @@ pub fn url_find_first_query_value<'a>(url: &'a Url, query_key: &str) -> Option<C
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
-    #[test]
-    fn test_url_find_first_query_value() {
-        let input_and_expected = vec![
-            ("http://example.com", "foo", None),
-            ("http://example.com?foo=bar", "foo", Some("bar")),
-            ("http://example.com?foo=blah&foo=bar", "foo", Some("blah")),
-            ("http://example.com?space=with%20space", "space", Some("with space")),
-        ];
+    #[rstest]
+    #[case("http://example.com", "foo", None)]
+    #[case("http://example.com?foo=bar", "foo", Some("bar"))]
+    #[case("http://example.com?foo=blah&foo=bar", "foo", Some("blah"))]
+    #[case("http://example.com?space=with%20space", "space", Some("with space"))]
+    fn test_url_find_first_query_value(#[case] url: Url, #[case] key: &str, #[case] expected: Option<&str>) {
+        let result = url_find_first_query_value(&url, key);
 
-        input_and_expected.iter().for_each(|(url, query_key, expected)| {
-            let url = Url::parse(url).unwrap();
-            let result = url_find_first_query_value(&url, query_key);
-
-            assert_eq!(result.as_ref().map(|value| value.as_ref()), *expected);
-        });
+        assert_eq!(result.as_ref().map(|value| value.as_ref()), expected);
     }
 }
