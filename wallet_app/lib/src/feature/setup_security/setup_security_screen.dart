@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/pin/pin_validation_error.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
@@ -11,6 +12,7 @@ import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/page/generic_loading_page.dart';
+import '../error/error_screen.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
@@ -58,31 +60,13 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
-        if (!MediaQuery.of(context).accessibleNavigation) return;
-        final locale = context.l10n;
-        if (state is SetupSecuritySelectPinInProgress) {
-          if (state.afterBackspacePressed) {
-            announceEnteredDigits(context, state.enteredDigits);
-          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-            announceEnteredDigits(context, state.enteredDigits);
-          }
+        if (state is SetupSecurityGenericError) {
+          ErrorScreen.showGeneric(context, secured: false);
         }
-        if (state is SetupSecurityPinConfirmationInProgress) {
-          if (state.afterBackspacePressed) {
-            announceEnteredDigits(context, state.enteredDigits);
-          } else if (state.enteredDigits == 0) {
-            await Future.delayed(const Duration(seconds: 1));
-            SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
-          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-            announceEnteredDigits(context, state.enteredDigits);
-          }
+        if (state is SetupSecurityNetworkError) {
+          ErrorScreen.showServer(context, serverError: tryCast(state), secured: false);
         }
-        if (state is SetupSecuritySelectPinFailed) {
-          SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
-        }
-        if (state is SetupSecurityPinConfirmationFailed) {
-          SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
-        }
+        _runAnnouncements(context, state);
       },
       builder: (context, state) {
         Widget result = switch (state) {
@@ -92,11 +76,40 @@ class SetupSecurityScreen extends StatelessWidget {
           SetupSecurityPinConfirmationFailed() => _buildPinConfirmationErrorPage(context, state),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
-          SetupSecurityFailure() => _buildSetupFailed(context),
+          SetupSecurityGenericError() => _buildSetupFailed(context),
+          SetupSecurityNetworkError() => _buildSetupFailed(context),
         };
         return SafeArea(child: FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result));
       },
     );
+  }
+
+  void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
+    if (!MediaQuery.of(context).accessibleNavigation) return;
+    final locale = context.l10n;
+    if (state is SetupSecuritySelectPinInProgress) {
+      if (state.afterBackspacePressed) {
+        announceEnteredDigits(context, state.enteredDigits);
+      } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+        announceEnteredDigits(context, state.enteredDigits);
+      }
+    }
+    if (state is SetupSecurityPinConfirmationInProgress) {
+      if (state.afterBackspacePressed) {
+        announceEnteredDigits(context, state.enteredDigits);
+      } else if (state.enteredDigits == 0) {
+        await Future.delayed(const Duration(seconds: 1));
+        SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+      } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+        announceEnteredDigits(context, state.enteredDigits);
+      }
+    }
+    if (state is SetupSecuritySelectPinFailed) {
+      SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
+    }
+    if (state is SetupSecurityPinConfirmationFailed) {
+      SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
+    }
   }
 
   Widget _buildBackButton(BuildContext context) {
@@ -263,6 +276,11 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
+  /// This is more a placeholder/fallback over anything else.
+  /// Whenever the user is hit with a [SetupSecurityGenericError] or [SetupSecurityNetworkError]
+  /// this is built, but the listener should trigger the [ErrorScreen] while the bloc resets
+  /// the flow so the user can try again. That said, to be complete we need to build something
+  /// in this state, hence this method is kept around.
   Widget _buildSetupFailed(BuildContext context) {
     return Center(
       child: Column(

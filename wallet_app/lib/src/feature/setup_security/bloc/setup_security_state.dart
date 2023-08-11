@@ -86,7 +86,17 @@ class SetupSecurityCompleted extends SetupSecurityState {
   double get stepperProgress => 3 / _kTotalSteps;
 }
 
-class SetupSecurityFailure extends SetupSecurityState {
+class SetupSecurityGenericError extends SetupSecurityState {
   @override
   double get stepperProgress => 0;
+}
+
+class SetupSecurityNetworkError extends SetupSecurityState implements ServerError {
+  @override
+  double get stepperProgress => 0;
+
+  @override
+  final int? statusCode;
+
+  const SetupSecurityNetworkError({this.statusCode});
 }

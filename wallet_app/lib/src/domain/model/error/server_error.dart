@@ -2,5 +2,5 @@
 /// about the error dat occurred. To be used by the UI layer
 /// to consistently show the most relevant [ErrorScreen].
 abstract class ServerError {
-  abstract int? statusCode;
+  int? get statusCode;
 }
