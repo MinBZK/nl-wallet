@@ -14,7 +14,7 @@ use serde::Serialize;
 use tracing::{debug, info};
 
 use crate::{
-    settings::Settings,
+    settings::Digid,
     userinfo_client::{self, Client, UserInfoJWT},
 };
 
@@ -43,16 +43,16 @@ struct ApplicationState {
     jwe_decrypter: RsaesJweDecrypter,
 }
 
-pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client::Error> {
+pub async fn create_router(settings: Digid) -> Result<Router, userinfo_client::Error> {
     debug!("Discovering DigiD issuer...");
 
-    let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.client_id).await?;
+    let openid_client = Client::discover(settings.issuer_url, settings.client_id).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
 
     let application_state = Arc::new(ApplicationState {
         openid_client,
-        jwe_decrypter: Client::decrypter_from_jwk_file(settings.digid.bsn_privkey)?,
+        jwe_decrypter: Client::decrypter_from_jwk_file(settings.bsn_privkey)?,
     });
 
     let app = Router::new()
