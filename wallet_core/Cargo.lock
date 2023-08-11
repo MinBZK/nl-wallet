@@ -2331,6 +2331,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
+ "config",
  "futures",
  "http",
  "josekit",
