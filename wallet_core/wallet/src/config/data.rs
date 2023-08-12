@@ -8,6 +8,7 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
+    pub digid: DigidConfiguration,
 }
 
 #[derive(Debug)]
@@ -24,6 +25,13 @@ pub struct AccountServerConfiguration {
     // The known public key for the Wallet Provider
     pub certificate_public_key: EcdsaDecodingKey,
     pub instruction_result_public_key: EcdsaDecodingKey,
+}
+
+#[derive(Debug)]
+pub struct DigidConfiguration {
+    pub pid_issuer_url: Url,
+    pub digid_url: Url,
+    pub digid_client_id: String,
 }
 
 impl Debug for AccountServerConfiguration {

@@ -3,7 +3,6 @@
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
-use once_cell::sync::Lazy;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
@@ -11,7 +10,10 @@ use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use wallet_common::utils::random_bytes;
 
-use crate::openid::{OpenIdClientExtensions, UrlExtension};
+use crate::{
+    config::DigidConfiguration,
+    openid::{OpenIdClientExtensions, UrlExtension},
+};
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
@@ -25,21 +27,6 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const CHALLENGE_METHOD_S256: &str = "S256";
 const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
-// TODO: Read from configuration.
-static DIGID_ISSUER_URL: Lazy<Url> = Lazy::new(|| {
-    Url::parse("https://example.com/digid-connector")
-        .expect("Could not parse DigiD issuer URL")
-});
-
-/// The base url of the PID issuer.
-// NOTE: MUST end with a slash
-// TODO: read from configuration
-// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-static PID_ISSUER_BASE_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
-
-// TODO: read the following values from configuration, and align with digid-connector configuration
-const WALLET_CLIENT_ID: &str = "SSSS";
 const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
 
 /// Global variable to hold our digid connector
@@ -67,10 +54,10 @@ struct BsnResponse {
     bsn: String,
 }
 
-pub async fn get_or_initialize_digid_connector() -> Result<&'static Mutex<DigidConnector>> {
+pub async fn get_or_initialize_digid_connector(conf: &DigidConfiguration) -> Result<&'static Mutex<DigidConnector>> {
     DIGID_CONNECTOR
         .get_or_try_init(|| async {
-            let connector = DigidConnector::create().await?;
+            let connector = DigidConnector::create(conf).await?;
 
             Ok(Mutex::new(connector))
         })
@@ -80,6 +67,7 @@ pub async fn get_or_initialize_digid_connector() -> Result<&'static Mutex<DigidC
 pub struct DigidConnector {
     client: Client,
     session_state: Option<DigidSessionState>,
+    pid_issuer_url: Url,
 }
 
 struct DigidSessionState {
@@ -90,18 +78,19 @@ struct DigidSessionState {
 }
 
 impl DigidConnector {
-    pub async fn create() -> Result<Self> {
+    pub async fn create(conf: &DigidConfiguration) -> Result<Self> {
         let client = Client::discover_with_client(
             reqwest::Client::new(),
-            WALLET_CLIENT_ID.to_string(),
+            conf.digid_client_id.clone(),
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            DIGID_ISSUER_URL.clone(),
+            conf.digid_url.clone(),
         )
         .await?;
         Ok(Self {
             client,
             session_state: None,
+            pid_issuer_url: conf.pid_issuer_url.clone(),
         })
     }
 
@@ -203,7 +192,8 @@ impl DigidConnector {
     }
 
     pub async fn issue_pid(&self, access_token: String) -> Result<String> {
-        let url = PID_ISSUER_BASE_URL
+        let url = self
+            .pid_issuer_url
             .join("extract_bsn")
             .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 

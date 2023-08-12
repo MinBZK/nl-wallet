@@ -9,7 +9,10 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 
 use crate::{
     account_server::RemoteAccountServerClient,
-    config::{AccountServerConfiguration, Configuration, LocalConfigurationRepository, LockTimeoutConfiguration},
+    config::{
+        AccountServerConfiguration, Configuration, DigidConfiguration, LocalConfigurationRepository,
+        LockTimeoutConfiguration,
+    },
     storage::DatabaseStorage,
     wallet::WalletInitError,
 };
@@ -34,6 +37,12 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
             base_url: Url::parse("http://localhost:3000/api/v1/").unwrap(),
             certificate_public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
             instruction_result_public_key: EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()),
+        },
+        digid: DigidConfiguration {
+            pid_issuer_url: Url::parse("http://10.0.2.2:3003/").unwrap(),
+            digid_url: Url::parse("https://example.com/digid-connector")
+                .unwrap(),
+            digid_client_id: "SSSS".to_string(),
         },
     });
 
