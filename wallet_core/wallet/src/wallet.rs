@@ -1,7 +1,10 @@
 use std::{error::Error, panic};
 
 use platform_support::utils::PlatformUtilities;
-use tokio::task;
+use tokio::{
+    sync::{Mutex, OnceCell},
+    task,
+};
 use tracing::{info, instrument};
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -13,6 +16,7 @@ use wallet_common::account::messages::{
 
 use crate::{
     account_server::AccountServerResponseError,
+    digid::{self, DigidConnector},
     lock::WalletLock,
     pin::{
         key::{new_pin_salt, PinKey},
@@ -119,6 +123,7 @@ pub struct Wallet<C, A, S, K> {
     registration: Option<RegistrationData>,
     lock: WalletLock,
     config_callback: Option<ConfigurationCallback>,
+    digid_connector: OnceCell<Mutex<DigidConnector>>,
 }
 
 impl<C, A, S, K> Wallet<C, A, S, K>
@@ -137,6 +142,7 @@ where
             registration: None,
             lock: WalletLock::new(true),
             config_callback: None,
+            digid_connector: OnceCell::new(),
         }
     }
 
@@ -405,6 +411,15 @@ where
         self.lock.unlock();
 
         Ok(())
+    }
+
+    pub async fn digid_connector(&self) -> Result<&Mutex<DigidConnector>, digid::Error> {
+        self.digid_connector
+            .get_or_try_init(|| async {
+                let connector = DigidConnector::create(&self.config_repository.config().digid).await?;
+                Ok(Mutex::new(connector))
+            })
+            .await
     }
 }
 

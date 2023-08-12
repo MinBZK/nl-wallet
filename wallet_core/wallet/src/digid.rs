@@ -5,7 +5,6 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use serde::Deserialize;
-use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use wallet_common::utils::random_bytes;
@@ -29,10 +28,6 @@ const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
 const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
 
-/// Global variable to hold our digid connector
-// Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
-static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
-
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
@@ -52,16 +47,6 @@ pub enum Error {
 #[derive(Deserialize)]
 struct BsnResponse {
     bsn: String,
-}
-
-pub async fn get_or_initialize_digid_connector(conf: &DigidConfiguration) -> Result<&'static Mutex<DigidConnector>> {
-    DIGID_CONNECTOR
-        .get_or_try_init(|| async {
-            let connector = DigidConnector::create(conf).await?;
-
-            Ok(Mutex::new(connector))
-        })
-        .await
 }
 
 pub struct DigidConnector {
