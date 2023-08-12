@@ -176,7 +176,9 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
-    pub async fn issue_pid(&self, access_token: String) -> Result<String> {
+    pub async fn issue_pid(&mut self, url: Url) -> Result<String> {
+        let access_token: String = self.get_access_token(url).await?;
+
         let url = self
             .pid_issuer_url
             .join("extract_bsn")

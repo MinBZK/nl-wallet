@@ -172,21 +172,26 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
         sink.add(auth_event);
 
         let wallet = wallet().read().await;
-        let mut connector = wallet.digid_connector().await?.lock().await;
-        let access_token: String = connector.get_access_token(uri.parse()?).await.unwrap();
-        let issue_event = connector.issue_pid(access_token).await.map_or_else(
-            |error| {
-                warn!("Issue PID error: {}", error);
-                info!("Issue PID error details: {:?}", error);
+        let issue_event = wallet
+            .digid_connector()
+            .await?
+            .lock()
+            .await
+            .issue_pid(uri.parse()?)
+            .await
+            .map_or_else(
+                |error| {
+                    warn!("Issue PID error: {}", error);
+                    info!("Issue PID error details: {:?}", error);
 
-                UriFlowEvent::DigidAuth {
-                    state: DigidState::Error,
-                }
-            },
-            |_| UriFlowEvent::DigidAuth {
-                state: DigidState::Success,
-            },
-        );
+                    UriFlowEvent::DigidAuth {
+                        state: DigidState::Error,
+                    }
+                },
+                |_| UriFlowEvent::DigidAuth {
+                    state: DigidState::Success,
+                },
+            );
 
         sink.add(issue_event);
     } else {
