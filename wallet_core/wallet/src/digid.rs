@@ -1,10 +1,11 @@
 //! This module contains `DigidConnector` which supports user authentication through Digid.
 //!
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
-use once_cell::sync::Lazy;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
@@ -55,6 +56,7 @@ pub struct DigidConnector {
     client: Client,
     session_state: Option<DigidSessionState>,
     pid_issuer_url: Url,
+    mdoc_trust_anchors: Arc<Vec<TrustAnchor<'static>>>,
 }
 
 struct DigidSessionState {
@@ -65,19 +67,23 @@ struct DigidSessionState {
 }
 
 impl DigidConnector {
-    pub async fn create(conf: &DigidConfiguration) -> Result<Self> {
+    pub async fn create(
+        conf: DigidConfiguration,
+        mdoc_trust_anchors: Arc<Vec<TrustAnchor<'static>>>,
+    ) -> Result<DigidConnector> {
         let client = Client::discover_with_client(
             reqwest::Client::new(),
-            conf.digid_client_id.clone(),
+            conf.digid_client_id,
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            conf.digid_url.clone(),
+            conf.digid_url,
         )
         .await?;
         Ok(Self {
             client,
             session_state: None,
-            pid_issuer_url: conf.pid_issuer_url.clone(),
+            pid_issuer_url: conf.pid_issuer_url,
+            mdoc_trust_anchors,
         })
     }
 
@@ -219,7 +225,7 @@ impl DigidConnector {
                 service_engagement,
                 &always_agree(),
                 &client_builder(),
-                TRUST_ANCHOR.as_ref(),
+                self.mdoc_trust_anchors.as_ref(),
             )
             .await
             .expect("issuance failed"); // TODO
@@ -264,13 +270,3 @@ fn client_builder() -> impl HttpClientBuilder {
     }
     Builder
 }
-
-const TRUST_ANCHOR_DER: &str = "MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg==";
-
-static TRUST_ANCHOR: Lazy<[TrustAnchor<'static>; 1]> = Lazy::new(|| {
-    let der = base64::engine::general_purpose::STANDARD
-        .decode(TRUST_ANCHOR_DER.as_bytes())
-        .unwrap();
-    let anchor = TrustAnchor::try_from_cert_der(Box::leak(Box::new(der))).unwrap();
-    [anchor]
-});

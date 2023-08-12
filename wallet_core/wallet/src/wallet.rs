@@ -420,7 +420,8 @@ where
     pub async fn digid_connector(&self) -> Result<&Mutex<DigidConnector>, digid::Error> {
         self.digid_connector
             .get_or_try_init(|| async {
-                let connector = DigidConnector::create(&self.config_repository.config().digid).await?;
+                let config = self.config_repository.config();
+                let connector = DigidConnector::create(config.digid.clone(), config.mdoc_trust_anchors.clone()).await?;
                 Ok(Mutex::new(connector))
             })
             .await
