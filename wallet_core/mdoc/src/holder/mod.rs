@@ -26,4 +26,6 @@ pub enum HolderError {
     CertificateError(#[from] CertificateError),
     #[error("wrong private key type")]
     PrivateKeyTypeMismatch { expected: String, have: String },
+    #[error("request error: {0}")]
+    RequestError(#[from] reqwest::Error),
 }

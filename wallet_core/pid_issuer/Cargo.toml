@@ -15,12 +15,16 @@ axum = { workspace = true, features = [
     "tracing",
     "headers",
 ] }
+chrono = { workspace = true, features = ["std", "clock"] }
+ciborium = { workspace = true }
 config = { workspace = true, features = ["toml"] }
 futures.workspace = true
 http.workspace = true
+indexmap = { workspace = true , features = ["serde"] }
 josekit.workspace = true
 openid.workspace = true
 openssl = { workspace = true, features = ["vendored"] }
+p256 = { workspace = true , features = ["ecdsa", "pem", "std"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -29,3 +33,13 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
+
+nl_wallet_mdoc = { path = "../mdoc" }
+
+[dev-dependencies]
+platform_support = { path = "../platform_support", features = ["software"] }
+wallet_common = { path = "../wallet_common" }
+wallet = { path = "../wallet", features = ["mock"] }
+
+assert_matches.workspace = true
+serial_test.workspace = true

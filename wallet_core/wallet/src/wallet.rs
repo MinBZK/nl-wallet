@@ -264,6 +264,10 @@ where
         self.lock.clear_lock_callback()
     }
 
+    pub fn config(&self) -> &Configuration {
+        self.config_repository.config()
+    }
+
     pub fn set_config_callback<F>(&mut self, callback: F)
     where
         F: Fn(&Configuration) + Send + Sync + 'static,

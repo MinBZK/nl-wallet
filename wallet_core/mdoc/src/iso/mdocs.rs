@@ -165,6 +165,12 @@ impl From<chrono::DateTime<Utc>> for Tdate {
     }
 }
 
+impl Tdate {
+    pub fn now() -> Tdate {
+        Utc::now().into()
+    }
+}
+
 /// Doctype of an mdoc. For example, `"org.iso.18013.5.1.mDL"`. Determines the namespaces and attribute names that the
 /// mdoc may or must contain, and the issuer(s) that are authorized to sign it.
 pub type DocType = String;

@@ -1,13 +1,20 @@
 //! This module contains `DigidConnector` which supports user authentication through Digid.
 //!
 
+use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
+use once_cell::sync::Lazy;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
-use serde::Deserialize;
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
-use wallet_common::utils::random_bytes;
+use nl_wallet_mdoc::{
+    basic_sa_ext::RequestKeyGenerationMessage,
+    holder::{CborHttpClient, HttpClientBuilder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    mdocs_map::MdocsMap,
+    ServiceEngagement,
+};
+use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_bytes};
 
 use crate::{
     config::DigidConfiguration,
@@ -42,11 +49,6 @@ pub enum Error {
     PidIssuer(#[from] reqwest::Error),
     #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
     PidIssuerResponse(#[source] reqwest::Error, String),
-}
-
-#[derive(Deserialize)]
-struct BsnResponse {
-    bsn: String,
 }
 
 pub struct DigidConnector {
@@ -176,15 +178,14 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
-    pub async fn issue_pid(&mut self, url: Url) -> Result<String> {
-        let access_token: String = self.get_access_token(url).await?;
-
+    pub async fn issue_pid(&mut self, url: Url) -> Result<()> {
+        let access_token = self.get_access_token(url).await?;
         let url = self
             .pid_issuer_url
             .join("extract_bsn")
             .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 
-        let bsn_response = self
+        let service_engagement = self
             .client
             .http_client
             .post(url)
@@ -209,10 +210,23 @@ impl DigidConnector {
                 }
             })
             .await?
-            .json::<BsnResponse>()
+            .json::<ServiceEngagement>()
             .await?;
 
-        Ok(bsn_response.bsn)
+        let mdocs = MdocWallet::new(MdocsMap::new());
+        mdocs
+            .do_issuance::<SoftwareEcdsaKey>(
+                service_engagement,
+                &always_agree(),
+                &client_builder(),
+                TRUST_ANCHOR.as_ref(),
+            )
+            .await
+            .expect("issuance failed"); // TODO
+
+        dbg!(mdocs.list_mdocs::<SoftwareEcdsaKey>());
+
+        Ok(())
     }
 
     fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<()> {
@@ -225,3 +239,38 @@ impl DigidConnector {
         Ok(())
     }
 }
+
+fn always_agree() -> impl IssuanceUserConsent {
+    struct AlwaysAgree;
+    #[async_trait]
+    impl IssuanceUserConsent for AlwaysAgree {
+        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+            true
+        }
+    }
+    AlwaysAgree
+}
+
+fn client_builder() -> impl HttpClientBuilder {
+    struct Builder;
+    impl HttpClientBuilder for Builder {
+        type Client = CborHttpClient;
+        fn build(&self, service_engagement: ServiceEngagement) -> Self::Client {
+            CborHttpClient {
+                service_engagement,
+                client: reqwest::Client::new(),
+            }
+        }
+    }
+    Builder
+}
+
+const TRUST_ANCHOR_DER: &str = "MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg==";
+
+static TRUST_ANCHOR: Lazy<[TrustAnchor<'static>; 1]> = Lazy::new(|| {
+    let der = base64::engine::general_purpose::STANDARD
+        .decode(TRUST_ANCHOR_DER.as_bytes())
+        .unwrap();
+    let anchor = TrustAnchor::try_from_cert_der(Box::leak(Box::new(der))).unwrap();
+    [anchor]
+});

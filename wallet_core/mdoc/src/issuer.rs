@@ -29,17 +29,18 @@ use crate::{
     utils::{
         cose::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, TaggedBytes},
+        x509::Certificate,
     },
     Error, Result,
 };
 
 pub struct PrivateKey {
     private_key: SigningKey,
-    cert_bts: Vec<u8>,
+    cert_bts: Certificate,
 }
 
 impl PrivateKey {
-    pub fn new(private_key: SigningKey, cert_bts: Vec<u8>) -> PrivateKey {
+    pub fn new(private_key: SigningKey, cert_bts: Certificate) -> PrivateKey {
         PrivateKey { private_key, cert_bts }
     }
 }
@@ -61,6 +62,21 @@ pub trait KeyRing {
     fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey>;
     fn contains_key(&self, doctype: &DocType) -> bool {
         self.private_key(doctype).is_some()
+    }
+}
+
+pub struct SingleKeyRing {
+    pub doctype: DocType,
+    pub issuance_key: PrivateKey,
+}
+
+impl KeyRing for SingleKeyRing {
+    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey> {
+        if *doctype == self.doctype {
+            Some(&self.issuance_key)
+        } else {
+            None
+        }
     }
 }
 
@@ -177,8 +193,8 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
     }
 
     /// Process a CBOR-encoded issuance protocol message from the holder.
-    pub fn process_message(&self, token: SessionToken, msg: Vec<u8>) -> Result<Box<dyn IssuerResponse>> {
-        let (msg_type, session_id) = Self::inspect_message(&msg)?;
+    pub fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Box<dyn IssuerResponse>> {
+        let (msg_type, session_id) = Self::inspect_message(msg)?;
 
         let mut session_data = self.sessions.get(&token)?;
         let mut session = Session {
@@ -206,17 +222,17 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
         match session.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
-                let response = session.process_start(cbor_deserialize(&msg[..])?);
+                let response = session.process_start(cbor_deserialize(msg)?);
                 Ok(Box::new(response))
             }
             Started => {
                 Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
-                let response = session.process_get_request(cbor_deserialize(&msg[..])?);
+                let response = session.process_get_request(cbor_deserialize(msg)?);
                 Ok(Box::new(response))
             }
             WaitingForResponse => {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
-                let response = session.process_response(cbor_deserialize(&msg[..])?)?;
+                let response = session.process_response(cbor_deserialize(msg)?)?;
                 Ok(Box::new(response))
             }
             Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
@@ -353,7 +369,10 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         let key = self.keys.private_key(&unsigned_mdoc.doc_type).unwrap();
 
         let headers = HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.cert_bts.clone()))
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Bytes(key.cert_bts.as_bytes().to_vec()),
+            )
             .build();
         let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> = MdocCose::sign(&mso.into(), headers, key)?;
 

@@ -1,7 +1,7 @@
 # The commented out lines show optional configuration with their default value.
 
 [digid]
-# bsn_privkey = "secrets/private_key.jwk"
+# bsn_privkey = "secrets/bsn_private_key.jwk"
 # client_id = "SSSS"
 # issuer_url = "https://example.com/digid-connector"
 

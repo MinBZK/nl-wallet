@@ -8,6 +8,7 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+memory_storage = []
 mock = ["wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
@@ -26,6 +27,7 @@ once_cell = { workspace = true }
 p256 = { workspace = true , features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 rcgen = { workspace = true , features = ["x509-parser"] }
 regex = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
 ring = { workspace = true }
 rustls-webpki = { workspace = true }
 serde = { workspace = true , features = ["serde_derive"] }
@@ -41,6 +43,6 @@ wallet_common = { path = "../wallet_common" }
 anyhow = "1.0.66"
 tokio = { workspace = true , features = ["macros", "rt"] }
 
-nl_wallet_mdoc = { path = ".", features = ["mock"] }
+nl_wallet_mdoc = { path = ".", features = ["mock", "memory_storage"] }
 
 [lib]

@@ -14,8 +14,9 @@ use rcgen::{
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
-    nom::AsBytes,
-    prelude::{FromDer, X509Certificate, X509Error},
+    nom::{self, AsBytes},
+    pem,
+    prelude::{FromDer, PEMError, X509Certificate, X509Error},
 };
 
 use super::Generator;
@@ -38,6 +39,10 @@ pub enum CertificateError {
     IncorrectEkuCount(usize),
     #[error("EKU incorrect")]
     IncorrectEku(String),
+    #[error("PEM decoding error: {0}")]
+    Pem(#[from] nom::Err<PEMError>),
+    #[error("unexpected PEM header: found {found}, expected {expected}")]
+    UnexpectedPemHeader { found: String, expected: String },
 }
 
 const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
@@ -77,9 +82,23 @@ impl<T: AsRef<[u8]>> From<T> for Certificate {
     }
 }
 
+const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
+
 impl Certificate {
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
+    }
+
+    pub fn from_pem(pem: &str) -> Result<Self, CertificateError> {
+        let (_, pem) = pem::parse_x509_pem(pem.as_bytes())?;
+        if pem.label == PEM_CERTIFICATE_HEADER {
+            Ok(pem.contents.into())
+        } else {
+            Err(CertificateError::UnexpectedPemHeader {
+                found: pem.label.to_string(),
+                expected: PEM_CERTIFICATE_HEADER.to_string(),
+            })
+        }
     }
 
     /// Verify the certificate against the specified trust anchors.

@@ -2,9 +2,10 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
-use webpki::TrustAnchor;
+pub use webpki::TrustAnchor;
 
 use wallet_common::utils::random_string;
+use x509_parser::nom::AsBytes;
 
 use crate::{
     basic_sa_ext::{
@@ -16,14 +17,14 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::MdocEcdsaKey,
-        serialization::{cbor_serialize, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
         TimeGenerator,
     },
     verifier::ValidityRequirement,
     Result,
 };
 
-use super::{Mdoc, MdocCopies, Storage, Wallet};
+use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
 
 /// Used during a session to construct a HTTP client to interface with the server.
 /// Can be used to pass information to the client that it needs during the session.
@@ -38,6 +39,36 @@ pub trait HttpClient {
     where
         V: Serialize + Sync,
         R: DeserializeOwned;
+}
+
+/// Send and receive CBOR-encoded messages over HTTP for a session using a [`reqwest::Client`]
+/// and a [`ServiceEngagement`].
+pub struct CborHttpClient {
+    pub service_engagement: ServiceEngagement,
+    pub client: reqwest::Client,
+}
+
+#[async_trait]
+impl HttpClient for CborHttpClient {
+    async fn post<R, V>(&self, val: &V) -> Result<R>
+    where
+        V: Serialize + Sync,
+        R: DeserializeOwned,
+    {
+        let bytes = cbor_serialize(val)?;
+        let response_bytes = self
+            .client
+            .post(self.service_engagement.url.as_ref().unwrap())
+            .body(bytes)
+            .send()
+            .await
+            .map_err(HolderError::RequestError)?
+            .bytes()
+            .await
+            .map_err(HolderError::RequestError)?;
+        let response = cbor_deserialize(response_bytes.as_bytes())?;
+        Ok(response)
+    }
 }
 
 /// Ask the user for consent during an issuance session, presentimg them with the [`RequestKeyGenerationMessage`]
