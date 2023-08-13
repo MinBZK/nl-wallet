@@ -21,7 +21,7 @@ use tracing::{debug, info};
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     issuer::{self, MemorySessionStore, PrivateKey, SingleKeyRing},
-    utils::{serialization::cbor_serialize, x509::Certificate},
+    utils::x509::Certificate,
     ServiceEngagement, Tdate,
 };
 
@@ -89,8 +89,7 @@ async fn mdoc_route(
     let response = state
         .issuer
         .process_message(session_token.into(), &msg)
-        .expect("processing mdoc repsonse failed"); // TODO
-    let response = cbor_serialize(&response).expect("cbor serialization failed"); // TODO
+        .expect("processing mdoc message failed"); // TODO
     Ok(response)
 }
 

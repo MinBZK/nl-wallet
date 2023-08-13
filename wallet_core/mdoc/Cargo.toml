@@ -34,7 +34,6 @@ serde = { workspace = true , features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
 serde_with = { workspace = true }
 thiserror = { workspace = true }
-typetag = { workspace = true }
 x509-parser = { workspace = true , features = ["verify", "validate"] }
 
 wallet_common = { path = "../wallet_common" }

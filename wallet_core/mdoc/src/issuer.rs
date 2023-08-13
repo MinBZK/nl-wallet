@@ -10,7 +10,8 @@ use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
 use p256::ecdsa::Signature;
 use p256::ecdsa::{signature::Signer, SigningKey};
-use serde::Deserialize;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
 use wallet_common::{
@@ -28,7 +29,7 @@ use crate::{
     issuer_shared::{IssuanceError, SessionToken},
     utils::{
         cose::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
-        serialization::{cbor_deserialize, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
         x509::Certificate,
     },
     Error, Result,
@@ -193,11 +194,11 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
     }
 
     /// Process a CBOR-encoded issuance protocol message from the holder.
-    pub fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Box<dyn IssuerResponse>> {
+    pub fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Vec<u8>> {
         let (msg_type, session_id) = Self::inspect_message(msg)?;
 
         let mut session_data = self.sessions.get(&token)?;
-        let mut session = Session {
+        let session = Session {
             sessions: &self.sessions,
             session_data: &mut session_data,
             keys: &self.keys,
@@ -214,29 +215,35 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
 
         // Stop the session if the user wishes.
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
-            let response = session.process_cancel();
-            return Ok(Box::new(response));
+            return Self::handle_cbor(Session::process_cancel, session, msg);
         }
 
         // Process the holder's message according to the current session state.
         match session.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
-                let response = session.process_start(cbor_deserialize(msg)?);
-                Ok(Box::new(response))
+                Self::handle_cbor(Session::process_start, session, msg)
             }
             Started => {
                 Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
-                let response = session.process_get_request(cbor_deserialize(msg)?);
-                Ok(Box::new(response))
+                Self::handle_cbor(Session::process_get_request, session, msg)
             }
             WaitingForResponse => {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
-                let response = session.process_response(cbor_deserialize(msg)?)?;
-                Ok(Box::new(response))
+                Self::handle_cbor(Session::process_response, session, msg)
             }
             Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
         }
+    }
+
+    /// For a `Session` method that takes and returns parameters of any type that implement `Serialize`/`Deserialize`,
+    /// transparently handle CBOR encoding and decoding of its (return) parameters.
+    fn handle_cbor<'a, V: DeserializeOwned, R: Serialize>(
+        func: impl Fn(Session<'a, K, S>, V) -> Result<R>,
+        session: Session<'a, K, S>,
+        msg_bts: &[u8],
+    ) -> Result<Vec<u8>> {
+        Ok(cbor_serialize(&func(session, cbor_deserialize(msg_bts)?)?)?)
     }
 
     /// Read the following fields from the CBOR-encoded holder message:
@@ -310,19 +317,20 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         self.updated = true;
     }
 
-    fn process_start(&mut self, _: StartProvisioningMessage) -> ReadyToProvisionMessage {
+    fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
         self.update_state(Started);
-        ReadyToProvisionMessage {
+        let response = ReadyToProvisionMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
-        }
+        };
+        Ok(response)
     }
 
-    fn process_get_request(&mut self, _: StartIssuingMessage) -> RequestKeyGenerationMessage {
+    fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
         self.update_state(WaitingForResponse);
-        self.session_data.request.clone()
+        Ok(self.session_data.request.clone())
     }
 
-    fn process_response(&mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+    fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         let issuance_result = self.issue(&device_response);
         match issuance_result {
             Ok(_) => self.update_state(Done),
@@ -331,14 +339,15 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         issuance_result
     }
 
-    fn process_cancel(&mut self) -> EndSessionMessage {
+    fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
         self.update_state(Cancelled);
-        EndSessionMessage {
+        let response = EndSessionMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
-        }
+        };
+        Ok(response)
     }
 
     fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
@@ -430,22 +439,3 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         Ok(response)
     }
 }
-
-/// Response messages in the protocol from the issuer to the holder.
-// We use `typetag::serde` so that we can handle instances of `dyn IssuerResponse` in the code above;
-// this isn't possible if we would just write `pub trait IssuerResponse: Serialize` because the `Serialize` trait
-// is not "object safe".
-#[typetag::serde(tag = "type")]
-pub trait IssuerResponse: std::fmt::Debug {}
-
-#[typetag::serde]
-impl IssuerResponse for ReadyToProvisionMessage {}
-
-#[typetag::serde]
-impl IssuerResponse for RequestKeyGenerationMessage {}
-
-#[typetag::serde]
-impl IssuerResponse for DataToIssueMessage {}
-
-#[typetag::serde]
-impl IssuerResponse for EndSessionMessage {}
