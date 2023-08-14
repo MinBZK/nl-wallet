@@ -22,3 +22,50 @@ impl Client {
         auth_url
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use openid::Config;
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_auth_url_pkce() {
+        // Abuse serde to create `Config`, since `Config` does not implement `Default`.
+        let config = serde_json::from_value::<Config>(json!({
+            "issuer": "http://example.com",
+            "authorization_endpoint": "http://example.com/oauth2/auth",
+            "token_endpoint": "http://example.com/oauth2/token",
+            "jwks_uri": "http://example.com/.well-known/jwks.json",
+            "response_types_supported": []
+        }))
+        .expect("Could not create openid::Config.");
+
+        let http_client = reqwest::Client::new();
+        let client: openid::Client<_> = openid::Client::new(
+            config.into(),
+            "foo".to_string(),
+            "bar".to_string(),
+            "http://example-client.com/oauth2/callback".to_string(),
+            http_client,
+            None,
+        );
+        let client = Client(client);
+
+        let options = Options {
+            scope: Some("scope_a scope_b scope_c".to_string()),
+            state: Some("csrftoken".to_string()),
+            nonce: Some("thisisthenonce".to_string()),
+            ..Default::default()
+        };
+        let url = client.auth_url_pkce(&options, "pkcecodechallenge");
+
+        assert_eq!(
+            url.as_str(),
+            "http://example.com/oauth2/auth?response_type=code&client_id=foo&redirect_uri=\
+             http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+scope_a+scope_b+scope_c&state=csrftoken\
+             &nonce=thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=S256"
+        );
+    }
+}
