@@ -52,8 +52,6 @@ tokio = { workspace = true, features = [
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
-    "std",
-    "fmt",
     "env-filter",
     "parking_lot",
     "json",
