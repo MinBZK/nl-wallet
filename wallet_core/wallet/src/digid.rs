@@ -188,8 +188,8 @@ impl DigidConnector {
         let access_token = self.get_access_token(url).await?;
         let url = self
             .pid_issuer_url
-            .join("extract_bsn")
-            .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
+            .join("start")
+            .expect("Could not create \"start\" URL from PID issuer base URL");
 
         let service_engagement = self
             .client

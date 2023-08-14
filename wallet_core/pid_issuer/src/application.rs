@@ -75,7 +75,7 @@ pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client
 
     let app = Router::new()
         .route("/mdoc/:session_token", post(mdoc_route))
-        .route("/extract_bsn", post(extract_bsn_route))
+        .route("/start", post(start_route))
         .with_state(application_state);
 
     Ok(app)
@@ -93,22 +93,25 @@ async fn mdoc_route(
     Ok(response)
 }
 
-async fn extract_bsn_route(
+async fn start_route(
     State(state): State<Arc<ApplicationState>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
 ) -> Result<Json<ServiceEngagement>, Error> {
+    // Using the access_token that the user specified, lookup the user's BSN at the OIDC issuer (DigiD bridge)
     let access_token = authorization_header.token();
-
-    let bsn = extract_bsn(&state.openid_client, &state.jwe_decrypter, access_token)
+    let bsn = request_bsn(&state.openid_client, &state.jwe_decrypter, access_token)
         .inspect_err(|error| info!("Error while extracting BSN: {}", error))
         .await?;
 
-    let response = state.issuer.new_session(pid_attributes(bsn)).expect("TODO");
+    // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
+    // find us) to the wallet
+    let attributes = pid_attributes(bsn);
+    let service_engagement = state.issuer.new_session(attributes).expect("TODO");
 
-    Ok(Json(response))
+    Ok(Json(service_engagement))
 }
 
-async fn extract_bsn(
+async fn request_bsn(
     client: &Client,
     jwe_decrypter: &RsaesJweDecrypter,
     access_token: impl AsRef<str>,
