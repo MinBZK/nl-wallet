@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 use tracing::{info, warn};
+use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{
@@ -164,7 +165,7 @@ pub async fn get_digid_auth_url() -> Result<String> {
 async fn process_digid_uri(uri: &str) -> Result<String> {
     let mut digid_client = DIGID_CLIENT.lock().await;
 
-    let access_token = digid_client.get_access_token(uri.parse()?).await?;
+    let access_token = digid_client.get_access_token(&Url::parse(uri)?).await?;
     let bsn = PID_ISSUER_CLIENT.extract_bsn(&access_token).await?;
 
     Ok(bsn)

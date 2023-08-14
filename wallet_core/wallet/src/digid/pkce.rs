@@ -1,6 +1,7 @@
 const CODE_VERIFIER_LENGTH: usize = 128;
 
 /// This trait is used to isolate the [`pkce`] dependency.
+#[cfg_attr(test, mockall::automock)]
 pub trait PkceSource {
     /// Generate a PKCE verifier and code challenge pair.
     fn generate_verifier_and_challenge() -> (String, String);

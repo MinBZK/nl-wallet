@@ -45,6 +45,7 @@ platform_support = { path = "../platform_support" }
 
 # enable the "software" feature for platform_support when running tests
 [dev-dependencies]
+mockall.workspace = true
 rstest.workspace = true
 tempfile.workspace = true
 wiremock.workspace = true
