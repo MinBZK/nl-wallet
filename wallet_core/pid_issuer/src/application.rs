@@ -51,9 +51,8 @@ struct ApplicationState {
     openid_client: Client,
     jwe_decrypter: RsaesJweDecrypter,
     issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
+    doctype: String,
 }
-
-const PID_DOCTYPE: &str = "nl.voorbeeldwallet.test.pid";
 
 pub async fn create_router(settings: Settings) -> Result<Router> {
     debug!("Discovering DigiD issuer...");
@@ -63,7 +62,7 @@ pub async fn create_router(settings: Settings) -> Result<Router> {
     debug!("DigiD issuer discovered, starting HTTP server");
 
     let key = SingleKeyRing {
-        doctype: PID_DOCTYPE.to_string(),
+        doctype: settings.pid_doctype.clone(),
         issuance_key: PrivateKey::from_pem(
             &fs::read_to_string(settings.issuer_key.private_key)?,
             &fs::read_to_string(settings.issuer_key.certificate)?,
@@ -73,6 +72,7 @@ pub async fn create_router(settings: Settings) -> Result<Router> {
         openid_client,
         jwe_decrypter: Client::decrypter_from_jwk_file(settings.digid.bsn_privkey)?,
         issuer: issuer::Server::new(settings.public_url.to_string(), key, MemorySessionStore::new()),
+        doctype: settings.pid_doctype.clone(),
     });
 
     let app = Router::new()
@@ -107,7 +107,7 @@ async fn start_route(
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
-    let attributes = pid_attributes(bsn);
+    let attributes = pid_attributes(&state.doctype, &bsn);
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
@@ -125,17 +125,17 @@ async fn request_bsn(
     Client::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
 }
 
-fn pid_attributes(bsn: String) -> Vec<UnsignedMdoc> {
+fn pid_attributes(doctype: &str, bsn: &str) -> Vec<UnsignedMdoc> {
     vec![UnsignedMdoc {
-        doc_type: PID_DOCTYPE.to_string(),
+        doc_type: doctype.to_string(),
         count: 1,
         valid_from: Tdate::now(),
         valid_until: Utc::now().add(Days::new(365)).into(),
         attributes: IndexMap::from([(
-            PID_DOCTYPE.to_string(),
+            doctype.to_string(),
             vec![Entry {
                 name: "bsn".to_string(),
-                value: Value::Text(bsn),
+                value: Value::Text(bsn.to_string()),
             }],
         )]),
     }]

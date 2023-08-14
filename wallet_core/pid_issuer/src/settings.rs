@@ -14,6 +14,7 @@ pub struct Settings {
     pub digid: Digid,
     pub issuer_key: IssuerKey,
     pub public_url: Url,
+    pub pid_doctype: String,
 }
 
 #[derive(Deserialize)]
@@ -43,6 +44,7 @@ impl Settings {
 
         // TODO: use separate client ID for mock PID issuer.
         Config::builder()
+            .set_default("pid_doctype", "nl.voorbeeldwallet.test.pid")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3003)?
             .set_default("public_url", "http://localhost:3003/mdoc/")?

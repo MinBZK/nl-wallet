@@ -1,5 +1,12 @@
 # The commented out lines show optional configuration with their default value.
 
+# public_url: "http://localhost:3003/mdoc/"
+# pid_doctype = "nl.voorbeeldwallet.test.pid"
+
+[issuer_key]
+# private_key = "issuer_privkey.pem"
+# certificate = ""issuer_cert.pem""
+
 [digid]
 # bsn_privkey = "secrets/bsn_private_key.jwk"
 # client_id = "SSSS"
