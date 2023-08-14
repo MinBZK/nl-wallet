@@ -6,6 +6,9 @@ certificate_private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQge7j+D
 instruction_result_private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgEP7DT0Et/qTZzGW9jQlpYveeexYzKmPmLj02T0uk9TShRANCAASAW6khAJE6uQ/fUwcHZbKCq5OY/kLmVZJr+JqooiJg7Ez+0xpy5wyyUPF4cmEwwjGrCUeImnAjBbScaCpAOB51"
 pin_hash_salt = "AIZwpO3BYBpjMLPsTqF2bExLEj1i4zKUCsgOUhSlK60"
 
+# Indicates whether logging should be output in a structured (JSON) manner.
+#structured_logging = false
+
 [database]
 # host = "localhost"
 # username = "postgres"
