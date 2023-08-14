@@ -17,6 +17,7 @@ class BaseWalletTheme {
   static const _displayMediumTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
   static const _displaySmallTextStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
   static const _headlineMediumTextStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.bold);
+  static const _headlineSmallTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.w400, height: 32 / 24);
   static const _titleMediumTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
   static const _titleSmallTextStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
   static const _bodyLargeTextStyle = TextStyle(fontSize: 16, height: 1.5);
@@ -30,6 +31,7 @@ class BaseWalletTheme {
     displayMedium: _displayMediumTextStyle,
     displaySmall: _displaySmallTextStyle,
     headlineMedium: _headlineMediumTextStyle,
+    headlineSmall: _headlineSmallTextStyle,
     titleMedium: _titleMediumTextStyle,
     titleSmall: _titleSmallTextStyle,
     bodyLarge: _bodyLargeTextStyle,

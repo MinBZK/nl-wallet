@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../widget/button/text_icon_button.dart';
 import '../widget/loading_indicator.dart';
 
 class GenericLoadingPage extends StatelessWidget {
@@ -60,16 +61,14 @@ class GenericLoadingPage extends StatelessWidget {
 
   Widget _buildOptionalCancelButton(BuildContext context) {
     if (onCancel == null) return const SizedBox.shrink();
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 48),
-        TextButton(
-          onPressed: onCancel,
-          child: Text(cancelCta ?? context.l10n.generalCancelCta),
-        ),
-      ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: TextIconButton(
+        iconPosition: IconPosition.start,
+        icon: Icons.block_outlined,
+        onPressed: onCancel,
+        child: Text(cancelCta ?? context.l10n.generalCancelCta),
+      ),
     );
   }
 }
