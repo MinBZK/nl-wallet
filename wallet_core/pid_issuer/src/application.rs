@@ -1,6 +1,5 @@
-use std::{fs, ops::Add, sync::Arc};
+use std::{fs, sync::Arc};
 
-use anyhow::Result;
 use axum::{
     body::Bytes,
     extract::{Path, State},
@@ -9,18 +8,15 @@ use axum::{
     routing::post,
     Json, Router, TypedHeader,
 };
-use chrono::{Days, Utc};
-use ciborium::Value;
 use futures::future::TryFutureExt;
 use http::StatusCode;
-use indexmap::IndexMap;
 use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
 use tracing::{debug, info};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
+    basic_sa_ext::UnsignedMdoc,
     issuer::{self, MemorySessionStore, PrivateKey, SingleKeyRing},
-    ServiceEngagement, Tdate,
+    ServiceEngagement,
 };
 
 use crate::{
@@ -47,16 +43,19 @@ impl IntoResponse for Error {
     }
 }
 
-struct ApplicationState {
+struct ApplicationState<A> {
     openid_client: Client,
     jwe_decrypter: RsaesJweDecrypter,
     issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
-    doctype: String,
+    attributes_lookup: A,
 }
 
-pub async fn create_router(settings: Settings) -> Result<Router> {
+pub async fn create_router<A>(settings: Settings) -> anyhow::Result<Router>
+where
+    A: AttributesLookup + Send + Sync + 'static,
+{
     debug!("Discovering DigiD issuer...");
-
+    let attributes_lookup = A::new(&settings);
     let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.client_id).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
@@ -72,7 +71,7 @@ pub async fn create_router(settings: Settings) -> Result<Router> {
         openid_client,
         jwe_decrypter: Client::decrypter_from_jwk_file(settings.digid.bsn_privkey)?,
         issuer: issuer::Server::new(settings.public_url.to_string(), key, MemorySessionStore::new()),
-        doctype: settings.pid_doctype.clone(),
+        attributes_lookup,
     });
 
     let app = Router::new()
@@ -83,8 +82,8 @@ pub async fn create_router(settings: Settings) -> Result<Router> {
     Ok(app)
 }
 
-async fn mdoc_route(
-    State(state): State<Arc<ApplicationState>>,
+async fn mdoc_route<A>(
+    State(state): State<Arc<ApplicationState<A>>>,
     Path(session_token): Path<String>,
     msg: Bytes,
 ) -> Result<Vec<u8>, Error> {
@@ -95,10 +94,13 @@ async fn mdoc_route(
     Ok(response)
 }
 
-async fn start_route(
-    State(state): State<Arc<ApplicationState>>,
+async fn start_route<A>(
+    State(state): State<Arc<ApplicationState<A>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
-) -> Result<Json<ServiceEngagement>, Error> {
+) -> Result<Json<ServiceEngagement>, Error>
+where
+    A: AttributesLookup + Send + Sync,
+{
     // Using the access_token that the user specified, lookup the user's BSN at the OIDC issuer (DigiD bridge)
     let access_token = authorization_header.token();
     let bsn = request_bsn(&state.openid_client, &state.jwe_decrypter, access_token)
@@ -107,7 +109,7 @@ async fn start_route(
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
-    let attributes = pid_attributes(&state.doctype, &bsn);
+    let attributes = state.attributes_lookup.attributes(&bsn)?;
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
@@ -125,18 +127,57 @@ async fn request_bsn(
     Client::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
 }
 
-fn pid_attributes(doctype: &str, bsn: &str) -> Vec<UnsignedMdoc> {
-    vec![UnsignedMdoc {
-        doc_type: doctype.to_string(),
-        count: 1,
-        valid_from: Tdate::now(),
-        valid_until: Utc::now().add(Days::new(365)).into(),
-        attributes: IndexMap::from([(
-            doctype.to_string(),
-            vec![Entry {
-                name: "bsn".to_string(),
-                value: Value::Text(bsn.to_string()),
-            }],
-        )]),
-    }]
+/// Given a BSN, determine the attributes to be issued.
+pub trait AttributesLookup {
+    fn new(settings: &Settings) -> Self;
+
+    /// Given a BSN, determine the attributes to be issued.
+    fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Error>;
+}
+
+#[cfg(feature = "mock")]
+pub mod mock {
+    use std::ops::Add;
+
+    use chrono::{Days, Utc};
+    use ciborium::Value;
+    use indexmap::IndexMap;
+
+    use nl_wallet_mdoc::{
+        basic_sa_ext::{Entry, UnsignedMdoc},
+        Tdate,
+    };
+
+    use crate::settings::Settings;
+
+    use super::{AttributesLookup, Error};
+
+    pub struct MockAttributesLookup {
+        doctype: String,
+    }
+
+    impl AttributesLookup for MockAttributesLookup {
+        fn new(settings: &Settings) -> Self {
+            Self {
+                doctype: settings.pid_doctype.clone(),
+            }
+        }
+
+        fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Error> {
+            let pid = UnsignedMdoc {
+                doc_type: self.doctype.clone(),
+                count: 1,
+                valid_from: Tdate::now(),
+                valid_until: Utc::now().add(Days::new(365)).into(),
+                attributes: IndexMap::from([(
+                    self.doctype.clone(),
+                    vec![Entry {
+                        name: "bsn".to_string(),
+                        value: Value::Text(bsn.to_string()),
+                    }],
+                )]),
+            };
+            Ok(vec![pid])
+        }
+    }
 }

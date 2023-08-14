@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[features]
+mock = []
+default = ["mock"] # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
+
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
@@ -40,6 +44,7 @@ nl_wallet_mdoc = { path = "../mdoc" }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet_common = { path = "../wallet_common" }
 wallet = { path = "../wallet", features = ["mock"] }
+pid_issuer = { path = ".", features = ["mock"] }
 
 assert_matches.workspace = true
 serial_test.workspace = true

@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-use pid_issuer::{server, settings::Settings};
+use pid_issuer::{application::mock::MockAttributesLookup, server, settings::Settings};
 use reqwest::Client;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
@@ -57,7 +57,11 @@ fn start_pid_issuer() -> u16 {
     settings.webserver.port = port;
     settings.public_url = format!("http://localhost:{}/mdoc/", port).parse().unwrap();
 
-    tokio::spawn(async { server::serve(settings).await.expect("Could not start server") });
+    tokio::spawn(async {
+        server::serve::<MockAttributesLookup>(settings)
+            .await
+            .expect("Could not start server")
+    });
 
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 

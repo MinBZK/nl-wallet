@@ -2328,6 +2328,7 @@ dependencies = [
  "openid",
  "openssl",
  "p256",
+ "pid_issuer",
  "platform_support",
  "reqwest",
  "serde",
