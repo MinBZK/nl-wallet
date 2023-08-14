@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/text_icon_button.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
 const _kDigidLogoPath = 'assets/images/digid_logo.png';
+const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
 
 class WalletPersonalizeNoDigidScreen extends StatelessWidget {
   const WalletPersonalizeNoDigidScreen({Key? key}) : super(key: key);
@@ -62,7 +63,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         ElevatedButton(
-          onPressed: () => PlaceholderScreen.show(context),
+          onPressed: () => _openRequestDigidUrl(),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -87,6 +88,8 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       ],
     );
   }
+
+  void _openRequestDigidUrl() => launchUrlString(_kRequestDigidUrl, mode: LaunchMode.externalApplication);
 
   static void show(BuildContext context) {
     Navigator.push(
