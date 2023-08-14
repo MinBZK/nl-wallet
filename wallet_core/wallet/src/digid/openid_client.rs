@@ -102,3 +102,75 @@ impl OpenIdClient for RemoteOpenIdClient {
         Ok(access_token)
     }
 }
+
+/// This is actually an integration test over the [`openid`] crate and our own code.
+/// HTTP responses are mocked using the [`wiremock`] crate.
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use wiremock::{
+        matchers::{method, path},
+        Mock, MockServer, ResponseTemplate,
+    };
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_remote_open_id_client() {
+        let server = MockServer::start().await;
+        let server_url = Url::parse(&server.uri()).unwrap();
+
+        // Mock OpenID configuration endpoint
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-configuration"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "issuer": server_url,
+                "authorization_endpoint": server_url.join("/oauth2/auth").unwrap(),
+                "token_endpoint": server_url.join("/oauth2/token").unwrap(),
+                "jwks_uri": server_url.join("/.well-known/jwks.json").unwrap(),
+                "response_types_supported": ["code", "id_token", "token id_token"]
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // Mock JWKS endpoint
+        Mock::given(method("GET"))
+            .and(path("/.well-known/jwks.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "keys": []
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        // All variables used
+        let client_id = "client-1";
+        let redirect_uri = Url::parse("http://example-client.com/oauth2/callback").unwrap();
+        let csrf_token = "csrftoken";
+        let nonce = "thisisthenonce";
+        let pkce_challenge = "pkcecodechallenge";
+
+        // Perform OpenID discovery
+        let client = RemoteOpenIdClient::discover(server_url.clone(), client_id.to_string(), redirect_uri.clone())
+            .await
+            .expect("Could not perform OpenID discovery");
+
+        // Generate authentication URL
+        let url = client.auth_url(csrf_token, nonce, pkce_challenge);
+
+        assert_eq!(
+            url,
+            server_url
+                .join(
+                    "/oauth2/auth?response_type=code&client_id=client-1&redirect_uri=\
+                    http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+&state=csrftoken&nonce=\
+                    thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=S256"
+                )
+                .unwrap(),
+        );
+
+        // TODO: Add test for the authenticate() method by mocking an authentication
+        //       response that can actually be verified by the client.
+    }
+}
