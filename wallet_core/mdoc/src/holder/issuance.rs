@@ -56,9 +56,14 @@ impl HttpClient for CborHttpClient {
         R: DeserializeOwned,
     {
         let bytes = cbor_serialize(val)?;
+        let url = self
+            .service_engagement
+            .url
+            .as_ref()
+            .ok_or(HolderError::MalformedServiceEngagement)?;
         let response_bytes = self
             .client
-            .post(self.service_engagement.url.as_ref().unwrap())
+            .post(url)
             .body(bytes)
             .send()
             .await

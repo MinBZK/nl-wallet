@@ -50,6 +50,8 @@ pub enum Error {
     PidIssuer(#[from] reqwest::Error),
     #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
     PidIssuerResponse(#[source] reqwest::Error, String),
+    #[error("mdoc error: {0}")]
+    MdocError(#[from] nl_wallet_mdoc::Error),
 }
 
 pub struct DigidConnector {
@@ -227,8 +229,7 @@ impl DigidConnector {
                 &client_builder(),
                 self.mdoc_trust_anchors.as_ref(),
             )
-            .await
-            .expect("issuance failed"); // TODO
+            .await?;
 
         dbg!(mdocs.list_mdocs::<SoftwareEcdsaKey>());
 

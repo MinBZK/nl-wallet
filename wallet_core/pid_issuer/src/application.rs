@@ -1,5 +1,6 @@
 use std::{fs, ops::Add, sync::Arc};
 
+use anyhow::Result;
 use axum::{
     body::Bytes,
     extract::{Path, State},
@@ -36,6 +37,10 @@ pub enum Error {
     Client(#[from] userinfo_client::Error),
     #[error("no BSN found in response from OIDC server")]
     NoBSN,
+    #[error("starting mdoc session failed: {0}")]
+    StartMdoc(#[source] nl_wallet_mdoc::Error),
+    #[error("mdoc session error: {0}")]
+    Mdoc(#[source] nl_wallet_mdoc::Error),
 }
 
 // TODO: Implement proper error handling.
@@ -53,7 +58,7 @@ struct ApplicationState {
 
 const PID_DOCTYPE: &str = "nl.voorbeeldwallet.test.pid";
 
-pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client::Error> {
+pub async fn create_router(settings: Settings) -> Result<Router> {
     debug!("Discovering DigiD issuer...");
 
     let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.client_id).await?;
@@ -63,8 +68,8 @@ pub async fn create_router(settings: Settings) -> Result<Router, userinfo_client
     let key = SingleKeyRing {
         doctype: PID_DOCTYPE.to_string(),
         issuance_key: PrivateKey::new(
-            SigningKey::from_pkcs8_pem(&fs::read_to_string(settings.issuer_key.private_key)?).unwrap(),
-            Certificate::from_pem(&fs::read_to_string(settings.issuer_key.certificate)?).unwrap(),
+            SigningKey::from_pkcs8_pem(&fs::read_to_string(settings.issuer_key.private_key)?)?,
+            Certificate::from_pem(&fs::read_to_string(settings.issuer_key.certificate)?)?,
         ),
     };
     let application_state = Arc::new(ApplicationState {
@@ -89,7 +94,7 @@ async fn mdoc_route(
     let response = state
         .issuer
         .process_message(session_token.into(), &msg)
-        .expect("processing mdoc message failed"); // TODO
+        .map_err(Error::StartMdoc)?;
     Ok(response)
 }
 
@@ -106,7 +111,7 @@ async fn start_route(
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
     let attributes = pid_attributes(bsn);
-    let service_engagement = state.issuer.new_session(attributes).expect("TODO");
+    let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
 }
