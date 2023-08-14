@@ -4,7 +4,9 @@ use tokio::sync::{OnceCell, RwLock};
 use tracing::{info, warn};
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::{digid, init_wallet, pid_issuer::PID_ISSUER_CLIENT, validate_pin, wallet::WalletInitError, Wallet};
+use wallet::{
+    digid::DIGID_CLIENT, init_wallet, pid_issuer::PID_ISSUER_CLIENT, validate_pin, wallet::WalletInitError, Wallet,
+};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -153,14 +155,14 @@ pub async fn register(pin: String) -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
-    let mut client = digid::get_or_initialize_digid_client().await?.lock().await;
-    let authorization_url = client.start_session();
+    let mut digid_client = DIGID_CLIENT.lock().await;
+    let authorization_url = digid_client.start_session().await?;
 
     Ok(authorization_url.into())
 }
 
 async fn process_digid_uri(uri: &str) -> Result<String> {
-    let mut digid_client = digid::get_or_initialize_digid_client().await?.lock().await;
+    let mut digid_client = DIGID_CLIENT.lock().await;
 
     let access_token = digid_client.get_access_token(uri.parse()?).await?;
     let bsn = PID_ISSUER_CLIENT.extract_bsn(&access_token).await?;
