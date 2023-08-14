@@ -11,7 +11,7 @@ use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::RequestKeyGenerationMessage,
-    holder::{CborHttpClient, HttpClientBuilder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    holder::{cbor_http_client_builder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
     mdocs_map::MdocsMap,
     ServiceEngagement,
 };
@@ -226,7 +226,7 @@ impl DigidConnector {
             .do_issuance::<SoftwareEcdsaKey>(
                 service_engagement,
                 &always_agree(),
-                &client_builder(),
+                &cbor_http_client_builder(),
                 self.mdoc_trust_anchors.as_ref(),
             )
             .await?;
@@ -256,18 +256,4 @@ fn always_agree() -> impl IssuanceUserConsent {
         }
     }
     AlwaysAgree
-}
-
-fn client_builder() -> impl HttpClientBuilder {
-    struct Builder;
-    impl HttpClientBuilder for Builder {
-        type Client = CborHttpClient;
-        fn build(&self, service_engagement: ServiceEngagement) -> Self::Client {
-            CborHttpClient {
-                service_engagement,
-                client: reqwest::Client::new(),
-            }
-        }
-    }
-    Builder
 }

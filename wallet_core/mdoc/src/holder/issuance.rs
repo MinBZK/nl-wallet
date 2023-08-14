@@ -76,6 +76,21 @@ impl HttpClient for CborHttpClient {
     }
 }
 
+/// A [`CborHttpClient`] builder that uses the default [`reqwest::Client`].
+pub fn cbor_http_client_builder() -> impl HttpClientBuilder {
+    struct Builder;
+    impl HttpClientBuilder for Builder {
+        type Client = CborHttpClient;
+        fn build(&self, service_engagement: ServiceEngagement) -> Self::Client {
+            CborHttpClient {
+                service_engagement,
+                client: reqwest::Client::new(),
+            }
+        }
+    }
+    Builder
+}
+
 /// Ask the user for consent during an issuance session, presentimg them with the [`RequestKeyGenerationMessage`]
 /// containing the to-be-received mdocs.
 #[async_trait]

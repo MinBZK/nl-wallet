@@ -8,9 +8,8 @@ use axum::{
     routing::post,
     Json, Router, TypedHeader,
 };
-use futures::future::TryFutureExt;
+use futures::TryFutureExt;
 use http::StatusCode;
-use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
 use tracing::{debug, info};
 
 use nl_wallet_mdoc::{
@@ -21,15 +20,13 @@ use nl_wallet_mdoc::{
 
 use crate::{
     settings::Settings,
-    userinfo_client::{self, Client, UserInfoJWT},
+    userinfo_client::{self, BsnLookup},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("OIDC client error: {0}")]
     Client(#[from] userinfo_client::Error),
-    #[error("no BSN found in response from OIDC server")]
-    NoBSN,
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("mdoc session error: {0}")]
@@ -43,20 +40,20 @@ impl IntoResponse for Error {
     }
 }
 
-struct ApplicationState<A> {
-    openid_client: Client,
-    jwe_decrypter: RsaesJweDecrypter,
-    issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
+struct ApplicationState<A, B> {
     attributes_lookup: A,
+    openid_client: B,
+    issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
 }
 
-pub async fn create_router<A>(settings: Settings) -> anyhow::Result<Router>
+pub async fn create_router<A, B>(settings: Settings) -> anyhow::Result<Router>
 where
     A: AttributesLookup + Send + Sync + 'static,
+    B: BsnLookup + Send + Sync + 'static,
 {
     debug!("Discovering DigiD issuer...");
     let attributes_lookup = A::new(&settings);
-    let openid_client = Client::discover(settings.digid.issuer_url, settings.digid.client_id).await?;
+    let openid_client = B::new(&settings).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
 
@@ -69,7 +66,6 @@ where
     };
     let application_state = Arc::new(ApplicationState {
         openid_client,
-        jwe_decrypter: Client::decrypter_from_jwk_file(settings.digid.bsn_privkey)?,
         issuer: issuer::Server::new(settings.public_url.to_string(), key, MemorySessionStore::new()),
         attributes_lookup,
     });
@@ -82,8 +78,8 @@ where
     Ok(app)
 }
 
-async fn mdoc_route<A>(
-    State(state): State<Arc<ApplicationState<A>>>,
+async fn mdoc_route<A, B>(
+    State(state): State<Arc<ApplicationState<A, B>>>,
     Path(session_token): Path<String>,
     msg: Bytes,
 ) -> Result<Vec<u8>, Error> {
@@ -94,16 +90,19 @@ async fn mdoc_route<A>(
     Ok(response)
 }
 
-async fn start_route<A>(
-    State(state): State<Arc<ApplicationState<A>>>,
+async fn start_route<A, B>(
+    State(state): State<Arc<ApplicationState<A, B>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
 ) -> Result<Json<ServiceEngagement>, Error>
 where
     A: AttributesLookup + Send + Sync,
+    B: BsnLookup,
 {
     // Using the access_token that the user specified, lookup the user's BSN at the OIDC issuer (DigiD bridge)
     let access_token = authorization_header.token();
-    let bsn = request_bsn(&state.openid_client, &state.jwe_decrypter, access_token)
+    let bsn: String = state
+        .openid_client
+        .bsn(access_token)
         .inspect_err(|error| info!("Error while extracting BSN: {}", error))
         .await?;
 
@@ -113,18 +112,6 @@ where
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
-}
-
-async fn request_bsn(
-    client: &Client,
-    jwe_decrypter: &RsaesJweDecrypter,
-    access_token: impl AsRef<str>,
-) -> Result<String, Error> {
-    let userinfo_claims: UserInfoJWT = client
-        .request_userinfo_decrypted_claims(access_token, jwe_decrypter)
-        .await?;
-
-    Client::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
 }
 
 /// Given a BSN, determine the attributes to be issued.
@@ -139,6 +126,7 @@ pub trait AttributesLookup {
 pub mod mock {
     use std::ops::Add;
 
+    use async_trait::async_trait;
     use chrono::{Days, Utc};
     use ciborium::Value;
     use indexmap::IndexMap;
@@ -148,9 +136,27 @@ pub mod mock {
         Tdate,
     };
 
-    use crate::settings::Settings;
+    use crate::{
+        settings::Settings,
+        userinfo_client::{self, BsnLookup},
+    };
 
     use super::{AttributesLookup, Error};
+
+    const MOCK_BSN: &str = "999991772";
+
+    pub struct MockBsnLookup {}
+
+    #[async_trait]
+    impl BsnLookup for MockBsnLookup {
+        async fn new(_: &Settings) -> Result<Self, userinfo_client::Error> {
+            Ok(Self {})
+        }
+
+        async fn bsn(&self, _: &str) -> Result<String, userinfo_client::Error> {
+            Ok(MOCK_BSN.to_string())
+        }
+    }
 
     pub struct MockAttributesLookup {
         doctype: String,

@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::header;
 use josekit::{
@@ -21,7 +22,8 @@ use openid::{
 };
 use serde_json::Value;
 use tracing::debug;
-use url::Url;
+
+use crate::settings::Settings;
 
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
@@ -32,6 +34,12 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 pub type AttributeMap = HashMap<String, Value>;
 pub type UserInfoJWT = JWT<AttributeMap, Empty>;
 
+#[async_trait]
+pub trait BsnLookup: Sized {
+    async fn new(settings: &Settings) -> Result<Self>;
+    async fn bsn(&self, access_token: &str) -> Result<String>;
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
@@ -40,6 +48,8 @@ pub enum Error {
     OpenId(#[from] openid_errors::Error),
     #[error(transparent)]
     JoseKit(#[from] JoseError),
+    #[error("no BSN found in response from OIDC server")]
+    NoBSN,
 }
 
 impl From<biscuit_errors::Error> for Error {
@@ -78,16 +88,23 @@ impl From<openid_errors::Userinfo> for Error {
     }
 }
 
-pub struct Client(openid::Client);
+pub struct Client(openid::Client, RsaesJweDecrypter);
 
-impl Client {
-    pub async fn discover(issuer_url: Url, client_id: impl Into<String>) -> Result<Self> {
+#[async_trait]
+impl BsnLookup for Client {
+    async fn new(settings: &Settings) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
-        let client =
-            openid::Client::discover_with_client(http_client, client_id.into(), None, None, issuer_url).await?;
+        let client = openid::Client::discover_with_client(
+            http_client,
+            settings.digid.client_id.clone(),
+            None,
+            None,
+            settings.digid.issuer_url.clone(),
+        )
+        .await?;
 
         _ = client
             .config()
@@ -95,9 +112,20 @@ impl Client {
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        Ok(Client(client))
+        Ok(Client(
+            client,
+            Client::decrypter_from_jwk_file(&settings.digid.bsn_privkey)?,
+        ))
     }
 
+    async fn bsn(&self, access_token: &str) -> Result<String> {
+        let userinfo_claims: UserInfoJWT = self.request_userinfo_decrypted_claims(access_token, &self.1).await?;
+
+        Client::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
+    }
+}
+
+impl Client {
     pub fn decrypter_from_jwk_file(path: impl AsRef<Path>) -> Result<RsaesJweDecrypter> {
         // Open the file in read-only mode with buffer.
         let file = File::open(path)?;
