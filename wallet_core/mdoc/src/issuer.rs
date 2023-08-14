@@ -10,6 +10,7 @@ use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
 use p256::ecdsa::Signature;
 use p256::ecdsa::{signature::Signer, SigningKey};
+use p256::pkcs8::DecodePrivateKey;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -43,6 +44,14 @@ pub struct PrivateKey {
 impl PrivateKey {
     pub fn new(private_key: SigningKey, cert_bts: Certificate) -> PrivateKey {
         PrivateKey { private_key, cert_bts }
+    }
+
+    pub fn from_pem(private_key: &str, cert: &str) -> Result<PrivateKey> {
+        let key = Self::new(
+            SigningKey::from_pkcs8_pem(private_key).map_err(IssuanceError::PemPrivateKey)?,
+            Certificate::from_pem(cert).map_err(IssuanceError::PemCertificate)?,
+        );
+        Ok(key)
     }
 }
 

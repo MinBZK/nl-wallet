@@ -15,14 +15,11 @@ use futures::future::TryFutureExt;
 use http::StatusCode;
 use indexmap::IndexMap;
 use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use serde::Serialize;
 use tracing::{debug, info};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     issuer::{self, MemorySessionStore, PrivateKey, SingleKeyRing},
-    utils::x509::Certificate,
     ServiceEngagement, Tdate,
 };
 
@@ -67,10 +64,10 @@ pub async fn create_router(settings: Settings) -> Result<Router> {
 
     let key = SingleKeyRing {
         doctype: PID_DOCTYPE.to_string(),
-        issuance_key: PrivateKey::new(
-            SigningKey::from_pkcs8_pem(&fs::read_to_string(settings.issuer_key.private_key)?)?,
-            Certificate::from_pem(&fs::read_to_string(settings.issuer_key.certificate)?)?,
-        ),
+        issuance_key: PrivateKey::from_pem(
+            &fs::read_to_string(settings.issuer_key.private_key)?,
+            &fs::read_to_string(settings.issuer_key.certificate)?,
+        )?,
     };
     let application_state = Arc::new(ApplicationState {
         openid_client,
