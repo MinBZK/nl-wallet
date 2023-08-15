@@ -36,7 +36,7 @@ fn local_base_url(port: u16) -> Url {
 
 fn test_wallet_config(base_url: Url) -> MockConfigurationRepository {
     let mut config = MockConfigurationRepository::default();
-    config.0.digid.pid_issuer_url = base_url.clone();
+    config.0.digid.pid_issuer_url = base_url;
     config
 }
 
