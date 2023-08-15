@@ -17,8 +17,8 @@ use nl_wallet_mdoc::{
     iso::*,
     issuer::*,
     issuer_shared::SessionToken,
-    mdocs_map::MdocsMap,
     utils::{
+        mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
         Generator,
