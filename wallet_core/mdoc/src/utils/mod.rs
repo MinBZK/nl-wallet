@@ -7,6 +7,9 @@ pub mod x509;
 
 pub(crate) mod crypto;
 
+#[cfg(feature = "memory_storage")]
+pub mod mdocs_map;
+
 pub trait Generator<T> {
     fn generate(&self) -> T;
 }

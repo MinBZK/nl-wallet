@@ -95,7 +95,7 @@ impl Certificate {
             Ok(pem.contents.into())
         } else {
             Err(CertificateError::UnexpectedPemHeader {
-                found: pem.label.to_string(),
+                found: pem.label,
                 expected: PEM_CERTIFICATE_HEADER.to_string(),
             })
         }

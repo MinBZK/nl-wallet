@@ -10,7 +10,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     basic_sa_ext::RequestKeyGenerationMessage,
     holder::{cbor_http_client_builder, IssuanceUserConsent, Wallet as MdocWallet},
-    mdocs_map::MdocsMap,
+    utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
 use platform_support::utils::software::SoftwareUtilities;

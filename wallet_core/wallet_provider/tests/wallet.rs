@@ -131,7 +131,7 @@ async fn test_wallet_registration_in_process() {
 #[tokio::test]
 #[cfg_attr(not(feature = "live_test"), ignore)]
 async fn test_wallet_registration_live() {
-    let base_url = Url::parse("http://localhost:3000/api/v1").unwrap();
+    let base_url = Url::parse("http://localhost:3000/api/v1/").unwrap();
     let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
     let instr_pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
     let wallet = create_test_wallet(base_url, pub_key, instr_pub_key).await;

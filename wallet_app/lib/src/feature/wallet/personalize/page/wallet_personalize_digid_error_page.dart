@@ -5,6 +5,7 @@ import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 
 const _kDigidLogoPath = 'assets/images/digid_logo.png';
+const _kDigidErrorIllustrationPath = 'assets/non-free/images/digid_failure_illustration.png';
 
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   final VoidCallback onRetryPressed;
@@ -24,16 +25,13 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             const SliverSizedBox(height: 36),
-            SliverSizedBox(
-              height: 105,
+            SliverToBoxAdapter(
               child: ExcludeSemantics(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text('Placeholder image'),
+                child: Image.asset(
+                  _kDigidErrorIllustrationPath,
+                  fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
+                  height: context.isLandscape ? 160 : null,
+                  width: double.infinity,
                 ),
               ),
             ),

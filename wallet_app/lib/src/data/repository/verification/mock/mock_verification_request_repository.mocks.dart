@@ -272,7 +272,7 @@ const _kMockFirstAidPolicy = Policy(
   privacyPolicyUrl: 'https://www.example.org',
 );
 
-const _kMockMunicipalityDelftPolicy = Policy(
+const _kMockMunicipalityGenericPolicy = Policy(
   storageDuration: Duration(days: 90),
   dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataIsShared: false,

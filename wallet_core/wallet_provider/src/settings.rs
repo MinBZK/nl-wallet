@@ -13,6 +13,7 @@ pub struct Settings {
     pub database: Database,
     pub webserver: Webserver,
     pub pin_policy: PinPolicySettings,
+    pub structured_logging: bool,
 }
 
 #[derive(Deserialize)]
@@ -52,6 +53,7 @@ impl Settings {
             .set_default("pin_policy.rounds", 4)?
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
+            .set_default("structured_logging", false)?
             .add_source(File::from(config_path.join("config")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")

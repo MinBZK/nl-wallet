@@ -12,7 +12,7 @@ use url::{form_urlencoded::Serializer as FormSerializer, Url};
 use nl_wallet_mdoc::{
     basic_sa_ext::RequestKeyGenerationMessage,
     holder::{cbor_http_client_builder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
-    mdocs_map::MdocsMap,
+    utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
 use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_bytes};
