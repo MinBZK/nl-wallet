@@ -16,3 +16,6 @@ pub mod utils;
 /// Errors that can happen throughout the crate.
 pub mod errors;
 pub use errors::*;
+
+#[cfg(feature = "memory_storage")]
+pub mod mdocs_map;

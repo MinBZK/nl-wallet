@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-use nl_wallet_mdoc::{
+use crate::{
     basic_sa_ext::Entry,
     holder::{Mdoc, MdocCopies, Storage},
     utils::{
