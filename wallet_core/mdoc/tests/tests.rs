@@ -18,6 +18,7 @@ use nl_wallet_mdoc::{
     issuer::*,
     issuer_shared::SessionToken,
     utils::{
+        mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
         Generator,
@@ -27,9 +28,6 @@ use nl_wallet_mdoc::{
 
 mod examples;
 use examples::*;
-
-mod mdocs_map;
-use mdocs_map::MdocsMap;
 
 /// Verify the example disclosure from the standard.
 #[test]
@@ -193,14 +191,12 @@ impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> 
         V: Serialize + Sync,
         R: DeserializeOwned,
     {
+        let val = &cbor_serialize(val).unwrap();
         let response = self
             .issuance_server
-            .process_message(self.session_token.clone(), cbor_serialize(val).unwrap())
+            .process_message(self.session_token.clone(), val)
             .unwrap();
-
-        // Hacky way to cast `response`, which is a `Box<dyn IssuerResponse>`, to the requested type:
-        // serialize to CBOR and back
-        let response = cbor_deserialize(cbor_serialize(&response).unwrap().as_slice()).unwrap();
+        let response = cbor_deserialize(response.as_slice()).unwrap();
         Ok(response)
     }
 }
