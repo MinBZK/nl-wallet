@@ -21,7 +21,7 @@ use wallet::{
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
 use pid_issuer::{
-    application::{
+    app::{
         mock::{MockAttributesLookup, MockBsnLookup},
         AttributesLookup,
     },

@@ -4,7 +4,7 @@ use anyhow::Result;
 use tracing::debug;
 
 use crate::{
-    application::{create_router, AttributesLookup},
+    app::{create_router, AttributesLookup},
     openid::BsnLookup,
 };
 
