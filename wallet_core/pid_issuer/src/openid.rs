@@ -45,45 +45,21 @@ pub enum Error {
     #[error(transparent)]
     OpenId(#[from] openid_errors::Error),
     #[error(transparent)]
+    OpenIdClient(#[from] openid_errors::ClientError),
+    #[error(transparent)]
+    OpenIdUserinfo(#[from] openid_errors::Userinfo),
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error(transparent)]
     JoseKit(#[from] JoseError),
     #[error("no BSN found in response from OIDC server")]
     NoBSN,
-}
-
-impl From<biscuit_errors::Error> for Error {
-    fn from(value: biscuit_errors::Error) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-impl From<biscuit_errors::ValidationError> for Error {
-    fn from(value: biscuit_errors::ValidationError) -> Self {
-        biscuit_errors::Error::from(value).into()
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-impl From<openid_errors::ClientError> for Error {
-    fn from(value: openid_errors::ClientError) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        openid_errors::ClientError::from(value).into()
-    }
-}
-
-impl From<openid_errors::Userinfo> for Error {
-    fn from(value: openid_errors::Userinfo) -> Self {
-        openid_errors::Error::from(value).into()
-    }
+    #[error(transparent)]
+    Jwe(#[from] biscuit_errors::Error),
+    #[error(transparent)]
+    JweValidation(#[from] biscuit_errors::ValidationError),
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.

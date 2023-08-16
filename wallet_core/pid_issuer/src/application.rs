@@ -27,7 +27,7 @@ use crate::{
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("OIDC client error: {0}")]
-    Client(#[from] openid::Error),
+    OpenId(#[from] openid::Error),
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("mdoc session error: {0}")]
