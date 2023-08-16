@@ -1,8 +1,4 @@
-use std::{
-    env,
-    net::IpAddr,
-    path::{Path, PathBuf},
-};
+use std::{env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
@@ -20,7 +16,7 @@ pub struct Settings {
 #[derive(Deserialize)]
 pub struct Digid {
     pub issuer_url: Url,
-    pub bsn_privkey: PathBuf,
+    pub bsn_privkey: String,
     pub client_id: String,
 }
 
@@ -32,8 +28,8 @@ pub struct Webserver {
 
 #[derive(Deserialize)]
 pub struct IssuerKey {
-    pub private_key: PathBuf,
-    pub certificate: PathBuf,
+    pub private_key: String,
+    pub certificate: String,
 }
 
 impl Settings {
@@ -52,13 +48,7 @@ impl Settings {
                 "digid.issuer_url",
                 "https://example.com/digid-connector",
             )?
-            .set_default("digid.bsn_privkey", secrets_path(&config_path, "bsn_private_key.jwk"))?
             .set_default("digid.client_id", "SSSS")?
-            .set_default(
-                "issuer_key.private_key",
-                secrets_path(&config_path, "issuer_privkey.pem"),
-            )?
-            .set_default("issuer_key.certificate", secrets_path(&config_path, "issuer_cert.pem"))?
             .add_source(File::from(config_path.join("config")).required(false))
             .add_source(
                 Environment::with_prefix("pid_issuer")
@@ -68,8 +58,4 @@ impl Settings {
             .build()?
             .try_deserialize()
     }
-}
-
-fn secrets_path(config_path: &Path, filename: &str) -> String {
-    config_path.join("secrets").join(filename).to_str().unwrap().to_string()
 }

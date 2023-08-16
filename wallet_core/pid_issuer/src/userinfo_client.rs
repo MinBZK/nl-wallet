@@ -1,8 +1,6 @@
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{self, BufReader},
-    path::Path,
+    io::{self},
     time::Duration,
 };
 
@@ -11,7 +9,6 @@ use futures::future::TryFutureExt;
 use http::header;
 use josekit::{
     jwe::{self, alg::rsaes::RsaesJweDecrypter},
-    jwk::Jwk,
     JoseError,
 };
 use openid::{
@@ -106,16 +103,15 @@ impl BsnLookup for Client {
         )
         .await?;
 
+        // Check that the userinfo endpoint was found by discovery
         _ = client
             .config()
             .userinfo_endpoint
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        Ok(Client(
-            client,
-            Client::decrypter_from_jwk_file(&settings.digid.bsn_privkey)?,
-        ))
+        let userinfo_client = Client(client, Client::decrypter(&settings.digid.bsn_privkey)?);
+        Ok(userinfo_client)
     }
 
     async fn bsn(&self, access_token: &str) -> Result<String> {
@@ -126,14 +122,8 @@ impl BsnLookup for Client {
 }
 
 impl Client {
-    pub fn decrypter_from_jwk_file(path: impl AsRef<Path>) -> Result<RsaesJweDecrypter> {
-        // Open the file in read-only mode with buffer.
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        // Read the JSON contents of the file as JWK,
-        // the create a decrypter from it.
-        let jwk: Jwk = serde_json::from_reader(reader)?;
+    pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
+        let jwk = serde_json::from_str(jwk_json)?;
         let decrypter = jwe::RSA_OAEP.decrypter_from_jwk(&jwk)?;
 
         Ok(decrypter)

@@ -1,4 +1,4 @@
-use std::{fs, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::Bytes,
@@ -8,9 +8,10 @@ use axum::{
     routing::post,
     Json, Router, TypedHeader,
 };
+use base64::prelude::*;
 use futures::TryFutureExt;
 use http::StatusCode;
-use tracing::{debug, info};
+use tracing::{debug, error};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
@@ -51,17 +52,18 @@ where
     A: AttributesLookup + Send + Sync + 'static,
     B: BsnLookup + Send + Sync + 'static,
 {
-    debug!("Discovering DigiD issuer...");
     let attributes_lookup = A::new(&settings);
+
+    debug!("Discovering DigiD issuer...");
     let openid_client = B::new(&settings).await?;
 
     debug!("DigiD issuer discovered, starting HTTP server");
 
     let key = SingleKeyRing {
         doctype: settings.pid_doctype.clone(),
-        issuance_key: PrivateKey::from_pem(
-            &fs::read_to_string(settings.issuer_key.private_key)?,
-            &fs::read_to_string(settings.issuer_key.certificate)?,
+        issuance_key: PrivateKey::from_der(
+            &BASE64_STANDARD.decode(&settings.issuer_key.private_key)?,
+            &BASE64_STANDARD.decode(&settings.issuer_key.certificate)?,
         )?,
     };
     let application_state = Arc::new(ApplicationState {
@@ -103,7 +105,7 @@ where
     let bsn: String = state
         .openid_client
         .bsn(access_token)
-        .inspect_err(|error| info!("Error while extracting BSN: {}", error))
+        .inspect_err(|error| error!("error while looking up BSN: {}", error))
         .await?;
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can

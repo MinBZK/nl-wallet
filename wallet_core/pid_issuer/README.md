@@ -8,19 +8,28 @@ At the moment this application is set up for connecting to the digid-connector.
 
 In order to test this issuer locally, and connect the wallet to it, follow the following steps:
 
-1. Generate a 2048-bit RSA key pair and provision the digid-connect with the public key.
-2. Place the private key in JWK format a file named `private_key.jwk`, then place that file in a subdirectory of this file called `secrets` (or elsewhere and modify the configuration accordingly, see below).
-3. Generate an issuer certificate and private key (see below).
+1. Generate a 2048-bit RSA keypair (see below) and provision the digid-connect with the public key. Include the private key in JWK format in the settings.
+3. Generate an issuer certificate and private key (see below), and include them in the settings.
 4. Run the pid_issuer with `RUST_LOG=DEBUG cargo run --bin pid_issuer`.
 5. Modify the `pid_issuer_url` variable in `wallet_core/wallet/src/config/data.rs` to "http://10.0.2.2:3003/" (for the android emulator) or "http://localhost:3003/" (for the iOS simulator).
 6. Start the wallet.
 
 ## Settings
-Default settings are specified in `src/settings.rs`.
+Default settings are specified in `src/settings.rs`. They are also shown in `config.example.toml` (optional settings are commented out).
 
-In order to override default settings, create a file named `config.toml` in the same location as `config.example.toml`.
+The default settings can be overridden in two ways:
+- Create a file named `config.toml` in the same location as `config.example.toml`.
+- Using environment variables. All environment variables should be prefixed with `PID_ISSUER`. Grouped settings can be specified as follows: `PID_ISSUER_WEBSERVER__PORT`, where the group name is separated from the key by a double underscore `__`. Environment variables take precedence over entries in `config.toml`.
 
-Default settings and settings specified in `config.toml` can both be overriden by environment variables. All environment variables should be prefixed with `PID_ISSUER`. Grouped settings can be specified as follows: `PID_ISSUER_WEBSERVER__PORT`, where the group name is separated from the key by a double underscore `__`.
+### Generating an RSA JWK keypair
+
+In Rust, using the [`josekit` crate](https://docs.rs/josekit) a keypair can be generated as follows:
+
+```rust
+let keypair = josekit::jwe::RSA_OAEP.generate_key_pair(2048).expect("key generation failed");
+let privkey = keypair.to_jwk_private_key();
+let pubkey = keypair.to_jwk_public_key();
+```
 
 ### Generating an issuer certificate and private key
 
