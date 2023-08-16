@@ -88,7 +88,7 @@ async fn mdoc_route<A, B>(
     let response = state
         .issuer
         .process_message(session_token.into(), &msg)
-        .map_err(Error::StartMdoc)?;
+        .map_err(Error::Mdoc)?;
     Ok(response)
 }
 
