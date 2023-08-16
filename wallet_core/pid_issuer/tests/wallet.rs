@@ -25,9 +25,9 @@ use pid_issuer::{
         mock::{MockAttributesLookup, MockBsnLookup},
         AttributesLookup,
     },
+    openid::{BsnLookup, OpenIdClient as DigidClient},
     server,
     settings::Settings,
-    userinfo_client::{BsnLookup, OpenIdClient as DigidClient},
 };
 
 fn local_base_url(port: u16) -> Url {

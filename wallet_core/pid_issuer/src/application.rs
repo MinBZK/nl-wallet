@@ -20,14 +20,14 @@ use nl_wallet_mdoc::{
 };
 
 use crate::{
+    openid::{self, BsnLookup},
     settings::Settings,
-    userinfo_client::{self, BsnLookup},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("OIDC client error: {0}")]
-    Client(#[from] userinfo_client::Error),
+    Client(#[from] openid::Error),
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("mdoc session error: {0}")]
@@ -139,8 +139,8 @@ pub mod mock {
     };
 
     use crate::{
+        openid::{self, BsnLookup},
         settings::Settings,
-        userinfo_client::{self, BsnLookup},
     };
 
     use super::{AttributesLookup, Error};
@@ -151,11 +151,11 @@ pub mod mock {
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
-        async fn new(_: &Settings) -> Result<Self, userinfo_client::Error> {
+        async fn new(_: &Settings) -> Result<Self, openid::Error> {
             Ok(Self {})
         }
 
-        async fn bsn(&self, _: &str) -> Result<String, userinfo_client::Error> {
+        async fn bsn(&self, _: &str) -> Result<String, openid::Error> {
             Ok(MOCK_BSN.to_string())
         }
     }

@@ -5,7 +5,7 @@ use tracing::debug;
 
 use crate::{
     application::{create_router, AttributesLookup},
-    userinfo_client::BsnLookup,
+    openid::BsnLookup,
 };
 
 use super::settings::Settings;
