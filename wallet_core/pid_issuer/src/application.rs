@@ -97,7 +97,7 @@ async fn start_route<A, B>(
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
 ) -> Result<Json<ServiceEngagement>, Error>
 where
-    A: AttributesLookup + Send + Sync,
+    A: AttributesLookup,
     B: BsnLookup,
 {
     // Using the access_token that the user specified, lookup the user's BSN at the OIDC issuer (DigiD bridge)

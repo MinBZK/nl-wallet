@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use pid_issuer::{application::mock::MockAttributesLookup, server, settings::Settings, userinfo_client::Client};
+use pid_issuer::{application::mock::MockAttributesLookup, server, settings::Settings, userinfo_client::OpenIdClient};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -11,7 +11,7 @@ async fn main() -> Result<()> {
 
     // This will block unil the server shuts down.
     // TODO: `MockAttributesLookup` issues a hardcoded set of mock attributes. Replace with BRP query.
-    server::serve::<MockAttributesLookup, Client>(settings).await?;
+    server::serve::<MockAttributesLookup, OpenIdClient>(settings).await?;
 
     Ok(())
 }

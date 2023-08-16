@@ -27,7 +27,7 @@ use pid_issuer::{
     },
     server,
     settings::Settings,
-    userinfo_client::{BsnLookup, Client as DigidClient},
+    userinfo_client::{BsnLookup, OpenIdClient as DigidClient},
 };
 
 fn local_base_url(port: u16) -> Url {

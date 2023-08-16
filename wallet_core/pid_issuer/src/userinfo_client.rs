@@ -31,6 +31,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 pub type AttributeMap = HashMap<String, Value>;
 pub type UserInfoJWT = JWT<AttributeMap, Empty>;
 
+/// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`].
 #[async_trait]
 pub trait BsnLookup: Sized {
     async fn new(settings: &Settings) -> Result<Self>;
@@ -85,10 +86,11 @@ impl From<openid_errors::Userinfo> for Error {
     }
 }
 
-pub struct Client(openid::Client, RsaesJweDecrypter);
+/// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
+pub struct OpenIdClient(openid::Client, RsaesJweDecrypter);
 
 #[async_trait]
-impl BsnLookup for Client {
+impl BsnLookup for OpenIdClient {
     async fn new(settings: &Settings) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
@@ -110,18 +112,18 @@ impl BsnLookup for Client {
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        let userinfo_client = Client(client, Client::decrypter(&settings.digid.bsn_privkey)?);
+        let userinfo_client = OpenIdClient(client, OpenIdClient::decrypter(&settings.digid.bsn_privkey)?);
         Ok(userinfo_client)
     }
 
     async fn bsn(&self, access_token: &str) -> Result<String> {
         let userinfo_claims: UserInfoJWT = self.request_userinfo_decrypted_claims(access_token, &self.1).await?;
 
-        Client::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
+        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
     }
 }
 
-impl Client {
+impl OpenIdClient {
     pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
         let jwk = serde_json::from_str(jwk_json)?;
         let decrypter = jwe::RSA_OAEP.decrypter_from_jwk(&jwk)?;
