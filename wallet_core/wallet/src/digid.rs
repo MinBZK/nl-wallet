@@ -231,8 +231,6 @@ impl DigidConnector {
             )
             .await?;
 
-        dbg!(mdocs.list_mdocs::<SoftwareEcdsaKey>());
-
         Ok(())
     }
 
