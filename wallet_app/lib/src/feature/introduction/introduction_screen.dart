@@ -10,7 +10,6 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/rounded_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
-import 'introduction_expectations_screen.dart';
 import 'page/introduction_page.dart';
 import 'widget/introduction_progress_stepper.dart';
 
@@ -281,7 +280,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     }
   }
 
-  void _onSkipPressed(BuildContext context) => IntroductionExpectationsScreen.show(context);
+  void _onSkipPressed(BuildContext context) =>
+      Navigator.restorablePushNamed(context, WalletRoutes.introductionExpectationsRoute);
 
   void _onBackPressed(BuildContext context) {
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
