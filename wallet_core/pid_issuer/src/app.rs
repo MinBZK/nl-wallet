@@ -20,12 +20,12 @@ use nl_wallet_mdoc::{
     ServiceEngagement,
 };
 
-use crate::settings::Settings;
+use crate::{digid, settings::Settings};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("OIDC client error: {0}")]
-    OpenId(#[from] crate::openid::Error),
+    DigiD(#[from] digid::Error),
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("mdoc session error: {0}")]
@@ -149,7 +149,7 @@ pub mod mock {
         Tdate,
     };
 
-    use crate::settings::Settings;
+    use crate::{digid, settings::Settings};
 
     use super::{AttributesLookup, BsnLookup, Error};
 
@@ -159,7 +159,7 @@ pub mod mock {
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
-        type Error = crate::openid::Error;
+        type Error = digid::Error;
 
         async fn new(_: &Settings) -> Result<Self, Self::Error> {
             Ok(Self {})

@@ -25,7 +25,7 @@ use pid_issuer::{
         mock::{MockAttributesLookup, MockBsnLookup},
         AttributesLookup, BsnLookup,
     },
-    openid::OpenIdClient as DigidClient,
+    digid::OpenIdClient as DigidClient,
     server,
     settings::Settings,
 };

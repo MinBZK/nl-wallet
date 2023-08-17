@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use pid_issuer::{app::mock::MockAttributesLookup, openid::OpenIdClient, server, settings::Settings};
+use pid_issuer::{app::mock::MockAttributesLookup, digid::OpenIdClient, server, settings::Settings};
 
 #[tokio::main]
 async fn main() -> Result<()> {

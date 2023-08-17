@@ -1,4 +1,4 @@
 pub mod app;
-pub mod openid;
+pub mod digid;
 pub mod server;
 pub mod settings;
