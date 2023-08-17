@@ -38,7 +38,7 @@ class SetupSecurityScreen extends StatelessWidget {
         onWillPop: () async {
           final bloc = context.read<SetupSecurityBloc>();
           if (bloc.state.canGoBack) bloc.add(SetupSecurityBackPressed());
-          return false;
+          return !bloc.state.canGoBack;
         },
         child: Column(
           children: [

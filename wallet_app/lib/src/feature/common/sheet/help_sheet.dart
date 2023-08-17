@@ -53,7 +53,7 @@ class HelpSheet extends StatelessWidget {
         ),
         const Divider(height: 32),
         LinkButton(
-          onPressed: () => PlaceholderScreen.show(context),
+          onPressed: () => PlaceholderScreen.show(context, secured: false),
           customPadding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(context.l10n.helpSheetHelpdeskCta),
         ),

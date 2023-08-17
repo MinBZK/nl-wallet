@@ -109,7 +109,7 @@ class IntroductionExpectationsScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
       child: ElevatedButton(
-        onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.setupSecurityRoute),
+        onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -120,11 +120,5 @@ class IntroductionExpectationsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static void show(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const IntroductionExpectationsScreen();
-    }));
   }
 }
