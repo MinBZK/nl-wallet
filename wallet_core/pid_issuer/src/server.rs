@@ -3,10 +3,7 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use tracing::debug;
 
-use crate::{
-    app::{create_router, AttributesLookup},
-    openid::BsnLookup,
-};
+use crate::app::{create_router, AttributesLookup, BsnLookup};
 
 use super::settings::Settings;
 

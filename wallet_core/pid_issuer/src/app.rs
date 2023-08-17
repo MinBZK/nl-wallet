@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::{
     body::Bytes,
     extract::{Path, State},
@@ -19,15 +20,12 @@ use nl_wallet_mdoc::{
     ServiceEngagement,
 };
 
-use crate::{
-    openid::{self, BsnLookup},
-    settings::Settings,
-};
+use crate::settings::Settings;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("OIDC client error: {0}")]
-    OpenId(#[from] openid::Error),
+    OpenId(#[from] crate::openid::Error),
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("mdoc session error: {0}")]
@@ -41,6 +39,25 @@ impl IntoResponse for Error {
     }
 }
 
+/// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
+#[async_trait]
+pub trait AttributesLookup: Sized {
+    type Error: std::error::Error + Into<Error> + Send + Sync;
+
+    async fn new(settings: &Settings) -> Result<Self, Self::Error>;
+    async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+}
+
+/// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
+/// Contract for the DigiD bridge.
+#[async_trait]
+pub trait BsnLookup: Sized {
+    type Error: std::error::Error + Into<Error> + Send + Sync;
+
+    async fn new(settings: &Settings) -> Result<Self, Self::Error>;
+    async fn bsn(&self, access_token: &str) -> Result<String, Self::Error>;
+}
+
 struct ApplicationState<A, B> {
     attributes_lookup: A,
     openid_client: B,
@@ -52,7 +69,7 @@ where
     A: AttributesLookup + Send + Sync + 'static,
     B: BsnLookup + Send + Sync + 'static,
 {
-    let attributes_lookup = A::new(&settings);
+    let attributes_lookup = A::new(&settings).map_err(A::Error::into).await?;
 
     debug!("Discovering DigiD issuer...");
     let openid_client = B::new(&settings).await?;
@@ -67,9 +84,9 @@ where
         )?,
     };
     let application_state = Arc::new(ApplicationState {
+        attributes_lookup,
         openid_client,
         issuer: issuer::Server::new(settings.public_url.to_string(), key, MemorySessionStore::new()),
-        attributes_lookup,
     });
 
     let app = Router::new()
@@ -100,30 +117,24 @@ where
     A: AttributesLookup,
     B: BsnLookup,
 {
-    // Using the access_token that the user specified, lookup the user's BSN at the OIDC issuer (DigiD bridge)
+    // Using the access_token that the user specified, lookup the user's BSN at the OIDC IdP (DigiD bridge)
     let access_token = authorization_header.token();
     let bsn: String = state
         .openid_client
         .bsn(access_token)
         .inspect_err(|error| error!("error while looking up BSN: {}", error))
+        .map_err(B::Error::into)
         .await?;
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
-    let attributes = state.attributes_lookup.attributes(&bsn)?;
+    let attributes = state.attributes_lookup.attributes(&bsn).map_err(A::Error::into).await?;
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
 }
 
-/// Given a BSN, determine the attributes to be issued.
-pub trait AttributesLookup {
-    fn new(settings: &Settings) -> Self;
-
-    /// Given a BSN, determine the attributes to be issued.
-    fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Error>;
-}
-
+/// Mock implementations of the two traits abstracting other components.
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::ops::Add;
@@ -138,12 +149,9 @@ pub mod mock {
         Tdate,
     };
 
-    use crate::{
-        openid::{self, BsnLookup},
-        settings::Settings,
-    };
+    use crate::settings::Settings;
 
-    use super::{AttributesLookup, Error};
+    use super::{AttributesLookup, BsnLookup, Error};
 
     const MOCK_BSN: &str = "999991772";
 
@@ -151,11 +159,13 @@ pub mod mock {
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
-        async fn new(_: &Settings) -> Result<Self, openid::Error> {
+        type Error = crate::openid::Error;
+
+        async fn new(_: &Settings) -> Result<Self, Self::Error> {
             Ok(Self {})
         }
 
-        async fn bsn(&self, _: &str) -> Result<String, openid::Error> {
+        async fn bsn(&self, _: &str) -> Result<String, Self::Error> {
             Ok(MOCK_BSN.to_string())
         }
     }
@@ -164,14 +174,18 @@ pub mod mock {
         doctype: String,
     }
 
+    #[async_trait]
     impl AttributesLookup for MockAttributesLookup {
-        fn new(settings: &Settings) -> Self {
-            Self {
+        type Error = Error;
+
+        async fn new(settings: &Settings) -> Result<Self, Self::Error> {
+            let val = Self {
                 doctype: settings.pid_doctype.clone(),
-            }
+            };
+            Ok(val)
         }
 
-        fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Error> {
+        async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error> {
             let pid = UnsignedMdoc {
                 doc_type: self.doctype.clone(),
                 count: 1,

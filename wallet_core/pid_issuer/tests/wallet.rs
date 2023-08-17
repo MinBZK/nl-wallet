@@ -23,9 +23,9 @@ use wallet_common::keys::software::SoftwareEcdsaKey;
 use pid_issuer::{
     app::{
         mock::{MockAttributesLookup, MockBsnLookup},
-        AttributesLookup,
+        AttributesLookup, BsnLookup,
     },
-    openid::{BsnLookup, OpenIdClient as DigidClient},
+    openid::OpenIdClient as DigidClient,
     server,
     settings::Settings,
 };

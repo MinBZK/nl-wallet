@@ -20,7 +20,7 @@ use openid::{
 use serde_json::Value;
 use tracing::debug;
 
-use crate::settings::Settings;
+use crate::{app::BsnLookup, settings::Settings};
 
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
@@ -30,13 +30,6 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 // TODO: Replace with deserializable struct once we're certain about the claim(s).
 pub type AttributeMap = HashMap<String, Value>;
 pub type UserInfoJWT = JWT<AttributeMap, Empty>;
-
-/// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`].
-#[async_trait]
-pub trait BsnLookup: Sized {
-    async fn new(settings: &Settings) -> Result<Self>;
-    async fn bsn(&self, access_token: &str) -> Result<String>;
-}
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -67,6 +60,8 @@ pub struct OpenIdClient(openid::Client, RsaesJweDecrypter);
 
 #[async_trait]
 impl BsnLookup for OpenIdClient {
+    type Error = Error;
+
     async fn new(settings: &Settings) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
