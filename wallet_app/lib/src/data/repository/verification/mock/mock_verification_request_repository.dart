@@ -59,10 +59,10 @@ class MockVerificationRequestRepository implements VerificationRequestRepository
       case _kParkingPermit:
         return VerificationRequest(
           id: _kParkingPermit,
-          organization: (await organizationDataSource.read(kMunicipalityDelftId))!,
+          organization: (await organizationDataSource.read(kMunicipalityTheHagueId))!,
           requestedAttributes: _kParkingPermitRequestedAttributes,
           requestPurpose: 'Parkeervergunning',
-          interactionPolicy: _kMockMunicipalityDelftPolicy,
+          interactionPolicy: _kMockMunicipalityGenericPolicy,
         );
       case _kOpenBankAccount:
         return VerificationRequest(

@@ -15,6 +15,7 @@ use crate::{
     utils::{
         cose::{ClonePayload, CoseKey, MdocCose},
         serialization::cbor_serialize,
+        x509::CertificateError,
     },
     DocType, Result, SessionId,
 };
@@ -39,6 +40,10 @@ pub enum IssuanceError {
     MissingPrivateKey(DocType),
     #[error("failed to get public key from private key: {0}")]
     PrivatePublicKeyConversion(Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("failed to parse PEM-encoded private key: {0}")]
+    PemPrivateKey(#[from] p256::pkcs8::Error),
+    #[error("failed to parse PEM-encoded certificate: {0}")]
+    PemCertificate(#[from] CertificateError),
 }
 
 /// Identifies an issuance session in a URL, as passed from the issuer to the holder using the `url` field of

@@ -1,19 +1,25 @@
+# The commented out lines show optional configuration with their default value.
+# All key material should be replaced with secret values.
+
 # Used to sign JWT's sent from wallet_provider to wallet
-certificate_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
-instruction_result_private_key = "MIIMAasdfqGSM49AgEGCCqGSM49AwEHBG0qqqIBAQQgl52slQM9ShSUyhu/hOSlIPsCj2xJ2l/wuPerNwSLFDChRANCAARRbC1rXJuTOFGWeRXMjAOb/3RqWnOLq4Q9cq7i+yLI4WJg3PUSLUZUvSY0wpVRjECO4WViXE5/okaSIasdf=="
+certificate_private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQge7j+DhUxZq6s9jL94GNnxSV5QviQmLCrY8FwEI4KI5uhRANCAAQb3sOVfVYc9RiQTVbooTaofkac0VZOCtiGuwzvidTQplMlWniALdssikw016QodvSgsHZS9NLQdS1cajtR8sj+"
+instruction_result_private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgEP7DT0Et/qTZzGW9jQlpYveeexYzKmPmLj02T0uk9TShRANCAASAW6khAJE6uQ/fUwcHZbKCq5OY/kLmVZJr+JqooiJg7Ez+0xpy5wyyUPF4cmEwwjGrCUeImnAjBbScaCpAOB51"
 pin_hash_salt = "AIZwpO3BYBpjMLPsTqF2bExLEj1i4zKUCsgOUhSlK60"
 
+# Indicates whether logging should be output in a structured (JSON) manner.
+#structured_logging = false
+
 [database]
-host = "localhost"
-username = "postgres"
-password = "postgres"
-name = "wallet_provider"
+# host = "localhost"
+# username = "postgres"
+# password = "postgres"
+# name = "wallet_provider"
 
 [webserver]
-ip = "0.0.0.0"
-port = 3000
+# ip = "0.0.0.0"
+# port = 3000
 
 [pin_policy]
-rounds = 4
-attempts_per_round = 4
-timeouts_in_ms = [60_000, 300_000, 3_600_000]
+# rounds = 4
+# attempts_per_round = 4
+# timeouts_in_ms = [60_000, 300_000, 3_600_000]

@@ -1,9 +1,10 @@
-import 'dart:ui';
-
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
@@ -123,8 +124,6 @@ void main() {
   ];
 
   group('goldens', () {
-    ///FIXME: Also verify WalletPersonalizeConnectDigid ?
-
     testGoldens('WalletPersonalizeInitial Light', (tester) async {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
@@ -169,6 +168,47 @@ void main() {
       );
       await screenMatchesGolden(tester, 'wallet_personalize/authenticating.light');
     });
+
+    testGoldens('WalletPersonalizeConnectDigid Light', (tester) async {
+      const mockUrl = 'https://digid_login';
+      bool mockUrlIsOpened = false;
+
+      // Mock the launchUrl plugin and check if the mockUrl comes in
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        (MethodCall methodCall) async {
+          mockUrlIsOpened = methodCall.arguments['url'] == mockUrl;
+          return null;
+        },
+      );
+
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeConnectDigid(mockUrl),
+        ),
+      );
+      await screenMatchesGolden(tester, 'wallet_personalize/connect_digid.light');
+
+      // Verify that the mockUrl was passed to the url_launcher plugin
+      expect(mockUrlIsOpened, isTrue);
+    });
+
+    testGoldens(
+      'WalletPersonalizeAuthenticating - Cancel Dialog - Light',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+            const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeAuthenticating(),
+        ));
+        final l10n = await TestUtils.englishLocalizations;
+        final cancelButtonFinder = find.text(l10n.walletPersonalizeScreenDigidLoadingStopCta);
+        await tester.tap(cancelButtonFinder);
+        await tester.pumpAndSettle();
+        await screenMatchesGolden(tester, 'wallet_personalize/authenticating.cancel_dialog.light');
+      },
+    );
 
     testGoldens('WalletPersonalizeConfirmPin Light', (tester) async {
       await tester.pumpDeviceBuilder(
@@ -267,6 +307,18 @@ void main() {
       );
       await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.light');
     });
+
+    testGoldens('WalletPersonalizeDigidFailure Light Portrait', (tester) async {
+      /// This test verifies that the image scaling is correct when rendered in portrait mode, as the
+      /// test above (WalletPersonalizeDigidFailure Light) is treated as landscape.
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeDigidFailure(),
+        ),
+      );
+      await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.portrait.light');
+    });
   });
 
   group('widgets', () {
@@ -280,5 +332,39 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.walletPersonalizeSuccessPageContinueCta), findsOneWidget);
     });
+
+    testWidgets(
+      'cancel dialog is dismissed if digid result comes in while it is shown',
+      (tester) async {
+        // Configure the bloc with a state where the cancel button is visible
+        final mockBloc = MockWalletPersonalizeBloc();
+        final mockStateStream = BehaviorSubject<WalletPersonalizeState>.seeded(const WalletPersonalizeAuthenticating());
+        whenListen(mockBloc, mockStateStream, initialState: mockStateStream.value);
+
+        // Show the loading state (which contains the cancel button)
+        await tester.pumpWidgetWithAppWrapper(BlocProvider<WalletPersonalizeBloc>(
+          create: (c) => mockBloc,
+          child: Builder(builder: (context) => const WalletPersonalizeScreen()),
+        ));
+
+        // Find the cancel button and tap it
+        final l10n = await TestUtils.englishLocalizations;
+        final cancelButtonFinder = find.text(l10n.walletPersonalizeScreenDigidLoadingStopCta);
+        await tester.tap(cancelButtonFinder);
+        await tester.pumpAndSettle();
+
+        // Verify the cancel dialog is shown
+        final stopDialogTitleFinder = find.text(l10n.walletPersonalizeScreenStopDigidDialogTitle);
+        expect(stopDialogTitleFinder, findsOneWidget);
+
+        // Mock digid result coming in
+        mockStateStream.add(const WalletPersonalizeCheckData(availableAttributes: pidAttributes));
+        await tester.pumpAndSettle();
+
+        // Verify dialog is gone and confirm attributes screen is shown
+        expect(stopDialogTitleFinder, findsNothing);
+        expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsOneWidget);
+      },
+    );
   });
 }

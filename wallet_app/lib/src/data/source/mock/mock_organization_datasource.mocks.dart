@@ -28,7 +28,7 @@ const kHealthInsuranceId = 'health_insurer_1';
 const kHousingCorpId = 'housing_corp_1';
 const kCarRentalId = 'car_rental';
 const kFirstAidId = 'first_aid';
-const kMunicipalityDelftId = 'municipality_delft';
+const kMunicipalityTheHagueId = 'municipality_the_hague';
 const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 
@@ -145,16 +145,16 @@ const _kFirstAidOrganization = Organization(
 );
 
 const _kMunicipalityDelftOrganization = Organization(
-  id: kMunicipalityDelftId,
-  name: 'Gemeente Delft',
-  shortName: 'Gemeente Delft',
+  id: kMunicipalityTheHagueId,
+  name: 'Gemeente Den Haag',
+  shortName: 'Gemeente Den Haag',
   category: 'Gemeente',
   description:
-      'Delft is ruim 750 jaar oud. De stad dankt haar naam aan het \'delven\' (graven) van de oudste gracht, de Oude Delft. De stad in 5 woorden: monumentale stad van de toekomst. En in 2 woorden: Creating History!',
-  logoUrl: 'assets/non-free/images/logo_delft.png',
-  department: 'Milieu en gemeente',
-  location: 'Delft, Nederland',
-  webUrl: 'https://www.delft.nl',
+      'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.',
+  logoUrl: 'assets/non-free/images/logo_den_haag.png',
+  department: 'Parkeren',
+  location: 'Den Haag, Nederland',
+  webUrl: 'https://www.denhaag.nl',
 );
 
 const _kBankOrganization = Organization(

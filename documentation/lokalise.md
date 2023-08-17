@@ -3,6 +3,7 @@
 Internally, this project uses the commercial Lokalise service to manage translations. This service is currently not accessible for external contributors. The following is for contributors with access.
 
 ## Workflow
+
 The most common workflow to add or edit translations is to go to the Lokalise [nl-wallet-app](https://app.lokalise.com/project/SSSS/) project and edit the translations in the web UI. After doing so you can export the new translations as .arb files to be used in the project.
 
 ### Exporting translations (lokalise -> app)
@@ -13,24 +14,24 @@ To download the latest translations from Lokalise, go to the 'Download' tab and 
 - Include all platform keys (no idea if this is necessary)
 - Languages: All
 - File structure:
-   - One file per language
-   - `intl_%LANG_ISO%.%FORMAT%`
+  - One file per language
+  - `intl_%LANG_ISO%.%FORMAT%`
 - Advanced settings:
-   - Disable `compact format`
-   - Enable `include description`
-   - Enable `Replace line breaks with \n`
+  - Disable `compact format`
+  - Enable `include description`
+  - Enable `Replace line breaks with \n`
 - App triggers:
-   - None
+  - None
 
 Click `Preview` to preview your changes, and click `Build and download` to download the translations.
 Place the contents of the download zip file in the `wallet_app/lib/l10n` folder.
 Al
 
-#### Script
+#### Export script
 
 Alternatively you can run the following script (inside the `wallet_app` dir), make sure to set `LOKALISE_API_KEY`, an API Token can be generated from the Lokalise dashboard at Profile Settings -> API Tokens.
 
-```
+```bash
 #!/bin/bash
 
 # Download 'nl-wallet-showcase-app.zip' 
@@ -66,27 +67,27 @@ When managing the translations in Lokalise, importing from the app should in the
 
 Go to the upload tab of the nl-wallet-app project and use the following options:
 
-- [x] Replace \n with line break 
-- [x] Convert to universal placeholders 
-- [x] Detect ICU plurals 
+- [x] Replace \n with line break
+- [x] Convert to universal placeholders
+- [x] Detect ICU plurals
 
-- [ ] Tag keys 
-- [ ] Differentiate keys by file 
-- [ ] Fill empty keys with key name 
-- [ ] Hide from contributors 
-- [ ] Pre-translate with 100% TM matches 
+- [ ] Tag keys
+- [ ] Differentiate keys by file
+- [ ] Fill empty keys with key name
+- [ ] Hide from contributors
+- [ ] Pre-translate with 100% TM matches
 - [x] Replace modified values (disable to only push new keys)
 - [ ] Enable cleanup mode  (*Caution*: Can be useful to clean up Lokalise, but remember to create a snapshot first! This can be done via: More -> Snapshots -> Take new snapshot)
 
 After uploading both the intl_en.arb and intl_nl.arb and processing them the localisations should be in sync with the repository.
 
-#### Script
+#### Import script
 
-Alternatively you can run the following script (inside the `wallet_app` dir), make sure to set `LOKALISE_API_KEY`, an API Token can be generated from the Lokalise dashboard at Profile Settings -> API Tokens. 
+Alternatively you can run the following script (inside the `wallet_app` dir), make sure to set `LOKALISE_API_KEY`, an API Token can be generated from the Lokalise dashboard at Profile Settings -> API Tokens.
 
 Note that the script always creates a snapshot before uploading and that `replace_modified` is disabled by default. Run the script with the `--replace-modified` option to enable this.
 
-```
+```bash
 #!/bin/bash
 
 # Check for the --replace-modified flag

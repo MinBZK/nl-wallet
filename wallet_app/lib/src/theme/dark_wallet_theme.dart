@@ -33,6 +33,13 @@ class DarkWalletTheme {
     displayColor: textColor,
   );
 
+  // DialogTheme
+  static final dialogTheme = DialogTheme(
+    backgroundColor: sheetBackgroundColor,
+    titleTextStyle: textTheme.headlineSmall,
+    surfaceTintColor: Colors.transparent,
+  );
+
   //region Modified (colored) BaseThemes
   static final dividerTheme = BaseWalletTheme.baseDividerTheme.copyWith(
     color: colorScheme.outlineVariant,
@@ -82,6 +89,7 @@ class DarkWalletTheme {
 
   static final bottomSheetTheme = BaseWalletTheme.baseBottomSheetTheme.copyWith(
     backgroundColor: sheetBackgroundColor,
+    surfaceTintColor: Colors.transparent,
   );
 
   //endregion Modified (colored) BaseThemes
