@@ -7,6 +7,7 @@ import '../../../domain/model/card_front.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
+import '../../common/widget/bullet_list.dart';
 import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
@@ -290,6 +291,11 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'PinField'),
         const PinFieldDemo(),
+        const ThemeSectionSubHeader(title: 'BulletList'),
+        const BulletList(
+          items: ['Item 1', 'Item 2', 'Item 3'],
+          icon: Icons.ac_unit_outlined,
+        ),
       ],
     );
   }
