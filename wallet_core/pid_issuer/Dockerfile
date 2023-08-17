@@ -14,5 +14,6 @@ RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package 
 # Bundle Stage
 FROM scratch
 COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/pid_issuer .
+COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs/
 USER 1000
 CMD ["./pid_issuer"]
