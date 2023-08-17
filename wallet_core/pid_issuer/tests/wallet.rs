@@ -132,7 +132,7 @@ fn always_agree() -> impl IssuanceUserConsent {
 // This test connects to the DigiD brug and is disabled by default.
 // Enable the `live_test` feature to include it.
 #[tokio::test]
-#[cfg_attr(not(feature = "live_test"), ignore)]
+#[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let port = start_pid_issuer::<MockAttributesLookup, DigidClient>();
     let (config, wallet) = create_test_wallet(local_base_url(port)).await;
