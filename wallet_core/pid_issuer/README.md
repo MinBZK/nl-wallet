@@ -27,26 +27,25 @@ In Rust, using the [`josekit` crate](https://docs.rs/josekit) a keypair can be g
 
 ```rust
 let keypair = josekit::jwe::RSA_OAEP.generate_key_pair(2048).expect("key generation failed");
-let privkey = keypair.to_jwk_private_key();
-let pubkey = keypair.to_jwk_public_key();
+let privkey = serde_json::to_string(keypair.to_jwk_private_key()).unwrap();
+let pubkey = serde_json::to_string(keypair.to_jwk_public_key()).unwrap();
 ```
 
 ### Generating an issuer certificate and private key
 
-The PID issuer will need an X509 certificate signed by a CA. To generate it you will need a CA certificate and the corresponding private key. If you do not already have those, you can generate it as follows (replacing the `CN` with a sensible value):
+The PID issuer needs an X509 certificate (which is included in the issued mdocs) and private key (with which it signs the mdocs). The certificate needs to be signed by a CA. If you do not already have a CA, you can generate it as follows (replacing the `CN` with a sensible value):
 
 ```sh
-cd secrets # By default, the PID issuer looks for certificates and keys here
-
-# Generate the CA certificate first
 openssl req -x509 \
     -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout ca_privkey.pem \
     -out ca_cert.pem \
     -days 365 \
     -addext keyUsage=keyCertSign,cRLSign \
-    -subj '/CN=myca'
+    -subj '/CN=ca.example.com'
 ```
+
+The CA certificate and CA private key are only needed to generate the issuer certificate and issuer private key. The PID issuer itself does not need them to run. After the issuer certificate and private key have been generated, therefore, the CA certificate and private key should be moved to a secure location.
 
 Next, generate the issuer certificate and private key as follows.
 
@@ -55,7 +54,7 @@ openssl req -new \
     -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -keyout issuer_privkey.pem \
     -out issuer_csr.pem \
-    -subj "/CN=mycert" && \
+    -subj "/CN=pid.example.com" && \
 openssl x509 -req \
     -extfile <(printf "keyUsage=digitalSignature\nextendedKeyUsage=1.0.18013.5.1.2\nbasicConstraints=CA:FALSE") \
     -in issuer_csr.pem \
@@ -66,4 +65,4 @@ openssl x509 -req \
 rm issuer_csr.pem
 ```
 
-The CA certificate and CA private key are only needed to generate the issuer certificate and issuer private key. The PID issuer itself does not need them to run. After the issuer certificate and private key have been generated, therefore, the CA certificate and private key should be moved to a secure location.
+Put the Base64-parts of these files, without newlines, in your configuration file or environment variables.
