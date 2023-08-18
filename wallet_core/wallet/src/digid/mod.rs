@@ -6,16 +6,12 @@ mod pkce;
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 
-use self::{
-    openid_client::{OpenIdClientError, RemoteOpenIdClient},
-    pkce::PkceGenerator,
-};
+use self::openid_client::OpenIdClientError;
 
 pub use self::client::DigidClient;
 
 /// Global variable to hold the `DigidClient` singleton.
-pub static DIGID_CLIENT: Lazy<Mutex<DigidClient<RemoteOpenIdClient, PkceGenerator>>> =
-    Lazy::new(|| Mutex::new(DigidClient::default()));
+pub static DIGID_CLIENT: Lazy<Mutex<DigidClient>> = Lazy::new(|| Mutex::new(DigidClient::default()));
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidClientError {

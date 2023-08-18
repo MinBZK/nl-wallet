@@ -7,7 +7,11 @@ use wallet_common::utils;
 
 use crate::utils::url_find_first_query_value;
 
-use super::{openid_client::OpenIdClient, pkce::PkceSource, DigidClientError};
+use super::{
+    openid_client::{OpenIdClient, RemoteOpenIdClient},
+    pkce::{PkceGenerator, PkceSource},
+    DigidClientError,
+};
 
 const PARAM_ERROR: &str = "error";
 const PARAM_ERROR_DESCRIPTION: &str = "error_description";
@@ -28,7 +32,7 @@ static WALLET_CLIENT_REDIRECT_URI: Lazy<Url> = Lazy::new(|| {
 });
 
 #[derive(Debug)]
-pub struct DigidClient<C, P> {
+pub struct DigidClient<C = RemoteOpenIdClient, P = PkceGenerator> {
     // Only one session may be active at a time. A potential improvement would be
     // to support multiple sessions and to persist these sessions, so that they may
     // be resumed after app termination.
