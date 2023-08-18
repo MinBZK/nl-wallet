@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-08-07T13:33:08+02:00",
+    "@@last_modified": "2023-08-17T13:47:01+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Geef feedback",
     "aboutScreenPrivacyCta": "Privacybeleid",
@@ -175,7 +175,7 @@
     "dataIncorrectScreenDeclineCta": "Kaart afwijzen",
     "dataIncorrectScreenDeclineDescription": "Als je de gegevens afwijst worden deze gegevens niet opgeslagen in je Wallet.",
     "dataIncorrectScreenDeclineTitle": "Kaart afwijzen",
-    "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kan nu twee dingen doen:",
+    "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kunt nu twee dingen doen:",
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
     "dataIncorrectScreenTitle": "Gegevens ophalen",
     "digidHelpScreenHelpNeededCta": "Naar DigiD Hulp",
@@ -191,12 +191,12 @@
     "errorScreenGenericHeadline": "Er gaat iets mis",
     "errorScreenGenericTitle": "Fout",
     "errorScreenServerCloseCta": "Sluiten",
-    "errorScreenServerDescription": "Controleer of je verbonden bent met internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+    "errorScreenServerDescription": "Controleer of je verbonden bent met het internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
     "errorScreenServerHeadline": "Er gaat iets mis",
     "errorScreenServerHelpCta": "Hulp nodig?",
     "errorScreenServerTitle": "Fout",
     "forgotPinScreenCta": "Wallet wissen",
-    "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+    "forgotPinScreenDescription": "Als je jouw toegangscode bent vergeten kun je jouw Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de wallet? Dan moet je opnieuw beginnen. Wis de wallet en kies een nieuwe toegangscode.",
     "forgotPinScreenHeadline": "Code vergeten?",
     "forgotPinScreenTitle": "Toegangscode vergeten",
     "generalBottomBackCta": "Terug",
@@ -293,7 +293,7 @@
             }
         }
     },
-    "helpSheetHelpdeskCta": "Naar de Help desk",
+    "helpSheetHelpdeskCta": "Naar de helpdesk",
     "helpSheetSupportCode": "Supportcode: {code}",
     "@helpSheetSupportCode": {
         "placeholders": {
@@ -387,7 +387,7 @@
     "homeScreenBottomNavBarQrCta": "QR",
     "homeScreenBottomNavBarSettingsCta": "Instellingen",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
-    "introductionConditionsScreenBullet1": "Je kan je gegevens online gebruiken.",
+    "introductionConditionsScreenBullet1": "Je kunt je gegevens online gebruiken.",
     "introductionConditionsScreenBullet2": "Je kunt op elk moment stoppen.",
     "introductionConditionsScreenBullet3": "Jij houdt je toegangscode voor jezelf.",
     "introductionConditionsScreenBullet4": "Jij bedenkt altijd of delen verstandig is.",
@@ -409,12 +409,15 @@
     "introductionPage2Title": "Deel je gegevens veilig en eenvoudig.",
     "introductionPage3Description": "Wil een organisatie weten of je ouder bent dan 18? Dan deel je alleen “ja” of “nee”. Je hoeft niet je geboortedatum te delen.",
     "introductionPage3Title": "Deel alleen wat nodig is. ",
-    "introductionPage4BulletPoints": "Je ziet welke gegevens je deelt.\nJe ziet duidelijk de voorwaarden.\nJe kan terugzien met wie je hebt gedeeld.",
+    "introductionPage4BulletPoints": "Je ziet welke gegevens je deelt.\nJe ziet duidelijk de voorwaarden.\nJe kunt terugzien met wie je hebt gedeeld.",
     "introductionPage4Title": "Jij hebt de controle.",
-    "introductionPrivacyPageBullet1": "Alleen jij kan bij je gegevens in je Wallet.",
-    "introductionPrivacyPageBullet2": "Je deelt minder gegevens.",
-    "introductionPrivacyPageBullet3": "Je houdt bij met wie je gegevens hebt gedeeld.",
-    "introductionPrivacyPageTitle": "Zo helpt de app jouw privacy te beschermen",
+    "introductionPrivacyScreenBullet1": "Je gegevens staan alleen op dit apparaat.",
+    "introductionPrivacyScreenBullet2": "Je gegevens zijn beschermd door een toegangscode.",
+    "introductionPrivacyScreenBullet3": "Telefoon kwijt? Je kunt de app op afstand op slot zetten.",
+    "introductionPrivacyScreenHeadline": "De NL Wallet respecteert jouw privacy.",
+    "introductionPrivacyScreenNextCta": "Volgende",
+    "introductionPrivacyScreenPrivacyCta": "Lees het privacybeleid",
+    "introductionPrivacyScreenTitle": "Privacy",
     "introductionSkipCta": "Overslaan",
     "introductionWCAGCurrentPageAnnouncement": "Introductie pagina {currentPage} van {totalPages}",
     "@introductionWCAGCurrentPageAnnouncement": {
@@ -455,7 +458,7 @@
     "issuanceCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je ze toevoegen.",
     "issuanceCheckDataOfferingPageTitle": "Kloppen de opgehaalde gegevens?",
     "issuanceConfirmPinDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "issuanceConfirmPinErrorDescription": "{count, plural, one {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "issuanceConfirmPinErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@issuanceConfirmPinErrorDescription": {
         "placeholders": {
             "count": {
@@ -466,7 +469,7 @@
     },
     "issuanceConfirmPinErrorTitle": "Ongeldige toegangscode",
     "issuanceConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@issuanceConfirmPinPageErrorDescription": {
         "placeholders": {
             "count": {
@@ -642,7 +645,7 @@
     "organizationDetailScreenReportIssueCta": "Een probleem melden",
     "organizationDetailScreenTitle": "Over deze partij",
     "organizationDetailScreenViewTerms": "Bekijk de algemene",
-    "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe toegangscode.",
+    "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de wallet? Dan moet je opnieuw beginnen. Wis de wallet en kies een nieuwe toegangscode.",
     "pinBlockedScreenHeadline": "Je app is geblokkeerd",
     "pinBlockedScreenResetWalletCta": "Wallet wissen",
     "pinBlockedScreenTitle": "Geblokkeerd",
@@ -659,7 +662,7 @@
         }
     },
     "pinScreenErrorHeader": "Ongeldige toegangscode",
-    "pinScreenFinalAttempt": "Je hebt nog 1 poging. Daarna kun je de app niet meer gebruiken",
+    "pinScreenFinalAttempt": "Je hebt nog één poging. Daarna kun je de app niet meer gebruiken!",
     "pinScreenForgotPinCta": "Code vergeten?",
     "pinScreenHeader": "Vul je toegangscode in",
     "pinScreenTitle": "Inloggen",
@@ -756,7 +759,7 @@
     "setupSecurityCompletedPageTitle": "Gelukt!",
     "setupSecurityConfirmationErrorPageDescription": "Probeer het opnieuw",
     "setupSecurityConfirmationErrorPageFatalCta": "Nieuwe code kiezen",
-    "setupSecurityConfirmationErrorPageFatalDescription": "Begin opnieuw",
+    "setupSecurityConfirmationErrorPageFatalDescription": "Begin opnieuw.",
     "setupSecurityConfirmationErrorPageFatalTitle": "Toegangscode kiezen is niet gelukt",
     "setupSecurityConfirmationErrorPageTitle": "Deze toegangscode is anders",
     "setupSecurityConfirmationPageTitle": "Herhaal je toegangscode",
@@ -780,15 +783,15 @@
     "setupSecurityScreenWCAGPinChosenAnnouncement": "Pin gekozen. Herhaal pincode om te bevestigen.",
     "setupSecurityScreenWCAGPinConfirmationFailedAnnouncement": "Gekozen pin komt niet overeen. Probeer opnieuw.",
     "setupSecurityScreenWCAGPinTooSimpleAnnouncement": "Gekozen pin te simpel. Probeer opnieuw.",
-    "setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError": "Een rij getallen is niet veilig. Kies daarom een andere toegangscode.",
+    "setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError": "Een rij cijfers is niet veilig. Kies daarom een andere toegangscode.",
     "setupSecuritySelectPinErrorPageDefaultError": "Kies een andere toegangscode",
     "setupSecuritySelectPinErrorPageDescription": "Kies een andere toegangscode",
     "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
-    "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een toegangscode met minstens 2 verschillende getallen",
-    "setupSecuritySelectPinPageTitle": "Kies een 6 cijferige toegangscode",
+    "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een toegangscode met minstens twee verschillende cijfers.",
+    "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige toegangscode",
     "showDetailsCta": "Bekijk details",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
-    "signConfirmPinPageErrorDescription": "{count, plural, one {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "signConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@signConfirmPinPageErrorDescription": {
         "placeholders": {
             "count": {
@@ -881,7 +884,7 @@
         }
     },
     "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
-    "verificationConfirmPinPageErrorDescription": "{count, plural, one {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "verificationConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@verificationConfirmPinPageErrorDescription": {
         "placeholders": {
             "count": {
@@ -955,7 +958,7 @@
     "verificationScreenGenericError": "Verificatie mislukt",
     "verificationScreenGenericErrorCta": "Sluiten",
     "verificationScreenGiveFeedbackCta": "Geef feedback",
-    "verificationScreenHistoryDescription": "Je kan de details vinden in je geschiedenis.",
+    "verificationScreenHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
     "verificationScreenIncorrectCta": "Klopt er iets niet?",
     "verificationScreenPurposeTitle": "Doel",
     "verificationScreenShareDataTitle": "Wil je deze gegevens delen?",
@@ -1007,7 +1010,7 @@
             }
         }
     },
-    "verificationSuccessPageHistoryDescription": "Je kan de details vinden in je geschiedenis.",
+    "verificationSuccessPageHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
     "verificationSuccessPageShowHistoryCta": "Geschiedenis",
     "verificationSuccessPageTitle": "Gelukt!",
     "verifierPolicyScreenBackCta": "Terug",
@@ -1046,7 +1049,7 @@
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
     "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens toe te voegen aan je Wallet",
-    "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, one {Je kan het nog {count} keer proberen} other {Je kan het nog {count} keer proberen}}",
+    "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@walletPersonalizeConfirmPinPageErrorDescription": {
         "placeholders": {
             "count": {
@@ -1065,7 +1068,7 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Inloggen afgebroken",
-    "walletPersonalizeIntroPageDescription": "Je maakt je Wallet aan door persoonsgegevens toe te voegen via de DigiD app",
+    "walletPersonalizeIntroPageDescription": "Je maakt je wallet aan door één keer je persoonsgegevens toe te voegen via de DigiD app. \n\nLet op: Je hebt ook een rijbewijs of identiteitsbewijs nodig.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
     "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",
     "walletPersonalizeIntroPageTitle": "Log in met DigiD om te beginnen",

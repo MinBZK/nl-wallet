@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/icon_row.dart';
+import '../../common/widget/bullet_list.dart';
 
 const _kCoverHeaderImageDesiredHeight = 250.0;
 const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
@@ -147,34 +147,8 @@ class IntroductionPage extends StatelessWidget {
               style: context.textTheme.bodyLarge,
               textAlign: TextAlign.start,
             ),
-          _buildBulletPoints(context),
+          BulletList(items: bulletPoints),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBulletPoints(BuildContext context) {
-    if (bulletPoints.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: bulletPoints.map((point) {
-          return IconRow(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            icon: SizedBox(
-              height: 24,
-              width: 24,
-              child: Icon(
-                Icons.check,
-                color: context.colorScheme.primary,
-                size: 18,
-              ),
-            ),
-            text: Text(point),
-          );
-        }).toList(),
       ),
     );
   }

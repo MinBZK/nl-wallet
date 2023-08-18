@@ -9,7 +9,7 @@ async fn serve() -> Result<()> {
     let addr = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
     let app = create_router(settings.digid).await?;
 
-    tracing::debug!("listening on {}", addr);
+    tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr).serve(app.into_make_service()).await?;
 
     Ok(())

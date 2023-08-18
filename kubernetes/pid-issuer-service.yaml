@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pid-issuer
+  labels:
+    service: pid-issuer
+spec:
+  selector:
+    app: pid-issuer
+    tier: vertrouwd
+  ports:
+    - name: pid-issuer-http
+      port: 3003
+      targetPort: 3003
+      protocol: TCP
