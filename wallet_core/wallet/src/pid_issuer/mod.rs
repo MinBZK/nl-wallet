@@ -1,11 +1,13 @@
 mod client;
 
-use once_cell::sync::Lazy;
+use async_trait::async_trait;
 
-pub use client::PidIssuerClient;
+pub use client::RemotePidIssuerClient;
 
-/// Global variable to hold the `DigidClient` singleton.
-pub static PID_ISSUER_CLIENT: Lazy<PidIssuerClient> = Lazy::new(PidIssuerClient::default);
+#[async_trait]
+pub trait PidIssuerClient {
+    async fn extract_bsn(&self, access_token: &str) -> Result<String, PidIssuerError>;
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuerError {

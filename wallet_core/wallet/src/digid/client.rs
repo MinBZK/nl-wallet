@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use once_cell::sync::Lazy;
 use url::Url;
@@ -10,7 +11,7 @@ use crate::utils::url_find_first_query_value;
 use super::{
     openid_client::{OpenIdClient, RemoteOpenIdClient},
     pkce::{PkceGenerator, PkceSource},
-    DigidClientError,
+    DigidClient, DigidClientError,
 };
 
 const PARAM_ERROR: &str = "error";
@@ -32,7 +33,7 @@ static WALLET_CLIENT_REDIRECT_URI: Lazy<Url> = Lazy::new(|| {
 });
 
 #[derive(Debug)]
-pub struct DigidClient<C = RemoteOpenIdClient, P = PkceGenerator> {
+pub struct RemoteDigidClient<C = RemoteOpenIdClient, P = PkceGenerator> {
     // Only one session may be active at a time. A potential improvement would be
     // to support multiple sessions and to persist these sessions, so that they may
     // be resumed after app termination.
@@ -52,27 +53,32 @@ struct DigidSessionState<C> {
     pkce_verifier: String,
 }
 
-impl<C, P> DigidClient<C, P> {
+impl<C, P> RemoteDigidClient<C, P> {
     fn new() -> Self {
-        DigidClient {
+        RemoteDigidClient {
             session_state: None,
             _pkce_source: PhantomData,
         }
     }
 }
 
-impl<C, P> Default for DigidClient<C, P> {
+impl<C, P> Default for RemoteDigidClient<C, P> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<C, P> DigidClient<C, P>
+#[async_trait]
+impl<C, P> DigidClient for RemoteDigidClient<C, P>
 where
-    P: PkceSource,
-    C: OpenIdClient,
+    P: PkceSource + Send + Sync,
+    C: OpenIdClient + Send + Sync,
 {
-    pub async fn start_session(&mut self) -> Result<Url, DigidClientError> {
+    fn is_redirect_uri(url: &Url) -> bool {
+        url.as_str().starts_with(WALLET_CLIENT_REDIRECT_URI.as_str())
+    }
+
+    async fn start_session(&mut self) -> Result<Url, DigidClientError> {
         // TODO: This performs discovery every time a session is started and an authentication URL
         //       is generated. An improvement would be to cache the OpenIdClient and only perform
         //       discovery again when the configuration parameters change.
@@ -103,9 +109,9 @@ where
         Ok(url)
     }
 
-    pub async fn get_access_token(&mut self, redirect_url: &Url) -> Result<String, DigidClientError> {
+    async fn get_access_token(&mut self, redirect_url: &Url) -> Result<String, DigidClientError> {
         // Check if the redirect URL received actually belongs to us.
-        if !redirect_url.as_str().starts_with(WALLET_CLIENT_REDIRECT_URI.as_str()) {
+        if !Self::is_redirect_uri(redirect_url) {
             return Err(DigidClientError::RedirectUriMismatch);
         }
 
@@ -173,7 +179,7 @@ mod tests {
         const ACCESS_CODE: &str = "the_access_code";
 
         // Create a client with mock generics, as created by `mockall`.
-        let mut client = DigidClient::<MockOpenIdClient, MockPkceSource>::default();
+        let mut client = RemoteDigidClient::<MockOpenIdClient, MockPkceSource>::default();
 
         // There should be no session state present at this point.
         assert!(client.session_state.is_none());

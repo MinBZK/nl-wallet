@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 use tracing::{info, warn};
@@ -6,7 +6,9 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{
-    digid::DIGID_CLIENT, init_wallet, pid_issuer::PID_ISSUER_CLIENT, validate_pin, wallet::WalletInitError, Wallet,
+    init_wallet, validate_pin,
+    wallet::{RedirectUriType, WalletInitError},
+    Wallet,
 };
 
 use crate::{
@@ -156,51 +158,49 @@ pub async fn register(pin: String) -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_digid_auth_url() -> Result<String> {
-    let mut digid_client = DIGID_CLIENT.lock().await;
-    let authorization_url = digid_client.start_session().await?;
+    let mut wallet = wallet().write().await;
 
-    Ok(authorization_url.into())
+    let auth_url = wallet.start_pid_issuance().await?;
+
+    Ok(auth_url.into())
 }
 
-async fn process_digid_uri(uri: &str) -> Result<String> {
-    let mut digid_client = DIGID_CLIENT.lock().await;
-
-    let access_token = digid_client.get_access_token(&Url::parse(uri)?).await?;
-    let bsn = PID_ISSUER_CLIENT.extract_bsn(&access_token).await?;
-
-    Ok(bsn)
-}
-
+// Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
-#[flutter_api_error]
 pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
-    if uri.contains("authentication") {
-        let auth_event = UriFlowEvent::DigidAuth {
-            state: DigidState::Authenticating,
-        };
+    let url = Url::parse(&uri).unwrap(); // TODO: handle URL parsing error
 
-        sink.add(auth_event);
+    let final_event = match Wallet::identify_redirect_uri(&url) {
+        RedirectUriType::PidIssuance => {
+            let auth_event = UriFlowEvent::DigidAuth {
+                state: DigidState::Authenticating,
+            };
+            sink.add(auth_event);
 
-        let issue_event = process_digid_uri(&uri).await.map_or_else(
-            |error| {
-                warn!("Issue PID error: {}", error);
-                info!("Issue PID error details: {:?}", error.root_cause());
+            let mut wallet = wallet().write().await;
 
-                UriFlowEvent::DigidAuth {
-                    state: DigidState::Error,
-                }
-            },
-            |_| UriFlowEvent::DigidAuth {
-                state: DigidState::Success,
-            },
-        );
+            wallet.continue_pid_issuance(&url).await.map_or_else(
+                |error| {
+                    warn!("Issue PID error: {}", error);
+                    info!("Issue PID error details: {:?}", error);
 
-        sink.add(issue_event);
-    } else {
-        return Err(anyhow!("Sample error, this closes the stream on the flutter side."));
-    }
+                    UriFlowEvent::DigidAuth {
+                        state: DigidState::Error, // TODO: add error details to state
+                    }
+                },
+                |_| UriFlowEvent::DigidAuth {
+                    state: DigidState::Success, // TODO: continue with approval / dismissal of PID
+                },
+            )
+        }
+        RedirectUriType::Unknown => UriFlowEvent::DigidAuth {
+            state: DigidState::Error, // TODO: add unknown URI error
+        },
+    };
+
+    sink.add(final_event);
 
     Ok(())
 }

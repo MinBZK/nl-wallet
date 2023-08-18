@@ -3,6 +3,7 @@ use std::{error::Error, panic};
 use platform_support::utils::PlatformUtilities;
 use tokio::task;
 use tracing::{info, instrument};
+use url::Url;
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::{
@@ -13,7 +14,9 @@ use wallet_common::account::messages::{
 
 use crate::{
     account_server::AccountServerResponseError,
+    digid::{DigidClient, DigidClientError, RemoteDigidClient},
     lock::WalletLock,
+    pid_issuer::{PidIssuerClient, PidIssuerError, RemotePidIssuerClient},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -109,30 +112,51 @@ impl From<AccountServerClientError> for WalletUnlockError {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PidIssuanceError {
+    #[error("could not start DigiD session: {0}")]
+    DigidSessionStart(#[source] DigidClientError),
+    #[error("could not finish DigiD session: {0}")]
+    DigidSessionFinish(#[source] DigidClientError),
+    #[error("could not retrieve PID from issuer: {0}")]
+    PidIssuer(#[source] PidIssuerError),
+}
+
+pub enum RedirectUriType {
+    PidIssuance,
+    Unknown,
+}
+
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, A, S, K> {
+pub struct Wallet<C, A, S, K, D = RemoteDigidClient, P = RemotePidIssuerClient> {
     config_repository: C,
     account_server: A,
     storage: S,
     hw_privkey: K,
+    digid_client: D,
+    pid_issuer_client: P,
     registration: Option<RegistrationData>,
     lock: WalletLock,
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, A, S, K> Wallet<C, A, S, K>
+impl<C, A, S, K, D, P> Wallet<C, A, S, K, D, P>
 where
     C: ConfigurationRepository,
     A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
+    D: DigidClient + Default,
+    P: PidIssuerClient + Default,
 {
     fn new(config_repository: C, account_server: A, storage: S) -> Self {
         Wallet {
             config_repository,
             account_server,
             storage,
+            digid_client: D::default(),
+            pid_issuer_client: P::default(),
             hw_privkey: K::new(WALLET_KEY_ID),
             registration: None,
             lock: WalletLock::new(true),
@@ -405,6 +429,52 @@ where
         self.lock.unlock();
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub async fn start_pid_issuance(&mut self) -> Result<Url, PidIssuanceError> {
+        info!("Generating DigiD auth URL, starting OpenID connect discovery");
+
+        let auth_url = self
+            .digid_client
+            .start_session()
+            .await
+            .map_err(PidIssuanceError::DigidSessionStart)?;
+
+        info!("DigiD auth URL generated");
+
+        Ok(auth_url)
+    }
+
+    pub fn identify_redirect_uri(url: &Url) -> RedirectUriType {
+        if D::is_redirect_uri(url) {
+            return RedirectUriType::PidIssuance;
+        }
+
+        RedirectUriType::Unknown
+    }
+
+    #[instrument(skip_all)]
+    pub async fn continue_pid_issuance(&mut self, redirect_url: &Url) -> Result<String, PidIssuanceError> {
+        info!("Received DigiD redirect URI, processing URI and retrieving access token");
+
+        let access_token = self
+            .digid_client
+            .get_access_token(redirect_url)
+            .await
+            .map_err(PidIssuanceError::DigidSessionFinish)?;
+
+        info!("DigiD access token retrieved, starting actual PID issuance");
+
+        let bsn = self
+            .pid_issuer_client
+            .extract_bsn(&access_token)
+            .await
+            .map_err(PidIssuanceError::PidIssuer)?;
+
+        info!("PID received successfully from issuer");
+
+        Ok(bsn)
     }
 }
 

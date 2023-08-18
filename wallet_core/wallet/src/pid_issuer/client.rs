@@ -1,11 +1,12 @@
 use std::time::Duration;
 
+use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use url::Url;
 
-use super::PidIssuerError;
+use super::{PidIssuerClient, PidIssuerError};
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -16,7 +17,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 static PID_ISSUER_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
 
-pub struct PidIssuerClient {
+pub struct RemotePidIssuerClient {
     http_client: reqwest::Client,
 }
 
@@ -25,17 +26,26 @@ struct BsnResponse {
     bsn: String,
 }
 
-impl PidIssuerClient {
+impl RemotePidIssuerClient {
     fn new() -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        PidIssuerClient { http_client }
+        RemotePidIssuerClient { http_client }
     }
+}
 
-    pub async fn extract_bsn(&self, access_token: &str) -> Result<String, PidIssuerError> {
+impl Default for RemotePidIssuerClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl PidIssuerClient for RemotePidIssuerClient {
+    async fn extract_bsn(&self, access_token: &str) -> Result<String, PidIssuerError> {
         let url = PID_ISSUER_BASE_URL
             .join("extract_bsn")
             .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
@@ -68,11 +78,5 @@ impl PidIssuerClient {
             .await?;
 
         Ok(bsn_response.bsn)
-    }
-}
-
-impl Default for PidIssuerClient {
-    fn default() -> Self {
-        PidIssuerClient::new()
     }
 }

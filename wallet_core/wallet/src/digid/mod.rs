@@ -3,15 +3,20 @@ mod openid;
 mod openid_client;
 mod pkce;
 
-use once_cell::sync::Lazy;
-use tokio::sync::Mutex;
+use async_trait::async_trait;
+use url::Url;
 
 use self::openid_client::OpenIdClientError;
 
-pub use self::client::DigidClient;
+pub use self::client::RemoteDigidClient;
 
-/// Global variable to hold the `DigidClient` singleton.
-pub static DIGID_CLIENT: Lazy<Mutex<DigidClient>> = Lazy::new(|| Mutex::new(DigidClient::default()));
+#[async_trait]
+pub trait DigidClient {
+    fn is_redirect_uri(url: &Url) -> bool;
+
+    async fn start_session(&mut self) -> Result<Url, DigidClientError>;
+    async fn get_access_token(&mut self, redirect_url: &Url) -> Result<String, DigidClientError>;
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidClientError {
