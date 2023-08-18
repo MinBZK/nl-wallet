@@ -75,17 +75,18 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn start_wallet_provider(mut settings: Settings) -> u16 {
+fn settings() -> (Settings, u16) {
+    let mut settings = Settings::new().expect("Could not read settings");
     let port = find_listener_port();
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").expect("Could not parse IP address");
     settings.webserver.port = port;
     settings.pin_policy.timeouts_in_ms = vec![200, 400, 600];
+    (settings, port)
+}
 
+fn start_wallet_provider(settings: Settings) {
     tokio::spawn(async { server::serve(settings).await.expect("Could not start server") });
-
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
-
-    port
 }
 
 async fn test_wallet_registration<C, A, S, K>(mut wallet: Wallet<C, A, S, K>)
@@ -115,10 +116,10 @@ where
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_registration_in_process() {
-    let settings = Settings::new().expect("Could not read settings");
+    let (settings, port) = settings();
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
     let connection = database_connection(&settings).await;
-    let port = start_wallet_provider(settings);
+    start_wallet_provider(settings);
     let wallet = create_test_wallet(local_base_url(port), public_key, instruction_result_public_key).await;
 
     let before = wallet_user_count(&connection).await;
@@ -143,9 +144,9 @@ async fn test_wallet_registration_live() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_ok() {
-    let settings = Settings::new().expect("Could not read settings");
+    let (settings, port) = settings();
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
-    let port = start_wallet_provider(settings);
+    start_wallet_provider(settings);
     let mut wallet = create_test_wallet(local_base_url(port), public_key, instruction_result_public_key).await;
 
     wallet
@@ -169,10 +170,83 @@ async fn test_unlock_ok() {
 #[tokio::test]
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_unlock_error() {
-    let settings = Settings::new().expect("Could not read settings");
+async fn test_block() {
+    let (mut settings, port) = settings();
+    settings.pin_policy.attempts_per_round = 2;
+    settings.pin_policy.rounds = 2;
+    settings.pin_policy.timeouts_in_ms = vec![50];
+
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
-    let port = start_wallet_provider(settings);
+    start_wallet_provider(settings);
+    let mut wallet = create_test_wallet(local_base_url(port), public_key, instruction_result_public_key).await;
+
+    wallet
+        .register("112234".to_string())
+        .await
+        .expect("Could not register wallet");
+
+    assert!(wallet.has_registration());
+
+    wallet.lock();
+    assert!(wallet.is_locked());
+
+    let result = wallet
+        .unlock("555555".to_string())
+        .await
+        .expect_err("invalid pin should return error");
+    assert_matches!(
+        result,
+        WalletUnlockError::IncorrectPin {
+            leftover_attempts: 1,
+            is_final_attempt: false
+        }
+    );
+    assert!(wallet.is_locked());
+
+    let result = wallet
+        .unlock("555556".to_string())
+        .await
+        .expect_err("invalid pin should return error");
+    assert_matches!(result, WalletUnlockError::Timeout { timeout_millis: 50 });
+    assert!(wallet.is_locked());
+
+    sleep(Duration::from_millis(50)).await;
+
+    let result = wallet
+        .unlock("555555".to_string())
+        .await
+        .expect_err("invalid pin should return error");
+    assert_matches!(
+        result,
+        WalletUnlockError::IncorrectPin {
+            leftover_attempts: 1,
+            is_final_attempt: true
+        }
+    );
+    assert!(wallet.is_locked());
+
+    let result = wallet
+        .unlock("555556".to_string())
+        .await
+        .expect_err("invalid pin should block wallet");
+    assert_matches!(result, WalletUnlockError::Blocked);
+    assert!(wallet.is_locked());
+
+    let result = wallet
+        .unlock("112234".to_string())
+        .await
+        .expect_err("wallet should be blocked");
+    assert_matches!(result, WalletUnlockError::Blocked);
+    assert!(wallet.is_locked());
+}
+
+#[tokio::test]
+#[serial]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn test_unlock_error() {
+    let (settings, port) = settings();
+    let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
+    start_wallet_provider(settings);
     let mut wallet = create_test_wallet(local_base_url(port), public_key, instruction_result_public_key).await;
 
     wallet

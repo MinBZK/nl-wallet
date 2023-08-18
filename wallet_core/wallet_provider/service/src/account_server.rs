@@ -288,7 +288,10 @@ impl AccountServer {
             time_generator.generate(),
         );
 
-        if matches!(pin_eval, PinPolicyEvaluation::InTimeout { timeout: _ }) {
+        if matches!(
+            pin_eval,
+            PinPolicyEvaluation::InTimeout { timeout: _ } | PinPolicyEvaluation::BlockedPermanently
+        ) {
             tx.commit().await?;
             return Err(pin_eval.into());
         }
