@@ -5,7 +5,7 @@ mod local;
 mod mock;
 
 pub use self::{
-    data::{AccountServerConfiguration, Configuration, DigidConfiguration, LockTimeoutConfiguration},
+    data::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration, PidIssuanceConfiguration},
     local::LocalConfigurationRepository,
 };
 

@@ -1,12 +1,13 @@
 mod client;
 
 use async_trait::async_trait;
+use url::Url;
 
 pub use client::RemotePidIssuerClient;
 
 #[async_trait]
 pub trait PidIssuerClient {
-    async fn extract_bsn(&self, access_token: &str) -> Result<String, PidIssuerError>;
+    async fn extract_bsn(&self, base_url: &Url, access_token: &str) -> Result<String, PidIssuerError>;
 }
 
 #[derive(Debug, thiserror::Error)]

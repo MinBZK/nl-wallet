@@ -172,19 +172,19 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
 
     let url = Url::parse(&uri).unwrap(); // TODO: handle URL parsing error
 
-    let final_event = match Wallet::identify_redirect_uri(&url) {
+    let mut wallet = wallet().write().await;
+
+    let final_event = match wallet.identify_redirect_uri(&url) {
         RedirectUriType::PidIssuance => {
             let auth_event = UriFlowEvent::DigidAuth {
                 state: DigidState::Authenticating,
             };
             sink.add(auth_event);
 
-            let mut wallet = wallet().write().await;
-
             wallet.continue_pid_issuance(&url).await.map_or_else(
                 |error| {
-                    warn!("Issue PID error: {}", error);
-                    info!("Issue PID error details: {:?}", error);
+                    warn!("PID issuance error: {}", error);
+                    info!("PID issuance error details: {:?}", error);
 
                     UriFlowEvent::DigidAuth {
                         state: DigidState::Error, // TODO: add error details to state

@@ -435,9 +435,11 @@ where
     pub async fn start_pid_issuance(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
+        let config = &self.config_repository.config().pid_issuance;
+
         let auth_url = self
             .digid_client
-            .start_session()
+            .start_session(&config.digid_url, &config.digid_client_id, &config.digid_redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionStart)?;
 
@@ -446,8 +448,8 @@ where
         Ok(auth_url)
     }
 
-    pub fn identify_redirect_uri(url: &Url) -> RedirectUriType {
-        if D::is_redirect_uri(url) {
+    pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
+        if self.digid_client.accepts_redirect_uri(redirect_uri) {
             return RedirectUriType::PidIssuance;
         }
 
@@ -455,12 +457,12 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_url: &Url) -> Result<String, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<String, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         let access_token = self
             .digid_client
-            .get_access_token(redirect_url)
+            .get_access_token(redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
 
@@ -468,7 +470,10 @@ where
 
         let bsn = self
             .pid_issuer_client
-            .extract_bsn(&access_token)
+            .extract_bsn(
+                &self.config_repository.config().pid_issuance.pid_issuer_url,
+                &access_token,
+            )
             .await
             .map_err(PidIssuanceError::PidIssuer)?;
 

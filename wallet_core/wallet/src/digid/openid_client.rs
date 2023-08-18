@@ -26,9 +26,13 @@ pub trait OpenIdClient {
     where
         Self: Sized;
 
+    /// Return a reference to the `redirect_uri` provided during discovery.
+    fn redirect_uri(&self) -> &Url;
+
     /// Generate an authentication URL for the configured issuer.
     /// This takes several generated tokens as parameters.
     fn auth_url(&self, csrf_token: &str, nonce: &str, pkce_challenge: &str) -> Url;
+
     /// Use an authentication code received in the redirect URI to fetch and validate an access token
     /// from the issuer. This requires both the nonce provided when generating the authentication URL
     /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
@@ -40,7 +44,10 @@ pub trait OpenIdClient {
     ) -> Result<String, OpenIdClientError>;
 }
 
-pub struct RemoteOpenIdClient(Client);
+pub struct RemoteOpenIdClient {
+    openid_client: Client,
+    redirect_uri: Url,
+}
 
 #[async_trait]
 impl OpenIdClient for RemoteOpenIdClient {
@@ -55,16 +62,23 @@ impl OpenIdClient for RemoteOpenIdClient {
         let openid_client =
             Client::discover_with_client(http_client, client_id, None, redirect_uri.to_string(), issuer_url).await?;
         // Wrap the newly created `Client` instance in our newtype.
-        let client = RemoteOpenIdClient(openid_client);
+        let client = RemoteOpenIdClient {
+            openid_client,
+            redirect_uri,
+        };
 
         Ok(client)
+    }
+
+    fn redirect_uri(&self) -> &Url {
+        &self.redirect_uri
     }
 
     fn auth_url(&self, csrf_token: &str, nonce: &str, pkce_challenge: &str) -> Url {
         // Collect all scopes supported by the issuer (as populated during discovery)
         // and join them together, separated by spaces.
         let scopes_supported = self
-            .0
+            .openid_client
             .config()
             .scopes_supported
             .as_ref()
@@ -79,7 +93,7 @@ impl OpenIdClient for RemoteOpenIdClient {
             ..Default::default()
         };
 
-        self.0.auth_url_pkce(&options, pkce_challenge)
+        self.openid_client.auth_url_pkce(&options, pkce_challenge)
     }
 
     async fn authenticate(
@@ -89,7 +103,10 @@ impl OpenIdClient for RemoteOpenIdClient {
         pkce_verifier: &str,
     ) -> Result<String, OpenIdClientError> {
         // Forward the received method parameters to our `Client` instance.
-        let token = self.0.authenticate_pkce(auth_code, pkce_verifier, nonce, None).await?;
+        let token = self
+            .openid_client
+            .authenticate_pkce(auth_code, pkce_verifier, nonce, None)
+            .await?;
 
         // Double check if the received token had an ID token, otherwise
         // validation of the token will not actually have taken place.

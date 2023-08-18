@@ -2,20 +2,12 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use url::Url;
 
 use super::{PidIssuerClient, PidIssuerError};
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
-
-/// The base url of the PID issuer.
-// NOTE: MUST end with a slash
-// TODO: read from configuration
-// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-static PID_ISSUER_BASE_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
 
 pub struct RemotePidIssuerClient {
     http_client: reqwest::Client,
@@ -45,8 +37,8 @@ impl Default for RemotePidIssuerClient {
 
 #[async_trait]
 impl PidIssuerClient for RemotePidIssuerClient {
-    async fn extract_bsn(&self, access_token: &str) -> Result<String, PidIssuerError> {
-        let url = PID_ISSUER_BASE_URL
+    async fn extract_bsn(&self, base_url: &Url, access_token: &str) -> Result<String, PidIssuerError> {
+        let url = base_url
             .join("extract_bsn")
             .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
 
