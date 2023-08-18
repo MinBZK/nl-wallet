@@ -228,14 +228,16 @@ async fn test_block() {
     let result = wallet
         .unlock("555556".to_string())
         .await
-        .expect_err("invalid pin should return error");
+        .expect_err("invalid pin should block wallet");
     assert_matches!(result, WalletUnlockError::Blocked);
     assert!(wallet.is_locked());
 
-    wallet
+    let result = wallet
         .unlock("112234".to_string())
         .await
         .expect_err("wallet should be blocked");
+    assert_matches!(result, WalletUnlockError::Blocked);
+    assert!(wallet.is_locked());
 }
 
 #[tokio::test]
