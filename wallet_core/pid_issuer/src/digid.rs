@@ -20,7 +20,7 @@ use openid::{
 use serde_json::Value;
 use tracing::debug;
 
-use crate::{app::BsnLookup, settings::Settings};
+use crate::{app::BsnLookup, settings};
 
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
@@ -62,17 +62,25 @@ pub struct OpenIdClient(openid::Client, RsaesJweDecrypter);
 impl BsnLookup for OpenIdClient {
     type Error = Error;
 
-    async fn new(settings: &Settings) -> Result<Self> {
+    async fn bsn(&self, access_token: &str) -> Result<String> {
+        let userinfo_claims: UserInfoJWT = self.request_userinfo_decrypted_claims(access_token, &self.1).await?;
+
+        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
+    }
+}
+
+impl OpenIdClient {
+    pub async fn new(digid_settings: &settings::Digid) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
         let client = openid::Client::discover_with_client(
             http_client,
-            settings.digid.client_id.clone(),
+            digid_settings.client_id.clone(),
             None,
             None,
-            settings.digid.issuer_url.clone(),
+            digid_settings.issuer_url.clone(),
         )
         .await?;
 
@@ -83,18 +91,10 @@ impl BsnLookup for OpenIdClient {
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        let userinfo_client = OpenIdClient(client, OpenIdClient::decrypter(&settings.digid.bsn_privkey)?);
+        let userinfo_client = OpenIdClient(client, OpenIdClient::decrypter(&digid_settings.bsn_privkey)?);
         Ok(userinfo_client)
     }
 
-    async fn bsn(&self, access_token: &str) -> Result<String> {
-        let userinfo_claims: UserInfoJWT = self.request_userinfo_decrypted_claims(access_token, &self.1).await?;
-
-        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
-    }
-}
-
-impl OpenIdClient {
     pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
         let jwk = serde_json::from_str(jwk_json)?;
         let decrypter = jwe::RSA_OAEP.decrypter_from_jwk(&jwk)?;

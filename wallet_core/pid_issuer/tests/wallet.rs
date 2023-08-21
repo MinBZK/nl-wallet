@@ -61,11 +61,7 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn start_pid_issuer<A, B>() -> u16
-where
-    A: AttributesLookup + Send + Sync + 'static,
-    B: BsnLookup + Send + Sync + 'static,
-{
+fn pid_issuer_settings() -> (Settings, u16) {
     let port = find_listener_port();
 
     let mut settings = Settings::new().expect("Could not read settings");
@@ -73,16 +69,27 @@ where
     settings.webserver.port = port;
     settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
 
-    tokio::spawn(async { server::serve::<A, B>(settings).await.expect("Could not start server") });
+    (settings, port)
+}
+
+fn start_pid_issuer<A, B>(settings: Settings, attributes_lookup: A, bsn_lookup: B)
+where
+    A: AttributesLookup + Send + Sync + 'static,
+    B: BsnLookup + Send + Sync + 'static,
+{
+    tokio::spawn(async {
+        server::serve::<A, B>(settings, attributes_lookup, bsn_lookup)
+            .await
+            .expect("Could not start server")
+    });
 
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
-
-    port
 }
 
 #[tokio::test]
 async fn test_pid_issuance_mock_bsn() {
-    let port = start_pid_issuer::<MockAttributesLookup, MockBsnLookup>();
+    let (settings, port) = pid_issuer_settings();
+    start_pid_issuer(settings, MockAttributesLookup, MockBsnLookup);
     let config = test_wallet_config(local_base_url(port)).0;
 
     // Start the PID issuance session, sending a mock access token which the `MockBsnLookup` always accepts
@@ -134,7 +141,9 @@ fn always_agree() -> impl IssuanceUserConsent {
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
-    let port = start_pid_issuer::<MockAttributesLookup, DigidClient>();
+    let (settings, port) = pid_issuer_settings();
+    let bsn_lookup = DigidClient::new(&settings.digid).await.unwrap();
+    start_pid_issuer(settings, MockAttributesLookup, bsn_lookup);
     let (config, wallet) = create_test_wallet(local_base_url(port)).await;
 
     // Prepare DigiD flow

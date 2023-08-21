@@ -44,7 +44,6 @@ impl IntoResponse for Error {
 pub trait AttributesLookup: Sized {
     type Error: std::error::Error + Into<Error> + Send + Sync;
 
-    async fn new(settings: &Settings) -> Result<Self, Self::Error>;
     async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 
@@ -54,7 +53,6 @@ pub trait AttributesLookup: Sized {
 pub trait BsnLookup: Sized {
     type Error: std::error::Error + Into<Error> + Send + Sync;
 
-    async fn new(settings: &Settings) -> Result<Self, Self::Error>;
     async fn bsn(&self, access_token: &str) -> Result<String, Self::Error>;
 }
 
@@ -64,16 +62,11 @@ struct ApplicationState<A, B> {
     issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
 }
 
-pub async fn create_router<A, B>(settings: Settings) -> anyhow::Result<Router>
+pub async fn create_router<A, B>(settings: Settings, attributes_lookup: A, openid_client: B) -> anyhow::Result<Router>
 where
     A: AttributesLookup + Send + Sync + 'static,
     B: BsnLookup + Send + Sync + 'static,
 {
-    let attributes_lookup = A::new(&settings).map_err(A::Error::into).await?;
-
-    debug!("Discovering DigiD issuer...");
-    let openid_client = B::new(&settings).await?;
-
     debug!("DigiD issuer discovered, starting HTTP server");
 
     let key = SingleKeyRing(PrivateKey::from_der(
@@ -150,21 +143,17 @@ pub mod mock {
         Tdate,
     };
 
-    use crate::{digid, settings::Settings};
+    use crate::digid;
 
     use super::{AttributesLookup, BsnLookup, Error};
 
     const MOCK_BSN: &str = "999991772";
 
-    pub struct MockBsnLookup {}
+    pub struct MockBsnLookup;
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
         type Error = digid::Error;
-
-        async fn new(_: &Settings) -> Result<Self, Self::Error> {
-            Ok(Self {})
-        }
 
         async fn bsn(&self, _: &str) -> Result<String, Self::Error> {
             Ok(MOCK_BSN.to_string())
@@ -178,11 +167,6 @@ pub mod mock {
     #[async_trait]
     impl AttributesLookup for MockAttributesLookup {
         type Error = Error;
-
-        async fn new(_: &Settings) -> Result<Self, Self::Error> {
-            let val = Self {};
-            Ok(val)
-        }
 
         async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error> {
             let pid = UnsignedMdoc {
