@@ -75,18 +75,12 @@ pub trait KeyRing {
     }
 }
 
-pub struct SingleKeyRing {
-    pub doctype: DocType,
-    pub issuance_key: PrivateKey,
-}
+/// An implementation of [`KeyRing`] containing a single key.
+pub struct SingleKeyRing(pub PrivateKey);
 
 impl KeyRing for SingleKeyRing {
-    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey> {
-        if *doctype == self.doctype {
-            Some(&self.issuance_key)
-        } else {
-            None
-        }
+    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+        Some(&self.0)
     }
 }
 

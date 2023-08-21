@@ -2,7 +2,6 @@
 # All key material should be replaced with secret values.
 
 # public_url: "http://localhost:3003/"
-# pid_doctype = "nl.voorbeeldwallet.test.pid"
 
 [webserver]
 # ip = "0.0.0.0"

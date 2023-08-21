@@ -76,13 +76,10 @@ where
 
     debug!("DigiD issuer discovered, starting HTTP server");
 
-    let key = SingleKeyRing {
-        doctype: settings.pid_doctype.clone(),
-        issuance_key: PrivateKey::from_der(
-            &BASE64_STANDARD.decode(&settings.issuer_key.private_key)?,
-            &BASE64_STANDARD.decode(&settings.issuer_key.certificate)?,
-        )?,
-    };
+    let key = SingleKeyRing(PrivateKey::from_der(
+        &BASE64_STANDARD.decode(&settings.issuer_key.private_key)?,
+        &BASE64_STANDARD.decode(&settings.issuer_key.certificate)?,
+    )?);
     let application_state = Arc::new(ApplicationState {
         attributes_lookup,
         openid_client,
@@ -174,29 +171,27 @@ pub mod mock {
         }
     }
 
-    pub struct MockAttributesLookup {
-        doctype: String,
-    }
+    pub struct MockAttributesLookup;
+
+    const MOCK_PID_DOCTYPE: &str = "com.example.pid";
 
     #[async_trait]
     impl AttributesLookup for MockAttributesLookup {
         type Error = Error;
 
-        async fn new(settings: &Settings) -> Result<Self, Self::Error> {
-            let val = Self {
-                doctype: settings.pid_doctype.clone(),
-            };
+        async fn new(_: &Settings) -> Result<Self, Self::Error> {
+            let val = Self {};
             Ok(val)
         }
 
         async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error> {
             let pid = UnsignedMdoc {
-                doc_type: self.doctype.clone(),
+                doc_type: MOCK_PID_DOCTYPE.to_string(),
                 count: 1,
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
-                    self.doctype.clone(),
+                    MOCK_PID_DOCTYPE.to_string(),
                     vec![Entry {
                         name: "bsn".to_string(),
                         value: Value::Text(bsn.to_string()),
