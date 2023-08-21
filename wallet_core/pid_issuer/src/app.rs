@@ -86,7 +86,11 @@ where
     let application_state = Arc::new(ApplicationState {
         attributes_lookup,
         openid_client,
-        issuer: issuer::Server::new(settings.public_url.to_string(), key, MemorySessionStore::new()),
+        issuer: issuer::Server::new(
+            settings.public_url.join("mdoc").unwrap().to_string(),
+            key,
+            MemorySessionStore::new(),
+        ),
     });
 
     let app = Router::new()

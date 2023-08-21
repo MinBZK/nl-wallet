@@ -43,7 +43,7 @@ impl Settings {
             .set_default("pid_doctype", "nl.voorbeeldwallet.test.pid")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3003)?
-            .set_default("public_url", "http://localhost:3003/mdoc/")?
+            .set_default("public_url", "http://localhost:3003/")?
             .set_default(
                 "digid.issuer_url",
                 "https://example.com/digid-connector",

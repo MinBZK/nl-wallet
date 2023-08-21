@@ -71,7 +71,7 @@ where
     let mut settings = Settings::new().expect("Could not read settings");
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").expect("Could not parse IP address");
     settings.webserver.port = port;
-    settings.public_url = format!("http://localhost:{}/mdoc/", port).parse().unwrap();
+    settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
 
     tokio::spawn(async { server::serve::<A, B>(settings).await.expect("Could not start server") });
 
