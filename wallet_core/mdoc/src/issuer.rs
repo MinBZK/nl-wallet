@@ -46,10 +46,10 @@ impl PrivateKey {
         PrivateKey { private_key, cert_bts }
     }
 
-    pub fn from_pem(private_key: &str, cert: &str) -> Result<PrivateKey> {
+    pub fn from_der(private_key: &[u8], cert: &[u8]) -> Result<PrivateKey> {
         let key = Self::new(
-            SigningKey::from_pkcs8_pem(private_key).map_err(IssuanceError::PemPrivateKey)?,
-            Certificate::from_pem(cert).map_err(IssuanceError::PemCertificate)?,
+            SigningKey::from_pkcs8_der(private_key).map_err(IssuanceError::DerPrivateKey)?,
+            Certificate::from(cert),
         );
         Ok(key)
     }
@@ -75,18 +75,12 @@ pub trait KeyRing {
     }
 }
 
-pub struct SingleKeyRing {
-    pub doctype: DocType,
-    pub issuance_key: PrivateKey,
-}
+/// An implementation of [`KeyRing`] containing a single key.
+pub struct SingleKeyRing(pub PrivateKey);
 
 impl KeyRing for SingleKeyRing {
-    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey> {
-        if *doctype == self.doctype {
-            Some(&self.issuance_key)
-        } else {
-            None
-        }
+    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+        Some(&self.0)
     }
 }
 

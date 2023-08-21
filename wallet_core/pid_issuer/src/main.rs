@@ -1,25 +1,21 @@
-use std::net::SocketAddr;
-
 use anyhow::Result;
+use tracing::debug;
 
-use pid_issuer::{application::create_router, settings::Settings};
-
-async fn serve() -> Result<()> {
-    let settings = Settings::new()?;
-    let addr = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
-    let app = create_router(settings.digid).await?;
-
-    tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr).serve(app.into_make_service()).await?;
-
-    Ok(())
-}
+use pid_issuer::{app::mock::MockAttributesLookup, digid::OpenIdClient, server, settings::Settings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize tracing.
     tracing_subscriber::fmt::init();
 
+    let settings = Settings::new()?;
+
+    debug!("Discovering DigiD issuer...");
+    let bsn_lookup = OpenIdClient::new(&settings.digid).await?;
+
     // This will block unil the server shuts down.
-    serve().await
+    // TODO: `MockAttributesLookup` issues a hardcoded set of mock attributes. Replace with BRP query.
+    server::serve(settings, MockAttributesLookup, bsn_lookup).await?;
+
+    Ok(())
 }

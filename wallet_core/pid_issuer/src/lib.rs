@@ -1,3 +1,4 @@
-pub mod application;
+pub mod app;
+pub mod digid;
+pub mod server;
 pub mod settings;
-pub mod userinfo_client;

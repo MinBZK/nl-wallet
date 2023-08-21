@@ -1,17 +1,26 @@
 //! This module contains `DigidConnector` which supports user authentication through Digid.
 //!
 
+use std::sync::Arc;
+
+use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::future::TryFutureExt;
-use once_cell::sync::Lazy;
 use openid::{error as openid_errors, Bearer, Client, Options, Token};
-use serde::Deserialize;
-use tokio::sync::{Mutex, OnceCell};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
-use wallet_common::utils::random_bytes;
+use nl_wallet_mdoc::{
+    basic_sa_ext::RequestKeyGenerationMessage,
+    holder::{cbor_http_client_builder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    utils::mdocs_map::MdocsMap,
+    ServiceEngagement,
+};
+use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_bytes};
 
-use crate::openid::{OpenIdClientExtensions, UrlExtension};
+use crate::{
+    config::PidIssuanceConfiguration,
+    openid::{OpenIdClientExtensions, UrlExtension},
+};
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
@@ -25,26 +34,7 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const CHALLENGE_METHOD_S256: &str = "S256";
 const GRANT_TYPE_AUTHORIZATION_CODE: &str = "authorization_code";
 
-// TODO: Read from configuration.
-static DIGID_ISSUER_URL: Lazy<Url> = Lazy::new(|| {
-    Url::parse("https://example.com/digid-connector")
-        .expect("Could not parse DigiD issuer URL")
-});
-
-/// The base url of the PID issuer.
-// NOTE: MUST end with a slash
-// TODO: read from configuration
-// The android emulator uses 10.0.2.2 as special IP address to connect to localhost of the host OS.
-static PID_ISSUER_BASE_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("http://10.0.2.2:3003/").expect("Could not parse PID issuer base URL"));
-
-// TODO: read the following values from configuration, and align with digid-connector configuration
-const WALLET_CLIENT_ID: &str = "SSSS";
 const WALLET_CLIENT_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
-
-/// Global variable to hold our digid connector
-// Can be lazily initialized, but will eventually depend on an initialized Async runtime, and an initialized network module...
-static DIGID_CONNECTOR: OnceCell<Mutex<DigidConnector>> = OnceCell::const_new();
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -60,26 +50,15 @@ pub enum Error {
     PidIssuer(#[from] reqwest::Error),
     #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
     PidIssuerResponse(#[source] reqwest::Error, String),
-}
-
-#[derive(Deserialize)]
-struct BsnResponse {
-    bsn: String,
-}
-
-pub async fn get_or_initialize_digid_connector() -> Result<&'static Mutex<DigidConnector>> {
-    DIGID_CONNECTOR
-        .get_or_try_init(|| async {
-            let connector = DigidConnector::create().await?;
-
-            Ok(Mutex::new(connector))
-        })
-        .await
+    #[error("mdoc error: {0}")]
+    MdocError(#[from] nl_wallet_mdoc::Error),
 }
 
 pub struct DigidConnector {
     client: Client,
     session_state: Option<DigidSessionState>,
+    pid_issuer_url: Url,
+    mdoc_trust_anchors: Arc<Vec<TrustAnchor<'static>>>,
 }
 
 struct DigidSessionState {
@@ -90,18 +69,23 @@ struct DigidSessionState {
 }
 
 impl DigidConnector {
-    pub async fn create() -> Result<Self> {
+    pub async fn create(
+        conf: PidIssuanceConfiguration,
+        mdoc_trust_anchors: Arc<Vec<TrustAnchor<'static>>>,
+    ) -> Result<DigidConnector> {
         let client = Client::discover_with_client(
             reqwest::Client::new(),
-            WALLET_CLIENT_ID.to_string(),
+            conf.digid_client_id,
             None,
             Some(WALLET_CLIENT_REDIRECT_URI.to_string()),
-            DIGID_ISSUER_URL.clone(),
+            conf.digid_url,
         )
         .await?;
         Ok(Self {
             client,
             session_state: None,
+            pid_issuer_url: conf.pid_issuer_url,
+            mdoc_trust_anchors,
         })
     }
 
@@ -202,12 +186,14 @@ impl DigidConnector {
         Ok(bearer_token.access_token)
     }
 
-    pub async fn issue_pid(&self, access_token: String) -> Result<String> {
-        let url = PID_ISSUER_BASE_URL
-            .join("extract_bsn")
-            .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
+    pub async fn issue_pid(&mut self, url: Url) -> Result<()> {
+        let access_token = self.get_access_token(url).await?;
+        let url = self
+            .pid_issuer_url
+            .join("start")
+            .expect("Could not create \"start\" URL from PID issuer base URL");
 
-        let bsn_response = self
+        let service_engagement = self
             .client
             .http_client
             .post(url)
@@ -232,10 +218,20 @@ impl DigidConnector {
                 }
             })
             .await?
-            .json::<BsnResponse>()
+            .json::<ServiceEngagement>()
             .await?;
 
-        Ok(bsn_response.bsn)
+        let mdocs = MdocWallet::new(MdocsMap::new());
+        mdocs
+            .do_issuance::<SoftwareEcdsaKey>(
+                service_engagement,
+                &always_agree(),
+                &cbor_http_client_builder(),
+                self.mdoc_trust_anchors.as_ref(),
+            )
+            .await?;
+
+        Ok(())
     }
 
     fn validate_id_token(&self, bearer_token: &Bearer, options: &Options) -> Result<()> {
@@ -247,4 +243,15 @@ impl DigidConnector {
             .validate_custom_token(&id_token, options.nonce.as_deref(), options.max_age.as_ref())?;
         Ok(())
     }
+}
+
+fn always_agree() -> impl IssuanceUserConsent {
+    struct AlwaysAgree;
+    #[async_trait]
+    impl IssuanceUserConsent for AlwaysAgree {
+        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+            true
+        }
+    }
+    AlwaysAgree
 }

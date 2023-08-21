@@ -1,16 +1,10 @@
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{self, BufReader},
-    path::Path,
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 
+use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::header;
 use josekit::{
     jwe::{self, alg::rsaes::RsaesJweDecrypter},
-    jwk::Jwk,
     JoseError,
 };
 use openid::{
@@ -21,7 +15,8 @@ use openid::{
 };
 use serde_json::Value;
 use tracing::debug;
-use url::Url;
+
+use crate::{app::BsnLookup, settings};
 
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
@@ -39,73 +34,69 @@ pub enum Error {
     #[error(transparent)]
     OpenId(#[from] openid_errors::Error),
     #[error(transparent)]
+    OpenIdClient(#[from] openid_errors::ClientError),
+    #[error(transparent)]
+    OpenIdUserinfo(#[from] openid_errors::Userinfo),
+    #[error(transparent)]
     JoseKit(#[from] JoseError),
+    #[error("no BSN found in response from OIDC server")]
+    NoBSN,
+    #[error(transparent)]
+    Jwe(#[from] biscuit_errors::Error),
+    #[error(transparent)]
+    JweValidation(#[from] biscuit_errors::ValidationError),
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
-impl From<biscuit_errors::Error> for Error {
-    fn from(value: biscuit_errors::Error) -> Self {
-        openid_errors::Error::from(value).into()
+/// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
+pub struct OpenIdClient {
+    client: openid::Client,
+    decrypter_private_key: RsaesJweDecrypter,
+}
+
+#[async_trait]
+impl BsnLookup for OpenIdClient {
+    async fn bsn(&self, access_token: &str) -> Result<String> {
+        let userinfo_claims: UserInfoJWT = self
+            .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
+            .await?;
+
+        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
     }
 }
 
-impl From<biscuit_errors::ValidationError> for Error {
-    fn from(value: biscuit_errors::ValidationError) -> Self {
-        biscuit_errors::Error::from(value).into()
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-impl From<openid_errors::ClientError> for Error {
-    fn from(value: openid_errors::ClientError) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        openid_errors::ClientError::from(value).into()
-    }
-}
-
-impl From<openid_errors::Userinfo> for Error {
-    fn from(value: openid_errors::Userinfo) -> Self {
-        openid_errors::Error::from(value).into()
-    }
-}
-
-pub struct Client(openid::Client);
-
-impl Client {
-    pub async fn discover(issuer_url: Url, client_id: impl Into<String>) -> Result<Self> {
+impl OpenIdClient {
+    pub async fn new(digid_settings: &settings::Digid) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
-        let client =
-            openid::Client::discover_with_client(http_client, client_id.into(), None, None, issuer_url).await?;
+        let client = openid::Client::discover_with_client(
+            http_client,
+            digid_settings.client_id.clone(),
+            None,
+            None,
+            digid_settings.issuer_url.clone(),
+        )
+        .await?;
 
+        // Check that the userinfo endpoint was found by discovery
         _ = client
             .config()
             .userinfo_endpoint
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        Ok(Client(client))
+        let userinfo_client = OpenIdClient {
+            client,
+            decrypter_private_key: OpenIdClient::decrypter(&digid_settings.bsn_privkey)?,
+        };
+        Ok(userinfo_client)
     }
 
-    pub fn decrypter_from_jwk_file(path: impl AsRef<Path>) -> Result<RsaesJweDecrypter> {
-        // Open the file in read-only mode with buffer.
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        // Read the JSON contents of the file as JWK,
-        // the create a decrypter from it.
-        let jwk: Jwk = serde_json::from_reader(reader)?;
+    pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
+        let jwk = serde_json::from_str(jwk_json)?;
         let decrypter = jwe::RSA_OAEP.decrypter_from_jwk(&jwk)?;
 
         Ok(decrypter)
@@ -141,14 +132,14 @@ impl Client {
 
         // The JWK set should always be populated by discovery.
         let jwks = self
-            .0
+            .client
             .jwks
             .as_ref()
             .expect("OpenID client JWK set not populated by disovery");
 
         // Get userinfo endpoint from discovery, throw an error otherwise.
         let endpoint = self
-            .0
+            .client
             .config()
             .userinfo_endpoint
             .as_ref()
@@ -157,7 +148,7 @@ impl Client {
 
         // Use the access_token to retrieve the userinfo as a JWE token.
         let jwe_token = self
-            .0
+            .client
             .http_client
             .post(endpoint)
             .header(header::ACCEPT, APPLICATION_JWT)

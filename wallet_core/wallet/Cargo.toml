@@ -41,6 +41,7 @@ url.workspace = true
 
 wallet_common = { path = "../wallet_common" }
 platform_support = { path = "../platform_support" }
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "memory_storage"] } # TODO remove features once actual storage is used
 
 # enable the "software" feature for platform_support when running tests
 [dev-dependencies]
