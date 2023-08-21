@@ -50,14 +50,19 @@ pub enum Error {
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
-pub struct OpenIdClient(openid::Client, RsaesJweDecrypter);
+pub struct OpenIdClient {
+    client: openid::Client,
+    decrypter_private_key: RsaesJweDecrypter,
+}
 
 #[async_trait]
 impl BsnLookup for OpenIdClient {
     type Error = Error;
 
     async fn bsn(&self, access_token: &str) -> Result<String> {
-        let userinfo_claims: UserInfoJWT = self.request_userinfo_decrypted_claims(access_token, &self.1).await?;
+        let userinfo_claims: UserInfoJWT = self
+            .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
+            .await?;
 
         OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
     }
@@ -85,7 +90,10 @@ impl OpenIdClient {
             .as_ref()
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
-        let userinfo_client = OpenIdClient(client, OpenIdClient::decrypter(&digid_settings.bsn_privkey)?);
+        let userinfo_client = OpenIdClient {
+            client,
+            decrypter_private_key: OpenIdClient::decrypter(&digid_settings.bsn_privkey)?,
+        };
         Ok(userinfo_client)
     }
 
@@ -126,14 +134,14 @@ impl OpenIdClient {
 
         // The JWK set should always be populated by discovery.
         let jwks = self
-            .0
+            .client
             .jwks
             .as_ref()
             .expect("OpenID client JWK set not populated by disovery");
 
         // Get userinfo endpoint from discovery, throw an error otherwise.
         let endpoint = self
-            .0
+            .client
             .config()
             .userinfo_endpoint
             .as_ref()
@@ -142,7 +150,7 @@ impl OpenIdClient {
 
         // Use the access_token to retrieve the userinfo as a JWE token.
         let jwe_token = self
-            .0
+            .client
             .http_client
             .post(endpoint)
             .header(header::ACCEPT, APPLICATION_JWT)
