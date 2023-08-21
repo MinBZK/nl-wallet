@@ -7,7 +7,7 @@ rust-version.workspace = true
 [features]
 mock = []
 default = ["mock"] # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
-live_test = []
+digid_test = []
 
 [dependencies]
 anyhow.workspace = true
