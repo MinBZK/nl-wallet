@@ -40,20 +40,15 @@ impl IntoResponse for Error {
 }
 
 /// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
-#[async_trait]
 pub trait AttributesLookup {
-    type Error: std::error::Error + Into<Error> + Send + Sync;
-
-    async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+    fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc>;
 }
 
 /// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
 /// Contract for the DigiD bridge.
 #[async_trait]
 pub trait BsnLookup {
-    type Error: std::error::Error + Into<Error> + Send + Sync;
-
-    async fn bsn(&self, access_token: &str) -> Result<String, Self::Error>;
+    async fn bsn(&self, access_token: &str) -> Result<String, digid::Error>;
 }
 
 struct ApplicationState<A, B> {
@@ -117,12 +112,11 @@ where
         .openid_client
         .bsn(access_token)
         .inspect_err(|error| error!("error while looking up BSN: {}", error))
-        .map_err(B::Error::into)
         .await?;
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
-    let attributes = state.attributes_lookup.attributes(&bsn).map_err(A::Error::into).await?;
+    let attributes = state.attributes_lookup.attributes(&bsn);
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
 
     Ok(Json(service_engagement))
@@ -145,7 +139,7 @@ pub mod mock {
 
     use crate::digid;
 
-    use super::{AttributesLookup, BsnLookup, Error};
+    use super::{AttributesLookup, BsnLookup};
 
     const MOCK_BSN: &str = "999991772";
 
@@ -153,9 +147,7 @@ pub mod mock {
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
-        type Error = digid::Error;
-
-        async fn bsn(&self, _: &str) -> Result<String, Self::Error> {
+        async fn bsn(&self, _: &str) -> Result<String, digid::Error> {
             Ok(MOCK_BSN.to_string())
         }
     }
@@ -164,11 +156,8 @@ pub mod mock {
 
     const MOCK_PID_DOCTYPE: &str = "com.example.pid";
 
-    #[async_trait]
     impl AttributesLookup for MockAttributesLookup {
-        type Error = Error;
-
-        async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error> {
+        fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc> {
             let pid = UnsignedMdoc {
                 doc_type: MOCK_PID_DOCTYPE.to_string(),
                 count: 1,
@@ -182,7 +171,7 @@ pub mod mock {
                     }],
                 )]),
             };
-            Ok(vec![pid])
+            vec![pid]
         }
     }
 }

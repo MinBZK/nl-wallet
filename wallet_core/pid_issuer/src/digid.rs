@@ -57,8 +57,6 @@ pub struct OpenIdClient {
 
 #[async_trait]
 impl BsnLookup for OpenIdClient {
-    type Error = Error;
-
     async fn bsn(&self, access_token: &str) -> Result<String> {
         let userinfo_claims: UserInfoJWT = self
             .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
