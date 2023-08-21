@@ -129,7 +129,7 @@ fn always_agree() -> impl IssuanceUserConsent {
     AlwaysAgree
 }
 
-// This test connects to the DigiD brug and is disabled by default.
+// This test connects to the DigiD bridge and is disabled by default.
 // Enable the `live_test` feature to include it.
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
