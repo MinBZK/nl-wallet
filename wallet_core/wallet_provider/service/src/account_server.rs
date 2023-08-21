@@ -1,6 +1,7 @@
 use chrono::{DateTime, Local};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tracing::debug;
 use uuid::Uuid;
 
 use wallet_common::{
@@ -232,18 +233,31 @@ impl AccountServer {
     where
         T: Committable,
     {
+        debug!("Starting database transaction");
+
         let tx = repositories.begin_transaction().await?;
+
+        debug!("Verifying certificate and retrieving wallet user");
 
         let user = self
             .verify_wallet_certificate(&challenge_request.certificate, repositories)
             .await?;
 
+        debug!("Parsing and verifying challenge request for user {}", user.id);
+
         let parsed = challenge_request.message.parse_and_verify(&user.hw_pubkey.into())?;
+
+        debug!(
+            "Verifying sequence number - provided: {}, known: {}",
+            parsed.sequence_number, user.instruction_sequence_number
+        );
 
         if parsed.sequence_number <= user.instruction_sequence_number {
             tx.commit().await?;
             return Err(ChallengeError::SequenceNumberValidation);
         }
+
+        debug!("Sequence number valid, persisting generated challenge and incremented sequence number");
 
         let challenge = random_bytes(32);
 
@@ -256,6 +270,8 @@ impl AccountServer {
             )
             .await?;
         tx.commit().await?;
+
+        debug!("Responding with generated challenge");
 
         Ok(challenge)
     }
@@ -272,15 +288,26 @@ impl AccountServer {
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
         R: Serialize + DeserializeOwned,
     {
+        debug!("Verifying certificate and retrieving wallet user");
+
         let wallet_user = self
             .verify_wallet_certificate(&instruction.certificate, repositories)
             .await?;
 
+        debug!(
+            "Starting database transaction and instruction handling process for user {}",
+            &wallet_user.id
+        );
+
         let tx = repositories.begin_transaction().await?;
+
+        debug!("Clearing instruction challenge");
 
         repositories
             .clear_instruction_challenge(&tx, &wallet_user.wallet_id)
             .await?;
+
+        debug!("Evaluating pin policy state");
 
         let pin_eval = pin_policy.evaluate(
             wallet_user.unsuccessful_pin_entries + 1,
@@ -296,11 +323,18 @@ impl AccountServer {
             return Err(pin_eval.into());
         }
 
+        debug!("Verifying instruction");
+
         match self.verify_instruction(instruction, &wallet_user) {
             Ok(payload) => {
+                debug!("Instruction successfully verified, resetting pin retries");
+
                 repositories
                     .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id)
                     .await?;
+
+                debug!("Updating instruction sequence number to {}", payload.sequence_number);
+
                 repositories
                     .update_instruction_sequence_number(&tx, &wallet_user.wallet_id, payload.sequence_number)
                     .await?;
@@ -311,6 +345,8 @@ impl AccountServer {
             }
             Err(validation_error) => {
                 let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
+                    debug!("Instruction validation failed, registering unsuccessful pin entry");
+
                     repositories
                         .register_unsuccessful_pin_entry(
                             &tx,
@@ -339,11 +375,15 @@ impl AccountServer {
     where
         T: Committable,
     {
+        debug!("Parsing message to lookup public keys");
+
         // We don't have the public keys yet against which to verify the message, as those are contained within the
         // message (like in X509 certificate requests). So first parse it to grab the public keys from it.
         let unverified = registration_message
             .dangerous_parse_unverified()
             .map_err(RegistrationError::MessageParsing)?;
+
+        debug!("Extracting challenge, wallet id, hw pubkey and pin pubkey");
 
         let challenge = &unverified.challenge.0;
         let wallet_id = self.verify_registration_challenge(challenge)?.wallet_id;
@@ -351,17 +391,24 @@ impl AccountServer {
         let hw_pubkey = unverified.payload.hw_pubkey.0;
         let pin_pubkey = unverified.payload.pin_pubkey.0;
 
+        debug!("Checking if challenge is signed with the provided hw and pin keys");
+
         registration_message
             .parse_and_verify(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
             .map_err(RegistrationError::MessageValidation)?;
 
+        debug!("Starting database transaction");
+
         let tx = repositories.begin_transaction().await?;
 
+        debug!("Creating new wallet user");
+
+        let uuid = uuid_generator.generate();
         repositories
             .create_wallet_user(
                 &tx,
                 WalletUserCreate {
-                    id: uuid_generator.generate(),
+                    id: uuid,
                     wallet_id: wallet_id.clone(),
                     hw_pubkey_der: hw_pubkey
                         .to_public_key_der()
@@ -374,6 +421,8 @@ impl AccountServer {
                 },
             )
             .await?;
+
+        debug!("Generating new wallet certificate for user {}", uuid);
 
         let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)?;
 
@@ -422,16 +471,26 @@ impl AccountServer {
     where
         T: Committable,
     {
+        debug!("Parsing and verifying the provided certificate");
+
         let cert_data = certificate.parse_and_verify(&self.certificate_pubkey)?;
 
+        debug!("Starting database transaction");
+
         let tx = wallet_user_repository.begin_transaction().await?;
+
+        debug!("Fetching the user associated to the provided certificate");
 
         let user = wallet_user_repository
             .find_wallet_user_by_wallet_id(&tx, &cert_data.wallet_id)
             .await?;
         tx.commit().await?;
 
+        debug!("Generating pin public key hash");
+
         let hash = pubkey_to_hash(self.pin_hash_salt.clone(), user.pin_pubkey.0)?;
+
+        debug!("Verifying user matches the provided certificate");
 
         if hash != cert_data.pin_pubkey_hash {
             Err(WalletCertificateError::PinPubKeyMismatch)
