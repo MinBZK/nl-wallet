@@ -403,6 +403,45 @@ deploy-android-app:
     - bundle install
     - bundle exec fastlane android ci_deploy
 
+dependency-check-images:
+  extends: .env-k8s
+  rules: !reference [ .default-branch, rules ]
+  needs:
+    - job: build-wp-image
+      artifacts: false
+    - job: build-wp-migrations-image
+      artifacts: false
+    - job: build-pi-image
+      artifacts: false
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:58ecccac7614a2f3119fb8b3a8f4b3bc81d9aee90e06b8c50d33b281a605cccb"
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - IMAGES=(
+      "nl-wallet-app-builder-android-flutter-rust"
+      "nl-wallet-app-builder-flutter"
+      "nl-wallet-app-builder-flutter-rust"
+      "nl-wallet-app-builder-ruby"
+      "nl-wallet-app-builder-rust"
+      "nl-wallet-provider-migrations"
+      "nl-wallet-provider"
+      "nl-pid-issuer"
+      )
+    - mkdir -p trivy
+  script:
+    - |
+      BASIC_AUTH="${HARBOR_GN2_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_GN2_ROBOT_SECRET})"
+      for IMAGE in "${IMAGES[@]}"; do
+        ARTIFACTS_URL="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${IMAGE}/artifacts?page_size=1&page=1&sort=-push_time"
+        VULNERABILITIES_HREF=$(curl --user "${BASIC_AUTH}" --url "${ARTIFACTS_URL}" | jq ".[] | .addition_links.vulnerabilities.href" | sed -e 's/^"//' -e 's/"$//')
+        VULNERABILITIES_URL="https://${HARBOR_REGISTRY}${VULNERABILITIES_HREF}"
+        curl --user "${BASIC_AUTH}" -o "trivy/${IMAGE}.json" $VULNERABILITIES_URL
+      done
+  artifacts:
+    paths:
+      - trivy
+
 upload-browserstack-android-app:
   extends: .env-k8s
   rules: !reference [ .default-branch, rules ]
