@@ -41,7 +41,7 @@ impl IntoResponse for Error {
 
 /// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
 #[async_trait]
-pub trait AttributesLookup: Sized {
+pub trait AttributesLookup {
     type Error: std::error::Error + Into<Error> + Send + Sync;
 
     async fn attributes(&self, bsn: &str) -> Result<Vec<UnsignedMdoc>, Self::Error>;
@@ -50,7 +50,7 @@ pub trait AttributesLookup: Sized {
 /// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
 /// Contract for the DigiD bridge.
 #[async_trait]
-pub trait BsnLookup: Sized {
+pub trait BsnLookup {
     type Error: std::error::Error + Into<Error> + Send + Sync;
 
     async fn bsn(&self, access_token: &str) -> Result<String, Self::Error>;
