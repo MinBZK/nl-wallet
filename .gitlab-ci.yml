@@ -409,7 +409,7 @@ dependency-check-images:
       artifacts: false
     - job: build-wp-migrations-image
       artifacts: false
-    - job: build-pi-image
+    - job: build-pid-issuer-image
       artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:58ecccac7614a2f3119fb8b3a8f4b3bc81d9aee90e06b8c50d33b281a605cccb"
@@ -424,7 +424,7 @@ dependency-check-images:
       "nl-wallet-app-builder-rust"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
-      "nl-pid-issuer"
+      "nl-wallet-pid-issuer"
       )
     - mkdir -p trivy
   script:
