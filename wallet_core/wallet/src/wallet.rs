@@ -417,7 +417,8 @@ where
         self.digid_connector
             .get_or_try_init(|| async {
                 let config = self.config_repository.config();
-                let connector = DigidConnector::create(config.digid.clone(), config.mdoc_trust_anchors.clone()).await?;
+                let connector =
+                    DigidConnector::create(config.pid_issuance.clone(), config.mdoc_trust_anchors.clone()).await?;
                 Ok(Mutex::new(connector))
             })
             .await

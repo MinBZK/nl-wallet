@@ -36,7 +36,7 @@ fn local_base_url(port: u16) -> Url {
 
 fn test_wallet_config(base_url: Url) -> MockConfigurationRepository {
     let mut config = MockConfigurationRepository::default();
-    config.0.digid.pid_issuer_url = base_url;
+    config.0.pid_issuance.pid_issuer_url = base_url;
     config
 }
 
@@ -158,7 +158,7 @@ async fn test_pid_issuance_digid_bridge() {
         .expect("failed to get digid url");
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(&authorization_url, &config.digid.digid_url).await;
+    let redirect_url = fake_digid_auth(&authorization_url, &config.pid_issuance.digid_url).await;
 
     // Consume the redirect URL and do PID issuance
     connector.issue_pid(redirect_url).await.expect("PID issuance failed");

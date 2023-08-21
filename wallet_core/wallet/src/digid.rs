@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_bytes};
 
 use crate::{
-    config::DigidConfiguration,
+    config::PidIssuanceConfiguration,
     openid::{OpenIdClientExtensions, UrlExtension},
 };
 
@@ -70,7 +70,7 @@ struct DigidSessionState {
 
 impl DigidConnector {
     pub async fn create(
-        conf: DigidConfiguration,
+        conf: PidIssuanceConfiguration,
         mdoc_trust_anchors: Arc<Vec<TrustAnchor<'static>>>,
     ) -> Result<DigidConnector> {
         let client = Client::discover_with_client(

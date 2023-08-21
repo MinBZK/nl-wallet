@@ -11,7 +11,7 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
-    pub digid: DigidConfiguration,
+    pub pid_issuance: PidIssuanceConfiguration,
     pub mdoc_trust_anchors: Lazy<Arc<Vec<TrustAnchor<'static>>>>,
 }
 
@@ -32,7 +32,7 @@ pub struct AccountServerConfiguration {
 }
 
 #[derive(Debug, Clone)]
-pub struct DigidConfiguration {
+pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
     pub digid_client_id: String,
@@ -58,7 +58,7 @@ impl Default for Configuration {
                 certificate_public_key: EcdsaDecodingKey::from_sec1(&BASE64_STANDARD.decode("").unwrap()),
                 instruction_result_public_key: EcdsaDecodingKey::from_sec1(&BASE64_STANDARD.decode("").unwrap()),
             },
-            digid: DigidConfiguration {
+            pid_issuance: PidIssuanceConfiguration {
                 pid_issuer_url: Url::parse("http://10.0.2.2:3003/").unwrap(),
                 digid_url: Url::parse(
                     "https://example.com/digid-connector",
