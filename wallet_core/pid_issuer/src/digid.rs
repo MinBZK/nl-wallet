@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    io::{self},
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
@@ -41,8 +37,6 @@ pub enum Error {
     OpenIdClient(#[from] openid_errors::ClientError),
     #[error(transparent)]
     OpenIdUserinfo(#[from] openid_errors::Userinfo),
-    #[error(transparent)]
-    Io(#[from] io::Error),
     #[error(transparent)]
     JoseKit(#[from] JoseError),
     #[error("no BSN found in response from OIDC server")]
