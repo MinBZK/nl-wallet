@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 
-use crate::model::wallet_user::{WalletUser, WalletUserCreate};
+use crate::model::wallet_user::{WalletUserCreate, WalletUserQueryResult};
 
 use super::{errors::PersistenceError, transaction::Committable};
 
@@ -17,7 +17,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-    ) -> Result<WalletUser>;
+    ) -> Result<WalletUserQueryResult>;
 
     async fn clear_instruction_challenge(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
@@ -78,8 +78,8 @@ pub mod stub {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-        ) -> Result<WalletUser> {
-            Ok(WalletUser {
+        ) -> Result<WalletUserQueryResult> {
+            Ok(WalletUserQueryResult::Found(Box::new(WalletUser {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: "wallet_123".to_string(),
                 hw_pubkey: DerVerifyingKey(
@@ -106,7 +106,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: None,
                 instruction_sequence_number: 0,
-            })
+            })))
         }
 
         async fn update_instruction_challenge_and_sequence_number(

@@ -14,6 +14,12 @@ pub struct WalletUser {
     pub instruction_sequence_number: u64,
 }
 
+pub enum WalletUserQueryResult {
+    Found(Box<WalletUser>),
+    NotFound,
+    Blocked,
+}
+
 pub struct WalletUserCreate {
     pub id: uuid::Uuid,
     pub wallet_id: String,

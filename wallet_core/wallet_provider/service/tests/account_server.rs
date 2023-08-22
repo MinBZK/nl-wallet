@@ -8,6 +8,7 @@ use wallet_common::account::messages::{
 };
 use wallet_provider_domain::{
     generator::Generator,
+    model::wallet_user::WalletUserQueryResult,
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
 };
 
@@ -70,10 +71,16 @@ async fn assert_instruction_data(
     has_challenge: bool,
 ) {
     let tx = repos.begin_transaction().await.unwrap();
-    let user = repos.find_wallet_user_by_wallet_id(&tx, wallet_id).await.unwrap();
+    let user_result = repos.find_wallet_user_by_wallet_id(&tx, wallet_id).await.unwrap();
+    match user_result {
+        WalletUserQueryResult::Found(user_boxed) => {
+            let user = *user_boxed;
 
-    assert_eq!(expected_sequence_number, user.instruction_sequence_number);
-    assert!(user.instruction_challenge.is_some() == has_challenge);
+            assert_eq!(expected_sequence_number, user.instruction_sequence_number);
+            assert!(user.instruction_challenge.is_some() == has_challenge);
+        }
+        _ => panic!("User should have been found"),
+    }
 }
 
 #[cfg_attr(not(feature = "db_test"), ignore)]
