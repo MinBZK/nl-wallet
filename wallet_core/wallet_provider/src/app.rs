@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
 use tower_http::trace::TraceLayer;
+use tracing::info;
 
 use wallet_common::account::{
     messages::{
@@ -40,10 +41,14 @@ pub fn router(dependencies: Arc<AppDependencies>) -> Router {
 }
 
 async fn enroll(State(state): State<Arc<AppDependencies>>) -> Result<(StatusCode, Json<Challenge>)> {
+    info!("Received enroll request, creating registration challenge");
+
     let challenge = state.account_server.registration_challenge()?;
     let body = Challenge {
         challenge: challenge.into(),
     };
+
+    info!("Replying with registration challenge");
 
     Ok((StatusCode::OK, body.into()))
 }
@@ -52,12 +57,16 @@ async fn create_wallet(
     State(state): State<Arc<AppDependencies>>,
     Json(payload): Json<SignedDouble<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)> {
+    info!("Received create wallet request, registering with account server");
+
     let cert = state
         .account_server
         .register(state.as_ref(), &state.repositories, payload)
         .await?;
 
     let body = Certificate { certificate: cert };
+
+    info!("Replying with the created wallet certificate");
 
     Ok((StatusCode::CREATED, body.into()))
 }
@@ -66,6 +75,8 @@ async fn instruction_challenge(
     State(state): State<Arc<AppDependencies>>,
     Json(payload): Json<InstructionChallengeRequestMessage>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
+    info!("Received challenge request, creating challenge");
+
     let challenge = state
         .account_server
         .instruction_challenge(payload, &state.repositories)
@@ -75,6 +86,8 @@ async fn instruction_challenge(
         challenge: challenge.into(),
     };
 
+    info!("Replying with the created challenge");
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -82,12 +95,16 @@ async fn check_pin(
     State(state): State<Arc<AppDependencies>>,
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received check pin request, handling the CheckPin instruction");
+
     let result = state
         .account_server
         .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
         .await?;
 
     let body = InstructionResultMessage { result };
+
+    info!("Replying with the instruction result");
 
     Ok((StatusCode::OK, body.into()))
 }

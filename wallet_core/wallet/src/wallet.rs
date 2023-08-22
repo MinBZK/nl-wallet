@@ -457,7 +457,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<String, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<(), PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         let access_token = self
@@ -468,10 +468,12 @@ where
 
         info!("DigiD access token retrieved, starting actual PID issuance");
 
-        let bsn = self
-            .pid_issuer_client
-            .extract_bsn(
-                &self.config_repository.config().pid_issuance.pid_issuer_url,
+        let config = &self.config_repository.config();
+
+        self.pid_issuer_client
+            .retrieve_pid(
+                &config.pid_issuance.pid_issuer_url,
+                &config.mdoc_trust_anchors,
                 &access_token,
             )
             .await
@@ -479,7 +481,7 @@ where
 
         info!("PID received successfully from issuer");
 
-        Ok(bsn)
+        Ok(())
     }
 }
 

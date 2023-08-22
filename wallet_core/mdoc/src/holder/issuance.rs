@@ -29,7 +29,7 @@ use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
 /// Used during a session to construct a HTTP client to interface with the server.
 /// Can be used to pass information to the client that it needs during the session.
 pub trait HttpClientBuilder {
-    type Client: HttpClient;
+    type Client: HttpClient + Send + Sync;
     fn build(&self, service_engagement: ServiceEngagement) -> Self::Client;
 }
 

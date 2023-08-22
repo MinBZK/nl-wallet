@@ -8,12 +8,14 @@ use url::Url;
 pub struct Settings {
     pub webserver: Webserver,
     pub digid: Digid,
+    pub issuer_key: IssuerKey,
+    pub public_url: Url,
 }
 
 #[derive(Deserialize)]
 pub struct Digid {
     pub issuer_url: Url,
-    pub bsn_privkey: PathBuf,
+    pub bsn_privkey: String,
     pub client_id: String,
 }
 
@@ -21,6 +23,12 @@ pub struct Digid {
 pub struct Webserver {
     pub ip: IpAddr,
     pub port: u16,
+}
+
+#[derive(Deserialize)]
+pub struct IssuerKey {
+    pub private_key: String,
+    pub certificate: String,
 }
 
 impl Settings {
@@ -33,13 +41,10 @@ impl Settings {
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3003)?
+            .set_default("public_url", "http://localhost:3003/")?
             .set_default(
                 "digid.issuer_url",
                 "https://example.com/digid-connector",
-            )?
-            .set_default(
-                "digid.bsn_privkey",
-                config_path.join("secrets").join("private_key.jwk").to_str().unwrap(),
             )?
             .set_default("digid.client_id", "SSSS")?
             .add_source(File::from(config_path.join("config")).required(false))

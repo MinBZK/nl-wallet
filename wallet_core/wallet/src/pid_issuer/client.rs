@@ -2,8 +2,15 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
-use serde::Deserialize;
 use url::Url;
+
+use nl_wallet_mdoc::{
+    basic_sa_ext::RequestKeyGenerationMessage,
+    holder::{self, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    utils::mdocs_map::MdocsMap,
+    ServiceEngagement,
+};
+use wallet_common::keys::software::SoftwareEcdsaKey;
 
 use super::{PidIssuerClient, PidIssuerError};
 
@@ -11,11 +18,6 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct RemotePidIssuerClient {
     http_client: reqwest::Client,
-}
-
-#[derive(Deserialize)]
-struct BsnResponse {
-    bsn: String,
 }
 
 impl RemotePidIssuerClient {
@@ -37,12 +39,17 @@ impl Default for RemotePidIssuerClient {
 
 #[async_trait]
 impl PidIssuerClient for RemotePidIssuerClient {
-    async fn extract_bsn(&self, base_url: &Url, access_token: &str) -> Result<String, PidIssuerError> {
+    async fn retrieve_pid(
+        &self,
+        base_url: &Url,
+        mdoc_trust_anchors: &[TrustAnchor],
+        access_token: &str,
+    ) -> Result<(), PidIssuerError> {
         let url = base_url
-            .join("extract_bsn")
-            .expect("Could not create \"extract_bsn\" URL from PID issuer base URL");
+            .join("start")
+            .expect("Could not create \"start\" URL from PID issuer base URL");
 
-        let bsn_response = self
+        let service_engagement = self
             .http_client
             .post(url)
             .bearer_auth(access_token)
@@ -66,9 +73,30 @@ impl PidIssuerClient for RemotePidIssuerClient {
                 }
             })
             .await?
-            .json::<BsnResponse>()
+            .json::<ServiceEngagement>()
             .await?;
 
-        Ok(bsn_response.bsn)
+        let mdocs = MdocWallet::new(MdocsMap::new());
+        mdocs
+            .do_issuance::<SoftwareEcdsaKey>(
+                service_engagement,
+                &always_agree(),
+                &holder::cbor_http_client_builder(),
+                mdoc_trust_anchors,
+            )
+            .await?;
+
+        Ok(())
     }
+}
+
+fn always_agree() -> impl IssuanceUserConsent {
+    struct AlwaysAgree;
+    #[async_trait]
+    impl IssuanceUserConsent for AlwaysAgree {
+        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+            true
+        }
+    }
+    AlwaysAgree
 }
