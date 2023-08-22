@@ -36,11 +36,19 @@ spec:
               cpu: "300m"
           ports:
             - containerPort: 3003
-          volumeMounts:
-            - mountPath: "/secrets"
-              name: nl-pid-issuer-secrets
-              readOnly: true
-      volumes:
-        - name: nl-pid-issuer-secrets
-          secret:
-            secretName: nl-pid-issuer-secrets
+          env:
+            - name: PID_ISSUER_ISSUER_KEY__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-secrets
+                  key: issuer_privkey
+            - name: PID_ISSUER_ISSUER_KEY__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-secrets
+                  key: issuer_cert
+            - name: PID_ISSUER_DIGID__BSN_PRIVKEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-secrets
+                  key: bsn_privkey
