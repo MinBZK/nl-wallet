@@ -9,7 +9,7 @@ use sea_orm::{
 
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::{
-    model::wallet_user::{WalletUser, WalletUserCreate},
+    model::wallet_user::{WalletUser, WalletUserCreate, WalletUserQueryResult},
     repository::PersistenceError,
 };
 
@@ -39,7 +39,7 @@ where
     .map_err(|e| PersistenceError::Execution(e.into()))
 }
 
-pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUser>
+pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -50,22 +50,24 @@ where
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    user.map(|model| {
-        Ok(WalletUser {
-            id: model.id,
-            wallet_id: model.wallet_id.to_string(),
-            pin_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.pin_pubkey_der).unwrap()),
-            hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap()),
-            unsuccessful_pin_entries: model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-            last_unsuccessful_pin_entry: model.last_unsuccessful_pin.map(DateTime::<Local>::from),
-            instruction_challenge: model.instruction_challenge,
-            instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
+    Ok(user
+        .map(|model| {
+            if model.is_blocked {
+                WalletUserQueryResult::Blocked
+            } else {
+                WalletUserQueryResult::Found(Box::new(WalletUser {
+                    id: model.id,
+                    wallet_id: model.wallet_id.to_string(),
+                    pin_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.pin_pubkey_der).unwrap()),
+                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap()),
+                    unsuccessful_pin_entries: model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
+                    last_unsuccessful_pin_entry: model.last_unsuccessful_pin.map(DateTime::<Local>::from),
+                    instruction_challenge: model.instruction_challenge,
+                    instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
+                }))
+            }
         })
-    })
-    .ok_or(PersistenceError::NotFound(format!(
-        "wallet_user with wallet_id: {}",
-        wallet_id
-    )))?
+        .unwrap_or(WalletUserQueryResult::NotFound))
 }
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
 where

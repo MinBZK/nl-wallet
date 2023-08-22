@@ -24,7 +24,7 @@ use wallet_provider_domain::{
     generator::Generator,
     model::{
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
-        wallet_user::{WalletUser, WalletUserCreate},
+        wallet_user::{WalletUser, WalletUserCreate, WalletUserQueryResult},
     },
     repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
     wallet_provider_signing_key::WalletProviderEcdsaKey,
@@ -67,6 +67,8 @@ pub enum WalletCertificateError {
     Validation(#[from] wallet_common::errors::Error),
     #[error("no registered wallet user found")]
     UserNotRegistered,
+    #[error("registered wallet user blocked")]
+    UserBlocked,
     #[error("could not retrieve registered wallet user: {0}")]
     Persistence(#[from] PersistenceError),
 }
@@ -315,10 +317,9 @@ impl AccountServer {
             time_generator.generate(),
         );
 
-        if matches!(
-            pin_eval,
-            PinPolicyEvaluation::InTimeout { timeout: _ } | PinPolicyEvaluation::BlockedPermanently
-        ) {
+        // An evaluation result of blocked permanently can only occur once. This fact is stored in the database
+        // for the wallet_user. Subsequent calls will verify if the user is blocked against the database.
+        if matches!(pin_eval, PinPolicyEvaluation::InTimeout { timeout: _ }) {
             tx.commit().await?;
             return Err(pin_eval.into());
         }
@@ -481,23 +482,37 @@ impl AccountServer {
 
         debug!("Fetching the user associated to the provided certificate");
 
-        let user = wallet_user_repository
+        let user_result = wallet_user_repository
             .find_wallet_user_by_wallet_id(&tx, &cert_data.wallet_id)
             .await?;
         tx.commit().await?;
 
-        debug!("Generating pin public key hash");
+        match user_result {
+            WalletUserQueryResult::NotFound => {
+                debug!("No user found for the provided certificate: {}", &cert_data.wallet_id);
+                Err(WalletCertificateError::UserNotRegistered)
+            }
+            WalletUserQueryResult::Blocked => {
+                debug!("User found for the provided certificate is blocked");
+                Err(WalletCertificateError::UserBlocked)
+            }
+            WalletUserQueryResult::Found(user_box) => {
+                let user = *user_box;
 
-        let hash = pubkey_to_hash(self.pin_hash_salt.clone(), user.pin_pubkey.0)?;
+                debug!("Generating pin public key hash");
 
-        debug!("Verifying user matches the provided certificate");
+                let hash = pubkey_to_hash(self.pin_hash_salt.clone(), user.pin_pubkey.0)?;
 
-        if hash != cert_data.pin_pubkey_hash {
-            Err(WalletCertificateError::PinPubKeyMismatch)
-        } else if user.hw_pubkey != cert_data.hw_pubkey {
-            Err(WalletCertificateError::HwPubKeyMismatch)
-        } else {
-            Ok(user)
+                debug!("Verifying user matches the provided certificate");
+
+                if hash != cert_data.pin_pubkey_hash {
+                    Err(WalletCertificateError::PinPubKeyMismatch)
+                } else if user.hw_pubkey != cert_data.hw_pubkey {
+                    Err(WalletCertificateError::HwPubKeyMismatch)
+                } else {
+                    Ok(user)
+                }
+            }
         }
     }
 
@@ -566,7 +581,6 @@ pub mod stub {
 
     use wallet_provider_domain::{
         generator::stub::FixedGenerator,
-        model::wallet_user::WalletUser,
         repository::{TransactionStarterStub, WalletUserRepositoryStub},
     };
 
@@ -618,7 +632,7 @@ pub mod stub {
             &self,
             transaction: &Self::TransactionType,
             wallet_id: &str,
-        ) -> Result<WalletUser, PersistenceError> {
+        ) -> Result<WalletUserQueryResult, PersistenceError> {
             WalletUserRepositoryStub
                 .find_wallet_user_by_wallet_id(transaction, wallet_id)
                 .await
@@ -759,8 +773,8 @@ mod tests {
             &self,
             _transaction: &Self::TransactionType,
             wallet_id: &str,
-        ) -> Result<WalletUser, PersistenceError> {
-            Ok(WalletUser {
+        ) -> Result<WalletUserQueryResult, PersistenceError> {
+            Ok(WalletUserQueryResult::Found(Box::new(WalletUser {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_string(),
                 hw_pubkey: DerVerifyingKey(self.hw),
@@ -769,7 +783,7 @@ mod tests {
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone(),
                 instruction_sequence_number: self.instruction_sequence_number,
-            })
+            })))
         }
         async fn register_unsuccessful_pin_entry(
             &self,

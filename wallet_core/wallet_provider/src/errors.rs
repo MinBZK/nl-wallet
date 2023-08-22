@@ -10,7 +10,9 @@ use once_cell::sync::Lazy;
 use tracing::log::debug;
 
 use wallet_common::account::messages::errors::{ErrorData, ErrorType};
-use wallet_provider_service::account_server::{ChallengeError, InstructionError, RegistrationError};
+use wallet_provider_service::account_server::{
+    ChallengeError, InstructionError, RegistrationError, WalletCertificateError,
+};
 
 pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
     Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
@@ -78,7 +80,11 @@ where
 
 impl ConvertibleError for ChallengeError {
     fn error_type(&self) -> ErrorType {
-        ErrorType::ChallengeValidation
+        match self {
+            ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked) => ErrorType::AccountBlocked,
+            ChallengeError::WalletCertificate(_) => ErrorType::ChallengeValidation,
+            _ => ErrorType::ChallengeValidation,
+        }
     }
 }
 
