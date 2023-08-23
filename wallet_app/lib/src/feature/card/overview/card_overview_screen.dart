@@ -63,9 +63,12 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildCardListItem(BuildContext context, WalletCard walletCard) {
-    return WalletCardItem.fromCardFront(
-      front: walletCard.front,
-      onPressed: () => _onCardPressed(context, walletCard),
+    return Hero(
+      tag: walletCard.id,
+      child: WalletCardItem.fromCardFront(
+        front: walletCard.front,
+        onPressed: () => _onCardPressed(context, walletCard),
+      ),
     );
   }
 
@@ -94,7 +97,7 @@ class CardOverviewScreen extends StatelessWidget {
           ),
           const Spacer(),
           ElevatedButton(
-            onPressed: () => context.read<CardOverviewBloc>().add(CardOverviewLoadTriggered()),
+            onPressed: () => context.read<CardOverviewBloc>().add(const CardOverviewLoadTriggered()),
             child: Text(context.l10n.generalRetry),
           ),
         ],

@@ -76,8 +76,6 @@ class WalletPersonalizeSuccess extends WalletPersonalizeState {
 
   const WalletPersonalizeSuccess(this.addedCards);
 
-  List<CardFront> get cardFronts => addedCards.map((e) => e.front).toList();
-
   @override
   double get stepperProgress => 1;
 

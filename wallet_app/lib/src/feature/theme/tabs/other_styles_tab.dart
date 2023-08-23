@@ -182,7 +182,10 @@ class OtherStylesTab extends StatelessWidget {
           holograph: 'assets/svg/rijks_card_holo.svg',
         ),
         ThemeSectionSubHeader(title: 'StackedWalletCards'),
-        StackedWalletCards(cards: [_kSampleCardFront, _kSampleCardFront]),
+        StackedWalletCards(cards: [
+          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
+          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
+        ]),
       ],
     );
   }
