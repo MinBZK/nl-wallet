@@ -5,6 +5,10 @@ import '../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
+/// Cache used as the [initialData] for the stream, this is
+/// required to make sure [Hero] animations work as expected.
+var _lockedStreamCache = true;
+
 class PinOverlay extends StatelessWidget {
   final Widget child;
   final Stream<bool> isLockedStream;
@@ -23,9 +27,9 @@ class PinOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<bool>(
       stream: isLockedStream,
-      initialData: true,
+      initialData: _lockedStreamCache,
       builder: (context, snapshot) {
-        final isLocked = snapshot.data!;
+        final isLocked = _lockedStreamCache = snapshot.data!;
         if (isLocked) {
           return BlocProvider<PinBloc>(
             create: (BuildContext context) => bloc ?? PinBloc(context.read<UnlockWalletWithPinUseCase>()),

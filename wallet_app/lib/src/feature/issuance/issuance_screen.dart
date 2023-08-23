@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/wallet_card.dart';
-import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/screen/placeholder_screen.dart';
+import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../data_incorrect/data_incorrect_screen.dart';
+import '../home/home_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
@@ -195,12 +195,8 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildIssuanceCompletedPage(BuildContext context, IssuanceCompleted state) {
     return IssuanceSuccessPage(
-      onClose: () => Navigator.restorablePushNamedAndRemoveUntil(
-        context,
-        WalletRoutes.homeRoute,
-        ModalRoute.withName(WalletRoutes.splashRoute),
-      ),
-      cards: state.addedCards.map((e) => e.front).toList(),
+      onClose: () => HomeScreen.show(context),
+      cards: state.addedCards,
       isRefreshFlow: state.isRefreshFlow,
     );
   }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../domain/model/card_front.dart';
+import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/page/flow_terminal_page.dart';
 import '../../../common/widget/stacked_wallet_cards.dart';
 
 class WalletPersonalizeSuccessPage extends StatelessWidget {
   final VoidCallback onContinuePressed;
-  final List<CardFront> cards;
+  final List<WalletCard> cards;
 
   const WalletPersonalizeSuccessPage({
     required this.onContinuePressed,
@@ -24,7 +24,10 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
         child: Center(
           child: ExcludeSemantics(
-            child: StackedWalletCards(cards: cards),
+            child: StackedWalletCards(
+              cards: cards,
+              onCardPressed: (card) => onContinuePressed(),
+            ),
           ),
         ),
       ),

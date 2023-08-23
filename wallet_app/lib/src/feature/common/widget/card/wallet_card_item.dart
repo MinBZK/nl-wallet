@@ -4,6 +4,7 @@ import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../animated_fade_in.dart';
 import '../svg_or_image.dart';
 import '../utility/limit_font_scaling.dart';
 import 'card_holograph.dart';
@@ -45,6 +46,9 @@ class WalletCardItem extends StatelessWidget {
   /// The holograph asset rendered behind the text
   final String? holograph;
 
+  /// Enable to fade in the 'show details' cta
+  final bool fadeInCta;
+
   /// Callback that is triggered when the card is clicked
   ///
   /// 'Show Details' CTA will be hidden if [onPressed] is null.
@@ -60,9 +64,10 @@ class WalletCardItem extends StatelessWidget {
     this.holograph,
     required this.brightness,
     this.onPressed,
+    this.fadeInCta = false,
   }) : super(key: key);
 
-  WalletCardItem.fromCardFront({required CardFront front, this.onPressed, super.key})
+  WalletCardItem.fromCardFront({required CardFront front, this.onPressed, this.fadeInCta = false, super.key})
       : title = front.title,
         background = front.backgroundImage,
         logo = front.logoImage,
@@ -177,11 +182,11 @@ class WalletCardItem extends StatelessWidget {
 
   Widget _buildShowDetailsCta(BuildContext context) {
     if (!_showDetailsCta) return const SizedBox.shrink();
-    return const Positioned(
+    return Positioned(
       bottom: _kCardContentPadding,
       left: _kCardContentPadding,
       right: _kCardContentPadding,
-      child: ShowDetailsCta(),
+      child: fadeInCta ? const AnimatedFadeIn(child: ShowDetailsCta()) : const ShowDetailsCta(),
     );
   }
 

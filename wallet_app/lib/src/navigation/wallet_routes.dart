@@ -22,6 +22,7 @@ import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
 import '../feature/history/overview/bloc/history_overview_bloc.dart';
 import '../feature/history/overview/history_overview_screen.dart';
+import '../feature/home/argument/home_screen_argument.dart';
 import '../feature/home/bloc/home_bloc.dart';
 import '../feature/home/home_screen.dart';
 import '../feature/introduction/introduction_conditions_screen.dart';
@@ -146,7 +147,7 @@ class WalletRoutes {
       case WalletRoutes.confirmRoute:
         return _createConfirmScreenBuilder;
       case WalletRoutes.homeRoute:
-        return _createHomeScreenBuilder;
+        return _createHomeScreenBuilder(settings);
       case WalletRoutes.cardSummaryRoute:
         return _createCardSummaryScreenBuilder(settings);
       case WalletRoutes.cardDataRoute:
@@ -214,13 +215,19 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
       child: const SetupSecurityScreen(),
     );
 
-Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
+WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
+  final HomeScreenArgument? argument = HomeScreen.getArgument(settings);
+  return (context) {
+    return MultiBlocProvider(
       providers: [
         BlocProvider<HomeBloc>(
           create: (BuildContext context) => HomeBloc(),
         ),
         BlocProvider<CardOverviewBloc>(
-          create: (BuildContext context) => CardOverviewBloc(context.read(), context.read()),
+          create: (BuildContext context) => CardOverviewBloc(
+            context.read(),
+            argument?.cards,
+          ),
         ),
         BlocProvider<MenuBloc>(
           create: (BuildContext context) => MenuBloc(context.read(), context.read()),
@@ -231,6 +238,8 @@ Widget _createHomeScreenBuilder(BuildContext context) => MultiBlocProvider(
         onInit: (context) => context.read<DeeplinkService>().processQueue(),
       ),
     );
+  };
+}
 
 WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
   return (context) {
