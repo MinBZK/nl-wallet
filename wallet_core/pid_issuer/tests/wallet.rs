@@ -1,22 +1,17 @@
 use std::{
     net::{IpAddr, TcpListener},
     str::FromStr,
+    sync::Arc,
 };
 
-use async_trait::async_trait;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    basic_sa_ext::RequestKeyGenerationMessage,
-    holder::{cbor_http_client_builder, IssuanceUserConsent, Wallet as MdocWallet},
-    utils::mdocs_map::MdocsMap,
-    ServiceEngagement,
-};
+use nl_wallet_mdoc::{holder::Wallet as MdocWallet, utils::mdocs_map::MdocsMap};
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
-    mock::{MockConfigurationRepository, MockStorage},
-    wallet::{Configuration, Wallet},
+    mock::{MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
+    wallet::{Configuration, DigidAuthenticator, Wallet},
     wallet_deps::{DigidClient, PidIssuerClient, RemoteAccountServerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
@@ -42,26 +37,18 @@ fn test_wallet_config(base_url: Url) -> MockConfigurationRepository {
 }
 
 /// Create an instance of [`Wallet`].
-async fn create_test_wallet(
+async fn create_test_wallet<D: DigidAuthenticator>(
     base_url: Url,
+    digid_client: D,
+    pid_issuer_client: PidIssuerClient,
 ) -> (
     Configuration,
-    Wallet<
-        MockConfigurationRepository,
-        RemoteAccountServerClient,
-        MockStorage,
-        SoftwareEcdsaKey,
-        DigidClient,
-        PidIssuerClient,
-    >,
+    Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey, D, PidIssuerClient>,
 ) {
-    let wallet = Wallet::init::<SoftwareUtilities>(
-        test_wallet_config(base_url.clone()),
-        DigidClient::default(),
-        PidIssuerClient::default(),
-    )
-    .await
-    .expect("Could not create test wallet");
+    let wallet =
+        Wallet::init::<SoftwareUtilities>(test_wallet_config(base_url.clone()), digid_client, pid_issuer_client)
+            .await
+            .expect("Could not create test wallet");
     (test_wallet_config(base_url).0, wallet)
 }
 
@@ -100,33 +87,33 @@ where
 
 #[tokio::test]
 async fn test_pid_issuance_mock_bsn() {
+    // Set up pid issuer.
     let (settings, port) = pid_issuer_settings();
     start_pid_issuer(settings, MockAttributesLookup, MockBsnLookup);
-    let config = test_wallet_config(local_base_url(port)).0;
 
-    // Start the PID issuance session, sending a mock access token which the `MockBsnLookup` always accepts
-    let service_engagement: ServiceEngagement = reqwest::Client::new()
-        .post(local_base_url(port).join("start").unwrap())
-        .bearer_auth("mock_token")
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
+    // Set up mock DigiD client and its responses.
+    let digid_client = {
+        let mut digid_client = MockDigidAuthenticator::new();
 
-    // We can't use the actual `Wallet` yet because it can't yet mock the DigiD authentication,
-    // so for now we directly use the mdoc issuance function. TODO use `Wallet` when possible.
-    let mdoc_wallet = MdocWallet::new(MdocsMap::new());
-    mdoc_wallet
-        .do_issuance::<SoftwareEcdsaKey>(
-            service_engagement,
-            &always_agree(),
-            &cbor_http_client_builder(),
-            &config.mdoc_trust_anchors(),
-        )
+        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
+        digid_client
+            .expect_get_access_token()
+            .returning(|_| Ok("mock_token".to_string()));
+
+        digid_client
+    };
+
+    // Set up real pid issuer client.
+    let mdoc_wallet = Arc::new(MdocWallet::new(MdocsMap::new()));
+    let pid_issuer_client = PidIssuerClient::new(Arc::clone(&mdoc_wallet));
+
+    // Create wallet with configuration and dependencies.
+    let (_, mut wallet) = create_test_wallet(local_base_url(port), digid_client, pid_issuer_client).await;
+
+    wallet
+        .continue_pid_issuance(&Url::parse("redirect://here").unwrap())
         .await
-        .unwrap();
+        .expect("PID issuance failed");
 
     let mdocs = mdoc_wallet.list_mdocs::<SoftwareEcdsaKey>();
     dbg!(&mdocs);
@@ -137,17 +124,6 @@ async fn test_pid_issuance_mock_bsn() {
     assert!(!attrs.is_empty());
 }
 
-fn always_agree() -> impl IssuanceUserConsent {
-    struct AlwaysAgree;
-    #[async_trait]
-    impl IssuanceUserConsent for AlwaysAgree {
-        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
-            true
-        }
-    }
-    AlwaysAgree
-}
-
 // This test connects to the DigiD bridge and is disabled by default.
 // Enable the `digid_test` feature to include it.
 #[tokio::test]
@@ -156,7 +132,9 @@ async fn test_pid_issuance_digid_bridge() {
     let (settings, port) = pid_issuer_settings();
     let bsn_lookup = OpenIdClient::new(&settings.digid).await.unwrap();
     start_pid_issuer(settings, MockAttributesLookup, bsn_lookup);
-    let (config, mut wallet) = create_test_wallet(local_base_url(port)).await;
+    let (config, mut wallet) =
+        create_test_wallet::<DigidClient>(local_base_url(port), DigidClient::default(), PidIssuerClient::default())
+            .await;
 
     // Prepare DigiD flow
     let authorization_url = wallet.start_pid_issuance().await.expect("failed to get digid url");

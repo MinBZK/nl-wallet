@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
@@ -16,24 +16,30 @@ use super::{PidRetriever, PidRetrieverError};
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
+// TODO: The `mdoc_wallet` field uses `Arc<>` just for testing now.
+//       This should be removed as soon as actual storage is implemented.
 pub struct PidIssuerClient {
     http_client: reqwest::Client,
+    mdoc_wallet: Arc<MdocWallet<MdocsMap>>,
 }
 
 impl PidIssuerClient {
-    fn new() -> Self {
+    pub fn new(mdoc_wallet: Arc<MdocWallet<MdocsMap>>) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        PidIssuerClient { http_client }
+        PidIssuerClient {
+            http_client,
+            mdoc_wallet,
+        }
     }
 }
 
 impl Default for PidIssuerClient {
     fn default() -> Self {
-        Self::new()
+        Self::new(Arc::new(MdocWallet::new(MdocsMap::new())))
     }
 }
 
@@ -76,8 +82,7 @@ impl PidRetriever for PidIssuerClient {
             .json::<ServiceEngagement>()
             .await?;
 
-        let mdocs = MdocWallet::new(MdocsMap::new());
-        mdocs
+        self.mdoc_wallet
             .do_issuance::<SoftwareEcdsaKey>(
                 service_engagement,
                 &always_agree(),
