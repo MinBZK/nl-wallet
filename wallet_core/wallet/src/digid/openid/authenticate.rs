@@ -63,7 +63,7 @@ impl Client {
         Ok(token)
     }
 
-    /// This copies `openid::Client.post_token_jwt()` and changes it to
+    /// This copies `openid::Client.post_token()` and changes it to
     /// not use basic auth and receive JSON of content type "application/jwt".
     async fn post_token_jwt(&self, body: String) -> Result<Value, ClientError> {
         let json = self
