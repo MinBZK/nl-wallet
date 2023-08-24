@@ -6,12 +6,12 @@ mod pkce;
 use async_trait::async_trait;
 use url::Url;
 
-use self::openid_client::OpenIdClientError;
+use self::openid_client::OpenIdAuthenticatorError;
 
-pub use self::client::RemoteDigidClient;
+pub use self::client::DigidClient;
 
 #[async_trait]
-pub trait DigidClient {
+pub trait DigidAuthenticator {
     /// Start a new DigiD session by performing OpenID discovery and returning
     /// an authorization URL that can be sent to the system browser.
     async fn start_session(
@@ -19,20 +19,20 @@ pub trait DigidClient {
         issuer_url: &Url,
         client_id: &str,
         redirect_uri: &Url,
-    ) -> Result<Url, DigidClientError>;
+    ) -> Result<Url, DigidAuthenticatorError>;
 
     /// Check if the DigiD client would currently accept the provided redirect URI.
     fn accepts_redirect_uri(&self, redirect_uri: &Url) -> bool;
 
     /// Retrieve the access token from DigiD, based on the contents
     /// of the redirect URI received.
-    async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidClientError>;
+    async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidAuthenticatorError>;
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum DigidClientError {
+pub enum DigidAuthenticatorError {
     #[error(transparent)]
-    OpenId(#[from] OpenIdClientError),
+    OpenId(#[from] OpenIdAuthenticatorError),
     #[error("invalid redirect URI received")]
     RedirectUriMismatch,
     #[error("unsuccessful DigiD stepout: {}", .error_description.as_ref().unwrap_or(.error))]

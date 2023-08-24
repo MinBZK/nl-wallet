@@ -14,9 +14,9 @@ use wallet_common::account::messages::{
 
 use crate::{
     account_server::AccountServerResponseError,
-    digid::{DigidClient, DigidClientError, RemoteDigidClient},
+    digid::{DigidAuthenticator, DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
-    pid_issuer::{PidIssuerClient, PidIssuerError, RemotePidIssuerClient},
+    pid_issuer::{PidIssuerClient, PidRetriever, PidRetrieverError},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -115,11 +115,11 @@ impl From<AccountServerClientError> for WalletUnlockError {
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] DigidClientError),
+    DigidSessionStart(#[source] DigidAuthenticatorError),
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] DigidClientError),
+    DigidSessionFinish(#[source] DigidAuthenticatorError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[source] PidIssuerError),
+    PidIssuer(#[source] PidRetrieverError),
 }
 
 pub enum RedirectUriType {
@@ -129,13 +129,13 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, A, S, K, D = RemoteDigidClient, P = RemotePidIssuerClient> {
+pub struct Wallet<C, A, S, K, D = DigidClient, P = PidIssuerClient> {
     config_repository: C,
     account_server: A,
     storage: S,
     hw_privkey: K,
-    digid_client: D,
-    pid_issuer_client: P,
+    digid: D,
+    pid_issuer: P,
     registration: Option<RegistrationData>,
     lock: WalletLock,
     config_callback: Option<ConfigurationCallback>,
@@ -147,16 +147,16 @@ where
     A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
-    D: DigidClient + Default,
-    P: PidIssuerClient + Default,
+    D: DigidAuthenticator + Default,
+    P: PidRetriever + Default,
 {
     fn new(config_repository: C, account_server: A, storage: S) -> Self {
         Wallet {
             config_repository,
             account_server,
             storage,
-            digid_client: D::default(),
-            pid_issuer_client: P::default(),
+            digid: D::default(),
+            pid_issuer: P::default(),
             hw_privkey: K::new(WALLET_KEY_ID),
             registration: None,
             lock: WalletLock::new(true),
@@ -438,7 +438,7 @@ where
         let config = &self.config_repository.config().pid_issuance;
 
         let auth_url = self
-            .digid_client
+            .digid
             .start_session(&config.digid_url, &config.digid_client_id, &config.digid_redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionStart)?;
@@ -449,7 +449,7 @@ where
     }
 
     pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
-        if self.digid_client.accepts_redirect_uri(redirect_uri) {
+        if self.digid.accepts_redirect_uri(redirect_uri) {
             return RedirectUriType::PidIssuance;
         }
 
@@ -461,7 +461,7 @@ where
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         let access_token = self
-            .digid_client
+            .digid
             .get_access_token(redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
@@ -470,7 +470,7 @@ where
 
         let config = self.config_repository.config();
 
-        self.pid_issuer_client
+        self.pid_issuer
             .retrieve_pid(
                 &config.pid_issuance.pid_issuer_url,
                 &config.mdoc_trust_anchors(),

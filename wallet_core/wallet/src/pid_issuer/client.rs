@@ -12,39 +12,39 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-use super::{PidIssuerClient, PidIssuerError};
+use super::{PidRetriever, PidRetrieverError};
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
-pub struct RemotePidIssuerClient {
+pub struct PidIssuerClient {
     http_client: reqwest::Client,
 }
 
-impl RemotePidIssuerClient {
+impl PidIssuerClient {
     fn new() -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        RemotePidIssuerClient { http_client }
+        PidIssuerClient { http_client }
     }
 }
 
-impl Default for RemotePidIssuerClient {
+impl Default for PidIssuerClient {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait]
-impl PidIssuerClient for RemotePidIssuerClient {
+impl PidRetriever for PidIssuerClient {
     async fn retrieve_pid(
         &self,
         base_url: &Url,
         mdoc_trust_anchors: &[TrustAnchor],
         access_token: &str,
-    ) -> Result<(), PidIssuerError> {
+    ) -> Result<(), PidRetrieverError> {
         let url = base_url
             .join("start")
             .expect("Could not create \"start\" URL from PID issuer base URL");
@@ -54,7 +54,7 @@ impl PidIssuerClient for RemotePidIssuerClient {
             .post(url)
             .bearer_auth(access_token)
             .send()
-            .map_err(PidIssuerError::from)
+            .map_err(PidRetrieverError::from)
             .and_then(|response| async {
                 // Try to get the body from any 4xx or 5xx error responses,
                 // in order to create an Error::PidIssuerResponse.
@@ -64,8 +64,8 @@ impl PidIssuerClient for RemotePidIssuerClient {
                     Ok(_) => Ok(response),
                     Err(error) => {
                         let error = match response.text().await.ok() {
-                            Some(body) => PidIssuerError::PidIssuerResponse(error, body),
-                            None => PidIssuerError::PidIssuer(error),
+                            Some(body) => PidRetrieverError::PidIssuerResponse(error, body),
+                            None => PidRetrieverError::PidIssuer(error),
                         };
 
                         Err(error)

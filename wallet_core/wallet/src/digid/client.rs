@@ -8,9 +8,9 @@ use wallet_common::utils;
 use crate::utils::url_find_first_query_value;
 
 use super::{
-    openid_client::{OpenIdClient, RemoteOpenIdClient},
+    openid_client::{OpenIdAuthenticator, OpenIdClient},
     pkce::{PkceGenerator, PkceSource},
-    DigidClient, DigidClientError,
+    DigidAuthenticator, DigidAuthenticatorError,
 };
 
 const PARAM_ERROR: &str = "error";
@@ -19,7 +19,7 @@ const PARAM_STATE: &str = "state";
 const PARAM_CODE: &str = "code";
 
 #[derive(Debug)]
-pub struct RemoteDigidClient<C = RemoteOpenIdClient, P = PkceGenerator> {
+pub struct DigidClient<C = OpenIdClient, P = PkceGenerator> {
     // Only one session may be active at a time. A potential improvement would be
     // to support multiple sessions and to persist these sessions, so that they may
     // be resumed after app termination.
@@ -39,18 +39,18 @@ struct DigidSessionState<C> {
     pkce_verifier: String,
 }
 
-impl<C, P> RemoteDigidClient<C, P> {
+impl<C, P> DigidClient<C, P> {
     fn new() -> Self {
-        RemoteDigidClient {
+        DigidClient {
             session_state: None,
             _pkce_source: PhantomData,
         }
     }
 }
 
-impl<C, P> RemoteDigidClient<C, P>
+impl<C, P> DigidClient<C, P>
 where
-    C: OpenIdClient,
+    C: OpenIdAuthenticator,
 {
     // Helper static method for checking if redirect URI is accepted.
     fn openid_client_accepts_redirect_uri(openid_client: &C, redirect_uri: &Url) -> bool {
@@ -58,24 +58,24 @@ where
     }
 }
 
-impl<C, P> Default for RemoteDigidClient<C, P> {
+impl<C, P> Default for DigidClient<C, P> {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait]
-impl<C, P> DigidClient for RemoteDigidClient<C, P>
+impl<C, P> DigidAuthenticator for DigidClient<C, P>
 where
     P: PkceSource + Send + Sync,
-    C: OpenIdClient + Send + Sync,
+    C: OpenIdAuthenticator + Send + Sync,
 {
     async fn start_session(
         &mut self,
         issuer_url: &Url,
         client_id: &str,
         redirect_uri: &Url,
-    ) -> Result<Url, DigidClientError> {
+    ) -> Result<Url, DigidAuthenticatorError> {
         // TODO: This performs discovery every time a session is started and an authentication URL
         //       is generated. An improvement would be to cache the OpenIdClient and only perform
         //       discovery again when the configuration parameters change.
@@ -84,7 +84,7 @@ where
         let openid_client = C::discover(issuer_url.clone(), client_id.to_string(), redirect_uri.clone()).await?;
 
         // Generate a random PKCE verifier, CSRF token and nonce.
-        let (pkce_verifier, pkce_challenge) = P::generate_verifier_and_challenge();
+        let (pkce_verifier, pkce_challenge) = P::verifier_and_challenge();
         let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
         let nonce = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
 
@@ -108,18 +108,18 @@ where
             .unwrap_or_default()
     }
 
-    async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidClientError> {
+    async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidAuthenticatorError> {
         // Get the session state, return an error if we have none.
         let DigidSessionState {
             openid_client,
             pkce_verifier,
             csrf_token,
             nonce,
-        } = self.session_state.as_ref().ok_or(DigidClientError::NoSession)?;
+        } = self.session_state.as_ref().ok_or(DigidAuthenticatorError::NoSession)?;
 
         // Check if the redirect URL received actually belongs to us.
         if !Self::openid_client_accepts_redirect_uri(openid_client, received_redirect_uri) {
-            return Err(DigidClientError::RedirectUriMismatch);
+            return Err(DigidAuthenticatorError::RedirectUriMismatch);
         }
 
         // Check if the `error` query parameter is populated, if so create an
@@ -128,7 +128,7 @@ where
         if let Some(error) = error {
             let error_description = url_find_first_query_value(received_redirect_uri, PARAM_ERROR_DESCRIPTION);
 
-            return Err(DigidClientError::RedirectUriError {
+            return Err(DigidAuthenticatorError::RedirectUriError {
                 error: error.into_owned(),
                 error_description: error_description.map(|d| d.into_owned()),
             });
@@ -136,15 +136,15 @@ where
 
         // Verify that the state query parameter matches the csrf_token.
         let state = url_find_first_query_value(received_redirect_uri, PARAM_STATE)
-            .ok_or(DigidClientError::StateTokenMismatch)?;
+            .ok_or(DigidAuthenticatorError::StateTokenMismatch)?;
 
         if state != *csrf_token {
-            return Err(DigidClientError::StateTokenMismatch);
+            return Err(DigidAuthenticatorError::StateTokenMismatch);
         }
 
         // Parse the authorization code from the redirect URL.
         let authorization_code =
-            url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidClientError::NoAuthCode)?;
+            url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidAuthenticatorError::NoAuthCode)?;
 
         // Use the authorization code and the PKCE verifier to request the
         // access token and verify the result.
@@ -165,7 +165,7 @@ mod tests {
     use once_cell::sync::Lazy;
     use tokio::sync::oneshot;
 
-    use crate::digid::{openid_client::MockOpenIdClient, pkce::MockPkceSource};
+    use crate::digid::{openid_client::MockOpenIdAuthenticator, pkce::MockPkceSource};
 
     use super::*;
 
@@ -183,7 +183,7 @@ mod tests {
         const ACCESS_CODE: &str = "the_access_code";
 
         // Create a client with mock generics, as created by `mockall`.
-        let mut client = RemoteDigidClient::<MockOpenIdClient, MockPkceSource>::default();
+        let mut client = DigidClient::<MockOpenIdAuthenticator, MockPkceSource>::default();
 
         // There should be no session state present at this point.
         assert!(client.session_state.is_none());
@@ -200,7 +200,7 @@ mod tests {
         // Now prepare the our mock dependencies for us to call `DigidClient.start_session()`.
         // This means:
         // 1. Set up `OpenIdClient::discover_context()` to return a new mock.
-        let discover_context = MockOpenIdClient::discover_context();
+        let discover_context = MockOpenIdAuthenticator::discover_context();
         discover_context
             .expect()
             .with(
@@ -209,7 +209,7 @@ mod tests {
                 eq(Lazy::force(&REDIRECT_URI)),
             )
             .return_once(move |_, _, _| {
-                let mut openid_client = MockOpenIdClient::new();
+                let mut openid_client = MockOpenIdAuthenticator::new();
 
                 // 2. Have `OpenIdClient.auth_url` return our authentication URL, while saving
                 //    the generated CSRF token and nonce for later (send throught the channel).
@@ -227,7 +227,7 @@ mod tests {
 
         // 3. Set up `PkceSource::generate_verifier_and_challenge()` to return our
         //    static PKCE strings.
-        let pkce_generate_context = MockPkceSource::generate_verifier_and_challenge_context();
+        let pkce_generate_context = MockPkceSource::verifier_and_challenge_context();
         pkce_generate_context
             .expect()
             .return_const((PKCE_VERIFIER.to_string(), PKCE_CHALLENGE.to_string()));
@@ -289,7 +289,7 @@ mod tests {
                 .get_access_token(&Url::parse("http://not-the-redirect-uri.com").unwrap())
                 .await
                 .unwrap_err(),
-            DigidClientError::RedirectUriMismatch
+            DigidAuthenticatorError::RedirectUriMismatch
         ));
 
         // Test for redirect URIs that contain a `error` and an optional
@@ -308,7 +308,7 @@ mod tests {
 
         assert!(matches!(
             client.get_access_token(&error_redirect_uri).await.unwrap_err(),
-            DigidClientError::RedirectUriError {
+            DigidAuthenticatorError::RedirectUriError {
                 ref error,
                 error_description: Some(ref error_description),
             } if error == "error_type" && error_description == "this is the error description"
@@ -324,7 +324,7 @@ mod tests {
 
         assert!(matches!(
             client.get_access_token(&short_error_redirect_uri).await.unwrap_err(),
-            DigidClientError::RedirectUriError {
+            DigidAuthenticatorError::RedirectUriError {
                 ref error,
                 error_description: None,
             } if error == "foobar"
@@ -343,7 +343,7 @@ mod tests {
 
         assert!(matches!(
             client.get_access_token(&wrong_csrf_redirect_uri).await.unwrap_err(),
-            DigidClientError::StateTokenMismatch
+            DigidAuthenticatorError::StateTokenMismatch
         ));
 
         // Test for the error that is returned if the redirect URI does not have
@@ -360,7 +360,7 @@ mod tests {
 
         assert!(matches!(
             client.get_access_token(&no_auth_code_redirect_uri).await.unwrap_err(),
-            DigidClientError::NoAuthCode
+            DigidAuthenticatorError::NoAuthCode
         ));
 
         // Finally we can test the successful call to `DigidClient.get_access_token()`.
@@ -404,7 +404,7 @@ mod tests {
         // again should result in an error.
         assert!(matches!(
             client.get_access_token(&redirect_uri).await.unwrap_err(),
-            DigidClientError::NoSession
+            DigidAuthenticatorError::NoSession
         ));
 
         // Also, a valid redirect URI should not longer be accepted.
