@@ -5,7 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = []
+mock = ["dep:mockall"]
+wallet_deps = []
 
 [dependencies]
 entity = { path = "entity" }
@@ -19,6 +20,7 @@ libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
 mime.workspace = true
+mockall = { workspace = true, optional = true }
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 openid = { workspace = true, features = ["rustls"] }

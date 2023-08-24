@@ -15,8 +15,9 @@ use nl_wallet_mdoc::{
 };
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
-    mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
+    mock::{MockConfigurationRepository, MockStorage},
     wallet::{Configuration, Wallet},
+    wallet_deps::{DigidClient, PidIssuerClient, RemoteAccountServerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -25,7 +26,7 @@ use pid_issuer::{
         mock::{MockAttributesLookup, MockBsnLookup},
         AttributesLookup, BsnLookup,
     },
-    digid::OpenIdClient as DigidClient,
+    digid::OpenIdClient,
     server,
     settings::Settings,
 };
@@ -45,11 +46,22 @@ async fn create_test_wallet(
     base_url: Url,
 ) -> (
     Configuration,
-    Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey>,
+    Wallet<
+        MockConfigurationRepository,
+        RemoteAccountServerClient,
+        MockStorage,
+        SoftwareEcdsaKey,
+        DigidClient,
+        PidIssuerClient,
+    >,
 ) {
-    let wallet = Wallet::init::<SoftwareUtilities>(test_wallet_config(base_url.clone()))
-        .await
-        .expect("Could not create test wallet");
+    let wallet = Wallet::init::<SoftwareUtilities>(
+        test_wallet_config(base_url.clone()),
+        DigidClient::default(),
+        PidIssuerClient::default(),
+    )
+    .await
+    .expect("Could not create test wallet");
     (test_wallet_config(base_url).0, wallet)
 }
 
@@ -142,7 +154,7 @@ fn always_agree() -> impl IssuanceUserConsent {
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let (settings, port) = pid_issuer_settings();
-    let bsn_lookup = DigidClient::new(&settings.digid).await.unwrap();
+    let bsn_lookup = OpenIdClient::new(&settings.digid).await.unwrap();
     start_pid_issuer(settings, MockAttributesLookup, bsn_lookup);
     let (config, mut wallet) = create_test_wallet(local_base_url(port)).await;
 

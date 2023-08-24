@@ -10,6 +10,7 @@ use self::openid_client::OpenIdAuthenticatorError;
 
 pub use self::client::DigidClient;
 
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait DigidAuthenticator {
     /// Start a new DigiD session by performing OpenID discovery and returning

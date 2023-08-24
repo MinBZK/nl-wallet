@@ -23,5 +23,5 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
     // is cached yet.
     let config = LocalConfigurationRepository::new_with_initial(Configuration::default);
 
-    Wallet::init::<HardwareUtilities>(config).await
+    Wallet::create::<HardwareUtilities>(config).await
 }

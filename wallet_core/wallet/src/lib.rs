@@ -16,9 +16,15 @@ pub use crate::{
     pin::validation::{validate_pin, PinValidationError},
 };
 
+#[cfg(feature = "wallet_deps")]
+pub mod wallet_deps {
+    pub use crate::{account_server::RemoteAccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient};
+}
+
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_server::RemoteAccountServerClient, config::MockConfigurationRepository, storage::MockStorage,
+        config::MockConfigurationRepository, digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever,
+        storage::MockStorage,
     };
 }

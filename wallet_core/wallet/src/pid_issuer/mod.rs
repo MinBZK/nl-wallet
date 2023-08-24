@@ -7,12 +7,13 @@ use nl_wallet_mdoc::holder::TrustAnchor;
 
 pub use client::PidIssuerClient;
 
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait PidRetriever {
-    async fn retrieve_pid(
+    async fn retrieve_pid<'a>(
         &self,
         base_url: &Url,
-        mdoc_trust_anchors: &[TrustAnchor],
+        mdoc_trust_anchors: &[TrustAnchor<'a>],
         access_token: &str,
     ) -> Result<(), PidRetrieverError>;
 }
