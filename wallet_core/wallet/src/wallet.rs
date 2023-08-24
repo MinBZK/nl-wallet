@@ -439,7 +439,11 @@ where
 
         let auth_url = self
             .digid
-            .start_session(&config.digid_url, &config.digid_client_id, &config.digid_redirect_uri)
+            .start_session(
+                config.digid_url.clone(),
+                config.digid_client_id.clone(),
+                config.digid_redirect_uri.clone(),
+            )
             .await
             .map_err(PidIssuanceError::DigidSessionStart)?;
 

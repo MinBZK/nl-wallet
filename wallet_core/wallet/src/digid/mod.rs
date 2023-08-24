@@ -16,9 +16,9 @@ pub trait DigidAuthenticator {
     /// an authorization URL that can be sent to the system browser.
     async fn start_session(
         &mut self,
-        issuer_url: &Url,
-        client_id: &str,
-        redirect_uri: &Url,
+        issuer_url: Url,
+        client_id: String,
+        redirect_uri: Url,
     ) -> Result<Url, DigidAuthenticatorError>;
 
     /// Check if the DigiD client would currently accept the provided redirect URI.

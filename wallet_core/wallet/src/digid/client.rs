@@ -72,16 +72,16 @@ where
 {
     async fn start_session(
         &mut self,
-        issuer_url: &Url,
-        client_id: &str,
-        redirect_uri: &Url,
+        issuer_url: Url,
+        client_id: String,
+        redirect_uri: Url,
     ) -> Result<Url, DigidAuthenticatorError> {
         // TODO: This performs discovery every time a session is started and an authentication URL
         //       is generated. An improvement would be to cache the OpenIdClient and only perform
         //       discovery again when the configuration parameters change.
 
         // Perform OpenID discovery at the issuer.
-        let openid_client = C::discover(issuer_url.clone(), client_id.to_string(), redirect_uri.clone()).await?;
+        let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
 
         // Generate a random PKCE verifier, CSRF token and nonce.
         let (pkce_verifier, pkce_challenge) = P::verifier_and_challenge();
@@ -234,7 +234,7 @@ mod tests {
 
         // Now we are ready to call `DigidClient.start_session()`, which should succeed.
         let url = client
-            .start_session(Lazy::force(&ISSUER_URL), CLIENT_ID, Lazy::force(&REDIRECT_URI))
+            .start_session(ISSUER_URL.clone(), CLIENT_ID.to_string(), REDIRECT_URI.clone())
             .await
             .expect("Could not start DigiD session");
 
