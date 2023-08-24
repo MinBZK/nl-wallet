@@ -1,10 +1,10 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use base64::prelude::*;
 use once_cell::sync::Lazy;
 use url::Url;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
 use wallet_common::account::jwt::EcdsaDecodingKey;
 
 #[derive(Debug)]
@@ -12,7 +12,13 @@ pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
-    pub mdoc_trust_anchors: Lazy<Arc<Vec<TrustAnchor<'static>>>>,
+    pub mdoc_trust_anchors: Lazy<Vec<OwnedTrustAnchor>>,
+}
+
+impl Configuration {
+    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
+        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
+    }
 }
 
 #[derive(Debug)]
@@ -73,17 +79,14 @@ impl Default for Configuration {
                 TRUST_ANCHOR_CERTS
                     .iter()
                     .map(|anchor| {
-                        let der = base64::engine::general_purpose::STANDARD
+                        base64::engine::general_purpose::STANDARD
                             .decode(anchor.as_bytes())
-                            .expect("failed to base64-decode trust anchor certificate");
-
-                        // "Leak" the bytes, meaning they get lifetime 'static: the duration of the program.
-                        let static_ref: &'static [u8] = Box::leak(Box::new(der));
-
-                        TrustAnchor::try_from_cert_der(static_ref).expect("failed to parse trust anchor")
+                            .expect("failed to base64-decode trust anchor certificate")
+                            .as_slice()
+                            .try_into()
+                            .expect("failed to parse trust anchor")
                     })
-                    .collect::<Vec<TrustAnchor<'static>>>()
-                    .into()
+                    .collect()
             }),
         }
     }

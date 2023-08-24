@@ -111,7 +111,7 @@ async fn test_pid_issuance_mock_bsn() {
             service_engagement,
             &always_agree(),
             &cbor_http_client_builder(),
-            &config.mdoc_trust_anchors,
+            &config.mdoc_trust_anchors(),
         )
         .await
         .unwrap();

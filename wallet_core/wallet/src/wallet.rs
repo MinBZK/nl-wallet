@@ -468,12 +468,12 @@ where
 
         info!("DigiD access token retrieved, starting actual PID issuance");
 
-        let config = &self.config_repository.config();
+        let config = self.config_repository.config();
 
         self.pid_issuer_client
             .retrieve_pid(
                 &config.pid_issuance.pid_issuer_url,
-                &config.mdoc_trust_anchors,
+                &config.mdoc_trust_anchors(),
                 &access_token,
             )
             .await
