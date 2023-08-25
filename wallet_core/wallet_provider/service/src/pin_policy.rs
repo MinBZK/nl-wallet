@@ -96,7 +96,8 @@ impl PinPolicyEvaluator for PinPolicy {
         }
 
         if let (Some(last_failed), Some(timeout)) = (last_failed_pin, self.current_timeout(attempts)) {
-            let already_in_timeout = last_failed + timeout > current_datetime;
+            let timed_out_until = last_failed + timeout;
+            let is_already_in_timeout = timed_out_until > current_datetime;
             let end_of_round = self.attempts_per_round == self.attempts_left(attempts);
             let start_of_next_round = self.attempts_per_round == self.attempts_left(attempts) + 1;
 
@@ -104,8 +105,10 @@ impl PinPolicyEvaluator for PinPolicy {
                 return PinPolicyEvaluation::Timeout { timeout };
             }
 
-            if already_in_timeout && start_of_next_round {
-                return PinPolicyEvaluation::InTimeout { timeout };
+            if is_already_in_timeout && start_of_next_round {
+                return PinPolicyEvaluation::InTimeout {
+                    timeout: timed_out_until - current_datetime,
+                };
             }
         }
 
@@ -194,7 +197,7 @@ mod tests {
 
         assert_matches!(
             policy.evaluate(5, Some(Local::now() - Duration::minutes(30)), Local::now()),
-            PinPolicyEvaluation::InTimeout { timeout: t } if t == Duration::hours(1)
+            PinPolicyEvaluation::InTimeout { timeout: t } if t < Duration::hours(1)
         );
 
         assert_eq!(
@@ -237,7 +240,7 @@ mod tests {
             policy.evaluate(13, Some(Local::now() - Duration::hours(1)), Local::now()),
             PinPolicyEvaluation::InTimeout {
                 timeout: t,
-            } if t == Duration::hours(3)
+            } if t < Duration::hours(3)
         );
     }
 
