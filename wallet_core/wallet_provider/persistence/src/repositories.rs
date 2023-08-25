@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use wallet_provider_domain::model::wallet_user::{WalletUser, WalletUserCreate};
+use wallet_provider_domain::model::wallet_user::{WalletUserCreate, WalletUserQueryResult};
 
 use wallet_provider_domain::repository::{PersistenceError, TransactionStarter, WalletUserRepository};
 
@@ -39,7 +39,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-    ) -> Result<WalletUser, PersistenceError> {
+    ) -> Result<WalletUserQueryResult, PersistenceError> {
         wallet_user_repository::find_wallet_user_by_wallet_id(transaction, wallet_id).await
     }
 

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../environment.dart';
-import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/mapper/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
@@ -15,6 +14,7 @@ import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../digid_help/digid_help_screen.dart';
+import '../../home/home_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
@@ -194,8 +194,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
     return WalletPersonalizeSuccessPage(
-      onContinuePressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute),
-      cards: state.cardFronts,
+      onContinuePressed: () => HomeScreen.show(context, cards: state.addedCards),
+      cards: state.addedCards,
     );
   }
 

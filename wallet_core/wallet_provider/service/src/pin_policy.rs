@@ -41,11 +41,16 @@ impl PinPolicy {
     fn is_blocked(&self, attempts: u8) -> bool {
         assert!(attempts > 0);
 
-        attempts >= self.rounds * self.attempts_per_round
+        let total_attempts = self.rounds * self.attempts_per_round;
+        attempts >= total_attempts
     }
 
     fn attempts_left(&self, attempts: u8) -> u8 {
         assert!(attempts > 0);
+
+        if self.rounds == 1 {
+            return self.attempts_per_round - attempts;
+        }
 
         match attempts % self.rounds {
             0 => {
@@ -91,7 +96,8 @@ impl PinPolicyEvaluator for PinPolicy {
         }
 
         if let (Some(last_failed), Some(timeout)) = (last_failed_pin, self.current_timeout(attempts)) {
-            let already_in_timeout = last_failed + timeout > current_datetime;
+            let timed_out_until = last_failed + timeout;
+            let is_already_in_timeout = timed_out_until > current_datetime;
             let end_of_round = self.attempts_per_round == self.attempts_left(attempts);
             let start_of_next_round = self.attempts_per_round == self.attempts_left(attempts) + 1;
 
@@ -99,8 +105,10 @@ impl PinPolicyEvaluator for PinPolicy {
                 return PinPolicyEvaluation::Timeout { timeout };
             }
 
-            if already_in_timeout && start_of_next_round {
-                return PinPolicyEvaluation::InTimeout { timeout };
+            if is_already_in_timeout && start_of_next_round {
+                return PinPolicyEvaluation::InTimeout {
+                    timeout: timed_out_until - current_datetime,
+                };
             }
         }
 
@@ -189,7 +197,7 @@ mod tests {
 
         assert_matches!(
             policy.evaluate(5, Some(Local::now() - Duration::minutes(30)), Local::now()),
-            PinPolicyEvaluation::InTimeout { timeout: t } if t == Duration::hours(1)
+            PinPolicyEvaluation::InTimeout { timeout: t } if t < Duration::hours(1)
         );
 
         assert_eq!(
@@ -232,7 +240,7 @@ mod tests {
             policy.evaluate(13, Some(Local::now() - Duration::hours(1)), Local::now()),
             PinPolicyEvaluation::InTimeout {
                 timeout: t,
-            } if t == Duration::hours(3)
+            } if t < Duration::hours(3)
         );
     }
 
@@ -263,6 +271,16 @@ mod tests {
 
     #[rstest]
     #[case(1, 1)]
+    fn should_return_current_round_for_attempts_for_1_round_and_1_attempts(
+        #[case] expected_round: u8,
+        #[case] attempts: u8,
+    ) {
+        let policy = PinPolicy::new(1, 1, vec![]);
+        assert_eq!(expected_round, policy.current_round(attempts));
+    }
+
+    #[rstest]
+    #[case(1, 1)]
     #[case(1, 2)]
     fn should_return_current_round_for_attempts_for_1_round_and_2_attempts(
         #[case] expected_round: u8,
@@ -281,6 +299,33 @@ mod tests {
     ) {
         let policy = PinPolicy::new(2, 1, (1..2).map(Duration::seconds).collect());
         assert_eq!(expected_round, policy.current_round(attempts));
+    }
+
+    #[rstest]
+    #[case(None, 1)]
+    fn should_return_current_timeout_for_1_round_1_attempts(
+        #[case] expected_timeout_in_sec: Option<i64>,
+        #[case] attempts: u8,
+    ) {
+        let policy = PinPolicy::new(1, 1, vec![]);
+        assert_eq!(
+            expected_timeout_in_sec,
+            policy.current_timeout(attempts).map(|d| d.num_seconds())
+        );
+    }
+
+    #[rstest]
+    #[case(None, 1)]
+    #[case(None, 2)]
+    fn should_return_current_timeout_for_1_round_2_attempts(
+        #[case] expected_timeout_in_sec: Option<i64>,
+        #[case] attempts: u8,
+    ) {
+        let policy = PinPolicy::new(1, 2, vec![]);
+        assert_eq!(
+            expected_timeout_in_sec,
+            policy.current_timeout(attempts).map(|d| d.num_seconds())
+        );
     }
 
     #[rstest]
@@ -325,6 +370,21 @@ mod tests {
 
     #[rstest]
     #[case(false, 1)]
+    fn should_indicate_if_final_attempt_for_1_round_1_attempt(#[case] expected_is_final: bool, #[case] attempts: u8) {
+        let policy = PinPolicy::new(1, 1, vec![]);
+        assert_eq!(expected_is_final, policy.is_final_attempt(attempts));
+    }
+
+    #[rstest]
+    #[case(true, 1)]
+    #[case(false, 2)]
+    fn should_indicate_if_final_attempt_for_1_round_2_attempt(#[case] expected_is_final: bool, #[case] attempts: u8) {
+        let policy = PinPolicy::new(1, 2, vec![]);
+        assert_eq!(expected_is_final, policy.is_final_attempt(attempts));
+    }
+
+    #[rstest]
+    #[case(false, 1)]
     #[case(false, 2)]
     #[case(false, 3)]
     #[case(false, 4)]
@@ -336,6 +396,21 @@ mod tests {
     fn should_indicate_if_final_attempt(#[case] expected_is_final: bool, #[case] attempts: u8) {
         let policy = PinPolicy::new(4, 4, (1..4).map(Duration::seconds).collect());
         assert_eq!(expected_is_final, policy.is_final_attempt(attempts));
+    }
+
+    #[rstest]
+    #[case(true, 1)]
+    fn should_indicate_if_blocked_for_1_round_1_attempt(#[case] expected_is_blocked: bool, #[case] attempts: u8) {
+        let policy = PinPolicy::new(1, 1, vec![]);
+        assert_eq!(expected_is_blocked, policy.is_blocked(attempts));
+    }
+
+    #[rstest]
+    #[case(false, 1)]
+    #[case(true, 2)]
+    fn should_indicate_if_blocked_for_1_round_2_attempt(#[case] expected_is_blocked: bool, #[case] attempts: u8) {
+        let policy = PinPolicy::new(1, 2, vec![]);
+        assert_eq!(expected_is_blocked, policy.is_blocked(attempts));
     }
 
     #[rstest]

@@ -33,7 +33,7 @@ void main() {
   );
 
   MultipleCardsFlow mockMultipleCardsFlow = MultipleCardsFlow(
-    cardToOrganizations: const {
+    cardToOrganizations: {
       WalletMockData.card: WalletMockData.organization,
       WalletMockData.altCard: WalletMockData.organization,
     },

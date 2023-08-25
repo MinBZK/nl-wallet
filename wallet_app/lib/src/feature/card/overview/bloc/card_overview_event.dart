@@ -5,11 +5,10 @@ abstract class CardOverviewEvent extends Equatable {
 }
 
 class CardOverviewLoadTriggered extends CardOverviewEvent {
-  @override
-  List<Object?> get props => [];
-}
+  final bool forceRefresh;
 
-class CardOverviewLockWalletPressed extends CardOverviewEvent {
+  const CardOverviewLoadTriggered({this.forceRefresh = false});
+
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [forceRefresh];
 }

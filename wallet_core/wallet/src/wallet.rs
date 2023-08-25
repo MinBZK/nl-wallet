@@ -79,8 +79,6 @@ pub enum WalletUnlockError {
     Blocked,
     #[error("server error: {0}")]
     ServerError(#[source] AccountServerClientError),
-    #[error("could not request instruction challenge from Wallet Provider: {0}")]
-    ChallengeRequest(#[source] AccountServerClientError),
     #[error("Wallet Provider could not validate instruction")]
     InstructionValidation,
     #[error("could not get hardware public key: {0}")]
@@ -335,11 +333,7 @@ where
 
         let challenge_request = self.new_instruction_challenge_request().await?;
         // Retrieve a challenge from the account server
-        let challenge = self
-            .account_server
-            .instruction_challenge(challenge_request)
-            .await
-            .map_err(WalletUnlockError::ChallengeRequest)?;
+        let challenge = self.account_server.instruction_challenge(challenge_request).await?;
 
         let instruction = self.new_check_pin_request(pin, challenge).await?;
         let signed_result = self.account_server.check_pin(instruction).await?;

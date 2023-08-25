@@ -16,8 +16,8 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const StackedWalletCards(
             cards: [
-              WalletMockData.cardFront,
-              WalletMockData.cardFront,
+              WalletMockData.card,
+              WalletMockData.card,
             ],
           ),
           surfaceSize: kGoldenSize,
@@ -32,8 +32,8 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const StackedWalletCards(
           cards: [
-            WalletMockData.cardFront,
-            WalletMockData.cardFront,
+            WalletMockData.card,
+            WalletMockData.card,
           ],
         ),
       );

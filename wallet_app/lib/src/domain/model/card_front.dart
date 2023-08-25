@@ -1,4 +1,10 @@
-class CardFront {
+import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'card_front.g.dart';
+
+@JsonSerializable()
+class CardFront extends Equatable {
   final String title;
   final String? subtitle;
   final String? info;
@@ -16,6 +22,13 @@ class CardFront {
     required this.backgroundImage,
     required this.theme,
   });
+
+  factory CardFront.fromJson(Map<String, dynamic> json) => _$CardFrontFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CardFrontToJson(this);
+
+  @override
+  List<Object?> get props => [title, subtitle, info, logoImage, holoImage, backgroundImage, theme];
 }
 
 enum CardFrontTheme {

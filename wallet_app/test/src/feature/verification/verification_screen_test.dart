@@ -28,8 +28,8 @@ void main() {
     id: 'id',
     organization: WalletMockData.organization,
     hasPreviouslyInteractedWithOrganization: false,
-    availableAttributes: const {
-      WalletMockData.card: [WalletMockData.textDataAttribute]
+    availableAttributes: {
+      WalletMockData.card: const [WalletMockData.textDataAttribute]
     },
     requestedAttributes: [
       RequestedAttribute(

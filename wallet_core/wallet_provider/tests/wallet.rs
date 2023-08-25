@@ -185,9 +185,9 @@ async fn test_unlock_ok() {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_block() {
     let (mut settings, port) = settings();
+    settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
-    settings.pin_policy.rounds = 2;
-    settings.pin_policy.timeouts_in_ms = vec![50];
+    settings.pin_policy.timeouts_in_ms = vec![];
 
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
     start_wallet_provider(settings);
@@ -202,28 +202,6 @@ async fn test_block() {
 
     wallet.lock();
     assert!(wallet.is_locked());
-
-    let result = wallet
-        .unlock("555555".to_string())
-        .await
-        .expect_err("invalid pin should return error");
-    assert_matches!(
-        result,
-        WalletUnlockError::IncorrectPin {
-            leftover_attempts: 1,
-            is_final_attempt: false
-        }
-    );
-    assert!(wallet.is_locked());
-
-    let result = wallet
-        .unlock("555556".to_string())
-        .await
-        .expect_err("invalid pin should return error");
-    assert_matches!(result, WalletUnlockError::Timeout { timeout_millis: 50 });
-    assert!(wallet.is_locked());
-
-    sleep(Duration::from_millis(50)).await;
 
     let result = wallet
         .unlock("555555".to_string())
@@ -325,7 +303,7 @@ async fn test_unlock_error() {
         .unlock("555557".to_string())
         .await
         .expect_err("invalid pin should return error");
-    assert_matches!(r5, WalletUnlockError::Timeout { timeout_millis: 200 });
+    assert_matches!(r5, WalletUnlockError::Timeout { timeout_millis: t } if t < 200);
     assert!(wallet.is_locked());
 
     sleep(Duration::from_millis(200)).await;

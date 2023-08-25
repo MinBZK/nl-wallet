@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../data/repository/authentication/digid_auth_repository.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
-import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/auth/get_digid_auth_url_usecase.dart';
 import '../../../../domain/usecase/auth/observe_digid_auth_status_usecase.dart';
