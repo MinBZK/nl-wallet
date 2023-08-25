@@ -290,7 +290,7 @@ async fn test_unlock_error() {
         .unlock("555557".to_string())
         .await
         .expect_err("invalid pin should return error");
-    assert_matches!(r5, WalletUnlockError::Timeout { timeout_millis: 200 });
+    assert_matches!(r5, WalletUnlockError::Timeout { timeout_millis: t } if t < 200);
     assert!(wallet.is_locked());
 
     sleep(Duration::from_millis(200)).await;
