@@ -48,7 +48,7 @@ pub enum StorageError {
     Json(#[from] serde_json::Error),
     #[error("storage database SQLCipher key error: {0}")]
     SqlCipherKey(#[from] TryFromSliceError),
-    #[error(transparent)]
+    #[error("{0}")]
     KeyFile(#[from] KeyFileError),
     #[error("storage database platform utilities error: {0}")]
     PlatformUtilities(#[from] UtilitiesError),

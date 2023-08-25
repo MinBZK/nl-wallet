@@ -31,7 +31,7 @@ pub trait DigidAuthenticator {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidAuthenticatorError {
-    #[error(transparent)]
+    #[error("{0}")]
     OpenId(#[from] OpenIdAuthenticatorError),
     #[error("invalid redirect URI received")]
     RedirectUriMismatch,
