@@ -14,10 +14,10 @@ use sea_orm::DbErr;
 
 use platform_support::utils::UtilitiesError;
 
-use self::key_file::KeyFileError;
 pub use self::{
     data::{KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
+    key_file::KeyFileError,
 };
 
 #[cfg(any(test, feature = "mock"))]

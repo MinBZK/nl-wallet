@@ -5,7 +5,7 @@ mod openid_pkce;
 use async_trait::async_trait;
 use url::Url;
 
-use self::openid_client::OpenIdAuthenticatorError;
+pub use self::openid_client::OpenIdAuthenticatorError;
 
 pub use self::client::DigidClient;
 

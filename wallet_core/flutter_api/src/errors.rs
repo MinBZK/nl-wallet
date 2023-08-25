@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use serde::Serialize;
 
-use wallet::wallet::{AccountServerClientError, WalletInitError, WalletRegistrationError, WalletUnlockError};
+use wallet::errors::{AccountServerClientError, WalletInitError, WalletRegistrationError, WalletUnlockError};
 
 /// A type encapsulating data about a Flutter error that
 /// is to be serialized to JSON and sent to Flutter.

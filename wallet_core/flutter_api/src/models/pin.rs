@@ -1,4 +1,4 @@
-use wallet::PinValidationError;
+use wallet::errors::PinValidationError;
 
 pub enum PinValidationResult {
     Ok,
