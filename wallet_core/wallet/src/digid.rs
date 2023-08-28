@@ -10,8 +10,8 @@ use openid::{error as openid_errors, Bearer, Client, Options, Token};
 use url::{form_urlencoded::Serializer as FormSerializer, Url};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::RequestKeyGenerationMessage,
-    holder::{cbor_http_client_builder, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    basic_sa_ext::UnsignedMdoc,
+    holder::{CborHttpClient, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
     utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
@@ -226,7 +226,7 @@ impl DigidConnector {
             .do_issuance::<SoftwareEcdsaKey>(
                 service_engagement,
                 &always_agree(),
-                &cbor_http_client_builder(),
+                &CborHttpClient(reqwest::Client::new()),
                 self.mdoc_trust_anchors.as_ref(),
             )
             .await?;
@@ -249,7 +249,7 @@ fn always_agree() -> impl IssuanceUserConsent {
     struct AlwaysAgree;
     #[async_trait]
     impl IssuanceUserConsent for AlwaysAgree {
-        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
             true
         }
     }

@@ -22,10 +22,16 @@ use crate::{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
-    pub version: String,
+    pub version: DeviceResponseVersion,
     pub documents: Option<Vec<Document>>,
     pub document_errors: Option<Vec<DocumentError>>,
     pub status: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum DeviceResponseVersion {
+    #[serde(rename = "1.0")]
+    V1_0,
 }
 
 pub type DocumentError = IndexMap<DocType, ErrorCode>;

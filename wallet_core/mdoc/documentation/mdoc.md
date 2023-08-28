@@ -85,6 +85,7 @@ Inputs = {
 }
 ```
 
+Fields of type `bstr` contain arbitrary bytes. By contrast, a `tstr` represents a UTF8 string.
 The following CBOR (in diagnostic notation) would satisfy this definition:
 
 <!--- Again, using jsonc here as a good second best. --->
@@ -140,6 +141,14 @@ To verify an mdoc (disclosure), the RP thus needs to perform the following steps
 1. Parse the mdoc, and take the issuer X509 certificate from the COSE header of the mdoc.
 2. Validate this certificate against the IACA certificate(s) that the RP trusts.
 3. Using the public key from the issuer certificate, verify the mdoc.
+4. For each attribute, verify that the digest of the attribute (including its index and `random`) is contained within
+   the mdoc (and thus effectively signed by the issuer).
+
+This just verifies the mdoc data structure and attributes. To establish liveness, the holder additionally needs to
+prove possession of the private key corresponding to the mdoc's public key, by signing a challenge of the RP:
+
+5. Parse the public key contained in the mdoc.
+6. Using the mdoc's public key, verify the holder's signature over the challenge.
 
 ## Data structures
 
@@ -203,7 +212,7 @@ All mdoc data except its private key, containing the data signed by the issuer d
     - COSE header which (a.o.) contains the certificate with which the COSE is signed. This certificate itself is signed by a CA which the holder and RP must trust.
     - COSE payload: `MobileSecurityObject`
         - `version` (`tstr`): version of this data structure
-        - `digestAlgorithm` (`tstr`): vessage digest algorithm used (in practice, always "SHA256")
+        - `digestAlgorithm` (`tstr`): message digest algorithm used (in practice, always "SHA256")
         - `valueDigests` (`ValueDigests`): digests of all data elements per namespace
         - `deviceKeyInfo` (`DeviceKeyInfo`): public key of the mdoc
         - `docType` (`tstr`): the doctype of the mdoc

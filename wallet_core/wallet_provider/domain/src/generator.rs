@@ -1,13 +1,8 @@
-pub trait Generator<T> {
-    fn generate(&self) -> T;
-}
-
 #[cfg(feature = "stub")]
 pub mod stub {
     use chrono::{offset::TimeZone, DateTime, Local};
     use uuid::{uuid, Uuid};
-
-    use super::Generator;
+    use wallet_common::generator::Generator;
 
     pub struct FixedGenerator;
 

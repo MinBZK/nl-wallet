@@ -6,6 +6,8 @@ use p256::ecdsa::SigningKey;
 use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
+use wallet_common::generator::Generator;
+
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
@@ -14,16 +16,15 @@ use crate::{
         crypto::{cbor_digest, dh_hmac_key},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
         x509::CertificateUsage,
-        Generator,
     },
     Result,
 };
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace.
-type DocumentDisclosedAttributes = IndexMap<NameSpace, Vec<Entry>>;
+pub type DocumentDisclosedAttributes = IndexMap<NameSpace, Vec<Entry>>;
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
-type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
+pub type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -60,7 +61,7 @@ impl DeviceResponse {
     pub fn verify(
         &self,
         eph_reader_key: Option<&SigningKey>,
-        device_authentication_bts: &Vec<u8>,
+        device_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes> {
@@ -75,7 +76,7 @@ impl DeviceResponse {
             return Err(VerificationError::NoDocuments.into());
         }
 
-        let device_authentication: DeviceAuthenticationBytes = cbor_deserialize(device_authentication_bts.as_slice())?;
+        let device_authentication: DeviceAuthenticationBytes = cbor_deserialize(device_authentication_bts)?;
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
@@ -136,14 +137,6 @@ impl ValidityInfo {
     }
 }
 
-impl TryFrom<&Tdate> for DateTime<Utc> {
-    type Error = ValidityError;
-    fn try_from(value: &Tdate) -> std::result::Result<DateTime<Utc>, ValidityError> {
-        let parsed = DateTime::parse_from_rfc3339(&value.0 .0).map(|t| t.with_timezone(&Utc))?;
-        Ok(parsed)
-    }
-}
-
 impl IssuerSigned {
     pub fn verify(
         &self,
@@ -159,34 +152,48 @@ impl IssuerSigned {
             .verify_is_valid_at(time.generate(), validity)
             .map_err(VerificationError::Validity)?;
 
-        let mut attrs: DocumentDisclosedAttributes = IndexMap::new();
-        if let Some(namespaces) = &self.name_spaces {
-            for (namespace, items) in namespaces {
-                attrs.insert(namespace.clone(), Vec::new());
-                let namespace_attrs = attrs.get_mut(namespace).unwrap();
-                for item in &items.0 {
-                    let digest_ids = mso
-                        .value_digests
-                        .0
-                        .get(namespace)
-                        .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?;
-                    let digest_id = item.0.digest_id;
-                    let digest = digest_ids
-                        .0
-                        .get(&digest_id)
-                        .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
-                    if *digest != cbor_digest(item)? {
-                        return Err(VerificationError::AttributeVerificationFailed.into());
-                    }
-                    namespace_attrs.push(Entry {
-                        name: item.0.element_identifier.clone(),
-                        value: item.0.element_value.clone(),
-                    });
-                }
-            }
-        }
+        let attrs = self
+            .name_spaces
+            .as_ref()
+            .unwrap_or(&IndexMap::new())
+            .iter()
+            .map(|(namespace, items)| Ok((namespace.to_string(), mso.verify_attrs_in_namespace(items, namespace)?)))
+            .collect::<Result<_>>()?;
 
         Ok((attrs, mso))
+    }
+}
+
+impl MobileSecurityObject {
+    fn verify_attrs_in_namespace(&self, attrs: &Attributes, namespace: &NameSpace) -> Result<Vec<Entry>> {
+        attrs
+            .0
+            .iter()
+            .map(|item| {
+                self.verify_attr_digest(namespace, item)?;
+                Ok(Entry {
+                    name: item.0.element_identifier.clone(),
+                    value: item.0.element_value.clone(),
+                })
+            })
+            .collect::<Result<_>>()
+    }
+
+    /// Given an `IssuerSignedItem` i.e. an attribute, verify that its digest is correctly included in the MSO.
+    fn verify_attr_digest(&self, namespace: &NameSpace, item: &IssuerSignedItemBytes) -> Result<()> {
+        let digest_id = item.0.digest_id;
+        let digest = self
+            .value_digests
+            .0
+            .get(namespace)
+            .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?
+            .0
+            .get(&digest_id)
+            .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
+        if *digest != cbor_digest(item)? {
+            return Err(VerificationError::AttributeVerificationFailed.into());
+        }
+        Ok(())
     }
 }
 

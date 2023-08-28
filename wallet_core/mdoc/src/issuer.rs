@@ -3,17 +3,20 @@
 //! the holder.
 
 use core::panic;
+use std::{sync::Arc, time::Duration};
 
-use chrono::Utc;
+use chrono::{DateTime, Local, Utc};
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
-use p256::ecdsa::Signature;
-use p256::ecdsa::{signature::Signer, SigningKey};
-use p256::pkcs8::DecodePrivateKey;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use p256::{
+    ecdsa::{signature::Signer, Signature, SigningKey},
+    pkcs8::DecodePrivateKey,
+};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use tokio::{task::JoinHandle, time};
+use url::Url;
 
 use wallet_common::{
     keys::{EcdsaKey, SecureEcdsaKey},
@@ -113,6 +116,7 @@ impl SessionState {
 pub trait SessionStore {
     fn get(&self, id: &SessionToken) -> Result<SessionData>;
     fn write(&self, session: &SessionData);
+    fn cleanup(&self);
 }
 
 #[derive(Debug, Default)]
@@ -128,6 +132,12 @@ impl MemorySessionStore {
     }
 }
 
+/// After this amount of inactivity, a session should be cleaned up.
+const SESSION_EXPIRY_MINUTES: u64 = 5;
+
+/// The cleanup task that removes stale sessions runs every so often.
+const CLEANUP_INTERVAL_SECONDS: u64 = 10;
+
 impl SessionStore for MemorySessionStore {
     fn get(&self, token: &SessionToken) -> Result<SessionData> {
         let data = self
@@ -141,23 +151,52 @@ impl SessionStore for MemorySessionStore {
     fn write(&self, session: &SessionData) {
         self.sessions.insert(session.token.clone(), session.clone());
     }
+
+    fn cleanup(&self) {
+        let now = Local::now();
+        let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
+        self.sessions.retain(|_, session| now - session.last_active < cutoff);
+    }
 }
 
 pub struct Server<K, S> {
-    url: String,
+    url: Url,
     keys: K,
-    sessions: S,
+    sessions: Arc<S>,
+    cleanup_task: JoinHandle<()>,
 }
 
-impl<K: KeyRing, S: SessionStore> Server<K, S> {
+impl<K, S> Drop for Server<K, S> {
+    fn drop(&mut self) {
+        // Stop the task at the next .await
+        self.cleanup_task.abort();
+    }
+}
+
+impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
     /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
-    pub fn new(url: String, keys: K, session_store: S) -> Self {
+    pub fn new(url: Url, keys: K, session_store: S) -> Self {
+        let sessions = Arc::new(session_store);
         Server {
-            url: if url.ends_with('/') { url } else { url + "/" },
+            cleanup_task: Self::start_cleanup_task(
+                Arc::clone(&sessions),
+                Duration::from_secs(CLEANUP_INTERVAL_SECONDS),
+            ),
+            url,
             keys,
-            sessions: session_store,
+            sessions,
         }
+    }
+
+    fn start_cleanup_task(sessions: Arc<S>, interval: Duration) -> JoinHandle<()> {
+        let mut interval = time::interval(interval);
+        tokio::spawn(async move {
+            loop {
+                interval.tick().await;
+                sessions.cleanup();
+            }
+        })
     }
 
     /// Start a new issuance session for the specified (unsigned) mdocs. Returns the [`ServiceEngagement`] to be
@@ -174,15 +213,12 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
             unsigned_mdocs: docs,
         };
 
-        self.sessions.write(&SessionData {
-            token: token.clone(),
-            request,
-            state: Created,
-            id: session_id,
-        });
+        self.sessions
+            .write(&SessionData::new(token.clone(), session_id, request));
 
+        let url = self.url.join(&token.0).unwrap(); // token is alphanumeric so this will always succeed
         Ok(ServiceEngagement {
-            url: (self.url.clone() + &token.0).into(),
+            url: Some(url),
             ..Default::default()
         })
     }
@@ -202,7 +238,7 @@ impl<K: KeyRing, S: SessionStore> Server<K, S> {
 
         let mut session_data = self.sessions.get(&token)?;
         let session = Session {
-            sessions: &self.sessions,
+            sessions: self.sessions.as_ref(),
             session_data: &mut session_data,
             keys: &self.keys,
             updated: false,
@@ -311,12 +347,26 @@ pub struct SessionData {
     state: SessionState,
     id: SessionId,
     token: SessionToken,
+    last_active: DateTime<Local>,
+}
+
+impl SessionData {
+    fn new(token: SessionToken, id: SessionId, request: RequestKeyGenerationMessage) -> SessionData {
+        SessionData {
+            token,
+            request,
+            id,
+            state: Created,
+            last_active: Local::now(),
+        }
+    }
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
 impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     fn update_state(&mut self, new_state: SessionState) {
         self.session_data.state.update(new_state);
+        self.session_data.last_active = Local::now();
         self.updated = true;
     }
 
@@ -369,8 +419,8 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
             expected_update: None,
         };
         let mso = MobileSecurityObject {
-            version: "1.0".to_string(),
-            digest_algorithm: "SHA-256".to_string(),
+            version: MobileSecurityObjectVersion::V1_0,
+            digest_algorithm: DigestAlgorithm::SHA256,
             doc_type: unsigned_mdoc.doc_type.clone(),
             value_digests: (&attrs).try_into()?,
             device_key_info: response.public_key.clone().into(),
@@ -394,8 +444,8 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
                 .map(|(namespace, attrs)| (namespace, Self::attr_randoms(attrs)))
                 .collect(),
             sparse_issuer_auth: SparseIssuerAuth {
-                version: "1.0".to_string(),
-                digest_algorithm: "SHA-256".to_string(),
+                version: MobileSecurityObjectVersion::V1_0,
+                digest_algorithm: DigestAlgorithm::SHA256,
                 validity_info: validity,
                 issuer_auth: cose.clone_without_payload(),
             },
@@ -437,8 +487,102 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
 
         let response = DataToIssueMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
-            mobile_id_documents: docs,
+            mobile_eid_documents: docs,
         };
         Ok(response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{sync::Arc, time::Duration};
+
+    use serde_bytes::ByteBuf;
+    use wallet_common::utils::random_string;
+
+    use crate::{basic_sa_ext::RequestKeyGenerationMessage, DocType};
+
+    use super::{KeyRing, MemorySessionStore, PrivateKey, SessionData, SessionStore};
+
+    struct EmptyKeyRing;
+    impl KeyRing for EmptyKeyRing {
+        fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+            None
+        }
+    }
+
+    type Server = super::Server<EmptyKeyRing, MemorySessionStore>;
+
+    const CLEANUP_INTERVAL: Duration = Duration::from_millis(50);
+
+    #[tokio::test]
+    async fn session_cleanup() {
+        // Construct a `Server`, but not using Server::new() so we can control our own cleanup task
+        let sessions = Arc::new(MemorySessionStore::new());
+        let server = Server {
+            cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+            url: "https://example.com".parse().unwrap(),
+            keys: EmptyKeyRing,
+            sessions,
+        };
+
+        // insert a fresh session
+        let session_data = dummy_session_data();
+        server.sessions.write(&session_data);
+        assert_eq!(server.sessions.sessions.len(), 1);
+
+        // wait at least one duration: session should still be here
+        tokio::time::sleep(CLEANUP_INTERVAL).await;
+        assert_eq!(server.sessions.sessions.len(), 1);
+
+        // insert a stale session
+        let mut session_data = dummy_session_data();
+        session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+        server.sessions.write(&session_data);
+        assert_eq!(server.sessions.sessions.len(), 2);
+
+        // wait at least one duration: stale session should be removed
+        tokio::time::sleep(CLEANUP_INTERVAL).await;
+        assert_eq!(server.sessions.sessions.len(), 1)
+    }
+
+    #[tokio::test]
+    async fn cleanup_task_cleanup() {
+        let sessions = Arc::new(MemorySessionStore::new());
+
+        {
+            // Construct a `Server`, but not using Server::new() so we can keep our sessions reference
+            // and control our own cleanup task.
+            let server = Server {
+                cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+                url: "https://example.com".parse().unwrap(),
+                keys: EmptyKeyRing,
+                sessions: Arc::clone(&sessions),
+            };
+
+            // insert a stale session
+            let mut session_data = dummy_session_data();
+            session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+            server.sessions.write(&session_data);
+            assert_eq!(server.sessions.sessions.len(), 1);
+
+            // Drop the server and its cleanup task before giving the cleanup task a chance to run
+        }
+
+        // wait at least one duration: stale session should not be removed since the cleanup task has been stopped.
+        tokio::time::sleep(CLEANUP_INTERVAL).await;
+        assert_eq!(sessions.sessions.len(), 1)
+    }
+
+    fn dummy_session_data() -> SessionData {
+        SessionData::new(
+            random_string(32).into(),
+            "123".to_string().as_bytes().to_vec().into(),
+            RequestKeyGenerationMessage {
+                e_session_id: "123".to_string().as_bytes().to_vec().into(),
+                challenge: ByteBuf::from(vec![]),
+                unsigned_mdocs: vec![],
+            },
+        )
     }
 }

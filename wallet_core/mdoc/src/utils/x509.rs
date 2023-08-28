@@ -19,7 +19,7 @@ use x509_parser::{
     prelude::{FromDer, PEMError, X509Certificate, X509Error},
 };
 
-use super::Generator;
+use wallet_common::generator::Generator;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateError {
@@ -232,7 +232,7 @@ mod test {
     use p256::pkcs8::ObjectIdentifier;
     use webpki::TrustAnchor;
 
-    use crate::utils::Generator;
+    use wallet_common::generator::Generator;
 
     use super::{Certificate, CertificateUsage};
 

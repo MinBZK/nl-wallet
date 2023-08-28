@@ -6,131 +6,221 @@ use async_trait::async_trait;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Serialize};
 
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use url::Url;
+use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, RequestKeyGenerationMessage, UnsignedMdoc},
+    basic_sa_ext::{Entry, UnsignedMdoc},
     holder::*,
     iso::*,
     issuer::*,
-    issuer_shared::SessionToken,
     utils::{
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
-        Generator,
     },
+    verifier::DisclosedAttributes,
     Error,
 };
 
 mod examples;
 use examples::*;
 
+const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
+const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
+const EXAMPLE_ATTR_NAME: &str = "family_name";
+static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string())); // Lazy since can't have a const String
+
 /// Verify the example disclosure from the standard.
 #[test]
-fn iso_examples_disclosure() {
-    let ca_cert = Examples::issuer_ca_cert();
-    let eph_reader_key = Examples::ephemeral_reader_key();
+fn verify_iso_example_disclosure() {
     let device_response = DeviceResponse::example();
     println!("DeviceResponse: {:#?} ", DebugCollapseBts(&device_response));
 
+    // Examine the first attribute in the device response
+    let document = device_response.documents.as_ref().unwrap()[0].clone();
+    assert_eq!(document.doc_type, EXAMPLE_DOC_TYPE);
+    let namespaces = document.issuer_signed.name_spaces.as_ref().unwrap();
+    let attrs = namespaces.get(EXAMPLE_NAMESPACE).unwrap();
+    let issuer_signed_attr = attrs.0.first().unwrap().0.clone();
+    assert_eq!(issuer_signed_attr.element_identifier, EXAMPLE_ATTR_NAME);
+    assert_eq!(issuer_signed_attr.element_value, *EXAMPLE_ATTR_VALUE);
+    println!("issuer_signed_attr: {:#?}", DebugCollapseBts(&issuer_signed_attr));
+
     // Do the verification
-    let disclosed_attributes = device_response
+    let eph_reader_key = Examples::ephemeral_reader_key();
+    let trust_anchors = Examples::iaca_trust_anchors();
+    let disclosed_attrs = device_response
         .verify(
             Some(&eph_reader_key),
             &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
             &IsoCertTimeGenerator,
-            ca_cert,
+            trust_anchors,
         )
         .unwrap();
-    println!("DisclosedAttributes: {:#?}", DebugCollapseBts(disclosed_attributes));
+    println!("DisclosedAttributes: {:#?}", DebugCollapseBts(&disclosed_attrs));
 
+    // The first disclosed attribute is the same as we saw earlier in the DeviceResponse
+    assert_disclosure_contains(
+        &disclosed_attrs,
+        EXAMPLE_DOC_TYPE,
+        EXAMPLE_NAMESPACE,
+        EXAMPLE_ATTR_NAME,
+        &EXAMPLE_ATTR_VALUE,
+    );
+}
+
+/// Construct the example mdoc from the standard and disclose attributes
+/// by running the example device request from the standard against it.
+#[test]
+fn do_and_verify_iso_example_disclosure() {
     let device_request = DeviceRequest::example();
+
+    // Examine some fields in the device request
+    let items_request = device_request.doc_requests.first().unwrap().items_request.0.clone();
+    assert_eq!(items_request.doc_type, EXAMPLE_DOC_TYPE);
+    let requested_attrs = items_request.name_spaces.get(EXAMPLE_NAMESPACE).unwrap();
+    let intent_to_retain = requested_attrs.get(EXAMPLE_ATTR_NAME).unwrap();
+    assert!(intent_to_retain);
     println!("DeviceRequest: {:#?}", DebugCollapseBts(&device_request));
 
-    let reader_ca_cert = Examples::reader_ca_cert();
-    println!(
-        "Reader: {:#?}",
-        device_request
-            .verify(
-                &ReaderAuthenticationBytes::example_bts(),
-                &IsoCertTimeGenerator,
-                reader_ca_cert,
-            )
-            .unwrap(),
+    // Verify reader's request
+    let reader_trust_anchors = Examples::reader_trust_anchors();
+    let reader_x509_subject = device_request
+        .verify(
+            &ReaderAuthenticationBytes::example_bts(),
+            &IsoCertTimeGenerator,
+            reader_trust_anchors,
+        )
+        .unwrap();
+
+    // The reader's certificate contains who it is
+    assert_eq!(
+        reader_x509_subject.as_ref().unwrap().first().unwrap(),
+        (&"CN".to_string(), &"reader".to_string())
     );
+    println!("Reader: {:#?}", reader_x509_subject);
 
-    let static_device_key = Examples::static_device_key();
-    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Mdoc::<SoftwareEcdsaKey>::new(
-        "example_static_device_key".to_string(),
-        device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
-        &IsoCertTimeGenerator,
-        ca_cert,
-    )
-    .unwrap();
+    // Construct the mdoc from the example device response in the standard
+    let trust_anchors = Examples::iaca_trust_anchors();
+    let mdoc = mdoc_from_example_device_response(trust_anchors);
 
-    let wallet = Wallet::new(MdocsMap::try_from([cred]).unwrap());
+    // Do the disclosure and verify it
+    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
-
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
-    println!(
-        "Disclosure: {:#?}",
-        DebugCollapseBts(resp.verify(
+    let disclosed_attrs = resp
+        .verify(
             None,
             &DeviceAuthenticationBytes::example_bts(),
             &IsoCertTimeGenerator,
-            ca_cert
-        )),
+            trust_anchors,
+        )
+        .unwrap();
+    println!("DisclosedAttributes: {:#?}", DebugCollapseBts(&disclosed_attrs));
+
+    // The first disclosed attribute is the same as we saw earlier in the DeviceRequest
+    assert_disclosure_contains(
+        &disclosed_attrs,
+        EXAMPLE_DOC_TYPE,
+        EXAMPLE_NAMESPACE,
+        EXAMPLE_ATTR_NAME,
+        &EXAMPLE_ATTR_VALUE,
     );
 }
 
 /// Disclose some of the attributes of the example mdoc from the spec.
 #[test]
 fn iso_examples_custom_disclosure() {
-    let ca_cert = Examples::issuer_ca_cert();
-    let device_response = DeviceResponse::example();
-
     let request = DeviceRequest::new(vec![ItemsRequest {
-        doc_type: "org.iso.18013.5.1.mDL".to_string(),
+        doc_type: EXAMPLE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
-            "org.iso.18013.5.1".to_string(),
-            IndexMap::from([("family_name".to_string(), false)]),
+            EXAMPLE_NAMESPACE.to_string(),
+            IndexMap::from([(EXAMPLE_ATTR_NAME.to_string(), false)]),
         )]),
         request_info: None,
     }]);
     println!("My Request: {:#?}", DebugCollapseBts(&request));
 
-    let static_device_key = Examples::static_device_key();
-    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-    let cred = Mdoc::<SoftwareEcdsaKey>::new(
-        "example_static_device_key".to_string(),
-        device_response.documents.as_ref().unwrap()[0].issuer_signed.clone(),
-        &IsoCertTimeGenerator,
-        ca_cert,
-    )
-    .unwrap();
+    let trust_anchors = Examples::iaca_trust_anchors();
+    let mdoc = mdoc_from_example_device_response(trust_anchors);
 
-    let wallet = Wallet::new(MdocsMap::try_from([cred]).unwrap());
+    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
         .unwrap();
 
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
-    println!(
-        "My Disclosure: {:#?}",
-        DebugCollapseBts(resp.verify(
+    let disclosed_attrs = resp
+        .verify(
             None,
             &DeviceAuthenticationBytes::example_bts(),
             &IsoCertTimeGenerator,
-            ca_cert
-        )),
+            trust_anchors,
+        )
+        .unwrap();
+    println!("My Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
+
+    // The first disclosed attribute is the one we requested in our device request
+    assert_disclosure_contains(
+        &disclosed_attrs,
+        EXAMPLE_DOC_TYPE,
+        EXAMPLE_NAMESPACE,
+        EXAMPLE_ATTR_NAME,
+        &EXAMPLE_ATTR_VALUE,
     );
+}
+
+/// Out of the example data structures in the standard, assemble an mdoc.
+/// The issuer-signed part of the mdoc is based on a [`DeviceResponse`] in which not all attributes of the originating
+/// mdoc are disclosed. Consequentially, the issuer signed-part of the resulting mdoc misses some [`IssuerSignedItem`]
+/// instances, i.e. attributes.
+/// This is because the other attributes are actually nowhere present in the standard so it is impossible to construct
+/// the example mdoc with all attributes present.
+///
+/// Using tests should not rely on all attributes being present.
+fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor]) -> Mdoc<SoftwareEcdsaKey> {
+    // Prepare the mdoc's private key
+    let static_device_key = Examples::static_device_key();
+    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
+
+    let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+        .issuer_signed
+        .clone();
+
+    Mdoc::<SoftwareEcdsaKey>::new(
+        "example_static_device_key".to_string(),
+        issuer_signed,
+        &IsoCertTimeGenerator,
+        trust_anchors,
+    )
+    .unwrap()
+}
+
+/// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
+/// and that the first attribute in that namespace has the specified name and value.
+fn assert_disclosure_contains(
+    disclosed_attrs: &DisclosedAttributes,
+    doctype: &str,
+    namespace: &str,
+    name: &str,
+    value: &DataElementValue,
+) {
+    let disclosed_attr = disclosed_attrs
+        .get(doctype)
+        .unwrap()
+        .get(namespace)
+        .unwrap()
+        .first()
+        .unwrap();
+    assert_eq!(disclosed_attr.name, *name);
+    assert_eq!(disclosed_attr.value, *value);
 }
 
 /// Verify that the static device key example from the spec is the public key in the MSO.
@@ -141,7 +231,11 @@ fn iso_examples_consistency() {
     let device_key = &DeviceResponse::example().documents.unwrap()[0]
         .issuer_signed
         .issuer_auth
-        .verify_against_trust_anchors(CertificateUsage::Mdl, &IsoCertTimeGenerator, Examples::issuer_ca_cert())
+        .verify_against_trust_anchors(
+            CertificateUsage::Mdl,
+            &IsoCertTimeGenerator,
+            Examples::iaca_trust_anchors(),
+        )
         .unwrap()
         .0
         .device_key_info
@@ -163,7 +257,7 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     let now = chrono::Utc::now();
     vec![UnsignedMdoc {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
-        count: 2,
+        copy_count: 2,
         valid_from: now.into(),
         valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
         attributes: IndexMap::from([(
@@ -181,40 +275,24 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
 
 struct MockHttpClient<'a, K, S> {
     issuance_server: &'a Server<K, S>,
-    session_token: SessionToken,
 }
 
 #[async_trait]
-impl HttpClient for MockHttpClient<'_, MockIssuanceKeyring, MemorySessionStore> {
-    async fn post<R, V>(&self, val: &V) -> Result<R, Error>
+impl<K, S> HttpClient for MockHttpClient<'_, K, S>
+where
+    K: KeyRing + Sync,
+    S: SessionStore + Send + Sync + 'static,
+{
+    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R, Error>
     where
         V: Serialize + Sync,
         R: DeserializeOwned,
     {
+        let session_token = url.path_segments().unwrap().last().unwrap().to_string();
         let val = &cbor_serialize(val).unwrap();
-        let response = self
-            .issuance_server
-            .process_message(self.session_token.clone(), val)
-            .unwrap();
+        let response = self.issuance_server.process_message(session_token.into(), val).unwrap();
         let response = cbor_deserialize(response.as_slice()).unwrap();
         Ok(response)
-    }
-}
-
-struct MockHttpClientBuilder<'a, K, S> {
-    issuance_server: &'a Server<K, S>,
-}
-
-impl<'a> HttpClientBuilder for MockHttpClientBuilder<'a, MockIssuanceKeyring, MemorySessionStore> {
-    type Client = MockHttpClient<'a, MockIssuanceKeyring, MemorySessionStore>;
-    fn build(&self, engagement: ServiceEngagement) -> Self::Client {
-        // Strip off leading /
-        let url = engagement.url.unwrap()[1..].to_string();
-
-        MockHttpClient {
-            issuance_server: self.issuance_server,
-            session_token: url.into(),
-        }
     }
 }
 
@@ -231,22 +309,24 @@ fn user_consent<const CONSENT: bool>() -> impl IssuanceUserConsent {
     struct MockUserConsent<const CONSENT: bool>;
     #[async_trait]
     impl<const CONSENT: bool> IssuanceUserConsent for MockUserConsent<CONSENT> {
-        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
             CONSENT
         }
     }
     MockUserConsent::<CONSENT>
 }
 
-#[test]
-fn issuance_and_disclosure() {
+#[tokio::test]
+async fn issuance_and_disclosure() {
     // Agree with issuance
-    let (wallet, ca) = issuance_and_disclosure_using_consent(user_consent::<true>(), new_issuance_request());
+    let (wallet, ca) = issuance_using_consent(user_consent::<true>(), new_issuance_request()).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
+
+    // We can disclose the mdoc that was just issued to us
     custom_disclosure(wallet, ca);
 
     // Decline issuance
-    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent::<false>(), new_issuance_request());
+    let (wallet, _) = issuance_using_consent(user_consent::<false>(), new_issuance_request()).await;
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Issue not-yet-valid mdocs
@@ -256,11 +336,11 @@ fn issuance_and_disclosure() {
         .iter_mut()
         .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
     assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
-    let (wallet, _) = issuance_and_disclosure_using_consent(user_consent::<true>(), request);
+    let (wallet, _) = issuance_using_consent(user_consent::<true>(), request).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 }
 
-fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
+async fn issuance_using_consent<T: IssuanceUserConsent>(
     user_consent: T,
     request: Vec<UnsignedMdoc>,
 ) -> (Wallet<MdocsMap>, Certificate) {
@@ -272,7 +352,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
 
     // Setup session and issuer
     let issuance_server = Server::new(
-        "".to_string(),
+        "http://example.com".parse().unwrap(),
         MockIssuanceKeyring { issuance_key },
         MemorySessionStore::new(),
     );
@@ -283,23 +363,13 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Do issuance
-    let client_builder = MockHttpClientBuilder {
+    let client = MockHttpClient {
         issuance_server: &issuance_server,
     };
-    tokio::runtime::Builder::new_current_thread()
-        .build()
-        .unwrap()
-        .block_on(async {
-            wallet
-                .do_issuance::<SoftwareEcdsaKey>(
-                    service_engagement,
-                    &user_consent,
-                    &client_builder,
-                    &[(&ca).try_into().unwrap()],
-                )
-                .await
-                .unwrap();
-        });
+    wallet
+        .do_issuance::<SoftwareEcdsaKey>(service_engagement, &user_consent, &client, &[(&ca).try_into().unwrap()])
+        .await
+        .unwrap();
 
     (wallet, ca)
 }
@@ -307,7 +377,7 @@ fn issuance_and_disclosure_using_consent<T: IssuanceUserConsent>(
 fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
     assert!(!wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
-    // Disclose some attributes from our cred
+    // Create a request asking for one attribute
     let request = DeviceRequest::new(vec![ItemsRequest {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
@@ -317,18 +387,24 @@ fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
         request_info: None,
     }]);
 
+    // Do the disclosure and verify it
     let challenge = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet
         .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref())
         .unwrap();
+    let disclosed_attrs = disclosed
+        .verify(None, &challenge, &TimeGenerator, &[(&ca).try_into().unwrap()])
+        .unwrap();
+    println!("Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
 
-    println!(
-        "Disclosure: {:#?}",
-        DebugCollapseBts(
-            disclosed
-                .verify(None, &challenge, &TimeGenerator, &[(&ca).try_into().unwrap()])
-                .unwrap()
-        )
+    // Check the first disclosed attribute has the expected name and value
+    let attr = ISSUANCE_ATTRS.first().unwrap();
+    assert_disclosure_contains(
+        &disclosed_attrs,
+        ISSUANCE_DOC_TYPE,
+        ISSUANCE_NAME_SPACE,
+        attr.0,
+        &Value::Text(attr.1.to_string()),
     );
 }
 
