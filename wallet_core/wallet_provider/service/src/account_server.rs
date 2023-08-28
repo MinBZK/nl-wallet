@@ -17,11 +17,11 @@ use wallet_common::{
         serialization::Base64Bytes,
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
+    generator::Generator,
     keys::EcdsaKey,
     utils::{random_bytes, random_string, sha256},
 };
 use wallet_provider_domain::{
-    generator::Generator,
     model::{
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
         wallet_user::{WalletUser, WalletUserCreate, WalletUserQueryResult},

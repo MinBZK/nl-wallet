@@ -5,13 +5,13 @@ use p256::ecdsa::{SigningKey, VerifyingKey};
 use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
     iso::*,
     utils::{
         cose::ClonePayload, crypto::dh_hmac_key, keys::MdocEcdsaKey, serialization::cbor_deserialize,
-        x509::CertificateUsage, Generator,
+        x509::CertificateUsage,
     },
     verifier::X509Subject,
     Error, Result,
@@ -25,31 +25,39 @@ impl<C: Storage> Wallet<C> {
         device_request: &DeviceRequest,
         challenge: &[u8],
     ) -> Result<DeviceResponse> {
-        let mut docs: Vec<Document> = Vec::new();
-
-        for doc_request in &device_request.doc_requests {
-            let items_request = &doc_request.items_request.0;
-
-            // This takes any mdoc of the specified doctype. TODO: allow user choice.
-            let creds = self.storage.get::<K>(&items_request.doc_type).ok_or(Error::from(
-                HolderError::UnsatisfiableRequest(items_request.doc_type.clone()),
-            ))?;
-            let cred = &creds
-                .first()
-                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                    items_request.doc_type.clone(),
-                )))?
-                .cred_copies[0];
-            docs.push(cred.disclose_document(items_request, challenge)?);
-        }
+        let docs: Vec<Document> = device_request
+            .doc_requests
+            .iter()
+            .map(|doc_request| self.disclose_document::<K>(doc_request, challenge))
+            .collect::<Result<_>>()?;
 
         let response = DeviceResponse {
-            version: "1.0".to_string(),
+            version: DeviceResponseVersion::V1_0,
             documents: Some(docs),
-            document_errors: None,
+            document_errors: None, // TODO: consider using this for reporting errors per document/mdoc
             status: 0,
         };
         Ok(response)
+    }
+
+    fn disclose_document<K: MdocEcdsaKey>(&self, doc_request: &DocRequest, challenge: &[u8]) -> Result<Document> {
+        let items_request = &doc_request.items_request.0;
+
+        // This takes any mdoc of the specified doctype. TODO: allow user choice.
+        let creds =
+            self.storage
+                .get::<K>(&items_request.doc_type)
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?;
+        let cred = &creds
+            .first()
+            .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                items_request.doc_type.clone(),
+            )))?
+            .cred_copies[0];
+        let document = cred.disclose_document(items_request, challenge)?;
+        Ok(document)
     }
 }
 

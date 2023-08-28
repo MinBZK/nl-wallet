@@ -5,12 +5,12 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use webpki::TrustAnchor;
 
-use wallet_common::utils::sha256;
+use wallet_common::{generator::Generator, utils::sha256};
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{keys::MdocEcdsaKey, serialization::cbor_serialize, Generator},
+    utils::{keys::MdocEcdsaKey, serialization::cbor_serialize},
     verifier::ValidityRequirement,
     Result,
 };
@@ -80,7 +80,7 @@ pub struct Mdoc<K> {
     // by serializing the mdoc and examining the serialized bytes. This is not a problem because it is essentially
     // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
     // mdoc after deserialization.
-    pub(crate) private_key: String,
+    pub(crate) private_key_id: String,
     pub(crate) issuer_signed: IssuerSigned,
     pub(crate) key_type: PrivateKeyType<K>,
 }
@@ -120,6 +120,7 @@ impl<'de, K: MdocEcdsaKey> Deserialize<'de> for PrivateKeyType<K> {
 }
 
 impl<K: MdocEcdsaKey> Mdoc<K> {
+    /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
     pub fn new(
         private_key: String,
         issuer_signed: IssuerSigned,
@@ -127,20 +128,17 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
         trust_anchors: &[TrustAnchor],
     ) -> Result<Mdoc<K>> {
         let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
-        Ok(Self::_new(mso.doc_type, private_key, issuer_signed))
-    }
-
-    pub(crate) fn _new(doc_type: DocType, private_key: String, issuer_signed: IssuerSigned) -> Mdoc<K> {
-        Mdoc {
-            doc_type,
-            private_key,
+        let mdoc = Mdoc {
+            doc_type: mso.doc_type,
+            private_key_id: private_key,
             issuer_signed,
             key_type: PrivateKeyType::new(),
-        }
+        };
+        Ok(mdoc)
     }
 
     pub(crate) fn private_key(&self) -> K {
-        K::new(&self.private_key)
+        K::new(&self.private_key_id)
     }
 
     /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
@@ -148,7 +146,7 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
         self.issuer_signed
             .name_spaces
             .as_ref()
-            .unwrap()
+            .unwrap_or(&IndexMap::new())
             .iter()
             .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
             .collect::<IndexMap<_, _>>()

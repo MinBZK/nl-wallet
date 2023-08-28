@@ -31,6 +31,8 @@ serde = { workspace = true , features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
 serde_with = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true , features = ["macros", "rt"] }
+url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true , features = ["verify", "validate"] }
 
 fieldnames = { path = "./fieldnames" }
@@ -39,7 +41,6 @@ wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
 anyhow = { workspace = true }
-tokio = { workspace = true , features = ["macros", "rt"] }
 
 nl_wallet_mdoc = { path = ".", features = ["mock", "memory_storage"] }
 

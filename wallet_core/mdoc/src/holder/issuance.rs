@@ -2,10 +2,11 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
+use url::Url;
 pub use webpki::TrustAnchor;
-
-use wallet_common::utils::random_string;
 use x509_parser::nom::AsBytes;
+
+use wallet_common::{generator::TimeGenerator, utils::random_string};
 
 use crate::{
     basic_sa_ext::{
@@ -18,52 +19,34 @@ use crate::{
         cose::ClonePayload,
         keys::MdocEcdsaKey,
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
-        TimeGenerator,
     },
-    verifier::ValidityRequirement,
     Result,
 };
 
 use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
 
-/// Used during a session to construct a HTTP client to interface with the server.
-/// Can be used to pass information to the client that it needs during the session.
-pub trait HttpClientBuilder {
-    type Client: HttpClient;
-    fn build(&self, service_engagement: ServiceEngagement) -> Self::Client;
-}
-
 #[async_trait]
 pub trait HttpClient {
-    async fn post<R, V>(&self, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned;
 }
 
-/// Send and receive CBOR-encoded messages over HTTP for a session using a [`reqwest::Client`]
-/// and a [`ServiceEngagement`].
-pub struct CborHttpClient {
-    pub service_engagement: ServiceEngagement,
-    pub client: reqwest::Client,
-}
+/// Send and receive CBOR-encoded messages over HTTP using a [`reqwest::Client`].
+pub struct CborHttpClient(pub reqwest::Client);
 
 #[async_trait]
 impl HttpClient for CborHttpClient {
-    async fn post<R, V>(&self, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned,
     {
         let bytes = cbor_serialize(val)?;
-        let url = self
-            .service_engagement
-            .url
-            .as_ref()
-            .ok_or(HolderError::MalformedServiceEngagement)?;
         let response_bytes = self
-            .client
-            .post(url)
+            .0
+            .post(url.clone())
             .body(bytes)
             .send()
             .await
@@ -76,26 +59,11 @@ impl HttpClient for CborHttpClient {
     }
 }
 
-/// A [`CborHttpClient`] builder that uses the default [`reqwest::Client`].
-pub fn cbor_http_client_builder() -> impl HttpClientBuilder {
-    struct Builder;
-    impl HttpClientBuilder for Builder {
-        type Client = CborHttpClient;
-        fn build(&self, service_engagement: ServiceEngagement) -> Self::Client {
-            CborHttpClient {
-                service_engagement,
-                client: reqwest::Client::new(),
-            }
-        }
-    }
-    Builder
-}
-
 /// Ask the user for consent during an issuance session, presentimg them with the [`RequestKeyGenerationMessage`]
 /// containing the to-be-received mdocs.
 #[async_trait]
 pub trait IssuanceUserConsent {
-    async fn ask(&self, request: &RequestKeyGenerationMessage) -> bool;
+    async fn ask(&self, request: &[UnsignedMdoc]) -> bool;
 }
 
 impl<C: Storage> Wallet<C> {
@@ -104,30 +72,34 @@ impl<C: Storage> Wallet<C> {
         &self,
         service_engagement: ServiceEngagement,
         user_consent: &impl IssuanceUserConsent,
-        client_builder: &impl HttpClientBuilder,
+        client: &impl HttpClient,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<()> {
-        let client = client_builder.build(service_engagement);
+        let url = service_engagement
+            .url
+            .as_ref()
+            .ok_or(HolderError::MalformedServiceEngagement)?;
 
         // Start issuance protocol
-        let ready_msg: ReadyToProvisionMessage = client.post(&StartProvisioningMessage::default()).await?;
+        let start_prov_msg = StartProvisioningMessage {
+            provisioning_code: service_engagement.pc.clone(),
+        };
+        let ready_msg: ReadyToProvisionMessage = client.post(url, &start_prov_msg).await?;
         let session_id = ready_msg.e_session_id;
 
         // Fetch the issuance details: challenge and the to-be-issued mdocs
-        let request: RequestKeyGenerationMessage = client
-            .post(&StartIssuingMessage {
-                e_session_id: session_id.clone(),
-                version: 1, // TODO magic number
-            })
-            .await?;
+        let start_issuing_msg = StartIssuingMessage {
+            e_session_id: session_id.clone(),
+            version: 1, // TODO magic number
+        };
+        let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
 
-        if !user_consent.ask(&request).await {
-            // Inform the server we want to abourt. We don't care if an error occurs here
-            let _: Result<EndSessionMessage> = client
-                .post(&RequestEndSessionMessage {
-                    e_session_id: session_id.clone(),
-                })
-                .await;
+        if !user_consent.ask(&request.unsigned_mdocs).await {
+            // Inform the server we want to abort. We don't care if an error occurs here
+            let end_msg = RequestEndSessionMessage {
+                e_session_id: session_id.clone(),
+            };
+            let _: Result<EndSessionMessage> = client.post(url, &end_msg).await;
             return Ok(());
         }
 
@@ -135,7 +107,7 @@ impl<C: Storage> Wallet<C> {
         let state = IssuanceState::<K>::issuance_start(request)?;
 
         // Finish issuance protocol
-        let issuer_response: DataToIssueMessage = client.post(&state.response).await?;
+        let issuer_response: DataToIssueMessage = client.post(url, &state.response).await?;
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.issuance_finish(issuer_response, trust_anchors)?;
@@ -157,9 +129,10 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         let private_keys = request
             .unsigned_mdocs
             .iter()
-            .map(|unsigned| Self::generate_keys(unsigned.count))
+            .map(|unsigned| Self::generate_keys(unsigned.copy_count))
             .collect::<Vec<_>>();
-        let response = KeyGenerationResponseMessage::new(&request, &private_keys)?;
+        let private_keys_refs = private_keys.iter().map(|f| f.as_slice()).collect::<Vec<_>>();
+        let response = KeyGenerationResponseMessage::new(&request, private_keys_refs.as_slice())?;
 
         let state = IssuanceState {
             request,
@@ -179,7 +152,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         trust_anchors: &[TrustAnchor],
     ) -> Result<Vec<MdocCopies<K>>> {
         issuer_response
-            .mobile_id_documents
+            .mobile_eid_documents
             .iter()
             .zip(&self.request.unsigned_mdocs)
             .zip(&self.private_keys)
@@ -190,7 +163,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
     fn create_cred_copies(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
-        keys: &Vec<K>,
+        keys: &[K],
         trust_anchors: &[TrustAnchor],
     ) -> Result<MdocCopies<K>> {
         let cred_copies = doc
@@ -214,8 +187,14 @@ impl SparseIssuerSigned {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
-            .map(|(namespace, entries)| (namespace.clone(), Self::create_attrs(namespace, entries, &self.randoms)))
-            .collect();
+            .map(|(namespace, entries)| {
+                let attrs = (
+                    namespace.clone(),
+                    Self::create_attrs(namespace, entries, &self.randoms)?,
+                );
+                Ok(attrs)
+            })
+            .collect::<Result<_>>()?;
 
         let mso = MobileSecurityObject {
             version: self.sparse_issuer_auth.version.clone(),
@@ -237,34 +216,43 @@ impl SparseIssuerSigned {
             name_spaces: Some(name_spaces),
             issuer_auth,
         };
-        issuer_signed.verify(ValidityRequirement::AllowNotYetValid, &TimeGenerator, trust_anchors)?;
 
-        let cred = Mdoc::_new(
-            unsigned.doc_type.clone(),
+        // Construct the mdoc, also verifying it (using `IssuerSigned::verify()`).
+        let cred = Mdoc::new(
             private_key.identifier().to_string(),
             issuer_signed,
-        );
+            &TimeGenerator,
+            trust_anchors,
+        )?;
         Ok(cred)
     }
 
-    fn create_attrs(namespace: &NameSpace, attrs: &[Entry], randoms: &IndexMap<NameSpace, Vec<ByteBuf>>) -> Attributes {
-        attrs
+    fn create_attrs(
+        namespace: &NameSpace,
+        entries: &[Entry],
+        randoms: &IndexMap<NameSpace, Vec<ByteBuf>>,
+    ) -> Result<Attributes> {
+        entries
             .iter()
             .enumerate()
-            .map(|(index, attr)| attr.to_issuer_signed_item(index, randoms[namespace][index].to_vec()))
-            .collect::<Vec<_>>()
-            .into()
+            .map(|(index, entry)| entry.to_issuer_signed_item(index, randoms[namespace][index].to_vec()))
+            .collect::<Result<Vec<_>>>()
+            .map(Attributes::from)
     }
 }
 
 impl Entry {
-    fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> IssuerSignedItemBytes {
-        IssuerSignedItem {
+    fn to_issuer_signed_item(&self, index: usize, random: Vec<u8>) -> Result<IssuerSignedItemBytes> {
+        if random.len() < ATTR_RANDOM_LENGTH {
+            return Err(HolderError::AttributeRandomLength(random.len(), ATTR_RANDOM_LENGTH).into());
+        }
+        let item = IssuerSignedItem {
             digest_id: index as u64,
             random: ByteBuf::from(random),
             element_identifier: self.name.clone(),
             element_value: self.value.clone(),
         }
-        .into()
+        .into();
+        Ok(item)
     }
 }

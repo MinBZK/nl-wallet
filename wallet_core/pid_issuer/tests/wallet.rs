@@ -8,8 +8,8 @@ use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::RequestKeyGenerationMessage,
-    holder::{cbor_http_client_builder, IssuanceUserConsent, Wallet as MdocWallet},
+    basic_sa_ext::UnsignedMdoc,
+    holder::{CborHttpClient, IssuanceUserConsent, Wallet as MdocWallet},
     utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
@@ -67,7 +67,7 @@ fn pid_issuer_settings() -> (Settings, u16) {
     let mut settings = Settings::new().expect("Could not read settings");
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").expect("Could not parse IP address");
     settings.webserver.port = port;
-    settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
+    settings.public_url = format!("http://localhost:{}/mdoc/", port).parse().unwrap();
 
     (settings, port)
 }
@@ -110,7 +110,7 @@ async fn test_pid_issuance_mock_bsn() {
         .do_issuance::<SoftwareEcdsaKey>(
             service_engagement,
             &always_agree(),
-            &cbor_http_client_builder(),
+            &CborHttpClient(reqwest::Client::new()),
             &config.mdoc_trust_anchors,
         )
         .await
@@ -129,7 +129,7 @@ fn always_agree() -> impl IssuanceUserConsent {
     struct AlwaysAgree;
     #[async_trait]
     impl IssuanceUserConsent for AlwaysAgree {
-        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
             true
         }
     }
