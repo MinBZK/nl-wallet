@@ -43,7 +43,7 @@ mod tests {
         .expect("Could not create openid::Config.");
 
         let http_client = reqwest::Client::new();
-        let client: openid::Client<_> = openid::Client::new(
+        let client = openid::Client::new(
             config.into(),
             "foo".to_string(),
             "bar".to_string(),
