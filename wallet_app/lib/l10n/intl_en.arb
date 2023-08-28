@@ -1075,7 +1075,7 @@
     "walletPersonalizeLoadingPhotoPageSubtitle": "One moment...",
     "walletPersonalizeLoadingPhotoPageTitle": "Scanning",
     "walletPersonalizeNoDigidPageBackCta": "Back",
-    "walletPersonalizeNoDigidPageDescription": "At the moment you can only setup your wallet if you have access to DigiD",
+    "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app. \n\nDo you live in the Netherlands and do you have a Dutch ID? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "I don't have DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
     "walletPersonalizeNoDigidPageTitle": "No DigiD",
