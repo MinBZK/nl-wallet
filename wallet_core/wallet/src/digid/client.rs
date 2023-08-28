@@ -153,7 +153,6 @@ where
 #[cfg(test)]
 mod tests {
     use mockall::predicate::*;
-    use once_cell::sync::Lazy;
     use tokio::sync::oneshot;
 
     use crate::digid::{openid_client::MockOpenIdAuthenticator, pkce::MockPkceSource};
@@ -163,9 +162,9 @@ mod tests {
     #[tokio::test]
     async fn test_digid_client() {
         // Set up some constants that are returned by our mocks.
-        static ISSUER_URL: Lazy<Url> = Lazy::new(|| Url::parse("http://example.com").unwrap());
+        const ISSUER_URL: &str = "http://example.com";
         const CLIENT_ID: &str = "client-1";
-        static REDIRECT_URI: Lazy<Url> = Lazy::new(|| Url::parse("redirect://here").unwrap());
+        const REDIRECT_URI: &str = "redirect://here";
 
         const PKCE_VERIFIER: &str = "a_pkce_verifier";
         const PKCE_CHALLENGE: &str = "a_pkce_challenge";
@@ -180,7 +179,7 @@ mod tests {
         assert!(client.session_state.is_none());
 
         // Also, we should not be accepting a valid redirect URIs.
-        assert!(!client.accepts_redirect_uri(Lazy::force(&REDIRECT_URI)));
+        assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
 
         // Setup a channel so that we can intercept the generated CSRF token and nonce,
         // which we will do when setting up the mock with closures.
@@ -195,9 +194,9 @@ mod tests {
         discover_context
             .expect()
             .with(
-                eq(Lazy::force(&ISSUER_URL)),
+                eq(Url::parse(ISSUER_URL).unwrap()),
                 eq(CLIENT_ID.to_string()),
-                eq(Lazy::force(&REDIRECT_URI)),
+                eq(Url::parse(REDIRECT_URI).unwrap()),
             )
             .return_once(move |_, _, _| {
                 let mut openid_client = MockOpenIdAuthenticator::new();
@@ -225,7 +224,11 @@ mod tests {
 
         // Now we are ready to call `DigidClient.start_session()`, which should succeed.
         let url = client
-            .start_session(ISSUER_URL.clone(), CLIENT_ID.to_string(), REDIRECT_URI.clone())
+            .start_session(
+                Url::parse(ISSUER_URL).unwrap(),
+                CLIENT_ID.to_string(),
+                Url::parse(REDIRECT_URI).unwrap(),
+            )
             .await
             .expect("Could not start DigiD session");
 
@@ -261,10 +264,10 @@ mod tests {
             .unwrap()
             .openid_client
             .expect_redirect_uri()
-            .return_const(REDIRECT_URI.as_str().to_owned());
+            .return_const(REDIRECT_URI.to_string());
 
         // Now that there is an active session, a valid redirect URI should be accepted...
-        assert!(client.accepts_redirect_uri(Lazy::force(&REDIRECT_URI)));
+        assert!(client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
 
         // ...but an invalid one should not.
         assert!(!client.accepts_redirect_uri(&Url::parse("http://not-the-redirect-uri.com").unwrap()));
@@ -287,7 +290,7 @@ mod tests {
         // `error_description` parameter.
 
         let error_redirect_uri = {
-            let mut redirect_uri = REDIRECT_URI.clone();
+            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
             redirect_uri
                 .query_pairs_mut()
@@ -306,7 +309,7 @@ mod tests {
         ));
 
         let short_error_redirect_uri = {
-            let mut redirect_uri = REDIRECT_URI.clone();
+            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
             redirect_uri.query_pairs_mut().append_pair(PARAM_ERROR, "foobar");
 
@@ -325,7 +328,7 @@ mod tests {
         // the CSRF token in the `state` query parameter.
 
         let wrong_csrf_redirect_uri = {
-            let mut redirect_uri = REDIRECT_URI.clone();
+            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
             redirect_uri.query_pairs_mut().append_pair(PARAM_STATE, "foobar");
 
@@ -341,7 +344,7 @@ mod tests {
         // a `code` query parameter.
 
         let no_auth_code_redirect_uri = {
-            let mut redirect_uri = REDIRECT_URI.clone();
+            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
             redirect_uri
                 .query_pairs_mut()
@@ -358,7 +361,7 @@ mod tests {
         // First, generate the correct redirect URI.
 
         let redirect_uri = {
-            let mut redirect_uri = REDIRECT_URI.clone();
+            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
             redirect_uri
                 .query_pairs_mut()
@@ -399,6 +402,6 @@ mod tests {
         ));
 
         // Also, a valid redirect URI should not longer be accepted.
-        assert!(!client.accepts_redirect_uri(Lazy::force(&REDIRECT_URI)));
+        assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
     }
 }
