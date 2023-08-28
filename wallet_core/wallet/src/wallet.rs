@@ -141,7 +141,7 @@ pub struct Wallet<C, A, S, K, D = DigidClient, P = PidIssuerClient> {
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, A, S, K> Wallet<C, A, S, K, DigidClient, PidIssuerClient>
+impl<C, A, S, K> Wallet<C, A, S, K>
 where
     C: ConfigurationRepository,
     A: AccountServerClient,
