@@ -1075,7 +1075,7 @@
     "walletPersonalizeLoadingPhotoPageSubtitle": "Even geduld...",
     "walletPersonalizeLoadingPhotoPageTitle": "Aan het scannen",
     "walletPersonalizeNoDigidPageBackCta": "Terug",
-    "walletPersonalizeNoDigidPageDescription": "Op dit moment kan je alleen met een DigiD een Wallet aanmaken. \n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
+    "walletPersonalizeNoDigidPageDescription": "Op dit moment kan je alleen een Wallet aanmaken met de DigiD app. \n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Ik heb geen DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",
     "walletPersonalizeNoDigidPageTitle": "Geen DigiD",
