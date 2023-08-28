@@ -38,7 +38,7 @@ impl Client {
         Ok(token)
     }
 
-    /// This copies `openid::Client.request_token_pkce()` and
+    /// This copies `openid::Client.request_token()` and
     /// amends it by adding a PKCE verifier to the request body.
     pub async fn request_token_pkce(&self, code: &str, pkce_verifier: &str) -> Result<Bearer, ClientError> {
         // Ensure the non thread-safe `Serializer` is not kept across
