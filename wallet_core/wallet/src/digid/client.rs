@@ -20,9 +20,8 @@ const PARAM_CODE: &str = "code";
 
 #[derive(Debug)]
 pub struct DigidClient<C = OpenIdClient, P = PkceGenerator> {
-    // Only one session may be active at a time. A potential improvement would be
-    // to support multiple sessions and to persist these sessions, so that they may
-    // be resumed after app termination.
+    // A potential improvement would be to persist this session,
+    // so that it may be resumed after app termination.
     session_state: Option<DigidSessionState<C>>,
     _pkce_source: PhantomData<P>,
 }
