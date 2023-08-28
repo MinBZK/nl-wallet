@@ -47,16 +47,6 @@ impl<C, P> DigidClient<C, P> {
     }
 }
 
-impl<C, P> DigidClient<C, P>
-where
-    C: OpenIdAuthenticator,
-{
-    // Helper static method for checking if redirect URI is accepted.
-    fn openid_client_accepts_redirect_uri(openid_client: &C, redirect_uri: &Url) -> bool {
-        redirect_uri.as_str().starts_with(openid_client.redirect_uri().as_str())
-    }
-}
-
 impl<C, P> Default for DigidClient<C, P> {
     fn default() -> Self {
         Self::new()
@@ -101,9 +91,11 @@ where
     }
 
     fn accepts_redirect_uri(&self, redirect_uri: &Url) -> bool {
+        // Check if the redirect URI is the same as the one used for
+        // the OpenID session (if present), minus the query parameters.
         self.session_state
             .as_ref()
-            .map(|state| Self::openid_client_accepts_redirect_uri(&state.openid_client, redirect_uri))
+            .map(|state| redirect_uri.as_str().starts_with(state.openid_client.redirect_uri()))
             .unwrap_or_default()
     }
 
@@ -117,7 +109,7 @@ where
         } = self.session_state.as_ref().ok_or(DigidAuthenticatorError::NoSession)?;
 
         // Check if the redirect URL received actually belongs to us.
-        if !Self::openid_client_accepts_redirect_uri(openid_client, received_redirect_uri) {
+        if !self.accepts_redirect_uri(received_redirect_uri) {
             return Err(DigidAuthenticatorError::RedirectUriMismatch);
         }
 
@@ -269,7 +261,7 @@ mod tests {
             .unwrap()
             .openid_client
             .expect_redirect_uri()
-            .return_const(REDIRECT_URI.clone());
+            .return_const(REDIRECT_URI.as_str().to_owned());
 
         // Now that there is an active session, a valid redirect URI should be accepted...
         assert!(client.accepts_redirect_uri(Lazy::force(&REDIRECT_URI)));

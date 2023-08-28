@@ -26,4 +26,8 @@ impl Client {
     pub fn config(&self) -> &Config {
         self.0.config()
     }
+
+    pub fn redirect_url(&self) -> &str {
+        self.0.redirect_url()
+    }
 }

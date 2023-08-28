@@ -26,8 +26,8 @@ pub trait OpenIdAuthenticator {
     where
         Self: Sized;
 
-    /// Return a reference to the `redirect_uri` provided during discovery.
-    fn redirect_uri(&self) -> &Url;
+    /// Return the `redirect_uri` provided during discovery as a string slice.
+    fn redirect_uri(&self) -> &str;
 
     /// Generate an authentication URL for the configured issuer.
     /// This takes several generated tokens as parameters.
@@ -46,7 +46,6 @@ pub trait OpenIdAuthenticator {
 
 pub struct OpenIdClient {
     openid_client: Client,
-    redirect_uri: Url,
 }
 
 #[async_trait]
@@ -62,16 +61,13 @@ impl OpenIdAuthenticator for OpenIdClient {
         let openid_client =
             Client::discover_with_client(http_client, client_id, None, redirect_uri.to_string(), issuer_url).await?;
         // Wrap the newly created `Client` instance in our newtype.
-        let client = OpenIdClient {
-            openid_client,
-            redirect_uri,
-        };
+        let client = OpenIdClient { openid_client };
 
         Ok(client)
     }
 
-    fn redirect_uri(&self) -> &Url {
-        &self.redirect_uri
+    fn redirect_uri(&self) -> &str {
+        self.openid_client.redirect_url()
     }
 
     fn auth_url(&self, csrf_token: &str, nonce: &str, pkce_challenge: &str) -> Url {
