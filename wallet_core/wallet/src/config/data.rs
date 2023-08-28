@@ -7,18 +7,14 @@ use url::Url;
 use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
 use wallet_common::account::jwt::EcdsaDecodingKey;
 
+const TRUST_ANCHOR_CERTS: [&str; 1] = ["MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg=="];
+
 #[derive(Debug)]
 pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
     pub mdoc_trust_anchors: Lazy<Vec<OwnedTrustAnchor>>,
-}
-
-impl Configuration {
-    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
-    }
 }
 
 #[derive(Debug)]
@@ -45,11 +41,9 @@ pub struct PidIssuanceConfiguration {
     pub digid_redirect_uri: Url,
 }
 
-impl Debug for AccountServerConfiguration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AccountServerConfiguration")
-            .field("base_url", &self.base_url)
-            .finish_non_exhaustive()
+impl Configuration {
+    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
+        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
     }
 }
 
@@ -92,4 +86,10 @@ impl Default for Configuration {
     }
 }
 
-const TRUST_ANCHOR_CERTS: [&str; 1] = ["MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg=="];
+impl Debug for AccountServerConfiguration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AccountServerConfiguration")
+            .field("base_url", &self.base_url)
+            .finish_non_exhaustive()
+    }
+}
