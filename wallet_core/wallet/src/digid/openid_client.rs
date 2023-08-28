@@ -85,7 +85,7 @@ impl OpenIdAuthenticator for OpenIdClient {
             .map(|scopes| scopes.join(" "))
             .unwrap_or_default();
 
-        // Generate the authetication URL containing these scopes and the provided tokens.
+        // Generate the authentication URL containing these scopes and the provided tokens.
         let options = Options {
             scope: Some(scopes_supported),
             state: Some(csrf_token.to_string()),

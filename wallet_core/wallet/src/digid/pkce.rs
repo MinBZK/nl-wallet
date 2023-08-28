@@ -28,7 +28,7 @@ impl PkceSource for PkceGenerator {
 mod tests {
     use super::*;
 
-    /// This simply tests the ingration with the [`pkce`] crate.
+    /// This simply tests the integration with the [`pkce`] crate.
     /// No assumptions are made about the returned values, besides
     /// them being non-empty strings.
     #[test]

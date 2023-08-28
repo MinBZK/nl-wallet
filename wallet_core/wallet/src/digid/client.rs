@@ -212,7 +212,7 @@ mod tests {
                 let mut openid_client = MockOpenIdAuthenticator::new();
 
                 // 2. Have `OpenIdClient.auth_url` return our authentication URL, while saving
-                //    the generated CSRF token and nonce for later (send throught the channel).
+                //    the generated CSRF token and nonce for later (send through the channel).
                 openid_client
                     .expect_auth_url()
                     .with(always(), always(), eq(PKCE_CHALLENGE))
@@ -281,7 +281,7 @@ mod tests {
         // Next we test the `DigidClient.get_access_token()` method. We start
         // by going through some error cases.
         //
-        // First, we test the error when provding a redirect URI that does not
+        // First, we test the error when providing a redirect URI that does not
         // match the one configured for the client.
 
         assert!(matches!(
@@ -400,7 +400,7 @@ mod tests {
         assert_eq!(access_code, ACCESS_CODE);
         assert!(client.session_state.is_none());
 
-        // Now that the session is cleared interally, calling `DigidClient.get_access_token()`
+        // Now that the session is cleared internally, calling `DigidClient.get_access_token()`
         // again should result in an error.
         assert!(matches!(
             client.get_access_token(&redirect_uri).await.unwrap_err(),

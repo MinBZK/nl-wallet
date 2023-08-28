@@ -16,7 +16,7 @@ const PARAM_CODE_VERIFIER: &str = "code_verifier";
 const APPLICATION_JWT: &str = "application/jwt";
 
 impl Client {
-    /// This copies `openid::Client.authenticate()` and ammends it
+    /// This copies `openid::Client.authenticate()` and amends it
     /// by sending a PKCE verifier in the token request.
     pub async fn authenticate_pkce(
         &self,
@@ -39,7 +39,7 @@ impl Client {
     }
 
     /// This copies `openid::Client.request_token_pkce()` and
-    /// ammends it by adding a PKCE verifier to the request body.
+    /// amends it by adding a PKCE verifier to the request body.
     pub async fn request_token_pkce(&self, code: &str, pkce_verifier: &str) -> Result<Bearer, ClientError> {
         // Ensure the non thread-safe `Serializer` is not kept across
         // an `await` boundary by localizing it to this inner scope.

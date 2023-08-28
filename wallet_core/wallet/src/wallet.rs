@@ -383,7 +383,7 @@ where
         // hardware public key.
         let hw_privkey = self.hw_privkey.clone();
         let (pin_salt, hw_pubkey, registration_message) = task::spawn_blocking(move || {
-            // Generate a new PIN salt and derrive the private key from the provided PIN
+            // Generate a new PIN salt and derive the private key from the provided PIN
             let pin_salt = new_pin_salt();
             let pin_key = PinKey::new(&pin, &pin_salt);
 
