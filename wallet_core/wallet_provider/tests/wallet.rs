@@ -66,7 +66,7 @@ async fn create_test_wallet(
     config.0.account_server.certificate_public_key = public_key;
     config.0.account_server.instruction_result_public_key = instruction_result_public_key;
 
-    Wallet::init::<SoftwareUtilities>(config, MockDigidAuthenticator::new(), MockPidRetriever::new())
+    Wallet::init_wp_and_storage::<SoftwareUtilities>(config, MockDigidAuthenticator::new(), MockPidRetriever::new())
         .await
         .expect("Could not create test wallet")
 }

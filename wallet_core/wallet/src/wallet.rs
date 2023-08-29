@@ -148,8 +148,8 @@ where
     S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
 {
-    pub async fn create<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
-        Self::init::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
+    pub async fn init_all<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
+        Self::init_wp_and_storage::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
     }
 }
 
@@ -162,22 +162,8 @@ where
     D: DigidAuthenticator,
     P: PidRetriever,
 {
-    fn new(config_repository: C, account_server: A, storage: S, digid: D, pid_issuer: P) -> Self {
-        Wallet {
-            config_repository,
-            account_server,
-            storage,
-            digid,
-            pid_issuer,
-            hw_privkey: K::new(WALLET_KEY_ID),
-            registration: None,
-            lock: WalletLock::new(true),
-            config_callback: None,
-        }
-    }
-
     /// Initialize the wallet by loading initial state.
-    pub async fn init<U: PlatformUtilities>(
+    pub async fn init_wp_and_storage<U: PlatformUtilities>(
         config_repository: C,
         digid: D,
         pid_issuer: P,
@@ -190,7 +176,17 @@ where
         let account_server = A::new(&config_repository.config().account_server.base_url);
         let storage = S::new(storage_path);
 
-        let mut wallet = Self::new(config_repository, account_server, storage, digid, pid_issuer);
+        let mut wallet = Wallet {
+            config_repository,
+            account_server,
+            storage,
+            digid,
+            pid_issuer,
+            hw_privkey: K::new(WALLET_KEY_ID),
+            registration: None,
+            lock: WalletLock::new(true),
+            config_callback: None,
+        };
 
         wallet.fetch_registration().await?;
 
@@ -504,7 +500,7 @@ where
 #[cfg(test)]
 mod tests {
     use platform_support::utils::software::SoftwareUtilities;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
     use wallet_provider::{stub, AccountServer};
 
     use crate::{
@@ -523,7 +519,7 @@ mod tests {
         MockPidRetriever,
     >;
 
-    // Emulate wallet:init(), with the option to override the mock storage.
+    // Emulate wallet:init_wp_and_storage(), with the option to override the mock storage.
     async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
         let mut config_repository = MockConfigurationRepository::default();
 
@@ -532,13 +528,17 @@ mod tests {
 
         config_repository.0.account_server.certificate_public_key = account_server.certificate_pubkey.clone();
 
-        let mut wallet = Wallet::new(
+        let mut wallet = Wallet {
             config_repository,
             account_server,
             storage,
-            MockDigidAuthenticator::new(),
-            MockPidRetriever::new(),
-        );
+            digid: MockDigidAuthenticator::new(),
+            pid_issuer: MockPidRetriever::new(),
+            hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
+            registration: None,
+            lock: WalletLock::new(true),
+            config_callback: None,
+        };
 
         wallet.fetch_registration().await?;
 
@@ -549,7 +549,7 @@ mod tests {
     #[tokio::test]
     async fn test_init() {
         let config_repository = MockConfigurationRepository::default();
-        let wallet = MockWallet::init::<SoftwareUtilities>(
+        let wallet = MockWallet::init_wp_and_storage::<SoftwareUtilities>(
             config_repository,
             MockDigidAuthenticator::new(),
             MockPidRetriever::new(),
