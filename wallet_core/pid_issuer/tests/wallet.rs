@@ -137,7 +137,10 @@ async fn test_pid_issuance_digid_bridge() {
             .await;
 
     // Prepare DigiD flow
-    let authorization_url = wallet.start_pid_issuance().await.expect("failed to get digid url");
+    let authorization_url = wallet
+        .create_pid_issuance_redirect_uri()
+        .await
+        .expect("failed to get digid url");
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(&authorization_url, &config.pid_issuance.digid_url).await;

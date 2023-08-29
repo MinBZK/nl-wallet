@@ -157,10 +157,10 @@ pub async fn register(pin: String) -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn get_digid_auth_url() -> Result<String> {
+pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     let mut wallet = wallet().write().await;
 
-    let auth_url = wallet.start_pid_issuance().await?;
+    let auth_url = wallet.create_pid_issuance_redirect_uri().await?;
 
     Ok(auth_url.into())
 }

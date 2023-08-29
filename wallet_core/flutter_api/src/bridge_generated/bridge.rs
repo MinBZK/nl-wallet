@@ -146,14 +146,14 @@ fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSaf
         },
     )
 }
-fn wire_get_digid_auth_url_impl(port_: MessagePort) {
+fn wire_create_pid_issuance_redirect_uri_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "get_digid_auth_url",
+            debug_name: "create_pid_issuance_redirect_uri",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| get_digid_auth_url(),
+        move || move |task_callback| create_pid_issuance_redirect_uri(),
     )
 }
 fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {

@@ -444,7 +444,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn start_pid_issuance(&mut self) -> Result<Url, PidIssuanceError> {
+    pub async fn create_pid_issuance_redirect_uri(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
         let config = &self.config_repository.config().pid_issuance;

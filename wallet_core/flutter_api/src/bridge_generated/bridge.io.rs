@@ -57,8 +57,8 @@ pub extern "C" fn wire_register(port_: i64, pin: *mut wire_uint_8_list) {
 }
 
 #[no_mangle]
-pub extern "C" fn wire_get_digid_auth_url(port_: i64) {
-    wire_get_digid_auth_url_impl(port_)
+pub extern "C" fn wire_create_pid_issuance_redirect_uri(port_: i64) {
+    wire_create_pid_issuance_redirect_uri_impl(port_)
 }
 
 #[no_mangle]

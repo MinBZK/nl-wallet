@@ -58,9 +58,9 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kRegisterConstMeta;
 
-  Future<String> getDigidAuthUrl({dynamic hint});
+  Future<String> createPidIssuanceRedirectUri({dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kGetDigidAuthUrlConstMeta;
+  FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta;
 
   Stream<UriFlowEvent> processUri({required String uri, dynamic hint});
 
@@ -285,18 +285,18 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
-  Future<String> getDigidAuthUrl({dynamic hint}) {
+  Future<String> createPidIssuanceRedirectUri({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_get_digid_auth_url(port_),
+      callFfi: (port_) => _platform.inner.wire_create_pid_issuance_redirect_uri(port_),
       parseSuccessData: _wire2api_String,
-      constMeta: kGetDigidAuthUrlConstMeta,
+      constMeta: kCreatePidIssuanceRedirectUriConstMeta,
       argValues: [],
       hint: hint,
     ));
   }
 
-  FlutterRustBridgeTaskConstMeta get kGetDigidAuthUrlConstMeta => const FlutterRustBridgeTaskConstMeta(
-        debugName: "get_digid_auth_url",
+  FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "create_pid_issuance_redirect_uri",
         argNames: [],
       );
 
@@ -647,17 +647,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_register');
   late final _wire_register = _wire_registerPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
-  void wire_get_digid_auth_url(
+  void wire_create_pid_issuance_redirect_uri(
     int port_,
   ) {
-    return _wire_get_digid_auth_url(
+    return _wire_create_pid_issuance_redirect_uri(
       port_,
     );
   }
 
-  late final _wire_get_digid_auth_urlPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_get_digid_auth_url');
-  late final _wire_get_digid_auth_url = _wire_get_digid_auth_urlPtr.asFunction<void Function(int)>();
+  late final _wire_create_pid_issuance_redirect_uriPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_create_pid_issuance_redirect_uri');
+  late final _wire_create_pid_issuance_redirect_uri =
+      _wire_create_pid_issuance_redirect_uriPtr.asFunction<void Function(int)>();
 
   void wire_process_uri(
     int port_,

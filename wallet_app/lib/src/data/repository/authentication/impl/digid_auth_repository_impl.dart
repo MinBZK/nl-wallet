@@ -13,7 +13,7 @@ class DigidAuthRepositoryImpl extends DigidAuthRepository {
   DigidAuthRepositoryImpl(this._walletCore);
 
   @override
-  Future<String> getAuthUrl() => _walletCore.getDigidAuthUrl();
+  Future<String> getAuthUrl() => _walletCore.createPidIssuanceRedirectUri();
 
   @override
   void notifyDigidStateUpdate(DigidState? state) {
