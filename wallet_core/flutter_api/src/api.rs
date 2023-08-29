@@ -170,7 +170,7 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
-    let url = Url::parse(&uri).unwrap(); // TODO: handle URL parsing error
+    let url = Url::parse(&uri).unwrap(); // TODO: send URL parsing error on stream
 
     let mut wallet = wallet().write().await;
 
@@ -191,12 +191,12 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
                     }
                 },
                 |_| UriFlowEvent::DigidAuth {
-                    state: DigidState::Success, // TODO: continue with approval / dismissal of PID
+                    state: DigidState::Success, // TODO: add preview as card details
                 },
             )
         }
         RedirectUriType::Unknown => UriFlowEvent::DigidAuth {
-            state: DigidState::Error, // TODO: add unknown URI error
+            state: DigidState::Error, // TODO: send as unknown error on stream
         },
     };
 
