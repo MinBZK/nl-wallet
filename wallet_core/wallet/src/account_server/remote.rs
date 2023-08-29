@@ -1,9 +1,7 @@
 use async_trait::async_trait;
+use http::{header, HeaderMap, HeaderValue};
 use mime::Mime;
-use reqwest::{
-    header::{self},
-    Client, Request,
-};
+use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
 use url::{ParseError, Url};
 
@@ -18,7 +16,7 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-use crate::utils::reqwest::build_reqwest_client;
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
 
@@ -29,7 +27,13 @@ pub struct RemoteAccountServerClient {
 
 impl RemoteAccountServerClient {
     fn new(base_url: Url) -> Self {
-        let client = build_reqwest_client();
+        let client = default_reqwest_client_builder()
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static("application/json"),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
 
         RemoteAccountServerClient { base_url, client }
     }

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
-use crate::utils::reqwest::build_reqwest_client;
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::openid_pkce::Client;
 
@@ -50,7 +50,9 @@ pub struct OpenIdClient {
 impl OpenIdAuthenticator for OpenIdClient {
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdAuthenticatorError> {
         // Configure a simple `reqwest` HTTP client with a timeout.
-        let http_client = build_reqwest_client();
+        let http_client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client");
 
         // Perform OpenID discovery at the issuer, using our modified `Client`.
         let openid_client =

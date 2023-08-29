@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
+use http::{header, HeaderMap, HeaderValue};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -12,7 +13,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-use crate::utils::reqwest::build_reqwest_client;
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::{PidRetriever, PidRetrieverError};
 
@@ -25,7 +26,13 @@ pub struct PidIssuerClient {
 
 impl PidIssuerClient {
     pub fn new(mdoc_wallet: Arc<MdocWallet<MdocsMap>>) -> Self {
-        let http_client = build_reqwest_client();
+        let http_client = default_reqwest_client_builder()
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static("application/json"),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
 
         PidIssuerClient {
             http_client,
@@ -79,11 +86,15 @@ impl PidRetriever for PidIssuerClient {
             .json::<ServiceEngagement>()
             .await?;
 
+        let http_client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
         self.mdoc_wallet
             .do_issuance::<SoftwareEcdsaKey>(
                 service_engagement,
                 &always_agree(),
-                &CborHttpClient(reqwest::Client::new()),
+                &CborHttpClient(http_client),
                 mdoc_trust_anchors,
             )
             .await?;
