@@ -9,6 +9,8 @@ use openid::{
 use serde_json::Value;
 use url::form_urlencoded::Serializer;
 
+use crate::pkce::PkcePair;
+
 use super::Client;
 
 const PARAM_CODE_VERIFIER: &str = "code_verifier";
@@ -21,12 +23,12 @@ impl Client {
     pub async fn authenticate_pkce(
         &self,
         auth_code: &str,
-        pkce_verifier: &str,
+        pkce_pair: &impl PkcePair,
         nonce: impl Into<Option<&str>>,
         max_age: impl Into<Option<&Duration>>,
     ) -> Result<Token<StandardClaims>, Error> {
         let bearer = self
-            .request_token_pkce(auth_code, pkce_verifier)
+            .request_token_pkce(auth_code, pkce_pair)
             .await
             .map_err(Error::from)?;
         let mut token: Token<StandardClaims> = bearer.into();
@@ -40,7 +42,7 @@ impl Client {
 
     /// This copies `openid::Client.request_token()` and
     /// amends it by adding a PKCE verifier to the request body.
-    pub async fn request_token_pkce(&self, code: &str, pkce_verifier: &str) -> Result<Bearer, ClientError> {
+    pub async fn request_token_pkce(&self, code: &str, pkce_pair: &impl PkcePair) -> Result<Bearer, ClientError> {
         // Ensure the non thread-safe `Serializer` is not kept across
         // an `await` boundary by localizing it to this inner scope.
         let body = {
@@ -53,7 +55,7 @@ impl Client {
             }
 
             body.append_pair("client_id", &self.0.client_id);
-            body.append_pair(PARAM_CODE_VERIFIER, pkce_verifier);
+            body.append_pair(PARAM_CODE_VERIFIER, pkce_pair.code_verifier());
 
             body.finish()
         };

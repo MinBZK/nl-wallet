@@ -1,15 +1,15 @@
-use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use url::Url;
 use wallet_common::utils;
 
-use crate::utils::url::url_find_first_query_value;
+use crate::{
+    pkce::{PkcePair, S256PkcePair},
+    utils::url::url_find_first_query_value,
+};
 
 use super::{
     openid_client::{OpenIdAuthenticator, OpenIdClient},
-    pkce::{PkceGenerator, PkceSource},
     DigidAuthenticator, DigidAuthenticatorError,
 };
 
@@ -19,31 +19,27 @@ const PARAM_STATE: &str = "state";
 const PARAM_CODE: &str = "code";
 
 #[derive(Debug)]
-pub struct DigidClient<C = OpenIdClient, P = PkceGenerator> {
+pub struct DigidClient<C = OpenIdClient, P = S256PkcePair> {
     // A potential improvement would be to persist this session,
     // so that it may be resumed after app termination.
-    session_state: Option<DigidSessionState<C>>,
-    _pkce_source: PhantomData<P>,
+    session_state: Option<DigidSessionState<C, P>>,
 }
 
 #[derive(Debug)]
-struct DigidSessionState<C> {
+struct DigidSessionState<C, P> {
     // The discovered OpenID client.
     openid_client: C,
     /// CSRF token (stored in state parameter).
     csrf_token: String,
     /// The generated nonce that was used.
     nonce: String,
-    /// The PKCE verifier used.
-    pkce_verifier: String,
+    /// The PKCE pair used.
+    pkce_pair: P,
 }
 
 impl<C, P> DigidClient<C, P> {
     fn new() -> Self {
-        DigidClient {
-            session_state: None,
-            _pkce_source: PhantomData,
-        }
+        DigidClient { session_state: None }
     }
 }
 
@@ -56,7 +52,7 @@ impl<C, P> Default for DigidClient<C, P> {
 #[async_trait]
 impl<C, P> DigidAuthenticator for DigidClient<C, P>
 where
-    P: PkceSource + Send + Sync,
+    P: PkcePair + Send + Sync + 'static,
     C: OpenIdAuthenticator + Send + Sync,
 {
     async fn start_session(
@@ -72,19 +68,18 @@ where
         // Perform OpenID discovery at the issuer.
         let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
 
-        // Generate a random PKCE verifier, CSRF token and nonce.
-        let (pkce_verifier, pkce_challenge) = P::verifier_and_challenge();
+        // Generate a random CSRF token and nonce.
         let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
         let nonce = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
 
-        let url = openid_client.auth_url(&csrf_token, &nonce, &pkce_challenge);
+        let (url, pkce_pair) = openid_client.auth_url_and_pkce::<P>(&csrf_token, &nonce);
 
         // Store the client and generated tokens as session state for when the redirect URI returns.
         self.session_state.replace(DigidSessionState {
             openid_client,
-            pkce_verifier,
             csrf_token,
             nonce,
+            pkce_pair,
         });
 
         Ok(url)
@@ -103,9 +98,9 @@ where
         // Get the session state, return an error if we have none.
         let DigidSessionState {
             openid_client,
-            pkce_verifier,
             csrf_token,
             nonce,
+            pkce_pair,
         } = self.session_state.as_ref().ok_or(DigidAuthenticatorError::NoSession)?;
 
         // Check if the redirect URL received actually belongs to us.
@@ -140,7 +135,7 @@ where
         // Use the authorization code and the PKCE verifier to request the
         // access token and verify the result.
         let access_token = openid_client
-            .authenticate(&authorization_code, nonce, pkce_verifier)
+            .authenticate(&authorization_code, nonce, pkce_pair)
             .await?;
 
         // If everything succeeded, remove the session state.
@@ -155,10 +150,7 @@ mod tests {
     use mockall::predicate::*;
     use tokio::sync::oneshot;
 
-    use crate::{
-        digid::{openid_client::MockOpenIdAuthenticator, pkce::MockPkceSource},
-        utils::url::url_with_query_pairs,
-    };
+    use crate::{digid::openid_client::MockOpenIdAuthenticator, pkce::MockPkcePair, utils::url::url_with_query_pairs};
 
     use super::*;
 
@@ -169,14 +161,12 @@ mod tests {
         const CLIENT_ID: &str = "client-1";
         const REDIRECT_URI: &str = "redirect://here";
 
-        const PKCE_VERIFIER: &str = "a_pkce_verifier";
-        const PKCE_CHALLENGE: &str = "a_pkce_challenge";
         const AUTH_URL: &str = "http://example.com/auth";
         const AUTH_CODE: &str = "the_authentication_code";
         const ACCESS_CODE: &str = "the_access_code";
 
         // Create a client with mock generics, as created by `mockall`.
-        let mut client = DigidClient::<MockOpenIdAuthenticator, MockPkceSource>::default();
+        let mut client = DigidClient::<MockOpenIdAuthenticator, MockPkcePair>::default();
 
         // There should be no session state present at this point.
         assert!(client.session_state.is_none());
@@ -207,23 +197,20 @@ mod tests {
                 // 2. Have `OpenIdClient.auth_url` return our authentication URL, while saving
                 //    the generated CSRF token and nonce for later (send through the channel).
                 openid_client
-                    .expect_auth_url()
-                    .with(always(), always(), eq(PKCE_CHALLENGE))
-                    .return_once(move |csrf_token, nonce, _| {
+                    .expect_auth_url_and_pkce()
+                    .return_once(move |csrf_token, nonce| {
                         _ = tokens_tx.send((csrf_token.to_string(), nonce.to_string()));
 
-                        Url::parse(AUTH_URL).unwrap()
+                        let url = Url::parse(AUTH_URL).unwrap();
+
+                        // 3. Set up a mock `PkcePair`, which will not be called in this test.
+                        let pkce_pair = MockPkcePair::new();
+
+                        (url, pkce_pair)
                     });
 
                 Ok(openid_client)
             });
-
-        // 3. Set up `PkceSource::generate_verifier_and_challenge()` to return our
-        //    static PKCE strings.
-        let pkce_generate_context = MockPkceSource::verifier_and_challenge_context();
-        pkce_generate_context
-            .expect()
-            .return_const((PKCE_VERIFIER.to_string(), PKCE_CHALLENGE.to_string()));
 
         // Now we are ready to call `DigidClient.start_session()`, which should succeed.
         let url = client
@@ -243,20 +230,8 @@ mod tests {
             .try_recv()
             .expect("Generated tokens not set after session start");
 
-        // Check the internal state of DigidClient.
-        assert!(matches!(
-            client.session_state,
-            Some(DigidSessionState {
-                openid_client: _,
-                ref csrf_token,
-                ref nonce,
-                ref pkce_verifier,
-            }) if csrf_token == &generated_csrf_token && nonce == &generated_nonce && pkce_verifier == PKCE_VERIFIER
-        ));
-
         // Finally, make sure the mock methods were actually called.
         discover_context.checkpoint();
-        pkce_generate_context.checkpoint();
         client.session_state.as_mut().unwrap().openid_client.checkpoint();
 
         // From this point on, `OpenIdClient::redirect_uri()` will be called
@@ -359,9 +334,9 @@ mod tests {
             .unwrap()
             .openid_client
             .expect_authenticate()
-            .with(eq(AUTH_CODE), eq(generated_nonce), eq(PKCE_VERIFIER))
+            .with(eq(AUTH_CODE), eq(generated_nonce), always())
             .once()
-            .returning(|_, _, _| Ok(ACCESS_CODE.to_string()));
+            .returning(|_, _, _: &MockPkcePair| Ok(ACCESS_CODE.to_string()));
 
         // Call `DigidClient.get_access_token()` ...
 

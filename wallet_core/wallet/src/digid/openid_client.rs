@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
-use crate::utils::reqwest::default_reqwest_client_builder;
+use crate::{pkce::PkcePair, utils::reqwest::default_reqwest_client_builder};
 
 use super::openid_pkce::Client;
 
@@ -27,19 +27,23 @@ pub trait OpenIdAuthenticator {
     /// Return the `redirect_uri` provided during discovery as a string slice.
     fn redirect_uri(&self) -> &str;
 
-    /// Generate an authentication URL for the configured issuer.
-    /// This takes several generated tokens as parameters.
-    fn auth_url(&self, csrf_token: &str, nonce: &str, pkce_challenge: &str) -> Url;
+    /// Generate an authentication URL and PKCE pair for the configured issuer.
+    /// This takes two generated tokens as parameters.
+    fn auth_url_and_pkce<P>(&self, csrf_token: &str, nonce: &str) -> (Url, P)
+    where
+        P: PkcePair + 'static;
 
     /// Use an authentication code received in the redirect URI to fetch and validate an access token
     /// from the issuer. This requires both the nonce provided when generating the authentication URL
     /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
-    async fn authenticate(
+    async fn authenticate<P>(
         &self,
         auth_code: &str,
         nonce: &str,
-        pkce_verifier: &str,
-    ) -> Result<String, OpenIdAuthenticatorError>;
+        pkce_pair: &P,
+    ) -> Result<String, OpenIdAuthenticatorError>
+    where
+        P: PkcePair + Send + Sync + 'static;
 }
 
 pub struct OpenIdClient {
@@ -67,7 +71,10 @@ impl OpenIdAuthenticator for OpenIdClient {
         self.openid_client.redirect_url()
     }
 
-    fn auth_url(&self, csrf_token: &str, nonce: &str, pkce_challenge: &str) -> Url {
+    fn auth_url_and_pkce<P>(&self, csrf_token: &str, nonce: &str) -> (Url, P)
+    where
+        P: PkcePair,
+    {
         // Collect all scopes supported by the issuer (as populated during discovery)
         // and join them together, separated by spaces.
         let scopes_supported = self
@@ -86,19 +93,22 @@ impl OpenIdAuthenticator for OpenIdClient {
             ..Default::default()
         };
 
-        self.openid_client.auth_url_pkce(&options, pkce_challenge)
+        self.openid_client.auth_url_and_pkce(&options)
     }
 
-    async fn authenticate(
+    async fn authenticate<P>(
         &self,
         auth_code: &str,
         nonce: &str,
-        pkce_verifier: &str,
-    ) -> Result<String, OpenIdAuthenticatorError> {
+        pkce_pair: &P,
+    ) -> Result<String, OpenIdAuthenticatorError>
+    where
+        P: PkcePair + Send + Sync,
+    {
         // Forward the received method parameters to our `Client` instance.
         let token = self
             .openid_client
-            .authenticate_pkce(auth_code, pkce_verifier, nonce, None)
+            .authenticate_pkce(auth_code, pkce_pair, nonce, None)
             .await?;
 
         // Double check if the received token had an ID token, otherwise
@@ -123,6 +133,8 @@ mod tests {
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
     };
+
+    use crate::pkce::MockPkcePair;
 
     use super::*;
 
@@ -160,15 +172,25 @@ mod tests {
         let redirect_uri = Url::parse("http://example-client.com/oauth2/callback").unwrap();
         let csrf_token = "csrftoken";
         let nonce = "thisisthenonce";
-        let pkce_challenge = "pkcecodechallenge";
 
         // Perform OpenID discovery
         let client = OpenIdClient::discover(server_url.clone(), client_id.to_string(), redirect_uri.clone())
             .await
             .expect("Could not perform OpenID discovery");
 
+        let pkce_pair_generate_context = MockPkcePair::generate_context();
+        pkce_pair_generate_context.expect().returning(|| {
+            let mut pkce_pair = MockPkcePair::new();
+
+            pkce_pair
+                .expect_code_challenge()
+                .return_const("pkcecodechallenge".to_string());
+
+            pkce_pair
+        });
+
         // Generate authentication URL
-        let url = client.auth_url(csrf_token, nonce, pkce_challenge);
+        let (url, _) = client.auth_url_and_pkce::<MockPkcePair>(csrf_token, nonce);
 
         assert_eq!(
             url,
@@ -176,10 +198,12 @@ mod tests {
                 .join(
                     "/oauth2/auth?response_type=code&client_id=client-1&redirect_uri=\
                     http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+&state=csrftoken&nonce=\
-                    thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=S256"
+                    thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=INVALID"
                 )
                 .unwrap(),
         );
+
+        pkce_pair_generate_context.checkpoint();
 
         // TODO: Add test for the authenticate() method by mocking an authentication
         //       response that can actually be verified by the client.

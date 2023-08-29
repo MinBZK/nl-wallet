@@ -52,7 +52,6 @@ openid = { version = "0.12.0", default-features = false }
 openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
-pkce = "0.2.0"
 quote = "1.0.26"
 rand = "0.8.5"
 rand_core = "0.6.4"

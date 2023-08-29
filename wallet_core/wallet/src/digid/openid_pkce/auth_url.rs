@@ -1,25 +1,30 @@
 use openid::Options;
 use url::Url;
 
-use crate::utils::url::url_with_query_pairs;
+use crate::{pkce::PkcePair, utils::url::url_with_query_pairs};
 
 use super::Client;
 
 const PARAM_CODE_CHALLENGE: &str = "code_challenge";
 const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
 
-const CHALLENGE_METHOD_S256: &str = "S256";
-
 impl Client {
     /// This wraps `openid::Client.auth_url()`, but adds a PKCE code challenge.
-    pub fn auth_url_pkce(&self, options: &Options, code_challenge: &str) -> Url {
-        url_with_query_pairs(
+    pub fn auth_url_and_pkce<P>(&self, options: &Options) -> (Url, P)
+    where
+        P: PkcePair,
+    {
+        let pkce_pair = P::generate();
+
+        let url = url_with_query_pairs(
             self.0.auth_url(options),
             &[
-                (PARAM_CODE_CHALLENGE, code_challenge),
-                (PARAM_CODE_CHALLENGE_METHOD, CHALLENGE_METHOD_S256),
+                (PARAM_CODE_CHALLENGE, pkce_pair.code_challenge()),
+                (PARAM_CODE_CHALLENGE_METHOD, P::CODE_CHALLENGE_METHOD),
             ],
-        )
+        );
+
+        (url, pkce_pair)
     }
 }
 
@@ -27,6 +32,8 @@ impl Client {
 mod tests {
     use openid::Config;
     use serde_json::json;
+
+    use crate::pkce::S256PkcePair;
 
     use super::*;
 
@@ -59,13 +66,17 @@ mod tests {
             nonce: Some("thisisthenonce".to_string()),
             ..Default::default()
         };
-        let url = client.auth_url_pkce(&options, "pkcecodechallenge");
+        let (url, pkce_pair) = client.auth_url_and_pkce::<S256PkcePair>(&options);
 
         assert_eq!(
             url.as_str(),
-            "http://example.com/oauth2/auth?response_type=code&client_id=foo&redirect_uri=\
+            format!(
+                "http://example.com/oauth2/auth?response_type=code&client_id=foo&redirect_uri=\
              http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+scope_a+scope_b+scope_c&state=csrftoken\
-             &nonce=thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=S256"
+             &nonce=thisisthenonce&code_challenge={}&code_challenge_method={}",
+                pkce_pair.code_challenge(),
+                S256PkcePair::CODE_CHALLENGE_METHOD
+            )
         );
     }
 }

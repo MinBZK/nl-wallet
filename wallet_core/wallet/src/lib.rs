@@ -5,6 +5,7 @@ mod init;
 mod lock;
 mod pid_issuer;
 mod pin;
+mod pkce;
 mod storage;
 mod utils;
 
