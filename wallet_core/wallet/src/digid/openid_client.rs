@@ -1,12 +1,10 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
-use super::openid_pkce::Client;
+use crate::utils::reqwest as reqwest_utils;
 
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+use super::openid_pkce::Client;
 
 #[derive(Debug, thiserror::Error)]
 pub enum OpenIdAuthenticatorError {
@@ -52,10 +50,7 @@ pub struct OpenIdClient {
 impl OpenIdAuthenticator for OpenIdClient {
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdAuthenticatorError> {
         // Configure a simple `reqwest` HTTP client with a timeout.
-        let http_client = reqwest::Client::builder()
-            .timeout(CLIENT_TIMEOUT)
-            .build()
-            .expect("Could not build reqwest HTTP client");
+        let http_client = reqwest_utils::build_client();
 
         // Perform OpenID discovery at the issuer, using our modified `Client`.
         let openid_client =

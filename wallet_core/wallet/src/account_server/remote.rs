@@ -1,9 +1,7 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use mime::Mime;
 use reqwest::{
-    header::{self, HeaderMap, HeaderValue},
+    header::{self},
     Client, Request,
 };
 use serde::{de::DeserializeOwned, Serialize};
@@ -20,10 +18,9 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
+use crate::utils::reqwest as reqwest_utils;
 
-const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
 
 pub struct RemoteAccountServerClient {
     base_url: Url,
@@ -32,15 +29,7 @@ pub struct RemoteAccountServerClient {
 
 impl RemoteAccountServerClient {
     fn new(base_url: Url) -> Self {
-        let client = Client::builder()
-            .timeout(CLIENT_REQUEST_TIMEOUT)
-            .connect_timeout(CLIENT_CONNECT_TIMEOUT)
-            .default_headers(HeaderMap::from_iter([(
-                header::ACCEPT,
-                HeaderValue::from_static("application/json"),
-            )]))
-            .build()
-            .expect("Could not build reqwest HTTP client");
+        let client = reqwest_utils::build_client();
 
         RemoteAccountServerClient { base_url, client }
     }
@@ -170,6 +159,7 @@ impl AccountServerClient for RemoteAccountServerClient {
 /// Its goal is mostly to validate that HTTP error responses get converted to the right variant
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
+    use http::HeaderValue;
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
     use serde_json::json;

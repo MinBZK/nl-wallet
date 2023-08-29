@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
@@ -12,9 +12,9 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-use super::{PidRetriever, PidRetrieverError};
+use crate::utils::reqwest as reqwest_utils;
 
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+use super::{PidRetriever, PidRetrieverError};
 
 // TODO: The `mdoc_wallet` field uses `Arc<>` just for testing now.
 //       This should be removed as soon as actual storage is implemented.
@@ -25,10 +25,7 @@ pub struct PidIssuerClient {
 
 impl PidIssuerClient {
     pub fn new(mdoc_wallet: Arc<MdocWallet<MdocsMap>>) -> Self {
-        let http_client = reqwest::Client::builder()
-            .timeout(CLIENT_TIMEOUT)
-            .build()
-            .expect("Could not build reqwest HTTP client");
+        let http_client = reqwest_utils::build_client();
 
         PidIssuerClient {
             http_client,
