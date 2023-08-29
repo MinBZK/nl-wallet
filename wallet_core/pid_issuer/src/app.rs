@@ -12,6 +12,7 @@ use axum::{
 use base64::prelude::*;
 use futures::TryFutureExt;
 use http::StatusCode;
+use tower_http::trace::TraceLayer;
 use tracing::{debug, error};
 
 use nl_wallet_mdoc::{
@@ -72,7 +73,7 @@ where
         attributes_lookup,
         openid_client,
         issuer: issuer::Server::new(
-            settings.public_url.join("mdoc").unwrap(),
+            settings.public_url.join("mdoc/").unwrap(),
             key,
             MemorySessionStore::new(),
         ),
@@ -81,6 +82,7 @@ where
     let app = Router::new()
         .route("/mdoc/:session_token", post(mdoc_route))
         .route("/start", post(start_route))
+        .layer(TraceLayer::new_for_http())
         .with_state(application_state);
 
     Ok(app)
