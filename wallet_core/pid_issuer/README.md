@@ -27,8 +27,8 @@ In Rust, using the [`josekit` crate](https://docs.rs/josekit) a keypair can be g
 
 ```rust
 let keypair = josekit::jwe::RSA_OAEP.generate_key_pair(2048).expect("key generation failed");
-let privkey = serde_json::to_string(keypair.to_jwk_private_key()).unwrap();
-let pubkey = serde_json::to_string(keypair.to_jwk_public_key()).unwrap();
+let privkey = serde_json::to_string(&keypair.to_jwk_private_key()).unwrap();
+let pubkey = serde_json::to_string(&keypair.to_jwk_public_key()).unwrap();
 ```
 
 ### Generating an issuer certificate and private key
