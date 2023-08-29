@@ -5,7 +5,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use url::Url;
 use wallet_common::utils;
 
-use crate::utils::url as url_utils;
+use crate::utils::url::url_find_first_query_value;
 
 use super::{
     openid_client::{OpenIdAuthenticator, OpenIdClient},
@@ -115,10 +115,9 @@ where
 
         // Check if the `error` query parameter is populated, if so create an
         // error from it and a potential `error_description` query parameter.
-        let error = url_utils::url_find_first_query_value(received_redirect_uri, PARAM_ERROR);
+        let error = url_find_first_query_value(received_redirect_uri, PARAM_ERROR);
         if let Some(error) = error {
-            let error_description =
-                url_utils::url_find_first_query_value(received_redirect_uri, PARAM_ERROR_DESCRIPTION);
+            let error_description = url_find_first_query_value(received_redirect_uri, PARAM_ERROR_DESCRIPTION);
 
             return Err(DigidAuthenticatorError::RedirectUriError {
                 error: error.into_owned(),
@@ -127,7 +126,7 @@ where
         }
 
         // Verify that the state query parameter matches the csrf_token.
-        let state = url_utils::url_find_first_query_value(received_redirect_uri, PARAM_STATE)
+        let state = url_find_first_query_value(received_redirect_uri, PARAM_STATE)
             .ok_or(DigidAuthenticatorError::StateTokenMismatch)?;
 
         if state != *csrf_token {
@@ -135,8 +134,8 @@ where
         }
 
         // Parse the authorization code from the redirect URL.
-        let authorization_code = url_utils::url_find_first_query_value(received_redirect_uri, PARAM_CODE)
-            .ok_or(DigidAuthenticatorError::NoAuthCode)?;
+        let authorization_code =
+            url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidAuthenticatorError::NoAuthCode)?;
 
         // Use the authorization code and the PKCE verifier to request the
         // access token and verify the result.

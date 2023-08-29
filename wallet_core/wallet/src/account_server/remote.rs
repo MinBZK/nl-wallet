@@ -18,7 +18,7 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-use crate::utils::reqwest as reqwest_utils;
+use crate::utils::reqwest::build_reqwest_client;
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
 
@@ -29,7 +29,7 @@ pub struct RemoteAccountServerClient {
 
 impl RemoteAccountServerClient {
     fn new(base_url: Url) -> Self {
-        let client = reqwest_utils::build_client();
+        let client = build_reqwest_client();
 
         RemoteAccountServerClient { base_url, client }
     }

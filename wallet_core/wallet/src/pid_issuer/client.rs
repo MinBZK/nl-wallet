@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-use crate::utils::reqwest as reqwest_utils;
+use crate::utils::reqwest::build_reqwest_client;
 
 use super::{PidRetriever, PidRetrieverError};
 
@@ -25,7 +25,7 @@ pub struct PidIssuerClient {
 
 impl PidIssuerClient {
     pub fn new(mdoc_wallet: Arc<MdocWallet<MdocsMap>>) -> Self {
-        let http_client = reqwest_utils::build_client();
+        let http_client = build_reqwest_client();
 
         PidIssuerClient {
             http_client,
