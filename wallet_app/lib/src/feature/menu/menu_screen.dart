@@ -4,9 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../common/widget/centered_loading_indicator.dart';
 import '../common/screen/placeholder_screen.dart';
-import '../common/widget/version_text.dart';
+import '../common/widget/centered_loading_indicator.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
@@ -81,10 +80,7 @@ class MenuScreen extends StatelessWidget {
               onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
             ),
           if (showDesignSystemRow) const Divider(height: 1),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-            child: VersionText(),
-          ),
+          const SizedBox(height: 40),
           Center(
             child: IntrinsicWidth(
               child: OutlinedButton(

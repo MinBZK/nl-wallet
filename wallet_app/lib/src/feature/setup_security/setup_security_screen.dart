@@ -7,11 +7,11 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
+import '../common/page/generic_loading_page.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/page/generic_loading_page.dart';
 import '../error/error_screen.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
@@ -60,11 +60,12 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
+        final String errorScreenTitle = context.l10n.setupSecurityScreenTitle;
         if (state is SetupSecurityGenericError) {
-          ErrorScreen.showGeneric(context, secured: false);
+          ErrorScreen.showGeneric(context, title: errorScreenTitle, secured: false);
         }
         if (state is SetupSecurityNetworkError) {
-          ErrorScreen.showServer(context, serverError: tryCast(state), secured: false);
+          ErrorScreen.showServer(context, title: errorScreenTitle, serverError: tryCast(state), secured: false);
         }
         _runAnnouncements(context, state);
       },
