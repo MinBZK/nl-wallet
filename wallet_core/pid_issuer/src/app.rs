@@ -12,6 +12,7 @@ use axum::{
 use base64::prelude::*;
 use futures::TryFutureExt;
 use http::StatusCode;
+use tower_http::trace::TraceLayer;
 use tracing::{debug, error};
 
 use nl_wallet_mdoc::{
@@ -68,19 +69,27 @@ where
         &BASE64_STANDARD.decode(&settings.issuer_key.private_key)?,
         &BASE64_STANDARD.decode(&settings.issuer_key.certificate)?,
     )?);
+
+    let mut public_url = settings.public_url;
+    if !public_url.as_str().ends_with('/') {
+        // If the url does not have a trailing slash then .join() will remove its last path segment
+        // before appending its argument (which is also why we can't use .join() for appending this slash).
+        // We can use .unwrap() because this errors only happens "if the scheme and `:` delimiter
+        // are not followed by a `/` slash".
+        public_url.path_segments_mut().unwrap().push("/");
+    }
+    let public_url = public_url.join("mdoc/")?;
+
     let application_state = Arc::new(ApplicationState {
         attributes_lookup,
         openid_client,
-        issuer: issuer::Server::new(
-            settings.public_url.join("mdoc").unwrap(),
-            key,
-            MemorySessionStore::new(),
-        ),
+        issuer: issuer::Server::new(public_url, key, MemorySessionStore::new()),
     });
 
     let app = Router::new()
         .route("/mdoc/:session_token", post(mdoc_route))
         .route("/start", post(start_route))
+        .layer(TraceLayer::new_for_http())
         .with_state(application_state);
 
     Ok(app)
