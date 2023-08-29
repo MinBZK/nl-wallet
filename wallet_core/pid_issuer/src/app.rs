@@ -72,7 +72,7 @@ where
         attributes_lookup,
         openid_client,
         issuer: issuer::Server::new(
-            settings.public_url.join("mdoc").unwrap().to_string(),
+            settings.public_url.join("mdoc").unwrap(),
             key,
             MemorySessionStore::new(),
         ),
@@ -160,7 +160,7 @@ pub mod mock {
         fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc> {
             let pid = UnsignedMdoc {
                 doc_type: MOCK_PID_DOCTYPE.to_string(),
-                count: 1,
+                copy_count: 1,
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(

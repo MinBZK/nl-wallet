@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../domain/model/error/server_error.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/sheet/help_sheet.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
-import '../common/sheet/help_sheet.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String? illustration;
@@ -164,11 +164,11 @@ class ErrorScreen extends StatelessWidget {
   /// i.e. 'something went wrong' and a close button. Useful when
   /// we only want to communicate something went wrong without going
   /// into any specifics.
-  static void showGeneric(BuildContext context, {bool secured = true}) {
+  static void showGeneric(BuildContext context, {String? title, bool secured = true}) {
     show(
       context,
       secured: secured,
-      title: context.l10n.errorScreenGenericTitle,
+      title: title ?? context.l10n.errorScreenGenericTitle,
       headline: context.l10n.errorScreenGenericHeadline,
       description: context.l10n.errorScreenGenericDescription,
       illustration: 'assets/non-free/images/general_error_illustration.png',
@@ -184,12 +184,12 @@ class ErrorScreen extends StatelessWidget {
   /// based on the provided [ServerError], and defaults to
   /// 'something went wrong, check the internet and try again'
   /// when no [ServerError] is provided.
-  static void showServer(BuildContext context, {bool secured = true, ServerError? serverError}) {
+  static void showServer(BuildContext context, {String? title, bool secured = true, ServerError? serverError}) {
     //TODO: We eventually want to select different copy based on the provided [ServerError].
     show(
       context,
       secured: secured,
-      title: context.l10n.errorScreenServerTitle,
+      title: title ?? context.l10n.errorScreenServerTitle,
       headline: context.l10n.errorScreenServerHeadline,
       description: context.l10n.errorScreenServerDescription,
       illustration: 'assets/non-free/images/server_error_illustration.png',

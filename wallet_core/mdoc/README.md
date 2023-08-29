@@ -39,7 +39,7 @@ This crate is organized as follows.
       In this case, we define an associated struct whose name ends on `Keyed` which does use field names.
       This allows us to refer to the contents of such data structures in the code by name instead of by numbers.
       During (de)serialization we transform them into the form required by the standard using the `CborSeq` and `CborIntMap` wrappers, which have custom (de)serializers for this.
-    - Some CBOR data structures contain other data structures not directly, but instead their CBOR-serialized bytes.
+    - Some CBOR data structures do not contain other data structures directly, but instead their CBOR-serialized bytes.
       For this the `TaggedBytes` wrapper is used.
     - Type aliases are used where possible, in particular when no methods need to be attached to the data structure.
 - The three main agents (holder, issuer, verifier) each have their own module.

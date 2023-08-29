@@ -4,7 +4,7 @@
 //! This data structure does not directly contain the attributes ([`IssuerSignedItem`]) but instead only their digests,
 //! to enable selective disclosure.
 
-use chrono::Utc;
+use chrono::{DateTime, ParseError, Utc};
 use ciborium::{tag, value::Value};
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
@@ -138,12 +138,24 @@ pub type DeviceKey = CoseKey;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {
-    pub version: String,
-    pub digest_algorithm: String,
+    pub version: MobileSecurityObjectVersion,
+    pub digest_algorithm: DigestAlgorithm,
     pub value_digests: ValueDigests,
     pub device_key_info: DeviceKeyInfo,
     pub doc_type: String,
     pub validity_info: ValidityInfo,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum MobileSecurityObjectVersion {
+    #[serde(rename = "1.0")]
+    V1_0,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum DigestAlgorithm {
+    #[serde(rename = "SHA-256")]
+    SHA256,
 }
 
 #[skip_serializing_none]
@@ -171,6 +183,13 @@ impl Tdate {
     }
 }
 
+impl TryFrom<&Tdate> for DateTime<Utc> {
+    type Error = ParseError;
+    fn try_from(value: &Tdate) -> std::result::Result<DateTime<Utc>, Self::Error> {
+        DateTime::parse_from_rfc3339(&value.0 .0).map(|t| t.with_timezone(&Utc))
+    }
+}
+
 /// Doctype of an mdoc. For example, `"org.iso.18013.5.1.mDL"`. Determines the namespaces and attribute names that the
 /// mdoc may or must contain, and the issuer(s) that are authorized to sign it.
 pub type DocType = String;
@@ -187,7 +206,7 @@ impl From<Vec<IssuerSignedItemBytes>> for Attributes {
         Attributes(val)
     }
 }
-impl TryFrom<IndexMap<String, Value>> for Attributes {
+impl TryFrom<IndexMap<DataElementIdentifier, DataElementValue>> for Attributes {
     type Error = Error;
     fn try_from(val: IndexMap<String, Value>) -> Result<Self> {
         let attrs = Attributes(
@@ -208,18 +227,6 @@ impl TryFrom<Vec<Entry>> for Attributes {
                 .map(|entry| (entry.name.clone(), entry.value.clone()))
                 .collect::<IndexMap<String, Value>>(),
         )
-    }
-}
-impl From<&Attributes> for Vec<Entry> {
-    fn from(attrs: &Attributes) -> Self {
-        attrs
-            .0
-            .iter()
-            .map(|issuer_signed| Entry {
-                name: issuer_signed.0.element_identifier.clone(),
-                value: issuer_signed.0.element_value.clone(),
-            })
-            .collect()
     }
 }
 
@@ -249,6 +256,8 @@ pub struct IssuerSignedItem {
     pub element_value: DataElementValue,
 }
 
+pub const ATTR_RANDOM_LENGTH: usize = 32;
+
 impl IssuerSignedItem {
     /// Generate a new `IssuerSignedItem` including a new `random`.
     pub fn new(
@@ -256,7 +265,7 @@ impl IssuerSignedItem {
         element_identifier: DataElementIdentifier,
         element_value: DataElementValue,
     ) -> Result<IssuerSignedItem> {
-        let random = ByteBuf::from(random_bytes(32));
+        let random = ByteBuf::from(random_bytes(ATTR_RANDOM_LENGTH));
         let item = IssuerSignedItem {
             digest_id,
             random,

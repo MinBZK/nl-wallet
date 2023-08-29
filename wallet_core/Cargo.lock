@@ -2006,6 +2006,7 @@ dependencies = [
  "serde_with",
  "thiserror",
  "tokio",
+ "url",
  "wallet_common",
  "x509-parser",
 ]
@@ -4198,6 +4199,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "base64 0.21.2",
+ "chrono",
  "http",
  "jsonwebtoken",
  "once_cell",

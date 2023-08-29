@@ -5,8 +5,9 @@ use serial_test::serial;
 use tokio::sync::OnceCell;
 use uuid::Uuid;
 
+use wallet_common::generator::Generator;
+
 use wallet_provider_domain::{
-    generator::Generator,
     model::wallet_user::WalletUserCreate,
     repository::{Committable, PersistenceError},
     EpochGenerator,

@@ -5,8 +5,8 @@ use futures::future::TryFutureExt;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::RequestKeyGenerationMessage,
-    holder::{self, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    basic_sa_ext::UnsignedMdoc,
+    holder::{CborHttpClient, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
     utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
@@ -83,7 +83,7 @@ impl PidRetriever for PidIssuerClient {
             .do_issuance::<SoftwareEcdsaKey>(
                 service_engagement,
                 &always_agree(),
-                &holder::cbor_http_client_builder(),
+                &CborHttpClient(reqwest::Client::new()),
                 mdoc_trust_anchors,
             )
             .await?;
@@ -96,7 +96,7 @@ fn always_agree() -> impl IssuanceUserConsent {
     struct AlwaysAgree;
     #[async_trait]
     impl IssuanceUserConsent for AlwaysAgree {
-        async fn ask(&self, _: &RequestKeyGenerationMessage) -> bool {
+        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
             true
         }
     }

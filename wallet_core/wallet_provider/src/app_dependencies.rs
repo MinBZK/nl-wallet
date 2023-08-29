@@ -3,7 +3,8 @@ use std::error::Error;
 use chrono::{DateTime, Duration, Local};
 use uuid::Uuid;
 
-use wallet_provider_domain::generator::Generator;
+use wallet_common::generator::Generator;
+
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{account_server::AccountServer, pin_policy::PinPolicy};
 

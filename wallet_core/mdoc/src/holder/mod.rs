@@ -30,4 +30,6 @@ pub enum HolderError {
     RequestError(#[from] reqwest::Error),
     #[error("malformed Service Engagement: url missing")]
     MalformedServiceEngagement,
+    #[error("malformed attribute: random too short (was {0}; minimum {1}")]
+    AttributeRandomLength(usize, usize),
 }

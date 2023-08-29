@@ -25,7 +25,8 @@ use crate::{
         cose::{CoseKey, MdocCose},
         serialization::TaggedBytes,
     },
-    DataElementIdentifier, DataElementValue, DocType, MobileSecurityObject, NameSpace, Tdate, ValidityInfo,
+    Attributes, DataElementIdentifier, DataElementValue, DigestAlgorithm, DocType, MobileSecurityObject,
+    MobileSecurityObjectVersion, NameSpace, Tdate, ValidityInfo,
 };
 
 pub const START_ISSUING_MSG_TYPE: &str = "nl.referencewallet.issuance.StartIssuing";
@@ -59,10 +60,12 @@ pub struct RequestKeyGenerationMessage {
 #[serde(rename_all = "camelCase")]
 pub struct UnsignedMdoc {
     pub doc_type: DocType,
-    pub count: u64,
     pub valid_from: Tdate,
     pub valid_until: Tdate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+
+    /// The amount of copies of this mdoc that the holder will receive.
+    pub copy_count: u64,
 }
 
 /// An attribute name and value.
@@ -73,6 +76,19 @@ pub struct UnsignedMdoc {
 pub struct Entry {
     pub name: DataElementIdentifier,
     pub value: DataElementValue,
+}
+
+impl From<&Attributes> for Vec<Entry> {
+    fn from(attrs: &Attributes) -> Self {
+        attrs
+            .0
+            .iter()
+            .map(|issuer_signed| Entry {
+                name: issuer_signed.0.element_identifier.clone(),
+                value: issuer_signed.0.element_value.clone(),
+            })
+            .collect()
+    }
 }
 
 pub const KEY_GEN_RESP_MSG_TYPE: &str = "nl.referencewallet.issuance.KeyGenerationResponse";
@@ -127,7 +143,7 @@ impl ResponseSignaturePayload {
 pub struct DataToIssueMessage {
     pub e_session_id: SessionId,
     #[serde(rename = "mobileeIDdocuments")]
-    pub mobile_id_documents: Vec<MobileeIDDocuments>,
+    pub mobile_eid_documents: Vec<MobileeIDDocuments>,
 }
 
 /// A mobile eID document: all data of the signed mdocs being issued (in particular the issuer signatures) that the
@@ -152,8 +168,8 @@ pub struct SparseIssuerSigned {
 /// so far.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SparseIssuerAuth {
-    pub version: String,
-    pub digest_algorithm: String,
+    pub version: MobileSecurityObjectVersion,
+    pub digest_algorithm: DigestAlgorithm,
     pub validity_info: ValidityInfo,
     pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
 }

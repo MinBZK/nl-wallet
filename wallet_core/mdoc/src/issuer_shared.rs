@@ -99,6 +99,19 @@ impl Response {
     }
 }
 
+impl MdocResponses {
+    fn sign(keys: &[impl SecureEcdsaKey], unsigned: &UnsignedMdoc, challenge: &ByteBuf) -> Result<MdocResponses> {
+        let responses = MdocResponses {
+            doc_type: unsigned.doc_type.clone(),
+            responses: keys
+                .iter()
+                .map(|key| Response::sign(challenge, key))
+                .collect::<Result<Vec<_>>>()?,
+        };
+        Ok(responses)
+    }
+}
+
 impl KeyGenerationResponseMessage {
     pub fn verify(&self, request: &RequestKeyGenerationMessage) -> Result<()> {
         if self.e_session_id != request.e_session_id {
@@ -123,10 +136,10 @@ impl KeyGenerationResponseMessage {
         unsigned_mdoc: &UnsignedMdoc,
         challenge: &ByteBuf,
     ) -> Result<()> {
-        if doctype_responses.responses.len() as u64 > unsigned_mdoc.count {
+        if doctype_responses.responses.len() as u64 > unsigned_mdoc.copy_count {
             return Err(IssuanceError::TooManyResponses {
                 received: doctype_responses.responses.len() as u64,
-                max: unsigned_mdoc.count,
+                max: unsigned_mdoc.copy_count,
             }
             .into());
         }
@@ -147,12 +160,12 @@ impl KeyGenerationResponseMessage {
 
     pub fn new(
         request: &RequestKeyGenerationMessage,
-        keys: &[Vec<impl SecureEcdsaKey>],
+        keys: &[&[impl SecureEcdsaKey]],
     ) -> Result<KeyGenerationResponseMessage> {
         let responses = keys
             .iter()
             .zip(&request.unsigned_mdocs)
-            .map(|(keys, unsigned)| Self::create_responses(keys, unsigned, &request.challenge))
+            .map(|(keys, unsigned)| MdocResponses::sign(keys, unsigned, &request.challenge))
             .collect::<Result<Vec<MdocResponses>>>()?;
 
         let response = KeyGenerationResponseMessage {
@@ -160,20 +173,5 @@ impl KeyGenerationResponseMessage {
             mdoc_responses: responses,
         };
         Ok(response)
-    }
-
-    fn create_responses(
-        keys: &[impl SecureEcdsaKey],
-        unsigned: &UnsignedMdoc,
-        challenge: &ByteBuf,
-    ) -> Result<MdocResponses> {
-        let responses = MdocResponses {
-            doc_type: unsigned.doc_type.clone(),
-            responses: keys
-                .iter()
-                .map(|key| Response::sign(challenge, key))
-                .collect::<Result<Vec<_>>>()?,
-        };
-        Ok(responses)
     }
 }

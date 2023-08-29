@@ -10,17 +10,14 @@ use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
     Result,
 };
 
-use super::{
-    x509::{Certificate, CertificateError, CertificateUsage},
-    Generator,
-};
+use super::x509::{Certificate, CertificateError, CertificateUsage};
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -274,11 +271,21 @@ impl coset::AsCborValue for CoseKey {
 
 #[cfg(test)]
 mod tests {
-    use coset::{CoseSign1, Header};
+    use ciborium::Value;
+    use coset::{Header, HeaderBuilder, Label};
     use p256::ecdsa::{signature::rand_core::OsRng, SigningKey};
     use serde::{Deserialize, Serialize};
+    use wallet_common::generator::TimeGenerator;
 
-    use super::MdocCose;
+    use crate::{
+        utils::{
+            cose::CoseError,
+            x509::{Certificate, CertificateUsage},
+        },
+        Error,
+    };
+
+    use super::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL};
 
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     struct ToyMessage {
@@ -298,8 +305,106 @@ mod tests {
     fn it_works() {
         let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
-        let cose = MdocCose::<CoseSign1, ToyMessage>::sign(&payload, Header::default(), &key).unwrap();
+        let cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+
+        cose.verify(key.verifying_key()).unwrap();
+
         let verified = cose.verify_and_parse(key.verifying_key()).unwrap();
+        assert_eq!(payload, verified);
+
+        let parsed_not_verified = cose.dangerous_parse_unverified().unwrap();
+        assert_eq!(payload, parsed_not_verified);
+    }
+
+    #[test]
+    fn invalidate_cose() {
+        let key = SigningKey::random(&mut OsRng);
+        let payload = ToyMessage::default();
+        let mut cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+
+        // Verification should fail if the signature is changed
+        cose.0.signature[0] = !cose.0.signature[0]; // invert bits
+        assert!(matches!(
+            cose.verify(key.verifying_key()),
+            Err(Error::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
+        ));
+
+        // Verification should fail if the signature length is not right
+        let len = cose.0.signature.len();
+        cose.0.signature.remove(len - 1);
+        assert!(matches!(
+            cose.verify(key.verifying_key()),
+            Err(Error::Cose(CoseError::EcdsaSignatureParsingFailed(_)))
+        ));
+    }
+
+    #[test]
+    fn cose_with_header() {
+        let key = SigningKey::random(&mut OsRng);
+        let payload = ToyMessage::default();
+        let header = HeaderBuilder::new()
+            .value(42, 0.into())
+            .text_value("Hello".to_string(), "World".into())
+            .build();
+        let cose = MdocCose::sign(&payload, header, &key).unwrap();
+
+        assert_eq!(
+            cose.unprotected_header_item(&Label::Int(42))
+                .unwrap()
+                .as_integer()
+                .unwrap(),
+            0.into()
+        );
+        assert_eq!(
+            cose.unprotected_header_item(&Label::Text("Hello".to_string()))
+                .unwrap()
+                .as_text()
+                .unwrap(),
+            "World"
+        );
+
+        assert!(matches!(
+            cose.unprotected_header_item(&Label::Text("not_present".to_string())),
+            Err(Error::Cose(CoseError::MissingLabel(_)))
+        ))
+    }
+
+    #[test]
+    fn cose_with_certificate() {
+        let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
+        let (cert, cert_privkey) =
+            Certificate::new(&ca, &ca_privkey, "cert.example.com", CertificateUsage::Mdl).unwrap();
+
+        let payload = ToyMessage::default();
+        let header = HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_bytes().to_vec()))
+            .build();
+        let cose = MdocCose::sign(&payload, header, &cert_privkey).unwrap();
+
+        // Certificate should be present in the unprotected headers
+        let header_cert = cose.signing_cert().unwrap();
+        assert_eq!(cert.as_bytes(), header_cert.as_bytes());
+
+        let trust_anchor = (&ca).try_into().unwrap();
+        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[trust_anchor])
+            .unwrap();
+    }
+
+    #[test]
+    fn remove_add_payload() {
+        let key = SigningKey::random(&mut OsRng);
+        let payload = ToyMessage::default();
+
+        let cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+        assert!(cose.0.payload.is_some());
+        let payload_bts = cose.0.payload.as_ref().unwrap();
+
+        let without_payload = cose.clone_without_payload();
+        assert!(without_payload.0.payload.is_none());
+
+        // Adding the payload should result in a cose containing our payload again
+        let with_payload = without_payload.clone_with_payload(payload_bts.clone());
+        let verified = with_payload.verify_and_parse(key.verifying_key()).unwrap();
         assert_eq!(payload, verified);
     }
 }

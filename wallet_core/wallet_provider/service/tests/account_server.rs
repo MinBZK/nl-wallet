@@ -2,12 +2,14 @@ use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use std::env;
 use uuid::Uuid;
-use wallet_common::account::messages::{
-    auth::{Registration, WalletCertificate, WalletCertificateClaims},
-    instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
+use wallet_common::{
+    account::messages::{
+        auth::{Registration, WalletCertificate, WalletCertificateClaims},
+        instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
+    },
+    generator::Generator,
 };
 use wallet_provider_domain::{
-    generator::Generator,
     model::wallet_user::WalletUserQueryResult,
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
 };

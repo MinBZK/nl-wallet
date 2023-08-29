@@ -23,6 +23,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
+use url::Url;
 
 use crate::utils::serialization::{RequiredValue, RequiredValueTrait};
 
@@ -53,7 +54,7 @@ impl RequiredValueTrait for ServiceEngagementID {
 pub type ProvisioningCode = String;
 
 /// URL at which the holder can start a session, by sending a [`StartProvisioningMessage`] to it.
-pub type ServerUrl = String;
+pub type ServerUrl = Url;
 
 /// Free-form additional information.
 /// "Optional fields defined by this standard will use non-negative integers as keys. Applications may use the options
