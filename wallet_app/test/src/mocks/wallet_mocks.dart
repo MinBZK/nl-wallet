@@ -68,7 +68,7 @@ class Mocks {
 
   static MockTypedWalletCore getTypedWalletCoreMock() {
     final mock = MockTypedWalletCore();
-    when(mock.getDigidAuthUrl()).thenAnswer((_) async => kMockDigidAuthUrl);
+    when(mock.createPidIssuanceRedirectUri()).thenAnswer((_) async => kMockDigidAuthUrl);
     return mock;
   }
 
