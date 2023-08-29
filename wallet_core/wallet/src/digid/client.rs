@@ -155,7 +155,10 @@ mod tests {
     use mockall::predicate::*;
     use tokio::sync::oneshot;
 
-    use crate::digid::{openid_client::MockOpenIdAuthenticator, pkce::MockPkceSource};
+    use crate::{
+        digid::{openid_client::MockOpenIdAuthenticator, pkce::MockPkceSource},
+        utils::url::url_with_query_pairs,
+    };
 
     use super::*;
 
@@ -289,16 +292,13 @@ mod tests {
         // Test for redirect URIs that contain a `error` and an optional
         // `error_description` parameter.
 
-        let error_redirect_uri = {
-            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-
-            redirect_uri
-                .query_pairs_mut()
-                .append_pair(PARAM_ERROR, "error_type")
-                .append_pair(PARAM_ERROR_DESCRIPTION, "this is the error description");
-
-            redirect_uri
-        };
+        let error_redirect_uri = url_with_query_pairs(
+            Url::parse(REDIRECT_URI).unwrap(),
+            &[
+                (PARAM_ERROR, "error_type"),
+                (PARAM_ERROR_DESCRIPTION, "this is the error description"),
+            ],
+        );
 
         assert!(matches!(
             client.get_access_token(&error_redirect_uri).await.unwrap_err(),
@@ -308,13 +308,8 @@ mod tests {
             } if error == "error_type" && error_description == "this is the error description"
         ));
 
-        let short_error_redirect_uri = {
-            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-
-            redirect_uri.query_pairs_mut().append_pair(PARAM_ERROR, "foobar");
-
-            redirect_uri
-        };
+        let short_error_redirect_uri =
+            url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_ERROR, "foobar")]);
 
         assert!(matches!(
             client.get_access_token(&short_error_redirect_uri).await.unwrap_err(),
@@ -327,13 +322,8 @@ mod tests {
         // Test for the error that is returned if the redirect URI does not contain
         // the CSRF token in the `state` query parameter.
 
-        let wrong_csrf_redirect_uri = {
-            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-
-            redirect_uri.query_pairs_mut().append_pair(PARAM_STATE, "foobar");
-
-            redirect_uri
-        };
+        let wrong_csrf_redirect_uri =
+            url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_STATE, "foobar")]);
 
         assert!(matches!(
             client.get_access_token(&wrong_csrf_redirect_uri).await.unwrap_err(),
@@ -343,14 +333,10 @@ mod tests {
         // Test for the error that is returned if the redirect URI does not have
         // a `code` query parameter.
 
-        let no_auth_code_redirect_uri = {
-            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-
-            redirect_uri
-                .query_pairs_mut()
-                .append_pair(PARAM_STATE, &generated_csrf_token);
-            redirect_uri
-        };
+        let no_auth_code_redirect_uri = url_with_query_pairs(
+            Url::parse(REDIRECT_URI).unwrap(),
+            &[(PARAM_STATE, &generated_csrf_token)],
+        );
 
         assert!(matches!(
             client.get_access_token(&no_auth_code_redirect_uri).await.unwrap_err(),
@@ -360,16 +346,10 @@ mod tests {
         // Finally we can test the successful call to `DigidClient.get_access_token()`.
         // First, generate the correct redirect URI.
 
-        let redirect_uri = {
-            let mut redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-
-            redirect_uri
-                .query_pairs_mut()
-                .append_pair(PARAM_STATE, &generated_csrf_token)
-                .append_pair(PARAM_CODE, AUTH_CODE);
-
-            redirect_uri
-        };
+        let redirect_uri = url_with_query_pairs(
+            Url::parse(REDIRECT_URI).unwrap(),
+            &[(PARAM_STATE, &generated_csrf_token), (PARAM_CODE, AUTH_CODE)],
+        );
 
         // Then, set up the mock to respond when called with the correct parameters.
 
