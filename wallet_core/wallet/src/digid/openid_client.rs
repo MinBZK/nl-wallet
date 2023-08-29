@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
-use super::openid::Client;
+use super::openid_pkce::Client;
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 

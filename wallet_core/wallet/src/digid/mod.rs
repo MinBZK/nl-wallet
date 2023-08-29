@@ -1,6 +1,6 @@
 mod client;
-mod openid;
 mod openid_client;
+mod openid_pkce;
 mod pkce;
 
 use async_trait::async_trait;
