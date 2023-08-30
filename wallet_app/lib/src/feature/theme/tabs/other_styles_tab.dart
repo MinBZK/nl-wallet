@@ -7,6 +7,7 @@ import '../../../domain/model/card_front.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
@@ -36,10 +37,10 @@ import '../theme_screen.dart';
 
 const _kSampleCardFront = CardFront(
   title: 'Sample Card',
-  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
+  backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
   info: 'Info',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
   subtitle: 'Subtitle',
 );
 
@@ -125,7 +126,7 @@ class OtherStylesTab extends StatelessWidget {
         ThemeSectionSubHeader(title: 'DataAttributeRow - Type Image'),
         AttributeRow(
           attribute: DataAttribute(
-            value: 'assets/non-free/images/image_attribute_placeholder.png',
+            value: WalletAssets.image_attribute_placeholder,
             label: 'Label: This is a DataAttributeRow with type image',
             sourceCardId: 'id',
             valueType: AttributeValueType.image,
@@ -174,12 +175,12 @@ class OtherStylesTab extends StatelessWidget {
         ThemeSectionSubHeader(title: 'WalletCardItem'),
         WalletCardItem(
           title: 'Card Title',
-          background: 'assets/svg/rijks_card_bg_dark.svg',
+          background: WalletAssets.svg_rijks_card_bg_dark,
           brightness: Brightness.dark,
           subtitle1: 'Card subtitle1',
           subtitle2: 'Card subtitle2',
-          logo: 'assets/non-free/images/logo_card_rijksoverheid.png',
-          holograph: 'assets/svg/rijks_card_holo.svg',
+          logo: WalletAssets.logo_card_rijksoverheid,
+          holograph: WalletAssets.svg_rijks_card_holo,
         ),
         ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
@@ -206,7 +207,7 @@ class OtherStylesTab extends StatelessWidget {
               category: 'Category',
               shortName: 'This is a TimelineAttributeRow',
               description: 'Organization description',
-              logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+              logoUrl: WalletAssets.logo_rijksoverheid,
             ),
             dataAttributes: const [],
             status: InteractionStatus.success,

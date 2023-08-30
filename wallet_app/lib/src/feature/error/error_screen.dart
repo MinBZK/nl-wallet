@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/model/error/server_error.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../common/sheet/help_sheet.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
@@ -171,7 +172,7 @@ class ErrorScreen extends StatelessWidget {
       title: title ?? context.l10n.errorScreenGenericTitle,
       headline: context.l10n.errorScreenGenericHeadline,
       description: context.l10n.errorScreenGenericDescription,
-      illustration: 'assets/non-free/images/general_error_illustration.png',
+      illustration: WalletAssets.illustration_general_error,
       primaryActionText: context.l10n.errorScreenGenericCloseCta,
       secondaryActionText: context.l10n.errorScreenGeneralHelpCta,
       onPrimaryActionPressed: () => Navigator.pop(context),
@@ -192,7 +193,7 @@ class ErrorScreen extends StatelessWidget {
       title: title ?? context.l10n.errorScreenServerTitle,
       headline: context.l10n.errorScreenServerHeadline,
       description: context.l10n.errorScreenServerDescription,
-      illustration: 'assets/non-free/images/server_error_illustration.png',
+      illustration: WalletAssets.illustration_server_error,
       primaryActionText: context.l10n.errorScreenServerCloseCta,
       secondaryActionText: context.l10n.errorScreenServerHelpCta,
       onPrimaryActionPressed: () => Navigator.pop(context),

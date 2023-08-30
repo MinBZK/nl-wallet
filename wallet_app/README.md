@@ -78,7 +78,7 @@ As an example, to run the app in 'implementation' mode use: `flutter run --dart-
 
 All files used by the project (like images, fonts, etc.), go into the `assets/` directory and their appropriate sub-directories.
 
-Note; the `assets/images/` directory contains [resolution-aware images](https://flutter.dev/docs/development/ui/assets-and-images#resolution-aware).
+Note; the `assets/non-free/images/` directory contains [resolution-aware images](https://flutter.dev/docs/development/ui/assets-and-images#resolution-aware).
 
 > Copyright note: place all non free (copyrighted) assets used under the `non-free/` directory inside the appropriate asset sub-directory.
 

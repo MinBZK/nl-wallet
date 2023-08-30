@@ -66,9 +66,12 @@ flutter:
 
   assets:
     # Add assets from the images directory to the application.
-    - assets/images/
-    - assets/svg/
+    - assets/non-free/svg/
     - assets/non-free/images/
+    - assets/non-free/logos/
+    - assets/non-free/fonts/
+    - assets/non-free/illustrations/
+    - assets/non-free/icons/
 
   fonts:
     - family: RijksoverheidSansWebText

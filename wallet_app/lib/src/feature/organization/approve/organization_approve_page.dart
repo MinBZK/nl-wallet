@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
@@ -121,7 +122,7 @@ class OrganizationApprovePage extends StatelessWidget {
       children: [
         isFirstInteractionWithOrganization
             ? IconRow(
-                icon: Image.asset('assets/images/ic_first_share.png'),
+                icon: Image.asset(WalletAssets.icon_first_share),
                 text: Text(context.l10n.organizationApprovePageFirstInteraction),
               )
             : const SizedBox.shrink(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
@@ -8,8 +9,6 @@ import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/sign_flow.dart';
-
-const _kContextIllustration = 'assets/non-free/images/sign_illustration_2.png';
 
 class ConfirmAgreementPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -62,7 +61,7 @@ class ConfirmAgreementPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.asset(
-            _kContextIllustration,
+            WalletAssets.illustration_sign_2,
             fit: BoxFit.cover,
             width: double.infinity,
           ),

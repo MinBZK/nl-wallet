@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../wallet_assets.dart';
+
 class WalletLogo extends StatelessWidget {
   final double size;
 
@@ -8,7 +10,7 @@ class WalletLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/non-free/images/logo_wallet.png',
+      WalletAssets.logo_wallet,
       width: size,
       height: size,
     );

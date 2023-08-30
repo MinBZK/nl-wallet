@@ -4,6 +4,7 @@ import '../../../../domain/model/document.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/sign_request.dart';
 import '../../../../domain/model/trust_provider.dart';
+import '../../../../wallet_assets.dart';
 import '../../../source/organization_datasource.dart';
 import '../sign_request_repository.dart';
 
@@ -21,7 +22,7 @@ class MockSignRequestRepository implements SignRequestRepository {
           organization: (await organizationDataSource.read('housing_corp_1'))!,
           trustProvider: const TrustProvider(
             name: 'Veilig Ondertekenen B.V.',
-            logoUrl: 'assets/non-free/images/logo_sign_provider.png',
+            logoUrl: WalletAssets.logo_sign_provider,
           ),
           document: const Document(
             title: 'Huurovereenkomst',

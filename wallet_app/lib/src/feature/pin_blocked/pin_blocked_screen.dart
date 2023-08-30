@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../common/widget/sliver_sized_box.dart';
-
-const _kIllustration = 'assets/images/pin_timeout_illustration.png';
 
 class PinBlockedScreen extends StatelessWidget {
   const PinBlockedScreen({
@@ -31,7 +30,7 @@ class PinBlockedScreen extends StatelessWidget {
                 const SliverSizedBox(height: 24),
                 SliverToBoxAdapter(
                   child: Image.asset(
-                    _kIllustration,
+                    WalletAssets.illustration_pin_timeout,
                     width: double.infinity,
                     fit: BoxFit.fitWidth,
                   ),

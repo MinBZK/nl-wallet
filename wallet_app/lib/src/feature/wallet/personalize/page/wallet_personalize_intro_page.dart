@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
-
-const _kIllustrationPath = 'assets/images/personalize_wallet_intro_illustration.png';
-const _kDigidLogoPath = 'assets/images/digid_logo.png';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
   final VoidCallback onLoginWithDigidPressed;
@@ -50,7 +48,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: Image.asset(
-                  _kIllustrationPath,
+                  WalletAssets.illustration_personalize_wallet_intro,
                   fit: BoxFit.fitWidth,
                 ),
               ),
@@ -77,7 +75,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                _kDigidLogoPath,
+                WalletAssets.logo_digid,
                 excludeFromSemantics: true,
               ),
               const SizedBox(width: 12),

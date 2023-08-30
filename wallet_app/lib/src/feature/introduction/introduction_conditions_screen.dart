@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/text_icon_button.dart';
-
-const _kIllustrationPath = 'assets/non-free/images/conditions_screen_illustration.png';
 
 class IntroductionConditionsScreen extends StatelessWidget {
   const IntroductionConditionsScreen({Key? key}) : super(key: key);
@@ -60,7 +59,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: Image.asset(
-                _kIllustrationPath,
+                WalletAssets.illustration_conditions_screen,
                 fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
                 height: context.isLandscape ? 160 : null,
                 width: double.infinity,

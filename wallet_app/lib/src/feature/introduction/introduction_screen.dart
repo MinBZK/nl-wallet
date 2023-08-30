@@ -7,6 +7,7 @@ import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/rounded_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
@@ -145,7 +146,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage1(BuildContext context) {
     const pageIndex = 0;
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_intro_page_1.png'),
+      image: const AssetImage(WalletAssets.image_intro_page_1),
       title: context.l10n.introductionPage1Title,
       subtitle: context.l10n.introductionPage1Description,
       header: _buildPageIndicatorPlaceholder(
@@ -160,7 +161,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage2(BuildContext context) {
     const pageIndex = 1;
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_intro_page_2.png'),
+      image: const AssetImage(WalletAssets.image_intro_page_2),
       title: context.l10n.introductionPage2Title,
       subtitle: context.l10n.introductionPage2Description,
       bulletPoints: context.l10n.introductionPage2BulletPoints.split('\n'),
@@ -176,7 +177,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage3(BuildContext context) {
     const pageIndex = 2;
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_intro_page_3.png'),
+      image: const AssetImage(WalletAssets.image_intro_page_3),
       title: context.l10n.introductionPage3Title,
       subtitle: context.l10n.introductionPage3Description,
       header: _buildPageIndicatorPlaceholder(
@@ -191,7 +192,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage4(BuildContext context) {
     const pageIndex = 3;
     return IntroductionPage(
-      image: const AssetImage('assets/non-free/images/image_intro_page_4.png'),
+      image: const AssetImage(WalletAssets.image_intro_page_4),
       title: context.l10n.introductionPage4Title,
       bulletPoints: context.l10n.introductionPage4BulletPoints.split('\n'),
       header: _buildPageIndicatorPlaceholder(
