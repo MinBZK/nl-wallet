@@ -7,6 +7,7 @@ import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.da
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/verification/model/organization.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {
   static const WalletCard card = WalletCard(
@@ -19,10 +20,10 @@ abstract class WalletMockData {
   static const WalletCard altCard = WalletCard(
     front: CardFront(
       title: 'Alt Sample Card',
-      backgroundImage: 'assets/svg/rijks_card_bg_light.svg',
+      backgroundImage: WalletAssets.svg_rijks_card_bg_light,
       theme: CardFrontTheme.light,
       info: 'Alt Info',
-      logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+      logoImage: WalletAssets.logo_card_rijksoverheid,
       subtitle: 'Alt Subtitle',
     ),
     attributes: [imageDataAttribute, textDataAttribute],
@@ -32,10 +33,10 @@ abstract class WalletMockData {
 
   static const CardFront cardFront = CardFront(
     title: 'Sample Card',
-    backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
+    backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
     theme: CardFrontTheme.dark,
     info: 'Info',
-    logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+    logoImage: WalletAssets.logo_card_rijksoverheid,
     subtitle: 'Subtitle',
   );
 
@@ -45,7 +46,7 @@ abstract class WalletMockData {
     category: 'Category',
     shortName: 'Name',
     description: 'Organization description',
-    logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+    logoUrl: WalletAssets.logo_rijksoverheid,
   );
 
   static const DataAttribute textDataAttribute = DataAttribute(
@@ -57,7 +58,7 @@ abstract class WalletMockData {
 
   static const DataAttribute imageDataAttribute = DataAttribute(
     label: 'Label',
-    value: 'assets/non-free/images/person_x.png',
+    value: WalletAssets.image_person_x,
     sourceCardId: 'id',
     valueType: AttributeValueType.image,
   );

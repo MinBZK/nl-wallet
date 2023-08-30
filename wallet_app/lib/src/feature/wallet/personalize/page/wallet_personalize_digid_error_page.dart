@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
-
-const _kDigidLogoPath = 'assets/images/digid_logo.png';
-const _kDigidErrorIllustrationPath = 'assets/non-free/images/digid_failure_illustration.png';
 
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   final VoidCallback onRetryPressed;
@@ -28,7 +26,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             SliverToBoxAdapter(
               child: ExcludeSemantics(
                 child: Image.asset(
-                  _kDigidErrorIllustrationPath,
+                  WalletAssets.illustration_digid_failure,
                   fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
                   height: context.isLandscape ? 160 : null,
                   width: double.infinity,
@@ -78,7 +76,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                _kDigidLogoPath,
+                WalletAssets.logo_digid,
                 excludeFromSemantics: true,
               ),
               const SizedBox(width: 12),

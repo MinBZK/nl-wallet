@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
-
-const _kCardShareAsset = 'assets/images/ic_card_share.png';
+import '../../../wallet_assets.dart';
 
 class CardAttributeRow extends StatelessWidget {
   final MapEntry<WalletCard, List<DataAttribute>> entry;
@@ -20,7 +19,7 @@ class CardAttributeRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ExcludeSemantics(
-          child: Image.asset(_kCardShareAsset),
+          child: Image.asset(WalletAssets.icon_card_share),
         ),
         const SizedBox(width: 16),
         Expanded(

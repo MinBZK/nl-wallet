@@ -483,7 +483,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
@@ -633,7 +633,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
@@ -678,7 +678,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";

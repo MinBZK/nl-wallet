@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/button/text_icon_button.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
-const _kDigidLogoPath = 'assets/images/digid_logo.png';
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
 
 class WalletPersonalizeNoDigidScreen extends StatelessWidget {
@@ -67,7 +67,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(_kDigidLogoPath),
+              Image.asset(WalletAssets.logo_digid),
               const SizedBox(width: 12),
               Flexible(
                 child: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),

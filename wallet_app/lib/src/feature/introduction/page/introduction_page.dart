@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/bullet_list.dart';
 
 const _kCoverHeaderImageDesiredHeight = 250.0;
-const _kCoverHeaderLabelImage = 'assets/non-free/images/logo_rijksoverheid_label.png';
 
 class IntroductionPage extends StatelessWidget {
   final ImageProvider image;
@@ -120,7 +120,7 @@ class IntroductionPage extends StatelessWidget {
       child: Semantics(
         label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
         child: Image.asset(
-          _kCoverHeaderLabelImage,
+          WalletAssets.logo_rijksoverheid_label,
           fit: BoxFit.cover,
         ),
       ),

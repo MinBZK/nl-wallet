@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/screen/placeholder_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
-
-const _kIllustration = 'assets/images/pin_timeout_illustration.png';
 
 class PinTimeoutScreen extends StatelessWidget {
   static PinTimeoutScreenArgument getArgument(RouteSettings settings) {
@@ -50,7 +49,7 @@ class PinTimeoutScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               Image.asset(
-                _kIllustration,
+                WalletAssets.illustration_pin_timeout,
                 width: double.infinity,
                 fit: BoxFit.fitWidth,
               ),

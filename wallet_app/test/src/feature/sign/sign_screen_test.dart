@@ -10,6 +10,7 @@ import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
 import 'package:wallet/src/feature/sign/model/sign_flow.dart';
 import 'package:wallet/src/feature/sign/sign_screen.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
@@ -33,7 +34,7 @@ void main() {
     policy: WalletMockData.policy,
     trustProvider: TrustProvider(
       name: 'trust provider',
-      logoUrl: 'assets/non-free/images/logo_sign_provider.png',
+      logoUrl: WalletAssets.logo_sign_provider,
     ),
   );
 
