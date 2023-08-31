@@ -60,7 +60,7 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
-wallet = { path = "../wallet", features = ["mock"] }
+wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }
 
 assert_matches.workspace = true
 sea-orm = { workspace = true, features = [

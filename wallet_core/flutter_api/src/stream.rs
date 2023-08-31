@@ -1,6 +1,6 @@
 use flutter_rust_bridge::{IntoDart, StreamSink};
 
-pub struct ClosingStreamSink<T>(pub StreamSink<T>)
+pub struct ClosingStreamSink<T>(StreamSink<T>)
 where
     T: IntoDart;
 

@@ -1,18 +1,20 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use base64::prelude::*;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use once_cell::sync::Lazy;
 use url::Url;
 
+use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
 use wallet_common::account::jwt::EcdsaDecodingKey;
+
+const TRUST_ANCHOR_CERTS: [&str; 1] = ["MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg=="];
 
 #[derive(Debug)]
 pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
-    pub mdoc_trust_anchors: Lazy<Arc<Vec<TrustAnchor<'static>>>>,
+    pub mdoc_trust_anchors: Lazy<Vec<OwnedTrustAnchor>>,
 }
 
 #[derive(Debug)]
@@ -36,13 +38,12 @@ pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
     pub digid_client_id: String,
+    pub digid_redirect_uri: Url,
 }
 
-impl Debug for AccountServerConfiguration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AccountServerConfiguration")
-            .field("base_url", &self.base_url)
-            .finish_non_exhaustive()
+impl Configuration {
+    pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
+        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
     }
 }
 
@@ -65,25 +66,30 @@ impl Default for Configuration {
                 )
                 .unwrap(),
                 digid_client_id: "SSSS".to_string(),
+                digid_redirect_uri: Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication")
+                    .unwrap(),
             },
             mdoc_trust_anchors: Lazy::new(|| {
                 TRUST_ANCHOR_CERTS
                     .iter()
                     .map(|anchor| {
-                        let der = base64::engine::general_purpose::STANDARD
+                        base64::engine::general_purpose::STANDARD
                             .decode(anchor.as_bytes())
-                            .expect("failed to base64-decode trust anchor certificate");
-
-                        // "Leak" the bytes, meaning they get lifetime 'static: the duration of the program.
-                        let static_ref: &'static [u8] = Box::leak(Box::new(der));
-
-                        TrustAnchor::try_from_cert_der(static_ref).expect("failed to parse trust anchor")
+                            .expect("failed to base64-decode trust anchor certificate")
+                            .as_slice()
+                            .try_into()
+                            .expect("failed to parse trust anchor")
                     })
-                    .collect::<Vec<TrustAnchor<'static>>>()
-                    .into()
+                    .collect()
             }),
         }
     }
 }
 
-const TRUST_ANCHOR_CERTS: [&str; 1] = ["MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg=="];
+impl Debug for AccountServerConfiguration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AccountServerConfiguration")
+            .field("base_url", &self.base_url)
+            .finish_non_exhaustive()
+    }
+}

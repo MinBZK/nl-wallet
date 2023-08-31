@@ -238,9 +238,9 @@ class MockTypedWalletCore extends _i1.Mock implements _i8.TypedWalletCore {
         )),
       ) as _i4.Future<_i2.WalletUnlockResult>);
   @override
-  _i4.Future<String> getDigidAuthUrl() => (super.noSuchMethod(
+  _i4.Future<String> createPidIssuanceRedirectUri() => (super.noSuchMethod(
         Invocation.method(
-          #getDigidAuthUrl,
+          #createPidIssuanceRedirectUri,
           [],
         ),
         returnValue: _i4.Future<String>.value(''),

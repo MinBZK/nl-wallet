@@ -6,8 +6,8 @@ import '../wallet_core.dart';
 // Simple STUB to satisfy di
 class MockWalletCore extends TypedWalletCore {
   @override
-  Future<String> getDigidAuthUrl() {
-    // TODO: implement getDigidAuthUrl
+  Future<String> createPidIssuanceRedirectUri() {
+    // TODO: implement createPidIssuanceRedirectUri
     throw UnimplementedError();
   }
 

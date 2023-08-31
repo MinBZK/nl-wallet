@@ -18,7 +18,7 @@ void main() {
   group('DigiD Auth Url', () {
     test('auth url should be fetched through the wallet_core', () async {
       expect(await authRepository.getAuthUrl(), kMockDigidAuthUrl);
-      verify(core.getDigidAuthUrl());
+      verify(core.createPidIssuanceRedirectUri());
     });
   });
 

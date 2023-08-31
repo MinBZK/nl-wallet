@@ -13,7 +13,7 @@ abstract class TypedWalletCore {
 
   Stream<bool> get isLocked;
 
-  Future<String> getDigidAuthUrl();
+  Future<String> createPidIssuanceRedirectUri();
 
   Stream<UriFlowEvent> processUri(Uri uri);
 

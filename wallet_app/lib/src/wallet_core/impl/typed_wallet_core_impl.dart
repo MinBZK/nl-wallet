@@ -85,9 +85,9 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Future<String> getDigidAuthUrl() async {
+  Future<String> createPidIssuanceRedirectUri() async {
     try {
-      return await _walletCore.getDigidAuthUrl();
+      return await _walletCore.createPidIssuanceRedirectUri();
     } catch (ex) {
       throw _handleCoreException(ex);
     }

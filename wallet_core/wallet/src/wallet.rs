@@ -1,11 +1,9 @@
 use std::{error::Error, panic};
 
 use platform_support::utils::PlatformUtilities;
-use tokio::{
-    sync::{Mutex, OnceCell},
-    task,
-};
+use tokio::task;
 use tracing::{info, instrument};
+use url::Url;
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::{
@@ -16,8 +14,9 @@ use wallet_common::account::messages::{
 
 use crate::{
     account_server::AccountServerResponseError,
-    digid::{self, DigidConnector},
+    digid::{DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
+    pid_issuer::{PidIssuerClient, PidRetrieverError},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::validate_pin,
@@ -28,6 +27,8 @@ use crate::{
 pub use crate::{
     account_server::{AccountServerClient, AccountServerClientError},
     config::{Configuration, ConfigurationRepository},
+    digid::DigidAuthenticator,
+    pid_issuer::PidRetriever,
     storage::Storage,
 };
 
@@ -111,17 +112,33 @@ impl From<AccountServerClientError> for WalletUnlockError {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PidIssuanceError {
+    #[error("could not start DigiD session: {0}")]
+    DigidSessionStart(#[source] DigidAuthenticatorError),
+    #[error("could not finish DigiD session: {0}")]
+    DigidSessionFinish(#[source] DigidAuthenticatorError),
+    #[error("could not retrieve PID from issuer: {0}")]
+    PidIssuer(#[source] PidRetrieverError),
+}
+
+pub enum RedirectUriType {
+    PidIssuance,
+    Unknown,
+}
+
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, A, S, K> {
+pub struct Wallet<C, A, S, K, D = DigidClient, P = PidIssuerClient> {
     config_repository: C,
     account_server: A,
     storage: S,
     hw_privkey: K,
+    digid: D,
+    pid_issuer: P,
     registration: Option<RegistrationData>,
     lock: WalletLock,
     config_callback: Option<ConfigurationCallback>,
-    digid_connector: OnceCell<Mutex<DigidConnector>>,
 }
 
 impl<C, A, S, K> Wallet<C, A, S, K>
@@ -131,21 +148,26 @@ where
     S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
 {
-    async fn new(config_repository: C, account_server: A, storage: S) -> Self {
-        Wallet {
-            config_repository,
-            account_server,
-            storage,
-            hw_privkey: K::new(WALLET_KEY_ID),
-            registration: None,
-            lock: WalletLock::new(true),
-            config_callback: None,
-            digid_connector: OnceCell::new(),
-        }
+    pub async fn init_all<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
+        Self::init_wp_and_storage::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
     }
+}
 
+impl<C, A, S, K, D, P> Wallet<C, A, S, K, D, P>
+where
+    C: ConfigurationRepository,
+    A: AccountServerClient,
+    S: Storage,
+    K: PlatformEcdsaKey + Clone + Send + 'static,
+    D: DigidAuthenticator,
+    P: PidRetriever,
+{
     /// Initialize the wallet by loading initial state.
-    pub async fn init<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
+    pub async fn init_wp_and_storage<U: PlatformUtilities>(
+        config_repository: C,
+        digid: D,
+        pid_issuer: P,
+    ) -> Result<Self, WalletInitError> {
         let storage_path = task::spawn_blocking(|| U::storage_path())
             .await
             .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))
@@ -154,7 +176,17 @@ where
         let account_server = A::new(&config_repository.config().account_server.base_url).await;
         let storage = S::new(storage_path);
 
-        let mut wallet = Self::new(config_repository, account_server, storage).await;
+        let mut wallet = Wallet {
+            config_repository,
+            account_server,
+            storage,
+            digid,
+            pid_issuer,
+            hw_privkey: K::new(WALLET_KEY_ID),
+            registration: None,
+            lock: WalletLock::new(true),
+            config_callback: None,
+        };
 
         wallet.fetch_registration().await?;
 
@@ -394,31 +426,87 @@ where
         Ok(())
     }
 
-    pub async fn digid_connector(&self) -> Result<&Mutex<DigidConnector>, digid::Error> {
-        self.digid_connector
-            .get_or_try_init(|| async {
-                let config = self.config_repository.config();
-                let connector =
-                    DigidConnector::create(config.pid_issuance.clone(), config.mdoc_trust_anchors.clone()).await?;
-                Ok(Mutex::new(connector))
-            })
+    #[instrument(skip_all)]
+    pub async fn create_pid_issuance_redirect_uri(&mut self) -> Result<Url, PidIssuanceError> {
+        info!("Generating DigiD auth URL, starting OpenID connect discovery");
+
+        let config = &self.config_repository.config().pid_issuance;
+
+        let auth_url = self
+            .digid
+            .start_session(
+                config.digid_url.clone(),
+                config.digid_client_id.clone(),
+                config.digid_redirect_uri.clone(),
+            )
             .await
+            .map_err(PidIssuanceError::DigidSessionStart)?;
+
+        info!("DigiD auth URL generated");
+
+        Ok(auth_url)
+    }
+
+    pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
+        if self.digid.accepts_redirect_uri(redirect_uri) {
+            return RedirectUriType::PidIssuance;
+        }
+
+        RedirectUriType::Unknown
+    }
+
+    #[instrument(skip_all)]
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<(), PidIssuanceError> {
+        info!("Received DigiD redirect URI, processing URI and retrieving access token");
+
+        let access_token = self
+            .digid
+            .get_access_token(redirect_uri)
+            .await
+            .map_err(PidIssuanceError::DigidSessionFinish)?;
+
+        info!("DigiD access token retrieved, starting actual PID issuance");
+
+        let config = self.config_repository.config();
+
+        self.pid_issuer
+            .retrieve_pid(
+                &config.pid_issuance.pid_issuer_url,
+                &config.mdoc_trust_anchors(),
+                &access_token,
+            )
+            .await
+            .map_err(PidIssuanceError::PidIssuer)?;
+
+        info!("PID received successfully from issuer");
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use platform_support::utils::software::SoftwareUtilities;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
     use wallet_provider::{stub, AccountServer};
 
-    use crate::{config::MockConfigurationRepository, storage::MockStorage};
+    use crate::{
+        config::MockConfigurationRepository, digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever,
+        storage::MockStorage,
+    };
 
     use super::*;
 
-    type MockWallet = Wallet<MockConfigurationRepository, AccountServer, MockStorage, SoftwareEcdsaKey>;
+    type MockWallet = Wallet<
+        MockConfigurationRepository,
+        AccountServer,
+        MockStorage,
+        SoftwareEcdsaKey,
+        MockDigidAuthenticator,
+        MockPidRetriever,
+    >;
 
-    // Emulate wallet:init(), with the option to override the mock storage.
+    // Emulate wallet:init_wp_and_storage(), with the option to override the mock storage.
     async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
         let mut config_repository = MockConfigurationRepository::default();
 
@@ -427,7 +515,17 @@ mod tests {
 
         config_repository.0.account_server.certificate_public_key = account_server.certificate_pubkey.clone();
 
-        let mut wallet = Wallet::new(config_repository, account_server, storage).await;
+        let mut wallet = Wallet {
+            config_repository,
+            account_server,
+            storage,
+            digid: MockDigidAuthenticator::new(),
+            pid_issuer: MockPidRetriever::new(),
+            hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
+            registration: None,
+            lock: WalletLock::new(true),
+            config_callback: None,
+        };
 
         wallet.fetch_registration().await?;
 
@@ -438,9 +536,13 @@ mod tests {
     #[tokio::test]
     async fn test_init() {
         let config_repository = MockConfigurationRepository::default();
-        let wallet = MockWallet::init::<SoftwareUtilities>(config_repository)
-            .await
-            .expect("Could not initialize wallet");
+        let wallet = MockWallet::init_wp_and_storage::<SoftwareUtilities>(
+            config_repository,
+            MockDigidAuthenticator::new(),
+            MockPidRetriever::new(),
+        )
+        .await
+        .expect("Could not initialize wallet");
 
         assert!(!wallet.has_registration());
     }

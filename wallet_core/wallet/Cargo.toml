@@ -5,7 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = []
+mock = ["dep:mockall"]
+wallet_deps = []
 
 [dependencies]
 entity = { path = "entity" }
@@ -14,14 +15,15 @@ async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 futures.workspace = true
+http.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
 mime.workspace = true
+mockall = { workspace = true, optional = true }
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 openid = { workspace = true, features = ["rustls"] }
-pkce.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",
@@ -41,12 +43,17 @@ url.workspace = true
 
 wallet_common = { path = "../wallet_common" }
 platform_support = { path = "../platform_support" }
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "memory_storage"] } # TODO remove features once actual storage is used
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "mock",
+    "memory_storage",
+] } # TODO remove features once actual storage is used
 
 # enable the "software" feature for platform_support when running tests
 [dev-dependencies]
-wallet_provider = { path = "../wallet_provider", features = ["stub"] }
-platform_support = { path = "../platform_support", features = ["software"] }
-
+mockall.workspace = true
+rstest.workspace = true
 tempfile.workspace = true
 wiremock.workspace = true
+
+wallet_provider = { path = "../wallet_provider", features = ["stub"] }
+platform_support = { path = "../platform_support", features = ["software"] }

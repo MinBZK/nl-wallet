@@ -14,8 +14,12 @@ use url::Url;
 
 use platform_support::{hw_keystore::PlatformEcdsaKey, utils::software::SoftwareUtilities};
 use wallet::{
-    mock::{MockConfigurationRepository, MockStorage, RemoteAccountServerClient},
-    wallet::{AccountServerClient, ConfigurationRepository, Storage, Wallet, WalletUnlockError},
+    mock::{MockConfigurationRepository, MockDigidAuthenticator, MockPidRetriever, MockStorage},
+    wallet::{
+        AccountServerClient, ConfigurationRepository, DigidAuthenticator, PidRetriever, Storage, Wallet,
+        WalletUnlockError,
+    },
+    wallet_deps::RemoteAccountServerClient,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -48,14 +52,21 @@ async fn create_test_wallet(
     base_url: Url,
     public_key: EcdsaDecodingKey,
     instruction_result_public_key: EcdsaDecodingKey,
-) -> Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey> {
+) -> Wallet<
+    MockConfigurationRepository,
+    RemoteAccountServerClient,
+    MockStorage,
+    SoftwareEcdsaKey,
+    MockDigidAuthenticator,
+    MockPidRetriever,
+> {
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
     config.0.account_server.base_url = base_url;
     config.0.account_server.certificate_public_key = public_key;
     config.0.account_server.instruction_result_public_key = instruction_result_public_key;
 
-    Wallet::init::<SoftwareUtilities>(config)
+    Wallet::init_wp_and_storage::<SoftwareUtilities>(config, MockDigidAuthenticator::new(), MockPidRetriever::new())
         .await
         .expect("Could not create test wallet")
 }
@@ -89,12 +100,14 @@ fn start_wallet_provider(settings: Settings) {
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 }
 
-async fn test_wallet_registration<C, A, S, K>(mut wallet: Wallet<C, A, S, K>)
+async fn test_wallet_registration<C, A, S, K, D, P>(mut wallet: Wallet<C, A, S, K, D, P>)
 where
     C: ConfigurationRepository,
     A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey + Clone + Send + 'static,
+    D: DigidAuthenticator,
+    P: PidRetriever,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
