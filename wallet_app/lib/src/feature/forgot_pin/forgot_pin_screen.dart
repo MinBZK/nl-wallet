@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../wallet_assets.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/screen/placeholder_screen.dart';
-
-const _kPinHeaderImage = 'assets/images/forgot_pin_header.png';
 
 class ForgotPinScreen extends StatelessWidget {
   const ForgotPinScreen({Key? key}) : super(key: key);
@@ -31,7 +30,7 @@ class ForgotPinScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         children: [
-          Image.asset(_kPinHeaderImage, fit: BoxFit.fitWidth),
+          Image.asset(WalletAssets.illustration_forgot_pin_header, fit: BoxFit.fitWidth),
           const SizedBox(height: 24),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

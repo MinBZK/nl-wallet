@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../widget/button/bottom_back_button.dart';
-
-const _kPlaceholderGenericIllustration = 'assets/non-free/images/placeholder_generic_illustration.png';
-const _kPlaceholderContractIllustration = 'assets/non-free/images/placeholder_contract_illustration.png';
 
 enum PlaceholderType { generic, contract }
 
@@ -53,9 +51,9 @@ class PlaceholderScreen extends StatelessWidget {
   String _imageAssetName() {
     switch (type) {
       case PlaceholderType.generic:
-        return _kPlaceholderGenericIllustration;
+        return WalletAssets.illustration_placeholder_generic;
       case PlaceholderType.contract:
-        return _kPlaceholderContractIllustration;
+        return WalletAssets.illustration_placeholder_contract;
     }
   }
 

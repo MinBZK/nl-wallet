@@ -108,7 +108,7 @@ impl RemoteAccountServerClient {
 
 #[async_trait]
 impl AccountServerClient for RemoteAccountServerClient {
-    fn new(base_url: &Url) -> Self
+    async fn new(base_url: &Url) -> Self
     where
         Self: Sized,
     {

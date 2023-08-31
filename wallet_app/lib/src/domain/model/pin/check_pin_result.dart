@@ -1,6 +1,4 @@
-import '../error/server_error.dart';
-
-abstract class CheckPinResult {}
+sealed class CheckPinResult {}
 
 class CheckPinResultOk extends CheckPinResult {}
 
@@ -18,12 +16,3 @@ class CheckPinResultTimeout extends CheckPinResult {
 }
 
 class CheckPinResultBlocked extends CheckPinResult {}
-
-class CheckPinResultGenericError extends CheckPinResult {}
-
-class CheckPinResultServerError extends CheckPinResult implements ServerError {
-  @override
-  int? statusCode;
-
-  CheckPinResultServerError(this.statusCode);
-}

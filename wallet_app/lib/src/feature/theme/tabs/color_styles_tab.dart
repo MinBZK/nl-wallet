@@ -32,7 +32,12 @@ class ColorStylesTab extends StatelessWidget {
               Icons.circle,
               color: context.colorScheme.onPrimary,
             ),
-            text: const Text('colorScheme.onPrimary'),
+            text: Text(
+              'colorScheme.onPrimary',
+              style: context.textTheme.bodyLarge?.copyWith(
+                color: context.colorScheme.onPrimary,
+              ),
+            ),
           ),
         ),
         IconRow(

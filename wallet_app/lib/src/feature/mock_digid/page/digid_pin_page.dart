@@ -3,11 +3,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
-/// Force highest res version here, avoids bloating the assets with files that are temporary by nature.
-const _kDigidLogoPath = 'assets/images/3.0x/digid_logo.png';
 const _kDigidPinCount = 5;
 
 class DigidPinPage extends StatelessWidget {
@@ -47,7 +46,7 @@ class DigidPinPage extends StatelessWidget {
           const SizedBox(height: 32),
           Center(
             child: Image.asset(
-              _kDigidLogoPath,
+              WalletAssets.logo_digid_large,
               scale: 0.7,
             ),
           ),
@@ -81,7 +80,7 @@ class DigidPinPage extends StatelessWidget {
                 const Spacer(),
                 Center(
                   child: Image.asset(
-                    _kDigidLogoPath,
+                    WalletAssets.logo_digid_large,
                     scale: 0.7,
                   ),
                 ),

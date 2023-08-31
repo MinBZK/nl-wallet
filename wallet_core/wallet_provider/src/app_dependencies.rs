@@ -23,7 +23,8 @@ impl AppDependencies {
             settings.instruction_result_private_key.into(),
             settings.pin_hash_salt.0,
             "account_server".into(),
-        )?;
+        )
+        .await?;
 
         let db = Db::new(
             &settings.database.host,

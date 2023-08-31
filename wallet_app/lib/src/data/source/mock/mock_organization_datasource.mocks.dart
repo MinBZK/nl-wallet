@@ -39,7 +39,7 @@ const _kRvigOrganization = Organization(
   category: 'Overheid',
   description:
       'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
-  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+  logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
 const _kRdwOrganization = Organization(
@@ -47,7 +47,7 @@ const _kRdwOrganization = Organization(
   name: 'Rijksdienst voor het Wegverkeer (RDW)',
   shortName: 'RDW',
   category: 'Overheid',
-  logoUrl: 'assets/non-free/images/logo_rdw.png',
+  logoUrl: WalletAssets.logo_rdw,
   description:
       'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.',
 );
@@ -57,7 +57,7 @@ const _kDuoOrganization = Organization(
   name: 'Dienst Uitvoering Onderwijs (DUO)',
   shortName: 'DUO',
   category: 'Overheid',
-  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+  logoUrl: WalletAssets.logo_rijksoverheid,
   description:
       'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.',
 );
@@ -69,7 +69,7 @@ const _kEmployerOrganization = Organization(
   category: 'Bedrijf',
   description:
       'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.',
-  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+  logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
 const _kJustisOrganization = Organization(
@@ -79,7 +79,7 @@ const _kJustisOrganization = Organization(
   category: 'Overheid',
   description:
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.',
-  logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+  logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
 const _kMarketPlaceOrganization = Organization(
@@ -88,7 +88,7 @@ const _kMarketPlaceOrganization = Organization(
   shortName: 'Online Marketplace',
   category: 'Webwinkel',
   description: 'De winkel van ons allemaal.',
-  logoUrl: 'assets/images/logo_ecommerce.png',
+  logoUrl: WalletAssets.logo_ecommerce,
   department: 'Afdeling online marketing',
   location: 'Utrecht, Nederland',
   webUrl: 'https://online-marketplace.nl',
@@ -100,7 +100,7 @@ const _kBarOrganization = Organization(
   shortName: 'Cafe de Dobbelaar',
   category: 'Horeca',
   description: 'Familiecafe sinds 1984.',
-  logoUrl: 'assets/non-free/images/logo_bar.png',
+  logoUrl: WalletAssets.logo_bar,
 );
 
 const _kHealthInsurerOrganization = Organization(
@@ -110,7 +110,7 @@ const _kHealthInsurerOrganization = Organization(
   category: 'Zorgverlener',
   description:
       'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.',
-  logoUrl: 'assets/images/logo_zorgverzekeraar_z.png',
+  logoUrl: WalletAssets.logo_zorgverzekeraar_z,
 );
 
 const _kHousingCorporationOrganization = Organization(
@@ -119,7 +119,7 @@ const _kHousingCorporationOrganization = Organization(
   shortName: 'BetwerWonen',
   category: 'Wooncorporatie',
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.',
-  logoUrl: 'assets/images/logo_housing_corp.png',
+  logoUrl: WalletAssets.logo_housing_corp,
   webUrl: 'https://beterwonen.nl',
   location: 'Den Haag, Nederland',
   department: 'Secretariaat',
@@ -131,7 +131,7 @@ const _kCarRentalOrganization = Organization(
   shortName: 'CarRental',
   category: 'Autoverhuur',
   description: 'Betrouwbaar huren.',
-  logoUrl: 'assets/non-free/images/logo_car_rental.png',
+  logoUrl: WalletAssets.logo_car_rental,
 );
 
 const _kFirstAidOrganization = Organization(
@@ -141,7 +141,7 @@ const _kFirstAidOrganization = Organization(
   category: 'Zorgverlener',
   description:
       'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.',
-  logoUrl: 'assets/non-free/images/logo_first_aid.png',
+  logoUrl: WalletAssets.logo_first_aid,
 );
 
 const _kMunicipalityDelftOrganization = Organization(
@@ -151,7 +151,7 @@ const _kMunicipalityDelftOrganization = Organization(
   category: 'Gemeente',
   description:
       'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.',
-  logoUrl: 'assets/non-free/images/logo_den_haag.png',
+  logoUrl: WalletAssets.logo_den_haag,
   department: 'Parkeren',
   location: 'Den Haag, Nederland',
   webUrl: 'https://www.denhaag.nl',
@@ -163,7 +163,7 @@ const _kBankOrganization = Organization(
   shortName: 'Jouw Bank',
   category: 'Bank',
   description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.',
-  logoUrl: 'assets/images/logo_bank.png',
+  logoUrl: WalletAssets.logo_bank,
   department: 'Klantenservice',
   location: 'Amsterdam, Nederland',
   webUrl: 'https://jouwbank.nl',
@@ -175,7 +175,7 @@ const _kMonkeyBikeOrganization = Organization(
   shortName: 'MonkeyBike',
   category: 'Bezorgdienst',
   description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.',
-  logoUrl: 'assets/images/logo_monkeybike.png',
+  logoUrl: WalletAssets.logo_monkeybike,
   department: 'Online marketing',
   location: 'Groningen, Land',
   webUrl: 'https://flitsbezorger-monkeybike.nl',

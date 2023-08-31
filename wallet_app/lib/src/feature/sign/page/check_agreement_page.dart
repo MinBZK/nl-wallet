@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/sign_flow.dart';
-
-const _kContextIllustration = 'assets/non-free/images/sign_illustration_1.png';
 
 class CheckAgreementPage extends StatelessWidget {
   final VoidCallback onDecline;
@@ -67,7 +66,7 @@ class CheckAgreementPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.asset(
-            _kContextIllustration,
+            WalletAssets.illustration_sign_1,
             fit: BoxFit.cover,
             width: double.infinity,
           ),

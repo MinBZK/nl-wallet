@@ -2,14 +2,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../util/test_utils.dart';
-
-const _kDarkBg = 'assets/svg/rijks_card_bg_dark.svg';
-const _kLightBg = 'assets/svg/rijks_card_bg_light.svg';
-const _kLogo = 'assets/non-free/images/logo_card_rijksoverheid.png';
-const _kHolo = 'assets/svg/rijks_card_holo.svg';
 
 void _voidCallback() {}
 
@@ -30,8 +26,8 @@ void main() {
               subtitle1: 'subtitle',
               subtitle2: 'subtitle2',
               brightness: Brightness.dark,
-              background: _kDarkBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_dark,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -41,10 +37,10 @@ void main() {
               title: 'Light Card',
               subtitle1: 'subtitle',
               subtitle2: 'subtitle2',
-              holograph: _kHolo,
+              holograph: WalletAssets.svg_rijks_card_holo,
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           );
@@ -70,10 +66,10 @@ void main() {
               title: '50 characters looooooong title is consider the max',
               subtitle1: '50 characters loong subtitle is considered the max',
               subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: _kHolo,
+              holograph: WalletAssets.svg_rijks_card_holo,
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -83,10 +79,10 @@ void main() {
               title: '50 characters looooooong title is consider the max',
               subtitle1: '50 characters loong subtitle is considered the max',
               subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: _kHolo,
+              holograph: WalletAssets.svg_rijks_card_holo,
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           );
@@ -111,8 +107,8 @@ void main() {
               subtitle1: 'SUBTITLE',
               subtitle2: 'SUBTITLE - 2',
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -123,7 +119,7 @@ void main() {
               subtitle1: 'SUBTITLE',
               subtitle2: 'SUBTITLE - 2',
               brightness: Brightness.light,
-              background: _kLightBg,
+              background: WalletAssets.svg_rijks_card_bg_light,
               onPressed: _voidCallback,
             ),
           )
@@ -133,8 +129,8 @@ void main() {
               title: 'TITLE - NO SUBTITLE 2',
               subtitle1: 'SUBTITLE',
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -144,8 +140,8 @@ void main() {
               title: 'TITLE - NO SUBTITLE',
               subtitle2: 'SUBTITLE - 2',
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -154,8 +150,8 @@ void main() {
             const WalletCardItem(
               title: 'TITLE - NO SUBTITLES',
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
               onPressed: _voidCallback,
             ),
           )
@@ -164,8 +160,8 @@ void main() {
             const WalletCardItem(
               title: 'TITLE - NO SHOW DETAILS',
               brightness: Brightness.light,
-              background: _kLightBg,
-              logo: _kLogo,
+              background: WalletAssets.svg_rijks_card_bg_light,
+              logo: WalletAssets.logo_card_rijksoverheid,
             ),
           );
 

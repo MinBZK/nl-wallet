@@ -95,7 +95,7 @@ where
         Ok(payload)
     }
 
-    pub fn sign(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+    pub async fn sign(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
         let header = &Header {
             alg: Algorithm::ES256,
             kid: "0".to_owned().into(),
@@ -110,7 +110,10 @@ where
         let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(claims)?);
         let message = [encoded_header, encoded_claims].join(".");
 
-        let signature = privkey.try_sign(message.as_bytes()).map_err(SigningError::from)?;
+        let signature = privkey
+            .try_sign(message.as_bytes())
+            .await
+            .map_err(|err| SigningError::Ecdsa(Box::new(err)))?;
         let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
 
         Ok([message, encoded_signature].join(".").into())
@@ -160,12 +163,12 @@ mod tests {
         const SUB: &'static str = "toy_message";
     }
 
-    #[test]
-    fn test_sign_and_verify() {
+    #[tokio::test]
+    async fn test_sign_and_verify() {
         let private_key = SigningKey::random(&mut OsRng);
 
         let t = ToyMessage::default();
-        let jwt = Jwt::sign(&t, &private_key).unwrap();
+        let jwt = Jwt::sign(&t, &private_key).await.unwrap();
         let parsed = jwt.parse_and_verify(&(*private_key.verifying_key()).into()).unwrap();
 
         assert_eq!(t, parsed);

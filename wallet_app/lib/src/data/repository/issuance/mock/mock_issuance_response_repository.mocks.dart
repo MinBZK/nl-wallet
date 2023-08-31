@@ -81,66 +81,66 @@ const _kMockVOGWalletCard = WalletCard(
 const _kMockPidCardFront = CardFront(
   title: 'Persoonsgegevens',
   subtitle: 'Willeke',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  holoImage: 'assets/svg/rijks_card_holo.svg',
-  backgroundImage: 'assets/svg/rijks_card_bg_light.svg',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  holoImage: WalletAssets.svg_rijks_card_holo,
+  backgroundImage: WalletAssets.svg_rijks_card_bg_light,
   theme: CardFrontTheme.light,
 );
 
 const _kMockAddressCardFront = CardFront(
   title: 'Woonadres',
   subtitle: "'s-Gravenhage",
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  holoImage: 'assets/svg/rijks_card_holo.svg',
-  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  holoImage: WalletAssets.svg_rijks_card_holo,
+  backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
 );
 
 const _kMockDiplomaCardFront = CardFront(
   title: 'BSc. Diploma',
   info: 'Dienst Uitvoerend Onderwijs',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  backgroundImage: 'assets/images/bg_diploma.png',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
 );
 
 const _kMockMasterDiplomaCardFront = CardFront(
   title: 'MSc. Diploma',
   info: 'Dienst Uitvoerend Onderwijs',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  backgroundImage: 'assets/images/bg_diploma.png',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
 );
 
 const _kMockDrivingLicenseCardFront = CardFront(
   title: 'Rijbewijs',
   subtitle: 'Categorie AM, B, BE',
-  logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
-  backgroundImage: 'assets/images/bg_nl_driving_license.png',
+  logoImage: WalletAssets.logo_nl_driving_license,
+  backgroundImage: WalletAssets.image_bg_nl_driving_license,
   theme: CardFrontTheme.light,
 );
 
 const _kMockDrivingLicenseRenewedCardFront = CardFront(
   title: 'Rijbewijs',
   subtitle: 'Categorie AM, B, C1, BE',
-  logoImage: 'assets/non-free/images/logo_nl_driving_license.png',
-  backgroundImage: 'assets/images/bg_nl_driving_license.png',
+  logoImage: WalletAssets.logo_nl_driving_license,
+  backgroundImage: WalletAssets.image_bg_nl_driving_license,
   theme: CardFrontTheme.light,
 );
 
 const _kMockHealthInsuranceCardFront = CardFront(
   title: 'European Health Insurance Card',
   subtitle: 'Zorgverzekeraar Z',
-  logoImage: 'assets/non-free/images/logo_nl_health_insurance.png',
-  backgroundImage: 'assets/images/bg_health_insurance.png',
+  logoImage: WalletAssets.logo_nl_health_insurance,
+  backgroundImage: WalletAssets.image_bg_health_insurance,
   theme: CardFrontTheme.dark,
 );
 
 const _kMockVOGCardFront = CardFront(
   title: 'Verklaring Omtrent het Gedrag',
   info: 'Justis',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
-  backgroundImage: 'assets/images/bg_diploma.png',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
 );
 
@@ -333,7 +333,7 @@ List<DataAttribute> _buildDrivingLicenseDataAttributes({required String category
     const DataAttribute(
       valueType: AttributeValueType.image,
       label: 'Pasfoto',
-      value: 'assets/non-free/images/person_x.png',
+      value: WalletAssets.image_person_x,
       type: AttributeType.profilePhoto,
       sourceCardId: _kDrivingLicenseId,
     ),

@@ -40,7 +40,7 @@ pub enum AccountServerResponseError {
 
 #[async_trait]
 pub trait AccountServerClient {
-    fn new(base_url: &Url) -> Self
+    async fn new(base_url: &Url) -> Self
     where
         Self: Sized;
 

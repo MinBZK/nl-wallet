@@ -10,6 +10,7 @@ import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/history_details_time_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_description_text_mapper.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/attribute/data_attribute_section.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -291,7 +292,7 @@ class HistoryDetailScreen extends StatelessWidget {
     String title = '';
     String subtitle = '';
     Widget icon = Image.asset(
-      'assets/images/ic_card_share.png',
+      WalletAssets.icon_card_share,
       color: iconColor,
     );
 

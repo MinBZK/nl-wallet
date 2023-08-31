@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-
-/// Force highest res version here, avoids bloating the assets with files that are temporary by nature.
-const _kDigidLogoPath = 'assets/images/3.0x/digid_logo.png';
+import '../../../wallet_assets.dart';
 
 class DigidSplashPage extends StatelessWidget {
   const DigidSplashPage({Key? key}) : super(key: key);
@@ -15,7 +13,7 @@ class DigidSplashPage extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.topCenter,
-            child: Image.asset('assets/non-free/images/logo_rijksoverheid_label.png'),
+            child: Image.asset(WalletAssets.logo_rijksoverheid_label),
           ),
           SafeArea(child: _buildBody(context)),
         ],
@@ -35,7 +33,7 @@ class DigidSplashPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Row(
               children: [
-                Image.asset(_kDigidLogoPath),
+                Image.asset(WalletAssets.logo_digid_large),
                 const SizedBox(width: 32),
                 Expanded(
                   child: Column(

@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-use coset::{iana, CoseMac0Builder, CoseSign1Builder, HeaderBuilder};
+use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
+use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use webpki::TrustAnchor;
@@ -10,7 +11,10 @@ use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 use crate::{
     iso::*,
     utils::{
-        cose::ClonePayload, crypto::dh_hmac_key, keys::MdocEcdsaKey, serialization::cbor_deserialize,
+        cose::{sign_cose, ClonePayload},
+        crypto::dh_hmac_key,
+        keys::MdocEcdsaKey,
+        serialization::cbor_deserialize,
         x509::CertificateUsage,
     },
     verifier::X509Subject,
@@ -20,16 +24,18 @@ use crate::{
 use super::{HolderError, Mdoc, Storage, Wallet};
 
 impl<C: Storage> Wallet<C> {
-    pub fn disclose<K: MdocEcdsaKey>(
+    pub async fn disclose<K: MdocEcdsaKey>(
         &self,
         device_request: &DeviceRequest,
         challenge: &[u8],
     ) -> Result<DeviceResponse> {
-        let docs: Vec<Document> = device_request
-            .doc_requests
-            .iter()
-            .map(|doc_request| self.disclose_document::<K>(doc_request, challenge))
-            .collect::<Result<_>>()?;
+        let docs: Vec<Document> = try_join_all(
+            device_request
+                .doc_requests
+                .iter()
+                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge)),
+        )
+        .await?;
 
         let response = DeviceResponse {
             version: DeviceResponseVersion::V1_0,
@@ -40,7 +46,7 @@ impl<C: Storage> Wallet<C> {
         Ok(response)
     }
 
-    fn disclose_document<K: MdocEcdsaKey>(&self, doc_request: &DocRequest, challenge: &[u8]) -> Result<Document> {
+    async fn disclose_document<K: MdocEcdsaKey>(&self, doc_request: &DocRequest, challenge: &[u8]) -> Result<Document> {
         let items_request = &doc_request.items_request.0;
 
         // This takes any mdoc of the specified doctype. TODO: allow user choice.
@@ -56,13 +62,13 @@ impl<C: Storage> Wallet<C> {
                 items_request.doc_type.clone(),
             )))?
             .cred_copies[0];
-        let document = cred.disclose_document(items_request, challenge)?;
+        let document = cred.disclose_document(items_request, challenge).await?;
         Ok(document)
     }
 }
 
 impl<K: MdocEcdsaKey> Mdoc<K> {
-    pub fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
+    pub async fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
             .name_spaces
@@ -84,7 +90,7 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            device_signed: DeviceSigned::new_signature(&self.private_key(), challenge),
+            device_signed: DeviceSigned::new_signature(&self.private_key(), challenge).await,
             errors: None,
         };
         Ok(doc)
@@ -92,13 +98,8 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
 }
 
 impl DeviceSigned {
-    pub fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> DeviceSigned {
-        let cose = CoseSign1Builder::new()
-            .payload(Vec::from(challenge))
-            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
-            .create_signature(&[], |data| private_key.sign(data).to_vec())
-            .build()
-            .clone_without_payload();
+    pub async fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> DeviceSigned {
+        let cose = sign_cose(challenge, Header::default(), private_key, false).await;
 
         DeviceSigned {
             name_spaces: IndexMap::new().into(),

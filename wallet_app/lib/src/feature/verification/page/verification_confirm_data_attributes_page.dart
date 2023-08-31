@@ -76,7 +76,7 @@ class VerificationConfirmDataAttributesPage extends StatelessWidget {
     }
 
     return InfoRow(
-      leading: Image.asset('assets/images/ic_policy.png'),
+      leading: const Icon(Icons.policy_outlined),
       title: Text(context.l10n.verificationConfirmDataAttributesCheckConditionsCta),
       subtitle: Text(subtitle),
       onTap: () => PolicyScreen.show(

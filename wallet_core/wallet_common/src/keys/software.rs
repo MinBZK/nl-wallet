@@ -4,8 +4,9 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
+use async_trait::async_trait;
 use once_cell::sync::Lazy;
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
 use crate::utils::random_bytes;
@@ -34,22 +35,21 @@ impl SoftwareEcdsaKey {
     }
 }
 
-// SigningKey from p256::ecdsa almost conforms to the EcdsaKey trait,
-// so we can forward the try_sign method and verifying_key methods.
-impl Signer<Signature> for SoftwareEcdsaKey {
-    fn try_sign(&self, msg: &[u8]) -> Result<Signature, p256::ecdsa::Error> {
-        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
-        signing_keys.get(&self.identifier).unwrap().try_sign(msg)
-    }
-}
+#[async_trait]
 impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
         let key = signing_keys.get(&self.identifier).unwrap().verifying_key();
 
         Ok(*key)
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        let key = signing_keys.get(&self.identifier).unwrap();
+        p256::ecdsa::signature::Signer::try_sign(key, msg)
     }
 }
 impl SecureEcdsaKey for SoftwareEcdsaKey {}
@@ -81,6 +81,7 @@ pub struct SoftwareEncryptionKey {
     identifier: String,
 }
 
+#[async_trait]
 impl ConstructableWithIdentifier for SoftwareEncryptionKey {
     fn new(identifier: &str) -> Self
     where
@@ -109,10 +110,11 @@ impl ConstructableWithIdentifier for SoftwareEncryptionKey {
     }
 }
 
+#[async_trait]
 impl SecureEncryptionKey for SoftwareEncryptionKey {
     type Error = aes_gcm::Error;
 
-    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
+    async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Generate a random nonce
         let nonce_bytes = random_bytes(12);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
@@ -134,7 +136,7 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
         Ok(result)
     }
 
-    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
+    async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Re-create the nonce from the first 12 bytes
         let nonce = Nonce::from_slice(&msg[..12]);
 

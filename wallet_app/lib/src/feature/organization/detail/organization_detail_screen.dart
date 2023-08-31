@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../wallet_assets.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -181,7 +182,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         if (!state.hasPreviouslyInteractedWithOrganization)
           IconRow(
             icon: Image.asset(
-              'assets/images/ic_first_share.png',
+              WalletAssets.icon_first_share,
               color: context.theme.iconTheme.color,
             ),
             text: Text(context.l10n.organizationDetailScreenFirstInteraction),

@@ -16,8 +16,9 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
+use async_trait::async_trait;
 use p256::{
-    ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
+    ecdsa::{Signature, SigningKey, VerifyingKey},
     elliptic_curve::{
         bigint::{Limb, NonZero, U384},
         ops::Reduce,
@@ -73,21 +74,19 @@ impl<'a> PinKey<'a> {
     }
 }
 
-impl Signer<Signature> for PinKey<'_> {
-    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-        let signature = pin_private_key(self.salt, self.pin)
-            .map_err(PinKeyError::from)?
-            .sign(msg);
-
-        Ok(signature)
-    }
-}
-
+#[async_trait]
 impl EcdsaKey for PinKey<'_> {
     type Error = PinKeyError;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         self.verifying_key()
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, PinKeyError> {
+        let key = pin_private_key(self.salt, self.pin)?;
+        let signature = p256::ecdsa::signature::Signer::sign(&key, msg);
+
+        Ok(signature)
     }
 }
 
@@ -191,8 +190,8 @@ mod tests {
         assert_ne!(privkey, different_pin);
     }
 
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let pin = "123456";
         let salt = new_pin_salt();
         let challenge = b"challenge";
@@ -201,6 +200,7 @@ mod tests {
         let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
         let response = pin_key
             .try_sign(challenge)
+            .await
             .expect("Cannot sign challenge using PIN key");
 
         public_key

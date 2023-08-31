@@ -43,7 +43,7 @@ pub fn router(dependencies: Arc<AppDependencies>) -> Router {
 async fn enroll(State(state): State<Arc<AppDependencies>>) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received enroll request, creating registration challenge");
 
-    let challenge = state.account_server.registration_challenge()?;
+    let challenge = state.account_server.registration_challenge().await?;
     let body = Challenge {
         challenge: challenge.into(),
     };

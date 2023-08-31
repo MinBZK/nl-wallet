@@ -7,20 +7,23 @@ import '../../../domain/model/card_front.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../common/widget/bullet_list.dart';
-import '../../common/widget/pin_field_demo.dart';
+import '../../../wallet_assets.dart';
+import '../../common/sheet/confirm_action_sheet.dart';
+import '../../common/sheet/explanation_sheet.dart';
+import '../../common/sheet/help_sheet.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
+import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/sheet/confirm_action_sheet.dart';
-import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
+import '../../common/widget/numbered_list.dart';
+import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
@@ -29,17 +32,16 @@ import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
-import '../../common/sheet/help_sheet.dart';
 import '../../verification/model/organization.dart';
 import '../../verification/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
 
 const _kSampleCardFront = CardFront(
   title: 'Sample Card',
-  backgroundImage: 'assets/svg/rijks_card_bg_dark.svg',
+  backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
   info: 'Info',
-  logoImage: 'assets/non-free/images/logo_card_rijksoverheid.png',
+  logoImage: WalletAssets.logo_card_rijksoverheid,
   subtitle: 'Subtitle',
 );
 
@@ -125,7 +127,7 @@ class OtherStylesTab extends StatelessWidget {
         ThemeSectionSubHeader(title: 'DataAttributeRow - Type Image'),
         AttributeRow(
           attribute: DataAttribute(
-            value: 'assets/non-free/images/image_attribute_placeholder.png',
+            value: WalletAssets.image_attribute_placeholder,
             label: 'Label: This is a DataAttributeRow with type image',
             sourceCardId: 'id',
             valueType: AttributeValueType.image,
@@ -174,12 +176,12 @@ class OtherStylesTab extends StatelessWidget {
         ThemeSectionSubHeader(title: 'WalletCardItem'),
         WalletCardItem(
           title: 'Card Title',
-          background: 'assets/svg/rijks_card_bg_dark.svg',
+          background: WalletAssets.svg_rijks_card_bg_dark,
           brightness: Brightness.dark,
           subtitle1: 'Card subtitle1',
           subtitle2: 'Card subtitle2',
-          logo: 'assets/non-free/images/logo_card_rijksoverheid.png',
-          holograph: 'assets/svg/rijks_card_holo.svg',
+          logo: WalletAssets.logo_card_rijksoverheid,
+          holograph: WalletAssets.svg_rijks_card_holo,
         ),
         ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
@@ -206,7 +208,7 @@ class OtherStylesTab extends StatelessWidget {
               category: 'Category',
               shortName: 'This is a TimelineAttributeRow',
               description: 'Organization description',
-              logoUrl: 'assets/non-free/images/logo_rijksoverheid.png',
+              logoUrl: WalletAssets.logo_rijksoverheid,
             ),
             dataAttributes: const [],
             status: InteractionStatus.success,
@@ -298,6 +300,10 @@ class OtherStylesTab extends StatelessWidget {
         const BulletList(
           items: ['Item 1', 'Item 2', 'Item 3'],
           icon: Icons.ac_unit_outlined,
+        ),
+        const ThemeSectionSubHeader(title: 'NumberedList'),
+        const NumberedList(
+          items: ['Item', 'Item', 'Item'],
         ),
       ],
     );

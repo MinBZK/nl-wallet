@@ -60,7 +60,7 @@ pub struct InstructionChallengeRequestMessage {
 }
 
 impl InstructionChallengeRequest {
-    pub fn new_signed(
+    pub async fn new_signed(
         instruction_sequence_number: u64,
         issuer: &str,
         hw_privkey: &impl SecureEcdsaKey,
@@ -71,17 +71,17 @@ impl InstructionChallengeRequest {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, hw_privkey)
+        Jwt::sign(&cert, hw_privkey).await
     }
 }
 
 impl CheckPin {
-    pub fn new_signed(
+    pub async fn new_signed(
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<CheckPin>> {
-        SignedDouble::sign(Self, challenge, instruction_sequence_number, hw_privkey, pin_privkey)
+        SignedDouble::sign(Self, challenge, instruction_sequence_number, hw_privkey, pin_privkey).await
     }
 }

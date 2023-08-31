@@ -49,10 +49,12 @@ async fn do_registration(
 ) -> (WalletCertificate, WalletCertificateClaims) {
     let challenge = account_server
         .registration_challenge()
+        .await
         .expect("Could not get registration challenge");
 
-    let registration_message =
-        Registration::new_signed(hw_privkey, pin_privkey, &challenge).expect("Could not sign new registration");
+    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+        .await
+        .expect("Could not sign new registration");
 
     let certificate = account_server
         .register(&UuidGenerator, repos, registration_message)
@@ -91,7 +93,7 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let account_server = stub::account_server();
+    let account_server = stub::account_server().await;
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -101,7 +103,9 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequestMessage {
                 certificate: certificate.clone(),
-                message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey).unwrap(),
+                message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                    .await
+                    .unwrap(),
             },
             &repos,
         )
@@ -114,7 +118,9 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequestMessage {
                 certificate,
-                message: InstructionChallengeRequest::new_signed(2, "wallet", &hw_privkey).unwrap(),
+                message: InstructionChallengeRequest::new_signed(2, "wallet", &hw_privkey)
+                    .await
+                    .unwrap(),
             },
             &repos,
         )

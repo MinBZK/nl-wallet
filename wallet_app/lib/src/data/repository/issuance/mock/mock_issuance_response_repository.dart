@@ -5,6 +5,7 @@ import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
+import '../../../../wallet_assets.dart';
 import '../../../source/mock/mock_organization_datasource.dart';
 import '../../../source/organization_datasource.dart';
 import '../../../source/wallet_datasource.dart';
