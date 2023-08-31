@@ -2,16 +2,17 @@
 name = "wallet_provider_domain"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [features]
 stub = []
 
 [dependencies]
-wallet_common = { path = "../../wallet_common" }
-p256 = { workspace = true }
-
-async-trait.workspace = true
+async-trait = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-thiserror.workspace = true
-serde.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "std"] }
+serde = { workspace = true }
+thiserror = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
+
+wallet_common = { path = "../../wallet_common" }

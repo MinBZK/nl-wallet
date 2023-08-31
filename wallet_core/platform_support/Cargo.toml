@@ -4,35 +4,29 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lib]
+crate-type = ["staticlib", "cdylib", "lib"]
+
 [features]
 software = ["wallet_common/software-keys"]
 integration-test = ["wallet_common/integration-test"]
 hardware-integration-test = ["integration-test", "dep:jni"]
 
-[lib]
-crate-type = ["staticlib", "cdylib", "lib"]
-
 [dependencies]
-wallet_common = { path = "../wallet_common" }
-async-trait.workspace = true
+async-trait = { workspace = true }
 jni = { workspace = true, optional = true }
-never.workspace = true
 once_cell = { workspace = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
-thiserror.workspace = true
-tokio = { workspace = true, features = [
-    "rt",
-] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
 uniffi = { workspace = true }
+
+wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
 platform_support = { path = ".", features = ["software", "integration-test"] }
 
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "parking_lot",
-    "macros",
-] }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build"] }
