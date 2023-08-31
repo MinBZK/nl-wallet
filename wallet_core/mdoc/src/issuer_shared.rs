@@ -3,6 +3,7 @@
 use std::fmt::Display;
 
 use coset::Header;
+use futures::future::try_join_all;
 use serde_bytes::ByteBuf;
 
 use wallet_common::{keys::SecureEcdsaKey, utils::random_string};
@@ -75,18 +76,20 @@ impl Display for SessionToken {
 }
 
 impl Response {
-    fn sign(challenge: &ByteBuf, key: &impl SecureEcdsaKey) -> Result<Response> {
+    async fn sign(challenge: &ByteBuf, key: &impl SecureEcdsaKey) -> Result<Response> {
         let response = Response {
             public_key: CoseKey::try_from(
                 &key.verifying_key()
+                    .await
                     .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?,
             )?,
             signature: MdocCose::sign(
                 &ResponseSignaturePayload::new(challenge.to_vec()),
                 Header::default(),
                 key,
-            )?
-            .clone_without_payload(),
+                false,
+            )
+            .await?,
         };
         Ok(response)
     }
@@ -100,15 +103,14 @@ impl Response {
 }
 
 impl MdocResponses {
-    fn sign(keys: &[impl SecureEcdsaKey], unsigned: &UnsignedMdoc, challenge: &ByteBuf) -> Result<MdocResponses> {
-        let responses = MdocResponses {
+    async fn sign(keys: &[impl SecureEcdsaKey], unsigned: &UnsignedMdoc, challenge: &ByteBuf) -> Result<MdocResponses> {
+        let responses = try_join_all(keys.iter().map(|key| Response::sign(challenge, key))).await?;
+
+        let mdoc_responses = MdocResponses {
             doc_type: unsigned.doc_type.clone(),
-            responses: keys
-                .iter()
-                .map(|key| Response::sign(challenge, key))
-                .collect::<Result<Vec<_>>>()?,
+            responses,
         };
-        Ok(responses)
+        Ok(mdoc_responses)
     }
 }
 
@@ -158,19 +160,20 @@ impl KeyGenerationResponseMessage {
             .map_or(Ok(()), Err)
     }
 
-    pub fn new(
+    pub async fn new(
         request: &RequestKeyGenerationMessage,
         keys: &[&[impl SecureEcdsaKey]],
     ) -> Result<KeyGenerationResponseMessage> {
-        let responses = keys
-            .iter()
-            .zip(&request.unsigned_mdocs)
-            .map(|(keys, unsigned)| MdocResponses::sign(keys, unsigned, &request.challenge))
-            .collect::<Result<Vec<MdocResponses>>>()?;
+        let mdoc_responses = try_join_all(
+            keys.iter()
+                .zip(&request.unsigned_mdocs)
+                .map(|(keys, unsigned)| MdocResponses::sign(keys, unsigned, &request.challenge)),
+        )
+        .await?;
 
         let response = KeyGenerationResponseMessage {
             e_session_id: request.e_session_id.clone(),
-            mdoc_responses: responses,
+            mdoc_responses,
         };
         Ok(response)
     }

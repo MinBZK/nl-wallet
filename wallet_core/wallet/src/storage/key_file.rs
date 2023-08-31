@@ -69,6 +69,7 @@ async fn write_encrypted_file(
     // Encrypt the contents as bytes and write to a new file at the path.
     let encrypted_contents = encryption_key
         .encrypt(contents)
+        .await
         .map_err(|e| KeyFileError::Encryption(e.into()))?;
     fs::write(path, &encrypted_contents).await?;
 
@@ -80,6 +81,7 @@ async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryption
     let contents = fs::read(path).await?;
     let decrypted_contents = encryption_key
         .decrypt(&contents)
+        .await
         .map_err(|e| KeyFileError::Encryption(e.into()))?;
 
     Ok(decrypted_contents)

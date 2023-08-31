@@ -1,16 +1,13 @@
 use std::marker::PhantomData;
 
-use p256::ecdsa::{
-    signature::{Signer, Verifier},
-    Signature, VerifyingKey,
-};
+use p256::ecdsa::{signature::Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use super::serialization::{Base64Bytes, DerSignature};
 use crate::{
     errors::{Error, Result, SigningError, ValidationError},
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
+    keys::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 // Signed data by the wallet, with both the hardware and PIN keys.
@@ -88,8 +85,12 @@ fn parse_and_verify_message<'a>(
     Ok(message)
 }
 
-fn sign_message(message: String, typ: SignedType, privkey: &impl Signer<Signature>) -> Result<String> {
-    let signature = privkey.try_sign(message.as_bytes()).map_err(SigningError::from)?.into();
+async fn sign_message(message: String, typ: SignedType, privkey: &impl EcdsaKey) -> Result<String> {
+    let signature = privkey
+        .try_sign(message.as_bytes())
+        .await
+        .map_err(|err| SigningError::Ecdsa(Box::new(err)))?
+        .into();
     Ok(serde_json::to_string(&SignedMessage {
         signed: &RawValue::from_string(message)?,
         signature,
@@ -142,7 +143,7 @@ where
         self.dangerous_parse_unverified()
     }
 
-    pub fn sign(
+    pub async fn sign(
         payload: T,
         challenge: &[u8],
         serial_number: u64,
@@ -154,8 +155,8 @@ where
             challenge: challenge.to_vec().into(),
             sequence_number: serial_number,
         })?;
-        let signed_inner = sign_message(message, SignedType::Pin, pin_privkey)?;
-        let signed_double = sign_message(signed_inner, SignedType::HW, hw_privkey)?;
+        let signed_inner = sign_message(message, SignedType::Pin, pin_privkey).await?;
+        let signed_double = sign_message(signed_inner, SignedType::HW, hw_privkey).await?;
         Ok(signed_double.into())
     }
 }
@@ -191,13 +192,15 @@ mod tests {
         }
     }
 
-    #[test]
-    fn double_signed() {
+    #[tokio::test]
+    async fn double_signed() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = SignedDouble::sign(ToyMessage::default(), challenge, 1337, &hw_privkey, &pin_privkey).unwrap();
+        let signed = SignedDouble::sign(ToyMessage::default(), challenge, 1337, &hw_privkey, &pin_privkey)
+            .await
+            .unwrap();
         println!("{}", signed.0);
 
         let verified = signed

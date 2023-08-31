@@ -1,16 +1,30 @@
+use std::error::Error;
+
+use async_trait::async_trait;
+use p256::ecdsa::{Signature, VerifyingKey};
+
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
 #[cfg(feature = "software-keys")]
 pub mod software;
 
-use std::error::Error;
-
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
-
-pub trait EcdsaKey: Signer<Signature> {
+#[async_trait]
+pub trait EcdsaKey: Send + Sync {
     type Error: Error + Send + Sync + 'static;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
+
+    /// Sign the given message and return a digital signature
+    async fn sign(&self, msg: &[u8]) -> Signature {
+        self.try_sign(msg).await.expect("signature operation failed")
+    }
+
+    /// Attempt to sign the given message, returning a digital signature on
+    /// success, or an error if something went wrong.
+    ///
+    /// The main intended use case for signing errors is when communicating
+    /// with external signers, e.g. cloud KMS, HSMs, or other hardware tokens.
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error>;
 }
 
 /// Contract for ECDSA private keys which are short-lived and deterministically derived from a PIN.
@@ -33,24 +47,33 @@ pub trait ConstructableWithIdentifier {
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
+#[async_trait]
 pub trait SecureEncryptionKey: ConstructableWithIdentifier {
     // from ConstructableWithIdentifier: new(), identifier()
     type Error: Error + Send + Sync + 'static;
 
-    fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
-    fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
+    async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
+    async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
 }
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use super::*;
+    use async_trait::async_trait;
+    use p256::ecdsa::{Signature, VerifyingKey};
+
+    use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey};
 
     // make sure we can substitute a SigningKey instead in tests
+    #[async_trait]
     impl EcdsaKey for p256::ecdsa::SigningKey {
         type Error = p256::ecdsa::Error;
 
-        fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
             Ok(*self.verifying_key())
+        }
+
+        async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+            p256::ecdsa::signature::Signer::try_sign(self, msg)
         }
     }
 

@@ -4,7 +4,10 @@ use std::marker::PhantomData;
 
 use chrono::{DateTime, Utc};
 use ciborium::value::Value;
-use coset::{iana, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label};
+use coset::{
+    iana, sig_structure_data, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label,
+    ProtectedHeader, SignatureContext,
+};
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
@@ -140,22 +143,19 @@ impl<C, T> From<C> for MdocCose<C, T> {
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
 impl<T> MdocCose<CoseSign1, T> {
-    pub fn sign(
+    pub async fn sign(
         obj: &T,
         unprotected_header: Header,
         private_key: &impl SecureEcdsaKey,
+        include_payload: bool,
     ) -> Result<MdocCose<CoseSign1, T>>
     where
         T: Clone + Serialize,
     {
-        let cose = CoseSign1Builder::new()
-            .payload(cbor_serialize(obj).map_err(CoseError::Cbor)?)
-            .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
-            .unprotected(unprotected_header)
-            .create_signature(&[], |data| private_key.sign(data).to_vec())
-            .build()
-            .into();
-        Ok(cose)
+        let payload = cbor_serialize(obj).map_err(CoseError::Cbor)?;
+        let cose = sign_cose(&payload, unprotected_header, private_key, include_payload).await;
+
+        Ok(cose.into())
     }
 
     // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
@@ -193,6 +193,39 @@ impl<T> MdocCose<CoseSign1, T> {
         // Grab the certificate's public key and verify the Cose
         let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
         self.verify_and_parse(&issuer_pk)
+    }
+}
+
+pub async fn sign_cose(
+    payload: &[u8],
+    unprotected_header: Header,
+    private_key: &impl SecureEcdsaKey,
+    include_payload: bool,
+) -> CoseSign1 {
+    let protected_header = ProtectedHeader {
+        original_data: None,
+        header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
+    };
+
+    let sig_data = sig_structure_data(
+        SignatureContext::CoseSign1,
+        protected_header.clone(),
+        None,
+        &[],
+        payload,
+    );
+
+    let signature = private_key.sign(sig_data.as_ref()).await.to_vec();
+
+    CoseSign1 {
+        signature,
+        payload: if include_payload {
+            Some(Vec::from(payload))
+        } else {
+            None
+        },
+        protected: protected_header,
+        unprotected: unprotected_header,
     }
 }
 
@@ -275,6 +308,7 @@ mod tests {
     use coset::{Header, HeaderBuilder, Label};
     use p256::ecdsa::{signature::rand_core::OsRng, SigningKey};
     use serde::{Deserialize, Serialize};
+
     use wallet_common::generator::TimeGenerator;
 
     use crate::{
@@ -301,11 +335,11 @@ mod tests {
         }
     }
 
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
-        let cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+        let cose = MdocCose::sign(&payload, Header::default(), &key, true).await.unwrap();
 
         cose.verify(key.verifying_key()).unwrap();
 
@@ -316,11 +350,11 @@ mod tests {
         assert_eq!(payload, parsed_not_verified);
     }
 
-    #[test]
-    fn invalidate_cose() {
+    #[tokio::test]
+    async fn invalidate_cose() {
         let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
-        let mut cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+        let mut cose = MdocCose::sign(&payload, Header::default(), &key, true).await.unwrap();
 
         // Verification should fail if the signature is changed
         cose.0.signature[0] = !cose.0.signature[0]; // invert bits
@@ -338,15 +372,15 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn cose_with_header() {
+    #[tokio::test]
+    async fn cose_with_header() {
         let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
         let header = HeaderBuilder::new()
             .value(42, 0.into())
             .text_value("Hello".to_string(), "World".into())
             .build();
-        let cose = MdocCose::sign(&payload, header, &key).unwrap();
+        let cose = MdocCose::sign(&payload, header, &key, true).await.unwrap();
 
         assert_eq!(
             cose.unprotected_header_item(&Label::Int(42))
@@ -369,8 +403,8 @@ mod tests {
         ))
     }
 
-    #[test]
-    fn cose_with_certificate() {
+    #[tokio::test]
+    async fn cose_with_certificate() {
         let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
         let (cert, cert_privkey) =
             Certificate::new(&ca, &ca_privkey, "cert.example.com", CertificateUsage::Mdl).unwrap();
@@ -379,7 +413,7 @@ mod tests {
         let header = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_bytes().to_vec()))
             .build();
-        let cose = MdocCose::sign(&payload, header, &cert_privkey).unwrap();
+        let cose = MdocCose::sign(&payload, header, &cert_privkey, true).await.unwrap();
 
         // Certificate should be present in the unprotected headers
         let header_cert = cose.signing_cert().unwrap();
@@ -390,12 +424,12 @@ mod tests {
             .unwrap();
     }
 
-    #[test]
-    fn remove_add_payload() {
+    #[tokio::test]
+    async fn remove_add_payload() {
         let key = SigningKey::random(&mut OsRng);
         let payload = ToyMessage::default();
 
-        let cose = MdocCose::sign(&payload, Header::default(), &key).unwrap();
+        let cose = MdocCose::sign(&payload, Header::default(), &key, true).await.unwrap();
         assert!(cose.0.payload.is_some());
         let payload_bts = cose.0.payload.as_ref().unwrap();
 

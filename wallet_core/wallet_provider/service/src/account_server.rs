@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use futures::try_join;
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::debug;
@@ -190,28 +191,30 @@ pub struct AccountServer {
 }
 
 impl AccountServer {
-    pub fn new(
+    pub async fn new(
         certificate_signing_key: WalletProviderEcdsaKey,
         instruction_result_signing_key: WalletProviderEcdsaKey,
         pin_hash_salt: Vec<u8>,
         name: String,
     ) -> Result<AccountServer, AccountServerInitError> {
-        let certificate_pubkey = certificate_signing_key.verifying_key()?.into();
-        let instruction_result_pubkey = instruction_result_signing_key.verifying_key()?.into();
+        let (certificate_pubkey, instruction_result_pubkey) = try_join!(
+            certificate_signing_key.verifying_key(),
+            instruction_result_signing_key.verifying_key()
+        )?;
 
         Ok(AccountServer {
             certificate_signing_key,
             instruction_result_signing_key,
             pin_hash_salt,
             name,
-            certificate_pubkey,
-            instruction_result_pubkey,
+            certificate_pubkey: certificate_pubkey.into(),
+            instruction_result_pubkey: instruction_result_pubkey.into(),
         })
     }
 
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
-    pub fn registration_challenge(&self) -> Result<Vec<u8>, ChallengeError> {
+    pub async fn registration_challenge(&self) -> Result<Vec<u8>, ChallengeError> {
         let challenge = Jwt::sign(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
@@ -220,6 +223,7 @@ impl AccountServer {
             },
             &self.certificate_signing_key,
         )
+        .await
         .map_err(ChallengeError::ChallengeSigning)?
         .0
         .as_bytes()
@@ -342,7 +346,7 @@ impl AccountServer {
 
                 tx.commit().await?;
 
-                self.sign_instruction_result(payload.payload.handle()?)
+                self.sign_instruction_result(payload.payload.handle()?).await
             }
             Err(validation_error) => {
                 let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
@@ -425,14 +429,14 @@ impl AccountServer {
 
         debug!("Generating new wallet certificate for user {}", uuid);
 
-        let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey)?;
+        let cert_result = self.new_wallet_certificate(wallet_id, hw_pubkey, pin_pubkey).await?;
 
         tx.commit().await?;
 
         Ok(cert_result)
     }
 
-    fn new_wallet_certificate(
+    async fn new_wallet_certificate(
         &self,
         wallet_id: String,
         wallet_hw_pubkey: VerifyingKey,
@@ -448,7 +452,9 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, &self.certificate_signing_key).map_err(RegistrationError::JwtSigning)
+        Jwt::sign(&cert, &self.certificate_signing_key)
+            .await
+            .map_err(RegistrationError::JwtSigning)
     }
 
     fn verify_registration_challenge(
@@ -542,7 +548,7 @@ impl AccountServer {
         Ok(parsed)
     }
 
-    fn sign_instruction_result<R>(&self, result: R) -> Result<InstructionResult<R>, InstructionError>
+    async fn sign_instruction_result<R>(&self, result: R) -> Result<InstructionResult<R>, InstructionError>
     where
         R: Serialize + DeserializeOwned,
     {
@@ -552,7 +558,9 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&claims, &self.instruction_result_signing_key).map_err(InstructionError::Signing)
+        Jwt::sign(&claims, &self.instruction_result_signing_key)
+            .await
+            .map_err(InstructionError::Signing)
     }
 }
 
@@ -586,7 +594,7 @@ pub mod stub {
 
     use super::*;
 
-    pub fn account_server() -> AccountServer {
+    pub async fn account_server() -> AccountServer {
         let account_server_privkey: DerSigningKey = SigningKey::random(&mut OsRng).into();
         let instruction_result_privkey: DerSigningKey = SigningKey::random(&mut OsRng).into();
 
@@ -596,6 +604,7 @@ pub mod stub {
             random_bytes(32),
             "stub_account_server".into(),
         )
+        .await
         .unwrap()
     }
 
@@ -724,10 +733,12 @@ mod tests {
     ) -> WalletCertificate {
         let challenge = account_server
             .registration_challenge()
+            .await
             .expect("Could not get registration challenge");
 
-        let registration_message =
-            Registration::new_signed(hw_privkey, pin_privkey, &challenge).expect("Could not sign new registration");
+        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+            .await
+            .expect("Could not sign new registration");
 
         account_server
             .register(&TestDeps, &TestDeps, registration_message)
@@ -737,7 +748,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_register() {
-        let account_server = stub::account_server();
+        let account_server = stub::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -838,7 +849,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_pin() {
-        let account_server = stub::account_server();
+        let account_server = stub::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -858,7 +869,9 @@ mod tests {
             account_server
                 .instruction_challenge(
                     InstructionChallengeRequestMessage {
-                        message: InstructionChallengeRequest::new_signed(9, "wallet", &hw_privkey).unwrap(),
+                        message: InstructionChallengeRequest::new_signed(9, "wallet", &hw_privkey)
+                            .await
+                            .unwrap(),
                         certificate: cert.clone(),
                     },
                     &deps,
@@ -871,7 +884,9 @@ mod tests {
         let challenge = account_server
             .instruction_challenge(
                 InstructionChallengeRequestMessage {
-                    message: InstructionChallengeRequest::new_signed(43, "wallet", &hw_privkey).unwrap(),
+                    message: InstructionChallengeRequest::new_signed(43, "wallet", &hw_privkey)
+                        .await
+                        .unwrap(),
                     certificate: cert.clone(),
                 },
                 &deps,
@@ -883,7 +898,9 @@ mod tests {
             account_server
                 .handle_instruction(
                     Instruction {
-                        instruction: CheckPin::new_signed(43, &hw_privkey, &pin_privkey, &challenge.clone()).unwrap(),
+                        instruction: CheckPin::new_signed(43, &hw_privkey, &pin_privkey, &challenge.clone())
+                            .await
+                            .unwrap(),
                         certificate: cert.clone(),
                     },
                     &WalletUserTestRepo {
@@ -906,7 +923,9 @@ mod tests {
         account_server
             .handle_instruction(
                 Instruction {
-                    instruction: CheckPin::new_signed(44, &hw_privkey, &pin_privkey, &challenge).unwrap(),
+                    instruction: CheckPin::new_signed(44, &hw_privkey, &pin_privkey, &challenge)
+                        .await
+                        .unwrap(),
                     certificate: cert.clone(),
                 },
                 &WalletUserTestRepo {
@@ -924,7 +943,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_wallet_certificate_should_verify() {
-        let account_server = stub::account_server();
+        let account_server = stub::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -934,7 +953,9 @@ mod tests {
         let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
 
         let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey).unwrap(),
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                .await
+                .unwrap(),
             certificate: cert.clone(),
         };
 
@@ -967,7 +988,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_hw_key_should_not_validate() {
-        let account_server = stub::account_server();
+        let account_server = stub::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -991,7 +1012,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_pin_key_should_not_validate() {
-        let account_server = stub::account_server();
+        let account_server = stub::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 

@@ -16,6 +16,7 @@ pub enum ValidationError {
 pub enum SigningError {
     Jwt(#[from] jsonwebtoken::errors::Error),
     P256Ecdsa(#[from] p256::ecdsa::Error),
+    Ecdsa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -34,15 +34,17 @@ impl AccountServerClientError {
 /// [`AccountServer`], skipping JSON encoding and HTTP(S).
 #[async_trait]
 impl AccountServerClient for AccountServer {
-    fn new(_: &Url) -> Self
+    async fn new(_: &Url) -> Self
     where
         Self: Sized,
     {
-        stub::account_server()
+        stub::account_server().await
     }
 
     async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
-        AccountServer::registration_challenge(self).map_err(AccountServerClientError::from_account_server)
+        AccountServer::registration_challenge(self)
+            .await
+            .map_err(AccountServerClientError::from_account_server)
     }
 
     async fn register(

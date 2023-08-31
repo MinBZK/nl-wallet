@@ -2,15 +2,17 @@
 //! See [`Server::new_session()`], which takes the mdocs to be issued and returns a [`ServiceEngagement`] to present to
 //! the holder.
 
+use async_trait::async_trait;
 use core::panic;
-use std::{sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local, Utc};
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
+use futures::future::try_join_all;
 use p256::{
-    ecdsa::{signature::Signer, Signature, SigningKey},
+    ecdsa::{Signature, SigningKey},
     pkcs8::DecodePrivateKey,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -32,7 +34,7 @@ use crate::{
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
     utils::{
-        cose::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
+        cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
         x509::Certificate,
     },
@@ -58,15 +60,16 @@ impl PrivateKey {
     }
 }
 
-impl Signer<Signature> for PrivateKey {
-    fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, p256::ecdsa::Error> {
-        self.private_key.try_sign(msg)
-    }
-}
+#[async_trait]
 impl EcdsaKey for PrivateKey {
     type Error = p256::ecdsa::Error;
-    fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
+
+    async fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
         Ok(*self.private_key.verifying_key())
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
+        p256::ecdsa::signature::Signer::try_sign(&self.private_key, msg)
     }
 }
 impl SecureEcdsaKey for PrivateKey {}
@@ -233,7 +236,7 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
     }
 
     /// Process a CBOR-encoded issuance protocol message from the holder.
-    pub fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Vec<u8>> {
+    pub async fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Vec<u8>> {
         let (msg_type, session_id) = Self::inspect_message(msg)?;
 
         let mut session_data = self.sessions.get(&token)?;
@@ -254,22 +257,22 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
 
         // Stop the session if the user wishes.
         if msg_type == REQUEST_END_SESSION_MSG_TYPE {
-            return Self::handle_cbor(Session::process_cancel, session, msg);
+            return Self::handle_cbor(Session::process_cancel, session, msg).await;
         }
 
         // Process the holder's message according to the current session state.
         match session.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
-                Self::handle_cbor(Session::process_start, session, msg)
+                Self::handle_cbor(Session::process_start, session, msg).await
             }
             Started => {
                 Self::expect_message_type(&msg_type, START_ISSUING_MSG_TYPE)?;
-                Self::handle_cbor(Session::process_get_request, session, msg)
+                Self::handle_cbor(Session::process_get_request, session, msg).await
             }
             WaitingForResponse => {
                 Self::expect_message_type(&msg_type, KEY_GEN_RESP_MSG_TYPE)?;
-                Self::handle_cbor(Session::process_response, session, msg)
+                Self::handle_cbor(Session::process_response, session, msg).await
             }
             Done | Failed | Cancelled => Err(IssuanceError::SessionEnded.into()),
         }
@@ -277,12 +280,15 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
 
     /// For a `Session` method that takes and returns parameters of any type that implement `Serialize`/`Deserialize`,
     /// transparently handle CBOR encoding and decoding of its (return) parameters.
-    fn handle_cbor<'a, V: DeserializeOwned, R: Serialize>(
-        func: impl Fn(Session<'a, K, S>, V) -> Result<R>,
+    async fn handle_cbor<'a, V: DeserializeOwned, R: Serialize, F>(
+        func: impl FnOnce(Session<'a, K, S>, V) -> F,
         session: Session<'a, K, S>,
         msg_bts: &[u8],
-    ) -> Result<Vec<u8>> {
-        Ok(cbor_serialize(&func(session, cbor_deserialize(msg_bts)?)?)?)
+    ) -> Result<Vec<u8>>
+    where
+        F: Future<Output = Result<R>>,
+    {
+        Ok(cbor_serialize(&func(session, cbor_deserialize(msg_bts)?).await?)?)
     }
 
     /// Read the following fields from the CBOR-encoded holder message:
@@ -370,7 +376,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         self.updated = true;
     }
 
-    fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
+    async fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
         self.update_state(Started);
         let response = ReadyToProvisionMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
@@ -378,13 +384,13 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         Ok(response)
     }
 
-    fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
+    async fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
         self.update_state(WaitingForResponse);
         Ok(self.session_data.request.clone())
     }
 
-    fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        let issuance_result = self.issue(&device_response);
+    async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+        let issuance_result = self.issue(&device_response).await;
         match issuance_result {
             Ok(_) => self.update_state(Done),
             Err(_) => self.update_state(Failed),
@@ -392,7 +398,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         issuance_result
     }
 
-    fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
+    async fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
         self.update_state(Cancelled);
         let response = EndSessionMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
@@ -403,7 +409,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         Ok(response)
     }
 
-    fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
+    async fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
         let attrs = unsigned_mdoc
             .attributes
             .clone()
@@ -436,7 +442,8 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
                 Value::Bytes(key.cert_bts.as_bytes().to_vec()),
             )
             .build();
-        let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> = MdocCose::sign(&mso.into(), headers, key)?;
+        let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            MdocCose::sign(&mso.into(), headers, key, false).await?;
 
         let signed = SparseIssuerSigned {
             randoms: attrs
@@ -447,7 +454,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
                 version: MobileSecurityObjectVersion::V1_0,
                 digest_algorithm: DigestAlgorithm::SHA256,
                 validity_info: validity,
-                issuer_auth: cose.clone_without_payload(),
+                issuer_auth: cose,
             },
         };
         Ok(signed)
@@ -457,33 +464,36 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         attrs.0.into_iter().map(|attr| attr.0.random).collect()
     }
 
-    fn issue_creds(
+    async fn issue_creds(
         &self,
         doctype_responses: &MdocResponses,
         unsigned: &UnsignedMdoc,
     ) -> Result<Vec<SparseIssuerSigned>> {
-        doctype_responses
-            .responses
-            .iter()
-            .map(|response| self.issue_cred(unsigned, response))
-            .collect()
+        let issue_creds = try_join_all(
+            doctype_responses
+                .responses
+                .iter()
+                .map(|response| self.issue_cred(unsigned, response)),
+        )
+        .await?;
+
+        Ok(issue_creds)
     }
 
-    pub fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+    pub async fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         device_response.verify(&self.session_data.request)?;
 
-        let docs = device_response
+        let mut docs = vec![];
+        for (responses, unsigned) in device_response
             .mdoc_responses
             .iter()
             .zip(&self.session_data.request.unsigned_mdocs)
-            .map(|(responses, unsigned)| {
-                let docs = MobileeIDDocuments {
-                    doc_type: unsigned.doc_type.clone(),
-                    sparse_issuer_signed: self.issue_creds(responses, unsigned)?,
-                };
-                Ok(docs)
+        {
+            docs.push(MobileeIDDocuments {
+                doc_type: unsigned.doc_type.clone(),
+                sparse_issuer_signed: self.issue_creds(responses, unsigned).await?,
             })
-            .collect::<Result<Vec<MobileeIDDocuments>>>()?;
+        }
 
         let response = DataToIssueMessage {
             e_session_id: self.session_data.request.e_session_id.clone(),
