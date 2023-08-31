@@ -8,20 +8,22 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/bullet_list.dart';
-import '../../common/widget/pin_field_demo.dart';
+import '../../common/sheet/confirm_action_sheet.dart';
+import '../../common/sheet/explanation_sheet.dart';
+import '../../common/sheet/help_sheet.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
+import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/sheet/confirm_action_sheet.dart';
-import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
+import '../../common/widget/numbered_list.dart';
+import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
@@ -30,7 +32,6 @@ import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
-import '../../common/sheet/help_sheet.dart';
 import '../../verification/model/organization.dart';
 import '../../verification/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
@@ -299,6 +300,10 @@ class OtherStylesTab extends StatelessWidget {
         const BulletList(
           items: ['Item 1', 'Item 2', 'Item 3'],
           icon: Icons.ac_unit_outlined,
+        ),
+        const ThemeSectionSubHeader(title: 'NumberedList'),
+        const NumberedList(
+          items: ['Item', 'Item', 'Item'],
         ),
       ],
     );

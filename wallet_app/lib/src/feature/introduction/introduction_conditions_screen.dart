@@ -44,12 +44,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
                     textAlign: TextAlign.start,
                   ),
                   BulletList(
-                    items: [
-                      context.l10n.introductionConditionsScreenBullet1,
-                      context.l10n.introductionConditionsScreenBullet2,
-                      context.l10n.introductionConditionsScreenBullet3,
-                      context.l10n.introductionConditionsScreenBullet4,
-                    ],
+                    items: context.l10n.introductionConditionsScreenBulletPoints.split('\n'),
                   ),
                 ],
               ),
