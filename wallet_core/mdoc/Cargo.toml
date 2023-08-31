@@ -3,9 +3,6 @@ name = "nl_wallet_mdoc"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-resolver = "2"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 memory_storage = []
@@ -20,21 +17,21 @@ dashmap = { workspace = true }
 futures = { workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
-indexmap = { workspace = true , features = ["serde"] }
+indexmap = { workspace = true, features = ["serde"] }
 once_cell = { workspace = true }
-p256 = { workspace = true , features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
-rcgen = { workspace = true , features = ["x509-parser"] }
+p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
+rcgen = { workspace = true, features = ["x509-parser"] }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 ring = { workspace = true }
 rustls-webpki = { workspace = true }
-serde = { workspace = true , features = ["serde_derive"] }
+serde = { workspace = true, features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
 serde_with = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true , features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
-x509-parser = { workspace = true , features = ["verify", "validate"] }
+x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 fieldnames = { path = "./fieldnames" }
 fieldnames_derive = { path = "./fieldnames_derive" }
@@ -42,8 +39,6 @@ wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
 anyhow = { workspace = true }
-tokio = { workspace = true , features = ["rt-multi-thread", "parking_lot"] }
+tokio = { workspace = true, features = ["macros"] }
 
 nl_wallet_mdoc = { path = ".", features = ["mock", "memory_storage"] }
-
-[lib]

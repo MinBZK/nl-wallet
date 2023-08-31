@@ -4,8 +4,6 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
-[lib]
-
 [features]
 mock = []
 software-keys = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
@@ -13,23 +11,27 @@ integration-test = []
 
 [dependencies]
 aes-gcm = { workspace = true, optional = true, features = ["std"] }
-async-trait.workspace = true
-base64.workspace = true
+async-trait = { workspace = true }
+base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
-futures.workspace = true
-http.workspace = true
-jsonwebtoken.workspace = true
+futures = { workspace = true }
+http = { workspace = true }
+jsonwebtoken = { workspace = true }
 once_cell = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
-rand.workspace = true
+rand = { workspace = true }
 rand_core = { workspace = true, optional = true }
-ring.workspace = true
+ring = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 sha2 = { workspace = true }
-thiserror.workspace = true
+thiserror = { workspace = true }
 
 [dev-dependencies]
 wallet_common = { path = ".", features = ["software-keys", "integration-test"] }
 
-tokio = { workspace = true , features = ["rt-multi-thread", "macros", "rt"] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "macros",
+    "parking_lot",
+] }

@@ -9,51 +9,51 @@ mock = ["dep:mockall"]
 wallet_deps = []
 
 [dependencies]
-entity = { path = "entity" }
-migration = { path = "migration" }
-async-trait.workspace = true
-base64.workspace = true
+async-trait = { workspace = true }
+base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
-futures.workspace = true
-http.workspace = true
+futures = { workspace = true }
+http = { workspace = true }
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
-mime.workspace = true
+mime = { workspace = true }
 mockall = { workspace = true, optional = true }
-once_cell.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "std"] }
+once_cell = { workspace = true }
 openid = { workspace = true, features = ["rustls"] }
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "parking_lot",
-    "macros",
-] }
-tracing.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "std"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
-ring.workspace = true
+ring = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
 ] }
 serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-thiserror.workspace = true
-url.workspace = true
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "parking_lot",
+    "macros",
+] }
+tracing = { workspace = true }
+url = { workspace = true }
 
-wallet_common = { path = "../wallet_common" }
-platform_support = { path = "../platform_support" }
+entity = { path = "entity" }
+migration = { path = "migration" }
 nl_wallet_mdoc = { path = "../mdoc", features = [
     "mock",
     "memory_storage",
 ] } # TODO remove features once actual storage is used
+platform_support = { path = "../platform_support" }
+wallet_common = { path = "../wallet_common" }
 
-# enable the "software" feature for platform_support when running tests
 [dev-dependencies]
-mockall.workspace = true
-rstest.workspace = true
-tempfile.workspace = true
-wiremock.workspace = true
+mockall = { workspace = true }
+rstest = { workspace = true }
+tempfile = { workspace = true }
+wiremock = { workspace = true }
 
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }
+# enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }

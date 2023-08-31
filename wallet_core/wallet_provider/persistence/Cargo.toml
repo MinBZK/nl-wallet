@@ -2,16 +2,15 @@
 name = "wallet_provider_persistence"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [features]
 db_test = []
 
 [dependencies]
-wallet_common = { path = "../../wallet_common" }
-wallet_provider_domain = { path = "../domain" }
-
-async-trait.workspace = true
+async-trait = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
+p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
@@ -20,20 +19,20 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
 ] }
 serde_json.workspace = true #todo: remove
-serial_test = { workspace = true, optional = true }
-p256.workspace = true
-tokio.workspace = true
-tracing.workspace = true
-uuid = { workspace = true, features = ["v4"], optional = false }
+tokio = { workspace = true, features = ["parking_lot"] }
+tracing = { workspace = true }
+
+wallet_provider_domain = { path = "../domain" }
+wallet_common = { path = "../../wallet_common" }
 
 [dev-dependencies]
-wallet_provider_domain = { path = "../domain", features = ["stub"] }
-
 sea-orm = { workspace = true, features = ["debug-print"] }
-serial_test.workspace = true
-tokio = { workspace = true, features = ["macros", "parking_lot"] }
+serial_test = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
 tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "parking_lot",
 ] }
-uuid.workspace = true
+uuid = { workspace = true }
+
+wallet_provider_domain = { path = "../domain", features = ["stub"] }
