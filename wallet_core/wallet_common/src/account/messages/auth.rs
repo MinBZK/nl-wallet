@@ -1,3 +1,4 @@
+use futures::{try_join, TryFutureExt};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -26,17 +27,17 @@ pub struct Registration {
 }
 
 impl Registration {
-    pub fn new_signed(
+    pub async fn new_signed(
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
-        let pin_pubkey = pin_privkey
-            .verifying_key()
-            .map_err(|e| ValidationError::Ecdsa(e.into()))?;
-        let hw_pubkey = hw_privkey
-            .verifying_key()
-            .map_err(|e| ValidationError::Ecdsa(e.into()))?;
+        let (pin_pubkey, hw_pubkey) = try_join!(
+            pin_privkey
+                .verifying_key()
+                .map_err(|e| ValidationError::Ecdsa(e.into())),
+            hw_privkey.verifying_key().map_err(|e| ValidationError::Ecdsa(e.into())),
+        )?;
 
         SignedDouble::sign(
             Registration {
@@ -48,6 +49,7 @@ impl Registration {
             hw_privkey,
             pin_privkey,
         )
+        .await
     }
 }
 
@@ -80,8 +82,8 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn registration() -> Result<()> {
+    #[tokio::test]
+    async fn registration() -> Result<()> {
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -89,7 +91,7 @@ mod tests {
         let challenge = b"challenge";
 
         // wallet calculates wallet provider registration message
-        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge)?;
+        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge).await?;
         println!("{}", &msg.0);
 
         let unverified = msg.dangerous_parse_unverified()?;

@@ -1,4 +1,5 @@
-use p256::ecdsa::{signature, signature::Signer, Error, Signature, VerifyingKey};
+use async_trait::async_trait;
+use p256::ecdsa::{signature, Signature, VerifyingKey};
 use wallet_common::{
     account::serialization::DerSigningKey,
     keys::{EcdsaKey, SecureEcdsaKey},
@@ -12,17 +13,16 @@ impl From<DerSigningKey> for WalletProviderEcdsaKey {
     }
 }
 
+#[async_trait]
 impl EcdsaKey for WalletProviderEcdsaKey {
     type Error = signature::Error;
 
-    fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         Ok(*self.0 .0.verifying_key())
     }
-}
 
-impl Signer<Signature> for WalletProviderEcdsaKey {
-    fn try_sign(&self, msg: &[u8]) -> Result<Signature, Error> {
-        self.0 .0.try_sign(msg)
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        p256::ecdsa::signature::Signer::try_sign(&self.0 .0, msg)
     }
 }
 

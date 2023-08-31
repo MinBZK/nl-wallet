@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use futures::future::try_join_all;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
@@ -104,13 +105,13 @@ impl<C: Storage> Wallet<C> {
         }
 
         // Compute responses
-        let state = IssuanceState::<K>::issuance_start(request)?;
+        let state = IssuanceState::<K>::issuance_start(request).await?;
 
         // Finish issuance protocol
         let issuer_response: DataToIssueMessage = client.post(url, &state.response).await?;
 
         // Process issuer response to obtain and save new mdocs
-        let creds = state.issuance_finish(issuer_response, trust_anchors)?;
+        let creds = state.issuance_finish(issuer_response, trust_anchors).await?;
         self.storage.add(creds.into_iter().flatten())
     }
 }
@@ -125,14 +126,14 @@ pub struct IssuanceState<K> {
 }
 
 impl<K: MdocEcdsaKey> IssuanceState<K> {
-    pub fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState<K>> {
-        let private_keys = request
+    pub async fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState<K>> {
+        let private_keys: Vec<Vec<K>> = request
             .unsigned_mdocs
             .iter()
             .map(|unsigned| Self::generate_keys(unsigned.copy_count))
             .collect::<Vec<_>>();
         let private_keys_refs = private_keys.iter().map(|f| f.as_slice()).collect::<Vec<_>>();
-        let response = KeyGenerationResponseMessage::new(&request, private_keys_refs.as_slice())?;
+        let response = KeyGenerationResponseMessage::new(&request, private_keys_refs.as_slice()).await?;
 
         let state = IssuanceState {
             request,
@@ -146,43 +147,48 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         (0..count).map(|_| K::new(&random_string(32))).collect()
     }
 
-    pub fn issuance_finish(
+    pub async fn issuance_finish(
         self,
         issuer_response: DataToIssueMessage,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Vec<MdocCopies<K>>> {
-        issuer_response
-            .mobile_eid_documents
-            .iter()
-            .zip(&self.request.unsigned_mdocs)
-            .zip(&self.private_keys)
-            .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trust_anchors))
-            .collect()
+        let mdoc_copies = try_join_all(
+            issuer_response
+                .mobile_eid_documents
+                .iter()
+                .zip(&self.request.unsigned_mdocs)
+                .zip(&self.private_keys)
+                .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trust_anchors)),
+        )
+        .await?;
+
+        Ok(mdoc_copies)
     }
 
-    fn create_cred_copies(
+    async fn create_cred_copies(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &[K],
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<MdocCopies<K>> {
-        let cred_copies = doc
-            .sparse_issuer_signed
-            .iter()
-            .zip(keys)
-            .map(|(iss_signature, key)| iss_signature.to_mdoc(key, unsigned, trust_anchors))
-            .collect::<Result<Vec<_>>>()?
-            .into();
-        Ok(cred_copies)
+        let cred_copies = try_join_all(
+            doc.sparse_issuer_signed
+                .iter()
+                .zip(keys)
+                .map(|(iss_signature, key)| iss_signature.to_mdoc(key, unsigned, trust_anchors)),
+        )
+        .await?;
+
+        Ok(cred_copies.into())
     }
 }
 
 impl SparseIssuerSigned {
-    pub(super) fn to_mdoc<K: MdocEcdsaKey>(
+    pub(super) async fn to_mdoc<K: MdocEcdsaKey>(
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc<K>> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
@@ -202,6 +208,7 @@ impl SparseIssuerSigned {
             value_digests: (&name_spaces).try_into()?,
             device_key_info: private_key
                 .verifying_key()
+                .await
                 .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?
                 .try_into()?,
             doc_type: unsigned.doc_type.clone(),

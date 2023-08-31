@@ -1935,6 +1935,7 @@ dependencies = [
  "dashmap",
  "fieldnames",
  "fieldnames_derive",
+ "futures",
  "hex",
  "hex-literal",
  "indexmap 1.9.3",
@@ -2365,12 +2366,14 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "jni",
  "never",
  "once_cell",
  "p256",
  "platform_support",
  "thiserror",
+ "tokio",
  "uniffi",
  "wallet_common",
 ]
@@ -4099,8 +4102,10 @@ name = "wallet_common"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "async-trait",
  "base64 0.21.2",
  "chrono",
+ "futures",
  "http",
  "jsonwebtoken",
  "once_cell",
@@ -4112,6 +4117,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tokio",
  "wallet_common",
 ]
 
@@ -4195,6 +4201,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "der",
+ "futures",
  "jsonwebtoken",
  "p256",
  "rand 0.8.5",
