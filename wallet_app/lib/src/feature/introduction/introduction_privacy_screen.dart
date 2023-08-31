@@ -44,11 +44,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                     textAlign: TextAlign.start,
                   ),
                   BulletList(
-                    items: [
-                      context.l10n.introductionPrivacyScreenBullet1,
-                      context.l10n.introductionPrivacyScreenBullet2,
-                      context.l10n.introductionPrivacyScreenBullet3,
-                    ],
+                    items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
                   ),
                 ],
               ),
