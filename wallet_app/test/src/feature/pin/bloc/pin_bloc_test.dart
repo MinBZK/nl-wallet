@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
+import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -11,12 +12,14 @@ void main() {
   late CheckPinUseCase checkPinUseCase;
 
   setUp(() {
+    // Provide a fallback dummy value for mockito, required here but likely overridden.
+    provideDummy<CheckPinResult>(CheckPinResultBlocked());
     checkPinUseCase = MockCheckPinUseCase();
     bloc = PinBloc(checkPinUseCase);
   });
 
-  void triggerValidateFromCleanBloc(PinBloc bloc, CheckPinResult respondWith) {
-    when(checkPinUseCase.invoke('100000')).thenAnswer((_) async => respondWith);
+  void triggerValidateFromCleanBloc(PinBloc bloc, CheckPinResult Function() respondWith) {
+    when(checkPinUseCase.invoke('100000')).thenAnswer((_) async => respondWith());
     bloc.add(const PinDigitPressed(1));
     bloc.add(const PinDigitPressed(0));
     bloc.add(const PinDigitPressed(0));
@@ -29,6 +32,7 @@ void main() {
     blocTest<PinBloc, PinState>(
       'PinEntryInProgress counter should increase with every pressed digit until and start validating at 6 characters',
       build: () => bloc,
+      setUp: () => when(checkPinUseCase.invoke('333333')).thenAnswer((_) async => CheckPinResultOk()),
       act: (bloc) {
         bloc.add(const PinDigitPressed(3));
         bloc.add(const PinDigitPressed(3));
@@ -44,6 +48,7 @@ void main() {
         const PinEntryInProgress(4),
         const PinEntryInProgress(5),
         const PinValidateInProgress(),
+        const PinValidateSuccess(),
       ],
     );
 
@@ -71,7 +76,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultIncorrect(leftoverAttempts: 3),
+        () => CheckPinResultIncorrect(leftoverAttempts: 3),
       ),
       skip: 6,
       expect: () => [const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false)],
@@ -81,7 +86,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultIncorrect(leftoverAttempts: 1, isFinalAttempt: true),
+        () => CheckPinResultIncorrect(leftoverAttempts: 1, isFinalAttempt: true),
       ),
       skip: 6,
       expect: () => [const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true)],
@@ -91,7 +96,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultBlocked(),
+        () => CheckPinResultBlocked(),
       ),
       skip: 6,
       expect: () => [const PinValidateBlocked()],
@@ -101,7 +106,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultTimeout(timeoutMillis: 1000),
+        () => CheckPinResultTimeout(timeoutMillis: 1000),
       ),
       skip: 6,
       expect: () => [isA<PinValidateTimeout>()],
@@ -111,7 +116,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultGenericError(),
+        () => throw FlutterApiError(type: FlutterApiErrorType.generic),
       ),
       skip: 6,
       expect: () => [const PinValidateGenericError()],
@@ -121,7 +126,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultServerError(-1),
+        () => throw FlutterApiError(type: FlutterApiErrorType.networking),
       ),
       skip: 6,
       expect: () => [const PinValidateServerError()],

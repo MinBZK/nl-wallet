@@ -22,7 +22,6 @@ export 'wallet_mocks.mocks.dart';
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
-@GenerateNiceMocks([MockSpec<AppLifecycleService>()])
 
 ///Mock usecases
 @GenerateNiceMocks([MockSpec<DecodeDeeplinkUseCase>()])
@@ -50,7 +49,7 @@ class Mocks {
 
   static void initialize() {
     // Services
-    sl.registerFactory<AppLifecycleService>(() => MockAppLifecycleService());
+    sl.registerFactory<AppLifecycleService>(() => AppLifecycleService());
     sl.registerFactory<TypedWalletCore>(() => getTypedWalletCoreMock());
     // Usecases
     sl.registerFactory<DecodeDeeplinkUseCase>(() => MockDecodeDeeplinkUseCase());

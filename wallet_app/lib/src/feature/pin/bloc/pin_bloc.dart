@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/error/server_error.dart';
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
-import '../../../util/extension/check_pin_result_extension.dart';
+import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
@@ -38,16 +39,27 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   Future<void> _validatePin(Emitter<PinState> emit) async {
-    final checkPinResult = await checkPinUseCase.invoke(_currentPin);
-    if (checkPinResult is! CheckPinResultOk) _currentPin = '';
-    checkPinResult.when(
-        onCheckPinResultOk: (it) => emit(const PinValidateSuccess()),
-        onCheckPinResultIncorrectPin: (it) =>
-            emit(PinValidateFailure(leftoverAttempts: it.leftoverAttempts, isFinalAttempt: it.isFinalAttempt)),
-        onCheckPinResultTimeout: (it) =>
-            emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: it.timeoutMillis)))),
-        onCheckPinResultBlocked: (it) => emit(const PinValidateBlocked()),
-        onCheckPinResultServerError: (it) => emit(const PinValidateServerError()),
-        onCheckPinResultGenericError: (it) => emit(const PinValidateGenericError()));
+    try {
+      final result = await checkPinUseCase.invoke(_currentPin);
+      if (result is! CheckPinResultOk) _currentPin = '';
+
+      switch (result) {
+        case CheckPinResultOk():
+          emit(const PinValidateSuccess());
+        case CheckPinResultIncorrect():
+          emit(PinValidateFailure(leftoverAttempts: result.leftoverAttempts, isFinalAttempt: result.isFinalAttempt));
+        case CheckPinResultTimeout():
+          emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
+        case CheckPinResultBlocked():
+          emit(const PinValidateBlocked());
+      }
+    } catch (ex) {
+      handleError(
+        ex,
+        onNetworkError: (ex) => emit(const PinValidateServerError()),
+        onUnhandledError: (ex) => emit(const PinValidateGenericError()),
+      );
+      _currentPin = '';
+    }
   }
 }

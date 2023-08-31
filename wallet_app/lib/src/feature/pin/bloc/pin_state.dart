@@ -58,11 +58,14 @@ class PinValidateBlocked extends PinState {
   List<Object> get props => [];
 }
 
-class PinValidateServerError extends PinState {
+class PinValidateServerError extends PinState implements ServerError {
   const PinValidateServerError();
 
   @override
   List<Object> get props => [];
+
+  @override
+  int? get statusCode => null;
 }
 
 class PinValidateGenericError extends PinState {
