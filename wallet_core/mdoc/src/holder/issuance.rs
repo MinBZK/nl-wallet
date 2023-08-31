@@ -60,22 +60,23 @@ impl HttpClient for CborHttpClient {
     }
 }
 
-/// Ask the user for consent during an issuance session, presentimg them with the [`RequestKeyGenerationMessage`]
-/// containing the to-be-received mdocs.
-#[async_trait]
-pub trait IssuanceUserConsent {
-    async fn ask(&self, request: &[UnsignedMdoc]) -> bool;
+#[derive(Debug)]
+pub(crate) struct SessionState<H> {
+    client: H,
+    url: Url,
+    session_id: SessionId,
+    request: RequestKeyGenerationMessage,
 }
 
-impl<C: Storage> Wallet<C> {
+impl<C: Storage, H: HttpClient> Wallet<C, H> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
-    pub async fn do_issuance<K: MdocEcdsaKey>(
-        &self,
+    pub async fn start_issuance(
+        &mut self,
         service_engagement: ServiceEngagement,
-        user_consent: &impl IssuanceUserConsent,
-        client: &impl HttpClient,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<()> {
+        client: H,
+    ) -> Result<Vec<UnsignedMdoc>> {
+        assert!(self.session_state.is_none());
+
         let url = service_engagement
             .url
             .as_ref()
@@ -94,25 +95,50 @@ impl<C: Storage> Wallet<C> {
             version: 1, // TODO magic number
         };
         let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
+        let unsigned_mdocs = request.unsigned_mdocs.clone();
 
-        if !user_consent.ask(&request.unsigned_mdocs).await {
-            // Inform the server we want to abort. We don't care if an error occurs here
-            let end_msg = RequestEndSessionMessage {
-                e_session_id: session_id.clone(),
-            };
-            let _: Result<EndSessionMessage> = client.post(url, &end_msg).await;
-            return Ok(());
-        }
+        self.session_state.replace(SessionState {
+            client,
+            url: url.clone(),
+            request,
+            session_id,
+        });
+
+        Ok(unsigned_mdocs)
+    }
+
+    pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
+        let SessionState {
+            request,
+            client,
+            url,
+            session_id: _,
+        } = self.session_state.take().expect("missing session state");
 
         // Compute responses
         let state = IssuanceState::<K>::issuance_start(request).await?;
 
         // Finish issuance protocol
-        let issuer_response: DataToIssueMessage = client.post(url, &state.response).await?;
+        let issuer_response: DataToIssueMessage = client.post(&url, &state.response).await?;
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.issuance_finish(issuer_response, trust_anchors).await?;
         self.storage.add(creds.into_iter().flatten())
+    }
+
+    pub async fn stop_issuance(&mut self) {
+        let SessionState {
+            request: _,
+            client,
+            url,
+            session_id,
+        } = self.session_state.take().expect("missing session state");
+
+        // Inform the server we want to abort. We don't care if an error occurs here
+        let end_msg = RequestEndSessionMessage {
+            e_session_id: session_id.clone(),
+        };
+        let _: Result<EndSessionMessage> = client.post(&url, &end_msg).await;
     }
 }
 

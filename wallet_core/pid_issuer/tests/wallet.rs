@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use tokio::sync::Mutex;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
@@ -107,7 +108,7 @@ async fn test_pid_issuance_mock_bsn() {
     };
 
     // Set up real pid issuer client.
-    let mdoc_wallet = Arc::new(MdocWallet::new(MdocsMap::new()));
+    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new())));
     let pid_issuer_client = PidIssuerClient::new(Arc::clone(&mdoc_wallet));
 
     // Create wallet with configuration and dependencies.
@@ -118,7 +119,7 @@ async fn test_pid_issuance_mock_bsn() {
         .await
         .expect("PID issuance failed");
 
-    let mdocs = mdoc_wallet.list_mdocs::<SoftwareEcdsaKey>();
+    let mdocs = mdoc_wallet.lock().await.list_mdocs::<SoftwareEcdsaKey>();
     dbg!(&mdocs);
 
     let pid_mdocs = mdocs.first().unwrap().1;

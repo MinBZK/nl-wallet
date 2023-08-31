@@ -1,5 +1,5 @@
 use core::fmt::Debug;
-use std::ops::Add;
+use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -34,6 +34,9 @@ const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 const EXAMPLE_ATTR_NAME: &str = "family_name";
 static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string())); // Lazy since can't have a const String
+
+type MockWallet = Wallet<MdocsMap, MockHttpClient<MockIssuanceKeyring, MemorySessionStore>>;
+type MockServer = Server<MockIssuanceKeyring, MemorySessionStore>;
 
 /// Verify the example disclosure from the standard.
 #[tokio::test]
@@ -110,7 +113,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let mdoc = mdoc_from_example_device_response(trust_anchors);
 
     // Do the disclosure and verify it
-    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap());
+    let wallet = MockWallet::new(MdocsMap::try_from([mdoc]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
         .await
@@ -152,7 +155,7 @@ async fn iso_examples_custom_disclosure() {
     let trust_anchors = Examples::iaca_trust_anchors();
     let mdoc = mdoc_from_example_device_response(trust_anchors);
 
-    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap());
+    let wallet = MockWallet::new(MdocsMap::try_from([mdoc]).unwrap());
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
         .await
@@ -275,12 +278,12 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
-struct MockHttpClient<'a, K, S> {
-    issuance_server: &'a Server<K, S>,
+struct MockHttpClient<K, S> {
+    issuance_server: Arc<Server<K, S>>,
 }
 
 #[async_trait]
-impl<K, S> HttpClient for MockHttpClient<'_, K, S>
+impl<K, S> HttpClient for MockHttpClient<K, S>
 where
     K: KeyRing + Send + Sync,
     S: SessionStore + Send + Sync + 'static,
@@ -311,28 +314,38 @@ impl KeyRing for MockIssuanceKeyring {
     }
 }
 
-fn user_consent<const CONSENT: bool>() -> impl IssuanceUserConsent {
-    struct MockUserConsent<const CONSENT: bool>;
-    #[async_trait]
-    impl<const CONSENT: bool> IssuanceUserConsent for MockUserConsent<CONSENT> {
-        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
-            CONSENT
-        }
-    }
-    MockUserConsent::<CONSENT>
+fn setup_issuance_test() -> (MockWallet, MockServer, Certificate) {
+    let wallet = MockWallet::new(MdocsMap::new());
+
+    // Issuer CA certificate and normal certificate
+    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
+    let (issuer_cert, issuer_privkey) =
+        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
+    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
+
+    // Setup issuer
+    let issuance_server = Server::new(
+        "http://example.com".parse().unwrap(),
+        MockIssuanceKeyring { issuance_key },
+        MemorySessionStore::new(),
+    );
+
+    (wallet, issuance_server, ca)
 }
 
 #[tokio::test]
 async fn issuance_and_disclosure() {
     // Agree with issuance
-    let (wallet, ca) = issuance_using_consent(user_consent::<true>(), new_issuance_request()).await;
+    let (mut wallet, server, ca) = setup_issuance_test();
+    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 
     // We can disclose the mdoc that was just issued to us
     custom_disclosure(wallet, ca).await;
 
     // Decline issuance
-    let (wallet, _) = issuance_using_consent(user_consent::<false>(), new_issuance_request()).await;
+    let (mut wallet, server, ca) = setup_issuance_test();
+    issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Issue not-yet-valid mdocs
@@ -342,45 +355,38 @@ async fn issuance_and_disclosure() {
         .iter_mut()
         .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
     assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
-    let (wallet, _) = issuance_using_consent(user_consent::<true>(), request).await;
+
+    let (mut wallet, server, ca) = setup_issuance_test();
+    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 }
 
-async fn issuance_using_consent<T: IssuanceUserConsent>(
-    user_consent: T,
+async fn issuance_using_consent(
+    user_consent: bool,
     request: Vec<UnsignedMdoc>,
-) -> (Wallet<MdocsMap>, Certificate) {
-    // Issuer CA certificate and normal certificate
-    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
-    let (issuer_cert, issuer_privkey) =
-        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
-
-    // Setup session and issuer
-    let issuance_server = Server::new(
-        "http://example.com".parse().unwrap(),
-        MockIssuanceKeyring { issuance_key },
-        MemorySessionStore::new(),
-    );
+    wallet: &mut MockWallet,
+    issuance_server: Arc<MockServer>,
+    ca: &Certificate,
+) {
     let service_engagement = issuance_server.new_session(request).unwrap();
-
-    // Setup holder
-    let wallet = Wallet::new(MdocsMap::new());
-    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
-
-    // Do issuance
     let client = MockHttpClient {
-        issuance_server: &issuance_server,
+        issuance_server: Arc::clone(&issuance_server),
     };
+
+    wallet.start_issuance(service_engagement, client).await.unwrap();
+
+    if !user_consent {
+        wallet.stop_issuance().await;
+        return;
+    }
+
     wallet
-        .do_issuance::<SoftwareEcdsaKey>(service_engagement, &user_consent, &client, &[(&ca).try_into().unwrap()])
+        .finish_issuance::<SoftwareEcdsaKey>(&[ca.try_into().unwrap()])
         .await
         .unwrap();
-
-    (wallet, ca)
 }
 
-async fn custom_disclosure(wallet: Wallet<MdocsMap>, ca: Certificate) {
+async fn custom_disclosure(wallet: MockWallet, ca: Certificate) {
     assert!(!wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Create a request asking for one attribute
