@@ -64,7 +64,6 @@ impl HttpClient for CborHttpClient {
 pub(crate) struct SessionState<H> {
     client: H,
     url: Url,
-    session_id: SessionId,
     request: RequestKeyGenerationMessage,
 }
 
@@ -91,7 +90,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 
         // Fetch the issuance details: challenge and the to-be-issued mdocs
         let start_issuing_msg = StartIssuingMessage {
-            e_session_id: session_id.clone(),
+            e_session_id: session_id,
             version: 1, // TODO magic number
         };
         let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
@@ -100,19 +99,13 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
             client,
             url: url.clone(),
             request,
-            session_id,
         });
 
         Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
     pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
-        let SessionState {
-            request,
-            client,
-            url,
-            session_id: _,
-        } = self.session_state.take().expect("missing session state");
+        let SessionState { request, client, url } = self.session_state.take().expect("missing session state");
 
         // Compute responses
         let state = IssuanceState::<K>::issuance_start(request).await?;
@@ -126,16 +119,11 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     }
 
     pub async fn stop_issuance(&mut self) {
-        let SessionState {
-            request: _,
-            client,
-            url,
-            session_id,
-        } = self.session_state.take().expect("missing session state");
+        let SessionState { request, client, url } = self.session_state.take().expect("missing session state");
 
         // Inform the server we want to abort. We don't care if an error occurs here
         let end_msg = RequestEndSessionMessage {
-            e_session_id: session_id.clone(),
+            e_session_id: request.e_session_id,
         };
         let _: Result<EndSessionMessage> = client.post(&url, &end_msg).await;
     }
