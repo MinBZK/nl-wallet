@@ -62,15 +62,9 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta;
 
-  Stream<UriFlowEvent> processUri({required String uri, dynamic hint});
+  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
-}
-
-enum DigidState {
-  Authenticating,
-  Success,
-  Error,
 }
 
 class FlutterConfiguration {
@@ -83,6 +77,12 @@ class FlutterConfiguration {
   });
 }
 
+enum PidIssuanceEvent {
+  Authenticating,
+  Success,
+  Error,
+}
+
 enum PinValidationResult {
   Ok,
   TooFewUniqueDigits,
@@ -91,10 +91,10 @@ enum PinValidationResult {
 }
 
 @freezed
-class UriFlowEvent with _$UriFlowEvent {
-  const factory UriFlowEvent.digidAuth({
-    required DigidState state,
-  }) = UriFlowEvent_DigidAuth;
+class ProcessUriEvent with _$ProcessUriEvent {
+  const factory ProcessUriEvent.pidIssuance(
+    PidIssuanceEvent field0,
+  ) = ProcessUriEvent_PidIssuance;
 }
 
 @freezed
@@ -300,11 +300,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Stream<UriFlowEvent> processUri({required String uri, dynamic hint}) {
+  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
     return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_process_uri(port_, arg0),
-      parseSuccessData: _wire2api_uri_flow_event,
+      parseSuccessData: _wire2api_process_uri_event,
       constMeta: kProcessUriConstMeta,
       argValues: [uri],
       hint: hint,
@@ -329,10 +329,6 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
-  DigidState _wire2api_digid_state(dynamic raw) {
-    return DigidState.values[raw as int];
-  }
-
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -346,8 +342,23 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
+  PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
+    return PidIssuanceEvent.values[raw as int];
+  }
+
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
     return PinValidationResult.values[raw as int];
+  }
+
+  ProcessUriEvent _wire2api_process_uri_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return ProcessUriEvent_PidIssuance(
+          _wire2api_pid_issuance_event(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   int _wire2api_u16(dynamic raw) {
@@ -368,17 +379,6 @@ class WalletCoreImpl implements WalletCore {
 
   void _wire2api_unit(dynamic raw) {
     return;
-  }
-
-  UriFlowEvent _wire2api_uri_flow_event(dynamic raw) {
-    switch (raw[0]) {
-      case 0:
-        return UriFlowEvent_DigidAuth(
-          state: _wire2api_digid_state(raw[1]),
-        );
-      default:
-        throw Exception("unreachable");
-    }
   }
 
   WalletUnlockResult _wire2api_wallet_unlock_result(dynamic raw) {

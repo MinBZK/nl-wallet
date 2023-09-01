@@ -54,7 +54,7 @@ class MockDigidAuthRepository extends _i1.Mock implements _i3.DigidAuthRepositor
         returnValueForMissingStub: _i4.Future<String>.value(''),
       ) as _i4.Future<String>);
   @override
-  void notifyDigidStateUpdate(_i2.DigidState? state) => super.noSuchMethod(
+  void notifyDigidStateUpdate(dynamic state) => super.noSuchMethod(
         Invocation.method(
           #notifyDigidStateUpdate,
           [state],
@@ -247,14 +247,14 @@ class MockTypedWalletCore extends _i1.Mock implements _i8.TypedWalletCore {
         returnValueForMissingStub: _i4.Future<String>.value(''),
       ) as _i4.Future<String>);
   @override
-  _i4.Stream<_i2.UriFlowEvent> processUri(Uri? uri) => (super.noSuchMethod(
+  _i4.Stream<dynamic> processUri(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #processUri,
           [uri],
         ),
-        returnValue: _i4.Stream<_i2.UriFlowEvent>.empty(),
-        returnValueForMissingStub: _i4.Stream<_i2.UriFlowEvent>.empty(),
-      ) as _i4.Stream<_i2.UriFlowEvent>);
+        returnValue: _i4.Stream<dynamic>.empty(),
+        returnValueForMissingStub: _i4.Stream<dynamic>.empty(),
+      ) as _i4.Stream<dynamic>);
   @override
   _i4.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
         Invocation.method(
@@ -297,7 +297,7 @@ class MockDecodeDeeplinkUseCase extends _i1.Mock implements _i9.DecodeDeeplinkUs
 /// See the documentation for Mockito's code generation for more information.
 class MockUpdateDigidAuthStatusUseCase extends _i1.Mock implements _i11.UpdateDigidAuthStatusUseCase {
   @override
-  _i4.Future<void> invoke(_i2.DigidState? state) => (super.noSuchMethod(
+  _i4.Future<void> invoke(dynamic state) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [state],

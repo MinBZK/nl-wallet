@@ -21,9 +21,9 @@ use std::sync::Arc;
 
 use crate::models::config::FlutterConfiguration;
 use crate::models::pin::PinValidationResult;
+use crate::models::process_uri_event::PidIssuanceEvent;
+use crate::models::process_uri_event::ProcessUriEvent;
 use crate::models::unlock::WalletUnlockResult;
-use crate::models::uri_flow_event::DigidState;
-use crate::models::uri_flow_event::UriFlowEvent;
 
 // Section: wire functions
 
@@ -200,17 +200,6 @@ impl Wire2Api<u8> for u8 {
 
 // Section: impl IntoDart
 
-impl support::IntoDart for DigidState {
-    fn into_dart(self) -> support::DartAbi {
-        match self {
-            Self::Authenticating => 0,
-            Self::Success => 1,
-            Self::Error => 2,
-        }
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for DigidState {}
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -222,6 +211,17 @@ impl support::IntoDart for FlutterConfiguration {
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 
+impl support::IntoDart for PidIssuanceEvent {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Authenticating => 0,
+            Self::Success => 1,
+            Self::Error => 2,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for PidIssuanceEvent {}
 impl support::IntoDart for PinValidationResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -234,16 +234,16 @@ impl support::IntoDart for PinValidationResult {
     }
 }
 impl support::IntoDartExceptPrimitive for PinValidationResult {}
-
-impl support::IntoDart for UriFlowEvent {
+impl support::IntoDart for ProcessUriEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::DigidAuth { state } => vec![0.into_dart(), state.into_dart()],
+            Self::PidIssuance(field0) => vec![0.into_dart(), field0.into_dart()],
         }
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for UriFlowEvent {}
+impl support::IntoDartExceptPrimitive for ProcessUriEvent {}
+
 impl support::IntoDart for WalletUnlockResult {
     fn into_dart(self) -> support::DartAbi {
         match self {

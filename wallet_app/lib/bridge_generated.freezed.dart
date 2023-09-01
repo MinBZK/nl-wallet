@@ -15,56 +15,56 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
-mixin _$UriFlowEvent {
-  DigidState get state => throw _privateConstructorUsedError;
+mixin _$ProcessUriEvent {
+  PidIssuanceEvent get field0 => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(DigidState state) digidAuth,
+    required TResult Function(PidIssuanceEvent field0) pidIssuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(DigidState state)? digidAuth,
+    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(DigidState state)? digidAuth,
+    TResult Function(PidIssuanceEvent field0)? pidIssuance,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(UriFlowEvent_DigidAuth value) digidAuth,
+    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(UriFlowEvent_DigidAuth value)? digidAuth,
+    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(UriFlowEvent_DigidAuth value)? digidAuth,
+    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $UriFlowEventCopyWith<UriFlowEvent> get copyWith => throw _privateConstructorUsedError;
+  $ProcessUriEventCopyWith<ProcessUriEvent> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $UriFlowEventCopyWith<$Res> {
-  factory $UriFlowEventCopyWith(UriFlowEvent value, $Res Function(UriFlowEvent) then) =
-      _$UriFlowEventCopyWithImpl<$Res, UriFlowEvent>;
+abstract class $ProcessUriEventCopyWith<$Res> {
+  factory $ProcessUriEventCopyWith(ProcessUriEvent value, $Res Function(ProcessUriEvent) then) =
+      _$ProcessUriEventCopyWithImpl<$Res, ProcessUriEvent>;
   @useResult
-  $Res call({DigidState state});
+  $Res call({PidIssuanceEvent field0});
 }
 
 /// @nodoc
-class _$UriFlowEventCopyWithImpl<$Res, $Val extends UriFlowEvent> implements $UriFlowEventCopyWith<$Res> {
-  _$UriFlowEventCopyWithImpl(this._value, this._then);
+class _$ProcessUriEventCopyWithImpl<$Res, $Val extends ProcessUriEvent> implements $ProcessUriEventCopyWith<$Res> {
+  _$ProcessUriEventCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -74,101 +74,103 @@ class _$UriFlowEventCopyWithImpl<$Res, $Val extends UriFlowEvent> implements $Ur
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? state = null,
+    Object? field0 = null,
   }) {
     return _then(_value.copyWith(
-      state: null == state
-          ? _value.state
-          : state // ignore: cast_nullable_to_non_nullable
-              as DigidState,
+      field0: null == field0
+          ? _value.field0
+          : field0 // ignore: cast_nullable_to_non_nullable
+              as PidIssuanceEvent,
     ) as $Val);
   }
 }
 
 /// @nodoc
-abstract class _$$UriFlowEvent_DigidAuthCopyWith<$Res> implements $UriFlowEventCopyWith<$Res> {
-  factory _$$UriFlowEvent_DigidAuthCopyWith(
-          _$UriFlowEvent_DigidAuth value, $Res Function(_$UriFlowEvent_DigidAuth) then) =
-      __$$UriFlowEvent_DigidAuthCopyWithImpl<$Res>;
+abstract class _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> implements $ProcessUriEventCopyWith<$Res> {
+  factory _$$ProcessUriEvent_PidIssuanceCopyWith(
+          _$ProcessUriEvent_PidIssuance value, $Res Function(_$ProcessUriEvent_PidIssuance) then) =
+      __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({DigidState state});
+  $Res call({PidIssuanceEvent field0});
 }
 
 /// @nodoc
-class __$$UriFlowEvent_DigidAuthCopyWithImpl<$Res> extends _$UriFlowEventCopyWithImpl<$Res, _$UriFlowEvent_DigidAuth>
-    implements _$$UriFlowEvent_DigidAuthCopyWith<$Res> {
-  __$$UriFlowEvent_DigidAuthCopyWithImpl(_$UriFlowEvent_DigidAuth _value, $Res Function(_$UriFlowEvent_DigidAuth) _then)
+class __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>
+    extends _$ProcessUriEventCopyWithImpl<$Res, _$ProcessUriEvent_PidIssuance>
+    implements _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> {
+  __$$ProcessUriEvent_PidIssuanceCopyWithImpl(
+      _$ProcessUriEvent_PidIssuance _value, $Res Function(_$ProcessUriEvent_PidIssuance) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? state = null,
+    Object? field0 = null,
   }) {
-    return _then(_$UriFlowEvent_DigidAuth(
-      state: null == state
-          ? _value.state
-          : state // ignore: cast_nullable_to_non_nullable
-              as DigidState,
+    return _then(_$ProcessUriEvent_PidIssuance(
+      null == field0
+          ? _value.field0
+          : field0 // ignore: cast_nullable_to_non_nullable
+              as PidIssuanceEvent,
     ));
   }
 }
 
 /// @nodoc
 
-class _$UriFlowEvent_DigidAuth implements UriFlowEvent_DigidAuth {
-  const _$UriFlowEvent_DigidAuth({required this.state});
+class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
+  const _$ProcessUriEvent_PidIssuance(this.field0);
 
   @override
-  final DigidState state;
+  final PidIssuanceEvent field0;
 
   @override
   String toString() {
-    return 'UriFlowEvent.digidAuth(state: $state)';
+    return 'ProcessUriEvent.pidIssuance(field0: $field0)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$UriFlowEvent_DigidAuth &&
-            (identical(other.state, state) || other.state == state));
+            other is _$ProcessUriEvent_PidIssuance &&
+            (identical(other.field0, field0) || other.field0 == field0));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, state);
+  int get hashCode => Object.hash(runtimeType, field0);
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith =>
-      __$$UriFlowEvent_DigidAuthCopyWithImpl<_$UriFlowEvent_DigidAuth>(this, _$identity);
+  _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
+      __$$ProcessUriEvent_PidIssuanceCopyWithImpl<_$ProcessUriEvent_PidIssuance>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(DigidState state) digidAuth,
+    required TResult Function(PidIssuanceEvent field0) pidIssuance,
   }) {
-    return digidAuth(state);
+    return pidIssuance(field0);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(DigidState state)? digidAuth,
+    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
   }) {
-    return digidAuth?.call(state);
+    return pidIssuance?.call(field0);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(DigidState state)? digidAuth,
+    TResult Function(PidIssuanceEvent field0)? pidIssuance,
     required TResult orElse(),
   }) {
-    if (digidAuth != null) {
-      return digidAuth(state);
+    if (pidIssuance != null) {
+      return pidIssuance(field0);
     }
     return orElse();
   }
@@ -176,40 +178,41 @@ class _$UriFlowEvent_DigidAuth implements UriFlowEvent_DigidAuth {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(UriFlowEvent_DigidAuth value) digidAuth,
+    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
   }) {
-    return digidAuth(this);
+    return pidIssuance(this);
   }
 
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(UriFlowEvent_DigidAuth value)? digidAuth,
+    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
   }) {
-    return digidAuth?.call(this);
+    return pidIssuance?.call(this);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(UriFlowEvent_DigidAuth value)? digidAuth,
+    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
     required TResult orElse(),
   }) {
-    if (digidAuth != null) {
-      return digidAuth(this);
+    if (pidIssuance != null) {
+      return pidIssuance(this);
     }
     return orElse();
   }
 }
 
-abstract class UriFlowEvent_DigidAuth implements UriFlowEvent {
-  const factory UriFlowEvent_DigidAuth({required final DigidState state}) = _$UriFlowEvent_DigidAuth;
+abstract class ProcessUriEvent_PidIssuance implements ProcessUriEvent {
+  const factory ProcessUriEvent_PidIssuance(final PidIssuanceEvent field0) = _$ProcessUriEvent_PidIssuance;
 
   @override
-  DigidState get state;
+  PidIssuanceEvent get field0;
   @override
   @JsonKey(ignore: true)
-  _$$UriFlowEvent_DigidAuthCopyWith<_$UriFlowEvent_DigidAuth> get copyWith => throw _privateConstructorUsedError;
+  _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc

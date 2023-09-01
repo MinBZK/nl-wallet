@@ -17,8 +17,8 @@ use crate::{
     models::{
         config::FlutterConfiguration,
         pin::PinValidationResult,
+        process_uri_event::{PidIssuanceEvent, ProcessUriEvent},
         unlock::WalletUnlockResult,
-        uri_flow_event::{DigidState, UriFlowEvent},
     },
     stream::ClosingStreamSink,
 };
@@ -167,7 +167,7 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 
 // Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
-pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<()> {
+pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
     let url = Url::parse(&uri).unwrap(); // TODO: send URL parsing error on stream
@@ -176,9 +176,7 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
 
     let final_event = match wallet.identify_redirect_uri(&url) {
         RedirectUriType::PidIssuance => {
-            let auth_event = UriFlowEvent::DigidAuth {
-                state: DigidState::Authenticating,
-            };
+            let auth_event = ProcessUriEvent::PidIssuance(PidIssuanceEvent::Authenticating);
             sink.add(auth_event);
 
             wallet.continue_pid_issuance(&url).await.map_or_else(
@@ -186,18 +184,13 @@ pub async fn process_uri(uri: String, sink: StreamSink<UriFlowEvent>) -> Result<
                     warn!("PID issuance error: {}", error);
                     info!("PID issuance error details: {:?}", error);
 
-                    UriFlowEvent::DigidAuth {
-                        state: DigidState::Error, // TODO: add error details to state
-                    }
+                    ProcessUriEvent::PidIssuance(PidIssuanceEvent::Error) // TODO: add error details to state
                 },
-                |_| UriFlowEvent::DigidAuth {
-                    state: DigidState::Success, // TODO: add preview as card details
-                },
+                |_| ProcessUriEvent::PidIssuance(PidIssuanceEvent::Success), // TODO: add preview as card details
             )
         }
-        RedirectUriType::Unknown => UriFlowEvent::DigidAuth {
-            state: DigidState::Error, // TODO: send as unknown error on stream
-        },
+        // TODO: send as unknown error on stream
+        RedirectUriType::Unknown => ProcessUriEvent::PidIssuance(PidIssuanceEvent::Error),
     };
 
     sink.add(final_event);
