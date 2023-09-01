@@ -15,51 +15,466 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
+mixin _$PidIssuanceEvent {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() authenticating,
+    required TResult Function() success,
+    required TResult Function(String field0) error,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? authenticating,
+    TResult? Function()? success,
+    TResult? Function(String field0)? error,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? authenticating,
+    TResult Function()? success,
+    TResult Function(String field0)? error,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
+    required TResult Function(PidIssuanceEvent_Success value) success,
+    required TResult Function(PidIssuanceEvent_Error value) error,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult? Function(PidIssuanceEvent_Success value)? success,
+    TResult? Function(PidIssuanceEvent_Error value)? error,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult Function(PidIssuanceEvent_Success value)? success,
+    TResult Function(PidIssuanceEvent_Error value)? error,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PidIssuanceEventCopyWith<$Res> {
+  factory $PidIssuanceEventCopyWith(PidIssuanceEvent value, $Res Function(PidIssuanceEvent) then) =
+      _$PidIssuanceEventCopyWithImpl<$Res, PidIssuanceEvent>;
+}
+
+/// @nodoc
+class _$PidIssuanceEventCopyWithImpl<$Res, $Val extends PidIssuanceEvent> implements $PidIssuanceEventCopyWith<$Res> {
+  _$PidIssuanceEventCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$PidIssuanceEvent_AuthenticatingCopyWith<$Res> {
+  factory _$$PidIssuanceEvent_AuthenticatingCopyWith(
+          _$PidIssuanceEvent_Authenticating value, $Res Function(_$PidIssuanceEvent_Authenticating) then) =
+      __$$PidIssuanceEvent_AuthenticatingCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$PidIssuanceEvent_AuthenticatingCopyWithImpl<$Res>
+    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Authenticating>
+    implements _$$PidIssuanceEvent_AuthenticatingCopyWith<$Res> {
+  __$$PidIssuanceEvent_AuthenticatingCopyWithImpl(
+      _$PidIssuanceEvent_Authenticating _value, $Res Function(_$PidIssuanceEvent_Authenticating) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$PidIssuanceEvent_Authenticating implements PidIssuanceEvent_Authenticating {
+  const _$PidIssuanceEvent_Authenticating();
+
+  @override
+  String toString() {
+    return 'PidIssuanceEvent.authenticating()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$PidIssuanceEvent_Authenticating);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() authenticating,
+    required TResult Function() success,
+    required TResult Function(String field0) error,
+  }) {
+    return authenticating();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? authenticating,
+    TResult? Function()? success,
+    TResult? Function(String field0)? error,
+  }) {
+    return authenticating?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? authenticating,
+    TResult Function()? success,
+    TResult Function(String field0)? error,
+    required TResult orElse(),
+  }) {
+    if (authenticating != null) {
+      return authenticating();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
+    required TResult Function(PidIssuanceEvent_Success value) success,
+    required TResult Function(PidIssuanceEvent_Error value) error,
+  }) {
+    return authenticating(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult? Function(PidIssuanceEvent_Success value)? success,
+    TResult? Function(PidIssuanceEvent_Error value)? error,
+  }) {
+    return authenticating?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult Function(PidIssuanceEvent_Success value)? success,
+    TResult Function(PidIssuanceEvent_Error value)? error,
+    required TResult orElse(),
+  }) {
+    if (authenticating != null) {
+      return authenticating(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class PidIssuanceEvent_Authenticating implements PidIssuanceEvent {
+  const factory PidIssuanceEvent_Authenticating() = _$PidIssuanceEvent_Authenticating;
+}
+
+/// @nodoc
+abstract class _$$PidIssuanceEvent_SuccessCopyWith<$Res> {
+  factory _$$PidIssuanceEvent_SuccessCopyWith(
+          _$PidIssuanceEvent_Success value, $Res Function(_$PidIssuanceEvent_Success) then) =
+      __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>
+    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Success>
+    implements _$$PidIssuanceEvent_SuccessCopyWith<$Res> {
+  __$$PidIssuanceEvent_SuccessCopyWithImpl(
+      _$PidIssuanceEvent_Success _value, $Res Function(_$PidIssuanceEvent_Success) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$PidIssuanceEvent_Success implements PidIssuanceEvent_Success {
+  const _$PidIssuanceEvent_Success();
+
+  @override
+  String toString() {
+    return 'PidIssuanceEvent.success()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$PidIssuanceEvent_Success);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() authenticating,
+    required TResult Function() success,
+    required TResult Function(String field0) error,
+  }) {
+    return success();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? authenticating,
+    TResult? Function()? success,
+    TResult? Function(String field0)? error,
+  }) {
+    return success?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? authenticating,
+    TResult Function()? success,
+    TResult Function(String field0)? error,
+    required TResult orElse(),
+  }) {
+    if (success != null) {
+      return success();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
+    required TResult Function(PidIssuanceEvent_Success value) success,
+    required TResult Function(PidIssuanceEvent_Error value) error,
+  }) {
+    return success(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult? Function(PidIssuanceEvent_Success value)? success,
+    TResult? Function(PidIssuanceEvent_Error value)? error,
+  }) {
+    return success?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult Function(PidIssuanceEvent_Success value)? success,
+    TResult Function(PidIssuanceEvent_Error value)? error,
+    required TResult orElse(),
+  }) {
+    if (success != null) {
+      return success(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class PidIssuanceEvent_Success implements PidIssuanceEvent {
+  const factory PidIssuanceEvent_Success() = _$PidIssuanceEvent_Success;
+}
+
+/// @nodoc
+abstract class _$$PidIssuanceEvent_ErrorCopyWith<$Res> {
+  factory _$$PidIssuanceEvent_ErrorCopyWith(
+          _$PidIssuanceEvent_Error value, $Res Function(_$PidIssuanceEvent_Error) then) =
+      __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String field0});
+}
+
+/// @nodoc
+class __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>
+    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Error>
+    implements _$$PidIssuanceEvent_ErrorCopyWith<$Res> {
+  __$$PidIssuanceEvent_ErrorCopyWithImpl(_$PidIssuanceEvent_Error _value, $Res Function(_$PidIssuanceEvent_Error) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? field0 = null,
+  }) {
+    return _then(_$PidIssuanceEvent_Error(
+      null == field0
+          ? _value.field0
+          : field0 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
+  const _$PidIssuanceEvent_Error(this.field0);
+
+  @override
+  final String field0;
+
+  @override
+  String toString() {
+    return 'PidIssuanceEvent.error(field0: $field0)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PidIssuanceEvent_Error &&
+            (identical(other.field0, field0) || other.field0 == field0));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, field0);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PidIssuanceEvent_ErrorCopyWith<_$PidIssuanceEvent_Error> get copyWith =>
+      __$$PidIssuanceEvent_ErrorCopyWithImpl<_$PidIssuanceEvent_Error>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() authenticating,
+    required TResult Function() success,
+    required TResult Function(String field0) error,
+  }) {
+    return error(field0);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? authenticating,
+    TResult? Function()? success,
+    TResult? Function(String field0)? error,
+  }) {
+    return error?.call(field0);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? authenticating,
+    TResult Function()? success,
+    TResult Function(String field0)? error,
+    required TResult orElse(),
+  }) {
+    if (error != null) {
+      return error(field0);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
+    required TResult Function(PidIssuanceEvent_Success value) success,
+    required TResult Function(PidIssuanceEvent_Error value) error,
+  }) {
+    return error(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult? Function(PidIssuanceEvent_Success value)? success,
+    TResult? Function(PidIssuanceEvent_Error value)? error,
+  }) {
+    return error?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
+    TResult Function(PidIssuanceEvent_Success value)? success,
+    TResult Function(PidIssuanceEvent_Error value)? error,
+    required TResult orElse(),
+  }) {
+    if (error != null) {
+      return error(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class PidIssuanceEvent_Error implements PidIssuanceEvent {
+  const factory PidIssuanceEvent_Error(final String field0) = _$PidIssuanceEvent_Error;
+
+  String get field0;
+  @JsonKey(ignore: true)
+  _$$PidIssuanceEvent_ErrorCopyWith<_$PidIssuanceEvent_Error> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$ProcessUriEvent {
-  PidIssuanceEvent get field0 => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function() unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function()? unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function()? unknownUri,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
+    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
-
-  @JsonKey(ignore: true)
-  $ProcessUriEventCopyWith<ProcessUriEvent> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $ProcessUriEventCopyWith<$Res> {
   factory $ProcessUriEventCopyWith(ProcessUriEvent value, $Res Function(ProcessUriEvent) then) =
       _$ProcessUriEventCopyWithImpl<$Res, ProcessUriEvent>;
-  @useResult
-  $Res call({PidIssuanceEvent field0});
 }
 
 /// @nodoc
@@ -70,29 +485,17 @@ class _$ProcessUriEventCopyWithImpl<$Res, $Val extends ProcessUriEvent> implemen
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? field0 = null,
-  }) {
-    return _then(_value.copyWith(
-      field0: null == field0
-          ? _value.field0
-          : field0 // ignore: cast_nullable_to_non_nullable
-              as PidIssuanceEvent,
-    ) as $Val);
-  }
 }
 
 /// @nodoc
-abstract class _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> implements $ProcessUriEventCopyWith<$Res> {
+abstract class _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> {
   factory _$$ProcessUriEvent_PidIssuanceCopyWith(
           _$ProcessUriEvent_PidIssuance value, $Res Function(_$ProcessUriEvent_PidIssuance) then) =
       __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>;
-  @override
   @useResult
   $Res call({PidIssuanceEvent field0});
+
+  $PidIssuanceEventCopyWith<$Res> get field0;
 }
 
 /// @nodoc
@@ -114,6 +517,14 @@ class __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>
           : field0 // ignore: cast_nullable_to_non_nullable
               as PidIssuanceEvent,
     ));
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $PidIssuanceEventCopyWith<$Res> get field0 {
+    return $PidIssuanceEventCopyWith<$Res>(_value.field0, (value) {
+      return _then(_value.copyWith(field0: value));
+    });
   }
 }
 
@@ -151,6 +562,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function() unknownUri,
   }) {
     return pidIssuance(field0);
   }
@@ -159,6 +571,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function()? unknownUri,
   }) {
     return pidIssuance?.call(field0);
   }
@@ -167,6 +580,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function()? unknownUri,
     required TResult orElse(),
   }) {
     if (pidIssuance != null) {
@@ -179,6 +593,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
+    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
   }) {
     return pidIssuance(this);
   }
@@ -187,6 +602,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
   }) {
     return pidIssuance?.call(this);
   }
@@ -195,6 +611,7 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
     required TResult orElse(),
   }) {
     if (pidIssuance != null) {
@@ -207,12 +624,111 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
 abstract class ProcessUriEvent_PidIssuance implements ProcessUriEvent {
   const factory ProcessUriEvent_PidIssuance(final PidIssuanceEvent field0) = _$ProcessUriEvent_PidIssuance;
 
-  @override
   PidIssuanceEvent get field0;
-  @override
   @JsonKey(ignore: true)
   _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$ProcessUriEvent_UnknownUriCopyWith<$Res> {
+  factory _$$ProcessUriEvent_UnknownUriCopyWith(
+          _$ProcessUriEvent_UnknownUri value, $Res Function(_$ProcessUriEvent_UnknownUri) then) =
+      __$$ProcessUriEvent_UnknownUriCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$ProcessUriEvent_UnknownUriCopyWithImpl<$Res>
+    extends _$ProcessUriEventCopyWithImpl<$Res, _$ProcessUriEvent_UnknownUri>
+    implements _$$ProcessUriEvent_UnknownUriCopyWith<$Res> {
+  __$$ProcessUriEvent_UnknownUriCopyWithImpl(
+      _$ProcessUriEvent_UnknownUri _value, $Res Function(_$ProcessUriEvent_UnknownUri) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$ProcessUriEvent_UnknownUri implements ProcessUriEvent_UnknownUri {
+  const _$ProcessUriEvent_UnknownUri();
+
+  @override
+  String toString() {
+    return 'ProcessUriEvent.unknownUri()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$ProcessUriEvent_UnknownUri);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function() unknownUri,
+  }) {
+    return unknownUri();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function()? unknownUri,
+  }) {
+    return unknownUri?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function()? unknownUri,
+    required TResult orElse(),
+  }) {
+    if (unknownUri != null) {
+      return unknownUri();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
+    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
+  }) {
+    return unknownUri(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
+  }) {
+    return unknownUri?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
+    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
+    required TResult orElse(),
+  }) {
+    if (unknownUri != null) {
+      return unknownUri(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ProcessUriEvent_UnknownUri implements ProcessUriEvent {
+  const factory ProcessUriEvent_UnknownUri() = _$ProcessUriEvent_UnknownUri;
 }
 
 /// @nodoc

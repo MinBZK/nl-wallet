@@ -165,7 +165,7 @@ fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + Unwind
         },
         move || {
             let api_uri = uri.wire2api();
-            move |task_callback| process_uri(api_uri, task_callback.stream_sink())
+            move |task_callback| Ok(process_uri(api_uri, task_callback.stream_sink()))
         },
     )
 }
@@ -214,9 +214,9 @@ impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 impl support::IntoDart for PidIssuanceEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::Authenticating => 0,
-            Self::Success => 1,
-            Self::Error => 2,
+            Self::Authenticating => vec![0.into_dart()],
+            Self::Success => vec![1.into_dart()],
+            Self::Error(field0) => vec![2.into_dart(), field0.into_dart()],
         }
         .into_dart()
     }
@@ -238,6 +238,7 @@ impl support::IntoDart for ProcessUriEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::PidIssuance(field0) => vec![0.into_dart(), field0.into_dart()],
+            Self::UnknownUri => vec![1.into_dart()],
         }
         .into_dart()
     }

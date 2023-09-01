@@ -77,10 +77,13 @@ class FlutterConfiguration {
   });
 }
 
-enum PidIssuanceEvent {
-  Authenticating,
-  Success,
-  Error,
+@freezed
+class PidIssuanceEvent with _$PidIssuanceEvent {
+  const factory PidIssuanceEvent.authenticating() = PidIssuanceEvent_Authenticating;
+  const factory PidIssuanceEvent.success() = PidIssuanceEvent_Success;
+  const factory PidIssuanceEvent.error(
+    String field0,
+  ) = PidIssuanceEvent_Error;
 }
 
 enum PinValidationResult {
@@ -95,6 +98,7 @@ class ProcessUriEvent with _$ProcessUriEvent {
   const factory ProcessUriEvent.pidIssuance(
     PidIssuanceEvent field0,
   ) = ProcessUriEvent_PidIssuance;
+  const factory ProcessUriEvent.unknownUri() = ProcessUriEvent_UnknownUri;
 }
 
 @freezed
@@ -329,6 +333,10 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  PidIssuanceEvent _wire2api_box_autoadd_pid_issuance_event(dynamic raw) {
+    return _wire2api_pid_issuance_event(raw);
+  }
+
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -343,7 +351,18 @@ class WalletCoreImpl implements WalletCore {
   }
 
   PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
-    return PidIssuanceEvent.values[raw as int];
+    switch (raw[0]) {
+      case 0:
+        return PidIssuanceEvent_Authenticating();
+      case 1:
+        return PidIssuanceEvent_Success();
+      case 2:
+        return PidIssuanceEvent_Error(
+          _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
@@ -354,8 +373,10 @@ class WalletCoreImpl implements WalletCore {
     switch (raw[0]) {
       case 0:
         return ProcessUriEvent_PidIssuance(
-          _wire2api_pid_issuance_event(raw[1]),
+          _wire2api_box_autoadd_pid_issuance_event(raw[1]),
         );
+      case 1:
+        return ProcessUriEvent_UnknownUri();
       default:
         throw Exception("unreachable");
     }

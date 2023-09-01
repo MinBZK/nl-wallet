@@ -167,10 +167,19 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 
 // Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
-pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) -> Result<()> {
+pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
     let sink = ClosingStreamSink::from(sink);
 
-    let url = Url::parse(&uri).unwrap(); // TODO: send URL parsing error on stream
+    let url = match Url::parse(&uri) {
+        Ok(url) => url,
+        Err(_) => {
+            // If URL parsing fails, this is probably an error on the Flutter side.
+            // Rather than panicking we just return that we do not know this URI.
+            sink.add(ProcessUriEvent::UnknownUri);
+
+            return;
+        }
+    };
 
     let mut wallet = wallet().write().await;
 
@@ -184,18 +193,15 @@ pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) -> Resu
                     warn!("PID issuance error: {}", error);
                     info!("PID issuance error details: {:?}", error);
 
-                    ProcessUriEvent::PidIssuance(PidIssuanceEvent::Error) // TODO: add error details to state
+                    ProcessUriEvent::PidIssuance(error.into())
                 },
                 |_| ProcessUriEvent::PidIssuance(PidIssuanceEvent::Success), // TODO: add preview as card details
             )
         }
-        // TODO: send as unknown error on stream
-        RedirectUriType::Unknown => ProcessUriEvent::PidIssuance(PidIssuanceEvent::Error),
+        RedirectUriType::Unknown => ProcessUriEvent::UnknownUri,
     };
 
     sink.add(final_event);
-
-    Ok(())
 }
 
 #[cfg(test)]
