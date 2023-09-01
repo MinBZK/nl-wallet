@@ -80,42 +80,30 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn set_lock_stream(sink: StreamSink<bool>) -> Result<()> {
+pub async fn set_lock_stream(sink: StreamSink<bool>) {
     let sink = ClosingStreamSink::from(sink);
 
     wallet().write().await.set_lock_callback(move |locked| sink.add(locked));
-
-    Ok(())
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn clear_lock_stream() -> Result<()> {
+pub async fn clear_lock_stream() {
     wallet().write().await.clear_lock_callback();
-
-    Ok(())
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) -> Result<()> {
+pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     let sink = ClosingStreamSink::from(sink);
 
     wallet()
         .write()
         .await
         .set_config_callback(move |config| sink.add(config.into()));
-
-    Ok(())
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn clear_configuration_stream() -> Result<()> {
+pub async fn clear_configuration_stream() {
     wallet().write().await.clear_config_callback();
-
-    Ok(())
 }
 
 #[async_runtime]
@@ -129,20 +117,15 @@ pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn lock_wallet() -> Result<()> {
+pub async fn lock_wallet() {
     let mut wallet = wallet().write().await;
 
     wallet.lock();
-
-    Ok(())
 }
 
 #[async_runtime]
-#[flutter_api_error]
-pub async fn has_registration() -> Result<bool> {
-    let has_registration = wallet().read().await.has_registration();
-    Ok(has_registration)
+pub async fn has_registration() -> bool {
+    wallet().read().await.has_registration()
 }
 
 #[async_runtime]

@@ -67,7 +67,7 @@ fn wire_set_lock_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| set_lock_stream(task_callback.stream_sink()),
+        move || move |task_callback| Ok(set_lock_stream(task_callback.stream_sink())),
     )
 }
 fn wire_clear_lock_stream_impl(port_: MessagePort) {
@@ -77,7 +77,7 @@ fn wire_clear_lock_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| clear_lock_stream(),
+        move || move |task_callback| Ok(clear_lock_stream()),
     )
 }
 fn wire_set_configuration_stream_impl(port_: MessagePort) {
@@ -87,7 +87,7 @@ fn wire_set_configuration_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| set_configuration_stream(task_callback.stream_sink()),
+        move || move |task_callback| Ok(set_configuration_stream(task_callback.stream_sink())),
     )
 }
 fn wire_clear_configuration_stream_impl(port_: MessagePort) {
@@ -97,7 +97,7 @@ fn wire_clear_configuration_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| clear_configuration_stream(),
+        move || move |task_callback| Ok(clear_configuration_stream()),
     )
 }
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -120,7 +120,7 @@ fn wire_lock_wallet_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| lock_wallet(),
+        move || move |task_callback| Ok(lock_wallet()),
     )
 }
 fn wire_has_registration_impl(port_: MessagePort) {
@@ -130,7 +130,7 @@ fn wire_has_registration_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| has_registration(),
+        move || move |task_callback| Ok(has_registration()),
     )
 }
 fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
