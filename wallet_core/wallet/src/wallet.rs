@@ -13,19 +13,19 @@ use wallet_common::account::messages::{
 };
 
 use crate::{
-    account_server::AccountServerResponseError,
+    account_server::{AccountServerClientError, AccountServerResponseError},
     digid::{DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
     pid_issuer::{PidIssuerClient, PidRetrieverError},
     pin::{
         key::{new_pin_salt, PinKey},
-        validation::validate_pin,
+        validation::{validate_pin, PinValidationError},
     },
     storage::{RegistrationData, StorageError, StorageState},
-    PinValidationError,
 };
+
 pub use crate::{
-    account_server::{AccountServerClient, AccountServerClientError},
+    account_server::AccountServerClient,
     config::{Configuration, ConfigurationRepository},
     digid::DigidAuthenticator,
     pid_issuer::PidRetriever,

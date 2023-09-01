@@ -5,7 +5,7 @@ mod openid_pkce;
 use async_trait::async_trait;
 use url::Url;
 
-use self::openid_client::OpenIdAuthenticatorError;
+pub use self::openid_client::OpenIdAuthenticatorError;
 
 pub use self::client::DigidClient;
 
@@ -31,7 +31,7 @@ pub trait DigidAuthenticator {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidAuthenticatorError {
-    #[error(transparent)]
+    #[error("{0}")]
     OpenId(#[from] OpenIdAuthenticatorError),
     #[error("invalid redirect URI received")]
     RedirectUriMismatch,

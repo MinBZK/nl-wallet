@@ -9,12 +9,13 @@ mod pkce;
 mod storage;
 mod utils;
 
+pub mod errors;
 pub mod wallet;
 
 pub use crate::{
     config::{AccountServerConfiguration, LockTimeoutConfiguration},
     init::{init_wallet, Wallet},
-    pin::validation::{validate_pin, PinValidationError},
+    pin::validation::validate_pin,
 };
 
 #[cfg(feature = "wallet_deps")]
