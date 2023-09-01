@@ -61,7 +61,7 @@ impl HttpClient for CborHttpClient {
 }
 
 #[derive(Debug)]
-pub(crate) struct SessionState<H> {
+pub(crate) struct IssuanceSessionState<H> {
     client: H,
     url: Url,
     request: RequestKeyGenerationMessage,
@@ -95,7 +95,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         };
         let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
 
-        self.session_state.replace(SessionState {
+        self.session_state.replace(IssuanceSessionState {
             client,
             url: url.clone(),
             request,
@@ -105,24 +105,24 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     }
 
     pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
-        let SessionState { request, client, url } = self
+        let state = self
             .session_state
             .take()
             .ok_or(HolderError::MissingIssuanceSessionState)?;
 
         // Compute responses
-        let state = IssuanceState::<K>::issuance_start(request).await?;
+        let (keys, responses) = state.keys_and_responses::<K>().await?;
 
         // Finish issuance protocol
-        let issuer_response: DataToIssueMessage = client.post(&url, &state.response).await?;
+        let issuer_response: DataToIssueMessage = state.client.post(&state.url, &responses).await?;
 
         // Process issuer response to obtain and save new mdocs
-        let creds = state.issuance_finish(issuer_response, trust_anchors).await?;
+        let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
         self.storage.add(creds.into_iter().flatten())
     }
 
     pub async fn stop_issuance(&mut self) -> Result<()> {
-        let SessionState { request, client, url } = self
+        let IssuanceSessionState { request, client, url } = self
             .session_state
             .take()
             .ok_or(HolderError::MissingIssuanceSessionState)?;
@@ -137,39 +137,28 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     }
 }
 
-#[derive(Debug)]
-pub struct IssuanceState<K> {
-    pub request: RequestKeyGenerationMessage,
-    pub response: KeyGenerationResponseMessage,
-
-    /// Private keys grouped by distinct mdocs, and then per copies of each distinct mdoc.
-    pub private_keys: Vec<Vec<K>>,
-}
-
-impl<K: MdocEcdsaKey> IssuanceState<K> {
-    pub async fn issuance_start(request: RequestKeyGenerationMessage) -> Result<IssuanceState<K>> {
-        let private_keys: Vec<Vec<K>> = request
+impl<H> IssuanceSessionState<H> {
+    pub async fn keys_and_responses<K: MdocEcdsaKey>(&self) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
+        // Group the keys by distinct mdocs, and then per copies of each distinct mdoc
+        let private_keys: Vec<Vec<K>> = self
+            .request
             .unsigned_mdocs
             .iter()
             .map(|unsigned| Self::generate_keys(unsigned.copy_count))
             .collect::<Vec<_>>();
         let private_keys_refs = private_keys.iter().map(|f| f.as_slice()).collect::<Vec<_>>();
-        let response = KeyGenerationResponseMessage::new(&request, private_keys_refs.as_slice()).await?;
+        let response = KeyGenerationResponseMessage::new(&self.request, private_keys_refs.as_slice()).await?;
 
-        let state = IssuanceState {
-            request,
-            private_keys,
-            response,
-        };
-        Ok(state)
+        Ok((private_keys, response))
     }
 
-    pub fn generate_keys(count: u64) -> Vec<K> {
+    pub fn generate_keys<K: MdocEcdsaKey>(count: u64) -> Vec<K> {
         (0..count).map(|_| K::new(&random_string(32))).collect()
     }
 
-    pub async fn issuance_finish(
+    pub async fn construct_mdocs<K: MdocEcdsaKey>(
         self,
+        private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Vec<MdocCopies<K>>> {
@@ -178,7 +167,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
                 .mobile_eid_documents
                 .iter()
                 .zip(&self.request.unsigned_mdocs)
-                .zip(&self.private_keys)
+                .zip(&private_keys)
                 .map(|((doc, unsigned), keys)| Self::create_cred_copies(doc, unsigned, keys, trust_anchors)),
         )
         .await?;
@@ -186,7 +175,7 @@ impl<K: MdocEcdsaKey> IssuanceState<K> {
         Ok(mdoc_copies)
     }
 
-    async fn create_cred_copies(
+    async fn create_cred_copies<K: MdocEcdsaKey>(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &[K],
