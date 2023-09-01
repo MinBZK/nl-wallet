@@ -107,7 +107,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
         let state = self
             .session_state
-            .take()
+            .as_ref()
             .ok_or(HolderError::MissingIssuanceSessionState)?;
 
         // Compute responses
@@ -118,7 +118,12 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
-        self.storage.add(creds.into_iter().flatten())
+        self.storage.add(creds.into_iter().flatten())?;
+
+        // Clear session state now that all fallible operations have not failed
+        self.session_state.take();
+
+        Ok(())
     }
 
     pub async fn stop_issuance(&mut self) -> Result<()> {
@@ -157,7 +162,7 @@ impl<H> IssuanceSessionState<H> {
     }
 
     pub async fn construct_mdocs<K: MdocEcdsaKey>(
-        self,
+        &self,
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
