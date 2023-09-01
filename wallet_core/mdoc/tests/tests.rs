@@ -376,7 +376,7 @@ async fn issuance_using_consent(
     wallet.start_issuance(service_engagement, client).await.unwrap();
 
     if !user_consent {
-        wallet.stop_issuance().await;
+        wallet.stop_issuance().await.unwrap();
         return;
     }
 

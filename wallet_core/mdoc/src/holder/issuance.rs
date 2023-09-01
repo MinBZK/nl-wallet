@@ -105,7 +105,10 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     }
 
     pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
-        let SessionState { request, client, url } = self.session_state.take().expect("missing session state");
+        let SessionState { request, client, url } = self
+            .session_state
+            .take()
+            .ok_or(HolderError::MissingIssuanceSessionState)?;
 
         // Compute responses
         let state = IssuanceState::<K>::issuance_start(request).await?;
@@ -118,14 +121,19 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         self.storage.add(creds.into_iter().flatten())
     }
 
-    pub async fn stop_issuance(&mut self) {
-        let SessionState { request, client, url } = self.session_state.take().expect("missing session state");
+    pub async fn stop_issuance(&mut self) -> Result<()> {
+        let SessionState { request, client, url } = self
+            .session_state
+            .take()
+            .ok_or(HolderError::MissingIssuanceSessionState)?;
 
         // Inform the server we want to abort. We don't care if an error occurs here
         let end_msg = RequestEndSessionMessage {
             e_session_id: request.e_session_id,
         };
         let _: Result<EndSessionMessage> = client.post(&url, &end_msg).await;
+
+        Ok(())
     }
 }
 
