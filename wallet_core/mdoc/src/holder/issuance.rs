@@ -74,7 +74,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         &mut self,
         service_engagement: ServiceEngagement,
         client: H,
-    ) -> Result<Vec<UnsignedMdoc>> {
+    ) -> Result<&Vec<UnsignedMdoc>> {
         assert!(self.session_state.is_none());
 
         let url = service_engagement
@@ -95,7 +95,6 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
             version: 1, // TODO magic number
         };
         let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
-        let unsigned_mdocs = request.unsigned_mdocs.clone();
 
         self.session_state.replace(SessionState {
             client,
@@ -104,7 +103,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
             session_id,
         });
 
-        Ok(unsigned_mdocs)
+        Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
     pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
