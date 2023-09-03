@@ -69,8 +69,6 @@ pub(crate) struct IssuanceSessionState {
 impl<C: Storage, H: HttpClient> Wallet<C, H> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
     pub async fn start_issuance(&mut self, service_engagement: ServiceEngagement) -> Result<&[UnsignedMdoc]> {
-        assert!(self.session_state.is_none());
-
         let url = service_engagement
             .url
             .as_ref()
