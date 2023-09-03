@@ -113,7 +113,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let mdoc = mdoc_from_example_device_response(trust_anchors);
 
     // Do the disclosure and verify it
-    let wallet = MockWallet::new(MdocsMap::try_from([mdoc]).unwrap());
+    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap(), DummyHttpClient);
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
         .await
@@ -155,7 +155,7 @@ async fn iso_examples_custom_disclosure() {
     let trust_anchors = Examples::iaca_trust_anchors();
     let mdoc = mdoc_from_example_device_response(trust_anchors);
 
-    let wallet = MockWallet::new(MdocsMap::try_from([mdoc]).unwrap());
+    let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap(), DummyHttpClient);
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
         .await
@@ -278,6 +278,15 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
+struct DummyHttpClient;
+
+#[async_trait]
+impl HttpClient for DummyHttpClient {
+    async fn post<R, V>(&self, _: &Url, _: &V) -> Result<R, Error> {
+        panic!("not implemented")
+    }
+}
+
 struct MockHttpClient<K, S> {
     issuance_server: Arc<Server<K, S>>,
 }
@@ -314,9 +323,7 @@ impl KeyRing for MockIssuanceKeyring {
     }
 }
 
-fn setup_issuance_test() -> (MockWallet, MockServer, Certificate) {
-    let wallet = MockWallet::new(MdocsMap::new());
-
+fn setup_issuance_test() -> (MockWallet, Arc<MockServer>, Certificate) {
     // Issuer CA certificate and normal certificate
     let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
     let (issuer_cert, issuer_privkey) =
@@ -324,11 +331,16 @@ fn setup_issuance_test() -> (MockWallet, MockServer, Certificate) {
     let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
 
     // Setup issuer
-    let issuance_server = Server::new(
+    let issuance_server = Arc::new(MockServer::new(
         "http://example.com".parse().unwrap(),
         MockIssuanceKeyring { issuance_key },
         MemorySessionStore::new(),
-    );
+    ));
+
+    let client = MockHttpClient {
+        issuance_server: Arc::clone(&issuance_server),
+    };
+    let wallet = MockWallet::new(MdocsMap::new(), client);
 
     (wallet, issuance_server, ca)
 }
@@ -337,7 +349,7 @@ fn setup_issuance_test() -> (MockWallet, MockServer, Certificate) {
 async fn issuance_and_disclosure() {
     // Agree with issuance
     let (mut wallet, server, ca) = setup_issuance_test();
-    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
+    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 
     // We can disclose the mdoc that was just issued to us
@@ -345,7 +357,7 @@ async fn issuance_and_disclosure() {
 
     // Decline issuance
     let (mut wallet, server, ca) = setup_issuance_test();
-    issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
+    issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
     assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
 
     // Issue not-yet-valid mdocs
@@ -357,7 +369,7 @@ async fn issuance_and_disclosure() {
     assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
 
     let (mut wallet, server, ca) = setup_issuance_test();
-    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::new(server), &ca).await;
+    issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
     assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
 }
 
@@ -369,11 +381,8 @@ async fn issuance_using_consent(
     ca: &Certificate,
 ) {
     let service_engagement = issuance_server.new_session(request).unwrap();
-    let client = MockHttpClient {
-        issuance_server: Arc::clone(&issuance_server),
-    };
 
-    wallet.start_issuance(service_engagement, client).await.unwrap();
+    wallet.start_issuance(service_engagement).await.unwrap();
 
     if !user_consent {
         wallet.stop_issuance().await.unwrap();

@@ -43,7 +43,14 @@ impl PidIssuerClient {
 
 impl Default for PidIssuerClient {
     fn default() -> Self {
-        Self::new(Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new()))))
+        let http_client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        Self::new(Arc::new(Mutex::new(MdocWallet::new(
+            MdocsMap::new(),
+            CborHttpClient(http_client),
+        ))))
     }
 }
 
@@ -86,14 +93,8 @@ impl PidRetriever for PidIssuerClient {
             .json::<ServiceEngagement>()
             .await?;
 
-        let http_client = default_reqwest_client_builder()
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
         let mut mdoc_wallet = self.mdoc_wallet.lock().await;
-        let _unsigned_mdocs = mdoc_wallet
-            .start_issuance(service_engagement, CborHttpClient(http_client))
-            .await?;
+        let _unsigned_mdocs = mdoc_wallet.start_issuance(service_engagement).await?;
 
         // TODO: instead of proceeding immediately with mdoc_wallet.finish_issuance():
         // - return _unsigned_mdocs to the caller of this method so that it can decide whether or not to proceed,

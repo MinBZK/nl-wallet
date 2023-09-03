@@ -61,19 +61,14 @@ impl HttpClient for CborHttpClient {
 }
 
 #[derive(Debug)]
-pub(crate) struct IssuanceSessionState<H> {
-    client: H,
+pub(crate) struct IssuanceSessionState {
     url: Url,
     request: RequestKeyGenerationMessage,
 }
 
 impl<C: Storage, H: HttpClient> Wallet<C, H> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
-    pub async fn start_issuance(
-        &mut self,
-        service_engagement: ServiceEngagement,
-        client: H,
-    ) -> Result<&[UnsignedMdoc]> {
+    pub async fn start_issuance(&mut self, service_engagement: ServiceEngagement) -> Result<&[UnsignedMdoc]> {
         assert!(self.session_state.is_none());
 
         let url = service_engagement
@@ -85,7 +80,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         let start_prov_msg = StartProvisioningMessage {
             provisioning_code: service_engagement.pc.clone(),
         };
-        let ready_msg: ReadyToProvisionMessage = client.post(url, &start_prov_msg).await?;
+        let ready_msg: ReadyToProvisionMessage = self.client.post(url, &start_prov_msg).await?;
         let session_id = ready_msg.e_session_id;
 
         // Fetch the issuance details: challenge and the to-be-issued mdocs
@@ -93,10 +88,9 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
             e_session_id: session_id,
             version: 1, // TODO magic number
         };
-        let request: RequestKeyGenerationMessage = client.post(url, &start_issuing_msg).await?;
+        let request: RequestKeyGenerationMessage = self.client.post(url, &start_issuing_msg).await?;
 
         self.session_state.replace(IssuanceSessionState {
-            client,
             url: url.clone(),
             request,
         });
@@ -114,7 +108,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         let (keys, responses) = state.keys_and_responses::<K>().await?;
 
         // Finish issuance protocol
-        let issuer_response: DataToIssueMessage = state.client.post(&state.url, &responses).await?;
+        let issuer_response: DataToIssueMessage = self.client.post(&state.url, &responses).await?;
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
@@ -127,7 +121,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
     }
 
     pub async fn stop_issuance(&mut self) -> Result<()> {
-        let IssuanceSessionState { request, client, url } = self
+        let IssuanceSessionState { request, url } = self
             .session_state
             .take()
             .ok_or(HolderError::MissingIssuanceSessionState)?;
@@ -136,13 +130,13 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         let end_msg = RequestEndSessionMessage {
             e_session_id: request.e_session_id,
         };
-        let _: Result<EndSessionMessage> = client.post(&url, &end_msg).await;
+        let _: Result<EndSessionMessage> = self.client.post(&url, &end_msg).await;
 
         Ok(())
     }
 }
 
-impl<H> IssuanceSessionState<H> {
+impl IssuanceSessionState {
     pub async fn keys_and_responses<K: MdocEcdsaKey>(&self) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
         // Group the keys by distinct mdocs, and then per copies of each distinct mdoc
         let private_keys: Vec<Vec<K>> = self

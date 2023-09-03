@@ -27,14 +27,16 @@ pub trait Storage {
 
 pub struct Wallet<C, H = CborHttpClient> {
     pub(crate) storage: C,
-    pub(crate) session_state: Option<IssuanceSessionState<H>>,
+    pub(crate) session_state: Option<IssuanceSessionState>,
+    pub(crate) client: H,
 }
 
 impl<C: Storage, H: HttpClient> Wallet<C, H> {
-    pub fn new(storage: C) -> Self {
+    pub fn new(storage: C, client: H) -> Self {
         Self {
             storage,
             session_state: None,
+            client,
         }
     }
 

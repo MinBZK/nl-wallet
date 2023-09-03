@@ -8,7 +8,10 @@ use tokio::sync::Mutex;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use nl_wallet_mdoc::{holder::Wallet as MdocWallet, utils::mdocs_map::MdocsMap};
+use nl_wallet_mdoc::{
+    holder::{CborHttpClient, Wallet as MdocWallet},
+    utils::mdocs_map::MdocsMap,
+};
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
     mock::{MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
@@ -108,7 +111,8 @@ async fn test_pid_issuance_mock_bsn() {
     };
 
     // Set up real pid issuer client.
-    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new())));
+    let client = CborHttpClient(reqwest::Client::new());
+    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new(), client)));
     let pid_issuer_client = PidIssuerClient::new(Arc::clone(&mdoc_wallet));
 
     // Create wallet with configuration and dependencies.
