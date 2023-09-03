@@ -73,7 +73,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         &mut self,
         service_engagement: ServiceEngagement,
         client: H,
-    ) -> Result<&Vec<UnsignedMdoc>> {
+    ) -> Result<&[UnsignedMdoc]> {
         assert!(self.session_state.is_none());
 
         let url = service_engagement
