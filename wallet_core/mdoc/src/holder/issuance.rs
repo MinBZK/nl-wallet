@@ -157,7 +157,7 @@ impl<H> IssuanceSessionState<H> {
         Ok((private_keys, response))
     }
 
-    pub fn generate_keys<K: MdocEcdsaKey>(count: u64) -> Vec<K> {
+    fn generate_keys<K: MdocEcdsaKey>(count: u64) -> Vec<K> {
         (0..count).map(|_| K::new(&random_string(32))).collect()
     }
 
