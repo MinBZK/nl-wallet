@@ -1,15 +1,15 @@
-use std::panic;
-
 use async_trait::async_trait;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
-use tokio::task;
 
 use wallet_common::keys::{ConstructableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
-use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
+use crate::{
+    bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge},
+    spawn,
+};
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
 
@@ -34,7 +34,7 @@ impl EcdsaKey for HardwareEcdsaKey {
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let identifier = self.identifier.to_owned();
 
-        spawn_blocking(|| {
+        spawn::blocking(|| {
             let public_key_bytes = get_signing_key_bridge().public_key(identifier)?;
             let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
@@ -47,7 +47,8 @@ impl EcdsaKey for HardwareEcdsaKey {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
 
-        let signature_bytes = spawn_blocking(|| get_signing_key_bridge().sign(identifier, payload)).await?;
+        let signature_bytes =
+            spawn::blocking::<_, Self::Error, _>(|| get_signing_key_bridge().sign(identifier, payload)).await?;
 
         // decode the DER encoded signature
         Ok(Signature::from_der(&signature_bytes)?)
@@ -94,26 +95,12 @@ impl SecureEncryptionKey for HardwareEncryptionKey {
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
-        spawn_blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await
+        spawn::blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
-        spawn_blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await
+        spawn::blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await
     }
-}
-
-async fn spawn_blocking<R, E>(
-    fun: impl FnOnce() -> Result<R, E> + Send + Sync + 'static,
-) -> Result<R, HardwareKeyStoreError>
-where
-    R: Send + Sync + 'static,
-    E: Send + Sync + 'static,
-    HardwareKeyStoreError: From<E>,
-{
-    let result = task::spawn_blocking(fun)
-        .await
-        .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))?;
-    Ok(result)
 }
