@@ -7,7 +7,7 @@ use p256::{
 };
 use tokio::task;
 
-use wallet_common::keys::{ConstructableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+use wallet_common::keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
 use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
 
@@ -56,7 +56,7 @@ impl EcdsaKey for HardwareEcdsaKey {
 
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
-impl ConstructableWithIdentifier for HardwareEcdsaKey {
+impl ConstructibleWithIdentifier for HardwareEcdsaKey {
     fn new(identifier: &str) -> Self {
         HardwareEcdsaKey {
             identifier: identifier.to_string(),
@@ -76,7 +76,7 @@ pub struct HardwareEncryptionKey {
     identifier: String,
 }
 
-impl ConstructableWithIdentifier for HardwareEncryptionKey {
+impl ConstructibleWithIdentifier for HardwareEncryptionKey {
     fn new(identifier: &str) -> Self {
         HardwareEncryptionKey {
             identifier: identifier.to_string(),

@@ -92,7 +92,7 @@ mod tests {
     use std::{cell::RefCell, env};
 
     use tempfile::{NamedTempFile, TempPath};
-    use wallet_common::keys::{software::SoftwareEncryptionKey, ConstructableWithIdentifier};
+    use wallet_common::keys::{software::SoftwareEncryptionKey, ConstructibleWithIdentifier};
 
     use super::*;
 

@@ -11,7 +11,7 @@ use rand_core::OsRng;
 
 use crate::utils::random_bytes;
 
-use super::{ConstructableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+use super::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -54,7 +54,7 @@ impl EcdsaKey for SoftwareEcdsaKey {
 }
 impl SecureEcdsaKey for SoftwareEcdsaKey {}
 
-impl ConstructableWithIdentifier for SoftwareEcdsaKey {
+impl ConstructibleWithIdentifier for SoftwareEcdsaKey {
     fn new(identifier: &str) -> Self
     where
         Self: Sized,
@@ -82,7 +82,7 @@ pub struct SoftwareEncryptionKey {
 }
 
 #[async_trait]
-impl ConstructableWithIdentifier for SoftwareEncryptionKey {
+impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
     fn new(identifier: &str) -> Self
     where
         Self: Sized,

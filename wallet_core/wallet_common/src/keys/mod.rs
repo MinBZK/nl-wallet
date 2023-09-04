@@ -36,7 +36,7 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 
 /// The contract of this trait includes that a constructed type with the same
 /// identifier behaves exactly the same, i.e. has the same key material backing it.
-pub trait ConstructableWithIdentifier {
+pub trait ConstructibleWithIdentifier {
     fn new(identifier: &str) -> Self
     where
         Self: Sized;
@@ -46,10 +46,10 @@ pub trait ConstructableWithIdentifier {
 
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
+/// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
 #[async_trait]
-pub trait SecureEncryptionKey: ConstructableWithIdentifier {
-    // from ConstructableWithIdentifier: new(), identifier()
+pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
+    // from ConstructibleWithIdentifier: new(), identifier()
     type Error: Error + Send + Sync + 'static;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
