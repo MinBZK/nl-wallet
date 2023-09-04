@@ -93,14 +93,14 @@ class DeeplinkService {
     _walletCore.processUri(uri).listen((event) {
       Fimber.d('wallet_core processUri response: $event');
       event.when(
-        pidIssuance: (PidIssuanceEvent state) {
+        pidIssuance: (PidIssuanceEvent event) {
           // We only pass on the [PidIssuanceEvent] here (no navigation) since:
           // - if the app did not cold start the user is already in the correct place
           // - else if the wallet is not yet registered, PidIssuance not yet appropriate and it will be re-initiated later.
           // - else if the wallet is registered but the PID is not yet retrieved, the user will end up in the personalize flow,
           //   the correct state will be rendered because we notify the repository that authentication is in process.
           // - else if the wallet is registered and the PID is available, PidIssuance is no longer relevant.
-          _updatePidIssuanceStatusUseCase.invoke(state);
+          _updatePidIssuanceStatusUseCase.invoke(event);
         },
         unknownUri: () => Fimber.d('walletCore did not recognize $uri, ignoring.'),
       );

@@ -10,6 +10,6 @@ class ObservePidIssuanceStatusUseCaseImpl implements ObservePidIssuanceStatusUse
 
   @override
   Stream<PidIssuanceStatus> invoke() {
-    return _pidRepository.observePidIssuanceStatus().where((status) => status != PidIssuanceStatus.idle);
+    return _pidRepository.observePidIssuanceStatus().where((status) => status is! PidIssuanceIdle);
   }
 }

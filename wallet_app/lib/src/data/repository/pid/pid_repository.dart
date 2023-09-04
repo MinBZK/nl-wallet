@@ -1,4 +1,7 @@
 import '../../../../bridge_generated.dart';
+import '../../../domain/model/pid/pid_issuance_status.dart';
+
+export '../../../domain/model/pid/pid_issuance_status.dart';
 
 abstract class PidRepository {
   Future<String> getPidIssuanceUrl();
@@ -7,5 +10,3 @@ abstract class PidRepository {
 
   Stream<PidIssuanceStatus> observePidIssuanceStatus();
 }
-
-enum PidIssuanceStatus { idle, authenticating, success, error }

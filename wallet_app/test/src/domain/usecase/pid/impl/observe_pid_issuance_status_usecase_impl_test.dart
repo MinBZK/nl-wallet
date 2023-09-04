@@ -24,15 +24,15 @@ void main() {
     });
 
     test('The stream should be updated after notifying the repository', () async {
-      expectLater(usecase.invoke(), emitsInOrder([PidIssuanceStatus.authenticating]));
-      mockStatusSubject.add(PidIssuanceStatus.authenticating);
+      expectLater(usecase.invoke(), emitsInOrder([PidIssuanceAuthenticating()]));
+      mockStatusSubject.add(PidIssuanceAuthenticating());
     });
 
     test('The idle state is expected to be consumed by the usecase', () async {
-      expectLater(usecase.invoke(), emitsInOrder([PidIssuanceStatus.authenticating, PidIssuanceStatus.success]));
-      mockStatusSubject.add(PidIssuanceStatus.authenticating);
-      mockStatusSubject.add(PidIssuanceStatus.success);
-      mockStatusSubject.add(PidIssuanceStatus.idle);
+      expectLater(usecase.invoke(), emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceSuccess(List.empty())]));
+      mockStatusSubject.add(PidIssuanceAuthenticating());
+      mockStatusSubject.add(PidIssuanceSuccess(List.empty()));
+      mockStatusSubject.add(PidIssuanceIdle());
     });
   });
 }

@@ -47,17 +47,19 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     _pidIssuanceStatusSubscription = observePidIssuanceStatusUseCase.invoke().listen(_handlePidIssuanceStatusUpdate);
   }
 
-  void _handlePidIssuanceStatusUpdate(event) {
+  void _handlePidIssuanceStatusUpdate(PidIssuanceStatus event) {
     if (state is WalletPersonalizeDigidFailure) return; // Don't navigate when user cancelled.
     switch (event) {
-      case PidIssuanceStatus.success:
+      case PidIssuanceIdle():
+        break;
+      case PidIssuanceAuthenticating():
+        add(WalletPersonalizeAuthInProgress());
+        break;
+      case PidIssuanceSuccess():
         add(WalletPersonalizeLoginWithDigidSucceeded());
         break;
-      case PidIssuanceStatus.error:
+      case PidIssuanceError():
         add(WalletPersonalizeLoginWithDigidFailed());
-        break;
-      case PidIssuanceStatus.authenticating:
-        add(WalletPersonalizeAuthInProgress());
         break;
     }
   }

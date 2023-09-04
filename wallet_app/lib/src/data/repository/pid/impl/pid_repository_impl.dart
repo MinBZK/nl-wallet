@@ -17,16 +17,20 @@ class PidRepositoryImpl extends PidRepository {
 
   @override
   void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event) {
-    event?.when(authenticating: () {
-      _digidAuthStatusController.add(PidIssuanceStatus.authenticating);
-    }, success: (success) {
-      _digidAuthStatusController.add(PidIssuanceStatus.success);
-      _digidAuthStatusController.add(PidIssuanceStatus.idle);
-    }, error: (error) {
-      _digidAuthStatusController.add(PidIssuanceStatus.error);
-      _digidAuthStatusController.add(PidIssuanceStatus.idle);
-    });
-    if (event == null) _digidAuthStatusController.add(PidIssuanceStatus.idle);
+    event?.when(
+      authenticating: () {
+        _digidAuthStatusController.add(PidIssuanceAuthenticating());
+      },
+      success: (success) {
+        _digidAuthStatusController.add(PidIssuanceSuccess(List.empty()));
+        _digidAuthStatusController.add(PidIssuanceIdle());
+      },
+      error: (error) {
+        _digidAuthStatusController.add(PidIssuanceError());
+        _digidAuthStatusController.add(PidIssuanceIdle());
+      },
+    );
+    if (event == null) _digidAuthStatusController.add(PidIssuanceIdle());
   }
 
   @override

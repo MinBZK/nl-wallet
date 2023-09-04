@@ -24,26 +24,26 @@ void main() {
 
   group('DigiD State Updates', () {
     test('Stream updates when notified', () async {
-      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceStatus.authenticating]));
+      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceAuthenticating()]));
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
     });
 
     test('Stream reflects success state and returns back to idle', () async {
       expectLater(authRepository.observePidIssuanceStatus(),
-          emitsInOrder([PidIssuanceStatus.authenticating, PidIssuanceStatus.success, PidIssuanceStatus.idle]));
+          emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceSuccess(List.empty()), PidIssuanceIdle()]));
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
       authRepository.notifyPidIssuanceStateUpdate(PidIssuanceEvent.success(previewCards: List.empty()));
     });
 
     test('Stream reflects error state and returns back to idle', () async {
       expectLater(authRepository.observePidIssuanceStatus(),
-          emitsInOrder([PidIssuanceStatus.authenticating, PidIssuanceStatus.error, PidIssuanceStatus.idle]));
+          emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(), PidIssuanceIdle()]));
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
     });
 
     test('Stream returns back to idle when receiving a null status', () async {
-      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceStatus.idle]));
+      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceIdle()]));
       authRepository.notifyPidIssuanceStateUpdate(null);
     });
   });
