@@ -85,6 +85,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       builder: (context, state) {
         Widget result = switch (state) {
           WalletPersonalizeInitial() => _buildWalletIntroPage(context),
+          WalletPersonalizeLoadingIssuanceUrl() => _buildAuthenticatingWithDigid(context),
           WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(context),
           WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(context),
           WalletPersonalizeLoadInProgress() => _buildLoading(context),

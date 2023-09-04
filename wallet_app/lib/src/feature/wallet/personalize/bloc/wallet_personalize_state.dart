@@ -25,6 +25,16 @@ class WalletPersonalizeInitial extends WalletPersonalizeState {
   double get stepperProgress => 1 / _kNrOfPages;
 }
 
+class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
+  const WalletPersonalizeLoadingIssuanceUrl();
+
+  @override
+  double get stepperProgress => 2 / _kNrOfPages;
+
+  @override
+  List<Object?> get props => [...super.props];
+}
+
 class WalletPersonalizeConnectDigid extends WalletPersonalizeState {
   final String authUrl;
 
