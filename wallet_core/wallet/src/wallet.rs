@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::{error::Error, marker::PhantomData};
 
-use platform_support::utils::PlatformUtilities;
+use platform_support::utils::{hardware::HardwareUtilities, PlatformUtilities};
 use tracing::{info, instrument};
 use url::Url;
 
@@ -128,13 +128,14 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, S, K, A, D = DigidClient, P = PidIssuerClient> {
+pub struct Wallet<C, S, K, A, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
     config_repository: C,
     storage: S,
     hw_privkey: K,
     account_server: A,
     digid: D,
     pid_issuer: P,
+    platform_utils: PhantomData<U>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
@@ -147,12 +148,12 @@ where
     K: PlatformEcdsaKey,
     A: AccountServerClient,
 {
-    pub async fn init_all<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
-        Self::init_wp_and_storage::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
+    pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
+        Self::init_wp_and_storage(config_repository, DigidClient::default(), PidIssuerClient::default()).await
     }
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, U> Wallet<C, S, K, A, D, P, U>
 where
     C: ConfigurationRepository,
     S: Storage,
@@ -160,13 +161,10 @@ where
     A: AccountServerClient,
     D: DigidAuthenticator,
     P: PidRetriever,
+    U: PlatformUtilities,
 {
     /// Initialize the wallet by loading initial state.
-    pub async fn init_wp_and_storage<U: PlatformUtilities>(
-        config_repository: C,
-        digid: D,
-        pid_issuer: P,
-    ) -> Result<Self, WalletInitError> {
+    pub async fn init_wp_and_storage(config_repository: C, digid: D, pid_issuer: P) -> Result<Self, WalletInitError> {
         let storage_path = U::storage_path().await.map_err(StorageError::from)?;
         let storage = S::new(storage_path);
 
@@ -179,6 +177,7 @@ where
             account_server,
             digid,
             pid_issuer,
+            platform_utils: PhantomData,
             lock: WalletLock::new(true),
             registration: None,
             config_callback: None,
@@ -491,6 +490,7 @@ mod tests {
         AccountServer,
         MockDigidAuthenticator,
         MockPidRetriever,
+        SoftwareUtilities,
     >;
 
     // Emulate wallet:init_wp_and_storage(), with the option to override the mock storage.
@@ -509,6 +509,7 @@ mod tests {
             account_server,
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
+            platform_utils: PhantomData,
             lock: WalletLock::new(true),
             registration: None,
             config_callback: None,
@@ -523,7 +524,7 @@ mod tests {
     #[tokio::test]
     async fn test_init() {
         let config_repository = MockConfigurationRepository::default();
-        let wallet = MockWallet::init_wp_and_storage::<SoftwareUtilities>(
+        let wallet = MockWallet::init_wp_and_storage(
             config_repository,
             MockDigidAuthenticator::new(),
             MockPidRetriever::new(),

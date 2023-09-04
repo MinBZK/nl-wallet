@@ -1,7 +1,4 @@
-use platform_support::{
-    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
-    utils::hardware::HardwareUtilities,
-};
+use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
     account_server::RemoteAccountServerClient,
@@ -23,5 +20,5 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
     // is cached yet.
     let config = LocalConfigurationRepository::new_with_initial(Configuration::default);
 
-    Wallet::init_all::<HardwareUtilities>(config).await
+    Wallet::init_all(config).await
 }
