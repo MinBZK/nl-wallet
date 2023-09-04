@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    AccountServerClientError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError, WalletRegistrationError,
+    AccountProviderError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError, WalletRegistrationError,
     WalletUnlockError,
 };
 
@@ -127,8 +127,8 @@ impl From<&PidIssuanceError> for FlutterApiErrorType {
     }
 }
 
-impl From<&AccountServerClientError> for FlutterApiErrorType {
-    fn from(_value: &AccountServerClientError) -> Self {
+impl From<&AccountProviderError> for FlutterApiErrorType {
+    fn from(_value: &AccountProviderError) -> Self {
         Self::Networking
     }
 }

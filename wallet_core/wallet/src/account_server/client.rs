@@ -18,14 +18,14 @@ use wallet_common::account::{
 
 use crate::utils::reqwest::default_reqwest_client_builder;
 
-use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
+use super::{AccountProvider, AccountProviderError, AccountProviderResponseError};
 
-pub struct RemoteAccountServerClient {
+pub struct AccountServerClient {
     base_url: Url,
     client: Client,
 }
 
-impl RemoteAccountServerClient {
+impl AccountServerClient {
     fn new(base_url: Url) -> Self {
         let client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
@@ -35,14 +35,14 @@ impl RemoteAccountServerClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        RemoteAccountServerClient { base_url, client }
+        AccountServerClient { base_url, client }
     }
 
     fn url(&self, path: &str) -> Result<Url, ParseError> {
         self.base_url.join(path)
     }
 
-    async fn send_json_post_request<S, T>(&self, path: &str, json: &S) -> Result<T, AccountServerClientError>
+    async fn send_json_post_request<S, T>(&self, path: &str, json: &S) -> Result<T, AccountProviderError>
     where
         S: Serialize,
         T: DeserializeOwned,
@@ -51,7 +51,7 @@ impl RemoteAccountServerClient {
         self.send_json_request::<T>(request).await
     }
 
-    async fn send_json_request<T>(&self, request: Request) -> Result<T, AccountServerClientError>
+    async fn send_json_request<T>(&self, request: Request) -> Result<T, AccountProviderError>
     where
         T: DeserializeOwned,
     {
@@ -76,28 +76,28 @@ impl RemoteAccountServerClient {
             let error = match (content_length, content_type_components) {
                 // If we know there is an empty body,
                 // we can stop early and return `AccountServerResponseError::Status`.
-                (Some(content_length), _) if content_length == 0 => AccountServerResponseError::Status(status),
+                (Some(content_length), _) if content_length == 0 => AccountProviderResponseError::Status(status),
                 // When the `Content-Type` header is either `application/json` or `application/???+json`,
                 // attempt to parse the body as `ErrorData`. If this fails, just return
                 // `AccountServerResponseError::Status`.
                 (_, Some((mime::APPLICATION, mime::JSON, _))) | (_, Some((mime::APPLICATION, _, Some(mime::JSON)))) => {
                     match response.json::<ErrorData>().await {
-                        Ok(error_data) => AccountServerResponseError::Data(status, error_data),
-                        Err(_) => AccountServerResponseError::Status(status),
+                        Ok(error_data) => AccountProviderResponseError::Data(status, error_data),
+                        Err(_) => AccountProviderResponseError::Status(status),
                     }
                 }
                 // When the `Content-Type` header is `text/plain`, attempt to get the body as text
                 // and return `AccountServerResponseError::Text`. If this fails or the body is empty,
                 // just return `AccountServerResponseError::Status`.
                 (_, Some((mime::TEXT, mime::PLAIN, _))) => match response.text().await {
-                    Ok(text) if !text.is_empty() => AccountServerResponseError::Text(status, text),
-                    _ => AccountServerResponseError::Status(status),
+                    Ok(text) if !text.is_empty() => AccountProviderResponseError::Text(status, text),
+                    _ => AccountProviderResponseError::Status(status),
                 },
                 // The fallback is to return `AccountServerResponseError::Status`.
-                _ => AccountServerResponseError::Status(status),
+                _ => AccountProviderResponseError::Status(status),
             };
 
-            return Err(AccountServerClientError::Response(error));
+            return Err(AccountProviderError::Response(error));
         }
 
         let body = response.json().await?;
@@ -107,7 +107,7 @@ impl RemoteAccountServerClient {
 }
 
 #[async_trait]
-impl AccountServerClient for RemoteAccountServerClient {
+impl AccountProvider for AccountServerClient {
     async fn new(base_url: &Url) -> Self
     where
         Self: Sized,
@@ -115,7 +115,7 @@ impl AccountServerClient for RemoteAccountServerClient {
         Self::new(base_url.clone())
     }
 
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
+    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountProviderError> {
         let request = self.client.post(self.url("enroll")?).build()?;
         let challenge = self.send_json_request::<Challenge>(request).await?.challenge.0;
 
@@ -125,7 +125,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, AccountServerClientError> {
+    ) -> Result<WalletCertificate, AccountProviderError> {
         let cert: Certificate = self
             .send_json_post_request("createwallet", &registration_message)
             .await?;
@@ -136,7 +136,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn instruction_challenge(
         &self,
         challenge_request: InstructionChallengeRequestMessage,
-    ) -> Result<Vec<u8>, AccountServerClientError> {
+    ) -> Result<Vec<u8>, AccountProviderError> {
         let challenge: Challenge = self
             .send_json_post_request("instructions/challenge", &challenge_request)
             .await?;
@@ -147,7 +147,7 @@ impl AccountServerClient for RemoteAccountServerClient {
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountServerClientError> {
+    ) -> Result<InstructionResult<()>, AccountProviderError> {
         let message: InstructionResultMessage<()> = self
             .send_json_post_request("instructions/check_pin", &instruction)
             .await?;
@@ -182,18 +182,17 @@ mod tests {
         pub bar: u64,
     }
 
-    async fn create_mock_server_and_client() -> (MockServer, RemoteAccountServerClient) {
+    async fn create_mock_server_and_client() -> (MockServer, AccountServerClient) {
         let server = MockServer::start().await;
-        let client =
-            RemoteAccountServerClient::new(Url::parse(&server.uri()).expect("Could not parse mock server URI"));
+        let client = AccountServerClient::new(Url::parse(&server.uri()).expect("Could not parse mock server URI"));
 
         (server, client)
     }
 
     async fn post_example_request(
-        client: &RemoteAccountServerClient,
+        client: &AccountServerClient,
         path: &str,
-    ) -> Result<ExampleBody, AccountServerClientError> {
+    ) -> Result<ExampleBody, AccountProviderError> {
         let request = client
             .client
             .post(client.url(path).expect("Could not build URL"))
@@ -242,7 +241,7 @@ mod tests {
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Status(StatusCode::NOT_FOUND))
+            AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::NOT_FOUND))
         ))
     }
 
@@ -263,7 +262,7 @@ mod tests {
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Text(StatusCode::BAD_GATEWAY, body))
+            AccountProviderError::Response(AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body))
        if body == "Your gateway is bad and you should feel bad!"))
     }
 
@@ -295,8 +294,7 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        if let AccountServerClientError::Response(AccountServerResponseError::Data(StatusCode::BAD_REQUEST, data)) =
-            error
+        if let AccountProviderError::Response(AccountProviderResponseError::Data(StatusCode::BAD_REQUEST, data)) = error
         {
             assert!(matches!(data.typ, ErrorType::ChallengeValidation));
             assert_eq!(data.title, "Error title");
@@ -323,7 +321,7 @@ mod tests {
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
+            AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
         ));
     }
 }

@@ -3,7 +3,7 @@ pub use openid::error::Error as OpenIdError;
 pub use reqwest::Error as ReqwestError;
 
 pub use crate::{
-    account_server::{AccountServerClientError, AccountServerResponseError},
+    account_server::{AccountProviderError, AccountProviderResponseError},
     digid::{DigidAuthenticatorError, OpenIdAuthenticatorError},
     pid_issuer::PidRetrieverError,
     pin::{key::PinKeyError, validation::PinValidationError},

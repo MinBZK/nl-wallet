@@ -20,7 +20,7 @@ pub use crate::{
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
-    pub use crate::{account_server::RemoteAccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient};
+    pub use crate::{account_server::AccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient};
 }
 
 #[cfg(feature = "mock")]

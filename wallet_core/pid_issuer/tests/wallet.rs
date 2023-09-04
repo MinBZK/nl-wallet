@@ -16,7 +16,7 @@ use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
     mock::{MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
     wallet::{Configuration, DigidAuthenticator, Wallet},
-    wallet_deps::{DigidClient, PidIssuerClient, RemoteAccountServerClient},
+    wallet_deps::{AccountServerClient, DigidClient, PidIssuerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -51,7 +51,7 @@ async fn create_test_wallet<D: DigidAuthenticator>(
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        RemoteAccountServerClient,
+        AccountServerClient,
         D,
         PidIssuerClient,
         SoftwareUtilities,

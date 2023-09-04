@@ -1,7 +1,7 @@
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
-    account_server::RemoteAccountServerClient,
+    account_server::AccountServerClient,
     config::{Configuration, LocalConfigurationRepository},
     storage::DatabaseStorage,
     wallet::WalletInitError,
@@ -11,7 +11,7 @@ pub type Wallet = crate::wallet::Wallet<
     LocalConfigurationRepository,
     DatabaseStorage<HardwareEncryptionKey>,
     HardwareEcdsaKey,
-    RemoteAccountServerClient,
+    AccountServerClient,
 >;
 
 pub async fn init_wallet() -> Result<Wallet, WalletInitError> {

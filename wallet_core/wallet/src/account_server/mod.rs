@@ -1,4 +1,4 @@
-mod remote;
+mod client;
 
 use async_trait::async_trait;
 use reqwest::StatusCode;
@@ -13,12 +13,12 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-pub use self::remote::RemoteAccountServerClient;
+pub use self::client::AccountServerClient;
 
 #[derive(Debug, thiserror::Error)]
-pub enum AccountServerClientError {
+pub enum AccountProviderError {
     #[error("server responded with {0}")]
-    Response(#[from] AccountServerResponseError),
+    Response(#[from] AccountProviderResponseError),
     #[error("networking error: {0}")]
     Networking(#[from] reqwest::Error),
     #[error("could not parse base URL: {0}")]
@@ -26,7 +26,7 @@ pub enum AccountServerClientError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AccountServerResponseError {
+pub enum AccountProviderResponseError {
     #[error("status code {0}")]
     Status(StatusCode),
     #[error("status code {0} and contents: {1}")]
@@ -37,25 +37,25 @@ pub enum AccountServerResponseError {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
-pub trait AccountServerClient {
+pub trait AccountProvider {
     async fn new(base_url: &Url) -> Self
     where
         Self: Sized;
 
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError>;
+    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, AccountServerClientError>;
+    ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
         challenge_request: InstructionChallengeRequestMessage,
-    ) -> Result<Vec<u8>, AccountServerClientError>;
+    ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn check_pin(
         &self,
         instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountServerClientError>;
+    ) -> Result<InstructionResult<()>, AccountProviderError>;
 }

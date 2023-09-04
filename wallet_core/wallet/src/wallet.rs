@@ -12,7 +12,7 @@ use wallet_common::account::messages::{
 };
 
 use crate::{
-    account_server::{AccountServerClientError, AccountServerResponseError},
+    account_server::{AccountProviderError, AccountProviderResponseError},
     digid::{DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
     pid_issuer::{PidIssuerClient, PidRetrieverError},
@@ -24,7 +24,7 @@ use crate::{
 };
 
 pub use crate::{
-    account_server::AccountServerClient,
+    account_server::AccountProvider,
     config::{Configuration, ConfigurationRepository},
     digid::DigidAuthenticator,
     pid_issuer::PidRetriever,
@@ -46,13 +46,13 @@ pub enum WalletRegistrationError {
     #[error("PIN provided for registration does not adhere to requirements: {0}")]
     InvalidPin(#[from] PinValidationError),
     #[error("could not request registration challenge from Wallet Provider: {0}")]
-    ChallengeRequest(#[source] AccountServerClientError),
+    ChallengeRequest(#[source] AccountProviderError),
     #[error("could not get hardware public key: {0}")]
     HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
     Signing(#[source] wallet_common::errors::Error),
     #[error("could not request registration from Wallet Provider: {0}")]
-    RegistrationRequest(#[source] AccountServerClientError),
+    RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     CertificateValidation(#[source] wallet_common::errors::Error),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
@@ -77,7 +77,7 @@ pub enum WalletUnlockError {
     #[error("unlock permanently disabled")]
     Blocked,
     #[error("server error: {0}")]
-    ServerError(#[source] AccountServerClientError),
+    ServerError(#[source] AccountProviderError),
     #[error("Wallet Provider could not validate instruction")]
     InstructionValidation,
     #[error("could not get hardware public key: {0}")]
@@ -90,9 +90,9 @@ pub enum WalletUnlockError {
     StoreInstructionSequenceNumber(#[from] StorageError),
 }
 
-impl From<AccountServerClientError> for WalletUnlockError {
-    fn from(value: AccountServerClientError) -> Self {
-        if let AccountServerClientError::Response(AccountServerResponseError::Data(_, errordata)) = &value {
+impl From<AccountProviderError> for WalletUnlockError {
+    fn from(value: AccountProviderError) -> Self {
+        if let AccountProviderError::Response(AccountProviderResponseError::Data(_, errordata)) = &value {
             match errordata.typ {
                 ErrorType::PinTimeout(data) => WalletUnlockError::Timeout {
                     timeout_millis: data.time_left_in_ms,
@@ -146,7 +146,7 @@ where
     C: ConfigurationRepository,
     S: Storage,
     K: PlatformEcdsaKey,
-    A: AccountServerClient,
+    A: AccountProvider,
 {
     pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
         Self::init_wp_and_storage(config_repository, DigidClient::default(), PidIssuerClient::default()).await
@@ -158,7 +158,7 @@ where
     C: ConfigurationRepository,
     S: Storage,
     K: PlatformEcdsaKey,
-    A: AccountServerClient,
+    A: AccountProvider,
     D: DigidAuthenticator,
     P: PidRetriever,
     U: PlatformUtilities,
@@ -476,7 +476,7 @@ mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
 
     use crate::{
-        account_server::MockAccountServerClient, config::MockConfigurationRepository, digid::MockDigidAuthenticator,
+        account_server::MockAccountProvider, config::MockConfigurationRepository, digid::MockDigidAuthenticator,
         pid_issuer::MockPidRetriever, storage::MockStorage,
     };
 
@@ -486,7 +486,7 @@ mod tests {
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        MockAccountServerClient,
+        MockAccountProvider,
         MockDigidAuthenticator,
         MockPidRetriever,
         SoftwareUtilities,
@@ -500,7 +500,7 @@ mod tests {
             config_repository: MockConfigurationRepository::default(),
             storage,
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            account_server: MockAccountServerClient::default(),
+            account_server: MockAccountProvider::default(),
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
             platform_utils: PhantomData,
@@ -517,10 +517,10 @@ mod tests {
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_init() {
-        let account_server_client_new_context = MockAccountServerClient::new_context();
+        let account_server_client_new_context = MockAccountProvider::new_context();
         account_server_client_new_context
             .expect()
-            .returning(|_| MockAccountServerClient::default());
+            .returning(|_| MockAccountProvider::default());
 
         let config_repository = MockConfigurationRepository::default();
         let wallet = MockWallet::init_wp_and_storage(
