@@ -54,9 +54,9 @@ async fn create_test_wallet(
     instruction_result_public_key: EcdsaDecodingKey,
 ) -> Wallet<
     MockConfigurationRepository,
-    RemoteAccountServerClient,
     MockStorage,
     SoftwareEcdsaKey,
+    RemoteAccountServerClient,
     MockDigidAuthenticator,
     MockPidRetriever,
 > {
@@ -100,12 +100,12 @@ fn start_wallet_provider(settings: Settings) {
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 }
 
-async fn test_wallet_registration<C, A, S, K, D, P>(mut wallet: Wallet<C, A, S, K, D, P>)
+async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
 where
     C: ConfigurationRepository,
-    A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey,
+    A: AccountServerClient,
     D: DigidAuthenticator,
     P: PidRetriever,
 {

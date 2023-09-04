@@ -47,7 +47,7 @@ async fn create_test_wallet<D: DigidAuthenticator>(
     pid_issuer_client: PidIssuerClient,
 ) -> (
     Configuration,
-    Wallet<MockConfigurationRepository, RemoteAccountServerClient, MockStorage, SoftwareEcdsaKey, D, PidIssuerClient>,
+    Wallet<MockConfigurationRepository, MockStorage, SoftwareEcdsaKey, RemoteAccountServerClient, D, PidIssuerClient>,
 ) {
     let wallet = Wallet::init_wp_and_storage::<SoftwareUtilities>(
         test_wallet_config(base_url.clone()),

@@ -12,9 +12,9 @@ use crate::{
 
 pub type Wallet = crate::wallet::Wallet<
     LocalConfigurationRepository,
-    RemoteAccountServerClient,
     DatabaseStorage<HardwareEncryptionKey>,
     HardwareEcdsaKey,
+    RemoteAccountServerClient,
 >;
 
 pub async fn init_wallet() -> Result<Wallet, WalletInitError> {

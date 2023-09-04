@@ -128,36 +128,36 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, A, S, K, D = DigidClient, P = PidIssuerClient> {
+pub struct Wallet<C, S, K, A, D = DigidClient, P = PidIssuerClient> {
     config_repository: C,
-    account_server: A,
     storage: S,
     hw_privkey: K,
+    account_server: A,
     digid: D,
     pid_issuer: P,
-    registration: Option<RegistrationData>,
     lock: WalletLock,
+    registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, A, S, K> Wallet<C, A, S, K>
+impl<C, S, K, A> Wallet<C, S, K, A>
 where
     C: ConfigurationRepository,
-    A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey,
+    A: AccountServerClient,
 {
     pub async fn init_all<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
         Self::init_wp_and_storage::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
     }
 }
 
-impl<C, A, S, K, D, P> Wallet<C, A, S, K, D, P>
+impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
 where
     C: ConfigurationRepository,
-    A: AccountServerClient,
     S: Storage,
     K: PlatformEcdsaKey,
+    A: AccountServerClient,
     D: DigidAuthenticator,
     P: PidRetriever,
 {
@@ -174,13 +174,13 @@ where
 
         let mut wallet = Wallet {
             config_repository,
-            account_server,
             storage,
+            hw_privkey: K::new(WALLET_KEY_ID),
+            account_server,
             digid,
             pid_issuer,
-            hw_privkey: K::new(WALLET_KEY_ID),
-            registration: None,
             lock: WalletLock::new(true),
+            registration: None,
             config_callback: None,
         };
 
@@ -486,9 +486,9 @@ mod tests {
 
     type MockWallet = Wallet<
         MockConfigurationRepository,
-        AccountServer,
         MockStorage,
         SoftwareEcdsaKey,
+        AccountServer,
         MockDigidAuthenticator,
         MockPidRetriever,
     >;
@@ -504,13 +504,13 @@ mod tests {
 
         let mut wallet = Wallet {
             config_repository,
-            account_server,
             storage,
+            hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
+            account_server,
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
-            hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            registration: None,
             lock: WalletLock::new(true),
+            registration: None,
             config_callback: None,
         };
 
