@@ -15,7 +15,7 @@ use crate::{
     Result,
 };
 
-use super::HolderError;
+use super::{CborHttpClient, HolderError, HttpClient, IssuanceSessionState};
 
 pub trait Storage {
     fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Mdoc<K>>) -> Result<()>;
@@ -25,13 +25,19 @@ pub trait Storage {
     fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<MdocCopies<K>>>;
 }
 
-pub struct Wallet<C> {
+pub struct Wallet<C, H = CborHttpClient> {
     pub(crate) storage: C,
+    pub(crate) session_state: Option<IssuanceSessionState>,
+    pub(crate) client: H,
 }
 
-impl<C: Storage> Wallet<C> {
-    pub fn new(storage: C) -> Self {
-        Self { storage }
+impl<C: Storage, H: HttpClient> Wallet<C, H> {
+    pub fn new(storage: C, client: H) -> Self {
+        Self {
+            storage,
+            session_state: None,
+            client,
+        }
     }
 
     pub fn list_mdocs<K: MdocEcdsaKey>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {

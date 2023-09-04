@@ -21,9 +21,9 @@ use crate::{
     Error, Result,
 };
 
-use super::{HolderError, Mdoc, Storage, Wallet};
+use super::{HolderError, HttpClient, Mdoc, Storage, Wallet};
 
-impl<C: Storage> Wallet<C> {
+impl<C: Storage, H: HttpClient> Wallet<C, H> {
     pub async fn disclose<K: MdocEcdsaKey>(
         &self,
         device_request: &DeviceRequest,

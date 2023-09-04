@@ -3,11 +3,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::{header, HeaderMap, HeaderValue};
+use tokio::sync::Mutex;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
-    holder::{CborHttpClient, IssuanceUserConsent, TrustAnchor, Wallet as MdocWallet},
+    holder::{CborHttpClient, TrustAnchor, Wallet as MdocWallet},
     utils::mdocs_map::MdocsMap,
     ServiceEngagement,
 };
@@ -21,11 +21,11 @@ use super::{PidRetriever, PidRetrieverError};
 //       This should be removed as soon as actual storage is implemented.
 pub struct PidIssuerClient {
     http_client: reqwest::Client,
-    mdoc_wallet: Arc<MdocWallet<MdocsMap>>,
+    mdoc_wallet: Arc<Mutex<MdocWallet<MdocsMap>>>,
 }
 
 impl PidIssuerClient {
-    pub fn new(mdoc_wallet: Arc<MdocWallet<MdocsMap>>) -> Self {
+    pub fn new(mdoc_wallet: Arc<Mutex<MdocWallet<MdocsMap>>>) -> Self {
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
@@ -43,7 +43,14 @@ impl PidIssuerClient {
 
 impl Default for PidIssuerClient {
     fn default() -> Self {
-        Self::new(Arc::new(MdocWallet::new(MdocsMap::new())))
+        let http_client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        Self::new(Arc::new(Mutex::new(MdocWallet::new(
+            MdocsMap::new(),
+            CborHttpClient(http_client),
+        ))))
     }
 }
 
@@ -86,30 +93,17 @@ impl PidRetriever for PidIssuerClient {
             .json::<ServiceEngagement>()
             .await?;
 
-        let http_client = default_reqwest_client_builder()
-            .build()
-            .expect("Could not build reqwest HTTP client");
+        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
+        let _unsigned_mdocs = mdoc_wallet.start_issuance(service_engagement).await?;
 
-        self.mdoc_wallet
-            .do_issuance::<SoftwareEcdsaKey>(
-                service_engagement,
-                &always_agree(),
-                &CborHttpClient(http_client),
-                mdoc_trust_anchors,
-            )
+        // TODO: instead of proceeding immediately with mdoc_wallet.finish_issuance():
+        // - return _unsigned_mdocs to the caller of this method so that it can decide whether or not to proceed,
+        // - put mdoc_wallet.finish_issuance() in a new method for if the caller decides to proceed.
+
+        mdoc_wallet
+            .finish_issuance::<SoftwareEcdsaKey>(mdoc_trust_anchors)
             .await?;
 
         Ok(())
     }
-}
-
-fn always_agree() -> impl IssuanceUserConsent {
-    struct AlwaysAgree;
-    #[async_trait]
-    impl IssuanceUserConsent for AlwaysAgree {
-        async fn ask(&self, _: &[UnsignedMdoc]) -> bool {
-            true
-        }
-    }
-    AlwaysAgree
 }
