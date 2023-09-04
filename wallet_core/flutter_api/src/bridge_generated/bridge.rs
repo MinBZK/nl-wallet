@@ -19,6 +19,9 @@ use std::sync::Arc;
 
 // Section: imports
 
+use crate::models::card::Card;
+use crate::models::card::CardAttribute;
+use crate::models::card::CardValue;
 use crate::models::config::FlutterConfiguration;
 use crate::models::pin::PinValidationResult;
 use crate::models::process_uri_event::PidIssuanceEvent;
@@ -200,6 +203,40 @@ impl Wire2Api<u8> for u8 {
 
 // Section: impl IntoDart
 
+impl support::IntoDart for Card {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.id.into_dart(),
+            self.doc_type.into_dart(),
+            self.issuer.into_dart(),
+            self.attributes.into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for Card {}
+
+impl support::IntoDart for CardAttribute {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.key.into_dart(), self.label.into_dart(), self.value.into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for CardAttribute {}
+
+impl support::IntoDart for CardValue {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::String { value } => vec![0.into_dart(), value.into_dart()],
+            Self::Integer { value } => vec![1.into_dart(), value.into_dart()],
+            Self::Double { value } => vec![2.into_dart(), value.into_dart()],
+            Self::Boolean { value } => vec![3.into_dart(), value.into_dart()],
+            Self::Date { value } => vec![4.into_dart(), value.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for CardValue {}
+
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -215,8 +252,8 @@ impl support::IntoDart for PidIssuanceEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::Authenticating => vec![0.into_dart()],
-            Self::Success => vec![1.into_dart()],
-            Self::Error(field0) => vec![2.into_dart(), field0.into_dart()],
+            Self::Success { preview_cards } => vec![1.into_dart(), preview_cards.into_dart()],
+            Self::Error { data } => vec![2.into_dart(), data.into_dart()],
         }
         .into_dart()
     }
@@ -237,7 +274,7 @@ impl support::IntoDartExceptPrimitive for PinValidationResult {}
 impl support::IntoDart for ProcessUriEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::PidIssuance(field0) => vec![0.into_dart(), field0.into_dart()],
+            Self::PidIssuance { event } => vec![0.into_dart(), event.into_dart()],
             Self::UnknownUri => vec![1.into_dart()],
         }
         .into_dart()

@@ -15,26 +15,841 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
+mixin _$CardValue {
+  Object get value => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $CardValueCopyWith<$Res> {
+  factory $CardValueCopyWith(CardValue value, $Res Function(CardValue) then) = _$CardValueCopyWithImpl<$Res, CardValue>;
+}
+
+/// @nodoc
+class _$CardValueCopyWithImpl<$Res, $Val extends CardValue> implements $CardValueCopyWith<$Res> {
+  _$CardValueCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$CardValue_StringCopyWith<$Res> {
+  factory _$$CardValue_StringCopyWith(_$CardValue_String value, $Res Function(_$CardValue_String) then) =
+      __$$CardValue_StringCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String value});
+}
+
+/// @nodoc
+class __$$CardValue_StringCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_String>
+    implements _$$CardValue_StringCopyWith<$Res> {
+  __$$CardValue_StringCopyWithImpl(_$CardValue_String _value, $Res Function(_$CardValue_String) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_String(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_String implements CardValue_String {
+  const _$CardValue_String({required this.value});
+
+  @override
+  final String value;
+
+  @override
+  String toString() {
+    return 'CardValue.string(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_String &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_StringCopyWith<_$CardValue_String> get copyWith =>
+      __$$CardValue_StringCopyWithImpl<_$CardValue_String>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) {
+    return string(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) {
+    return string?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (string != null) {
+      return string(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) {
+    return string(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) {
+    return string?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (string != null) {
+      return string(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_String implements CardValue {
+  const factory CardValue_String({required final String value}) = _$CardValue_String;
+
+  @override
+  String get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_StringCopyWith<_$CardValue_String> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CardValue_IntegerCopyWith<$Res> {
+  factory _$$CardValue_IntegerCopyWith(_$CardValue_Integer value, $Res Function(_$CardValue_Integer) then) =
+      __$$CardValue_IntegerCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int value});
+}
+
+/// @nodoc
+class __$$CardValue_IntegerCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Integer>
+    implements _$$CardValue_IntegerCopyWith<$Res> {
+  __$$CardValue_IntegerCopyWithImpl(_$CardValue_Integer _value, $Res Function(_$CardValue_Integer) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_Integer(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_Integer implements CardValue_Integer {
+  const _$CardValue_Integer({required this.value});
+
+  @override
+  final int value;
+
+  @override
+  String toString() {
+    return 'CardValue.integer(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_Integer &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_IntegerCopyWith<_$CardValue_Integer> get copyWith =>
+      __$$CardValue_IntegerCopyWithImpl<_$CardValue_Integer>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) {
+    return integer(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) {
+    return integer?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (integer != null) {
+      return integer(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) {
+    return integer(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) {
+    return integer?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (integer != null) {
+      return integer(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_Integer implements CardValue {
+  const factory CardValue_Integer({required final int value}) = _$CardValue_Integer;
+
+  @override
+  int get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_IntegerCopyWith<_$CardValue_Integer> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CardValue_DoubleCopyWith<$Res> {
+  factory _$$CardValue_DoubleCopyWith(_$CardValue_Double value, $Res Function(_$CardValue_Double) then) =
+      __$$CardValue_DoubleCopyWithImpl<$Res>;
+  @useResult
+  $Res call({double value});
+}
+
+/// @nodoc
+class __$$CardValue_DoubleCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Double>
+    implements _$$CardValue_DoubleCopyWith<$Res> {
+  __$$CardValue_DoubleCopyWithImpl(_$CardValue_Double _value, $Res Function(_$CardValue_Double) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_Double(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as double,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_Double implements CardValue_Double {
+  const _$CardValue_Double({required this.value});
+
+  @override
+  final double value;
+
+  @override
+  String toString() {
+    return 'CardValue.double(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_Double &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_DoubleCopyWith<_$CardValue_Double> get copyWith =>
+      __$$CardValue_DoubleCopyWithImpl<_$CardValue_Double>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) {
+    return double(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) {
+    return double?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (double != null) {
+      return double(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) {
+    return double(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) {
+    return double?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (double != null) {
+      return double(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_Double implements CardValue {
+  const factory CardValue_Double({required final double value}) = _$CardValue_Double;
+
+  @override
+  double get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_DoubleCopyWith<_$CardValue_Double> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CardValue_BooleanCopyWith<$Res> {
+  factory _$$CardValue_BooleanCopyWith(_$CardValue_Boolean value, $Res Function(_$CardValue_Boolean) then) =
+      __$$CardValue_BooleanCopyWithImpl<$Res>;
+  @useResult
+  $Res call({bool value});
+}
+
+/// @nodoc
+class __$$CardValue_BooleanCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Boolean>
+    implements _$$CardValue_BooleanCopyWith<$Res> {
+  __$$CardValue_BooleanCopyWithImpl(_$CardValue_Boolean _value, $Res Function(_$CardValue_Boolean) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_Boolean(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_Boolean implements CardValue_Boolean {
+  const _$CardValue_Boolean({required this.value});
+
+  @override
+  final bool value;
+
+  @override
+  String toString() {
+    return 'CardValue.boolean(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_Boolean &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_BooleanCopyWith<_$CardValue_Boolean> get copyWith =>
+      __$$CardValue_BooleanCopyWithImpl<_$CardValue_Boolean>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) {
+    return boolean(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) {
+    return boolean?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (boolean != null) {
+      return boolean(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) {
+    return boolean(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) {
+    return boolean?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (boolean != null) {
+      return boolean(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_Boolean implements CardValue {
+  const factory CardValue_Boolean({required final bool value}) = _$CardValue_Boolean;
+
+  @override
+  bool get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_BooleanCopyWith<_$CardValue_Boolean> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CardValue_DateCopyWith<$Res> {
+  factory _$$CardValue_DateCopyWith(_$CardValue_Date value, $Res Function(_$CardValue_Date) then) =
+      __$$CardValue_DateCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String value});
+}
+
+/// @nodoc
+class __$$CardValue_DateCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Date>
+    implements _$$CardValue_DateCopyWith<$Res> {
+  __$$CardValue_DateCopyWithImpl(_$CardValue_Date _value, $Res Function(_$CardValue_Date) _then) : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_Date(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_Date implements CardValue_Date {
+  const _$CardValue_Date({required this.value});
+
+  @override
+  final String value;
+
+  @override
+  String toString() {
+    return 'CardValue.date(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_Date &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_DateCopyWith<_$CardValue_Date> get copyWith =>
+      __$$CardValue_DateCopyWithImpl<_$CardValue_Date>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(int value) integer,
+    required TResult Function(double value) double,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+  }) {
+    return date(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(int value)? integer,
+    TResult? Function(double value)? double,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+  }) {
+    return date?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(int value)? integer,
+    TResult Function(double value)? double,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (date != null) {
+      return date(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Integer value) integer,
+    required TResult Function(CardValue_Double value) double,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+  }) {
+    return date(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Integer value)? integer,
+    TResult? Function(CardValue_Double value)? double,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+  }) {
+    return date?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Integer value)? integer,
+    TResult Function(CardValue_Double value)? double,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (date != null) {
+      return date(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_Date implements CardValue {
+  const factory CardValue_Date({required final String value}) = _$CardValue_Date;
+
+  @override
+  String get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_DateCopyWith<_$CardValue_Date> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$PidIssuanceEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() authenticating,
-    required TResult Function() success,
-    required TResult Function(String field0) error,
+    required TResult Function(List<Card> previewCards) success,
+    required TResult Function(String data) error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? authenticating,
-    TResult? Function()? success,
-    TResult? Function(String field0)? error,
+    TResult? Function(List<Card> previewCards)? success,
+    TResult? Function(String data)? error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? authenticating,
-    TResult Function()? success,
-    TResult Function(String field0)? error,
+    TResult Function(List<Card> previewCards)? success,
+    TResult Function(String data)? error,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -116,8 +931,8 @@ class _$PidIssuanceEvent_Authenticating implements PidIssuanceEvent_Authenticati
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() authenticating,
-    required TResult Function() success,
-    required TResult Function(String field0) error,
+    required TResult Function(List<Card> previewCards) success,
+    required TResult Function(String data) error,
   }) {
     return authenticating();
   }
@@ -126,8 +941,8 @@ class _$PidIssuanceEvent_Authenticating implements PidIssuanceEvent_Authenticati
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? authenticating,
-    TResult? Function()? success,
-    TResult? Function(String field0)? error,
+    TResult? Function(List<Card> previewCards)? success,
+    TResult? Function(String data)? error,
   }) {
     return authenticating?.call();
   }
@@ -136,8 +951,8 @@ class _$PidIssuanceEvent_Authenticating implements PidIssuanceEvent_Authenticati
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? authenticating,
-    TResult Function()? success,
-    TResult Function(String field0)? error,
+    TResult Function(List<Card> previewCards)? success,
+    TResult Function(String data)? error,
     required TResult orElse(),
   }) {
     if (authenticating != null) {
@@ -190,6 +1005,8 @@ abstract class _$$PidIssuanceEvent_SuccessCopyWith<$Res> {
   factory _$$PidIssuanceEvent_SuccessCopyWith(
           _$PidIssuanceEvent_Success value, $Res Function(_$PidIssuanceEvent_Success) then) =
       __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>;
+  @useResult
+  $Res call({List<Card> previewCards});
 }
 
 /// @nodoc
@@ -199,56 +1016,86 @@ class __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>
   __$$PidIssuanceEvent_SuccessCopyWithImpl(
       _$PidIssuanceEvent_Success _value, $Res Function(_$PidIssuanceEvent_Success) _then)
       : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? previewCards = null,
+  }) {
+    return _then(_$PidIssuanceEvent_Success(
+      previewCards: null == previewCards
+          ? _value._previewCards
+          : previewCards // ignore: cast_nullable_to_non_nullable
+              as List<Card>,
+    ));
+  }
 }
 
 /// @nodoc
 
 class _$PidIssuanceEvent_Success implements PidIssuanceEvent_Success {
-  const _$PidIssuanceEvent_Success();
+  const _$PidIssuanceEvent_Success({required final List<Card> previewCards}) : _previewCards = previewCards;
+
+  final List<Card> _previewCards;
+  @override
+  List<Card> get previewCards {
+    if (_previewCards is EqualUnmodifiableListView) return _previewCards;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_previewCards);
+  }
 
   @override
   String toString() {
-    return 'PidIssuanceEvent.success()';
+    return 'PidIssuanceEvent.success(previewCards: $previewCards)';
   }
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$PidIssuanceEvent_Success);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PidIssuanceEvent_Success &&
+            const DeepCollectionEquality().equals(other._previewCards, _previewCards));
   }
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(_previewCards));
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PidIssuanceEvent_SuccessCopyWith<_$PidIssuanceEvent_Success> get copyWith =>
+      __$$PidIssuanceEvent_SuccessCopyWithImpl<_$PidIssuanceEvent_Success>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() authenticating,
-    required TResult Function() success,
-    required TResult Function(String field0) error,
+    required TResult Function(List<Card> previewCards) success,
+    required TResult Function(String data) error,
   }) {
-    return success();
+    return success(previewCards);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? authenticating,
-    TResult? Function()? success,
-    TResult? Function(String field0)? error,
+    TResult? Function(List<Card> previewCards)? success,
+    TResult? Function(String data)? error,
   }) {
-    return success?.call();
+    return success?.call(previewCards);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? authenticating,
-    TResult Function()? success,
-    TResult Function(String field0)? error,
+    TResult Function(List<Card> previewCards)? success,
+    TResult Function(String data)? error,
     required TResult orElse(),
   }) {
     if (success != null) {
-      return success();
+      return success(previewCards);
     }
     return orElse();
   }
@@ -289,7 +1136,11 @@ class _$PidIssuanceEvent_Success implements PidIssuanceEvent_Success {
 }
 
 abstract class PidIssuanceEvent_Success implements PidIssuanceEvent {
-  const factory PidIssuanceEvent_Success() = _$PidIssuanceEvent_Success;
+  const factory PidIssuanceEvent_Success({required final List<Card> previewCards}) = _$PidIssuanceEvent_Success;
+
+  List<Card> get previewCards;
+  @JsonKey(ignore: true)
+  _$$PidIssuanceEvent_SuccessCopyWith<_$PidIssuanceEvent_Success> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -298,7 +1149,7 @@ abstract class _$$PidIssuanceEvent_ErrorCopyWith<$Res> {
           _$PidIssuanceEvent_Error value, $Res Function(_$PidIssuanceEvent_Error) then) =
       __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>;
   @useResult
-  $Res call({String field0});
+  $Res call({String data});
 }
 
 /// @nodoc
@@ -311,12 +1162,12 @@ class __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? field0 = null,
+    Object? data = null,
   }) {
     return _then(_$PidIssuanceEvent_Error(
-      null == field0
-          ? _value.field0
-          : field0 // ignore: cast_nullable_to_non_nullable
+      data: null == data
+          ? _value.data
+          : data // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }
@@ -325,14 +1176,14 @@ class __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>
 /// @nodoc
 
 class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
-  const _$PidIssuanceEvent_Error(this.field0);
+  const _$PidIssuanceEvent_Error({required this.data});
 
   @override
-  final String field0;
+  final String data;
 
   @override
   String toString() {
-    return 'PidIssuanceEvent.error(field0: $field0)';
+    return 'PidIssuanceEvent.error(data: $data)';
   }
 
   @override
@@ -340,11 +1191,11 @@ class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$PidIssuanceEvent_Error &&
-            (identical(other.field0, field0) || other.field0 == field0));
+            (identical(other.data, data) || other.data == data));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, field0);
+  int get hashCode => Object.hash(runtimeType, data);
 
   @JsonKey(ignore: true)
   @override
@@ -356,32 +1207,32 @@ class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() authenticating,
-    required TResult Function() success,
-    required TResult Function(String field0) error,
+    required TResult Function(List<Card> previewCards) success,
+    required TResult Function(String data) error,
   }) {
-    return error(field0);
+    return error(data);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? authenticating,
-    TResult? Function()? success,
-    TResult? Function(String field0)? error,
+    TResult? Function(List<Card> previewCards)? success,
+    TResult? Function(String data)? error,
   }) {
-    return error?.call(field0);
+    return error?.call(data);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? authenticating,
-    TResult Function()? success,
-    TResult Function(String field0)? error,
+    TResult Function(List<Card> previewCards)? success,
+    TResult Function(String data)? error,
     required TResult orElse(),
   }) {
     if (error != null) {
-      return error(field0);
+      return error(data);
     }
     return orElse();
   }
@@ -422,9 +1273,9 @@ class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
 }
 
 abstract class PidIssuanceEvent_Error implements PidIssuanceEvent {
-  const factory PidIssuanceEvent_Error(final String field0) = _$PidIssuanceEvent_Error;
+  const factory PidIssuanceEvent_Error({required final String data}) = _$PidIssuanceEvent_Error;
 
-  String get field0;
+  String get data;
   @JsonKey(ignore: true)
   _$$PidIssuanceEvent_ErrorCopyWith<_$PidIssuanceEvent_Error> get copyWith => throw _privateConstructorUsedError;
 }
@@ -433,19 +1284,19 @@ abstract class PidIssuanceEvent_Error implements PidIssuanceEvent {
 mixin _$ProcessUriEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function(PidIssuanceEvent event) pidIssuance,
     required TResult Function() unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function(PidIssuanceEvent event)? pidIssuance,
     TResult? Function()? unknownUri,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function(PidIssuanceEvent event)? pidIssuance,
     TResult Function()? unknownUri,
     required TResult orElse(),
   }) =>
@@ -493,9 +1344,9 @@ abstract class _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> {
           _$ProcessUriEvent_PidIssuance value, $Res Function(_$ProcessUriEvent_PidIssuance) then) =
       __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>;
   @useResult
-  $Res call({PidIssuanceEvent field0});
+  $Res call({PidIssuanceEvent event});
 
-  $PidIssuanceEventCopyWith<$Res> get field0;
+  $PidIssuanceEventCopyWith<$Res> get event;
 }
 
 /// @nodoc
@@ -509,21 +1360,21 @@ class __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? field0 = null,
+    Object? event = null,
   }) {
     return _then(_$ProcessUriEvent_PidIssuance(
-      null == field0
-          ? _value.field0
-          : field0 // ignore: cast_nullable_to_non_nullable
+      event: null == event
+          ? _value.event
+          : event // ignore: cast_nullable_to_non_nullable
               as PidIssuanceEvent,
     ));
   }
 
   @override
   @pragma('vm:prefer-inline')
-  $PidIssuanceEventCopyWith<$Res> get field0 {
-    return $PidIssuanceEventCopyWith<$Res>(_value.field0, (value) {
-      return _then(_value.copyWith(field0: value));
+  $PidIssuanceEventCopyWith<$Res> get event {
+    return $PidIssuanceEventCopyWith<$Res>(_value.event, (value) {
+      return _then(_value.copyWith(event: value));
     });
   }
 }
@@ -531,14 +1382,14 @@ class __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>
 /// @nodoc
 
 class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
-  const _$ProcessUriEvent_PidIssuance(this.field0);
+  const _$ProcessUriEvent_PidIssuance({required this.event});
 
   @override
-  final PidIssuanceEvent field0;
+  final PidIssuanceEvent event;
 
   @override
   String toString() {
-    return 'ProcessUriEvent.pidIssuance(field0: $field0)';
+    return 'ProcessUriEvent.pidIssuance(event: $event)';
   }
 
   @override
@@ -546,11 +1397,11 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$ProcessUriEvent_PidIssuance &&
-            (identical(other.field0, field0) || other.field0 == field0));
+            (identical(other.event, event) || other.event == event));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, field0);
+  int get hashCode => Object.hash(runtimeType, event);
 
   @JsonKey(ignore: true)
   @override
@@ -561,30 +1412,30 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function(PidIssuanceEvent event) pidIssuance,
     required TResult Function() unknownUri,
   }) {
-    return pidIssuance(field0);
+    return pidIssuance(event);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function(PidIssuanceEvent event)? pidIssuance,
     TResult? Function()? unknownUri,
   }) {
-    return pidIssuance?.call(field0);
+    return pidIssuance?.call(event);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function(PidIssuanceEvent event)? pidIssuance,
     TResult Function()? unknownUri,
     required TResult orElse(),
   }) {
     if (pidIssuance != null) {
-      return pidIssuance(field0);
+      return pidIssuance(event);
     }
     return orElse();
   }
@@ -622,9 +1473,9 @@ class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
 }
 
 abstract class ProcessUriEvent_PidIssuance implements ProcessUriEvent {
-  const factory ProcessUriEvent_PidIssuance(final PidIssuanceEvent field0) = _$ProcessUriEvent_PidIssuance;
+  const factory ProcessUriEvent_PidIssuance({required final PidIssuanceEvent event}) = _$ProcessUriEvent_PidIssuance;
 
-  PidIssuanceEvent get field0;
+  PidIssuanceEvent get event;
   @JsonKey(ignore: true)
   _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
       throw _privateConstructorUsedError;
@@ -667,7 +1518,7 @@ class _$ProcessUriEvent_UnknownUri implements ProcessUriEvent_UnknownUri {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent field0) pidIssuance,
+    required TResult Function(PidIssuanceEvent event) pidIssuance,
     required TResult Function() unknownUri,
   }) {
     return unknownUri();
@@ -676,7 +1527,7 @@ class _$ProcessUriEvent_UnknownUri implements ProcessUriEvent_UnknownUri {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult? Function(PidIssuanceEvent event)? pidIssuance,
     TResult? Function()? unknownUri,
   }) {
     return unknownUri?.call();
@@ -685,7 +1536,7 @@ class _$ProcessUriEvent_UnknownUri implements ProcessUriEvent_UnknownUri {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent field0)? pidIssuance,
+    TResult Function(PidIssuanceEvent event)? pidIssuance,
     TResult Function()? unknownUri,
     required TResult orElse(),
   }) {

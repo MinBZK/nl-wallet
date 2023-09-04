@@ -15,6 +15,7 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
+        card::mock_cards,
         config::FlutterConfiguration,
         pin::PinValidationResult,
         process_uri_event::{PidIssuanceEvent, ProcessUriEvent},
@@ -153,6 +154,7 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
     let sink = ClosingStreamSink::from(sink);
 
+    // Parse the URI we have received from Flutter.
     let url = match Url::parse(&uri) {
         Ok(url) => url,
         Err(_) => {
@@ -164,27 +166,47 @@ pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
         }
     };
 
-    let mut wallet = wallet().write().await;
+    // Have the wallet identify the type of redirect URI.
+    // Note that the obtained read lock only exists temporarily.
+    let uri_type = wallet().read().await.identify_redirect_uri(&url);
 
-    let final_event = match wallet.identify_redirect_uri(&url) {
+    let final_event = match uri_type {
+        // This is a PID issuance redirect URI.
         RedirectUriType::PidIssuance => {
-            let auth_event = ProcessUriEvent::PidIssuance(PidIssuanceEvent::Authenticating);
+            // Send an event on the stream to indicate that we are in the PID issuance flow.
+            let auth_event = ProcessUriEvent::PidIssuance {
+                event: PidIssuanceEvent::Authenticating,
+            };
             sink.add(auth_event);
 
-            wallet.continue_pid_issuance(&url).await.map_or_else(
-                |error| {
-                    warn!("PID issuance error: {}", error);
-                    info!("PID issuance error details: {:?}", error);
+            // Have the wallet actually process the redirect URI.
+            let event = process_pid_issuance_redirect_uri(&url).await;
 
-                    ProcessUriEvent::PidIssuance(error.into())
-                },
-                |_| ProcessUriEvent::PidIssuance(PidIssuanceEvent::Success), // TODO: add preview as card details
-            )
+            ProcessUriEvent::PidIssuance { event }
         }
+        // The wallet does not recognise the redirect URI.
         RedirectUriType::Unknown => ProcessUriEvent::UnknownUri,
     };
 
     sink.add(final_event);
+}
+
+async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
+    let mut wallet = wallet().write().await;
+
+    wallet.continue_pid_issuance(url).await.map_or_else(
+        |error| {
+            // Log the error, since this is not caught by the `#[flutter_api_error]` macro.
+            warn!("PID issuance error: {}", error);
+            info!("PID issuance error details: {:?}", error);
+
+            // Then convert then error to JSON, wrapped inside a `PidIssuanceEvent::Error`.
+            error.into()
+        },
+        |_| PidIssuanceEvent::Success {
+            preview_cards: mock_cards(), // TODO: actually convert mdocs to card
+        },
+    )
 }
 
 #[cfg(test)]

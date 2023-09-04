@@ -67,6 +67,51 @@ abstract class WalletCore {
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
 }
 
+class Card {
+  final int id;
+  final String docType;
+  final String issuer;
+  final List<CardAttribute> attributes;
+
+  const Card({
+    required this.id,
+    required this.docType,
+    required this.issuer,
+    required this.attributes,
+  });
+}
+
+class CardAttribute {
+  final String key;
+  final List<(String, String)> label;
+  final CardValue value;
+
+  const CardAttribute({
+    required this.key,
+    required this.label,
+    required this.value,
+  });
+}
+
+@freezed
+class CardValue with _$CardValue {
+  const factory CardValue.string({
+    required String value,
+  }) = CardValue_String;
+  const factory CardValue.integer({
+    required int value,
+  }) = CardValue_Integer;
+  const factory CardValue.double({
+    required double value,
+  }) = CardValue_Double;
+  const factory CardValue.boolean({
+    required bool value,
+  }) = CardValue_Boolean;
+  const factory CardValue.date({
+    required String value,
+  }) = CardValue_Date;
+}
+
 class FlutterConfiguration {
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
@@ -80,10 +125,12 @@ class FlutterConfiguration {
 @freezed
 class PidIssuanceEvent with _$PidIssuanceEvent {
   const factory PidIssuanceEvent.authenticating() = PidIssuanceEvent_Authenticating;
-  const factory PidIssuanceEvent.success() = PidIssuanceEvent_Success;
-  const factory PidIssuanceEvent.error(
-    String field0,
-  ) = PidIssuanceEvent_Error;
+  const factory PidIssuanceEvent.success({
+    required List<Card> previewCards,
+  }) = PidIssuanceEvent_Success;
+  const factory PidIssuanceEvent.error({
+    required String data,
+  }) = PidIssuanceEvent_Error;
 }
 
 enum PinValidationResult {
@@ -95,9 +142,9 @@ enum PinValidationResult {
 
 @freezed
 class ProcessUriEvent with _$ProcessUriEvent {
-  const factory ProcessUriEvent.pidIssuance(
-    PidIssuanceEvent field0,
-  ) = ProcessUriEvent_PidIssuance;
+  const factory ProcessUriEvent.pidIssuance({
+    required PidIssuanceEvent event,
+  }) = ProcessUriEvent_PidIssuance;
   const factory ProcessUriEvent.unknownUri() = ProcessUriEvent_UnknownUri;
 }
 
@@ -329,12 +376,75 @@ class WalletCoreImpl implements WalletCore {
     return raw as String;
   }
 
+  (String, String) _wire2api___record__String_String(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (
+      _wire2api_String(arr[0]),
+      _wire2api_String(arr[1]),
+    );
+  }
+
   bool _wire2api_bool(dynamic raw) {
     return raw as bool;
   }
 
   PidIssuanceEvent _wire2api_box_autoadd_pid_issuance_event(dynamic raw) {
     return _wire2api_pid_issuance_event(raw);
+  }
+
+  Card _wire2api_card(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return Card(
+      id: _wire2api_i64(arr[0]),
+      docType: _wire2api_String(arr[1]),
+      issuer: _wire2api_String(arr[2]),
+      attributes: _wire2api_list_card_attribute(arr[3]),
+    );
+  }
+
+  CardAttribute _wire2api_card_attribute(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return CardAttribute(
+      key: _wire2api_String(arr[0]),
+      label: _wire2api_list___record__String_String(arr[1]),
+      value: _wire2api_card_value(arr[2]),
+    );
+  }
+
+  CardValue _wire2api_card_value(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return CardValue_String(
+          value: _wire2api_String(raw[1]),
+        );
+      case 1:
+        return CardValue_Integer(
+          value: _wire2api_i64(raw[1]),
+        );
+      case 2:
+        return CardValue_Double(
+          value: _wire2api_f64(raw[1]),
+        );
+      case 3:
+        return CardValue_Boolean(
+          value: _wire2api_bool(raw[1]),
+        );
+      case 4:
+        return CardValue_Date(
+          value: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  double _wire2api_f64(dynamic raw) {
+    return raw as double;
   }
 
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
@@ -350,15 +460,33 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
+  int _wire2api_i64(dynamic raw) {
+    return castInt(raw);
+  }
+
+  List<(String, String)> _wire2api_list___record__String_String(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api___record__String_String).toList();
+  }
+
+  List<Card> _wire2api_list_card(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_card).toList();
+  }
+
+  List<CardAttribute> _wire2api_list_card_attribute(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_card_attribute).toList();
+  }
+
   PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
     switch (raw[0]) {
       case 0:
         return PidIssuanceEvent_Authenticating();
       case 1:
-        return PidIssuanceEvent_Success();
+        return PidIssuanceEvent_Success(
+          previewCards: _wire2api_list_card(raw[1]),
+        );
       case 2:
         return PidIssuanceEvent_Error(
-          _wire2api_String(raw[1]),
+          data: _wire2api_String(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -373,7 +501,7 @@ class WalletCoreImpl implements WalletCore {
     switch (raw[0]) {
       case 0:
         return ProcessUriEvent_PidIssuance(
-          _wire2api_box_autoadd_pid_issuance_event(raw[1]),
+          event: _wire2api_box_autoadd_pid_issuance_event(raw[1]),
         );
       case 1:
         return ProcessUriEvent_UnknownUri();
