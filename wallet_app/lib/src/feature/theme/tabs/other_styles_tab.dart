@@ -226,7 +226,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {},
         ),
         const ThemeSectionSubHeader(title: 'TimelineSectionHeader'),
-        TimelineSectionHeader(dateTime: DateTime.now()),
+        TimelineSectionHeader(dateTime: DateTime.now()).build(context, timelineSectionHeaderExtent, false),
       ],
     );
   }

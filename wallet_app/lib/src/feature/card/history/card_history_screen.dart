@@ -70,8 +70,12 @@ class CardHistoryScreen extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1),
-        const BottomBackButton(),
+        Container(
+          color: context.colorScheme.background,
+          child: const BottomBackButton(
+            showDivider: true,
+          ),
+        ),
       ],
     );
   }
