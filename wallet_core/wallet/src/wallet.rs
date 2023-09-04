@@ -1,7 +1,6 @@
-use std::{error::Error, panic};
+use std::error::Error;
 
 use platform_support::utils::PlatformUtilities;
-use tokio::task;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -168,13 +167,10 @@ where
         digid: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
-        let storage_path = task::spawn_blocking(|| U::storage_path())
-            .await
-            .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))
-            .map_err(StorageError::from)?;
+        let storage_path = U::storage_path().await.map_err(StorageError::from)?;
+        let storage = S::new(storage_path);
 
         let account_server = A::new(&config_repository.config().account_server.base_url).await;
-        let storage = S::new(storage_path);
 
         let mut wallet = Wallet {
             config_repository,
