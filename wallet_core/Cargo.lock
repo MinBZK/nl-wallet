@@ -4174,7 +4174,6 @@ dependencies = [
  "tracing",
  "url",
  "wallet_common",
- "wallet_provider",
  "wiremock",
 ]
 

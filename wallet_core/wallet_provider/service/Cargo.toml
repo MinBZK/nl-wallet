@@ -41,7 +41,6 @@ tracing-subscriber = { workspace = true, features = [
     "parking_lot",
 ] }
 
-wallet_provider_domain = { path = "../domain", features = ["stub"] }
 wallet_provider_persistence = { path = "../persistence" }
 wallet_provider_service = { path = ".", features = ["stub"] }
 wallet_common = { path = "../../wallet_common", features = ["mock"] }

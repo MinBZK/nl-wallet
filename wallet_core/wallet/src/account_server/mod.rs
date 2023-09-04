@@ -1,8 +1,5 @@
 mod remote;
 
-#[cfg(test)]
-mod mock;
-
 use async_trait::async_trait;
 use reqwest::StatusCode;
 use url::{ParseError, Url};
@@ -38,6 +35,7 @@ pub enum AccountServerResponseError {
     Data(StatusCode, ErrorData),
 }
 
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait AccountServerClient {
     async fn new(base_url: &Url) -> Self

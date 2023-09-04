@@ -51,6 +51,5 @@ tempfile = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 wiremock = { workspace = true }
 
-wallet_provider = { path = "../wallet_provider", features = ["stub"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }

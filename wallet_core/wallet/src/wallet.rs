@@ -474,11 +474,10 @@ where
 mod tests {
     use platform_support::utils::software::SoftwareUtilities;
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
-    use wallet_provider::{stub, AccountServer};
 
     use crate::{
-        config::MockConfigurationRepository, digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever,
-        storage::MockStorage,
+        account_server::MockAccountServerClient, config::MockConfigurationRepository, digid::MockDigidAuthenticator,
+        pid_issuer::MockPidRetriever, storage::MockStorage,
     };
 
     use super::*;
@@ -487,7 +486,7 @@ mod tests {
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        AccountServer,
+        MockAccountServerClient,
         MockDigidAuthenticator,
         MockPidRetriever,
         SoftwareUtilities,
@@ -495,18 +494,13 @@ mod tests {
 
     // Emulate wallet:init_wp_and_storage(), with the option to override the mock storage.
     async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
-        let mut config_repository = MockConfigurationRepository::default();
-
-        let account_server = stub::account_server().await;
         let storage = storage.unwrap_or_default();
 
-        config_repository.0.account_server.certificate_public_key = account_server.certificate_pubkey.clone();
-
         let mut wallet = Wallet {
-            config_repository,
+            config_repository: MockConfigurationRepository::default(),
             storage,
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            account_server,
+            account_server: MockAccountServerClient::default(),
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
             platform_utils: PhantomData,
@@ -523,6 +517,11 @@ mod tests {
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_init() {
+        let account_server_client_new_context = MockAccountServerClient::new_context();
+        account_server_client_new_context
+            .expect()
+            .returning(|_| MockAccountServerClient::default());
+
         let config_repository = MockConfigurationRepository::default();
         let wallet = MockWallet::init_wp_and_storage(
             config_repository,
@@ -582,32 +581,5 @@ mod tests {
 
         // The registration data should now be available.
         assert_eq!(wallet.registration.unwrap().pin_salt.0, pin_salt);
-    }
-
-    // Test a full registration with the mock wallet.
-    //
-    // TODO: Since the wallet_provider integration tests also covers this, this should be removed.
-    //       This can be done whenever the AccountServerClient has a proper mock.
-    #[tokio::test]
-    async fn test_register() {
-        let mut wallet = init_wallet(None).await.expect("Could not initialize wallet");
-
-        // No registration should be loaded initially.
-        assert!(!wallet.has_registration());
-
-        // An invalid PIN should result in an error.
-        assert!(wallet.register("123456".to_owned()).await.is_err());
-
-        // Actually register with a valid PIN.
-        wallet
-            .register("112233".to_owned())
-            .await
-            .expect("Could not register wallet");
-
-        // The registration should now be loaded.
-        assert!(wallet.has_registration());
-
-        // Registering again should result in an error.
-        assert!(wallet.register("112233".to_owned()).await.is_err());
     }
 }

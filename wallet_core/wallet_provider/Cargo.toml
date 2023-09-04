@@ -12,7 +12,6 @@ name = "wallet_provider_migrations"
 required-features = ["wallet_provider_migrations"]
 
 [features]
-stub = ["wallet_provider_service/stub"]
 wallet_provider_migrations = ["dep:sea-orm-migration"]
 db_test = []
 live_test = []
