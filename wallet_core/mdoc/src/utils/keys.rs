@@ -1,12 +1,12 @@
-use wallet_common::keys::{ConstructableWithIdentifier, SecureEcdsaKey};
+use wallet_common::keys::{ConstructibleWithIdentifier, SecureEcdsaKey};
 
 /// Contract for ECDSA private keys suitable for mdoc attestations.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructableWithIdentifier::new()`].
-pub trait MdocEcdsaKey: ConstructableWithIdentifier + SecureEcdsaKey {
+/// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
+pub trait MdocEcdsaKey: ConstructibleWithIdentifier + SecureEcdsaKey {
     const KEY_TYPE: &'static str;
 
-    // from ConstructableWithIdentifier: new(), identifier()
+    // from ConstructibleWithIdentifier: new(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 

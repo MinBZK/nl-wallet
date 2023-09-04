@@ -487,7 +487,7 @@ where
 #[cfg(test)]
 mod tests {
     use platform_support::utils::software::SoftwareUtilities;
-    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructableWithIdentifier};
+    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
     use wallet_provider::{stub, AccountServer};
 
     use crate::{
