@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    AccountServerClientError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError, WalletRegistrationError,
-    WalletUnlockError,
+    AccountServerClientError, DigidAuthenticatorError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError,
+    WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -14,15 +14,27 @@ pub struct FlutterApiError {
     #[serde(rename = "type")]
     typ: FlutterApiErrorType,
     description: String,
+    data: Option<serde_json::Value>,
     /// This property is present only for debug logging purposes and will not be encoded to JSON.
     #[serde(skip)]
     source: Box<dyn Error>,
 }
 
 #[derive(Debug, Serialize)]
-pub enum FlutterApiErrorType {
+enum FlutterApiErrorType {
     Generic,
     Networking,
+    RedirectUri,
+}
+
+trait FlutterApiErrorFields {
+    fn typ(&self) -> FlutterApiErrorType {
+        FlutterApiErrorType::Generic
+    }
+
+    fn data(&self) -> Option<serde_json::Value> {
+        None
+    }
 }
 
 impl FlutterApiError {
@@ -63,67 +75,82 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
 /// Allow conversion from any error for which a reference can be converted to a FlutterApiErrorType.
 impl<E> From<E> for FlutterApiError
 where
-    E: Error + 'static,
-    for<'a> &'a E: Into<FlutterApiErrorType>,
+    E: Error + FlutterApiErrorFields + 'static,
 {
     fn from(value: E) -> Self {
         FlutterApiError {
-            typ: (&value).into(),
+            typ: value.typ(),
             description: value.to_string(),
+            data: value.data(),
             source: Box::new(value),
         }
     }
 }
 
-// The below traits will output the correct FlutterApiErrorType for a given error
-// that can be returned from the Wallet. This can possibly be several layers deep.
-impl From<&WalletInitError> for FlutterApiErrorType {
-    fn from(_value: &WalletInitError) -> Self {
-        Self::Generic
-    }
-}
+// The below traits will output the correct FlutterApiErrorType and data for a given
+// error that can be returned from the Wallet. This can possibly be several layers deep.
+impl FlutterApiErrorFields for WalletInitError {}
 
-impl From<&WalletRegistrationError> for FlutterApiErrorType {
-    fn from(value: &WalletRegistrationError) -> Self {
-        match value {
-            WalletRegistrationError::ChallengeRequest(e) => Self::from(e),
-            WalletRegistrationError::RegistrationRequest(e) => Self::from(e),
-            _ => Self::Generic,
+impl FlutterApiErrorFields for WalletRegistrationError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
+            WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
+            _ => FlutterApiErrorType::Generic,
         }
     }
 }
 
-impl From<&WalletUnlockError> for FlutterApiErrorType {
-    fn from(value: &WalletUnlockError) -> Self {
-        match value {
-            WalletUnlockError::ServerError(e) => Self::from(e),
-            WalletUnlockError::InstructionValidation => Self::Networking,
-            _ => Self::Generic,
+impl FlutterApiErrorFields for WalletUnlockError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            WalletUnlockError::ServerError(e) => FlutterApiErrorType::from(e),
+            WalletUnlockError::InstructionValidation => FlutterApiErrorType::Networking,
+            _ => FlutterApiErrorType::Generic,
         }
     }
 }
 
-impl From<&PidIssuanceError> for FlutterApiErrorType {
-    fn from(value: &PidIssuanceError) -> Self {
+impl FlutterApiErrorFields for PidIssuanceError {
+    fn typ(&self) -> FlutterApiErrorType {
         // Since a `reqwest::Error` can occur in multiple locations
         // within the error tree, just look for it with some help
         // from the `anyhow::Chain` iterator.
-        for source in anyhow::Chain::new(value) {
+        for source in anyhow::Chain::new(self) {
             // Unfortunately `openid::error::Error` is a special case, because one of its
             // variants holds a `reqwest::Error` with the `transparent` error attribute.
             // This means that the `.source()` method will be forwarded directly to the contained
             // error and the reqwest error itself will be skipped in the source chain!
             // For this reason we need to extract it manually.
             if let Some(OpenIdError::Http(_)) = source.downcast_ref::<OpenIdError>() {
-                return Self::Networking;
+                return FlutterApiErrorType::Networking;
             }
 
             if source.is::<ReqwestError>() {
-                return Self::Networking;
+                return FlutterApiErrorType::Networking;
             }
         }
 
-        Self::Generic
+        match self {
+            PidIssuanceError::DigidSessionFinish(DigidAuthenticatorError::RedirectUriError {
+                error: _,
+                error_description: _,
+            }) => FlutterApiErrorType::RedirectUri,
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> Option<serde_json::Value> {
+        match self {
+            Self::DigidSessionFinish(DigidAuthenticatorError::RedirectUriError {
+                error,
+                error_description: _,
+            }) => [("redirect_error", error.clone())]
+                .into_iter()
+                .collect::<serde_json::Value>()
+                .into(),
+            _ => None,
+        }
     }
 }
 
