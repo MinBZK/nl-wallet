@@ -64,7 +64,10 @@ class HistoryOverviewScreen extends StatelessWidget {
             ),
           ),
         ),
-        const BottomBackButton(showDivider: true),
+        Container(
+          color: context.colorScheme.background,
+          child: const BottomBackButton(showDivider: true),
+        ),
       ],
     );
   }

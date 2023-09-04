@@ -32,4 +32,6 @@ pub enum HolderError {
     MalformedServiceEngagement,
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     AttributeRandomLength(usize, usize),
+    #[error("missing issuance session state")]
+    MissingIssuanceSessionState,
 }

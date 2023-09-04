@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_section.dart';
@@ -20,21 +19,29 @@ class TimelineSectionSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverStickyHeader(
-      header: TimelineSectionHeader(dateTime: section.dateTime),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, i) {
-            final TimelineAttribute attribute = section.attributes[i];
-            return TimelineAttributeRow(
-              attribute: attribute,
-              onPressed: () => onRowPressed(attribute.id),
-              showOperationTitle: showOperationTitle,
-            );
-          },
-          childCount: section.attributes.length,
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: TimelineSectionHeader(
+            dateTime: section.dateTime,
+            textScaleFactor: MediaQuery.of(context).textScaleFactor,
+          ),
         ),
-      ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, i) {
+              final TimelineAttribute attribute = section.attributes[i];
+              return TimelineAttributeRow(
+                attribute: attribute,
+                onPressed: () => onRowPressed(attribute.id),
+                showOperationTitle: showOperationTitle,
+              );
+            },
+            childCount: section.attributes.length,
+          ),
+        )
+      ],
     );
   }
 }

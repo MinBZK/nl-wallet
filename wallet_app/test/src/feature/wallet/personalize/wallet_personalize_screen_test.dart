@@ -139,6 +139,21 @@ void main() {
       await screenMatchesGolden(tester, 'wallet_personalize/initial.light');
     });
 
+    testGoldens('WalletPersonalizeLoadingIssuanceUrl Light', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
+          ..addScenario(
+            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+              MockWalletPersonalizeBloc(),
+              const WalletPersonalizeLoadingIssuanceUrl(),
+            ),
+            name: 'loading_issuance_url',
+          ),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'wallet_personalize/loading_issuance_url.light');
+    });
+
     testGoldens('WalletPersonalizeLoadInProgress Light', (tester) async {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController

@@ -13,6 +13,7 @@ import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
+import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_constants.dart';
 
 part 'wallet_personalize_event.dart';
@@ -62,8 +63,17 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onLoginWithDigidClicked(event, emit) async {
-    String url = await getPidIssuanceUrlUseCase.invoke();
-    emit(WalletPersonalizeConnectDigid(url));
+    try {
+      emit(const WalletPersonalizeLoadingIssuanceUrl());
+      String url = await getPidIssuanceUrlUseCase.invoke();
+      emit(WalletPersonalizeConnectDigid(url));
+    } catch (ex, stack) {
+      Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
+      handleError(
+        ex,
+        onUnhandledError: (ex) => emit(WalletPersonalizeDigidFailure()),
+      );
+    }
   }
 
   void _onLoginWithDigidSucceeded(event, emit) async {
