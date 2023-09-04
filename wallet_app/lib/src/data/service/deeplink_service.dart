@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:uni_links/uni_links.dart';
 
+import '../../../bridge_generated.dart';
 import '../../domain/model/navigation/navigation_request.dart';
-import '../../domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
+import '../../domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -35,7 +36,7 @@ class DeeplinkService {
   final AppLifecycleService _appLifecycleService;
 
   final DecodeDeeplinkUseCase _decodeDeeplinkUseCase;
-  final UpdateDigidAuthStatusUseCase _updateDigidAuthStatusUseCase;
+  final UpdatePidIssuanceStatusUseCase _updatePidIssuanceStatusUseCase;
   final ObserveWalletLockUseCase _observeWalletLockUseCase;
   final IsWalletInitializedWithPidUseCase _isWalletInitializedWithPidUseCase;
   final SetupMockedWalletUseCase _setupMockedWalletUseCase;
@@ -43,7 +44,7 @@ class DeeplinkService {
   DeeplinkService(
     this._navigatorKey,
     this._decodeDeeplinkUseCase,
-    this._updateDigidAuthStatusUseCase,
+    this._updatePidIssuanceStatusUseCase,
     this._isWalletInitializedWithPidUseCase,
     this._setupMockedWalletUseCase,
     this._observeWalletLockUseCase,
@@ -92,15 +93,16 @@ class DeeplinkService {
     _walletCore.processUri(uri).listen((event) {
       Fimber.d('wallet_core processUri response: $event');
       event.when(
-        digidAuth: (state) {
-          // We only pass on the [DigidState] here (no navigation) since:
+        pidIssuance: (PidIssuanceEvent state) {
+          // We only pass on the [PidIssuanceEvent] here (no navigation) since:
           // - if the app did not cold start the user is already in the correct place
-          // - else if the wallet is not yet registered, a DigiD auth is not yet appropriate and it will be re-initiated later.
+          // - else if the wallet is not yet registered, PidIssuance not yet appropriate and it will be re-initiated later.
           // - else if the wallet is registered but the PID is not yet retrieved, the user will end up in the personalize flow,
           //   the correct state will be rendered because we notify the repository that authentication is in process.
-          // - else if the wallet is registered and the PID is available, DigiD auth is no longer relevant.
-          _updateDigidAuthStatusUseCase.invoke(state);
+          // - else if the wallet is registered and the PID is available, PidIssuance is no longer relevant.
+          _updatePidIssuanceStatusUseCase.invoke(state);
         },
+        unknownUri: () => Fimber.d('walletCore did not recognize $uri, ignoring.'),
       );
     }, onError: (ex) {
       Fimber.e('processUri() threw an exception while processing $uri', ex: ex);

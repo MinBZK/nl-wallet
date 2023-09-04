@@ -5,14 +5,14 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../data/repository/authentication/digid_auth_repository.dart';
+import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
-import '../../../../domain/usecase/auth/get_digid_auth_url_usecase.dart';
-import '../../../../domain/usecase/auth/observe_digid_auth_status_usecase.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../wallet_constants.dart';
 
 part 'wallet_personalize_event.dart';
@@ -22,17 +22,17 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final GetPidIssuanceResponseUseCase getPidIssuanceResponseUseCase;
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
-  final GetDigidAuthUrlUseCase getDigidAuthUrlUseCase;
-  final ObserveDigidAuthStatusUseCase observeDigidAuthStatusUseCase;
+  final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
+  final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
 
-  StreamSubscription? _digidAuthStatusSubscription;
+  StreamSubscription? _pidIssuanceStatusSubscription;
 
   WalletPersonalizeBloc(
     this.getPidIssuanceResponseUseCase,
     this.walletAddIssuedCardsUseCase,
     this.getWalletCardsUseCase,
-    this.getDigidAuthUrlUseCase,
-    this.observeDigidAuthStatusUseCase,
+    this.getPidIssuanceUrlUseCase,
+    this.observePidIssuanceStatusUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
@@ -43,26 +43,26 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
 
-    _digidAuthStatusSubscription = observeDigidAuthStatusUseCase.invoke().listen(_handleDigidAuthStatusUpdate);
+    _pidIssuanceStatusSubscription = observePidIssuanceStatusUseCase.invoke().listen(_handlePidIssuanceStatusUpdate);
   }
 
-  void _handleDigidAuthStatusUpdate(event) {
+  void _handlePidIssuanceStatusUpdate(event) {
     if (state is WalletPersonalizeDigidFailure) return; // Don't navigate when user cancelled.
     switch (event) {
-      case DigidAuthStatus.success:
+      case PidIssuanceStatus.success:
         add(WalletPersonalizeLoginWithDigidSucceeded());
         break;
-      case DigidAuthStatus.error:
+      case PidIssuanceStatus.error:
         add(WalletPersonalizeLoginWithDigidFailed());
         break;
-      case DigidAuthStatus.authenticating:
+      case PidIssuanceStatus.authenticating:
         add(WalletPersonalizeAuthInProgress());
         break;
     }
   }
 
   void _onLoginWithDigidClicked(event, emit) async {
-    String url = await getDigidAuthUrlUseCase.invoke();
+    String url = await getPidIssuanceUrlUseCase.invoke();
     emit(WalletPersonalizeConnectDigid(url));
   }
 
@@ -131,7 +131,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   @override
   Future<void> close() async {
-    _digidAuthStatusSubscription?.cancel();
+    _pidIssuanceStatusSubscription?.cancel();
     super.close();
   }
 }

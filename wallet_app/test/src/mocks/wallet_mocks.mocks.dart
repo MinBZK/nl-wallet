@@ -8,11 +8,11 @@ import 'dart:async' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
 import 'package:wallet/bridge_generated.dart' as _i2;
-import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart' as _i3;
+import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i3;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i5;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i10;
-import 'package:wallet/src/domain/usecase/auth/update_digid_auth_status_usecase.dart' as _i11;
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart' as _i9;
+import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart' as _i11;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i6;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i12;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart' as _i13;
@@ -40,36 +40,36 @@ class _FakeWalletUnlockResult_0 extends _i1.SmartFake implements _i2.WalletUnloc
         );
 }
 
-/// A class which mocks [DigidAuthRepository].
+/// A class which mocks [PidRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDigidAuthRepository extends _i1.Mock implements _i3.DigidAuthRepository {
+class MockPidRepository extends _i1.Mock implements _i3.PidRepository {
   @override
-  _i4.Future<String> getAuthUrl() => (super.noSuchMethod(
+  _i4.Future<String> getPidIssuanceUrl() => (super.noSuchMethod(
         Invocation.method(
-          #getAuthUrl,
+          #getPidIssuanceUrl,
           [],
         ),
         returnValue: _i4.Future<String>.value(''),
         returnValueForMissingStub: _i4.Future<String>.value(''),
       ) as _i4.Future<String>);
   @override
-  void notifyDigidStateUpdate(dynamic state) => super.noSuchMethod(
+  void notifyPidIssuanceStateUpdate(_i2.PidIssuanceEvent? event) => super.noSuchMethod(
         Invocation.method(
-          #notifyDigidStateUpdate,
-          [state],
+          #notifyPidIssuanceStateUpdate,
+          [event],
         ),
         returnValueForMissingStub: null,
       );
   @override
-  _i4.Stream<_i3.DigidAuthStatus> observeAuthStatus() => (super.noSuchMethod(
+  _i4.Stream<_i3.PidIssuanceStatus> observePidIssuanceStatus() => (super.noSuchMethod(
         Invocation.method(
-          #observeAuthStatus,
+          #observePidIssuanceStatus,
           [],
         ),
-        returnValue: _i4.Stream<_i3.DigidAuthStatus>.empty(),
-        returnValueForMissingStub: _i4.Stream<_i3.DigidAuthStatus>.empty(),
-      ) as _i4.Stream<_i3.DigidAuthStatus>);
+        returnValue: _i4.Stream<_i3.PidIssuanceStatus>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i3.PidIssuanceStatus>.empty(),
+      ) as _i4.Stream<_i3.PidIssuanceStatus>);
 }
 
 /// A class which mocks [WalletRepository].
@@ -247,14 +247,14 @@ class MockTypedWalletCore extends _i1.Mock implements _i8.TypedWalletCore {
         returnValueForMissingStub: _i4.Future<String>.value(''),
       ) as _i4.Future<String>);
   @override
-  _i4.Stream<dynamic> processUri(Uri? uri) => (super.noSuchMethod(
+  _i4.Stream<_i2.ProcessUriEvent> processUri(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #processUri,
           [uri],
         ),
-        returnValue: _i4.Stream<dynamic>.empty(),
-        returnValueForMissingStub: _i4.Stream<dynamic>.empty(),
-      ) as _i4.Stream<dynamic>);
+        returnValue: _i4.Stream<_i2.ProcessUriEvent>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i2.ProcessUriEvent>.empty(),
+      ) as _i4.Stream<_i2.ProcessUriEvent>);
   @override
   _i4.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
         Invocation.method(
@@ -292,12 +292,12 @@ class MockDecodeDeeplinkUseCase extends _i1.Mock implements _i9.DecodeDeeplinkUs
       ) as _i10.NavigationRequest?);
 }
 
-/// A class which mocks [UpdateDigidAuthStatusUseCase].
+/// A class which mocks [UpdatePidIssuanceStatusUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUpdateDigidAuthStatusUseCase extends _i1.Mock implements _i11.UpdateDigidAuthStatusUseCase {
+class MockUpdatePidIssuanceStatusUseCase extends _i1.Mock implements _i11.UpdatePidIssuanceStatusUseCase {
   @override
-  _i4.Future<void> invoke(dynamic state) => (super.noSuchMethod(
+  _i4.Future<void> invoke(_i2.PidIssuanceEvent? state) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [state],

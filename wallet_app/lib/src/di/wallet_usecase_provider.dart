@@ -3,12 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
-import '../domain/usecase/auth/get_digid_auth_url_usecase.dart';
-import '../domain/usecase/auth/impl/get_digid_auth_url_usecase_impl.dart';
-import '../domain/usecase/auth/impl/observe_digid_auth_status_usecase_impl.dart';
-import '../domain/usecase/auth/impl/update_digid_auth_status_usecase_impl.dart';
-import '../domain/usecase/auth/observe_digid_auth_status_usecase.dart';
-import '../domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import '../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_data_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_summary_usecase.dart';
@@ -47,6 +41,12 @@ import '../domain/usecase/issuance/impl/get_issuance_response_usecase_impl.dart'
 import '../domain/usecase/issuance/impl/get_my_government_issuance_responses_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
+import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
+import '../domain/usecase/pid/impl/observe_pid_issuance_status_usecase_impl.dart';
+import '../domain/usecase/pid/impl/update_pid_issuance_status_usecase_impl.dart';
+import '../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
+import '../domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
@@ -197,14 +197,14 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetRequestedAttributesWithCardUseCase>(
           create: (context) => GetRequestedAttributesWithCardUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetDigidAuthUrlUseCase>(
-          create: (context) => GetDigidAuthUrlUseCaseImpl(context.read()),
+        RepositoryProvider<GetPidIssuanceUrlUseCase>(
+          create: (context) => GetPidIssuanceUrlUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ObserveDigidAuthStatusUseCase>(
-          create: (context) => ObserveDigidAuthStatusUseCaseImpl(context.read()),
+        RepositoryProvider<ObservePidIssuanceStatusUseCase>(
+          create: (context) => ObservePidIssuanceStatusUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<UpdateDigidAuthStatusUseCase>(
-          create: (context) => UpdateDigidAuthStatusUseCaseImpl(context.read()),
+        RepositoryProvider<UpdatePidIssuanceStatusUseCase>(
+          create: (context) => UpdatePidIssuanceStatusUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ObserveWalletLockUseCase>(
           create: (context) => ObserveWalletLockUseCaseImpl(context.read()),

@@ -40,7 +40,7 @@ class MockWalletCore extends TypedWalletCore {
   }
 
   @override
-  Stream<UriFlowEvent> processUri(Uri uri) {
+  Stream<ProcessUriEvent> processUri(Uri uri) {
     // TODO: implement processUri
     throw UnimplementedError();
   }

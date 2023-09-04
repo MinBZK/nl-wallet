@@ -115,7 +115,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   @override
-  Stream<UriFlowEvent> processUri(Uri uri) {
+  Stream<ProcessUriEvent> processUri(Uri uri) {
     try {
       return _walletCore.processUri(uri: uri.toString());
     } catch (ex) {

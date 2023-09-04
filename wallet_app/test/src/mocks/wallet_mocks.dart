@@ -1,11 +1,11 @@
 import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/data/repository/authentication/digid_auth_repository.dart';
+import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
-import 'package:wallet/src/domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart';
@@ -17,7 +17,7 @@ import 'wallet_mocks.mocks.dart';
 export 'wallet_mocks.mocks.dart';
 
 /// Mock repositories
-@GenerateNiceMocks([MockSpec<DigidAuthRepository>()])
+@GenerateNiceMocks([MockSpec<PidRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
 
 /// Mock services
@@ -25,14 +25,14 @@ export 'wallet_mocks.mocks.dart';
 
 ///Mock usecases
 @GenerateNiceMocks([MockSpec<DecodeDeeplinkUseCase>()])
-@GenerateNiceMocks([MockSpec<UpdateDigidAuthStatusUseCase>()])
+@GenerateNiceMocks([MockSpec<UpdatePidIssuanceStatusUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedWithPidUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletLockUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
 
 /// Constants
-const kMockDigidAuthUrl = 'https://example.org';
+const kMockPidIssuanceUrl = 'https://example.org';
 
 /// Class that provides the generated mocks with a very
 /// basic or no stubbing. Stubs can be overwritten or the mocks
@@ -53,13 +53,13 @@ class Mocks {
     sl.registerFactory<TypedWalletCore>(() => getTypedWalletCoreMock());
     // Usecases
     sl.registerFactory<DecodeDeeplinkUseCase>(() => MockDecodeDeeplinkUseCase());
-    sl.registerFactory<UpdateDigidAuthStatusUseCase>(() => MockUpdateDigidAuthStatusUseCase());
+    sl.registerFactory<UpdatePidIssuanceStatusUseCase>(() => MockUpdatePidIssuanceStatusUseCase());
     sl.registerFactory<IsWalletInitializedWithPidUseCase>(() => MockIsWalletInitializedWithPidUseCase());
     sl.registerFactory<ObserveWalletLockUseCase>(() => MockObserveWalletLockUseCase());
     sl.registerFactory<CheckPinUseCase>(() => MockCheckPinUseCase());
     sl.registerFactory<SetupMockedWalletUseCase>(() => MockSetupMockedWalletUseCase());
     // Repositories
-    sl.registerFactory<DigidAuthRepository>(() => getMockDigidAuthRepository());
+    sl.registerFactory<PidRepository>(() => getMockPidRepository());
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());
 
     isInitialized = true;
@@ -67,13 +67,13 @@ class Mocks {
 
   static MockTypedWalletCore getTypedWalletCoreMock() {
     final mock = MockTypedWalletCore();
-    when(mock.createPidIssuanceRedirectUri()).thenAnswer((_) async => kMockDigidAuthUrl);
+    when(mock.createPidIssuanceRedirectUri()).thenAnswer((_) async => kMockPidIssuanceUrl);
     return mock;
   }
 
-  static MockDigidAuthRepository getMockDigidAuthRepository() {
-    final mock = MockDigidAuthRepository();
-    when(mock.getAuthUrl()).thenAnswer((_) async => kMockDigidAuthUrl);
+  static MockPidRepository getMockPidRepository() {
+    final mock = MockPidRepository();
+    when(mock.getPidIssuanceUrl()).thenAnswer((_) async => kMockPidIssuanceUrl);
     return mock;
   }
 

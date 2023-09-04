@@ -3,9 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../data/mapper/pin/pin_validation_error_mapper.dart';
-import '../data/repository/authentication/digid_auth_repository.dart';
-import '../data/repository/authentication/impl/digid_auth_repository_impl.dart';
-import '../data/repository/authentication/mock/mock_digid_auth_repository.dart';
 import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
 import '../data/repository/card/impl/timeline_attribute_repository_impl.dart';
@@ -22,6 +19,9 @@ import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
 import '../data/repository/organization/impl/organization_repository_impl.dart';
 import '../data/repository/organization/organization_repository.dart';
+import '../data/repository/pid/impl/pid_repository_impl.dart';
+import '../data/repository/pid/mock/mock_pid_repository.dart';
+import '../data/repository/pid/pid_repository.dart';
 import '../data/repository/qr/impl/qr_repository_impl.dart';
 import '../data/repository/qr/mock/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
@@ -86,8 +86,8 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<LanguageRepository>(
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
         ),
-        RepositoryProvider<DigidAuthRepository>(
-          create: (context) => provideMocks ? MockDigidAuthRepository() : DigidAuthRepositoryImpl(context.read()),
+        RepositoryProvider<PidRepository>(
+          create: (context) => provideMocks ? MockPidRepository() : PidRepositoryImpl(context.read()),
         ),
       ],
       child: child,
