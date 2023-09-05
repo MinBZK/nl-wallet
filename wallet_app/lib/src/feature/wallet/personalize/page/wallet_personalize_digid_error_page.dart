@@ -8,10 +8,13 @@ import '../../../common/widget/sliver_sized_box.dart';
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   final VoidCallback onRetryPressed;
   final VoidCallback onHelpPressed;
+  final String title, description;
 
   const WalletPersonalizeDigidErrorPage({
     required this.onRetryPressed,
     required this.onHelpPressed,
+    required this.title,
+    required this.description,
     Key? key,
   }) : super(key: key);
 
@@ -40,13 +43,13 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.l10n.walletPersonalizeDigidErrorPageTitle,
+                      title,
                       textAlign: TextAlign.start,
                       style: context.textTheme.displaySmall,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      context.l10n.walletPersonalizeDigidErrorPageDescription,
+                      description,
                       textAlign: TextAlign.start,
                       style: context.textTheme.bodyLarge,
                     ),

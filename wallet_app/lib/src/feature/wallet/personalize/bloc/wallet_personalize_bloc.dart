@@ -92,7 +92,13 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onLoginWithDigidFailed(event, emit) async => emit(WalletPersonalizeDigidFailure());
+  void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
+    if (event.cancelledByUser) {
+      emit(WalletPersonalizeDigidCancelled());
+    } else {
+      emit(WalletPersonalizeDigidFailure());
+    }
+  }
 
   void _onOfferingVerified(WalletPersonalizeOfferingVerified event, emit) async {
     emit(const WalletPersonalizeConfirmPin());

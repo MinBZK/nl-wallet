@@ -93,6 +93,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
           WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
           WalletPersonalizeFailure() => _buildErrorPage(context),
+          WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
@@ -126,7 +127,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       onCancel: () async {
         final bloc = context.bloc;
         final cancelled = await _showStopDigidLoginDialog(context);
-        if (cancelled) bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+        if (cancelled) bloc.add(const WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true));
       },
     );
   }
@@ -211,8 +212,19 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDigidCancelledPage(BuildContext context) {
+    return WalletPersonalizeDigidErrorPage(
+      title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
+      description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
+      onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+      onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+    );
+  }
+
   Widget _buildDigidErrorPage(BuildContext context) {
     return WalletPersonalizeDigidErrorPage(
+      title: context.l10n.walletPersonalizeDigidErrorPageTitle,
+      description: context.l10n.walletPersonalizeDigidErrorPageDescription,
       onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
       onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
     );
