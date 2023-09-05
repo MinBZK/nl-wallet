@@ -14,7 +14,7 @@ use nl_wallet_mdoc::{
 };
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
-    mock::{MockAccountProvider, MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
+    mock::{MockAccountProviderClient, MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
     wallet::{Configuration, DigidAuthenticator, Wallet},
     wallet_deps::{DigidClient, PidIssuerClient},
 };
@@ -51,7 +51,7 @@ async fn create_test_wallet<D: DigidAuthenticator>(
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        MockAccountProvider,
+        MockAccountProviderClient,
         D,
         PidIssuerClient,
         SoftwareUtilities,
@@ -59,7 +59,7 @@ async fn create_test_wallet<D: DigidAuthenticator>(
 ) {
     let wallet = Wallet::init_storage(
         test_wallet_config(base_url.clone()),
-        MockAccountProvider::new(),
+        MockAccountProviderClient::new(),
         digid_client,
         pid_issuer_client,
     )

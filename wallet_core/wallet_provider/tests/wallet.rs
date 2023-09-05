@@ -19,9 +19,10 @@ use platform_support::{
 use wallet::{
     mock::{MockConfigurationRepository, MockDigidAuthenticator, MockPidRetriever, MockStorage},
     wallet::{
-        AccountProvider, ConfigurationRepository, DigidAuthenticator, PidRetriever, Storage, Wallet, WalletUnlockError,
+        AccountProviderClient, ConfigurationRepository, DigidAuthenticator, PidRetriever, Storage, Wallet,
+        WalletUnlockError,
     },
-    wallet_deps::AccountServerClient,
+    wallet_deps::HttpAccountProviderClient,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -58,7 +59,7 @@ async fn create_test_wallet(
     MockConfigurationRepository,
     MockStorage,
     SoftwareEcdsaKey,
-    AccountServerClient,
+    HttpAccountProviderClient,
     MockDigidAuthenticator,
     MockPidRetriever,
     SoftwareUtilities,
@@ -71,7 +72,7 @@ async fn create_test_wallet(
 
     Wallet::init_storage(
         config,
-        AccountServerClient::default(),
+        HttpAccountProviderClient::default(),
         MockDigidAuthenticator::new(),
         MockPidRetriever::new(),
     )
@@ -113,7 +114,7 @@ where
     C: ConfigurationRepository,
     S: Storage,
     K: PlatformEcdsaKey,
-    A: AccountProvider,
+    A: AccountProviderClient,
     D: DigidAuthenticator,
     P: PidRetriever,
     U: PlatformUtilities,

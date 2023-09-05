@@ -12,7 +12,7 @@ use wallet_common::account::messages::{
 };
 
 use crate::{
-    account_server::{AccountProviderError, AccountProviderResponseError, AccountServerClient},
+    account_provider::{AccountProviderError, AccountProviderResponseError, HttpAccountProviderClient},
     digid::{DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
     pid_issuer::{PidIssuerClient, PidRetrieverError},
@@ -24,7 +24,7 @@ use crate::{
 };
 
 pub use crate::{
-    account_server::AccountProvider,
+    account_provider::AccountProviderClient,
     config::{Configuration, ConfigurationRepository},
     digid::DigidAuthenticator,
     pid_issuer::PidRetriever,
@@ -128,11 +128,11 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, S, K, A = AccountServerClient, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
+pub struct Wallet<C, S, K, A = HttpAccountProviderClient, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
     config_repository: C,
     storage: S,
     hw_privkey: K,
-    account_provider: A,
+    account_provider_client: A,
     digid: D,
     pid_issuer: P,
     platform_utils: PhantomData<U>,
@@ -150,7 +150,7 @@ where
     pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
         Self::init_storage(
             config_repository,
-            AccountServerClient::default(),
+            HttpAccountProviderClient::default(),
             DigidClient::default(),
             PidIssuerClient::default(),
         )
@@ -163,7 +163,7 @@ where
     C: ConfigurationRepository,
     S: Storage,
     K: PlatformEcdsaKey,
-    A: AccountProvider,
+    A: AccountProviderClient,
     D: DigidAuthenticator,
     P: PidRetriever,
     U: PlatformUtilities,
@@ -171,7 +171,7 @@ where
     /// Initialize the wallet by loading initial state.
     pub async fn init_storage(
         config_repository: C,
-        account_provider: A,
+        account_provider_client: A,
         digid: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
@@ -182,7 +182,7 @@ where
             config_repository,
             storage,
             hw_privkey: K::new(WALLET_KEY_ID),
-            account_provider,
+            account_provider_client,
             digid,
             pid_issuer,
             platform_utils: PhantomData,
@@ -324,12 +324,12 @@ where
 
         // Retrieve a challenge from the account server
         let challenge = self
-            .account_provider
+            .account_provider_client
             .instruction_challenge(&base_url, challenge_request)
             .await?;
 
         let instruction = self.new_check_pin_request(pin, challenge).await?;
-        let signed_result = self.account_provider.check_pin(&base_url, instruction).await?;
+        let signed_result = self.account_provider_client.check_pin(&base_url, instruction).await?;
 
         signed_result
             .parse_and_verify(&instruction_result_public_key)
@@ -362,7 +362,7 @@ where
 
         // Retrieve a challenge from the account server
         let challenge = self
-            .account_provider
+            .account_provider_client
             .registration_challenge(&base_url)
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
@@ -386,7 +386,7 @@ where
 
         // Send the registration message to the account server and receive the wallet certificate in response.
         let cert = self
-            .account_provider
+            .account_provider_client
             .register(&base_url, registration_message)
             .await
             .map_err(WalletRegistrationError::RegistrationRequest)?;
@@ -491,8 +491,8 @@ mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
 
     use crate::{
-        account_server::MockAccountProvider, config::MockConfigurationRepository, digid::MockDigidAuthenticator,
-        pid_issuer::MockPidRetriever, storage::MockStorage,
+        account_provider::MockAccountProviderClient, config::MockConfigurationRepository,
+        digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever, storage::MockStorage,
     };
 
     use super::*;
@@ -501,7 +501,7 @@ mod tests {
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        MockAccountProvider,
+        MockAccountProviderClient,
         MockDigidAuthenticator,
         MockPidRetriever,
         SoftwareUtilities,
@@ -515,7 +515,7 @@ mod tests {
             config_repository: MockConfigurationRepository::default(),
             storage,
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            account_provider: MockAccountProvider::new(),
+            account_provider_client: MockAccountProviderClient::new(),
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
             platform_utils: PhantomData,
@@ -535,7 +535,7 @@ mod tests {
         let config_repository = MockConfigurationRepository::default();
         let wallet = MockWallet::init_storage(
             config_repository,
-            MockAccountProvider::new(),
+            MockAccountProviderClient::new(),
             MockDigidAuthenticator::new(),
             MockPidRetriever::new(),
         )

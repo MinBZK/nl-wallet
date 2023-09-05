@@ -1,4 +1,4 @@
-mod account_server;
+mod account_provider;
 mod config;
 mod digid;
 mod init;
@@ -20,13 +20,13 @@ pub use crate::{
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
-    pub use crate::{account_server::AccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient};
+    pub use crate::{account_provider::HttpAccountProviderClient, digid::DigidClient, pid_issuer::PidIssuerClient};
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_server::MockAccountProvider, config::MockConfigurationRepository, digid::MockDigidAuthenticator,
-        pid_issuer::MockPidRetriever, storage::MockStorage,
+        account_provider::MockAccountProviderClient, config::MockConfigurationRepository,
+        digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever, storage::MockStorage,
     };
 }

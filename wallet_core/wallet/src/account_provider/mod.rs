@@ -13,7 +13,7 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-pub use self::client::AccountServerClient;
+pub use self::client::HttpAccountProviderClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountProviderError {
@@ -37,7 +37,7 @@ pub enum AccountProviderResponseError {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
-pub trait AccountProvider {
+pub trait AccountProviderClient {
     async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
