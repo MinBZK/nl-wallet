@@ -1,14 +1,16 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'card_config.g.dart';
 
 @JsonSerializable()
 class CardConfig extends Equatable {
+  final bool updatable;
   final bool removable;
 
   const CardConfig({
-    this.removable = true,
+    this.updatable = false,
+    this.removable = false,
   });
 
   factory CardConfig.fromJson(Map<String, dynamic> json) => _$CardConfigFromJson(json);
@@ -16,5 +18,5 @@ class CardConfig extends Equatable {
   Map<String, dynamic> toJson() => _$CardConfigToJson(this);
 
   @override
-  List<Object?> get props => [removable];
+  List<Object?> get props => [updatable, removable];
 }

@@ -13,12 +13,12 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
+import '../../common/screen/placeholder_screen.dart';
+import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/info_row.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../issuance/argument/issuance_screen_argument.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_summary_screen_argument.dart';
@@ -101,13 +101,15 @@ class CardSummaryScreen extends StatelessWidget {
                   onTap: () => _onCardHistoryPressed(context, card.id),
                 ),
                 const Divider(height: 1),
-                InfoRow(
-                  icon: Icons.replay_outlined,
-                  title: Text(context.l10n.cardSummaryScreenCardUpdateCta),
-                  subtitle: Text(_createOperationText(context, summary.latestIssuedOperation)),
-                  onTap: () => _onCardUpdatePressed(context, card),
-                ),
-                const Divider(height: 1),
+                if (card.config.updatable) ...[
+                  InfoRow(
+                    icon: Icons.replay_outlined,
+                    title: Text(context.l10n.cardSummaryScreenCardUpdateCta),
+                    subtitle: Text(_createOperationText(context, summary.latestIssuedOperation)),
+                    onTap: () => _onCardUpdatePressed(context, card),
+                  ),
+                  const Divider(height: 1),
+                ],
                 if (card.config.removable) ...[
                   InfoRow(
                     icon: Icons.delete_outline_rounded,

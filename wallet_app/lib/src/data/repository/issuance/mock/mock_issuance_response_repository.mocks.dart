@@ -14,7 +14,7 @@ const _kMockPidWalletCard = WalletCard(
   issuerId: kRvigId,
   front: _kMockPidCardFront,
   attributes: _kMockPidDataAttributes,
-  config: CardConfig(removable: false),
+  config: CardConfig(),
 );
 
 const _kAddressId = 'ADDRESS_1';
