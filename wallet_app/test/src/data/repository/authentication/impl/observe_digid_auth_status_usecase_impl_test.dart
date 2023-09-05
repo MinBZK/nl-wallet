@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
@@ -5,6 +7,7 @@ import 'package:wallet/src/data/repository/pid/impl/pid_repository_impl.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
+import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
@@ -37,11 +40,28 @@ void main() {
       authRepository.notifyPidIssuanceStateUpdate(PidIssuanceEvent.success(previewCards: List.empty()));
     });
 
-    test('Stream reflects error state and returns back to idle', () async {
+    test('Stream reflects unknown error state and returns back to idle', () async {
+      expectLater(authRepository.observePidIssuanceStatus(),
+          emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(RedirectError.unknown), PidIssuanceIdle()]));
+      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
+      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
+    });
+
+    test('Stream reflects accessDenied error state and returns back to idle', () async {
       expectLater(authRepository.observePidIssuanceStatus(),
           emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(RedirectError.accessDenied), PidIssuanceIdle()]));
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
+      authRepository.notifyPidIssuanceStateUpdate(
+        PidIssuanceEvent.error(
+          data: jsonEncode(
+            FlutterApiError(
+              type: FlutterApiErrorType.redirectUri,
+              description: '',
+              data: {'redirect_error': 'access_denied'},
+            ),
+          ),
+        ),
+      );
     });
 
     test('Stream returns back to idle when receiving a null status', () async {
