@@ -17,10 +17,9 @@ use platform_support::{
     utils::{software::SoftwareUtilities, PlatformUtilities},
 };
 use wallet::{
-    mock::{MockConfigurationRepository, MockDigidAuthenticator, MockPidRetriever, MockStorage},
+    mock::{MockConfigurationRepository, MockDigidClient, MockPidRetriever, MockStorage},
     wallet::{
-        AccountProviderClient, ConfigurationRepository, DigidAuthenticator, PidRetriever, Storage, Wallet,
-        WalletUnlockError,
+        AccountProviderClient, ConfigurationRepository, DigidClient, PidRetriever, Storage, Wallet, WalletUnlockError,
     },
     wallet_deps::HttpAccountProviderClient,
 };
@@ -60,7 +59,7 @@ async fn create_test_wallet(
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
-    MockDigidAuthenticator,
+    MockDigidClient,
     MockPidRetriever,
     SoftwareUtilities,
 > {
@@ -73,7 +72,7 @@ async fn create_test_wallet(
     Wallet::init_storage(
         config,
         HttpAccountProviderClient::default(),
-        MockDigidAuthenticator::new(),
+        MockDigidClient::new(),
         MockPidRetriever::new(),
     )
     .await
@@ -115,7 +114,7 @@ where
     S: Storage,
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
-    D: DigidAuthenticator,
+    D: DigidClient,
     P: PidRetriever,
     U: PlatformUtilities,
 {

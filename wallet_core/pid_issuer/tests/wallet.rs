@@ -14,9 +14,9 @@ use nl_wallet_mdoc::{
 };
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
-    mock::{MockAccountProviderClient, MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
-    wallet::{Configuration, DigidAuthenticator, Wallet},
-    wallet_deps::{DigidClient, PidIssuerClient},
+    mock::{MockAccountProviderClient, MockConfigurationRepository, MockDigidClient, MockStorage},
+    wallet::{Configuration, DigidClient, Wallet},
+    wallet_deps::{HttpDigidClient, PidIssuerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -41,7 +41,7 @@ fn test_wallet_config(base_url: Url) -> MockConfigurationRepository {
 }
 
 /// Create an instance of [`Wallet`].
-async fn create_test_wallet<D: DigidAuthenticator>(
+async fn create_test_wallet<D: DigidClient>(
     base_url: Url,
     digid_client: D,
     pid_issuer_client: PidIssuerClient,
@@ -109,7 +109,7 @@ async fn test_pid_issuance_mock_bsn() {
 
     // Set up mock DigiD client and its responses.
     let digid_client = {
-        let mut digid_client = MockDigidAuthenticator::new();
+        let mut digid_client = MockDigidClient::new();
 
         // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
         digid_client
@@ -149,9 +149,12 @@ async fn test_pid_issuance_digid_bridge() {
     let (settings, port) = pid_issuer_settings();
     let bsn_lookup = OpenIdClient::new(&settings.digid).await.unwrap();
     start_pid_issuer(settings, MockAttributesLookup, bsn_lookup);
-    let (config, mut wallet) =
-        create_test_wallet::<DigidClient>(local_base_url(port), DigidClient::default(), PidIssuerClient::default())
-            .await;
+    let (config, mut wallet) = create_test_wallet::<HttpDigidClient>(
+        local_base_url(port),
+        HttpDigidClient::default(),
+        PidIssuerClient::default(),
+    )
+    .await;
 
     // Prepare DigiD flow
     let authorization_url = wallet

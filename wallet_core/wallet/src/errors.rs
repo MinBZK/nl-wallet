@@ -4,7 +4,7 @@ pub use reqwest::Error as ReqwestError;
 
 pub use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
-    digid::{DigidAuthenticatorError, OpenIdAuthenticatorError},
+    digid::{DigidError, OpenIdAuthenticatorError},
     pid_issuer::PidRetrieverError,
     pin::{key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},

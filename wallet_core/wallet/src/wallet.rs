@@ -13,7 +13,7 @@ use wallet_common::account::messages::{
 
 use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError, HttpAccountProviderClient},
-    digid::{DigidAuthenticatorError, DigidClient},
+    digid::{DigidError, HttpDigidClient},
     lock::WalletLock,
     pid_issuer::{PidIssuerClient, PidRetrieverError},
     pin::{
@@ -26,7 +26,7 @@ use crate::{
 pub use crate::{
     account_provider::AccountProviderClient,
     config::{Configuration, ConfigurationRepository},
-    digid::DigidAuthenticator,
+    digid::DigidClient,
     pid_issuer::PidRetriever,
     storage::Storage,
 };
@@ -114,9 +114,9 @@ impl From<AccountProviderError> for WalletUnlockError {
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] DigidAuthenticatorError),
+    DigidSessionStart(#[source] DigidError),
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] DigidAuthenticatorError),
+    DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
     PidIssuer(#[source] PidRetrieverError),
 }
@@ -128,12 +128,20 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, S, K, A = HttpAccountProviderClient, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
+pub struct Wallet<
+    C,
+    S,
+    K,
+    A = HttpAccountProviderClient,
+    D = HttpDigidClient,
+    P = PidIssuerClient,
+    U = HardwareUtilities,
+> {
     config_repository: C,
     storage: S,
     hw_privkey: K,
     account_provider_client: A,
-    digid: D,
+    digid_client: D,
     pid_issuer: P,
     platform_utils: PhantomData<U>,
     lock: WalletLock,
@@ -151,7 +159,7 @@ where
         Self::init_storage(
             config_repository,
             HttpAccountProviderClient::default(),
-            DigidClient::default(),
+            HttpDigidClient::default(),
             PidIssuerClient::default(),
         )
         .await
@@ -164,7 +172,7 @@ where
     S: Storage,
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
-    D: DigidAuthenticator,
+    D: DigidClient,
     P: PidRetriever,
     U: PlatformUtilities,
 {
@@ -172,7 +180,7 @@ where
     pub async fn init_storage(
         config_repository: C,
         account_provider_client: A,
-        digid: D,
+        digid_client: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
         let storage_path = U::storage_path().await.map_err(StorageError::from)?;
@@ -183,7 +191,7 @@ where
             storage,
             hw_privkey: K::new(WALLET_KEY_ID),
             account_provider_client,
-            digid,
+            digid_client,
             pid_issuer,
             platform_utils: PhantomData,
             lock: WalletLock::new(true),
@@ -434,7 +442,7 @@ where
         let config = &self.config_repository.config().pid_issuance;
 
         let auth_url = self
-            .digid
+            .digid_client
             .start_session(
                 config.digid_url.clone(),
                 config.digid_client_id.clone(),
@@ -449,7 +457,7 @@ where
     }
 
     pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
-        if self.digid.accepts_redirect_uri(redirect_uri) {
+        if self.digid_client.accepts_redirect_uri(redirect_uri) {
             return RedirectUriType::PidIssuance;
         }
 
@@ -461,7 +469,7 @@ where
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         let access_token = self
-            .digid
+            .digid_client
             .get_access_token(redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
@@ -491,8 +499,8 @@ mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
 
     use crate::{
-        account_provider::MockAccountProviderClient, config::MockConfigurationRepository,
-        digid::MockDigidAuthenticator, pid_issuer::MockPidRetriever, storage::MockStorage,
+        account_provider::MockAccountProviderClient, config::MockConfigurationRepository, digid::MockDigidClient,
+        pid_issuer::MockPidRetriever, storage::MockStorage,
     };
 
     use super::*;
@@ -502,7 +510,7 @@ mod tests {
         MockStorage,
         SoftwareEcdsaKey,
         MockAccountProviderClient,
-        MockDigidAuthenticator,
+        MockDigidClient,
         MockPidRetriever,
         SoftwareUtilities,
     >;
@@ -516,7 +524,7 @@ mod tests {
             storage,
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
             account_provider_client: MockAccountProviderClient::new(),
-            digid: MockDigidAuthenticator::new(),
+            digid_client: MockDigidClient::new(),
             pid_issuer: MockPidRetriever::new(),
             platform_utils: PhantomData,
             lock: WalletLock::new(true),
@@ -536,7 +544,7 @@ mod tests {
         let wallet = MockWallet::init_storage(
             config_repository,
             MockAccountProviderClient::new(),
-            MockDigidAuthenticator::new(),
+            MockDigidClient::new(),
             MockPidRetriever::new(),
         )
         .await
