@@ -15,7 +15,7 @@ use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError, HttpAccountProviderClient},
     digid::{DigidError, HttpDigidClient},
     lock::WalletLock,
-    pid_issuer::{PidIssuerClient, PidRetrieverError},
+    pid_issuer::{HttpPidIssuerClient, PidIssuerError},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::{validate_pin, PinValidationError},
@@ -27,7 +27,7 @@ pub use crate::{
     account_provider::AccountProviderClient,
     config::{Configuration, ConfigurationRepository},
     digid::DigidClient,
-    pid_issuer::PidRetriever,
+    pid_issuer::PidIssuerClient,
     storage::Storage,
 };
 
@@ -118,7 +118,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[source] PidRetrieverError),
+    PidIssuer(#[source] PidIssuerError),
 }
 
 pub enum RedirectUriType {
@@ -134,7 +134,7 @@ pub struct Wallet<
     K,
     A = HttpAccountProviderClient,
     D = HttpDigidClient,
-    P = PidIssuerClient,
+    P = HttpPidIssuerClient,
     U = HardwareUtilities,
 > {
     config_repository: C,
@@ -160,7 +160,7 @@ where
             config_repository,
             HttpAccountProviderClient::default(),
             HttpDigidClient::default(),
-            PidIssuerClient::default(),
+            HttpPidIssuerClient::default(),
         )
         .await
     }
@@ -173,7 +173,7 @@ where
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
     D: DigidClient,
-    P: PidRetriever,
+    P: PidIssuerClient,
     U: PlatformUtilities,
 {
     /// Initialize the wallet by loading initial state.
@@ -500,7 +500,7 @@ mod tests {
 
     use crate::{
         account_provider::MockAccountProviderClient, config::MockConfigurationRepository, digid::MockDigidClient,
-        pid_issuer::MockPidRetriever, storage::MockStorage,
+        pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 
     use super::*;
@@ -511,7 +511,7 @@ mod tests {
         SoftwareEcdsaKey,
         MockAccountProviderClient,
         MockDigidClient,
-        MockPidRetriever,
+        MockPidIssuerClient,
         SoftwareUtilities,
     >;
 
@@ -525,7 +525,7 @@ mod tests {
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
             account_provider_client: MockAccountProviderClient::new(),
             digid_client: MockDigidClient::new(),
-            pid_issuer: MockPidRetriever::new(),
+            pid_issuer: MockPidIssuerClient::new(),
             platform_utils: PhantomData,
             lock: WalletLock::new(true),
             registration: None,
@@ -545,7 +545,7 @@ mod tests {
             config_repository,
             MockAccountProviderClient::new(),
             MockDigidClient::new(),
-            MockPidRetriever::new(),
+            MockPidIssuerClient::new(),
         )
         .await
         .expect("Could not initialize wallet");

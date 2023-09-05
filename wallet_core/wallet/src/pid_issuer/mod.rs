@@ -5,25 +5,25 @@ use url::Url;
 
 use nl_wallet_mdoc::holder::TrustAnchor;
 
-pub use client::PidIssuerClient;
+pub use client::HttpPidIssuerClient;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
-pub trait PidRetriever {
+pub trait PidIssuerClient {
     async fn retrieve_pid<'a>(
         &self,
         base_url: &Url,
         mdoc_trust_anchors: &[TrustAnchor<'a>],
         access_token: &str,
-    ) -> Result<(), PidRetrieverError>;
+    ) -> Result<(), PidIssuerError>;
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum PidRetrieverError {
+pub enum PidIssuerError {
     #[error("could not get BSN from PID issuer: {0}")]
-    PidIssuer(#[from] reqwest::Error),
+    Networking(#[from] reqwest::Error),
     #[error("could not get BSN from PID issuer: {0} - Response body: {1}")]
-    PidIssuerResponse(#[source] reqwest::Error, String),
+    Response(#[source] reqwest::Error, String),
     #[error("mdoc error: {0}")]
     MdocError(#[from] nl_wallet_mdoc::Error),
 }

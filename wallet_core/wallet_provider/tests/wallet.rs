@@ -17,9 +17,10 @@ use platform_support::{
     utils::{software::SoftwareUtilities, PlatformUtilities},
 };
 use wallet::{
-    mock::{MockConfigurationRepository, MockDigidClient, MockPidRetriever, MockStorage},
+    mock::{MockConfigurationRepository, MockDigidClient, MockPidIssuerClient, MockStorage},
     wallet::{
-        AccountProviderClient, ConfigurationRepository, DigidClient, PidRetriever, Storage, Wallet, WalletUnlockError,
+        AccountProviderClient, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
+        WalletUnlockError,
     },
     wallet_deps::HttpAccountProviderClient,
 };
@@ -60,7 +61,7 @@ async fn create_test_wallet(
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidClient,
-    MockPidRetriever,
+    MockPidIssuerClient,
     SoftwareUtilities,
 > {
     // Create mock Wallet from settings
@@ -73,7 +74,7 @@ async fn create_test_wallet(
         config,
         HttpAccountProviderClient::default(),
         MockDigidClient::new(),
-        MockPidRetriever::new(),
+        MockPidIssuerClient::new(),
     )
     .await
     .expect("Could not create test wallet")
@@ -115,7 +116,7 @@ where
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
     D: DigidClient,
-    P: PidRetriever,
+    P: PidIssuerClient,
     U: PlatformUtilities,
 {
     // No registration should be loaded initially.

@@ -20,13 +20,15 @@ pub use crate::{
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
-    pub use crate::{account_provider::HttpAccountProviderClient, digid::HttpDigidClient, pid_issuer::PidIssuerClient};
+    pub use crate::{
+        account_provider::HttpAccountProviderClient, digid::HttpDigidClient, pid_issuer::HttpPidIssuerClient,
+    };
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
         account_provider::MockAccountProviderClient, config::MockConfigurationRepository, digid::MockDigidClient,
-        pid_issuer::MockPidRetriever, storage::MockStorage,
+        pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 }

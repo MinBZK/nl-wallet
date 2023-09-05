@@ -16,7 +16,7 @@ use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
     mock::{MockAccountProviderClient, MockConfigurationRepository, MockDigidClient, MockStorage},
     wallet::{Configuration, DigidClient, Wallet},
-    wallet_deps::{HttpDigidClient, PidIssuerClient},
+    wallet_deps::{HttpDigidClient, HttpPidIssuerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -44,7 +44,7 @@ fn test_wallet_config(base_url: Url) -> MockConfigurationRepository {
 async fn create_test_wallet<D: DigidClient>(
     base_url: Url,
     digid_client: D,
-    pid_issuer_client: PidIssuerClient,
+    pid_issuer_client: HttpPidIssuerClient,
 ) -> (
     Configuration,
     Wallet<
@@ -53,7 +53,7 @@ async fn create_test_wallet<D: DigidClient>(
         SoftwareEcdsaKey,
         MockAccountProviderClient,
         D,
-        PidIssuerClient,
+        HttpPidIssuerClient,
         SoftwareUtilities,
     >,
 ) {
@@ -122,7 +122,7 @@ async fn test_pid_issuance_mock_bsn() {
     // Set up real pid issuer client.
     let client = CborHttpClient(reqwest::Client::new());
     let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new(), client)));
-    let pid_issuer_client = PidIssuerClient::new(Arc::clone(&mdoc_wallet));
+    let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
 
     // Create wallet with configuration and dependencies.
     let (_, mut wallet) = create_test_wallet(local_base_url(port), digid_client, pid_issuer_client).await;
@@ -152,7 +152,7 @@ async fn test_pid_issuance_digid_bridge() {
     let (config, mut wallet) = create_test_wallet::<HttpDigidClient>(
         local_base_url(port),
         HttpDigidClient::default(),
-        PidIssuerClient::default(),
+        HttpPidIssuerClient::default(),
     )
     .await;
 
