@@ -1,6 +1,9 @@
 use std::{error::Error, marker::PhantomData};
 
-use platform_support::utils::{hardware::HardwareUtilities, PlatformUtilities};
+use platform_support::{
+    hw_keystore::hardware::HardwareEcdsaKey,
+    utils::{hardware::HardwareUtilities, PlatformUtilities},
+};
 use tracing::{info, instrument};
 use url::Url;
 
@@ -131,7 +134,7 @@ type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 pub struct Wallet<
     C,
     S,
-    K,
+    K = HardwareEcdsaKey,
     A = HttpAccountProviderClient,
     D = HttpDigidClient,
     P = HttpPidIssuerClient,
@@ -149,11 +152,10 @@ pub struct Wallet<
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, S, K> Wallet<C, S, K>
+impl<C, S> Wallet<C, S>
 where
     C: ConfigurationRepository,
     S: Storage,
-    K: PlatformEcdsaKey,
 {
     pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
         Self::init_storage(

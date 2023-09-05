@@ -1,4 +1,4 @@
-use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
+use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
 use crate::{
     config::{Configuration, LocalConfigurationRepository},
@@ -6,8 +6,7 @@ use crate::{
     wallet::WalletInitError,
 };
 
-pub type Wallet =
-    crate::wallet::Wallet<LocalConfigurationRepository, DatabaseStorage<HardwareEncryptionKey>, HardwareEcdsaKey>;
+pub type Wallet = crate::wallet::Wallet<LocalConfigurationRepository, DatabaseStorage<HardwareEncryptionKey>>;
 
 pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
     // The initial configuration serves as the hardcoded fallback, for
