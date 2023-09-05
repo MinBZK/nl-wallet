@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    AccountProviderError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError, WalletRegistrationError,
+    openid, reqwest, AccountProviderError, PidIssuanceError, WalletInitError, WalletRegistrationError,
     WalletUnlockError,
 };
 
@@ -114,11 +114,11 @@ impl From<&PidIssuanceError> for FlutterApiErrorType {
             // This means that the `.source()` method will be forwarded directly to the contained
             // error and the reqwest error itself will be skipped in the source chain!
             // For this reason we need to extract it manually.
-            if let Some(OpenIdError::Http(_)) = source.downcast_ref::<OpenIdError>() {
+            if let Some(openid::Error::Http(_)) = source.downcast_ref::<openid::Error>() {
                 return Self::Networking;
             }
 
-            if source.is::<ReqwestError>() {
+            if source.is::<reqwest::Error>() {
                 return Self::Networking;
             }
         }

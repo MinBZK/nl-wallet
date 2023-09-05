@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    openid_client::{OpenIdAuthenticator, OpenIdClient},
+    openid_client::{HttpOpenIdClient, OpenIdClient},
     DigidClient, DigidError,
 };
 
@@ -19,7 +19,7 @@ const PARAM_STATE: &str = "state";
 const PARAM_CODE: &str = "code";
 
 #[derive(Debug)]
-pub struct HttpDigidClient<C = OpenIdClient, P = S256PkcePair> {
+pub struct HttpDigidClient<C = HttpOpenIdClient, P = S256PkcePair> {
     // A potential improvement would be to persist this session,
     // so that it may be resumed after app termination.
     session_state: Option<DigidSessionState<C, P>>,
@@ -53,7 +53,7 @@ impl<C, P> Default for HttpDigidClient<C, P> {
 impl<C, P> DigidClient for HttpDigidClient<C, P>
 where
     P: PkcePair + Send + Sync + 'static,
-    C: OpenIdAuthenticator + Send + Sync,
+    C: OpenIdClient + Send + Sync,
 {
     async fn start_session(
         &mut self,
@@ -150,7 +150,7 @@ mod tests {
     use mockall::predicate::*;
     use tokio::sync::oneshot;
 
-    use crate::{digid::openid_client::MockOpenIdAuthenticator, pkce::MockPkcePair, utils::url::url_with_query_pairs};
+    use crate::{digid::openid_client::MockOpenIdClient, pkce::MockPkcePair, utils::url::url_with_query_pairs};
 
     use super::*;
 
@@ -166,7 +166,7 @@ mod tests {
         const ACCESS_CODE: &str = "the_access_code";
 
         // Create a client with mock generics, as created by `mockall`.
-        let mut client = HttpDigidClient::<MockOpenIdAuthenticator, MockPkcePair>::default();
+        let mut client = HttpDigidClient::<MockOpenIdClient, MockPkcePair>::default();
 
         // There should be no session state present at this point.
         assert!(client.session_state.is_none());
@@ -183,7 +183,7 @@ mod tests {
         // Now prepare the our mock dependencies for us to call `DigidClient.start_session()`.
         // This means:
         // 1. Set up `OpenIdClient::discover_context()` to return a new mock.
-        let discover_context = MockOpenIdAuthenticator::discover_context();
+        let discover_context = MockOpenIdClient::discover_context();
         discover_context
             .expect()
             .with(
@@ -192,7 +192,7 @@ mod tests {
                 eq(Url::parse(REDIRECT_URI).unwrap()),
             )
             .return_once(move |_, _, _| {
-                let mut openid_client = MockOpenIdAuthenticator::new();
+                let mut openid_client = MockOpenIdClient::new();
 
                 // 2. Have `OpenIdClient.auth_url` return our authentication URL, while saving
                 //    the generated CSRF token and nonce for later (send through the channel).

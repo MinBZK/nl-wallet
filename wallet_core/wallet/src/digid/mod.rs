@@ -5,7 +5,7 @@ mod openid_pkce;
 use async_trait::async_trait;
 use url::Url;
 
-pub use self::openid_client::OpenIdAuthenticatorError;
+pub use self::openid_client::OpenIdError;
 
 pub use self::client::HttpDigidClient;
 
@@ -28,7 +28,7 @@ pub trait DigidClient {
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {
     #[error("{0}")]
-    OpenId(#[from] OpenIdAuthenticatorError),
+    OpenId(#[from] OpenIdError),
     #[error("invalid redirect URI received")]
     RedirectUriMismatch,
     #[error("unsuccessful DigiD stepout: {}", .error_description.as_ref().unwrap_or(.error))]
