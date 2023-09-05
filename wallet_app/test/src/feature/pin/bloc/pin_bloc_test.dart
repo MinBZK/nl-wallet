@@ -119,7 +119,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw CoreGenericError('generic'),
+        () => throw const CoreGenericError('generic'),
       ),
       skip: 6,
       expect: () => [const PinValidateGenericError()],
@@ -129,7 +129,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw CoreNetworkError('network'),
+        () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
       expect: () => [const PinValidateNetworkError(hasInternet: true)],
@@ -140,7 +140,7 @@ void main() {
       setUp: () => when(checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false),
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw CoreNetworkError('network'),
+        () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
       expect: () => [const PinValidateNetworkError(hasInternet: false)],
