@@ -13,6 +13,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i6
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i11;
 import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart' as _i5;
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart' as _i10;
+import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i16;
 import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart' as _i12;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i7;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i13;
@@ -378,4 +379,19 @@ class MockSetupMockedWalletUseCase extends _i1.Mock implements _i15.SetupMockedW
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [CheckHasInternetUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCheckHasInternetUseCase extends _i1.Mock implements _i16.CheckHasInternetUseCase {
+  @override
+  _i4.Future<bool> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }

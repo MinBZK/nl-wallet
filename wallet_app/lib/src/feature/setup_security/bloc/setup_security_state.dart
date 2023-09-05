@@ -91,12 +91,18 @@ class SetupSecurityGenericError extends SetupSecurityState {
   double get stepperProgress => 0;
 }
 
-class SetupSecurityNetworkError extends SetupSecurityState implements ServerError {
+class SetupSecurityNetworkError extends SetupSecurityState implements NetworkError {
   @override
   double get stepperProgress => 0;
 
   @override
   final int? statusCode;
 
-  const SetupSecurityNetworkError({this.statusCode});
+  @override
+  final bool hasInternet;
+
+  const SetupSecurityNetworkError({required this.hasInternet, this.statusCode});
+
+  @override
+  List<Object?> get props => [stepperProgress, hasInternet, statusCode, ...super.props];
 }

@@ -1,5 +1,7 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
@@ -39,6 +41,8 @@ import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
 import '../domain/usecase/issuance/impl/get_issuance_response_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/get_my_government_issuance_responses_usecase_impl.dart';
+import '../domain/usecase/network/check_has_internet_usecase.dart';
+import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
@@ -75,6 +79,7 @@ import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
+import '../util/extension/bloc_extension.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -208,6 +213,14 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ObserveWalletLockUseCase>(
           create: (context) => ObserveWalletLockUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CheckHasInternetUseCase>(
+          lazy: false /* false to make sure [BlocExtensions.instance] is available */,
+          create: (context) {
+            final usecase = CheckHasInternetUseCaseImpl(Connectivity(), InternetConnectionChecker());
+            BlocExtensions.checkHasInternetUseCase = usecase;
+            return usecase;
+          },
         ),
       ],
       child: child,

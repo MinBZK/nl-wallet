@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/error/server_error.dart';
+import '../../../domain/model/error/network_error.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -93,9 +93,9 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
       emit(SetupSecurityCompleted());
     } catch (ex, stack) {
       Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);
-      handleError(
+      await handleError(
         ex,
-        onNetworkError: (ex) => emit(const SetupSecurityNetworkError()),
+        onNetworkError: (ex, hasInternet) => emit(SetupSecurityNetworkError(hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(SetupSecurityGenericError()),
       );
       _resetFlow(emit);

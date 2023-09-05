@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/model/error/server_error.dart';
+import '../../domain/model/error/network_error.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
@@ -181,23 +181,40 @@ class ErrorScreen extends StatelessWidget {
   }
 
   /// Shows the [ErrorScreen] focussed on communicating
-  /// a server error. The error displayed to the user is
-  /// based on the provided [ServerError], and defaults to
+  /// a network related error. The error displayed to the user is
+  /// based on the provided [NetworkError], and defaults to
   /// 'something went wrong, check the internet and try again'
-  /// when no [ServerError] is provided.
-  static void showServer(BuildContext context, {String? title, bool secured = true, ServerError? serverError}) {
-    //TODO: We eventually want to select different copy based on the provided [ServerError].
+  /// when no [NetworkError] is provided.
+  static void showNetwork(BuildContext context, {String? title, bool secured = true, NetworkError? networkError}) {
+    if (networkError?.hasInternet == false) {
+      showNoInternet(context, title: title, secured: secured);
+    } else {
+      //TODO: We eventually want to select different copy based on the provided [NetworkError]s statusCode.
+      show(
+        context,
+        secured: secured,
+        title: title ?? context.l10n.errorScreenServerTitle,
+        headline: context.l10n.errorScreenServerHeadline,
+        description: context.l10n.errorScreenServerDescription,
+        illustration: WalletAssets.illustration_server_error,
+        primaryActionText: context.l10n.errorScreenServerCloseCta,
+        secondaryActionText: context.l10n.errorScreenServerHelpCta,
+        onPrimaryActionPressed: () => Navigator.pop(context),
+        onSecondaryActionPressed: () => HelpSheet.show(context),
+      );
+    }
+  }
+
+  static void showNoInternet(BuildContext context, {String? title, bool secured = true}) {
     show(
       context,
       secured: secured,
-      title: title ?? context.l10n.errorScreenServerTitle,
-      headline: context.l10n.errorScreenServerHeadline,
-      description: context.l10n.errorScreenServerDescription,
-      illustration: WalletAssets.illustration_server_error,
-      primaryActionText: context.l10n.errorScreenServerCloseCta,
-      secondaryActionText: context.l10n.errorScreenServerHelpCta,
+      title: title ?? context.l10n.errorScreenNoInternetTitle,
+      headline: context.l10n.errorScreenNoInternetHeadline,
+      description: context.l10n.errorScreenNoInternetDescription,
+      illustration: WalletAssets.illustration_no_internet_error,
+      primaryActionText: context.l10n.generalRetry,
       onPrimaryActionPressed: () => Navigator.pop(context),
-      onSecondaryActionPressed: () => HelpSheet.show(context),
     );
   }
 }

@@ -58,22 +58,40 @@ void main() {
       await screenMatchesGolden(tester, 'generic.light');
     });
 
-    testGoldens('ErrorScreen.showServer()', (tester) async {
+    testGoldens('ErrorScreen.showNetwork()', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
             return ElevatedButton(
-              onPressed: () => ErrorScreen.showServer(context, secured: false),
-              child: const Text('server'),
+              onPressed: () => ErrorScreen.showNetwork(context, secured: false),
+              child: const Text('network'),
             );
           },
         ),
       );
       // Tap the button to open the server error screen
-      await tester.tap(find.text('server'));
+      await tester.tap(find.text('network'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
-      await screenMatchesGolden(tester, 'server.light');
+      await screenMatchesGolden(tester, 'network.light');
+    });
+
+    testGoldens('ErrorScreen.showNoInternet()', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () => ErrorScreen.showNoInternet(context, secured: false),
+              child: const Text('no_internet'),
+            );
+          },
+        ),
+      );
+      // Tap the button to open the server error screen
+      await tester.tap(find.text('no_internet'));
+      await tester.pumpAndSettle();
+      // Verify it's displayed correctly
+      await screenMatchesGolden(tester, 'no_internet.light');
     });
   });
 
