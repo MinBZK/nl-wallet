@@ -73,15 +73,15 @@ void main() {
       await screenMatchesGolden(tester, 'pin_page/pin_validate_generic_error');
     });
 
-    testGoldens('PinValidateServerError', (tester) async {
+    testGoldens('PinValidateNetworkError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const PinPage().withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateServerError(),
+          const PinValidateNetworkError(hasInternet: true),
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'pin_page/pin_validate_server_error');
+      await screenMatchesGolden(tester, 'pin_page/pin_validate_network_error');
     });
   });
 

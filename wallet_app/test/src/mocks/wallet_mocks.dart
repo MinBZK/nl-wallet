@@ -6,10 +6,12 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/domain/usecase/auth/update_digid_auth_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart';
+import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
+import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import 'wallet_mocks.mocks.dart';
@@ -30,6 +32,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ObserveWalletLockUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckHasInternetUseCase>()])
 
 /// Constants
 const kMockDigidAuthUrl = 'https://example.org';
@@ -58,6 +61,12 @@ class Mocks {
     sl.registerFactory<ObserveWalletLockUseCase>(() => MockObserveWalletLockUseCase());
     sl.registerFactory<CheckPinUseCase>(() => MockCheckPinUseCase());
     sl.registerFactory<SetupMockedWalletUseCase>(() => MockSetupMockedWalletUseCase());
+    sl.registerFactory<CheckHasInternetUseCase>(() {
+      final mock = MockCheckHasInternetUseCase();
+      when(mock.invoke()).thenAnswer((realInvocation) async => true);
+      BlocExtensions.checkHasInternetUseCase = mock;
+      return mock;
+    });
     // Repositories
     sl.registerFactory<DigidAuthRepository>(() => getMockDigidAuthRepository());
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());

@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
@@ -10,11 +11,13 @@ import '../../../mocks/wallet_mocks.dart';
 void main() {
   late PinBloc bloc;
   late CheckPinUseCase checkPinUseCase;
+  late CheckHasInternetUseCase checkHasInternetUseCase;
 
   setUp(() {
     // Provide a fallback dummy value for mockito, required here but likely overridden.
     provideDummy<CheckPinResult>(CheckPinResultBlocked());
     checkPinUseCase = MockCheckPinUseCase();
+    checkHasInternetUseCase = Mocks.create();
     bloc = PinBloc(checkPinUseCase);
   });
 
@@ -122,14 +125,25 @@ void main() {
       expect: () => [const PinValidateGenericError()],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that CheckPinResultServerError results in PinValidateServerError',
+      'Verify that CheckPinResultServerError results in PinValidateNetworkError with true as hasInternet flag',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
         () => throw FlutterApiError(type: FlutterApiErrorType.networking),
       ),
       skip: 6,
-      expect: () => [const PinValidateServerError()],
+      expect: () => [const PinValidateNetworkError(hasInternet: true)],
+    );
+    blocTest<PinBloc, PinState>(
+      'Verify that CheckPinResultServerError results in PinValidateNetworkError with false as hasInternet flag',
+      build: () => bloc,
+      setUp: () => when(checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false),
+      act: (bloc) => triggerValidateFromCleanBloc(
+        bloc,
+        () => throw FlutterApiError(type: FlutterApiErrorType.networking),
+      ),
+      skip: 6,
+      expect: () => [const PinValidateNetworkError(hasInternet: false)],
     );
   });
 }

@@ -20,6 +20,7 @@ class WalletAssets {
   static const illustration_pin_timeout = 'assets/non-free/illustrations/pin_timeout.png';
   static const illustration_sign_2 = 'assets/non-free/illustrations/sign_2.png';
   static const illustration_general_error = 'assets/non-free/illustrations/general_error.png';
+  static const illustration_no_internet_error = 'assets/non-free/illustrations/no_internet_error.png';
   static const illustration_conditions_screen = 'assets/non-free/illustrations/conditions_screen.png';
   static const illustration_placeholder_contract = 'assets/non-free/illustrations/placeholder_contract.png';
   static const illustration_forgot_pin_header = 'assets/non-free/illustrations/forgot_pin_header.png';

@@ -65,7 +65,7 @@ class SetupSecurityScreen extends StatelessWidget {
           ErrorScreen.showGeneric(context, title: errorScreenTitle, secured: false);
         }
         if (state is SetupSecurityNetworkError) {
-          ErrorScreen.showServer(context, title: errorScreenTitle, serverError: tryCast(state), secured: false);
+          ErrorScreen.showNetwork(context, title: errorScreenTitle, networkError: tryCast(state), secured: false);
         }
         _runAnnouncements(context, state);
       },
