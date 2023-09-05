@@ -1,7 +1,8 @@
+mod bridge;
+mod spawn;
+
 pub mod hw_keystore;
 pub mod utils;
-
-mod bridge;
 
 #[cfg(feature = "integration-test")]
 pub mod integration_test;
