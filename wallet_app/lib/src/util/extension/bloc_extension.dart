@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../wallet_core/error/flutter_api_error.dart';
+import '../../wallet_core/error/core_error.dart';
 
 extension BlocExtensions on Bloc {
   /// This is a convenience method to process caught exceptions in a [Bloc].
@@ -10,26 +10,32 @@ extension BlocExtensions on Bloc {
   /// callback to make sure no exception goes uncaught.
   void handleError(
     Object ex, {
-    Function(FlutterApiError)? onGenericError,
-    Function(FlutterApiError)? onNetworkError,
-    Function(FlutterApiError)? onFlutterApiError,
+    Function(CoreGenericError)? onGenericError,
+    Function(CoreNetworkError)? onNetworkError,
+    Function(CoreRedirectUriError)? onRedirectUriError,
+    Function(CoreError)? onCoreError,
     required Function(Object) onUnhandledError,
   }) {
-    if (ex is FlutterApiError) {
-      switch (ex.type) {
-        case FlutterApiErrorType.generic:
+    if (ex is CoreError) {
+      switch (ex) {
+        case CoreGenericError():
           if (onGenericError != null) {
             onGenericError.call(ex);
             return;
           }
-        case FlutterApiErrorType.networking:
+        case CoreNetworkError():
           if (onNetworkError != null) {
             onNetworkError.call(ex);
             return;
           }
+        case CoreRedirectUriError():
+          if (onRedirectUriError != null) {
+            onRedirectUriError.call(ex);
+            return;
+          }
       }
-      if (onFlutterApiError != null) {
-        onFlutterApiError.call(ex);
+      if (onCoreError != null) {
+        onCoreError.call(ex);
         return;
       }
     }

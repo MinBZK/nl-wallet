@@ -1,3 +1,4 @@
+import '../../../wallet_core/error/core_error.dart';
 import '../attribute/attribute.dart';
 
 sealed class PidIssuanceStatus {}
@@ -12,4 +13,8 @@ class PidIssuanceSuccess extends PidIssuanceStatus {
   PidIssuanceSuccess(this.previews);
 }
 
-class PidIssuanceError extends PidIssuanceStatus {}
+class PidIssuanceError extends PidIssuanceStatus {
+  final RedirectError error;
+
+  PidIssuanceError(this.error);
+}

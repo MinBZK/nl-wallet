@@ -126,7 +126,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       onCancel: () async {
         final bloc = context.bloc;
         final cancelled = await _showStopDigidLoginDialog(context);
-        if (cancelled) bloc.add(WalletPersonalizeLoginWithDigidFailed());
+        if (cancelled) bloc.add(const WalletPersonalizeLoginWithDigidFailed());
       },
     );
   }
@@ -181,14 +181,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
       if (loginSucceeded) {
         bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
       } else {
-        bloc.add(WalletPersonalizeLoginWithDigidFailed());
+        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
       }
     } else {
       try {
         launchUrlString(authUrl, mode: LaunchMode.externalApplication);
       } catch (ex) {
         Fimber.e('Failed to open auth url: $authUrl', ex: ex);
-        bloc.add(WalletPersonalizeLoginWithDigidFailed());
+        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
       }
     }
   }

@@ -15,6 +15,7 @@ import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_constants.dart';
+import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
 part 'wallet_personalize_state.dart';
@@ -59,7 +60,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         add(WalletPersonalizeLoginWithDigidSucceeded());
         break;
       case PidIssuanceError():
-        add(WalletPersonalizeLoginWithDigidFailed());
+        //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
+        final cancelledByUser = event.error == RedirectError.accessDenied;
+        add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
         break;
     }
   }

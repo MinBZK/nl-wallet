@@ -3,6 +3,8 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/pid/impl/pid_repository_impl.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
+import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
@@ -12,7 +14,7 @@ void main() {
   late TypedWalletCore core = Mocks.create();
 
   setUp(() {
-    authRepository = PidRepositoryImpl(core);
+    authRepository = PidRepositoryImpl(core, CoreErrorMapper());
   });
 
   group('DigiD Auth Url', () {
@@ -37,7 +39,7 @@ void main() {
 
     test('Stream reflects error state and returns back to idle', () async {
       expectLater(authRepository.observePidIssuanceStatus(),
-          emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(), PidIssuanceIdle()]));
+          emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(RedirectError.accessDenied), PidIssuanceIdle()]));
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
       authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
     });

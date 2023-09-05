@@ -6,18 +6,19 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:wallet/bridge_generated.dart' as _i2;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i3;
-import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i5;
-import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i10;
-import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart' as _i9;
-import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart' as _i11;
-import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i6;
-import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i12;
-import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart' as _i13;
-import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i14;
-import 'package:wallet/src/wallet_core/typed_wallet_core.dart' as _i8;
+import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i6;
+import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i11;
+import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart' as _i5;
+import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart' as _i10;
+import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart' as _i12;
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i7;
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i13;
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart' as _i14;
+import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i15;
+import 'package:wallet/src/wallet_core/typed_wallet_core.dart' as _i9;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -62,20 +63,20 @@ class MockPidRepository extends _i1.Mock implements _i3.PidRepository {
         returnValueForMissingStub: null,
       );
   @override
-  _i4.Stream<_i3.PidIssuanceStatus> observePidIssuanceStatus() => (super.noSuchMethod(
+  _i4.Stream<_i5.PidIssuanceStatus> observePidIssuanceStatus() => (super.noSuchMethod(
         Invocation.method(
           #observePidIssuanceStatus,
           [],
         ),
-        returnValue: _i4.Stream<_i3.PidIssuanceStatus>.empty(),
-        returnValueForMissingStub: _i4.Stream<_i3.PidIssuanceStatus>.empty(),
-      ) as _i4.Stream<_i3.PidIssuanceStatus>);
+        returnValue: _i4.Stream<_i5.PidIssuanceStatus>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i5.PidIssuanceStatus>.empty(),
+      ) as _i4.Stream<_i5.PidIssuanceStatus>);
 }
 
 /// A class which mocks [WalletRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockWalletRepository extends _i1.Mock implements _i5.WalletRepository {
+class MockWalletRepository extends _i1.Mock implements _i6.WalletRepository {
   @override
   _i4.Stream<bool> get isLockedStream => (super.noSuchMethod(
         Invocation.getter(#isLockedStream),
@@ -148,32 +149,32 @@ class MockWalletRepository extends _i1.Mock implements _i5.WalletRepository {
         returnValueForMissingStub: null,
       );
   @override
-  _i4.Future<_i6.CheckPinResult> confirmTransaction(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i7.CheckPinResult> confirmTransaction(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #confirmTransaction,
           [pin],
         ),
-        returnValue: _i4.Future<_i6.CheckPinResult>.value(_i7.dummyValue<_i6.CheckPinResult>(
+        returnValue: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
           this,
           Invocation.method(
             #confirmTransaction,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i6.CheckPinResult>.value(_i7.dummyValue<_i6.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
           this,
           Invocation.method(
             #confirmTransaction,
             [pin],
           ),
         )),
-      ) as _i4.Future<_i6.CheckPinResult>);
+      ) as _i4.Future<_i7.CheckPinResult>);
 }
 
 /// A class which mocks [TypedWalletCore].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTypedWalletCore extends _i1.Mock implements _i8.TypedWalletCore {
+class MockTypedWalletCore extends _i1.Mock implements _i9.TypedWalletCore {
   @override
   _i4.Stream<bool> get isLocked => (super.noSuchMethod(
         Invocation.getter(#isLocked),
@@ -269,7 +270,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i8.TypedWalletCore {
 /// A class which mocks [DecodeDeeplinkUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDecodeDeeplinkUseCase extends _i1.Mock implements _i9.DecodeDeeplinkUseCase {
+class MockDecodeDeeplinkUseCase extends _i1.Mock implements _i10.DecodeDeeplinkUseCase {
   @override
   String get deeplinkHost => (super.noSuchMethod(
         Invocation.getter(#deeplinkHost),
@@ -283,19 +284,19 @@ class MockDecodeDeeplinkUseCase extends _i1.Mock implements _i9.DecodeDeeplinkUs
         returnValueForMissingStub: '',
       ) as String);
   @override
-  _i10.NavigationRequest? invoke(Uri? uri) => (super.noSuchMethod(
+  _i11.NavigationRequest? invoke(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [uri],
         ),
         returnValueForMissingStub: null,
-      ) as _i10.NavigationRequest?);
+      ) as _i11.NavigationRequest?);
 }
 
 /// A class which mocks [UpdatePidIssuanceStatusUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUpdatePidIssuanceStatusUseCase extends _i1.Mock implements _i11.UpdatePidIssuanceStatusUseCase {
+class MockUpdatePidIssuanceStatusUseCase extends _i1.Mock implements _i12.UpdatePidIssuanceStatusUseCase {
   @override
   _i4.Future<void> invoke(_i2.PidIssuanceEvent? state) => (super.noSuchMethod(
         Invocation.method(
@@ -310,7 +311,7 @@ class MockUpdatePidIssuanceStatusUseCase extends _i1.Mock implements _i11.Update
 /// A class which mocks [IsWalletInitializedWithPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i12.IsWalletInitializedWithPidUseCase {
+class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i13.IsWalletInitializedWithPidUseCase {
   @override
   _i4.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -325,7 +326,7 @@ class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i12.IsW
 /// A class which mocks [ObserveWalletLockUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletLockUseCase extends _i1.Mock implements _i13.ObserveWalletLockUseCase {
+class MockObserveWalletLockUseCase extends _i1.Mock implements _i14.ObserveWalletLockUseCase {
   @override
   _i4.Stream<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -340,34 +341,34 @@ class MockObserveWalletLockUseCase extends _i1.Mock implements _i13.ObserveWalle
 /// A class which mocks [CheckPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPinUseCase extends _i1.Mock implements _i6.CheckPinUseCase {
+class MockCheckPinUseCase extends _i1.Mock implements _i7.CheckPinUseCase {
   @override
-  _i4.Future<_i6.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i7.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [pin],
         ),
-        returnValue: _i4.Future<_i6.CheckPinResult>.value(_i7.dummyValue<_i6.CheckPinResult>(
+        returnValue: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i6.CheckPinResult>.value(_i7.dummyValue<_i6.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-      ) as _i4.Future<_i6.CheckPinResult>);
+      ) as _i4.Future<_i7.CheckPinResult>);
 }
 
 /// A class which mocks [SetupMockedWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetupMockedWalletUseCase extends _i1.Mock implements _i14.SetupMockedWalletUseCase {
+class MockSetupMockedWalletUseCase extends _i1.Mock implements _i15.SetupMockedWalletUseCase {
   @override
   _i4.Future<void> invoke() => (super.noSuchMethod(
         Invocation.method(

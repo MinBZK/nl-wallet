@@ -28,7 +28,7 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 void main() {
   const kPidId = 'id';
 
-  /// All attribtues here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
+  /// All attributes here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
   const pidAttributes = [
     DataAttribute(
       valueType: AttributeValueType.text,
