@@ -13,45 +13,45 @@ import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
-  late PidRepository authRepository;
+  late PidRepository pidRepository;
   late TypedWalletCore core = Mocks.create();
 
   setUp(() {
-    authRepository = PidRepositoryImpl(core, CoreErrorMapper());
+    pidRepository = PidRepositoryImpl(core, CoreErrorMapper());
   });
 
   group('DigiD Auth Url', () {
     test('auth url should be fetched through the wallet_core', () async {
-      expect(await authRepository.getPidIssuanceUrl(), kMockPidIssuanceUrl);
+      expect(await pidRepository.getPidIssuanceUrl(), kMockPidIssuanceUrl);
       verify(core.createPidIssuanceRedirectUri());
     });
   });
 
   group('DigiD State Updates', () {
     test('Stream updates when notified', () async {
-      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceAuthenticating()]));
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
+      expectLater(pidRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceAuthenticating()]));
+      pidRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
     });
 
     test('Stream reflects success state and returns back to idle', () async {
-      expectLater(authRepository.observePidIssuanceStatus(),
+      expectLater(pidRepository.observePidIssuanceStatus(),
           emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceSuccess(List.empty()), PidIssuanceIdle()]));
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
-      authRepository.notifyPidIssuanceStateUpdate(PidIssuanceEvent.success(previewCards: List.empty()));
+      pidRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
+      pidRepository.notifyPidIssuanceStateUpdate(PidIssuanceEvent.success(previewCards: List.empty()));
     });
 
     test('Stream reflects unknown error state and returns back to idle', () async {
-      expectLater(authRepository.observePidIssuanceStatus(),
+      expectLater(pidRepository.observePidIssuanceStatus(),
           emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(RedirectError.unknown), PidIssuanceIdle()]));
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
+      pidRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
+      pidRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.error(data: 'data'));
     });
 
     test('Stream reflects accessDenied error state and returns back to idle', () async {
-      expectLater(authRepository.observePidIssuanceStatus(),
+      expectLater(pidRepository.observePidIssuanceStatus(),
           emitsInOrder([PidIssuanceAuthenticating(), PidIssuanceError(RedirectError.accessDenied), PidIssuanceIdle()]));
-      authRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
-      authRepository.notifyPidIssuanceStateUpdate(
+      pidRepository.notifyPidIssuanceStateUpdate(const PidIssuanceEvent.authenticating());
+      pidRepository.notifyPidIssuanceStateUpdate(
         PidIssuanceEvent.error(
           data: jsonEncode(
             FlutterApiError(
@@ -65,8 +65,8 @@ void main() {
     });
 
     test('Stream returns back to idle when receiving a null status', () async {
-      expectLater(authRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceIdle()]));
-      authRepository.notifyPidIssuanceStateUpdate(null);
+      expectLater(pidRepository.observePidIssuanceStatus(), emitsInOrder([PidIssuanceIdle()]));
+      pidRepository.notifyPidIssuanceStateUpdate(null);
     });
   });
 }

@@ -1,21 +1,29 @@
-sealed class CoreError {
+import 'package:equatable/equatable.dart';
+
+sealed class CoreError extends Equatable {
   final String? description;
 
-  CoreError(this.description);
+  const CoreError(this.description);
+
+  @override
+  List<Object?> get props => [description];
 }
 
 class CoreGenericError extends CoreError {
-  CoreGenericError(super.description);
+  const CoreGenericError(super.description);
 }
 
 class CoreNetworkError extends CoreError {
-  CoreNetworkError(super.description);
+  const CoreNetworkError(super.description);
 }
 
 class CoreRedirectUriError extends CoreError {
   final RedirectError redirectError;
 
-  CoreRedirectUriError(super.description, {required this.redirectError});
+  const CoreRedirectUriError(super.description, {required this.redirectError});
+
+  @override
+  List<Object?> get props => [description, redirectError];
 }
 
 enum RedirectError { accessDenied, serverError, unknown }
