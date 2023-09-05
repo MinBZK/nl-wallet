@@ -12,7 +12,7 @@ use wallet_common::account::messages::{
 };
 
 use crate::{
-    account_server::{AccountProviderError, AccountProviderResponseError},
+    account_server::{AccountProviderError, AccountProviderResponseError, AccountServerClient},
     digid::{DigidAuthenticatorError, DigidClient},
     lock::WalletLock,
     pid_issuer::{PidIssuerClient, PidRetrieverError},
@@ -128,11 +128,11 @@ pub enum RedirectUriType {
 
 type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
-pub struct Wallet<C, S, K, A, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
+pub struct Wallet<C, S, K, A = AccountServerClient, D = DigidClient, P = PidIssuerClient, U = HardwareUtilities> {
     config_repository: C,
     storage: S,
     hw_privkey: K,
-    account_server: A,
+    account_provider: A,
     digid: D,
     pid_issuer: P,
     platform_utils: PhantomData<U>,
@@ -141,15 +141,20 @@ pub struct Wallet<C, S, K, A, D = DigidClient, P = PidIssuerClient, U = Hardware
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, S, K, A> Wallet<C, S, K, A>
+impl<C, S, K> Wallet<C, S, K>
 where
     C: ConfigurationRepository,
     S: Storage,
     K: PlatformEcdsaKey,
-    A: AccountProvider,
 {
     pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
-        Self::init_wp_and_storage(config_repository, DigidClient::default(), PidIssuerClient::default()).await
+        Self::init_storage(
+            config_repository,
+            AccountServerClient::default(),
+            DigidClient::default(),
+            PidIssuerClient::default(),
+        )
+        .await
     }
 }
 
@@ -164,17 +169,20 @@ where
     U: PlatformUtilities,
 {
     /// Initialize the wallet by loading initial state.
-    pub async fn init_wp_and_storage(config_repository: C, digid: D, pid_issuer: P) -> Result<Self, WalletInitError> {
+    pub async fn init_storage(
+        config_repository: C,
+        account_provider: A,
+        digid: D,
+        pid_issuer: P,
+    ) -> Result<Self, WalletInitError> {
         let storage_path = U::storage_path().await.map_err(StorageError::from)?;
         let storage = S::new(storage_path);
-
-        let account_server = A::new(&config_repository.config().account_server.base_url).await;
 
         let mut wallet = Wallet {
             config_repository,
             storage,
             hw_privkey: K::new(WALLET_KEY_ID),
-            account_server,
+            account_provider,
             digid,
             pid_issuer,
             platform_utils: PhantomData,
@@ -308,24 +316,27 @@ where
             return Err(WalletUnlockError::NotRegistered);
         }
 
+        let config = self.config_repository.config();
+        let base_url = config.account_server.base_url.clone();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone();
+
         let challenge_request = self.new_instruction_challenge_request().await?;
+
         // Retrieve a challenge from the account server
-        let challenge = self.account_server.instruction_challenge(challenge_request).await?;
+        let challenge = self
+            .account_provider
+            .instruction_challenge(&base_url, challenge_request)
+            .await?;
 
         let instruction = self.new_check_pin_request(pin, challenge).await?;
-        let signed_result = self.account_server.check_pin(instruction).await?;
+        let signed_result = self.account_provider.check_pin(&base_url, instruction).await?;
 
         signed_result
-            .parse_and_verify(
-                &self
-                    .config_repository
-                    .config()
-                    .account_server
-                    .instruction_result_public_key,
-            )
+            .parse_and_verify(&instruction_result_public_key)
             .map_err(WalletUnlockError::InstructionResultValidation)?;
 
         self.lock.unlock();
+
         Ok(())
     }
 
@@ -345,10 +356,14 @@ where
 
         info!("Requesting challenge from account server");
 
+        let config = self.config_repository.config();
+        let base_url = config.account_server.base_url.clone();
+        let certificate_public_key = config.account_server.certificate_public_key.clone();
+
         // Retrieve a challenge from the account server
         let challenge = self
-            .account_server
-            .registration_challenge()
+            .account_provider
+            .registration_challenge(&base_url)
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
 
@@ -371,8 +386,8 @@ where
 
         // Send the registration message to the account server and receive the wallet certificate in response.
         let cert = self
-            .account_server
-            .register(registration_message)
+            .account_provider
+            .register(&base_url, registration_message)
             .await
             .map_err(WalletRegistrationError::RegistrationRequest)?;
 
@@ -381,7 +396,7 @@ where
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert
-            .parse_and_verify(&self.config_repository.config().account_server.certificate_public_key)
+            .parse_and_verify(&certificate_public_key)
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
@@ -500,7 +515,7 @@ mod tests {
             config_repository: MockConfigurationRepository::default(),
             storage,
             hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            account_server: MockAccountProvider::default(),
+            account_provider: MockAccountProvider::new(),
             digid: MockDigidAuthenticator::new(),
             pid_issuer: MockPidRetriever::new(),
             platform_utils: PhantomData,
@@ -517,14 +532,10 @@ mod tests {
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_init() {
-        let account_server_client_new_context = MockAccountProvider::new_context();
-        account_server_client_new_context
-            .expect()
-            .returning(|_| MockAccountProvider::default());
-
         let config_repository = MockConfigurationRepository::default();
-        let wallet = MockWallet::init_wp_and_storage(
+        let wallet = MockWallet::init_storage(
             config_repository,
+            MockAccountProvider::new(),
             MockDigidAuthenticator::new(),
             MockPidRetriever::new(),
         )

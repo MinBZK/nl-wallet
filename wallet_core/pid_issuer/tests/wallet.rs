@@ -14,9 +14,9 @@ use nl_wallet_mdoc::{
 };
 use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
-    mock::{MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
+    mock::{MockAccountProvider, MockConfigurationRepository, MockDigidAuthenticator, MockStorage},
     wallet::{Configuration, DigidAuthenticator, Wallet},
-    wallet_deps::{AccountServerClient, DigidClient, PidIssuerClient},
+    wallet_deps::{DigidClient, PidIssuerClient},
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -51,15 +51,20 @@ async fn create_test_wallet<D: DigidAuthenticator>(
         MockConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
-        AccountServerClient,
+        MockAccountProvider,
         D,
         PidIssuerClient,
         SoftwareUtilities,
     >,
 ) {
-    let wallet = Wallet::init_wp_and_storage(test_wallet_config(base_url.clone()), digid_client, pid_issuer_client)
-        .await
-        .expect("Could not create test wallet");
+    let wallet = Wallet::init_storage(
+        test_wallet_config(base_url.clone()),
+        MockAccountProvider::new(),
+        digid_client,
+        pid_issuer_client,
+    )
+    .await
+    .expect("Could not create test wallet");
     (test_wallet_config(base_url).0, wallet)
 }
 

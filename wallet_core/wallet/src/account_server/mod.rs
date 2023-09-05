@@ -38,24 +38,23 @@ pub enum AccountProviderResponseError {
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait AccountProvider {
-    async fn new(base_url: &Url) -> Self
-    where
-        Self: Sized;
-
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountProviderError>;
+    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
+        base_url: &Url,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
+        base_url: &Url,
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn check_pin(
         &self,
+        base_url: &Url,
         instruction: Instruction<CheckPin>,
     ) -> Result<InstructionResult<()>, AccountProviderError>;
 }

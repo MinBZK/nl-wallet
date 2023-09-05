@@ -3,7 +3,7 @@ use http::{header, HeaderMap, HeaderValue};
 use mime::Mime;
 use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
-use url::{ParseError, Url};
+use url::Url;
 
 use wallet_common::account::{
     messages::{
@@ -21,13 +21,12 @@ use crate::utils::reqwest::default_reqwest_client_builder;
 use super::{AccountProvider, AccountProviderError, AccountProviderResponseError};
 
 pub struct AccountServerClient {
-    base_url: Url,
-    client: Client,
+    http_client: Client,
 }
 
 impl AccountServerClient {
-    fn new(base_url: Url) -> Self {
-        let client = default_reqwest_client_builder()
+    fn new() -> Self {
+        let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static("application/json"),
@@ -35,19 +34,15 @@ impl AccountServerClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        AccountServerClient { base_url, client }
+        AccountServerClient { http_client }
     }
 
-    fn url(&self, path: &str) -> Result<Url, ParseError> {
-        self.base_url.join(path)
-    }
-
-    async fn send_json_post_request<S, T>(&self, path: &str, json: &S) -> Result<T, AccountProviderError>
+    async fn send_json_post_request<S, T>(&self, url: Url, json: &S) -> Result<T, AccountProviderError>
     where
         S: Serialize,
         T: DeserializeOwned,
     {
-        let request = self.client.post(self.url(path)?).json(json).build()?;
+        let request = self.http_client.post(url).json(json).build()?;
         self.send_json_request::<T>(request).await
     }
 
@@ -55,7 +50,7 @@ impl AccountServerClient {
     where
         T: DeserializeOwned,
     {
-        let response = self.client.execute(request).await?;
+        let response = self.http_client.execute(request).await?;
         let status = response.status();
 
         // In case of a 4xx or 5xx response...
@@ -106,51 +101,51 @@ impl AccountServerClient {
     }
 }
 
+impl Default for AccountServerClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl AccountProvider for AccountServerClient {
-    async fn new(base_url: &Url) -> Self
-    where
-        Self: Sized,
-    {
-        Self::new(base_url.clone())
-    }
+    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError> {
+        let url = base_url.join("enroll")?;
+        let request = self.http_client.post(url).build()?;
+        let challenge: Challenge = self.send_json_request::<Challenge>(request).await?;
 
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountProviderError> {
-        let request = self.client.post(self.url("enroll")?).build()?;
-        let challenge = self.send_json_request::<Challenge>(request).await?.challenge.0;
-
-        Ok(challenge)
+        Ok(challenge.challenge.0)
     }
 
     async fn register(
         &self,
+        base_url: &Url,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError> {
-        let cert: Certificate = self
-            .send_json_post_request("createwallet", &registration_message)
-            .await?;
+        let url = base_url.join("createwallet")?;
+        let cert: Certificate = self.send_json_post_request(url, &registration_message).await?;
 
         Ok(cert.certificate)
     }
 
     async fn instruction_challenge(
         &self,
+        base_url: &Url,
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountProviderError> {
-        let challenge: Challenge = self
-            .send_json_post_request("instructions/challenge", &challenge_request)
-            .await?;
+        let url = base_url.join("instructions/challenge")?;
+        let challenge: Challenge = self.send_json_post_request(url, &challenge_request).await?;
 
         Ok(challenge.challenge.0)
     }
 
     async fn check_pin(
         &self,
+        base_url: &Url,
         instruction: Instruction<CheckPin>,
     ) -> Result<InstructionResult<()>, AccountProviderError> {
-        let message: InstructionResultMessage<()> = self
-            .send_json_post_request("instructions/check_pin", &instruction)
-            .await?;
+        let url = base_url.join("instructions/check_pin")?;
+        let message: InstructionResultMessage<()> = self.send_json_post_request(url, &instruction).await?;
 
         Ok(message.result)
     }
@@ -182,29 +177,22 @@ mod tests {
         pub bar: u64,
     }
 
-    async fn create_mock_server_and_client() -> (MockServer, AccountServerClient) {
+    async fn create_mock_server() -> (MockServer, Url) {
         let server = MockServer::start().await;
-        let client = AccountServerClient::new(Url::parse(&server.uri()).expect("Could not parse mock server URI"));
+        let base_url = Url::parse(&server.uri()).expect("Could not parse mock server URI");
 
-        (server, client)
+        (server, base_url)
     }
 
-    async fn post_example_request(
-        client: &AccountServerClient,
-        path: &str,
-    ) -> Result<ExampleBody, AccountProviderError> {
-        let request = client
-            .client
-            .post(client.url(path).expect("Could not build URL"))
-            .build()
-            .expect("Could not create request");
+    async fn post_example_request(client: &AccountServerClient, url: Url) -> Result<ExampleBody, AccountProviderError> {
+        let request = client.http_client.post(url).build().expect("Could not create request");
 
         client.send_json_request::<ExampleBody>(request).await
     }
 
     #[tokio::test]
     async fn test_remote_account_server_client_send_json_request_ok() {
-        let (server, client) = create_mock_server_and_client().await;
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar"))
@@ -216,7 +204,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let body = post_example_request(&client, "foobar")
+        let client = AccountServerClient::default();
+        let body = post_example_request(&client, base_url.join("foobar").unwrap())
             .await
             .expect("Could not get succesful response from server");
 
@@ -226,7 +215,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remote_account_server_client_send_json_request_error_status() {
-        let (server, client) = create_mock_server_and_client().await;
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_404"))
@@ -235,7 +224,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_404")
+        let client = AccountServerClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_404").unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -247,7 +237,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remote_account_server_client_send_json_request_error_text() {
-        let (server, client) = create_mock_server_and_client().await;
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_502"))
@@ -256,7 +246,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_502")
+        let client = AccountServerClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_502").unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -268,7 +259,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remote_account_server_client_send_json_request_error_data() {
-        let (server, client) = create_mock_server_and_client().await;
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_400"))
@@ -290,7 +281,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_400")
+        let client = AccountServerClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_400").unwrap())
             .await
             .expect_err("No error received from server");
 
@@ -303,7 +295,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remote_account_server_client_send_json_request_other_json() {
-        let (server, client) = create_mock_server_and_client().await;
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_503"))
@@ -315,7 +307,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_503")
+        let client = AccountServerClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_503").unwrap())
             .await
             .expect_err("No error received from server");
 
