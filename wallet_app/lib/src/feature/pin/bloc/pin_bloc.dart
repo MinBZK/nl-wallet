@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/error/server_error.dart';
+import '../../../domain/model/error/network_error.dart';
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
 import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -54,9 +54,9 @@ class PinBloc extends Bloc<PinEvent, PinState> {
           emit(const PinValidateBlocked());
       }
     } catch (ex) {
-      handleError(
+      await handleError(
         ex,
-        onNetworkError: (ex) => emit(const PinValidateServerError()),
+        onNetworkError: (ex, hasInternet) => emit(PinValidateNetworkError(hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(const PinValidateGenericError()),
       );
       _currentPin = '';

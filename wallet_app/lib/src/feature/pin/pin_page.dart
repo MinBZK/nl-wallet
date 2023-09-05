@@ -51,8 +51,8 @@ class PinPage extends StatelessWidget {
         if (state is PinValidateGenericError) {
           ErrorScreen.showGeneric(context, secured: false);
         }
-        if (state is PinValidateServerError) {
-          ErrorScreen.showServer(context, secured: false, serverError: tryCast(state));
+        if (state is PinValidateNetworkError) {
+          ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
         }
         if (state is PinValidateTimeout) {
           PinTimeoutScreen.show(context, state.expiryTime);
@@ -225,7 +225,7 @@ class PinPage extends StatelessWidget {
       PinEntryInProgress() => true,
       PinValidateFailure() => true,
       PinValidateTimeout() => true,
-      PinValidateServerError() => true,
+      PinValidateNetworkError() => true,
       PinValidateGenericError() => true,
       PinValidateInProgress() => false,
       PinValidateSuccess() => false,
@@ -241,7 +241,7 @@ class PinPage extends StatelessWidget {
       PinValidateSuccess() => false,
       PinValidateTimeout() => false,
       PinValidateBlocked() => false,
-      PinValidateServerError() => false,
+      PinValidateNetworkError() => false,
       PinValidateGenericError() => false,
     };
   }
@@ -254,7 +254,7 @@ class PinPage extends StatelessWidget {
       PinValidateFailure() => 0,
       PinValidateTimeout() => 0,
       PinValidateBlocked() => 0,
-      PinValidateServerError() => 0,
+      PinValidateNetworkError() => 0,
       PinValidateGenericError() => 0,
     };
   }
