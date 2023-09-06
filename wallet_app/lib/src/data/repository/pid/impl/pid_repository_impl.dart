@@ -11,7 +11,7 @@ import '../../../../wallet_core/typed_wallet_core.dart';
 import '../pid_repository.dart';
 
 class PidRepositoryImpl extends PidRepository {
-  final StreamController<PidIssuanceStatus> _digidAuthStatusController = BehaviorSubject();
+  final StreamController<PidIssuanceStatus> _pidIssuanceStatusController = BehaviorSubject();
   final TypedWalletCore _walletCore;
   final CoreErrorMapper _errorMapper;
 
@@ -24,19 +24,19 @@ class PidRepositoryImpl extends PidRepository {
   void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event) {
     event?.when(
       authenticating: () {
-        _digidAuthStatusController.add(PidIssuanceAuthenticating());
+        _pidIssuanceStatusController.add(PidIssuanceAuthenticating());
       },
       success: (success) {
         //TODO: Pass on cards
-        _digidAuthStatusController.add(PidIssuanceSuccess(List.empty()));
-        _digidAuthStatusController.add(PidIssuanceIdle());
+        _pidIssuanceStatusController.add(PidIssuanceSuccess(List.empty()));
+        _pidIssuanceStatusController.add(PidIssuanceIdle());
       },
       error: (error) {
-        _digidAuthStatusController.add(PidIssuanceError(_extractRedirectError(error)));
-        _digidAuthStatusController.add(PidIssuanceIdle());
+        _pidIssuanceStatusController.add(PidIssuanceError(_extractRedirectError(error)));
+        _pidIssuanceStatusController.add(PidIssuanceIdle());
       },
     );
-    if (event == null) _digidAuthStatusController.add(PidIssuanceIdle());
+    if (event == null) _pidIssuanceStatusController.add(PidIssuanceIdle());
   }
 
   RedirectError _extractRedirectError(String flutterApiErrorJson) {
@@ -51,5 +51,5 @@ class PidRepositoryImpl extends PidRepository {
   }
 
   @override
-  Stream<PidIssuanceStatus> observePidIssuanceStatus() => _digidAuthStatusController.stream;
+  Stream<PidIssuanceStatus> observePidIssuanceStatus() => _pidIssuanceStatusController.stream;
 }

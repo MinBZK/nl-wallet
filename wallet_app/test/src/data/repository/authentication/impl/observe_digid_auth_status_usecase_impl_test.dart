@@ -13,10 +13,11 @@ import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
+  late TypedWalletCore core;
   late PidRepository pidRepository;
-  late TypedWalletCore core = Mocks.create();
 
   setUp(() {
+    core = Mocks.create();
     pidRepository = PidRepositoryImpl(core, CoreErrorMapper());
   });
 

@@ -7,7 +7,11 @@ import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
 
 void main() {
   const defaultDescription = 'core error description';
-  final errorMapper = CoreErrorMapper();
+  late CoreErrorMapper errorMapper;
+
+  setUp(() {
+    errorMapper = CoreErrorMapper();
+  });
 
   group('map', () {
     test('mapping empty string throws', () {
