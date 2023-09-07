@@ -36,6 +36,7 @@ pub enum Error {
 // TODO: Implement proper error handling.
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        debug!("error result: {:?}", self);
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
     }
 }
