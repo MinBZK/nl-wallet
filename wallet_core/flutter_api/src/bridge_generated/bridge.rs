@@ -219,7 +219,7 @@ impl support::IntoDartExceptPrimitive for Card {}
 
 impl support::IntoDart for CardAttribute {
     fn into_dart(self) -> support::DartAbi {
-        vec![self.key.into_dart(), self.label.into_dart(), self.value.into_dart()].into_dart()
+        vec![self.key.into_dart(), self.labels.into_dart(), self.value.into_dart()].into_dart()
     }
 }
 impl support::IntoDartExceptPrimitive for CardAttribute {}

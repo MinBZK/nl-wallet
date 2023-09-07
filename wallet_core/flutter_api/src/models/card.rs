@@ -7,7 +7,7 @@ pub struct Card {
 
 pub struct CardAttribute {
     pub key: String,
-    pub label: Vec<LocalizedString>,
+    pub labels: Vec<LocalizedString>,
     pub value: CardValue,
 }
 
@@ -41,7 +41,7 @@ pub fn mock_cards() -> Vec<Card> {
             issuer: "rvig".to_string(),
             attributes: vec![
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "First names".to_string()).into(),
                         ("nl".to_string(), "Voornamen".to_string()).into(),
                     ],
@@ -51,7 +51,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Last name".to_string()).into(),
                         ("nl".to_string(), "Achternaam".to_string()).into(),
                     ],
@@ -61,7 +61,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Birthname".to_string()).into(),
                         ("nl".to_string(), "Geboortenaam".to_string()).into(),
                     ],
@@ -71,7 +71,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Gender".to_string()).into(),
                         ("nl".to_string(), "Geslacht".to_string()).into(),
                     ],
@@ -81,7 +81,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Birthdate".to_string()).into(),
                         ("nl".to_string(), "Geboortedatum".to_string()).into(),
                     ],
@@ -91,7 +91,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Older than 18".to_string()).into(),
                         ("nl".to_string(), "Ouder dan 18".to_string()).into(),
                     ],
@@ -99,7 +99,7 @@ pub fn mock_cards() -> Vec<Card> {
                     value: CardValue::Boolean { value: true },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Birthplace".to_string()).into(),
                         ("nl".to_string(), "Geboorteplaats".to_string()).into(),
                     ],
@@ -109,7 +109,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Country of birth".to_string()).into(),
                         ("nl".to_string(), "Geboorteland".to_string()).into(),
                     ],
@@ -119,7 +119,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Citizen service number (BSN)".to_string()).into(),
                         ("nl".to_string(), "Burgerservicenummer (BSN)".to_string()).into(),
                     ],
@@ -127,7 +127,7 @@ pub fn mock_cards() -> Vec<Card> {
                     value: CardValue::Integer { value: 999999999 },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Nationality".to_string()).into(),
                         ("nl".to_string(), "Nationaliteit".to_string()).into(),
                     ],
@@ -144,7 +144,7 @@ pub fn mock_cards() -> Vec<Card> {
             issuer: "rvig".to_string(),
             attributes: vec![
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Street".to_string()).into(),
                         ("nl".to_string(), "Straatnaam".to_string()).into(),
                     ],
@@ -154,7 +154,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "House number".to_string()).into(),
                         ("nl".to_string(), "Huisnummer".to_string()).into(),
                     ],
@@ -164,7 +164,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Postal code".to_string()).into(),
                         ("nl".to_string(), "Postcode".to_string()).into(),
                     ],
@@ -174,7 +174,7 @@ pub fn mock_cards() -> Vec<Card> {
                     },
                 },
                 CardAttribute {
-                    label: vec![
+                    labels: vec![
                         ("en".to_string(), "Residence".to_string()).into(),
                         ("nl".to_string(), "Woonplaats".to_string()).into(),
                     ],

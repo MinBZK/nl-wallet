@@ -83,12 +83,12 @@ class Card {
 
 class CardAttribute {
   final String key;
-  final List<LocalizedString> label;
+  final List<LocalizedString> labels;
   final CardValue value;
 
   const CardAttribute({
     required this.key,
-    required this.label,
+    required this.labels,
     required this.value,
   });
 }
@@ -410,7 +410,7 @@ class WalletCoreImpl implements WalletCore {
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return CardAttribute(
       key: _wire2api_String(arr[0]),
-      label: _wire2api_list_localized_string(arr[1]),
+      labels: _wire2api_list_localized_string(arr[1]),
       value: _wire2api_card_value(arr[2]),
     );
   }
