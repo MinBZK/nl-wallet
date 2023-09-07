@@ -58,10 +58,6 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
-        if !matches!(self.state, StorageState::Opened) {
-            return Err(StorageError::NotOpened);
-        }
-
         // If self.data contains the key for the requested type,
         // assume that its value is of that specific type.
         // Downcast it to the type using the Any trait, then return a cloned result.
@@ -71,10 +67,6 @@ impl Storage for MockStorage {
     }
 
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
-        if !matches!(self.state, StorageState::Opened) {
-            return Err(StorageError::NotOpened);
-        }
-
         if self.data.contains_key(D::KEY) {
             panic!("Registration already present");
         }
@@ -85,10 +77,6 @@ impl Storage for MockStorage {
     }
 
     async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
-        if !matches!(self.state, StorageState::Opened) {
-            return Err(StorageError::NotOpened);
-        }
-
         if !self.data.contains_key(D::KEY) {
             panic!("Registration not present");
         }
