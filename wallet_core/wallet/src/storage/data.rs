@@ -2,7 +2,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use wallet_common::account::{messages::auth::WalletCertificate, serialization::Base64Bytes};
 
-pub trait KeyedData: Serialize + DeserializeOwned + Clone + Send + Sync + 'static {
+pub trait KeyedData: Serialize + DeserializeOwned {
     const KEY: &'static str;
 }
 

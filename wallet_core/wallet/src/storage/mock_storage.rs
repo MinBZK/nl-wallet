@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 
 use async_trait::async_trait;
 
@@ -11,15 +11,15 @@ use super::{
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub data: HashMap<&'static str, Box<dyn Any + Send + Sync>>,
+    pub data: HashMap<&'static str, String>,
 }
 
 impl MockStorage {
     pub fn mock(state: StorageState, registration: Option<RegistrationData>) -> Self {
-        let mut data: HashMap<&str, Box<dyn Any + Send + Sync>> = HashMap::new();
+        let mut data = HashMap::new();
 
         if let Some(registration) = registration {
-            data.insert(RegistrationData::KEY, Box::new(registration));
+            data.insert(RegistrationData::KEY, serde_json::to_string(&registration).unwrap());
         }
 
         MockStorage { state, data }
@@ -58,30 +58,27 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
-        // If self.data contains the key for the requested type,
-        // assume that its value is of that specific type.
-        // Downcast it to the type using the Any trait, then return a cloned result.
-        let data = self.data.get(D::KEY).map(|m| m.downcast_ref::<D>().unwrap()).cloned();
+        let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s).unwrap());
 
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
         if self.data.contains_key(D::KEY) {
             panic!("Registration already present");
         }
 
-        self.data.insert(D::KEY, Box::new(data.clone()));
+        self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
 
         Ok(())
     }
 
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
         if !self.data.contains_key(D::KEY) {
             panic!("Registration not present");
         }
 
-        self.data.insert(D::KEY, Box::new(data.clone()));
+        self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
 
         Ok(())
     }
