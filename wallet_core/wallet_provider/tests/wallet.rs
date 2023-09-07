@@ -14,12 +14,10 @@ use url::Url;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
-    mock::{MockConfigurationRepository, MockDigidClient, MockPidIssuerClient, MockStorage},
-    wallet::{
-        AccountProviderClient, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
-        WalletUnlockError,
-    },
-    wallet_deps::HttpAccountProviderClient,
+    errors::WalletUnlockError,
+    mock::{MockDigidClient, MockPidIssuerClient, MockStorage},
+    wallet_deps::{HttpAccountProviderClient, LocalConfigurationRepository},
+    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -53,7 +51,7 @@ async fn create_test_wallet(
     public_key: EcdsaDecodingKey,
     instruction_result_public_key: EcdsaDecodingKey,
 ) -> Wallet<
-    MockConfigurationRepository,
+    LocalConfigurationRepository,
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
@@ -61,13 +59,13 @@ async fn create_test_wallet(
     MockPidIssuerClient,
 > {
     // Create mock Wallet from settings
-    let mut config = MockConfigurationRepository::default();
-    config.0.account_server.base_url = base_url;
-    config.0.account_server.certificate_public_key = public_key;
-    config.0.account_server.instruction_result_public_key = instruction_result_public_key;
+    let mut config = Configuration::default();
+    config.account_server.base_url = base_url;
+    config.account_server.certificate_public_key = public_key;
+    config.account_server.instruction_result_public_key = instruction_result_public_key;
 
     Wallet::init_registration(
-        config,
+        LocalConfigurationRepository::new(config),
         MockStorage::default(),
         HttpAccountProviderClient::default(),
         MockDigidClient::new(),

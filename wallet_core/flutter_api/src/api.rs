@@ -5,11 +5,7 @@ use tracing::{info, warn};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::{
-    init_wallet, validate_pin,
-    wallet::{RedirectUriType, WalletInitError},
-    Wallet,
-};
+use wallet::{self, errors::WalletInitError, RedirectUriType, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -62,7 +58,7 @@ async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
     _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
-            let wallet = init_wallet().await?;
+            let wallet = Wallet::init_all().await?;
             created = true;
 
             Ok::<_, WalletInitError>(RwLock::new(wallet))
@@ -74,7 +70,7 @@ async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
 
 #[flutter_api_error]
 pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
-    let result = validate_pin(&pin).into();
+    let result = wallet::validate_pin(&pin).into();
 
     Ok(result)
 }

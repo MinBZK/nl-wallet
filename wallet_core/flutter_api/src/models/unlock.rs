@@ -1,4 +1,4 @@
-use wallet::wallet::WalletUnlockError;
+use wallet::errors::WalletUnlockError;
 
 pub enum WalletUnlockResult {
     Ok,
