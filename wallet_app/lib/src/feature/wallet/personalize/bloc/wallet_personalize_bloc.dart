@@ -5,16 +5,17 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../data/repository/authentication/digid_auth_repository.dart';
+import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
-import '../../../../domain/usecase/auth/get_digid_auth_url_usecase.dart';
-import '../../../../domain/usecase/auth/observe_digid_auth_status_usecase.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_constants.dart';
+import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
 part 'wallet_personalize_state.dart';
@@ -23,17 +24,17 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final GetPidIssuanceResponseUseCase getPidIssuanceResponseUseCase;
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
-  final GetDigidAuthUrlUseCase getDigidAuthUrlUseCase;
-  final ObserveDigidAuthStatusUseCase observeDigidAuthStatusUseCase;
+  final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
+  final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
 
-  StreamSubscription? _digidAuthStatusSubscription;
+  StreamSubscription? _pidIssuanceStatusSubscription;
 
   WalletPersonalizeBloc(
     this.getPidIssuanceResponseUseCase,
     this.walletAddIssuedCardsUseCase,
     this.getWalletCardsUseCase,
-    this.getDigidAuthUrlUseCase,
-    this.observeDigidAuthStatusUseCase,
+    this.getPidIssuanceUrlUseCase,
+    this.observePidIssuanceStatusUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
@@ -44,20 +45,24 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
 
-    _digidAuthStatusSubscription = observeDigidAuthStatusUseCase.invoke().listen(_handleDigidAuthStatusUpdate);
+    _pidIssuanceStatusSubscription = observePidIssuanceStatusUseCase.invoke().listen(_handlePidIssuanceStatusUpdate);
   }
 
-  void _handleDigidAuthStatusUpdate(event) {
+  void _handlePidIssuanceStatusUpdate(PidIssuanceStatus event) {
     if (state is WalletPersonalizeDigidFailure) return; // Don't navigate when user cancelled.
     switch (event) {
-      case DigidAuthStatus.success:
+      case PidIssuanceIdle():
+        break;
+      case PidIssuanceAuthenticating():
+        add(WalletPersonalizeAuthInProgress());
+        break;
+      case PidIssuanceSuccess():
         add(WalletPersonalizeLoginWithDigidSucceeded());
         break;
-      case DigidAuthStatus.error:
-        add(WalletPersonalizeLoginWithDigidFailed());
-        break;
-      case DigidAuthStatus.authenticating:
-        add(WalletPersonalizeAuthInProgress());
+      case PidIssuanceError():
+        //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
+        final cancelledByUser = event.error == RedirectError.accessDenied;
+        add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
         break;
     }
   }
@@ -65,7 +70,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onLoginWithDigidClicked(event, emit) async {
     try {
       emit(const WalletPersonalizeLoadingIssuanceUrl());
-      String url = await getDigidAuthUrlUseCase.invoke();
+      String url = await getPidIssuanceUrlUseCase.invoke();
       emit(WalletPersonalizeConnectDigid(url));
     } catch (ex, stack) {
       Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
@@ -87,7 +92,13 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onLoginWithDigidFailed(event, emit) async => emit(WalletPersonalizeDigidFailure());
+  void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
+    if (event.cancelledByUser) {
+      emit(WalletPersonalizeDigidCancelled());
+    } else {
+      emit(WalletPersonalizeDigidFailure());
+    }
+  }
 
   void _onOfferingVerified(WalletPersonalizeOfferingVerified event, emit) async {
     emit(const WalletPersonalizeConfirmPin());
@@ -141,7 +152,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   @override
   Future<void> close() async {
-    _digidAuthStatusSubscription?.cancel();
+    _pidIssuanceStatusSubscription?.cancel();
     super.close();
   }
 }

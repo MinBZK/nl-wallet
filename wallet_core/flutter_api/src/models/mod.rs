@@ -1,4 +1,5 @@
+pub mod card;
 pub mod config;
 pub mod pin;
+pub mod process_uri_event;
 pub mod unlock;
-pub mod uri_flow_event;

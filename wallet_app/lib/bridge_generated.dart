@@ -62,15 +62,54 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta;
 
-  Stream<UriFlowEvent> processUri({required String uri, dynamic hint});
+  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
 }
 
-enum DigidState {
-  Authenticating,
-  Success,
-  Error,
+class Card {
+  final int id;
+  final String docType;
+  final String issuer;
+  final List<CardAttribute> attributes;
+
+  const Card({
+    required this.id,
+    required this.docType,
+    required this.issuer,
+    required this.attributes,
+  });
+}
+
+class CardAttribute {
+  final String key;
+  final List<LocalizedString> labels;
+  final CardValue value;
+
+  const CardAttribute({
+    required this.key,
+    required this.labels,
+    required this.value,
+  });
+}
+
+@freezed
+class CardValue with _$CardValue {
+  const factory CardValue.string({
+    required String value,
+  }) = CardValue_String;
+  const factory CardValue.integer({
+    required int value,
+  }) = CardValue_Integer;
+  const factory CardValue.double({
+    required double value,
+  }) = CardValue_Double;
+  const factory CardValue.boolean({
+    required bool value,
+  }) = CardValue_Boolean;
+  const factory CardValue.date({
+    required String value,
+  }) = CardValue_Date;
 }
 
 class FlutterConfiguration {
@@ -83,6 +122,27 @@ class FlutterConfiguration {
   });
 }
 
+class LocalizedString {
+  final String language;
+  final String value;
+
+  const LocalizedString({
+    required this.language,
+    required this.value,
+  });
+}
+
+@freezed
+class PidIssuanceEvent with _$PidIssuanceEvent {
+  const factory PidIssuanceEvent.authenticating() = PidIssuanceEvent_Authenticating;
+  const factory PidIssuanceEvent.success({
+    required List<Card> previewCards,
+  }) = PidIssuanceEvent_Success;
+  const factory PidIssuanceEvent.error({
+    required String data,
+  }) = PidIssuanceEvent_Error;
+}
+
 enum PinValidationResult {
   Ok,
   TooFewUniqueDigits,
@@ -91,10 +151,11 @@ enum PinValidationResult {
 }
 
 @freezed
-class UriFlowEvent with _$UriFlowEvent {
-  const factory UriFlowEvent.digidAuth({
-    required DigidState state,
-  }) = UriFlowEvent_DigidAuth;
+class ProcessUriEvent with _$ProcessUriEvent {
+  const factory ProcessUriEvent.pidIssuance({
+    required PidIssuanceEvent event,
+  }) = ProcessUriEvent_PidIssuance;
+  const factory ProcessUriEvent.unknownUri() = ProcessUriEvent_UnknownUri;
 }
 
 @freezed
@@ -300,11 +361,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Stream<UriFlowEvent> processUri({required String uri, dynamic hint}) {
+  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
     return _platform.executeStream(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_process_uri(port_, arg0),
-      parseSuccessData: _wire2api_uri_flow_event,
+      parseSuccessData: _wire2api_process_uri_event,
       constMeta: kProcessUriConstMeta,
       argValues: [uri],
       hint: hint,
@@ -329,8 +390,60 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
-  DigidState _wire2api_digid_state(dynamic raw) {
-    return DigidState.values[raw as int];
+  PidIssuanceEvent _wire2api_box_autoadd_pid_issuance_event(dynamic raw) {
+    return _wire2api_pid_issuance_event(raw);
+  }
+
+  Card _wire2api_card(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return Card(
+      id: _wire2api_i64(arr[0]),
+      docType: _wire2api_String(arr[1]),
+      issuer: _wire2api_String(arr[2]),
+      attributes: _wire2api_list_card_attribute(arr[3]),
+    );
+  }
+
+  CardAttribute _wire2api_card_attribute(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return CardAttribute(
+      key: _wire2api_String(arr[0]),
+      labels: _wire2api_list_localized_string(arr[1]),
+      value: _wire2api_card_value(arr[2]),
+    );
+  }
+
+  CardValue _wire2api_card_value(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return CardValue_String(
+          value: _wire2api_String(raw[1]),
+        );
+      case 1:
+        return CardValue_Integer(
+          value: _wire2api_i64(raw[1]),
+        );
+      case 2:
+        return CardValue_Double(
+          value: _wire2api_f64(raw[1]),
+        );
+      case 3:
+        return CardValue_Boolean(
+          value: _wire2api_bool(raw[1]),
+        );
+      case 4:
+        return CardValue_Date(
+          value: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  double _wire2api_f64(dynamic raw) {
+    return raw as double;
   }
 
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
@@ -346,8 +459,63 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
+  int _wire2api_i64(dynamic raw) {
+    return castInt(raw);
+  }
+
+  List<Card> _wire2api_list_card(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_card).toList();
+  }
+
+  List<CardAttribute> _wire2api_list_card_attribute(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_card_attribute).toList();
+  }
+
+  List<LocalizedString> _wire2api_list_localized_string(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_localized_string).toList();
+  }
+
+  LocalizedString _wire2api_localized_string(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return LocalizedString(
+      language: _wire2api_String(arr[0]),
+      value: _wire2api_String(arr[1]),
+    );
+  }
+
+  PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return PidIssuanceEvent_Authenticating();
+      case 1:
+        return PidIssuanceEvent_Success(
+          previewCards: _wire2api_list_card(raw[1]),
+        );
+      case 2:
+        return PidIssuanceEvent_Error(
+          data: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
     return PinValidationResult.values[raw as int];
+  }
+
+  ProcessUriEvent _wire2api_process_uri_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return ProcessUriEvent_PidIssuance(
+          event: _wire2api_box_autoadd_pid_issuance_event(raw[1]),
+        );
+      case 1:
+        return ProcessUriEvent_UnknownUri();
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   int _wire2api_u16(dynamic raw) {
@@ -368,17 +536,6 @@ class WalletCoreImpl implements WalletCore {
 
   void _wire2api_unit(dynamic raw) {
     return;
-  }
-
-  UriFlowEvent _wire2api_uri_flow_event(dynamic raw) {
-    switch (raw[0]) {
-      case 0:
-        return UriFlowEvent_DigidAuth(
-          state: _wire2api_digid_state(raw[1]),
-        );
-      default:
-        throw Exception("unreachable");
-    }
   }
 
   WalletUnlockResult _wire2api_wallet_unlock_result(dynamic raw) {

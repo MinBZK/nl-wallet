@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../error/core_error.dart';
+import '../error/core_error_mapper.dart';
 import '../error/flutter_api_error.dart';
 import '../typed_wallet_core.dart';
 import '../wallet_core.dart';
@@ -13,11 +15,12 @@ import '../wallet_core.dart';
 /// flag and parsing of the [FlutterApiError]s.
 class TypedWalletCoreImpl extends TypedWalletCore {
   final WalletCore _walletCore;
+  final CoreErrorMapper _errorMapper;
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
 
-  TypedWalletCoreImpl(this._walletCore) {
+  TypedWalletCoreImpl(this._walletCore, this._errorMapper) {
     _initWalletCore();
     _setupLockedStream();
     _setupConfigurationStream();
@@ -115,7 +118,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   @override
-  Stream<UriFlowEvent> processUri(Uri uri) {
+  Stream<ProcessUriEvent> processUri(Uri uri) {
     try {
       return _walletCore.processUri(uri: uri.toString());
     } catch (ex) {
@@ -123,15 +126,16 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     }
   }
 
-  /// Converts the exception to a [FlutterApiError]
+  /// Converts the exception to a [CoreError]
   /// if it can be mapped into one, otherwise returns
   /// the original exception.
   Object _handleCoreException(Object ex) {
-    if (ex is FfiException) {
-      if (ex.code != 'RESULT_ERROR') return ex;
-      var decodedJson = json.decode(ex.message);
-      return FlutterApiError.fromJson(decodedJson);
-    } else {
+    try {
+      final ffiException = ex as FfiException;
+      if (ffiException.code != 'RESULT_ERROR') return ex;
+      return _errorMapper.map(ffiException.message);
+    } catch (mapException) {
+      Fimber.e('Failed to map exception to CoreError, returning original exception', ex: mapException);
       return ex;
     }
   }

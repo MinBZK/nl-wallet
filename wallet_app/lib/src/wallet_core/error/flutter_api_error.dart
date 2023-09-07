@@ -6,8 +6,9 @@ part 'flutter_api_error.g.dart';
 class FlutterApiError {
   FlutterApiErrorType type;
   String? description;
+  Map<String, dynamic>? data;
 
-  FlutterApiError({required this.type, this.description});
+  FlutterApiError({required this.type, this.description, this.data});
 
   factory FlutterApiError.fromJson(Map<String, dynamic> json) => _$FlutterApiErrorFromJson(json);
 
@@ -21,5 +22,7 @@ enum FlutterApiErrorType {
   @JsonValue('Generic')
   generic,
   @JsonValue('Networking')
-  networking
+  networking,
+  @JsonValue('RedirectUri')
+  redirectUri,
 }

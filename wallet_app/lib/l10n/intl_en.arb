@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-09-06T10:02:03+02:00",
+    "@@last_modified": "2023-09-07T14:30:05+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Give feedback",
     "aboutScreenPrivacyCta": "Privacy policy",
@@ -573,6 +573,7 @@
     "menuScreenAboutCta": "About this app",
     "menuScreenAboutTitle": "About the app",
     "menuScreenDesignCta": "Design System",
+    "menuScreenFeedbackCta": "Give feedback",
     "menuScreenGreeting": "Hi {name}",
     "@menuScreenGreeting": {
         "placeholders": {
@@ -1044,9 +1045,29 @@
     "verifierPolicyScreenTitle": "Terms",
     "walletHistoryScreenTitle": "Usage history",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, next",
+    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
+    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
+        "placeholders": {
+            "birthCountry": {
+                "example": "Nederland",
+                "type": "String"
+            },
+            "birthDate": {
+                "example": "01-01-1980",
+                "type": "String"
+            },
+            "birthPlace": {
+                "example": "Leiden",
+                "type": "String"
+            }
+        }
+    },
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
+    "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
     "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",

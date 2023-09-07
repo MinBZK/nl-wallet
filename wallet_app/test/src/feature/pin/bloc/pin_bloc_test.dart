@@ -4,7 +4,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
-import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -119,7 +119,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw FlutterApiError(type: FlutterApiErrorType.generic),
+        () => throw const CoreGenericError('generic'),
       ),
       skip: 6,
       expect: () => [const PinValidateGenericError()],
@@ -129,7 +129,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw FlutterApiError(type: FlutterApiErrorType.networking),
+        () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
       expect: () => [const PinValidateNetworkError(hasInternet: true)],
@@ -140,7 +140,7 @@ void main() {
       setUp: () => when(checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false),
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw FlutterApiError(type: FlutterApiErrorType.networking),
+        () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
       expect: () => [const PinValidateNetworkError(hasInternet: false)],
