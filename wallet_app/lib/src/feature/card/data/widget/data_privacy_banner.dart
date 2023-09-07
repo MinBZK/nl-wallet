@@ -17,19 +17,28 @@ class DataPrivacyBanner extends StatelessWidget {
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        color: context.colorScheme.tertiaryContainer,
+        color: context.colorScheme.onSurface,
         child: Row(
           children: [
-            const Icon(Icons.gpp_maybe_outlined),
+            Icon(
+              Icons.gpp_maybe_outlined,
+              color: context.colorScheme.background,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text.rich(
                 TextSpan(
                   text: context.l10n.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colorScheme.background,
+                  ),
                   children: [
                     TextSpan(
                       text: context.l10n.cardDataScreenDataPrivacyBannerReadMore,
-                      style: context.textTheme.bodyMedium?.copyWith(decoration: TextDecoration.underline),
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: context.colorScheme.background,
+                        decoration: TextDecoration.underline,
+                      ),
                     )
                   ],
                 ),
