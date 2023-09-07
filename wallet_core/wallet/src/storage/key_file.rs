@@ -48,8 +48,8 @@ async fn get_or_create_encrypted_file_contents(
     encryption_key: &impl SecureEncryptionKey,
     default: impl FnOnce() -> Vec<u8>,
 ) -> Result<Vec<u8>, KeyFileError> {
-    // If no file at the path exsits, call the default closure to get the desired contents,
-    // ecnrypt it and write it to a new file at the path.
+    // If no file at the path exists, call the default closure to get the desired contents,
+    // encrypt it and write it to a new file at the path.
     if !fs::try_exists(path).await? {
         let contents = default();
         write_encrypted_file(path, &contents, encryption_key).await?;

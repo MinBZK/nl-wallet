@@ -47,7 +47,7 @@ impl TryFrom<&[u8]> for SqlCipherKey {
     }
 }
 
-/// Convertion to a string usable in SQL statement, with or without the salt.
+/// Conversion to a string usable in SQL statement, with or without the salt.
 /// The resulting format is: x'1234ABCD'
 impl From<&SqlCipherKey> for String {
     fn from(value: &SqlCipherKey) -> Self {

@@ -88,7 +88,7 @@ where
         }
     }
 
-    /// Indiciate whether there is no database on disk, there is one but it is unopened
+    /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
     async fn state(&self) -> Result<StorageState, StorageError> {
         if self.database.is_some() {
