@@ -22,6 +22,7 @@ use std::sync::Arc;
 use crate::models::card::Card;
 use crate::models::card::CardAttribute;
 use crate::models::card::CardValue;
+use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::pin::PinValidationResult;
 use crate::models::process_uri_event::PidIssuanceEvent;
@@ -247,6 +248,13 @@ impl support::IntoDart for FlutterConfiguration {
     }
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
+
+impl support::IntoDart for LocalizedString {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.language.into_dart(), self.value.into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for LocalizedString {}
 
 impl support::IntoDart for PidIssuanceEvent {
     fn into_dart(self) -> support::DartAbi {

@@ -83,7 +83,7 @@ class Card {
 
 class CardAttribute {
   final String key;
-  final List<(String, String)> label;
+  final List<LocalizedString> label;
   final CardValue value;
 
   const CardAttribute({
@@ -119,6 +119,16 @@ class FlutterConfiguration {
   const FlutterConfiguration({
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
+  });
+}
+
+class LocalizedString {
+  final String language;
+  final String value;
+
+  const LocalizedString({
+    required this.language,
+    required this.value,
   });
 }
 
@@ -376,17 +386,6 @@ class WalletCoreImpl implements WalletCore {
     return raw as String;
   }
 
-  (String, String) _wire2api___record__String_String(dynamic raw) {
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2) {
-      throw Exception('Expected 2 elements, got ${arr.length}');
-    }
-    return (
-      _wire2api_String(arr[0]),
-      _wire2api_String(arr[1]),
-    );
-  }
-
   bool _wire2api_bool(dynamic raw) {
     return raw as bool;
   }
@@ -411,7 +410,7 @@ class WalletCoreImpl implements WalletCore {
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return CardAttribute(
       key: _wire2api_String(arr[0]),
-      label: _wire2api_list___record__String_String(arr[1]),
+      label: _wire2api_list_localized_string(arr[1]),
       value: _wire2api_card_value(arr[2]),
     );
   }
@@ -464,16 +463,25 @@ class WalletCoreImpl implements WalletCore {
     return castInt(raw);
   }
 
-  List<(String, String)> _wire2api_list___record__String_String(dynamic raw) {
-    return (raw as List<dynamic>).map(_wire2api___record__String_String).toList();
-  }
-
   List<Card> _wire2api_list_card(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_card).toList();
   }
 
   List<CardAttribute> _wire2api_list_card_attribute(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_card_attribute).toList();
+  }
+
+  List<LocalizedString> _wire2api_list_localized_string(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_localized_string).toList();
+  }
+
+  LocalizedString _wire2api_localized_string(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return LocalizedString(
+      language: _wire2api_String(arr[0]),
+      value: _wire2api_String(arr[1]),
+    );
   }
 
   PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {

@@ -7,7 +7,7 @@ pub struct Card {
 
 pub struct CardAttribute {
     pub key: String,
-    pub label: Vec<(String, String)>,
+    pub label: Vec<LocalizedString>,
     pub value: CardValue,
 }
 
@@ -19,6 +19,20 @@ pub enum CardValue {
     Date { value: String },
 }
 
+pub struct LocalizedString {
+    pub language: String,
+    pub value: String,
+}
+
+impl From<(String, String)> for LocalizedString {
+    fn from(value: (String, String)) -> Self {
+        LocalizedString {
+            language: value.0,
+            value: value.1,
+        }
+    }
+}
+
 pub fn mock_cards() -> Vec<Card> {
     vec![
         Card {
@@ -28,8 +42,8 @@ pub fn mock_cards() -> Vec<Card> {
             attributes: vec![
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "First names".to_string()),
-                        ("nl".to_string(), "Voornamen".to_string()),
+                        ("en".to_string(), "First names".to_string()).into(),
+                        ("nl".to_string(), "Voornamen".to_string()).into(),
                     ],
                     key: "pid.firstNames".to_string(),
                     value: CardValue::String {
@@ -38,8 +52,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Last name".to_string()),
-                        ("nl".to_string(), "Achternaam".to_string()),
+                        ("en".to_string(), "Last name".to_string()).into(),
+                        ("nl".to_string(), "Achternaam".to_string()).into(),
                     ],
                     key: "pid.lastName".to_string(),
                     value: CardValue::String {
@@ -48,8 +62,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Birthname".to_string()),
-                        ("nl".to_string(), "Geboortenaam".to_string()),
+                        ("en".to_string(), "Birthname".to_string()).into(),
+                        ("nl".to_string(), "Geboortenaam".to_string()).into(),
                     ],
                     key: "pid.birthName".to_string(),
                     value: CardValue::String {
@@ -58,8 +72,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Gender".to_string()),
-                        ("nl".to_string(), "Geslacht".to_string()),
+                        ("en".to_string(), "Gender".to_string()).into(),
+                        ("nl".to_string(), "Geslacht".to_string()).into(),
                     ],
                     key: "pid.gender".to_string(),
                     value: CardValue::String {
@@ -68,8 +82,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Birthdate".to_string()),
-                        ("nl".to_string(), "Geboortedatum".to_string()),
+                        ("en".to_string(), "Birthdate".to_string()).into(),
+                        ("nl".to_string(), "Geboortedatum".to_string()).into(),
                     ],
                     key: "pid.birthDate".to_string(),
                     value: CardValue::Date {
@@ -78,16 +92,16 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Older than 18".to_string()),
-                        ("nl".to_string(), "Ouder dan 18".to_string()),
+                        ("en".to_string(), "Older than 18".to_string()).into(),
+                        ("nl".to_string(), "Ouder dan 18".to_string()).into(),
                     ],
                     key: "pid.olderThan18".to_string(),
                     value: CardValue::Boolean { value: true },
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Birthplace".to_string()),
-                        ("nl".to_string(), "Geboorteplaats".to_string()),
+                        ("en".to_string(), "Birthplace".to_string()).into(),
+                        ("nl".to_string(), "Geboorteplaats".to_string()).into(),
                     ],
                     key: "pid.birthplace".to_string(),
                     value: CardValue::String {
@@ -96,8 +110,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Country of birth".to_string()),
-                        ("nl".to_string(), "Geboorteland".to_string()),
+                        ("en".to_string(), "Country of birth".to_string()).into(),
+                        ("nl".to_string(), "Geboorteland".to_string()).into(),
                     ],
                     key: "pid.countryOfBirth".to_string(),
                     value: CardValue::String {
@@ -106,16 +120,16 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Citizen service number (BSN)".to_string()),
-                        ("nl".to_string(), "Burgerservicenummer (BSN)".to_string()),
+                        ("en".to_string(), "Citizen service number (BSN)".to_string()).into(),
+                        ("nl".to_string(), "Burgerservicenummer (BSN)".to_string()).into(),
                     ],
                     key: "pid.bsn".to_string(),
                     value: CardValue::Integer { value: 999999999 },
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Nationality".to_string()),
-                        ("nl".to_string(), "Nationaliteit".to_string()),
+                        ("en".to_string(), "Nationality".to_string()).into(),
+                        ("nl".to_string(), "Nationaliteit".to_string()).into(),
                     ],
                     key: "pid.nationality".to_string(),
                     value: CardValue::String {
@@ -131,8 +145,8 @@ pub fn mock_cards() -> Vec<Card> {
             attributes: vec![
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Street".to_string()),
-                        ("nl".to_string(), "Straatnaam".to_string()),
+                        ("en".to_string(), "Street".to_string()).into(),
+                        ("nl".to_string(), "Straatnaam".to_string()).into(),
                     ],
                     key: "pid.streetName".to_string(),
                     value: CardValue::String {
@@ -141,8 +155,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "House number".to_string()),
-                        ("nl".to_string(), "Huisnummer".to_string()),
+                        ("en".to_string(), "House number".to_string()).into(),
+                        ("nl".to_string(), "Huisnummer".to_string()).into(),
                     ],
                     key: "pid.houseNumber".to_string(),
                     value: CardValue::String {
@@ -151,8 +165,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Postal code".to_string()),
-                        ("nl".to_string(), "Postcode".to_string()),
+                        ("en".to_string(), "Postal code".to_string()).into(),
+                        ("nl".to_string(), "Postcode".to_string()).into(),
                     ],
                     key: "pid.postalCode".to_string(),
                     value: CardValue::String {
@@ -161,8 +175,8 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     label: vec![
-                        ("en".to_string(), "Residence".to_string()),
-                        ("nl".to_string(), "Woonplaats".to_string()),
+                        ("en".to_string(), "Residence".to_string()).into(),
+                        ("nl".to_string(), "Woonplaats".to_string()).into(),
                     ],
                     key: "pid.residence".to_string(),
                     value: CardValue::String {
