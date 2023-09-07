@@ -31,11 +31,7 @@ sea-orm = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "parking_lot",
-    "macros",
-] }
+tokio = { workspace = true, features = ["sync", "fs"] }
 tracing = { workspace = true }
 url = { workspace = true }
 
@@ -52,6 +48,7 @@ wallet_common = { path = "../wallet_common" }
 mockall = { workspace = true }
 rstest = { workspace = true }
 tempfile = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros"] }
 wiremock = { workspace = true }
 
 wallet_provider = { path = "../wallet_provider", features = ["stub"] }

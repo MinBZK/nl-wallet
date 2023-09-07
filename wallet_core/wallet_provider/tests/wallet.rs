@@ -105,7 +105,7 @@ where
     C: ConfigurationRepository,
     A: AccountServerClient,
     S: Storage,
-    K: PlatformEcdsaKey + Clone + Send + 'static,
+    K: PlatformEcdsaKey,
     D: DigidAuthenticator,
     P: PidRetriever,
 {

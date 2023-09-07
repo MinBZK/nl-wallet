@@ -1,7 +1,6 @@
-use std::{error::Error, panic};
+use std::error::Error;
 
 use platform_support::utils::PlatformUtilities;
-use tokio::task;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -146,7 +145,7 @@ where
     C: ConfigurationRepository,
     A: AccountServerClient,
     S: Storage,
-    K: PlatformEcdsaKey + Clone + Send + 'static,
+    K: PlatformEcdsaKey,
 {
     pub async fn init_all<U: PlatformUtilities>(config_repository: C) -> Result<Self, WalletInitError> {
         Self::init_wp_and_storage::<U>(config_repository, DigidClient::default(), PidIssuerClient::default()).await
@@ -158,7 +157,7 @@ where
     C: ConfigurationRepository,
     A: AccountServerClient,
     S: Storage,
-    K: PlatformEcdsaKey + Clone + Send + 'static,
+    K: PlatformEcdsaKey,
     D: DigidAuthenticator,
     P: PidRetriever,
 {
@@ -168,13 +167,10 @@ where
         digid: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
-        let storage_path = task::spawn_blocking(|| U::storage_path())
-            .await
-            .unwrap_or_else(|e| panic::resume_unwind(e.into_panic()))
-            .map_err(StorageError::from)?;
+        let storage_path = U::storage_path().await.map_err(StorageError::from)?;
+        let storage = S::new(storage_path);
 
         let account_server = A::new(&config_repository.config().account_server.base_url).await;
-        let storage = S::new(storage_path);
 
         let mut wallet = Wallet {
             config_repository,
@@ -230,11 +226,9 @@ where
         self.increment_sequence_number().await?;
 
         let registration_data = self.registration.as_ref().unwrap();
-
-        let hw_privkey = self.hw_privkey.clone();
         let seq_num = registration_data.instruction_sequence_number;
 
-        let message = InstructionChallengeRequest::new_signed(seq_num, "wallet", &hw_privkey)
+        let message = InstructionChallengeRequest::new_signed(seq_num, "wallet", &self.hw_privkey)
             .await
             .map_err(WalletUnlockError::Signing)?;
 
@@ -255,13 +249,10 @@ where
 
         let registration_data = self.registration.as_ref().unwrap();
 
-        let hw_privkey = self.hw_privkey.clone();
-        let pin_salt = registration_data.pin_salt.0.clone();
-
         let seq_num = registration_data.instruction_sequence_number;
 
-        let pin_key = PinKey::new(&pin, &pin_salt);
-        let signed = CheckPin::new_signed(seq_num, &hw_privkey, &pin_key, &challenge)
+        let pin_key = PinKey::new(&pin, &registration_data.pin_salt.0);
+        let signed = CheckPin::new_signed(seq_num, &self.hw_privkey, &pin_key, &challenge)
             .await
             .map_err(WalletUnlockError::Signing)?;
 
@@ -365,21 +356,17 @@ where
         info!("Challenge received from account server, signing and sending registration to account server");
 
         // Create a registration message and double sign it with the challenge.
-        // This needs to be performed within a separate thread, since this may be blocking
-        // and we are in an async context. While we are in this thread, also retrieve the
-        // hardware public key.
-        let hw_privkey = self.hw_privkey.clone();
-
-        // Generate a new PIN salt and derive the private key from the provided PIN
+        // Generate a new PIN salt and derive the private key from the provided PIN.
         let pin_salt = new_pin_salt();
         let pin_key = PinKey::new(&pin, &pin_salt);
 
         // Retrieve the public key and sign the registration message (these calls may block).
-        let hw_pubkey = hw_privkey
+        let hw_pubkey = self
+            .hw_privkey
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, &challenge)
+        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 
