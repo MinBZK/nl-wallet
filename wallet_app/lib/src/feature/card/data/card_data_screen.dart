@@ -4,15 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/sheet/explanation_sheet.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
+import 'card_data_incorrect_screen.dart';
 import 'widget/data_privacy_banner.dart';
 
 @visibleForTesting
@@ -40,21 +40,32 @@ class CardDataScreen extends StatelessWidget {
         title: Text(cardTitle),
       ),
       body: SafeArea(
-        child: _buildBody(),
+        child: _buildBody(context),
       ),
     );
   }
 
-  Widget _buildBody() {
-    return BlocBuilder<CardDataBloc, CardDataState>(
-      builder: (context, state) {
-        return switch (state) {
-          CardDataInitial() => _buildLoading(),
-          CardDataLoadInProgress() => _buildLoading(),
-          CardDataLoadSuccess() => _buildDataAttributes(context, state.attributes),
-          CardDataLoadFailure() => _buildError(context),
-        };
-      },
+  Widget _buildBody(BuildContext context) {
+    return Column(
+      children: [
+        DataPrivacyBanner(
+          onPressed: () => _showDataPrivacySheet(context),
+          key: kPrivacyBannerKey,
+        ),
+        Expanded(
+          child: BlocBuilder<CardDataBloc, CardDataState>(
+            builder: (context, state) {
+              return switch (state) {
+                CardDataInitial() => _buildLoading(),
+                CardDataLoadInProgress() => _buildLoading(),
+                CardDataLoadSuccess() => _buildDataAttributes(context, state.attributes),
+                CardDataLoadFailure() => _buildError(context),
+              };
+            },
+          ),
+        ),
+        const BottomBackButton(showDivider: true),
+      ],
     );
   }
 
@@ -64,16 +75,6 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
     final List<Widget> slivers = [];
-
-    // Data privacy
-    slivers.add(
-      SliverToBoxAdapter(
-        child: DataPrivacyBanner(
-          onPressed: () => _showDataPrivacySheet(context),
-          key: kPrivacyBannerKey,
-        ),
-      ),
-    );
 
     // Data attributes
     slivers.add(const SliverSizedBox(height: 24));
@@ -92,17 +93,10 @@ class CardDataScreen extends StatelessWidget {
     slivers.add(const SliverSizedBox(height: 16));
     slivers.add(const SliverToBoxAdapter(child: Divider(height: 1)));
 
-    return Column(
-      children: [
-        Expanded(
-          child: Scrollbar(
-            child: CustomScrollView(
-              slivers: slivers,
-            ),
-          ),
-        ),
-        const BottomBackButton(showDivider: true),
-      ],
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: slivers,
+      ),
     );
   }
 
@@ -113,7 +107,7 @@ class CardDataScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: LinkButton(
           child: Text(context.l10n.cardDataScreenIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context),
+          onPressed: () => CardDataIncorrectScreen.show(context),
         ),
       ),
     );
@@ -130,7 +124,7 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildError(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

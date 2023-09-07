@@ -47,7 +47,9 @@ class ExplanationSheet extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 32),
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
           Center(
             child: TextIconButton(
               icon: Icons.close,

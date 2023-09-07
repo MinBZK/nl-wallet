@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-09-05T11:40:16+02:00",
+    "@@last_modified": "2023-09-07T14:30:05+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Give feedback",
     "aboutScreenPrivacyCta": "Privacy policy",
@@ -49,11 +49,14 @@
     },
     "cardDataAttributesCloseButton": "Close",
     "cardDataAttributesScreenTitle": "All data",
+    "cardDataIncorrectScreenDescription": "If your data is incorrect, it can cause problems. Contact your municipality to have your data changed.\n\nAre you still waiting for an adjustment? It may take a while before it is available in the app.",
+    "cardDataIncorrectScreenSubhead": "Is the data incorrect?",
+    "cardDataIncorrectScreenTitle": "Something is not correct",
     "cardDataScreenCloseCta": "Close",
     "cardDataScreenDataPrivacyBannerReadMore": "Read more",
     "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you.",
     "cardDataScreenDataPrivacySheetClose": "Close",
-    "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function.",
+    "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function on the main screen of this app.",
     "cardDataScreenDataPrivacySheetTitle": "View of your data",
     "cardDataScreenIncorrectCta": "Is the data incorrect?",
     "cardDataScreenTitle": "All data",
@@ -570,6 +573,7 @@
     "menuScreenAboutCta": "About this app",
     "menuScreenAboutTitle": "About the app",
     "menuScreenDesignCta": "Design System",
+    "menuScreenFeedbackCta": "Give feedback",
     "menuScreenGreeting": "Hi {name}",
     "@menuScreenGreeting": {
         "placeholders": {
@@ -716,7 +720,7 @@
     "policyScreenTitle": "Voorwaarden",
     "qrMyCodeTabHowToCta": "How does my QR-code work?",
     "qrMyCodeTabHowToSheetCloseCta": "Close",
-    "qrMyCodeTabHowToSheetDescription": "Information can be shared by showing your QR-code. Further english translation goes here...",
+    "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",
     "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
     "qrScanTabContinueCta": "Scan another QR-code",
@@ -726,11 +730,11 @@
     "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
     "qrScanTabHowToScanCta": "How does scanning work?",
     "qrScanTabHowToScanSheetCloseCta": "Close",
-    "qrScanTabHowToScanSheetDescription": "English description goes here",
+    "qrScanTabHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScanTabHowToScanSheetTitle": "How does scanning work?",
     "qrScreenHowToScanButton": "How does scanning work?",
     "qrScreenHowToScanSheetCloseButton": "Close",
-    "qrScreenHowToScanSheetDescription": "English description goes here",
+    "qrScreenHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
     "qrScreenMyCodeTabTitle": "My code",
     "qrScreenScanTabContinueButton": "Scan another QR-code",
@@ -1041,9 +1045,29 @@
     "verifierPolicyScreenTitle": "Terms",
     "walletHistoryScreenTitle": "Usage history",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, next",
+    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
+    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
+        "placeholders": {
+            "birthCountry": {
+                "example": "Nederland",
+                "type": "String"
+            },
+            "birthDate": {
+                "example": "01-01-1980",
+                "type": "String"
+            },
+            "birthPlace": {
+                "example": "Leiden",
+                "type": "String"
+            }
+        }
+    },
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
+    "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
     "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",
