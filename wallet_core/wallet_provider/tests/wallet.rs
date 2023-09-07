@@ -12,10 +12,7 @@ use tokio::time::sleep;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use platform_support::{
-    hw_keystore::PlatformEcdsaKey,
-    utils::{software::SoftwareUtilities, PlatformUtilities},
-};
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     mock::{MockConfigurationRepository, MockDigidClient, MockPidIssuerClient, MockStorage},
     wallet::{
@@ -62,7 +59,6 @@ async fn create_test_wallet(
     HttpAccountProviderClient,
     MockDigidClient,
     MockPidIssuerClient,
-    SoftwareUtilities,
 > {
     // Create mock Wallet from settings
     let mut config = MockConfigurationRepository::default();
@@ -70,8 +66,9 @@ async fn create_test_wallet(
     config.0.account_server.certificate_public_key = public_key;
     config.0.account_server.instruction_result_public_key = instruction_result_public_key;
 
-    Wallet::init_storage(
+    Wallet::init_registration(
         config,
+        MockStorage::default(),
         HttpAccountProviderClient::default(),
         MockDigidClient::new(),
         MockPidIssuerClient::new(),
@@ -109,7 +106,7 @@ fn start_wallet_provider(settings: Settings) {
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 }
 
-async fn test_wallet_registration<C, S, K, A, D, P, U>(mut wallet: Wallet<C, S, K, A, D, P, U>)
+async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
 where
     C: ConfigurationRepository,
     S: Storage,
@@ -117,7 +114,6 @@ where
     A: AccountProviderClient,
     D: DigidClient,
     P: PidIssuerClient,
-    U: PlatformUtilities,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());

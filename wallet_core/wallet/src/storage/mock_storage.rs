@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
@@ -34,13 +34,6 @@ impl Default for MockStorage {
 
 #[async_trait]
 impl Storage for MockStorage {
-    fn new(_: PathBuf) -> Self
-    where
-        Self: Sized,
-    {
-        Self::default()
-    }
-
     async fn state(&self) -> Result<StorageState, StorageError> {
         Ok(self.state)
     }

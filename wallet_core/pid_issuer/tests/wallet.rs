@@ -12,7 +12,6 @@ use nl_wallet_mdoc::{
     holder::{CborHttpClient, Wallet as MdocWallet},
     utils::mdocs_map::MdocsMap,
 };
-use platform_support::utils::software::SoftwareUtilities;
 use wallet::{
     mock::{MockAccountProviderClient, MockConfigurationRepository, MockDigidClient, MockStorage},
     wallet::{Configuration, DigidClient, Wallet},
@@ -54,11 +53,11 @@ async fn create_test_wallet<D: DigidClient>(
         MockAccountProviderClient,
         D,
         HttpPidIssuerClient,
-        SoftwareUtilities,
     >,
 ) {
-    let wallet = Wallet::init_storage(
+    let wallet = Wallet::init_registration(
         test_wallet_config(base_url.clone()),
+        MockStorage::default(),
         MockAccountProviderClient::new(),
         digid_client,
         pid_issuer_client,

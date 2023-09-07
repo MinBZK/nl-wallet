@@ -1,8 +1,8 @@
-use std::{error::Error, marker::PhantomData};
+use std::error::Error;
 
 use platform_support::{
-    hw_keystore::hardware::HardwareEcdsaKey,
-    utils::{hardware::HardwareUtilities, PlatformUtilities},
+    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+    utils::hardware::HardwareUtilities,
 };
 use tracing::{info, instrument};
 use url::Url;
@@ -23,7 +23,7 @@ use crate::{
         key::{new_pin_salt, PinKey},
         validation::{validate_pin, PinValidationError},
     },
-    storage::{RegistrationData, StorageError, StorageState},
+    storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
 };
 
 pub use crate::{
@@ -133,12 +133,11 @@ type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
 
 pub struct Wallet<
     C,
-    S,
+    S = DatabaseStorage<HardwareEncryptionKey>,
     K = HardwareEcdsaKey,
     A = HttpAccountProviderClient,
     D = HttpDigidClient,
     P = HttpPidIssuerClient,
-    U = HardwareUtilities,
 > {
     config_repository: C,
     storage: S,
@@ -146,20 +145,21 @@ pub struct Wallet<
     account_provider_client: A,
     digid_client: D,
     pid_issuer: P,
-    platform_utils: PhantomData<U>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
 }
 
-impl<C, S> Wallet<C, S>
+impl<C> Wallet<C>
 where
     C: ConfigurationRepository,
-    S: Storage,
 {
     pub async fn init_all(config_repository: C) -> Result<Self, WalletInitError> {
-        Self::init_storage(
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::init::<HardwareUtilities>().await?;
+
+        Self::init_registration(
             config_repository,
+            storage,
             HttpAccountProviderClient::default(),
             HttpDigidClient::default(),
             HttpPidIssuerClient::default(),
@@ -168,7 +168,7 @@ where
     }
 }
 
-impl<C, S, K, A, D, P, U> Wallet<C, S, K, A, D, P, U>
+impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
 where
     C: ConfigurationRepository,
     S: Storage,
@@ -176,18 +176,15 @@ where
     A: AccountProviderClient,
     D: DigidClient,
     P: PidIssuerClient,
-    U: PlatformUtilities,
 {
     /// Initialize the wallet by loading initial state.
-    pub async fn init_storage(
+    pub async fn init_registration(
         config_repository: C,
+        storage: S,
         account_provider_client: A,
         digid_client: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
-        let storage_path = U::storage_path().await.map_err(StorageError::from)?;
-        let storage = S::new(storage_path);
-
         let mut wallet = Wallet {
             config_repository,
             storage,
@@ -195,7 +192,6 @@ where
             account_provider_client,
             digid_client,
             pid_issuer,
-            platform_utils: PhantomData,
             lock: WalletLock::new(true),
             registration: None,
             config_callback: None,
@@ -497,8 +493,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use platform_support::utils::software::SoftwareUtilities;
-    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
+    use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::{
         account_provider::MockAccountProviderClient, config::MockConfigurationRepository, digid::MockDigidClient,
@@ -514,43 +509,26 @@ mod tests {
         MockAccountProviderClient,
         MockDigidClient,
         MockPidIssuerClient,
-        SoftwareUtilities,
     >;
 
-    // Emulate wallet:init_wp_and_storage(), with the option to override the mock storage.
+    // Create mocks and call wallet:init_registration(), with the option to override the mock storage.
     async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
         let storage = storage.unwrap_or_default();
 
-        let mut wallet = Wallet {
-            config_repository: MockConfigurationRepository::default(),
+        Wallet::init_registration(
+            MockConfigurationRepository::default(),
             storage,
-            hw_privkey: SoftwareEcdsaKey::new(WALLET_KEY_ID),
-            account_provider_client: MockAccountProviderClient::new(),
-            digid_client: MockDigidClient::new(),
-            pid_issuer: MockPidIssuerClient::new(),
-            platform_utils: PhantomData,
-            lock: WalletLock::new(true),
-            registration: None,
-            config_callback: None,
-        };
-
-        wallet.fetch_registration().await?;
-
-        Ok(wallet)
-    }
-
-    // Tests if the Wallet::init() method completes successfully with the mock generics.
-    #[tokio::test]
-    async fn test_init() {
-        let config_repository = MockConfigurationRepository::default();
-        let wallet = MockWallet::init_storage(
-            config_repository,
             MockAccountProviderClient::new(),
             MockDigidClient::new(),
             MockPidIssuerClient::new(),
         )
         .await
-        .expect("Could not initialize wallet");
+    }
+
+    // Tests if the Wallet::init() method completes successfully with the mock generics.
+    #[tokio::test]
+    async fn test_init() {
+        let wallet = init_wallet(None).await.expect("Could not initialize wallet");
 
         assert!(!wallet.has_registration());
     }
