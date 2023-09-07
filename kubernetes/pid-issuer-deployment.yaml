@@ -52,3 +52,5 @@ spec:
                 secretKeyRef:
                   name: nl-pid-issuer-secrets
                   key: bsn_privkey
+            - name: PID_ISSUER_PUBLIC_URL
+              value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
