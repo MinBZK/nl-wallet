@@ -28,7 +28,7 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 void main() {
   const kPidId = 'id';
 
-  /// All attribtues here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
+  /// All attributes here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
   const pidAttributes = [
     DataAttribute(
       valueType: AttributeValueType.text,
@@ -321,6 +321,21 @@ void main() {
         wrapper: walletAppWrapper(),
       );
       await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.light');
+    });
+
+    testGoldens('WalletPersonalizeDigidCancelled Light', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilderWithPrimaryScrollController
+          ..addScenario(
+            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+              MockWalletPersonalizeBloc(),
+              WalletPersonalizeDigidCancelled(),
+            ),
+            name: 'digid_cancelled',
+          ),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'wallet_personalize/digid_cancelled.light');
     });
 
     testGoldens('WalletPersonalizeDigidFailure Light Portrait', (tester) async {

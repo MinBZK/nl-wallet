@@ -13,6 +13,7 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/mapper/timeline_attribute_status_mapper.dart';
+import '../../../wallet_feature_flags.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/button/bottom_back_button.dart';
@@ -194,7 +195,11 @@ class CardSummaryScreen extends StatelessWidget {
   }
 
   void _onCardHistoryPressed(BuildContext context, String cardId) {
-    Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: cardId);
+    if (WalletFeatureFlags.enableCardHistoryOverview) {
+      Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: cardId);
+    } else {
+      PlaceholderScreen.show(context);
+    }
   }
 
   /// Temporary async logic inside [CardSummaryScreen] class;

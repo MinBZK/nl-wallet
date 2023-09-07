@@ -19,11 +19,15 @@ use std::sync::Arc;
 
 // Section: imports
 
+use crate::models::card::Card;
+use crate::models::card::CardAttribute;
+use crate::models::card::CardValue;
+use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::pin::PinValidationResult;
+use crate::models::process_uri_event::PidIssuanceEvent;
+use crate::models::process_uri_event::ProcessUriEvent;
 use crate::models::unlock::WalletUnlockResult;
-use crate::models::uri_flow_event::DigidState;
-use crate::models::uri_flow_event::UriFlowEvent;
 
 // Section: wire functions
 
@@ -67,7 +71,7 @@ fn wire_set_lock_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| set_lock_stream(task_callback.stream_sink()),
+        move || move |task_callback| Ok(set_lock_stream(task_callback.stream_sink())),
     )
 }
 fn wire_clear_lock_stream_impl(port_: MessagePort) {
@@ -77,7 +81,7 @@ fn wire_clear_lock_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| clear_lock_stream(),
+        move || move |task_callback| Ok(clear_lock_stream()),
     )
 }
 fn wire_set_configuration_stream_impl(port_: MessagePort) {
@@ -87,7 +91,7 @@ fn wire_set_configuration_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| set_configuration_stream(task_callback.stream_sink()),
+        move || move |task_callback| Ok(set_configuration_stream(task_callback.stream_sink())),
     )
 }
 fn wire_clear_configuration_stream_impl(port_: MessagePort) {
@@ -97,7 +101,7 @@ fn wire_clear_configuration_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| clear_configuration_stream(),
+        move || move |task_callback| Ok(clear_configuration_stream()),
     )
 }
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -120,7 +124,7 @@ fn wire_lock_wallet_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| lock_wallet(),
+        move || move |task_callback| Ok(lock_wallet()),
     )
 }
 fn wire_has_registration_impl(port_: MessagePort) {
@@ -130,7 +134,7 @@ fn wire_has_registration_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| has_registration(),
+        move || move |task_callback| Ok(has_registration()),
     )
 }
 fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -165,7 +169,7 @@ fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + Unwind
         },
         move || {
             let api_uri = uri.wire2api();
-            move |task_callback| process_uri(api_uri, task_callback.stream_sink())
+            move |task_callback| Ok(process_uri(api_uri, task_callback.stream_sink()))
         },
     )
 }
@@ -200,17 +204,40 @@ impl Wire2Api<u8> for u8 {
 
 // Section: impl IntoDart
 
-impl support::IntoDart for DigidState {
+impl support::IntoDart for Card {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.id.into_dart(),
+            self.doc_type.into_dart(),
+            self.issuer.into_dart(),
+            self.attributes.into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for Card {}
+
+impl support::IntoDart for CardAttribute {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.key.into_dart(), self.labels.into_dart(), self.value.into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for CardAttribute {}
+
+impl support::IntoDart for CardValue {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::Authenticating => 0,
-            Self::Success => 1,
-            Self::Error => 2,
+            Self::String { value } => vec![0.into_dart(), value.into_dart()],
+            Self::Integer { value } => vec![1.into_dart(), value.into_dart()],
+            Self::Double { value } => vec![2.into_dart(), value.into_dart()],
+            Self::Boolean { value } => vec![3.into_dart(), value.into_dart()],
+            Self::Date { value } => vec![4.into_dart(), value.into_dart()],
         }
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for DigidState {}
+impl support::IntoDartExceptPrimitive for CardValue {}
+
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -222,6 +249,24 @@ impl support::IntoDart for FlutterConfiguration {
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 
+impl support::IntoDart for LocalizedString {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.language.into_dart(), self.value.into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for LocalizedString {}
+
+impl support::IntoDart for PidIssuanceEvent {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Authenticating => vec![0.into_dart()],
+            Self::Success { preview_cards } => vec![1.into_dart(), preview_cards.into_dart()],
+            Self::Error { data } => vec![2.into_dart(), data.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for PidIssuanceEvent {}
 impl support::IntoDart for PinValidationResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -234,16 +279,17 @@ impl support::IntoDart for PinValidationResult {
     }
 }
 impl support::IntoDartExceptPrimitive for PinValidationResult {}
-
-impl support::IntoDart for UriFlowEvent {
+impl support::IntoDart for ProcessUriEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::DigidAuth { state } => vec![0.into_dart(), state.into_dart()],
+            Self::PidIssuance { event } => vec![0.into_dart(), event.into_dart()],
+            Self::UnknownUri => vec![1.into_dart()],
         }
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for UriFlowEvent {}
+impl support::IntoDartExceptPrimitive for ProcessUriEvent {}
+
 impl support::IntoDart for WalletUnlockResult {
     fn into_dart(self) -> support::DartAbi {
         match self {

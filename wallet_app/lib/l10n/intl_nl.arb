@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-09-05T10:19:09+02:00",
+    "@@last_modified": "2023-09-07T14:30:05+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenFeedbackCta": "Geef feedback",
     "aboutScreenPrivacyCta": "Privacybeleid",
@@ -49,11 +49,14 @@
     },
     "cardDataAttributesCloseButton": "Sluiten",
     "cardDataAttributesScreenTitle": "Alle gegevens",
+    "cardDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\n\nWacht je nog op een aanpassing? Het kan even duren voordat die beschikbaar is in de app.",
+    "cardDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
+    "cardDataIncorrectScreenTitle": "Er klopt iets niet",
     "cardDataScreenCloseCta": "Terug",
     "cardDataScreenDataPrivacyBannerReadMore": "Lees meer",
     "cardDataScreenDataPrivacyBannerTitle": "Dit overzicht is alleen voor jou.",
     "cardDataScreenDataPrivacySheetClose": "Sluiten",
-    "cardDataScreenDataPrivacySheetDescription": "In dit overzicht kun jij je gegevens controleren. Hou dit overzicht verborgen voor anderen. Op die manier bescherm je jouw privacy.\n\nWil je gegevens delen met een organisatie? Gebruik dan de QR-code functie.",
+    "cardDataScreenDataPrivacySheetDescription": "In dit overzicht kun jij je gegevens controleren. Hou dit overzicht verborgen voor anderen. Op die manier bescherm je jouw privacy.\n\nWil je gegevens delen met een organisatie? Gebruik dan de QR-code functie op het hoofdscherm van deze app.",
     "cardDataScreenDataPrivacySheetTitle": "Zicht op jouw gegevens",
     "cardDataScreenIncorrectCta": "Kloppen de gegevens niet?",
     "cardDataScreenTitle": "Alle gegevens",
@@ -570,6 +573,7 @@
     "menuScreenAboutCta": "Over deze app",
     "menuScreenAboutTitle": "Over de app",
     "menuScreenDesignCta": "Design System",
+    "menuScreenFeedbackCta": "Geef feedback",
     "menuScreenGreeting": "Hallo {name}",
     "@menuScreenGreeting": {
         "placeholders": {
@@ -1041,9 +1045,29 @@
     "verifierPolicyScreenTitle": "Voorwaarden",
     "walletHistoryScreenTitle": "Gebruiksgeschiedenis",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
+    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
+    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
+    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
+        "placeholders": {
+            "birthCountry": {
+                "example": "Nederland",
+                "type": "String"
+            },
+            "birthDate": {
+                "example": "01-01-1980",
+                "type": "String"
+            },
+            "birthPlace": {
+                "example": "Leiden",
+                "type": "String"
+            }
+        }
+    },
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
+    "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
     "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens toe te voegen aan je Wallet",
@@ -1066,10 +1090,12 @@
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Gegevens niet toevoegen",
     "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
     "walletPersonalizeDataIncorrectScreenTitle": "Er klopt iets niet",
+    "walletPersonalizeDigidCancelledPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
+    "walletPersonalizeDigidCancelledPageTitle": "Inloggen afgebroken",
     "walletPersonalizeDigidErrorPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
-    "walletPersonalizeDigidErrorPageTitle": "Inloggen afgebroken",
+    "walletPersonalizeDigidErrorPageTitle": "Inloggen niet gelukt",
     "walletPersonalizeIntroPageDescription": "Je maakt je wallet aan door één keer je persoonsgegevens toe te voegen via de DigiD app.\n\nLet op: Je hebt ook je rijbewijs of identiteitsbewijs nodig.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Inloggen met DigiD",
     "walletPersonalizeIntroPageNoDigidCta": "Ik heb geen DigiD",

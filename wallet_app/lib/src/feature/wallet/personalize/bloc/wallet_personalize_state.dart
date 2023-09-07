@@ -103,6 +103,11 @@ class WalletPersonalizeDigidFailure extends WalletPersonalizeState {
   double get stepperProgress => 1;
 }
 
+class WalletPersonalizeDigidCancelled extends WalletPersonalizeState {
+  @override
+  double get stepperProgress => 1;
+}
+
 class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
   final double step;
 

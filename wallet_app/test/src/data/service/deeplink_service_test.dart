@@ -14,7 +14,7 @@ void main() {
   late MockTypedWalletCore mockWalletCore;
   late MockDecodeDeeplinkUseCase mockDecodeDeeplinkUseCase;
   late MockIsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
-  late MockUpdateDigidAuthStatusUseCase updateDigidAuthStatusUseCase;
+  late MockUpdatePidIssuanceStatusUseCase updatePidIssuanceStatusUseCase;
   late MockNavigatorKey navigatorKey;
 
   setUp(() {
@@ -28,13 +28,13 @@ void main() {
     mockWalletCore = Mocks.create<TypedWalletCore>() as MockTypedWalletCore;
     mockDecodeDeeplinkUseCase = MockDecodeDeeplinkUseCase();
     isWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
-    updateDigidAuthStatusUseCase = MockUpdateDigidAuthStatusUseCase();
+    updatePidIssuanceStatusUseCase = MockUpdatePidIssuanceStatusUseCase();
     navigatorKey = MockNavigatorKey();
 
     service = DeeplinkService(
       navigatorKey,
       mockDecodeDeeplinkUseCase,
-      updateDigidAuthStatusUseCase,
+      updatePidIssuanceStatusUseCase,
       isWalletInitializedWithPidUseCase,
       Mocks.create(),
       Mocks.create(),
@@ -74,10 +74,10 @@ void main() {
       'Result should be passed on to the updateDigidAuthStatusUseCase when the result is relevant',
       () async {
         when(mockWalletCore.processUri(any)).thenAnswer(
-          (_) => Stream.value(const UriFlowEvent.digidAuth(state: DigidState.Success)),
+          (_) => Stream.value(ProcessUriEvent.pidIssuance(event: PidIssuanceEvent.success(previewCards: List.empty()))),
         );
         await service.processUri(Uri.parse('https://example.org'));
-        verify(updateDigidAuthStatusUseCase.invoke(any));
+        verify(updatePidIssuanceStatusUseCase.invoke(any));
       },
     );
 
@@ -86,7 +86,7 @@ void main() {
       () async {
         when(mockWalletCore.processUri(any)).thenAnswer((_) => Stream.error('Error'));
         await service.processUri(Uri.parse('https://example.org'));
-        verifyNever(updateDigidAuthStatusUseCase.invoke(any));
+        verifyNever(updatePidIssuanceStatusUseCase.invoke(any));
       },
     );
   });

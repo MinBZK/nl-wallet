@@ -6,19 +6,20 @@ import 'package:wallet/src/feature/common/sheet/explanation_sheet.dart';
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 164);
+  const kGoldenSize = Size(350, 173);
 
   group('goldens', () {
     testGoldens(
       'light text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-            const ExplanationSheet(
-              title: 'Title',
-              description: 'Description',
-              closeButtonText: 'Close',
-            ),
-            surfaceSize: kGoldenSize);
+          const ExplanationSheet(
+            title: 'Title',
+            description: 'Description',
+            closeButtonText: 'Close',
+          ),
+          surfaceSize: kGoldenSize,
+        );
         await screenMatchesGolden(tester, 'explanation_sheet/light');
       },
     );

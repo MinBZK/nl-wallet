@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: pid-issuer
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: pid-issuer
@@ -52,3 +52,7 @@ spec:
                 secretKeyRef:
                   name: nl-pid-issuer-secrets
                   key: bsn_privkey
+            - name: PID_ISSUER_PUBLIC_URL
+              value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
