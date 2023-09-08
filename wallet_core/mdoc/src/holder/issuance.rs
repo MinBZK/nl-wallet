@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use futures::future::try_join_all;
+use futures::future::{self, TryFutureExt};
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
@@ -50,9 +50,7 @@ impl HttpClient for CborHttpClient {
             .post(url.clone())
             .body(bytes)
             .send()
-            .await
-            .map_err(HolderError::RequestError)?
-            .bytes()
+            .and_then(|response| async { response.error_for_status()?.bytes().await })
             .await
             .map_err(HolderError::RequestError)?;
         let response = cbor_deserialize(response_bytes.as_bytes())?;
@@ -159,7 +157,7 @@ impl IssuanceSessionState {
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Vec<MdocCopies<K>>> {
-        let mdoc_copies = try_join_all(
+        let mdoc_copies = future::try_join_all(
             issuer_response
                 .mobile_eid_documents
                 .iter()
@@ -178,7 +176,7 @@ impl IssuanceSessionState {
         keys: &[K],
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<MdocCopies<K>> {
-        let cred_copies = try_join_all(
+        let cred_copies = future::try_join_all(
             doc.sparse_issuer_signed
                 .iter()
                 .zip(keys)
