@@ -516,6 +516,8 @@ mod tests {
         .await
     }
 
+    // TODO: Add more unit tests for `Wallet`, using its mock dependencies.
+
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_init() {
