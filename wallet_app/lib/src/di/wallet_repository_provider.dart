@@ -34,7 +34,6 @@ import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
-import '../wallet_core/error/core_error_mapper.dart';
 
 /// This widget is responsible for initializing and providing all `repositories`.
 /// Most likely to be used once at the top (app) level.
@@ -89,7 +88,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<PidRepository>(
           create: (context) =>
-              provideMocks ? MockPidRepository() : PidRepositoryImpl(context.read(), CoreErrorMapper()),
+              provideMocks ? MockPidRepository() : PidRepositoryImpl(context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

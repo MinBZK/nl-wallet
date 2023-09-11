@@ -4168,6 +4168,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serial_test",
  "tempfile",
  "thiserror",
  "tokio",

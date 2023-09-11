@@ -90,6 +90,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   @override
   void dispose() {
+    _inactiveSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

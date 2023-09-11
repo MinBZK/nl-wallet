@@ -18,10 +18,10 @@ class AppLifecycleService {
 
 /// Widget that provides the [AppLifecycleState] to the [AppLifecycleService].
 class AppLifecycleObserver extends StatefulWidget {
-  final Widget child;
+  final Widget? child;
 
   const AppLifecycleObserver({
-    required this.child,
+    this.child,
     Key? key,
   }) : super(key: key);
 
@@ -30,9 +30,6 @@ class AppLifecycleObserver extends StatefulWidget {
 }
 
 class _AppLifecycleObserverState extends State<AppLifecycleObserver> with WidgetsBindingObserver {
-  @override
-  Widget build(BuildContext context) => widget.child;
-
   @override
   void initState() {
     super.initState();
@@ -49,4 +46,7 @@ class _AppLifecycleObserverState extends State<AppLifecycleObserver> with Widget
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => widget.child ?? const SizedBox.shrink();
 }

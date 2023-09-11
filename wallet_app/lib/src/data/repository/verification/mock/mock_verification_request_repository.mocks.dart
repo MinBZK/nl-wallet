@@ -14,31 +14,31 @@ const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 
 const _kFirstAndLastNameRequest = [
   RequestedAttribute(
-    name: 'Voornamen',
-    type: AttributeType.firstNames,
+    label: 'Voornamen',
+    key: 'mock.firstNames',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Achternaam',
-    type: AttributeType.lastName,
+    label: 'Achternaam',
+    key: 'mock.lastName',
     valueType: AttributeValueType.text,
   ),
 ];
 
 const _kJobApplicationRequestedAttributes = [
   RequestedAttribute(
-    name: 'Opleidingsnaam',
-    type: AttributeType.education,
+    label: 'Opleidingsnaam',
+    key: 'mock.education',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Onderwijsinstelling',
-    type: AttributeType.university,
+    label: 'Onderwijsinstelling',
+    key: 'mock.university',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Niveau',
-    type: AttributeType.educationLevel,
+    label: 'Niveau',
+    key: 'mock.educationLevel',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -46,26 +46,26 @@ const _kJobApplicationRequestedAttributes = [
 const _kMarketplaceLoginRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Postcode',
-    type: AttributeType.postalCode,
+    label: 'Postcode',
+    key: 'mock.postalCode',
     valueType: AttributeValueType.text,
   ),
 ];
 
 const _kBarRequestedAttributes = [
   RequestedAttribute(
-    name: 'Pasfoto',
-    type: AttributeType.profilePhoto,
+    label: 'Pasfoto',
+    key: 'mock.profilePhoto',
     valueType: AttributeValueType.image,
   ),
   RequestedAttribute(
-    name: 'Ouder dan 18',
-    type: AttributeType.olderThan18,
+    label: 'Ouder dan 18',
+    key: 'mock.olderThan18',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -73,70 +73,70 @@ const _kBarRequestedAttributes = [
 const _kCarRentalRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Rijbewijscategorieën',
-    type: AttributeType.drivingLicenseCategories,
+    label: 'Rijbewijscategorieën',
+    key: 'mock.drivingLicenseCategories',
     valueType: AttributeValueType.text,
   ),
 ];
 
 const _kFirstAidRequestedAttributes = [
   RequestedAttribute(
-    name: 'Pasfoto',
-    type: AttributeType.profilePhoto,
+    label: 'Pasfoto',
+    key: 'mock.profilePhoto',
     valueType: AttributeValueType.image,
   ),
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geslacht',
-    type: AttributeType.gender,
+    label: 'Geslacht',
+    key: 'mock.gender',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Klantnummer',
-    type: AttributeType.healthIssuerClientId,
+    label: 'Klantnummer',
+    key: 'mock.healthIssuerClientId',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Kaartnummer',
-    type: AttributeType.documentNr,
+    label: 'Kaartnummer',
+    key: 'mock.documentNr',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'UZOVI',
-    type: AttributeType.healthIssuerId,
+    label: 'UZOVI',
+    key: 'mock.healthIssuerId',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Verloopdatum',
-    type: AttributeType.healthInsuranceExpiryDate,
+    label: 'Verloopdatum',
+    key: 'mock.healthInsuranceExpiryDate',
     valueType: AttributeValueType.text,
   ),
 ];
 
 const _kParkingPermitRequestedAttributes = [
   RequestedAttribute(
-    name: 'Achternaam',
-    type: AttributeType.lastName,
+    label: 'Achternaam',
+    key: 'mock.lastName',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Postcode',
-    type: AttributeType.postalCode,
+    label: 'Postcode',
+    key: 'mock.postalCode',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Huisnummer',
-    type: AttributeType.houseNumber,
+    label: 'Huisnummer',
+    key: 'mock.houseNumber',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -144,33 +144,33 @@ const _kParkingPermitRequestedAttributes = [
 const _kOpenBankAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Nationaliteit',
-    type: AttributeType.nationality,
+    label: 'Nationaliteit',
+    key: 'mock.nationality',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Burgerservicenummer',
-    type: AttributeType.citizenshipNumber,
+    label: 'Burgerservicenummer',
+    key: 'mock.citizenshipNumber',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Straatnaam',
-    type: AttributeType.streetName,
+    label: 'Straatnaam',
+    key: 'mock.streetName',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Huisnummer',
-    type: AttributeType.houseNumber,
+    label: 'Huisnummer',
+    key: 'mock.houseNumber',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Postcode',
-    type: AttributeType.postalCode,
+    label: 'Postcode',
+    key: 'mock.postalCode',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -178,8 +178,8 @@ const _kOpenBankAccountRequestedAttributes = [
 const _kProvideContractDetailsRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -187,33 +187,33 @@ const _kProvideContractDetailsRequestedAttributes = [
 const _kCreateMbAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
-    name: 'Geboortedatum',
-    type: AttributeType.birthDate,
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Nationaliteit',
-    type: AttributeType.nationality,
+    label: 'Nationaliteit',
+    key: 'mock.nationality',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Straatnaam',
-    type: AttributeType.streetName,
+    label: 'Straatnaam',
+    key: 'mock.streetName',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Huisnummer',
-    type: AttributeType.houseNumber,
+    label: 'Huisnummer',
+    key: 'mock.houseNumber',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Postcode',
-    type: AttributeType.postalCode,
+    label: 'Postcode',
+    key: 'mock.postalCode',
     valueType: AttributeValueType.text,
   ),
   RequestedAttribute(
-    name: 'Woonplaats',
-    type: AttributeType.city,
+    label: 'Woonplaats',
+    key: 'mock.city',
     valueType: AttributeValueType.text,
   ),
 ];

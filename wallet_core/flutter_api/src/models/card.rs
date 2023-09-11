@@ -72,12 +72,12 @@ pub fn mock_cards() -> Vec<Card> {
                 },
                 CardAttribute {
                     labels: vec![
-                        ("en".to_string(), "Gender".to_string()).into(),
+                        ("en".to_string(), "Sex".to_string()).into(),
                         ("nl".to_string(), "Geslacht".to_string()).into(),
                     ],
-                    key: "pid.gender".to_string(),
+                    key: "pid.sex".to_string(),
                     value: CardValue::String {
-                        value: "Molenaar".to_string(),
+                        value: "Vrouw".to_string(),
                     },
                 },
                 CardAttribute {

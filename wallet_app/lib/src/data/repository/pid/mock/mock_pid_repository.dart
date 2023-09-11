@@ -8,6 +8,9 @@ class MockPidRepository extends PidRepository {
   Future<String> getPidIssuanceUrl() async => 'mock://auth_url';
 
   @override
+  Future<void> cancelPidIssuance() async => Fimber.d('Canceled PidIssuance');
+
+  @override
   void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event) {
     Fimber.d('Received PidIssuance update: $event');
   }

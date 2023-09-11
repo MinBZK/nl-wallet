@@ -22,6 +22,7 @@ void main() {
           await tester.pumpWidgetBuilder(
             const AttributeRow(
               attribute: UiAttribute(
+                key: 'key',
                 label: 'Label',
                 value: 'Value',
                 icon: Icons.add_card_outlined,
@@ -39,6 +40,7 @@ void main() {
           await tester.pumpWidgetBuilder(
             const AttributeRow(
               attribute: UiAttribute(
+                key: 'key',
                 label: 'Label',
                 value: 'Value',
                 icon: Icons.add_card_outlined,
@@ -57,8 +59,8 @@ void main() {
           await tester.pumpWidgetBuilder(
             const AttributeRow(
               attribute: RequestedAttribute(
-                name: 'Text',
-                type: AttributeType.other,
+                label: 'Text',
+                key: 'mock.other',
                 valueType: AttributeValueType.text,
               ),
             ),
@@ -74,8 +76,8 @@ void main() {
           await tester.pumpWidgetBuilder(
             const AttributeRow(
               attribute: RequestedAttribute(
-                name: 'Image',
-                type: AttributeType.other,
+                label: 'Image',
+                key: 'mock.other',
                 valueType: AttributeValueType.image,
               ),
             ),
@@ -95,7 +97,7 @@ void main() {
                 label: 'Label',
                 value: 'Value',
                 sourceCardId: '',
-                type: AttributeType.other,
+                key: 'mock.other',
                 valueType: AttributeValueType.text,
               ),
             ),
@@ -113,6 +115,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const AttributeRow(
           attribute: UiAttribute(
+            key: 'K',
             label: 'L',
             value: 'V',
             icon: Icons.add_card_outlined,

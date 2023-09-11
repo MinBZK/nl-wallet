@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/usecase/card/lock_wallet_usecase.dart';
-import '../../../domain/usecase/wallet/get_first_name_usecase.dart';
+import '../../../domain/usecase/wallet/get_first_names_usecase.dart';
 
 part 'menu_event.dart';
 part 'menu_state.dart';

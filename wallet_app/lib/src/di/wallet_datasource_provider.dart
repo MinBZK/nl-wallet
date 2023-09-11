@@ -6,9 +6,10 @@ import '../data/source/memory/memory_wallet_datasource.dart';
 import '../data/source/mock/mock_organization_datasource.dart';
 import '../data/source/organization_datasource.dart';
 import '../data/source/wallet_datasource.dart';
+import '../data/store/active_locale_provider.dart';
+import '../data/store/impl/active_localization_delegate.dart';
 import '../data/store/impl/language_store_impl.dart';
 import '../data/store/language_store.dart';
-import '../wallet_core/error/core_error_mapper.dart';
 import '../wallet_core/impl/typed_wallet_core_impl.dart';
 import '../wallet_core/mock/mock_wallet_core.dart';
 import '../wallet_core/typed_wallet_core.dart';
@@ -24,6 +25,13 @@ class WalletDataSourceProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
+        RepositoryProvider<ActiveLocalizationDelegate>(
+          create: (context) => ActiveLocalizationDelegate(),
+        ),
+        RepositoryProvider<ActiveLocaleProvider>(
+          /// Re-exposing the [ActiveLocalizationDelegate] as [ActiveLocaleProvider] for saner lookup.
+          create: (context) => context.read<ActiveLocalizationDelegate>(),
+        ),
         RepositoryProvider<WalletDataSource>(
           create: (context) => MemoryWalletDataSource(),
         ),
@@ -31,7 +39,7 @@ class WalletDataSourceProvider extends StatelessWidget {
           create: (context) => MockOrganizationDataSource(),
         ),
         RepositoryProvider<TypedWalletCore>(
-          create: (context) => provideMocks ? MockWalletCore() : TypedWalletCoreImpl(api, CoreErrorMapper()),
+          create: (context) => provideMocks ? MockWalletCore() : TypedWalletCoreImpl(api, context.read()),
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),

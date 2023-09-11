@@ -31,18 +31,18 @@ class MockSignRequestRepository implements SignRequestRepository {
           ),
           requestedAttributes: const [
             RequestedAttribute(
-              name: 'Voornamen',
-              type: AttributeType.firstNames,
+              label: 'Voornamen',
+              key: 'mock.firstNames',
               valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
-              name: 'Achternaam',
-              type: AttributeType.lastName,
+              label: 'Achternaam',
+              key: 'mock.lastName',
               valueType: AttributeValueType.text,
             ),
             RequestedAttribute(
-              name: 'Geboortedatum',
-              type: AttributeType.birthDate,
+              label: 'Geboortedatum',
+              key: 'mock.birthDate',
               valueType: AttributeValueType.text,
             ),
           ],

@@ -55,7 +55,7 @@ class WalletPersonalizeAuthenticating extends WalletPersonalizeState {
 }
 
 class WalletPersonalizeCheckData extends WalletPersonalizeState {
-  final List<DataAttribute> availableAttributes;
+  final List<Attribute> availableAttributes;
   @override
   final bool didGoBack;
 

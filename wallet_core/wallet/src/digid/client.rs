@@ -94,6 +94,10 @@ where
             .unwrap_or_default()
     }
 
+    fn cancel_session(&mut self) {
+        self.session_state.take();
+    }
+
     async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidError> {
         // Get the session state, return an error if we have none.
         let DigidSessionState {
@@ -148,28 +152,28 @@ where
 #[cfg(test)]
 mod tests {
     use mockall::predicate::*;
+    use serial_test::serial;
     use tokio::sync::oneshot;
 
     use crate::{digid::openid_client::MockOpenIdClient, pkce::MockPkcePair, utils::url::url_with_query_pairs};
 
     use super::*;
 
-    #[tokio::test]
-    async fn test_http_digid_client() {
-        // Set up some constants that are returned by our mocks.
-        const ISSUER_URL: &str = "http://example.com";
-        const CLIENT_ID: &str = "client-1";
-        const REDIRECT_URI: &str = "redirect://here";
+    // These constants are used by multiple tests.
+    const ISSUER_URL: &str = "http://example.com";
+    const CLIENT_ID: &str = "client-1";
+    const REDIRECT_URI: &str = "redirect://here";
+    const AUTH_URL: &str = "http://example.com/auth";
 
-        const AUTH_URL: &str = "http://example.com/auth";
+    #[tokio::test]
+    #[serial]
+    async fn test_digid_client_full_session() {
+        // Set up some constants that are returned by our mocks.
         const AUTH_CODE: &str = "the_authentication_code";
         const ACCESS_CODE: &str = "the_access_code";
 
         // Create a client with mock generics, as created by `mockall`.
         let mut client = HttpDigidClient::<MockOpenIdClient, MockPkcePair>::default();
-
-        // There should be no session state present at this point.
-        assert!(client.session_state.is_none());
 
         // Also, we should not be accepting a valid redirect URIs.
         assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
@@ -345,9 +349,8 @@ mod tests {
             .await
             .expect("Could not get DigiD access token");
 
-        // ... and check the result and internal state.
+        // ... and check the result.
         assert_eq!(access_code, ACCESS_CODE);
-        assert!(client.session_state.is_none());
 
         // Now that the session is cleared internally, calling `DigidClient.get_access_token()`
         // again should result in an error.
@@ -357,6 +360,53 @@ mod tests {
         ));
 
         // Also, a valid redirect URI should not longer be accepted.
+        assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_digid_client_cancelled_session() {
+        // Set up a new client with mock dependencies and set up those mocks.
+        let mut client = HttpDigidClient::<MockOpenIdClient, MockPkcePair>::default();
+
+        let discover_context = MockOpenIdClient::discover_context();
+        discover_context.expect().returning(|_, _, _| {
+            let mut openid_client = MockOpenIdClient::new();
+
+            openid_client.expect_auth_url_and_pkce().return_once(|_, _| {
+                let url = Url::parse(AUTH_URL).unwrap();
+                let pkce_pair = MockPkcePair::new();
+
+                (url, pkce_pair)
+            });
+
+            openid_client
+                .expect_redirect_uri()
+                .return_const(REDIRECT_URI.to_string());
+
+            Ok(openid_client)
+        });
+
+        // The client should not accept a valid redirect URI at this point.
+        assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
+
+        // Start a new session, we do not care about the returned URL.
+        _ = client
+            .start_session(
+                Url::parse(ISSUER_URL).unwrap(),
+                CLIENT_ID.to_string(),
+                Url::parse(REDIRECT_URI).unwrap(),
+            )
+            .await
+            .expect("Could not start DigiD session");
+
+        // Now a valid redirect URI should be accepted.
+        assert!(client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
+
+        // Cancel the session we just started.
+        client.cancel_session();
+
+        // The same redirect URI should no longer be accepted.
         assert!(!client.accepts_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
     }
 }

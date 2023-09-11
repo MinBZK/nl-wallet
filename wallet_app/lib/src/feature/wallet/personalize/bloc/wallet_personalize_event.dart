@@ -11,7 +11,11 @@ class WalletPersonalizeLoginWithDigidClicked extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeAuthInProgress extends WalletPersonalizeEvent {}
 
-class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {}
+class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
+  final List<Attribute> previewAttributes;
+
+  const WalletPersonalizeLoginWithDigidSucceeded(this.previewAttributes);
+}
 
 class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
   final bool cancelledByUser;

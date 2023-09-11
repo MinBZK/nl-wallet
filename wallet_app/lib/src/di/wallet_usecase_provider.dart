@@ -45,7 +45,9 @@ import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
+import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/observe_pid_issuance_status_usecase_impl.dart';
 import '../domain/usecase/pid/impl/update_pid_issuance_status_usecase_impl.dart';
@@ -66,11 +68,11 @@ import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
 import '../domain/usecase/verification/impl/get_verification_request_usecase_impl.dart';
 import '../domain/usecase/verification/impl/get_verifier_policy_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_first_name_usecase.dart';
+import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_first_name_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/get_first_names_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
@@ -163,6 +165,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetPidIssuanceResponseUseCase>(
           create: (context) => GetPidIssuanceResponseUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CancelPidIssuanceUseCase>(
+          create: (context) => CancelPidIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetMyGovernmentIssuanceResponsesUseCase>(
           create: (context) => GetMyGovernmentIssuanceResponsesUseCaseImpl(context.read()),

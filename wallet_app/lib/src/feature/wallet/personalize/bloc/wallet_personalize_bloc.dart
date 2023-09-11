@@ -6,11 +6,12 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../data/repository/pid/pid_repository.dart';
-import '../../../../domain/model/attribute/data_attribute.dart';
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
@@ -25,6 +26,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
+  final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
   final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
 
   StreamSubscription? _pidIssuanceStatusSubscription;
@@ -34,6 +36,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     this.walletAddIssuedCardsUseCase,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
+    this.cancelPidIssuanceUseCase,
     this.observePidIssuanceStatusUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
@@ -57,7 +60,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         add(WalletPersonalizeAuthInProgress());
         break;
       case PidIssuanceSuccess():
-        add(WalletPersonalizeLoginWithDigidSucceeded());
+        add(WalletPersonalizeLoginWithDigidSucceeded(event.previews));
         break;
       case PidIssuanceError():
         //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
@@ -81,19 +84,17 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onLoginWithDigidSucceeded(event, emit) async {
-    try {
-      final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-      final allAttributes = issuanceResponse.cards.map((e) => e.attributes).flattened;
-      emit(WalletPersonalizeCheckData(availableAttributes: allAttributes.toList()));
-    } catch (ex, stack) {
-      Fimber.e('Failed to get PID', ex: ex, stacktrace: stack);
-      emit(WalletPersonalizeFailure());
-    }
+  void _onLoginWithDigidSucceeded(WalletPersonalizeLoginWithDigidSucceeded event, emit) async {
+    emit(WalletPersonalizeCheckData(availableAttributes: event.previewAttributes));
   }
 
   void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
     if (event.cancelledByUser) {
+      try {
+        await cancelPidIssuanceUseCase.invoke();
+      } catch (ex, stack) {
+        Fimber.e('Failed to cancel PID issuance', ex: ex, stacktrace: stack);
+      }
       emit(WalletPersonalizeDigidCancelled());
     } else {
       emit(WalletPersonalizeDigidFailure());

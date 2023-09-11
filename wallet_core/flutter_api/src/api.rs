@@ -145,6 +145,13 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     Ok(auth_url.into())
 }
 
+#[async_runtime]
+pub async fn cancel_pid_issuance() {
+    let mut wallet = wallet().write().await;
+
+    wallet.cancel_pid_issuance()
+}
+
 // Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
 pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {

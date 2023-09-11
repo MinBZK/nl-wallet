@@ -453,6 +453,10 @@ where
         RedirectUriType::Unknown
     }
 
+    pub fn cancel_pid_issuance(&mut self) {
+        self.digid_client.cancel_session();
+    }
+
     #[instrument(skip_all)]
     pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<(), PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
