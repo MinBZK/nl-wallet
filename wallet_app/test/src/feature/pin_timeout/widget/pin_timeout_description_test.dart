@@ -18,12 +18,11 @@ void main() {
 
     // Setup finders
     final AppLocalizations l10n = await TestUtils.englishLocalizations;
-    final leadingTextFinder = find.textContaining(l10n.pinTimeoutScreenTimeoutPrefix, findRichText: true);
-    final timeLeftFinder = find.textContaining(l10n.generalMinutes(2), findRichText: true);
+    final timeoutCountDownText = l10n.pinTimeoutScreenTimeoutCountdown(l10n.generalMinutes(2));
+    final timeoutCountDownTextFinder = find.text(timeoutCountDownText, findRichText: true);
 
-    // Verify all expected widgets show up once
-    expect(leadingTextFinder, findsOneWidget);
-    expect(timeLeftFinder, findsOneWidget);
+    // Verify expected widget shows up once
+    expect(timeoutCountDownTextFinder, findsOneWidget);
   });
 
   testWidgets('verify PinTimeoutDescription renders with 30 seconds left', (tester) async {
@@ -43,12 +42,11 @@ void main() {
 
     // Setup finders
     final AppLocalizations l10n = await TestUtils.englishLocalizations;
-    final leadingTextFinder = find.textContaining(l10n.pinTimeoutScreenTimeoutPrefix, findRichText: true);
-    final timeLeftFinder = find.textContaining(l10n.generalSeconds(30), findRichText: true);
+    final timeoutCountDownText = l10n.pinTimeoutScreenTimeoutCountdown(l10n.generalSeconds(30));
+    final timeoutCountDownTextFinder = find.text(timeoutCountDownText, findRichText: true);
 
-    // Verify all expected widgets show up once
-    expect(leadingTextFinder, findsOneWidget);
-    expect(timeLeftFinder, findsOneWidget);
+    // Verify expected widget shows up once
+    expect(timeoutCountDownTextFinder, findsOneWidget);
   });
 
   testWidgets('verify onExpire is called when timer expires', (tester) async {
