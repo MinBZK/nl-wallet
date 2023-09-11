@@ -13,7 +13,7 @@ use base64::prelude::*;
 use futures::TryFutureExt;
 use http::StatusCode;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
@@ -36,7 +36,7 @@ pub enum Error {
 // TODO: Implement proper error handling.
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        debug!("error result: {:?}", self);
+        warn!("error result: {:?}", self);
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
     }
 }

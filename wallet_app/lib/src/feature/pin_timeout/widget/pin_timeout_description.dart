@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/string_extension.dart';
 
 class PinTimeoutDescription extends StatefulWidget {
   final DateTime expiryTime;
@@ -39,14 +38,23 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
 
   @override
   Widget build(BuildContext context) {
+    final timeLeft = _generateTimeLeft(context); // bold text
+    final fullText = context.l10n.pinTimeoutScreenTimeoutCountdown(timeLeft);
+    final regularTextParts = fullText.split(timeLeft); // length == 2 (before and after bold text == timeLeft)
+
     return Text.rich(
-      TextSpan(text: context.l10n.pinTimeoutScreenTimeoutPrefix.addSpaceSuffix, children: [
-        TextSpan(
-          text: _generateTimeLeft(context),
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ]),
-      style: Theme.of(context).textTheme.bodyLarge,
+      TextSpan(
+        style: context.textTheme.bodyLarge,
+        text: regularTextParts.first,
+        children: [
+          TextSpan(
+            text: timeLeft,
+            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(text: regularTextParts.last),
+        ],
+      ),
+      style: context.textTheme.bodyLarge,
       textAlign: TextAlign.start,
     );
   }

@@ -68,6 +68,12 @@ class MenuScreen extends StatelessWidget {
           ),
           const Divider(height: 1),
           MenuRow(
+            label: context.l10n.menuScreenFeedbackCta,
+            icon: Icons.comment_outlined,
+            onTap: () => PlaceholderScreen.show(context),
+          ),
+          const Divider(height: 1),
+          MenuRow(
             label: context.l10n.menuScreenAboutCta,
             icon: Icons.info_outline,
             onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
