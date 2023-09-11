@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../environment.dart';
 import 'wallet_bloc_provider.dart';
 import 'wallet_datasource_provider.dart';
+import 'wallet_mapper_provider.dart';
 import 'wallet_repository_provider.dart';
 import 'wallet_service_provider.dart';
 import 'wallet_usecase_provider.dart';
@@ -22,14 +23,17 @@ class WalletDependencyProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WalletDataSourceProvider(
+    return WalletMapperProvider(
       provideMocks: Environment.mockRepositories,
-      child: WalletRepositoryProvider(
+      child: WalletDataSourceProvider(
         provideMocks: Environment.mockRepositories,
-        child: WalletUseCaseProvider(
-          child: WalletServiceProvider(
-            navigatorKey: navigatorKey,
-            child: WalletBlocProvider(child: child),
+        child: WalletRepositoryProvider(
+          provideMocks: Environment.mockRepositories,
+          child: WalletUseCaseProvider(
+            child: WalletServiceProvider(
+              navigatorKey: navigatorKey,
+              child: WalletBlocProvider(child: child),
+            ),
           ),
         ),
       ),

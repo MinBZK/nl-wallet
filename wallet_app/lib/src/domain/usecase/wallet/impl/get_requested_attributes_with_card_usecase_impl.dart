@@ -28,7 +28,7 @@ class GetRequestedAttributesWithCardUseCaseImpl implements GetRequestedAttribute
 
   Future<DataAttribute?> _findAttribute(List<WalletCard> cards, RequestedAttribute requestedAttribute) async {
     for (final card in cards) {
-      final foundAttribute = card.attributes.firstWhereOrNull((attr) => attr.type == requestedAttribute.type);
+      final foundAttribute = card.attributes.firstWhereOrNull((attr) => attr.key == requestedAttribute.key);
       if (foundAttribute != null) return foundAttribute;
     }
     return null;

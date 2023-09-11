@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-09-08T11:41:53+02:00",
+    "@@last_modified": "2023-09-08T15:48:28+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -1071,10 +1071,13 @@
             }
         }
     },
+    "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Burgerservicenummer (BSN)",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
+    "walletPersonalizeCheckDataOfferingPageNationalityLabel": "Nationaliteit",
+    "walletPersonalizeCheckDataOfferingPageSexLabel": "Geslacht",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
     "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens toe te voegen aan je Wallet",

@@ -24,7 +24,7 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 }
 
 void main() {
-  const IssuanceFlow mockFlow = IssuanceFlow(
+  IssuanceFlow mockFlow = const IssuanceFlow(
     organization: WalletMockData.organization,
     attributes: [WalletMockData.textDataAttribute],
     requestPurpose: 'Mock purpose',
@@ -78,7 +78,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceCheckOrganization(false, mockFlow),
+              IssuanceCheckOrganization(false, mockFlow),
             ),
             name: 'check_organization',
           ),
@@ -93,7 +93,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceProofIdentity(false, mockFlow),
+              IssuanceProofIdentity(false, mockFlow),
             ),
             name: 'proof_identity',
           ),
@@ -111,7 +111,7 @@ void main() {
               child: const IssuanceScreen()
                   .withState<IssuanceBloc, IssuanceState>(
                     MockIssuanceBloc(),
-                    const IssuanceProvidePin(false, mockFlow),
+                    IssuanceProvidePin(false, mockFlow),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),
@@ -131,7 +131,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceCheckDataOffering(false, mockFlow),
+              IssuanceCheckDataOffering(false, mockFlow),
             ),
             name: 'check_data_offering',
           ),
@@ -180,7 +180,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceCompleted(false, mockFlow, [WalletMockData.card]),
+              IssuanceCompleted(false, mockFlow, const [WalletMockData.card]),
             ),
             name: 'completed',
           ),
@@ -255,7 +255,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceCompleted(false, mockFlow, [WalletMockData.card, WalletMockData.altCard]),
+              IssuanceCompleted(false, mockFlow, const [WalletMockData.card, WalletMockData.altCard]),
             ),
             name: 'completed',
           ),
@@ -270,7 +270,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceCompleted(false, mockFlow, [WalletMockData.card, WalletMockData.altCard]),
+          IssuanceCompleted(false, mockFlow, const [WalletMockData.card, WalletMockData.altCard]),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

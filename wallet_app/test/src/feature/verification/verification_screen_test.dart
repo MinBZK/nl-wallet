@@ -33,8 +33,8 @@ void main() {
     },
     requestedAttributes: [
       RequestedAttribute(
-        name: 'name',
-        type: WalletMockData.textDataAttribute.type,
+        label: 'name',
+        key: 'WalletMockData.textDataAttribute.type',
         valueType: WalletMockData.textDataAttribute.valueType,
       )
     ],

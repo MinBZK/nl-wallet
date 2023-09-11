@@ -29,7 +29,7 @@ class VerificationFlow extends Equatable {
   List<DataAttribute> get resolvedAttributes => availableAttributes.values.flattened.toList();
 
   List<RequestedAttribute> get missingAttributes => requestedAttributes
-      .whereNot((requestedAttrib) => resolvedAttributes.map((attr) => attr.type).contains(requestedAttrib.type))
+      .whereNot((requestedAttrib) => resolvedAttributes.map((attr) => attr.key).contains(requestedAttrib.key))
       .toList();
 
   bool get hasMissingAttributes => missingAttributes.isNotEmpty;

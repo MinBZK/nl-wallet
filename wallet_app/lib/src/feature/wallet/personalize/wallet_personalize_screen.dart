@@ -1,11 +1,13 @@
+import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../environment.dart';
+import '../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/mapper/pid_attributes_mapper.dart';
+import '../../../util/mapper/pid/pid_attributes_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/page/flow_terminal_page.dart';
 import '../../common/page/generic_loading_page.dart';
@@ -105,9 +107,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
   void _closeOpenDialogs(BuildContext context) => Navigator.popUntil(context, (route) => route is! DialogRoute);
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
+    /// Note that mapping occurs in the UI layer since we need a fresh context (with l10n).
     return WalletPersonalizeCheckDataOfferingPage(
       onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
-      attributes: PidAttributeMapper.map(state.availableAttributes),
+      attributes: context.read<PidAttributeMapper>().map(context, state.availableAttributes),
     );
   }
 
@@ -174,23 +177,30 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   void _loginWithDigid(BuildContext context, String authUrl) async {
-    final bloc = context.bloc;
     if (Environment.mockRepositories && !Environment.isTest) {
-      // Perform the mock DigiD flow
-      final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
-      await Future.delayed(kDefaultMockDelay);
-      if (loginSucceeded) {
-        bloc.add(WalletPersonalizeLoginWithDigidSucceeded());
-      } else {
-        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
-      }
+      await _performMockDigidLogin(context);
     } else {
       try {
         launchUrlString(authUrl, mode: LaunchMode.externalApplication);
       } catch (ex) {
         Fimber.e('Failed to open auth url: $authUrl', ex: ex);
-        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+        context.bloc.add(const WalletPersonalizeLoginWithDigidFailed());
       }
+    }
+  }
+
+  Future<void> _performMockDigidLogin(BuildContext context) async {
+    final bloc = context.bloc;
+    final getPidIssuanceResponseUseCase = context.read<GetPidIssuanceResponseUseCase>();
+    // Perform the mock DigiD flow
+    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
+    await Future.delayed(kDefaultMockDelay);
+    if (loginSucceeded) {
+      final mockPidIssuance = await getPidIssuanceResponseUseCase.invoke();
+      final mockPidAttributes = mockPidIssuance.cards.map((e) => e.attributes).flattened.toList();
+      bloc.add(WalletPersonalizeLoginWithDigidSucceeded(mockPidAttributes));
+    } else {
+      bloc.add(const WalletPersonalizeLoginWithDigidFailed());
     }
   }
 
