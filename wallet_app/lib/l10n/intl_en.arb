@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-09-07T14:30:05+02:00",
+    "@@last_modified": "2023-09-08T11:41:53+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -669,7 +669,15 @@
     "pinScreenTitle": "Login",
     "pinTimeoutScreenForgotPinCta": "Forgot code?",
     "pinTimeoutScreenHeadline": "Temporarily blocked",
-    "pinTimeoutScreenTimeoutPrefix": "You've entered the wrong pin too many times. You can try again in",
+    "pinTimeoutScreenTimeoutCountdown": "You've entered the wrong pin too many times. You can try again in {timeLeft}.",
+    "@pinTimeoutScreenTimeoutCountdown": {
+        "placeholders": {
+            "timeLeft": {
+                "example": "47 seconds",
+                "type": "String"
+            }
+        }
+    },
     "pinTimeoutScreenTitle": "Login",
     "placeholderScreenContractInformTitle": "The contract will be displayed here.",
     "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",

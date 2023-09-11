@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-09-07T14:30:05+02:00",
+    "@@last_modified": "2023-09-08T11:41:53+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -669,7 +669,15 @@
     "pinScreenTitle": "Inloggen",
     "pinTimeoutScreenForgotPinCta": "Code vergeten?",
     "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
-    "pinTimeoutScreenTimeoutPrefix": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in",
+    "pinTimeoutScreenTimeoutCountdown": "Je hebt je toegangscode te vaak verkeerd ingevuld. Probeer het opnieuw in {timeLeft}.",
+    "@pinTimeoutScreenTimeoutCountdown": {
+        "placeholders": {
+            "timeLeft": {
+                "example": "47 seconds",
+                "type": "String"
+            }
+        }
+    },
     "pinTimeoutScreenTitle": "Inloggen",
     "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
     "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
