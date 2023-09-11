@@ -45,7 +45,9 @@ import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
+import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/observe_pid_issuance_status_usecase_impl.dart';
 import '../domain/usecase/pid/impl/update_pid_issuance_status_usecase_impl.dart';
@@ -163,6 +165,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetPidIssuanceResponseUseCase>(
           create: (context) => GetPidIssuanceResponseUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CancelPidIssuanceUseCase>(
+          create: (context) => CancelPidIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetMyGovernmentIssuanceResponsesUseCase>(
           create: (context) => GetMyGovernmentIssuanceResponsesUseCaseImpl(context.read()),

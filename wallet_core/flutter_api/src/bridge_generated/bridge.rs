@@ -160,6 +160,16 @@ fn wire_create_pid_issuance_redirect_uri_impl(port_: MessagePort) {
         move || move |task_callback| create_pid_issuance_redirect_uri(),
     )
 }
+fn wire_cancel_pid_issuance_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "cancel_pid_issuance",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Ok(cancel_pid_issuance()),
+    )
+}
 fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {

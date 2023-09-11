@@ -25,6 +25,9 @@ class PidRepositoryImpl extends PidRepository {
   Future<String> getPidIssuanceUrl() => _walletCore.createPidIssuanceRedirectUri();
 
   @override
+  Future<void> cancelPidIssuance() => _walletCore.cancelPidIssuance();
+
+  @override
   void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event) async {
     /// This doesn't propagate if locale changes, but that is ok for this case, see comment below.
     final activeLocale = await _localeProvider.observe().first;
