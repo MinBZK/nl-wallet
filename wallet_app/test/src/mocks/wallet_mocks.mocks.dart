@@ -56,6 +56,15 @@ class MockPidRepository extends _i1.Mock implements _i3.PidRepository {
         returnValueForMissingStub: _i4.Future<String>.value(''),
       ) as _i4.Future<String>);
   @override
+  _i4.Future<void> cancelPidIssuance() => (super.noSuchMethod(
+        Invocation.method(
+          #cancelPidIssuance,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+  @override
   void notifyPidIssuanceStateUpdate(_i2.PidIssuanceEvent? event) => super.noSuchMethod(
         Invocation.method(
           #notifyPidIssuanceStateUpdate,
@@ -257,6 +266,15 @@ class MockTypedWalletCore extends _i1.Mock implements _i9.TypedWalletCore {
         returnValue: _i4.Stream<_i2.ProcessUriEvent>.empty(),
         returnValueForMissingStub: _i4.Stream<_i2.ProcessUriEvent>.empty(),
       ) as _i4.Stream<_i2.ProcessUriEvent>);
+  @override
+  _i4.Future<void> cancelPidIssuance() => (super.noSuchMethod(
+        Invocation.method(
+          #cancelPidIssuance,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
   @override
   _i4.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
         Invocation.method(

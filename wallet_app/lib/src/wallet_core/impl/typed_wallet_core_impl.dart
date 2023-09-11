@@ -97,6 +97,15 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
+  Future<void> cancelPidIssuance() async {
+    try {
+      return await _walletCore.cancelPidIssuance();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
   Future<void> lockWallet() async {
     try {
       return await _walletCore.lockWallet();

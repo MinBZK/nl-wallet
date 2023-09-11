@@ -12,6 +12,12 @@ class MockWalletCore extends TypedWalletCore {
   }
 
   @override
+  Future<void> cancelPidIssuance() {
+    // TODO: implement cancelPidIssuance
+    throw UnimplementedError();
+  }
+
+  @override
   // TODO: implement isLocked
   Stream<bool> get isLocked => throw UnimplementedError();
 

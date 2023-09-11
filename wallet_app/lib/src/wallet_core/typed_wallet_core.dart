@@ -17,5 +17,7 @@ abstract class TypedWalletCore {
 
   Stream<ProcessUriEvent> processUri(Uri uri);
 
+  Future<void> cancelPidIssuance();
+
   Stream<FlutterConfiguration> observeConfig();
 }

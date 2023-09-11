@@ -47,6 +47,7 @@ wallet_common = { path = "../wallet_common" }
 [dev-dependencies]
 mockall = { workspace = true }
 rstest = { workspace = true }
+serial_test = { workspace = true }
 tempfile = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 wiremock = { workspace = true }

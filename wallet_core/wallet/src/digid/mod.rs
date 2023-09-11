@@ -24,6 +24,9 @@ pub trait DigidAuthenticator {
     /// Check if the DigiD client would currently accept the provided redirect URI.
     fn accepts_redirect_uri(&self, redirect_uri: &Url) -> bool;
 
+    /// Cancel a DigiD session, if one is in progress.
+    fn cancel_session(&mut self);
+
     /// Retrieve the access token from DigiD, based on the contents
     /// of the redirect URI received.
     async fn get_access_token(&mut self, received_redirect_uri: &Url) -> Result<String, DigidAuthenticatorError>;

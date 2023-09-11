@@ -11,6 +11,7 @@ import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
@@ -25,6 +26,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
+  final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
   final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
 
   StreamSubscription? _pidIssuanceStatusSubscription;
@@ -34,6 +36,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     this.walletAddIssuedCardsUseCase,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
+    this.cancelPidIssuanceUseCase,
     this.observePidIssuanceStatusUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
@@ -87,6 +90,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
     if (event.cancelledByUser) {
+      try {
+        await cancelPidIssuanceUseCase.invoke();
+      } catch (ex, stack) {
+        Fimber.e('Failed to cancel PID issuance', ex: ex, stacktrace: stack);
+      }
       emit(WalletPersonalizeDigidCancelled());
     } else {
       emit(WalletPersonalizeDigidFailure());

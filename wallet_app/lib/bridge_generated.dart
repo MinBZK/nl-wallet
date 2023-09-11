@@ -62,6 +62,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta;
 
+  Future<void> cancelPidIssuance({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta;
+
   Stream<ProcessUriEvent> processUri({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
@@ -358,6 +362,21 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "create_pid_issuance_redirect_uri",
+        argNames: [],
+      );
+
+  Future<void> cancelPidIssuance({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_cancel_pid_issuance(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kCancelPidIssuanceConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "cancel_pid_issuance",
         argNames: [],
       );
 
@@ -816,6 +835,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_create_pid_issuance_redirect_uri');
   late final _wire_create_pid_issuance_redirect_uri =
       _wire_create_pid_issuance_redirect_uriPtr.asFunction<void Function(int)>();
+
+  void wire_cancel_pid_issuance(
+    int port_,
+  ) {
+    return _wire_cancel_pid_issuance(
+      port_,
+    );
+  }
+
+  late final _wire_cancel_pid_issuancePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_cancel_pid_issuance');
+  late final _wire_cancel_pid_issuance = _wire_cancel_pid_issuancePtr.asFunction<void Function(int)>();
 
   void wire_process_uri(
     int port_,
