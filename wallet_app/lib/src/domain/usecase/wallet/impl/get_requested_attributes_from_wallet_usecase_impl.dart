@@ -30,15 +30,15 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
 
   /// Finds [DataAttribute]s on a single card, containing all (or most) [RequestedAttribute]s
   List<DataAttribute> _findAttributes(List<WalletCard> cards, List<RequestedAttribute> requestedAttributes) {
-    final Set<AttributeType> findTypes = requestedAttributes.map((e) => e.type).toSet();
+    final Set<AttributeKey> findTypes = requestedAttributes.map((e) => e.key).toSet();
 
     List<DataAttribute> results = [];
     for (WalletCard card in cards) {
-      final Set<AttributeType> cardAttributeTypes = card.attributes.map((e) => e.type).toSet();
-      final Set<AttributeType> intersection = findTypes.intersection(cardAttributeTypes);
+      final Set<AttributeKey> cardAttributeKeys = card.attributes.map((e) => e.key).toSet();
+      final Set<AttributeKey> intersection = findTypes.intersection(cardAttributeKeys);
 
       if (intersection.length > results.length) {
-        results = card.attributes.where((element) => intersection.contains(element.type)).toList();
+        results = card.attributes.where((element) => intersection.contains(element.key)).toList();
       }
     }
     return results;
@@ -46,9 +46,9 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
 
   /// Removes found attributes from remaining list
   List<RequestedAttribute> _getRemainingAttributes(List<Attribute> found, List<RequestedAttribute> attributes) {
-    final List<AttributeType> foundTypes = found.map((e) => e.type).toList();
+    final List<AttributeKey> foundKeys = found.map((e) => e.key).toList();
     final List<RequestedAttribute> remaining = List.of(attributes);
-    remaining.removeWhere((element) => foundTypes.contains(element.type));
+    remaining.removeWhere((element) => foundKeys.contains(element.key));
     return remaining;
   }
 
@@ -56,7 +56,7 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
   List<Attribute> _sortResultAttributes(List<Attribute> results, List<RequestedAttribute> requestedAttributes) {
     return [
       for (RequestedAttribute requestedAttribute in requestedAttributes)
-        results.singleWhere((element) => element.type == requestedAttribute.type)
+        results.singleWhere((element) => element.key == requestedAttribute.key)
     ];
   }
 }

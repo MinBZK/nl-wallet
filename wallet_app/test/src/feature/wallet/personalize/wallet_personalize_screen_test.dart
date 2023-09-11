@@ -10,6 +10,8 @@ import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
+import 'package:wallet/src/util/mapper/pid/pid_attributes_mapper.dart';
+import 'package:wallet/src/util/mapper/pid/pid_data_attributes_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/mock_data.dart';
@@ -34,91 +36,91 @@ void main() {
       valueType: AttributeValueType.text,
       label: 'Voornamen',
       value: 'John',
-      type: AttributeType.firstNames,
+      key: 'mock.firstNames',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Achternaam',
       value: 'Doe',
-      type: AttributeType.lastName,
+      key: 'mock.lastName',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Geboortenaam',
       value: 'John',
-      type: AttributeType.birthName,
+      key: 'mock.birthName',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Geslacht',
       value: 'Male',
-      type: AttributeType.gender,
+      key: 'mock.gender',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Geboortedatum',
       value: '01-01-2000',
-      type: AttributeType.birthDate,
+      key: 'mock.birthDate',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Geboorteplaats',
       value: 'Amsterdam',
-      type: AttributeType.birthPlace,
+      key: 'mock.birthPlace',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Geboorteland',
       value: 'Nederland',
-      type: AttributeType.birthCountry,
+      key: 'mock.birthCountry',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Burgerservicenummer (BSN)',
       value: '******999',
-      type: AttributeType.citizenshipNumber,
+      key: 'mock.citizenshipNumber',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Nationaliteit',
       value: 'Nederlands',
-      type: AttributeType.nationality,
+      key: 'mock.nationality',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Stad',
       value: 'Amsterdam',
-      type: AttributeType.city,
+      key: 'mock.city',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Postcode',
       value: '1234AB',
-      type: AttributeType.postalCode,
+      key: 'mock.postalCode',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Straatnaam',
       value: 'Dorpsstraat',
-      type: AttributeType.streetName,
+      key: 'mock.streetName',
       sourceCardId: kPidId,
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
       label: 'Huisnummer',
       value: '1A',
-      type: AttributeType.houseNumber,
+      key: 'mock.houseNumber',
       sourceCardId: kPidId,
     ),
   ];
@@ -252,9 +254,12 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeCheckData(availableAttributes: pidAttributes),
+            widget: RepositoryProvider<PidAttributeMapper>(
+              create: (c) => PidDataAttributeMapper(),
+              child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+                MockWalletPersonalizeBloc(),
+                const WalletPersonalizeCheckData(availableAttributes: pidAttributes),
+              ),
             ),
             name: 'check_data',
           ),
@@ -372,10 +377,15 @@ void main() {
         whenListen(mockBloc, mockStateStream, initialState: mockStateStream.value);
 
         // Show the loading state (which contains the cancel button)
-        await tester.pumpWidgetWithAppWrapper(BlocProvider<WalletPersonalizeBloc>(
-          create: (c) => mockBloc,
-          child: Builder(builder: (context) => const WalletPersonalizeScreen()),
-        ));
+        await tester.pumpWidgetWithAppWrapper(
+          RepositoryProvider<PidAttributeMapper>(
+            create: (c) => PidDataAttributeMapper(),
+            child: BlocProvider<WalletPersonalizeBloc>(
+              create: (c) => mockBloc,
+              child: Builder(builder: (context) => const WalletPersonalizeScreen()),
+            ),
+          ),
+        );
 
         // Find the cancel button and tap it
         final l10n = await TestUtils.englishLocalizations;

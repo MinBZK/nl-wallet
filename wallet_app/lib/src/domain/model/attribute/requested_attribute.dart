@@ -1,14 +1,8 @@
 import 'attribute.dart';
 
 class RequestedAttribute extends Attribute {
-  final String name;
-
-  const RequestedAttribute({
-    required this.name,
-    required super.type,
-    required super.valueType,
-  });
+  const RequestedAttribute({required super.key, required super.label, required super.valueType});
 
   @override
-  List<Object?> get props => [type, valueType, name];
+  List<Object?> get props => [key, label, valueType];
 }

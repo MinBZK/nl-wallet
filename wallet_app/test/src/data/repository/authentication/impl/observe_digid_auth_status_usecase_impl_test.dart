@@ -5,6 +5,8 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/pid/impl/pid_repository_impl.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/data/store/impl/active_localization_delegate.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
@@ -14,11 +16,13 @@ import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late TypedWalletCore core;
+  late ActiveLocaleProvider localeProvider;
   late PidRepository pidRepository;
 
   setUp(() {
     core = Mocks.create();
-    pidRepository = PidRepositoryImpl(core, CoreErrorMapper());
+    localeProvider = ActiveLocalizationDelegate(); // Defaults to 'en'
+    pidRepository = PidRepositoryImpl(core, CoreErrorMapper(), localeProvider);
   });
 
   group('DigiD Auth Url', () {

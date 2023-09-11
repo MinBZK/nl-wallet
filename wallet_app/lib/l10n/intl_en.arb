@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-09-08T11:41:53+02:00",
+    "@@last_modified": "2023-09-08T15:48:28+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -1071,10 +1071,13 @@
             }
         }
     },
+    "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "BSN",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
+    "walletPersonalizeCheckDataOfferingPageNationalityLabel": "Nationality",
+    "walletPersonalizeCheckDataOfferingPageSexLabel": "Sex",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
     "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",

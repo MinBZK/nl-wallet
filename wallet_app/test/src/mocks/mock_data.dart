@@ -50,6 +50,7 @@ abstract class WalletMockData {
   );
 
   static const DataAttribute textDataAttribute = DataAttribute(
+    key: 'text_key',
     label: 'Label',
     value: 'Value',
     sourceCardId: 'id',
@@ -57,6 +58,7 @@ abstract class WalletMockData {
   );
 
   static const DataAttribute imageDataAttribute = DataAttribute(
+    key: 'image_key',
     label: 'Label',
     value: WalletAssets.image_person_x,
     sourceCardId: 'id',

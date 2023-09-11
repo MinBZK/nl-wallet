@@ -1,6 +1,6 @@
+import '../../../../../environment.dart';
 import '../../../../data/repository/card/data_attribute_repository.dart';
-import '../../../model/attribute/attribute.dart';
-import '../get_first_name_usecase.dart';
+import '../get_first_names_usecase.dart';
 
 class GetFirstNamesUseCaseImpl implements GetFirstNamesUseCase {
   final DataAttributeRepository repository;
@@ -9,7 +9,8 @@ class GetFirstNamesUseCaseImpl implements GetFirstNamesUseCase {
 
   @override
   Future<String> invoke() async {
-    final attribute = await repository.find(AttributeType.firstNames);
+    if (!Environment.mockRepositories) throw UnimplementedError('TODO: For now only supported on mock builds');
+    final attribute = await repository.find('mock.firstNames');
     return attribute!.value;
   }
 }
