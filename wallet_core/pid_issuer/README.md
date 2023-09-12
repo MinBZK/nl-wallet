@@ -45,7 +45,7 @@ openssl req -x509 \
     -subj '/CN=ca.example.com'
 ```
 
-The CA certificate and CA private key are only needed to generate the issuer certificate and issuer private key. The PID issuer itself does not need them to run. After the issuer certificate and private key have been generated, therefore, the CA certificate and private key should be moved to a secure location.
+The CA certificate and CA private key are needed to generate the issuer certificate and issuer private key. The PID issuer itself does not need them to run. After the issuer certificate and private key have been generated, therefore, the CA certificate and private key should be moved to a secure location. Also the CA certificate must be added to the `TRUST_ANCHOR_CERTS` in `wallet_core/wallet/src/config/data.rs`.
 
 Next, generate the issuer certificate and private key as follows.
 

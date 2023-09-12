@@ -1,3 +1,6 @@
+#[cfg(feature = "disable_tls_validation")]
+use tracing::warn;
+
 use platform_support::{
     hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
     utils::hardware::HardwareUtilities,
@@ -21,6 +24,10 @@ pub async fn init_wallet() -> Result<Wallet, WalletInitError> {
     // The initial configuration serves as the hardcoded fallback, for
     // when the app starts and no configuration from the Wallet Provider
     // is cached yet.
+
+    #[cfg(feature = "disable_tls_validation")]
+    warn!("TLS validation disabled");
+
     let config = LocalConfigurationRepository::new_with_initial(Configuration::default);
 
     Wallet::init_all::<HardwareUtilities>(config).await

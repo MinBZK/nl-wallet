@@ -7,7 +7,15 @@ use url::Url;
 use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
 use wallet_common::account::jwt::EcdsaDecodingKey;
 
+// Configuration parameters, these MUST be on a single line for the setup-devenv.sh script to work.
+const BASE_URL: &str = "http://localhost:3000/api/v1/";
+const CERTIFICATE_PUBLIC_KEY: &str = "";
+const DIGID_CLIENT_ID: &str = "";
+const DIGID_URL: &str = "https://localhost/8006/";
+const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "";
+const PID_ISSUER_URL: &str = "http://localhost:3003/";
 const TRUST_ANCHOR_CERTS: [&str; 1] = ["MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwEbXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATHjlwqhDY6oe0hXL2n5jY1RjPboePKABhtItYpTwqi0MO6tTTIxdED4IY60Qvu9DCBcW5C/jju+qMy/kFUiSuPo2AwXjAdBgNVHQ4EFgQUSjuvOcpIpcOrbq8sMjgMsk9IYyQwHwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMCAQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg=="];
+const WALLET_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
 
 #[derive(Debug)]
 pub struct Configuration {
@@ -55,19 +63,19 @@ impl Default for Configuration {
                 background_timeout: 5 * 60,
             },
             account_server: AccountServerConfiguration {
-                base_url: Url::parse("http://localhost:3000/api/v1/").unwrap(),
-                certificate_public_key: EcdsaDecodingKey::from_sec1(&BASE64_STANDARD.decode("").unwrap()),
-                instruction_result_public_key: EcdsaDecodingKey::from_sec1(&BASE64_STANDARD.decode("").unwrap()),
+                base_url: Url::parse(BASE_URL).unwrap(),
+                certificate_public_key: EcdsaDecodingKey::from_sec1(
+                    &BASE64_STANDARD.decode(CERTIFICATE_PUBLIC_KEY).unwrap(),
+                ),
+                instruction_result_public_key: EcdsaDecodingKey::from_sec1(
+                    &BASE64_STANDARD.decode(INSTRUCTION_RESULT_PUBLIC_KEY).unwrap(),
+                ),
             },
             pid_issuance: PidIssuanceConfiguration {
-                pid_issuer_url: Url::parse("http://10.0.2.2:3003/").unwrap(),
-                digid_url: Url::parse(
-                    "https://example.com/digid-connector",
-                )
-                .unwrap(),
-                digid_client_id: "SSSS".to_string(),
-                digid_redirect_uri: Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication")
-                    .unwrap(),
+                pid_issuer_url: Url::parse(PID_ISSUER_URL).unwrap(),
+                digid_url: Url::parse(DIGID_URL).unwrap(),
+                digid_client_id: DIGID_CLIENT_ID.to_string(),
+                digid_redirect_uri: Url::parse(WALLET_REDIRECT_URI).unwrap(),
             },
             mdoc_trust_anchors: Lazy::new(|| {
                 TRUST_ANCHOR_CERTS
