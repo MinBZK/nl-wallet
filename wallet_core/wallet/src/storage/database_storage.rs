@@ -150,7 +150,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -164,7 +164,7 @@ where
     }
 
     /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         keyed_data::Entity::update_many()

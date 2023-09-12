@@ -63,6 +63,6 @@ pub trait Storage {
     async fn clear(&mut self) -> Result<(), StorageError>;
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
+    async fn insert_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError>;
+    async fn update_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError>;
 }

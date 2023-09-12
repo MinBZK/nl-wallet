@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
+use dashmap::DashMap;
 
 use super::{
     data::{KeyedData, RegistrationData},
@@ -11,12 +10,12 @@ use super::{
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub data: HashMap<&'static str, String>,
+    pub data: DashMap<&'static str, String>,
 }
 
 impl MockStorage {
     pub fn mock(state: StorageState, registration: Option<RegistrationData>) -> Self {
-        let mut data = HashMap::new();
+        let data = DashMap::new();
 
         if let Some(registration) = registration {
             data.insert(RegistrationData::KEY, serde_json::to_string(&registration).unwrap());
@@ -51,12 +50,12 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
-        let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s).unwrap());
+        let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s.value()).unwrap());
 
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError> {
         if self.data.contains_key(D::KEY) {
             panic!("Registration already present");
         }
@@ -66,7 +65,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&self, data: &D) -> Result<(), StorageError> {
         if !self.data.contains_key(D::KEY) {
             panic!("Registration not present");
         }
