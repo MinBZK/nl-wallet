@@ -174,12 +174,14 @@ where
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
         config_repository: C,
-        storage: S,
+        mut storage: S,
         account_provider_client: A,
         digid_client: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
-        let mut wallet = Wallet {
+        let registration = Self::fetch_registration(&mut storage).await?;
+
+        let wallet = Wallet {
             config_repository,
             storage,
             hw_privkey: K::new(WALLET_KEY_ID),
@@ -187,29 +189,25 @@ where
             digid_client,
             pid_issuer,
             lock: WalletLock::new(true),
-            registration: None,
+            registration,
             config_callback: None,
         };
-
-        wallet.fetch_registration().await?;
 
         Ok(wallet)
     }
 
     /// Attempts to fetch the registration from storage, without creating a database if there is none.
-    async fn fetch_registration(&mut self) -> Result<(), StorageError> {
-        match self.storage.state().await? {
+    async fn fetch_registration(storage: &mut S) -> Result<Option<RegistrationData>, StorageError> {
+        match storage.state().await? {
             // If there is no database file, we can conclude early that there is no registration.
-            StorageState::Uninitialized => return Ok(()),
+            StorageState::Uninitialized => return Ok(None),
             // Open the database, if necessary.
-            StorageState::Unopened => self.storage.open().await?,
-            _ => (),
+            StorageState::Unopened => storage.open().await?,
+            StorageState::Opened => (),
         }
 
         // Finally, fetch the registration.
-        self.registration = self.storage.fetch_data::<RegistrationData>().await?;
-
-        Ok(())
+        storage.fetch_data::<RegistrationData>().await
     }
 
     async fn increment_sequence_number(&mut self) -> Result<(), StorageError> {
