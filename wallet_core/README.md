@@ -7,7 +7,7 @@ This contains the "shared core" part of the app.
 - `wallet`: Contains the wallet business logic, i.e. the main crate.
 - `wallet_provider`: The Wallet Provider server, which contains the Account Server.
 - `wallet_common`: Code shared between `wallet` and `wallet_provider`.
-- `flutter_api`: Contains the `api.rs` for `flutter_rust_bridge` and the data types for the API. This allows Flutter to use the functionality from the `wallet` crate. 
+- `flutter_api`: Contains the `api.rs` for `flutter_rust_bridge` and the data types for the API. This allows Flutter to use the functionality from the `wallet` crate.
 - `platform_support`: Contains native functionality for both Android and iOS and code to bridge to these platforms.
 - `flutter_rust_bridge_codegen` & `uniffi-bindgen`: Helpers for bridge code generation.
 
@@ -15,7 +15,7 @@ This contains the "shared core" part of the app.
 
 Because of the different contexts in which each of these crates operate, error handling has been implemented according to the needs of these context.
 
-As the `wallet_common` crate provides a library of functionality to both `wallet` and `wallet_provder`, all errors have been consolidated into a single Error type, i.e. `wallet_common::errors::Error`. 
+As the `wallet_common` crate provides a library of functionality to both `wallet` and `wallet_provder`, all errors have been consolidated into a single Error type, i.e. `wallet_common::errors::Error`.
 For convenience, a `wallet_common::errors:Result` type is also provided.
 
 The `platform_support` crate also acts as a library to the `wallet` crate, however is functionality is separated into distinct modules.

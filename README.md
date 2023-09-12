@@ -123,6 +123,7 @@ a simple `flutter run`. This section describes how to set up your environment.
 - Rust (incl. additional targets)
 - Android SDK + NDK (for Android builds)
 - Xcode (for iOS builds)
+- Docker (to run supporting services)
 
 #### Flutter
 
@@ -172,6 +173,46 @@ easiest way to do so is:
 #### iOS
 
 Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
+
+### Prerequisites
+
+The Wallet needs several supporting services to run, and also requires the user to log in using DigiD in order to create
+the Wallet. The services are the following:
+
+- Wallet Provider: See `wallet_core/wallet_provider/README.md`
+
+  The Wallet Provider requires a Postgres database.
+
+- PID Issuer: See `wallet_core/pid_issuer/README.md`
+
+- Digid Connector: See RDO MAX.
+
+All these applications will need to be configured correctly. A local development environment can be set up using the
+`scripts/setup-devenv.sh` and `scripts/start-devenv.sh` scripts.
+
+#### Configuring the development environment
+
+The `setup-devenv.sh` script will configure the digid-connector to listen on https://localhost:8006/ . Note the https
+in the URL, which is provided using self-signed certificates, therefore we have to disable TLS validation in the wallet
+and the pid_issuer. Also when using the browser for the first time, a security exception must be added to allow
+connecting to localhost. Disabling TLS validation is gated behind the feature `disable_tls_validation` on the `wallet`
+and the `pid_issuer` crates.
+
+##### Android Emulator
+
+In order to connect to our locally running services from the Android Emulator on the domain `localhost`, some port
+mappings have to be made. Note that this must be done every time the Android Emulator is restarted.
+
+This is automated in the script: `scrips/map_android_ports.sh`.
+
+The `setup-devenv.sh` script will automatically run this script when it detects the `adb` command.
+
+However, when the Android Emulator has been restarted, one can just run `map_android_ports.sh`.
+
+#### Starting development environment
+
+The individual services of the development environment can be started using `start-devenv.sh`. Tip: use the `--help`
+commandline option to show the help output
 
 ### Validate
 

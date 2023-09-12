@@ -68,7 +68,10 @@ impl BsnLookup for OpenIdClient {
 
 impl OpenIdClient {
     pub async fn new(digid_settings: &settings::Digid) -> Result<Self> {
-        let http_client = reqwest::Client::builder()
+        let http_client = reqwest::Client::builder();
+        #[cfg(feature = "disable_tls_validation")]
+        let http_client = http_client.danger_accept_invalid_certs(true);
+        let http_client = http_client
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");

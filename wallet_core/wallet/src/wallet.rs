@@ -146,6 +146,9 @@ pub struct Wallet<
 
 impl Wallet {
     pub async fn init_all() -> Result<Self, WalletInitError> {
+        #[cfg(feature = "disable_tls_validation")]
+        tracing::warn!("TLS validation disabled");
+
         let storage = DatabaseStorage::<HardwareEncryptionKey>::init::<HardwareUtilities>().await?;
 
         Self::init_registration(

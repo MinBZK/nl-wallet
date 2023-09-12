@@ -1,0 +1,21 @@
+certificate_private_key = "${WP_CERTIFICATE_KEY}"
+instruction_result_private_key = "${WP_INSTRUCTION_RESULT_KEY}"
+pin_hash_salt = "${WP_PIN_HASH_SALT}"
+
+# Indicates whether logging should be output in a structured (JSON) manner.
+#structured_logging = false
+
+[database]
+host = "${DB_HOST}"
+username = "${DB_USERNAME}"
+password = "${DB_PASSWORD}"
+name = "${DB_NAME}"
+
+[webserver]
+# ip = "0.0.0.0"
+# port = 3000
+
+[pin_policy]
+# rounds = 4
+# attempts_per_round = 4
+# timeouts_in_ms = [60_000, 300_000, 3_600_000]
