@@ -42,11 +42,8 @@ impl Settings {
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3003)?
             .set_default("public_url", "http://localhost:3003/")?
-            .set_default(
-                "digid.issuer_url",
-                "https://example.com/digid-connector",
-            )?
-            .set_default("digid.client_id", "SSSS")?
+            .set_default("digid.issuer_url", "https://localhost:8006/")?
+            .set_default("digid.client_id", "37692967-0a74-4e91-85ec-a4250e7ad5e8")?
             .add_source(File::from(config_path.join("config")).required(false))
             .add_source(
                 Environment::with_prefix("pid_issuer")

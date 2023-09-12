@@ -83,7 +83,7 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
             String moduleName = it.name.take(it.name.lastIndexOf('.'))
 
             // Generate Kotlin <> Rust bindings
-            executable = 'sh'
+            executable = 'bash'
             args = ['generate_native_bindings.sh',
                     "$moduleName",
                     'kotlin'
