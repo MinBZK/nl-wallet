@@ -29,6 +29,8 @@ use nl_wallet_mdoc::{
 
 mod examples;
 use examples::*;
+use nl_wallet_mdoc::utils::keys::KeyFactory;
+use wallet_common::keys::ConstructibleWithIdentifier;
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -37,6 +39,21 @@ static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_strin
 
 type MockWallet = Wallet<MdocsMap, MockHttpClient<MockIssuanceKeyring, MemorySessionStore>>;
 type MockServer = Server<MockIssuanceKeyring, MemorySessionStore>;
+
+struct SoftwareKeyFactory {}
+
+#[async_trait]
+impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
+    type Key = SoftwareEcdsaKey;
+    type Error = Error;
+
+    async fn generate<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<SoftwareEcdsaKey>, Error> {
+        Ok(identifiers
+            .iter()
+            .map(|identifier| SoftwareEcdsaKey::new(identifier.as_ref()))
+            .collect())
+    }
+}
 
 /// Verify the example disclosure from the standard.
 #[tokio::test]
@@ -115,7 +132,11 @@ async fn do_and_verify_iso_example_disclosure() {
     // Do the disclosure and verify it
     let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap(), DummyHttpClient);
     let resp = wallet
-        .disclose::<SoftwareEcdsaKey>(&device_request, &DeviceAuthenticationBytes::example_bts())
+        .disclose::<SoftwareEcdsaKey>(
+            &device_request,
+            &DeviceAuthenticationBytes::example_bts(),
+            &SoftwareKeyFactory {},
+        )
         .await
         .unwrap();
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
@@ -157,7 +178,11 @@ async fn iso_examples_custom_disclosure() {
 
     let wallet = Wallet::new(MdocsMap::try_from([mdoc]).unwrap(), DummyHttpClient);
     let resp = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, &DeviceAuthenticationBytes::example_bts())
+        .disclose::<SoftwareEcdsaKey>(
+            &request,
+            &DeviceAuthenticationBytes::example_bts(),
+            &SoftwareKeyFactory {},
+        )
         .await
         .unwrap();
 
@@ -190,7 +215,7 @@ async fn iso_examples_custom_disclosure() {
 /// the example mdoc with all attributes present.
 ///
 /// Using tests should not rely on all attributes being present.
-fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> Mdoc<SoftwareEcdsaKey> {
+fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> Mdoc {
     // Prepare the mdoc's private key
     let static_device_key = Examples::static_device_key();
     SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
@@ -199,7 +224,7 @@ fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> Mdoc<
         .issuer_signed
         .clone();
 
-    Mdoc::<SoftwareEcdsaKey>::new(
+    Mdoc::new::<SoftwareEcdsaKey>(
         "example_static_device_key".to_string(),
         issuer_signed,
         &IsoCertTimeGenerator,
@@ -350,7 +375,7 @@ async fn issuance_and_disclosure() {
     // Agree with issuance
     let (mut wallet, server, ca) = setup_issuance_test();
     issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
-    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
+    assert_eq!(1, wallet.list_mdocs().len());
 
     // We can disclose the mdoc that was just issued to us
     custom_disclosure(wallet, ca).await;
@@ -358,7 +383,7 @@ async fn issuance_and_disclosure() {
     // Decline issuance
     let (mut wallet, server, ca) = setup_issuance_test();
     issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
-    assert!(wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
+    assert!(wallet.list_mdocs().is_empty());
 
     // Issue not-yet-valid mdocs
     let now = Utc::now();
@@ -370,7 +395,7 @@ async fn issuance_and_disclosure() {
 
     let (mut wallet, server, ca) = setup_issuance_test();
     issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
-    assert_eq!(1, wallet.list_mdocs::<SoftwareEcdsaKey>().len());
+    assert_eq!(1, wallet.list_mdocs().len());
 }
 
 async fn issuance_using_consent(
@@ -390,13 +415,13 @@ async fn issuance_using_consent(
     }
 
     wallet
-        .finish_issuance::<SoftwareEcdsaKey>(&[ca.try_into().unwrap()])
+        .finish_issuance::<SoftwareEcdsaKey>(&[ca.try_into().unwrap()], &SoftwareKeyFactory {})
         .await
         .unwrap();
 }
 
 async fn custom_disclosure(wallet: MockWallet, ca: Certificate) {
-    assert!(!wallet.list_mdocs::<SoftwareEcdsaKey>().is_empty());
+    assert!(!wallet.list_mdocs().is_empty());
 
     // Create a request asking for one attribute
     let request = DeviceRequest::new(vec![ItemsRequest {
@@ -411,7 +436,7 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate) {
     // Do the disclosure and verify it
     let challenge = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref())
+        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref(), &SoftwareKeyFactory {})
         .await
         .unwrap();
     let disclosed_attrs = disclosed

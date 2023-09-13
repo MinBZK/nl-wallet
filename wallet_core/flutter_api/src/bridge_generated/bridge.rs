@@ -170,6 +170,19 @@ fn wire_cancel_pid_issuance_impl(port_: MessagePort) {
         move || move |task_callback| Ok(cancel_pid_issuance()),
     )
 }
+fn wire_accept_pid_issuance_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "accept_pid_issuance",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.wire2api();
+            move |task_callback| accept_pid_issuance(api_pin)
+        },
+    )
+}
 fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {

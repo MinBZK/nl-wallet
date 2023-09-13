@@ -9,14 +9,12 @@ use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
-        instructions::{
-            CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage,
-        },
+        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage},
     },
     signed::SignedDouble,
 };
 
-use crate::utils::reqwest::default_reqwest_client_builder;
+use crate::{account_server::InstructionEndpoint, utils::reqwest::default_reqwest_client_builder};
 
 use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
 
@@ -144,12 +142,15 @@ impl AccountServerClient for RemoteAccountServerClient {
         Ok(challenge.challenge.0)
     }
 
-    async fn check_pin(
+    async fn instruction<I>(
         &self,
-        instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountServerClientError> {
-        let message: InstructionResultMessage<()> = self
-            .send_json_post_request("instructions/check_pin", &instruction)
+        instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountServerClientError>
+    where
+        I: InstructionEndpoint + Send + Sync,
+    {
+        let message: InstructionResultMessage<I::Result> = self
+            .send_json_post_request(&format!("instructions/{}", I::ENDPOINT), &instruction)
             .await?;
 
         Ok(message.result)

@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    AccountServerClientError, DigidAuthenticatorError, OpenIdError, PidIssuanceError, ReqwestError, WalletInitError,
-    WalletRegistrationError, WalletUnlockError,
+    AccountServerClientError, DigidAuthenticatorError, InstructionError, OpenIdError, PidIssuanceError, ReqwestError,
+    WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -104,8 +104,7 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            WalletUnlockError::ServerError(e) => FlutterApiErrorType::from(e),
-            WalletUnlockError::InstructionValidation => FlutterApiErrorType::Networking,
+            WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -157,5 +156,15 @@ impl FlutterApiErrorFields for PidIssuanceError {
 impl From<&AccountServerClientError> for FlutterApiErrorType {
     fn from(_value: &AccountServerClientError) -> Self {
         Self::Networking
+    }
+}
+
+impl From<&InstructionError> for FlutterApiErrorType {
+    fn from(_value: &InstructionError) -> Self {
+        match _value {
+            InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
+            InstructionError::InstructionValidation => FlutterApiErrorType::Networking,
+            _ => FlutterApiErrorType::Generic,
+        }
     }
 }

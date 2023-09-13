@@ -1,21 +1,47 @@
-mod client;
-
 use async_trait::async_trait;
 use url::Url;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
-
 pub use client::PidIssuerClient;
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::TrustAnchor, utils::keys::KeyFactory};
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+mod client;
+
 #[async_trait]
 pub trait PidRetriever {
-    async fn retrieve_pid<'a>(
-        &self,
+    async fn start_retrieve_pid(
+        &mut self,
         base_url: &Url,
-        mdoc_trust_anchors: &[TrustAnchor<'a>],
         access_token: &str,
+    ) -> Result<Vec<UnsignedMdoc>, PidRetrieverError>;
+
+    async fn accept_pid<'a>(
+        &mut self,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a (impl KeyFactory<'a> + Sync),
     ) -> Result<(), PidRetrieverError>;
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub struct MockPidRetriever {}
+
+#[cfg(any(test, feature = "mock"))]
+#[async_trait]
+impl PidRetriever for MockPidRetriever {
+    async fn start_retrieve_pid(
+        &mut self,
+        _base_url: &Url,
+        _access_token: &str,
+    ) -> Result<Vec<UnsignedMdoc>, PidRetrieverError> {
+        Ok(Default::default())
+    }
+
+    async fn accept_pid<'a>(
+        &mut self,
+        _mdoc_trust_anchors: &[TrustAnchor<'_>],
+        _key_factory: &'a (impl KeyFactory<'a> + Sync),
+    ) -> Result<(), PidRetrieverError> {
+        Ok(())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

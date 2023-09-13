@@ -58,6 +58,7 @@ wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
@@ -67,5 +68,7 @@ sea-orm = { workspace = true, features = [
 serial_test = { workspace = true }
 url = { workspace = true }
 
+nl_wallet_mdoc = { path = "../mdoc" }
+pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }

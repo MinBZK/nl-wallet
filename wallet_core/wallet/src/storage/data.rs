@@ -10,9 +10,17 @@ pub trait KeyedData: Serialize + DeserializeOwned + Clone + Send + Sync + 'stati
 pub struct RegistrationData {
     pub pin_salt: Base64Bytes,
     pub wallet_certificate: WalletCertificate,
-    pub instruction_sequence_number: u64,
 }
 
 impl KeyedData for RegistrationData {
     const KEY: &'static str = "registration";
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct InstructionData {
+    pub instruction_sequence_number: u64,
+}
+
+impl KeyedData for InstructionData {
+    const KEY: &'static str = "instructions";
 }

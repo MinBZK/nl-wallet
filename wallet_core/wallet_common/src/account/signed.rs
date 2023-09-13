@@ -4,11 +4,12 @@ use p256::ecdsa::{signature::Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use super::serialization::{Base64Bytes, DerSignature};
 use crate::{
     errors::{Error, Result, SigningError, ValidationError},
     keys::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey},
 };
+
+use super::serialization::{Base64Bytes, DerSignature};
 
 // Signed data by the wallet, with both the hardware and PIN keys.
 // It is generic over the data type that it contains, so that the signed data type is encoded in the type structure

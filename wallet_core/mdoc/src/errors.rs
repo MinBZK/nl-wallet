@@ -21,4 +21,6 @@ pub enum Error {
     Issuance(#[from] IssuanceError),
     #[error("verification error: {0}")]
     Verification(#[from] VerificationError),
+    #[error("key generation error: {0}")]
+    KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }

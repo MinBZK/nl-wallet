@@ -18,9 +18,10 @@ use crate::{
     issuer_shared::IssuanceError,
     utils::{
         cose::ClonePayload,
-        keys::MdocEcdsaKey,
+        keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     },
+    Error::KeyGeneration,
     Result,
 };
 
@@ -94,14 +95,18 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
-    pub async fn finish_issuance<K: MdocEcdsaKey>(&mut self, trust_anchors: &[TrustAnchor<'_>]) -> Result<()> {
+    pub async fn finish_issuance<'a, K: MdocEcdsaKey>(
+        &mut self,
+        trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<()> {
         let state = self
             .session_state
             .as_ref()
             .ok_or(HolderError::MissingIssuanceSessionState)?;
 
         // Compute responses
-        let (keys, responses) = state.keys_and_responses::<K>().await?;
+        let (keys, responses) = state.keys_and_responses::<K>(key_factory).await?;
 
         // Finish issuance protocol
         let issuer_response: DataToIssueMessage = self.client.post(&state.url, &responses).await?;
@@ -133,22 +138,31 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 }
 
 impl IssuanceSessionState {
-    pub async fn keys_and_responses<K: MdocEcdsaKey>(&self) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
+    pub async fn keys_and_responses<'a, K: MdocEcdsaKey>(
+        &self,
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
         // Group the keys by distinct mdocs, and then per copies of each distinct mdoc
-        let private_keys: Vec<Vec<K>> = self
-            .request
-            .unsigned_mdocs
-            .iter()
-            .map(|unsigned| Self::generate_keys(unsigned.copy_count))
-            .collect::<Vec<_>>();
+        let private_keys: Vec<Vec<K>> = future::try_join_all(
+            self.request
+                .unsigned_mdocs
+                .iter()
+                .map(|unsigned| Self::generate_keys(unsigned.copy_count, key_factory)),
+        )
+        .await?;
+
         let private_keys_refs = private_keys.iter().map(|f| f.as_slice()).collect::<Vec<_>>();
         let response = KeyGenerationResponseMessage::new(&self.request, private_keys_refs.as_slice()).await?;
 
         Ok((private_keys, response))
     }
 
-    fn generate_keys<K: MdocEcdsaKey>(count: u64) -> Vec<K> {
-        (0..count).map(|_| K::new(&random_string(32))).collect()
+    async fn generate_keys<'a, K>(count: u64, key_factory: &'a impl KeyFactory<'a, Key = K>) -> Result<Vec<K>> {
+        let identifiers: Vec<String> = (0..count).map(|_| random_string(32)).collect();
+        key_factory
+            .generate(&identifiers)
+            .await
+            .map_err(|err| KeyGeneration(Box::new(err)))
     }
 
     pub async fn construct_mdocs<K: MdocEcdsaKey>(
@@ -156,7 +170,7 @@ impl IssuanceSessionState {
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Vec<MdocCopies<K>>> {
+    ) -> Result<Vec<MdocCopies>> {
         let mdoc_copies = future::try_join_all(
             issuer_response
                 .mobile_eid_documents
@@ -175,7 +189,7 @@ impl IssuanceSessionState {
         unsigned: &UnsignedMdoc,
         keys: &[K],
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<MdocCopies<K>> {
+    ) -> Result<MdocCopies> {
         let cred_copies = future::try_join_all(
             doc.sparse_issuer_signed
                 .iter()
@@ -194,7 +208,7 @@ impl SparseIssuerSigned {
         private_key: &K,
         unsigned: &UnsignedMdoc,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Mdoc<K>> {
+    ) -> Result<Mdoc> {
         let name_spaces: IssuerNameSpaces = unsigned
             .attributes
             .iter()
@@ -230,7 +244,7 @@ impl SparseIssuerSigned {
         };
 
         // Construct the mdoc, also verifying it (using `IssuerSigned::verify()`).
-        let cred = Mdoc::new(
+        let cred = Mdoc::new::<K>(
             private_key.identifier().to_string(),
             issuer_signed,
             &TimeGenerator,

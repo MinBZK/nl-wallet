@@ -36,11 +36,13 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 
 /// The contract of this trait includes that a constructed type with the same
 /// identifier behaves exactly the same, i.e. has the same key material backing it.
-pub trait ConstructibleWithIdentifier {
+pub trait ConstructibleWithIdentifier: WithIdentifier {
     fn new(identifier: &str) -> Self
     where
         Self: Sized;
+}
 
+pub trait WithIdentifier {
     fn identifier(&self) -> &str;
 }
 

@@ -1,15 +1,9 @@
 use dashmap::DashMap;
 use indexmap::IndexMap;
 
-use wallet_common::keys::software::SoftwareEcdsaKey;
-
 use crate::{
     basic_sa_ext::Entry,
     holder::{Mdoc, MdocCopies, Storage},
-    utils::{
-        keys::MdocEcdsaKey,
-        serialization::{cbor_deserialize, cbor_serialize},
-    },
     DocType, Error, NameSpace,
 };
 
@@ -19,12 +13,12 @@ use crate::{
 ///   with [`Mdoc::hash()`] (see its rustdoc for details),
 /// - multiple mdocs having the same doctype and the same attributes, through the `MdocCopies` data structure.
 #[derive(Debug, Clone, Default)]
-pub struct MdocsMap(pub(crate) DashMap<DocType, DashMap<Vec<u8>, MdocCopies<SoftwareEcdsaKey>>>);
+pub struct MdocsMap(pub(crate) DashMap<DocType, DashMap<Vec<u8>, MdocCopies>>);
 
-impl<const N: usize> TryFrom<[Mdoc<SoftwareEcdsaKey>; N]> for MdocsMap {
+impl<const N: usize> TryFrom<[Mdoc; N]> for MdocsMap {
     type Error = Error;
 
-    fn try_from(value: [Mdoc<SoftwareEcdsaKey>; N]) -> Result<Self, Self::Error> {
+    fn try_from(value: [Mdoc; N]) -> Result<Self, Self::Error> {
         let creds = MdocsMap(DashMap::new());
         creds.add(value.into_iter())?;
         Ok(creds)
@@ -37,18 +31,8 @@ impl MdocsMap {
     }
 }
 
-// `impl Storage for CredentialsMap` below requires its method to be generic over K,
-// but in these tests we want to deal only with `SoftwareEcdsaKey`. This is some ugly trickery to cast between the two,
-// which works because in fact the `Mdoc` type only stores the identifier string of its key.
-fn to_software_key<K: MdocEcdsaKey>(cred: Mdoc<K>) -> Mdoc<SoftwareEcdsaKey> {
-    cbor_deserialize::<Mdoc<SoftwareEcdsaKey>, _>(cbor_serialize(&cred).unwrap().as_slice()).unwrap()
-}
-fn from_software_key<K: MdocEcdsaKey>(cred: Mdoc<SoftwareEcdsaKey>) -> Mdoc<K> {
-    cbor_deserialize::<Mdoc<K>, _>(cbor_serialize(&cred).unwrap().as_slice()).unwrap()
-}
-
 impl Storage for MdocsMap {
-    fn add<K: MdocEcdsaKey>(&self, creds: impl Iterator<Item = Mdoc<K>>) -> Result<(), Error> {
+    fn add(&self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
@@ -56,30 +40,22 @@ impl Storage for MdocsMap {
                 .entry(cred.hash()?)
                 .or_insert(MdocCopies::new())
                 .cred_copies
-                .push(to_software_key(cred));
+                .push(cred);
         }
 
         Ok(())
     }
 
-    fn get<K: MdocEcdsaKey>(&self, doctype: &DocType) -> Option<Vec<MdocCopies<K>>> {
+    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
         self.0.get(doctype).map(|v| {
             v.value()
                 .iter()
-                .map(|entry| {
-                    entry
-                        .value()
-                        .clone()
-                        .into_iter()
-                        .map(|cred| from_software_key(cred))
-                        .collect::<Vec<_>>()
-                        .into()
-                })
+                .map(|entry| entry.value().cred_copies.to_vec().into())
                 .collect()
         })
     }
 
-    fn list<K>(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
         self.0
             .iter()
             .map(|allcreds| {
