@@ -4,13 +4,13 @@ use url::Url;
 use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult},
+        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
     },
     signed::SignedDouble,
 };
 use wallet_provider::{
     errors::{ConvertibleError, WalletProviderError},
-    stub::{self, EpochGenerator, FailingPinPolicy, TestDeps},
+    stub::{self, TestDeps},
     AccountServer,
 };
 
@@ -65,12 +65,13 @@ impl AccountServerClient for AccountServer {
             .map_err(AccountServerClientError::from_account_server)
     }
 
-    async fn check_pin(
+    async fn instruction<I>(
         &self,
-        instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountServerClientError> {
-        AccountServer::handle_instruction(self, instruction, &TestDeps, &FailingPinPolicy, &EpochGenerator)
-            .await
-            .map_err(AccountServerClientError::from_account_server)
+        _instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountServerClientError>
+    where
+        I: InstructionEndpoint + Send + Sync,
+    {
+        todo!()
     }
 }

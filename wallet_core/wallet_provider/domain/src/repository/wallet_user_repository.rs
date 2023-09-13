@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
+use p256::ecdsa::SigningKey;
 
 use crate::model::wallet_user::{WalletUserCreate, WalletUserQueryResult};
 
@@ -45,13 +46,34 @@ pub trait WalletUserRepository {
     ) -> Result<()>;
 
     async fn reset_unsuccessful_pin_entries(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+
+    async fn save_key(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        keys: &[(String, SigningKey)],
+    ) -> Result<()>;
+
+    async fn get_key(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        key_identifier: &str,
+    ) -> Result<Option<SigningKey>>;
+
+    async fn get_keys<T: AsRef<str> + Sync>(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        key_identifiers: &[T],
+    ) -> Result<Vec<Option<SigningKey>>>;
 }
 
 #[cfg(feature = "stub")]
 pub mod stub {
     use std::str::FromStr;
 
-    use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::{SigningKey, VerifyingKey};
     use uuid::uuid;
 
     use wallet_common::account::serialization::DerVerifyingKey;
@@ -152,6 +174,33 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
             _wallet_id: &str,
         ) -> Result<()> {
             Ok(())
+        }
+
+        async fn save_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _keys: &[(String, SigningKey)],
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn get_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key_identifier: &str,
+        ) -> Result<Option<SigningKey>> {
+            todo!()
+        }
+
+        async fn get_keys<T: AsRef<str> + Sync>(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key_identifiers: &[T],
+        ) -> Result<Vec<Option<SigningKey>>> {
+            Ok(vec![])
         }
     }
 }

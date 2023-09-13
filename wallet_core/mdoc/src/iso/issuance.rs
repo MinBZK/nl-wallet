@@ -91,6 +91,11 @@ impl Display for SessionId {
         write!(f, "{}", hex::encode(&self.0))
     }
 }
+impl From<SessionId> for Vec<u8> {
+    fn from(value: SessionId) -> Self {
+        value.0.into_vec()
+    }
+}
 
 pub const START_PROVISIONING_MSG_TYPE: &str = "StartProvisioning";
 

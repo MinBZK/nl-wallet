@@ -1,22 +1,22 @@
-use std::{any::Any, collections::HashMap, path::PathBuf};
+use std::{any::Any, path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
+use dashmap::DashMap;
 
-use super::{
-    data::{KeyedData, RegistrationData},
-    Storage, StorageError, StorageState,
-};
+use crate::storage::RegistrationData;
+
+use super::{data::KeyedData, Storage, StorageError, StorageState};
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub data: HashMap<&'static str, Box<dyn Any + Send + Sync>>,
+    pub data: Arc<DashMap<&'static str, Box<dyn Any + Send + Sync>>>,
 }
 
 impl MockStorage {
     pub fn mock(state: StorageState, registration: Option<RegistrationData>) -> Self {
-        let mut data: HashMap<&str, Box<dyn Any + Send + Sync>> = HashMap::new();
+        let data: Arc<DashMap<&str, Box<dyn Any + Send + Sync>>> = Arc::new(DashMap::new());
 
         if let Some(registration) = registration {
             data.insert(RegistrationData::KEY, Box::new(registration));
@@ -65,12 +65,14 @@ impl Storage for MockStorage {
         // If self.data contains the key for the requested type,
         // assume that its value is of that specific type.
         // Downcast it to the type using the Any trait, then return a cloned result.
-        let data = self.data.get(D::KEY).map(|m| m.downcast_ref::<D>().unwrap()).cloned();
-
+        let data: Option<D> = self
+            .data
+            .get(D::KEY)
+            .map(|m| m.value().downcast_ref::<D>().unwrap().clone());
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(StorageError::NotOpened);
         }
@@ -84,7 +86,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError> {
         if !matches!(self.state, StorageState::Opened) {
             return Err(StorageError::NotOpened);
         }
@@ -96,5 +98,50 @@ impl Storage for MockStorage {
         self.data.insert(D::KEY, Box::new(data.clone()));
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::{Deserialize, Serialize};
+
+    use crate::storage::{KeyedData, Storage};
+
+    use super::MockStorage;
+
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    struct Data {
+        a: u8,
+        b: String,
+    }
+
+    impl KeyedData for Data {
+        const KEY: &'static str = "test_data";
+    }
+
+    #[tokio::test]
+    async fn it_works() {
+        let mut storage = MockStorage::default();
+        storage.open().await.unwrap();
+
+        let data = Data {
+            a: 32,
+            b: "foo".to_string(),
+        };
+
+        storage.insert_data(&data).await.unwrap();
+
+        let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
+        assert_eq!(data, fetched);
+
+        let updated = Data {
+            a: 64,
+            b: "bar".to_string(),
+        };
+
+        storage.update_data(&updated).await.unwrap();
+
+        let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
+        assert_eq!(updated, fetched);
     }
 }

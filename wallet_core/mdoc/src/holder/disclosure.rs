@@ -13,27 +13,30 @@ use crate::{
     utils::{
         cose::{sign_cose, ClonePayload},
         crypto::dh_hmac_key,
-        keys::MdocEcdsaKey,
+        keys::{KeyFactory, MdocEcdsaKey},
         serialization::cbor_deserialize,
         x509::CertificateUsage,
     },
     verifier::X509Subject,
-    Error, Result,
+    Error,
+    Error::KeyGeneration,
+    Result,
 };
 
 use super::{HolderError, HttpClient, Mdoc, Storage, Wallet};
 
 impl<C: Storage, H: HttpClient> Wallet<C, H> {
-    pub async fn disclose<K: MdocEcdsaKey>(
+    pub async fn disclose<'a, K: MdocEcdsaKey>(
         &self,
         device_request: &DeviceRequest,
         challenge: &[u8],
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<DeviceResponse> {
         let docs: Vec<Document> = try_join_all(
             device_request
                 .doc_requests
                 .iter()
-                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge)),
+                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge, key_factory)),
         )
         .await?;
 
@@ -46,29 +49,39 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         Ok(response)
     }
 
-    async fn disclose_document<K: MdocEcdsaKey>(&self, doc_request: &DocRequest, challenge: &[u8]) -> Result<Document> {
+    async fn disclose_document<'a, K: MdocEcdsaKey>(
+        &self,
+        doc_request: &DocRequest,
+        challenge: &[u8],
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<Document> {
         let items_request = &doc_request.items_request.0;
 
         // This takes any mdoc of the specified doctype. TODO: allow user choice.
-        let creds =
-            self.storage
-                .get::<K>(&items_request.doc_type)
-                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                    items_request.doc_type.clone(),
-                )))?;
+        let creds = self
+            .storage
+            .get(&items_request.doc_type)
+            .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                items_request.doc_type.clone(),
+            )))?;
         let cred = &creds
             .first()
             .ok_or(Error::from(HolderError::UnsatisfiableRequest(
                 items_request.doc_type.clone(),
             )))?
             .cred_copies[0];
-        let document = cred.disclose_document(items_request, challenge).await?;
+        let document = cred.disclose_document(items_request, challenge, key_factory).await?;
         Ok(document)
     }
 }
 
-impl<K: MdocEcdsaKey> Mdoc<K> {
-    pub async fn disclose_document(&self, items_request: &ItemsRequest, challenge: &[u8]) -> Result<Document> {
+impl Mdoc {
+    pub async fn disclose_document<'a, K: MdocEcdsaKey>(
+        &self,
+        items_request: &ItemsRequest,
+        challenge: &[u8],
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
             .issuer_signed
             .name_spaces
@@ -90,7 +103,19 @@ impl<K: MdocEcdsaKey> Mdoc<K> {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            device_signed: DeviceSigned::new_signature(&self.private_key(), challenge).await,
+            // TODO: this can be optimized by storing the public_key in the Mdoc and provide a different
+            // key_factory method (generate_existing) that constructs a RemoteEcdsaKey based on the provided
+            // info instead of going to the wallet provider.
+            device_signed: DeviceSigned::new_signature(
+                key_factory
+                    .generate(&[self.private_key_id.to_string()])
+                    .await
+                    .map_err(|err| KeyGeneration(Box::new(err)))?
+                    .first()
+                    .unwrap(),
+                challenge,
+            )
+            .await,
             errors: None,
         };
         Ok(doc)

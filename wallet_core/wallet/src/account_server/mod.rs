@@ -11,7 +11,7 @@ use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
         errors::ErrorData,
-        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult},
+        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
     },
     signed::SignedDouble,
 };
@@ -56,8 +56,10 @@ pub trait AccountServerClient {
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountServerClientError>;
 
-    async fn check_pin(
+    async fn instruction<I>(
         &self,
-        instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountServerClientError>;
+        instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountServerClientError>
+    where
+        I: InstructionEndpoint + Send + Sync;
 }

@@ -15,7 +15,7 @@ use sea_orm::DbErr;
 use platform_support::utils::UtilitiesError;
 
 pub use self::{
-    data::{KeyedData, RegistrationData},
+    data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
     key_file::KeyFileError,
 };
@@ -67,6 +67,6 @@ pub trait Storage {
     async fn clear(&mut self) -> Result<(), StorageError>;
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError>;
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> Result<(), StorageError>;
+    async fn insert_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError>;
+    async fn update_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError>;
 }

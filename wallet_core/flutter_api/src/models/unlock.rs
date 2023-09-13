@@ -1,4 +1,4 @@
-use wallet::wallet::WalletUnlockError;
+use wallet::{errors::InstructionError, wallet::WalletUnlockError};
 
 pub enum WalletUnlockResult {
     Ok,
@@ -27,15 +27,17 @@ impl TryFrom<Result<(), WalletUnlockError>> for WalletUnlockResult {
         match value {
             Ok(_) => Ok(WalletUnlockResult::Ok),
             Err(e) => match e {
-                WalletUnlockError::IncorrectPin {
+                WalletUnlockError::Instruction(InstructionError::IncorrectPin {
                     leftover_attempts,
                     is_final_attempt,
-                } => Ok(WalletUnlockResult::IncorrectPin {
+                }) => Ok(WalletUnlockResult::IncorrectPin {
                     leftover_attempts,
                     is_final_attempt,
                 }),
-                WalletUnlockError::Timeout { timeout_millis } => Ok(WalletUnlockResult::Timeout { timeout_millis }),
-                WalletUnlockError::Blocked => Ok(WalletUnlockResult::Blocked),
+                WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis }) => {
+                    Ok(WalletUnlockResult::Timeout { timeout_millis })
+                }
+                WalletUnlockError::Instruction(InstructionError::Blocked) => Ok(WalletUnlockResult::Blocked),
                 _ => Err(e),
             },
         }

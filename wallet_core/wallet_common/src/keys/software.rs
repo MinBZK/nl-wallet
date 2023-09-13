@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
-use crate::utils::random_bytes;
+use crate::{keys::WithIdentifier, utils::random_bytes};
 
 use super::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
@@ -70,7 +70,9 @@ impl ConstructibleWithIdentifier for SoftwareEcdsaKey {
             identifier: identifier.to_string(),
         }
     }
+}
 
+impl WithIdentifier for SoftwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
@@ -104,7 +106,9 @@ impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
             identifier: identifier.to_string(),
         }
     }
+}
 
+impl WithIdentifier for SoftwareEncryptionKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }

@@ -156,6 +156,17 @@ pub async fn cancel_pid_issuance() {
     wallet.cancel_pid_issuance()
 }
 
+// todo: handle inner instructions errors (regarding PIN) similarly to unlock_wallet above.
+#[async_runtime]
+#[flutter_api_error]
+pub async fn accept_pid_issuance(pin: String) -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.accept_pid_issuance(pin).await?;
+
+    Ok(())
+}
+
 // Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
 pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
@@ -210,7 +221,7 @@ async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
             // Then convert then error to JSON, wrapped inside a `PidIssuanceEvent::Error`.
             error.into()
         },
-        |_| PidIssuanceEvent::Success {
+        |_mdocs| PidIssuanceEvent::Success {
             preview_cards: mock_cards(), // TODO: actually convert mdocs to card
         },
     )

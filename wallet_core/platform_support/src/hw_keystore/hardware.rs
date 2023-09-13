@@ -4,7 +4,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+use wallet_common::keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, WithIdentifier};
 
 use crate::{
     bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge},
@@ -63,7 +63,9 @@ impl ConstructibleWithIdentifier for HardwareEcdsaKey {
             identifier: identifier.to_string(),
         }
     }
+}
 
+impl WithIdentifier for HardwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
@@ -83,11 +85,14 @@ impl ConstructibleWithIdentifier for HardwareEncryptionKey {
             identifier: identifier.to_string(),
         }
     }
+}
 
+impl WithIdentifier for HardwareEncryptionKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
+
 #[async_trait]
 impl SecureEncryptionKey for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;

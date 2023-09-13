@@ -6,6 +6,7 @@ mod lock;
 mod pid_issuer;
 mod pin;
 mod pkce;
+mod remote;
 mod storage;
 mod utils;
 
@@ -20,7 +21,10 @@ pub use crate::{
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
-    pub use crate::{account_server::RemoteAccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient};
+    pub use crate::{
+        account_server::RemoteAccountServerClient, digid::DigidClient, pid_issuer::PidIssuerClient,
+        remote::RemoteEcdsaKey,
+    };
 }
 
 #[cfg(feature = "mock")]
