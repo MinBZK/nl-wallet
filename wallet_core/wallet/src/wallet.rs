@@ -357,16 +357,16 @@ where
         }
 
         let registration_data = self.registration.as_ref().unwrap();
-        let config = &self.config_repository.config();
+        let config = self.config_repository.config();
 
         let remote_instruction = InstructionClient::new(
             pin,
-            &registration_data.pin_salt,
-            &registration_data.wallet_certificate,
+            &self.storage,
             &self.hw_privkey,
             &self.account_provider_client,
-            &self.storage,
-            config.account_server.clone(),
+            registration_data,
+            &config.account_server.base_url,
+            &config.account_server.instruction_result_public_key,
         );
 
         remote_instruction
@@ -386,14 +386,15 @@ where
             return Err(PidIssuanceError::NotRegistered);
         }
 
-        let config = &self.config_repository.config().pid_issuance;
-        let digid_url = config.digid_url.clone();
-        let digid_client_id = config.digid_client_id.clone();
-        let digid_redirect_uri = config.digid_redirect_uri.clone();
+        let pid_issuance_config = &self.config_repository.config().pid_issuance;
 
         let auth_url = self
             .digid_client
-            .start_session(digid_url, digid_client_id, digid_redirect_uri)
+            .start_session(
+                &pid_issuance_config.digid_url,
+                &pid_issuance_config.digid_client_id,
+                &pid_issuance_config.digid_redirect_uri,
+            )
             .await
             .map_err(PidIssuanceError::DigidSessionStart)?;
 
@@ -454,16 +455,16 @@ where
         }
 
         let registration_data = self.registration.as_ref().unwrap();
-        let config = &self.config_repository.config();
+        let config = self.config_repository.config();
 
         let remote_instruction = InstructionClient::new(
             pin,
-            &registration_data.pin_salt,
-            &registration_data.wallet_certificate,
+            &self.storage,
             &self.hw_privkey,
             &self.account_provider_client,
-            &self.storage,
-            config.account_server.clone(),
+            registration_data,
+            &config.account_server.base_url,
+            &config.account_server.instruction_result_public_key,
         );
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 

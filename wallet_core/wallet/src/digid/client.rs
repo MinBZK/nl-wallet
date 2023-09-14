@@ -57,16 +57,16 @@ where
 {
     async fn start_session(
         &mut self,
-        issuer_url: Url,
-        client_id: String,
-        redirect_uri: Url,
+        issuer_url: &Url,
+        client_id: &str,
+        redirect_uri: &Url,
     ) -> Result<Url, DigidError> {
         // TODO: This performs discovery every time a session is started and an authentication URL
         //       is generated. An improvement would be to cache the OpenIdClient and only perform
         //       discovery again when the configuration parameters change.
 
         // Perform OpenID discovery at the issuer.
-        let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
+        let openid_client = C::discover(issuer_url.clone(), client_id.to_string(), redirect_uri.clone()).await?;
 
         // Generate a random CSRF token and nonce.
         let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
@@ -219,9 +219,9 @@ mod tests {
         // Now we are ready to call `DigidClient.start_session()`, which should succeed.
         let url = client
             .start_session(
-                Url::parse(ISSUER_URL).unwrap(),
-                CLIENT_ID.to_string(),
-                Url::parse(REDIRECT_URI).unwrap(),
+                &Url::parse(ISSUER_URL).unwrap(),
+                CLIENT_ID,
+                &Url::parse(REDIRECT_URI).unwrap(),
             )
             .await
             .expect("Could not start DigiD session");
@@ -393,9 +393,9 @@ mod tests {
         // Start a new session, we do not care about the returned URL.
         _ = client
             .start_session(
-                Url::parse(ISSUER_URL).unwrap(),
-                CLIENT_ID.to_string(),
-                Url::parse(REDIRECT_URI).unwrap(),
+                &Url::parse(ISSUER_URL).unwrap(),
+                CLIENT_ID,
+                &Url::parse(REDIRECT_URI).unwrap(),
             )
             .await
             .expect("Could not start DigiD session");

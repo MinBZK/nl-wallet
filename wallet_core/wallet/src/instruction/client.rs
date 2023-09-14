@@ -2,57 +2,54 @@ use std::future::Future;
 use tokio::sync::{Mutex, MutexGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use url::Url;
 use wallet_common::account::{
-    messages::{
-        auth::WalletCertificate,
-        instructions::{
-            Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
-        },
+    jwt::EcdsaDecodingKey,
+    messages::instructions::{
+        Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
-    serialization::Base64Bytes,
 };
 
 use crate::{
     account_provider::AccountProviderClient,
     pin::key::PinKey,
-    storage::{InstructionData, Storage},
+    storage::{InstructionData, RegistrationData, Storage},
     wallet::InstructionError,
-    AccountServerConfiguration,
 };
 
-pub struct InstructionClient<'a, S, A, K> {
+pub struct InstructionClient<'a, S, K, A> {
     pin: String,
-    pin_salt: &'a Base64Bytes,
-    wallet_certificate: &'a WalletCertificate,
+    storage: &'a Mutex<S>,
     hw_privkey: &'a K,
     account_provider_client: &'a A,
-    storage: &'a Mutex<S>,
-    account_provider_config: AccountServerConfiguration,
+    registration: &'a RegistrationData,
+    account_provider_base_url: &'a Url,
+    instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
-impl<'a, S, A, K> InstructionClient<'a, S, A, K>
+impl<'a, S, K, A> InstructionClient<'a, S, K, A>
 where
     S: Storage,
-    A: AccountProviderClient,
     K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     pub fn new(
         pin: String,
-        pin_salt: &'a Base64Bytes,
-        wallet_certificate: &'a WalletCertificate,
-        hw_privkey: &'a K,
-        account_server: &'a A,
         storage: &'a Mutex<S>,
-        account_provider_config: AccountServerConfiguration,
+        hw_privkey: &'a K,
+        account_provider_client: &'a A,
+        registration: &'a RegistrationData,
+        account_provider_base_url: &'a Url,
+        instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Self {
         Self {
             pin,
-            pin_salt,
-            wallet_certificate,
-            hw_privkey,
-            account_provider_client: account_server,
             storage,
-            account_provider_config,
+            hw_privkey,
+            account_provider_client,
+            registration,
+            account_provider_base_url,
+            instruction_result_public_key,
         }
     }
 
@@ -86,12 +83,12 @@ where
 
         let challenge_request = InstructionChallengeRequestMessage {
             message,
-            certificate: self.wallet_certificate.clone(),
+            certificate: self.registration.wallet_certificate.clone(),
         };
 
         let result = self
             .account_provider_client
-            .instruction_challenge(&self.account_provider_config.base_url, challenge_request)
+            .instruction_challenge(self.account_provider_base_url, challenge_request)
             .await?;
 
         Ok(result)
@@ -105,7 +102,7 @@ where
 
         let challenge = self.instruction_challenge(&storage).await?;
 
-        let pin_key = PinKey::new(&self.pin, &self.pin_salt.0);
+        let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt.0);
 
         let instruction = self
             .with_sequence_number(&storage, |seq_num| {
@@ -115,19 +112,19 @@ where
                     self.hw_privkey,
                     &pin_key,
                     &challenge,
-                    self.wallet_certificate.clone(),
+                    self.registration.wallet_certificate.clone(),
                 )
             })
             .await?;
 
         let signed_result = self
             .account_provider_client
-            .instruction(&self.account_provider_config.base_url, instruction)
+            .instruction(self.account_provider_base_url, instruction)
             .await
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify(&self.account_provider_config.instruction_result_public_key)
+            .parse_and_verify(self.instruction_result_public_key)
             .map_err(InstructionError::InstructionResultValidation)?
             .result;
 

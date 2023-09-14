@@ -14,7 +14,7 @@ pub use self::client::HttpDigidClient;
 pub trait DigidClient {
     /// Start a new DigiD session by performing OpenID discovery and returning
     /// an authorization URL that can be sent to the system browser.
-    async fn start_session(&mut self, issuer_url: Url, client_id: String, redirect_uri: Url)
+    async fn start_session(&mut self, issuer_url: &Url, client_id: &str, redirect_uri: &Url)
         -> Result<Url, DigidError>;
 
     /// Check if the DigiD client would currently accept the provided redirect URI.
