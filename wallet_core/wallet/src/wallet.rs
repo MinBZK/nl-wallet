@@ -6,7 +6,7 @@ use platform_support::{
     hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
     utils::hardware::HardwareUtilities,
 };
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -100,7 +100,7 @@ pub struct Wallet<
     P = HttpPidIssuerClient,
 > {
     config_repository: C,
-    storage: Mutex<S>,
+    storage: RwLock<S>,
     hw_privkey: K,
     account_provider_client: A,
     digid_client: D,
@@ -149,7 +149,7 @@ where
 
         let wallet = Wallet {
             config_repository,
-            storage: Mutex::new(storage),
+            storage: RwLock::new(storage),
             hw_privkey: K::new(WALLET_KEY_ID),
             account_provider_client,
             digid_client,
@@ -279,7 +279,7 @@ where
         info!("Storing received registration");
 
         // If the storage database does not exist, create it now.
-        let mut storage = self.storage.lock().await;
+        let storage = self.storage.get_mut();
         let storage_state = storage.state().await?;
         if !matches!(storage_state, StorageState::Opened) {
             storage.open().await?;
@@ -488,7 +488,7 @@ mod tests {
         assert!(wallet.registration.is_none());
         assert!(!wallet.has_registration());
         assert!(matches!(
-            wallet.storage.lock().await.state().await.unwrap(),
+            wallet.storage.read().await.state().await.unwrap(),
             StorageState::Uninitialized
         ));
 
@@ -504,7 +504,7 @@ mod tests {
         assert!(wallet.registration.is_none());
         assert!(!wallet.has_registration());
         assert!(matches!(
-            wallet.storage.lock().await.state().await.unwrap(),
+            wallet.storage.read().await.state().await.unwrap(),
             StorageState::Opened
         ));
 
@@ -524,7 +524,7 @@ mod tests {
         assert!(wallet.registration.is_some());
         assert!(wallet.has_registration());
         assert!(matches!(
-            wallet.storage.lock().await.state().await.unwrap(),
+            wallet.storage.read().await.state().await.unwrap(),
             StorageState::Opened
         ));
 

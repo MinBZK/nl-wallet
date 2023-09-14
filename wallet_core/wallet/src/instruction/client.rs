@@ -1,5 +1,5 @@
 use std::future::Future;
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use url::Url;
@@ -20,7 +20,7 @@ use super::InstructionError;
 
 pub struct InstructionClient<'a, S, K, A> {
     pin: String,
-    storage: &'a Mutex<S>,
+    storage: &'a RwLock<S>,
     hw_privkey: &'a K,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
@@ -36,7 +36,7 @@ where
 {
     pub fn new(
         pin: String,
-        storage: &'a Mutex<S>,
+        storage: &'a RwLock<S>,
         hw_privkey: &'a K,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
@@ -54,7 +54,11 @@ where
         }
     }
 
-    async fn with_sequence_number<F, O, R>(&self, storage: &MutexGuard<'_, S>, f: F) -> Result<R, InstructionError>
+    async fn with_sequence_number<F, O, R>(
+        &self,
+        storage: &mut RwLockWriteGuard<'_, S>,
+        f: F,
+    ) -> Result<R, InstructionError>
     where
         F: FnOnce(u64) -> O + 'a,
         O: Future<Output = Result<R, wallet_common::errors::Error>> + 'a,
@@ -75,7 +79,7 @@ where
             .map_err(InstructionError::Signing)
     }
 
-    async fn instruction_challenge(&self, storage: &MutexGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
+    async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
         let message = self
             .with_sequence_number(storage, |seq_num| {
                 InstructionChallengeRequest::new_signed(seq_num, "wallet", self.hw_privkey)
@@ -99,14 +103,14 @@ where
     where
         I: InstructionEndpoint + Send + Sync + 'static,
     {
-        let storage = self.storage.lock().await;
+        let mut storage = self.storage.write().await;
 
-        let challenge = self.instruction_challenge(&storage).await?;
+        let challenge = self.instruction_challenge(&mut storage).await?;
 
         let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt.0);
 
         let instruction = self
-            .with_sequence_number(&storage, |seq_num| {
+            .with_sequence_number(&mut storage, |seq_num| {
                 Instruction::new_signed(
                     instruction,
                     seq_num,
