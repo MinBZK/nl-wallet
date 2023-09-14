@@ -472,6 +472,11 @@ where
             .await
             .map_err(PidIssuanceError::PidIssuer)
     }
+
+    #[instrument(skip_all)]
+    pub async fn reject_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
+        self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
+    }
 }
 
 #[cfg(test)]

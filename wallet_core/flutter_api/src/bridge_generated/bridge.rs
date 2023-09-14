@@ -196,6 +196,16 @@ fn wire_accept_pid_issuance_impl(port_: MessagePort, pin: impl Wire2Api<String> 
         },
     )
 }
+fn wire_reject_pid_issuance_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "reject_pid_issuance",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| reject_pid_issuance(),
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

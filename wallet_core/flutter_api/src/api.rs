@@ -223,6 +223,16 @@ pub async fn accept_pid_issuance(pin: String) -> Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+#[flutter_api_error]
+pub async fn reject_pid_issuance() -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.reject_pid_issuance().await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

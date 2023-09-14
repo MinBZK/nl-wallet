@@ -76,6 +76,11 @@ pub extern "C" fn wire_accept_pid_issuance(port_: i64, pin: *mut wire_uint_8_lis
     wire_accept_pid_issuance_impl(port_, pin)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_reject_pid_issuance(port_: i64) {
+    wire_reject_pid_issuance_impl(port_)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

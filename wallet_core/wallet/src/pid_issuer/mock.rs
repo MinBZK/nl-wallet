@@ -28,4 +28,8 @@ impl PidIssuerClient for MockPidIssuerClient {
     ) -> Result<(), PidIssuerError> {
         Ok(())
     }
+
+    async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
+        Ok(())
+    }
 }

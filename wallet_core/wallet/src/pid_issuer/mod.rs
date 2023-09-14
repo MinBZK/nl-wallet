@@ -40,4 +40,6 @@ pub trait PidIssuerClient {
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
     ) -> Result<(), PidIssuerError>;
+
+    async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;
 }

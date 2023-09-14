@@ -112,4 +112,12 @@ impl PidIssuerClient for HttpPidIssuerClient {
 
         Ok(())
     }
+
+    async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
+        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
+
+        mdoc_wallet.stop_issuance().await?;
+
+        Ok(())
+    }
 }

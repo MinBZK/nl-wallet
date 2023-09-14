@@ -3,13 +3,14 @@ import 'timeline/interaction_timeline_attribute.dart';
 import 'timeline/operation_timeline_attribute.dart';
 import 'wallet_card.dart';
 
-class WalletCardSummary {
+/// Temporary model to be used in the card detail screen
+class WalletCardDetail {
   final WalletCard card;
   final Organization issuer;
   final OperationTimelineAttribute? latestIssuedOperation;
   final InteractionTimelineAttribute? latestSuccessInteraction;
 
-  const WalletCardSummary({
+  const WalletCardDetail({
     required this.card,
     required this.issuer,
     required this.latestIssuedOperation,
