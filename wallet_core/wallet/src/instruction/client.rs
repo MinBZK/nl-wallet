@@ -14,8 +14,9 @@ use crate::{
     account_provider::AccountProviderClient,
     pin::key::PinKey,
     storage::{InstructionData, RegistrationData, Storage},
-    wallet::InstructionError,
 };
+
+use super::InstructionError;
 
 pub struct InstructionClient<'a, S, K, A> {
     pin: String,

@@ -8,9 +8,9 @@ use wallet_common::{
     keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
 };
 
-use crate::{account_provider::AccountProviderClient, storage::Storage, wallet::InstructionError};
+use crate::{account_provider::AccountProviderClient, storage::Storage};
 
-use super::InstructionClient;
+use super::{InstructionClient, InstructionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {
