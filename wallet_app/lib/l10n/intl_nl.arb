@@ -71,9 +71,9 @@
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
     "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
     "cardOverviewScreenTitle": "Mijn kaarten",
-    "cardSummaryScreenCardDataCta": "Gegevens",
-    "cardSummaryScreenCardDataIssuedBy": "Uitgegeven door {organization}",
-    "@cardSummaryScreenCardDataIssuedBy": {
+    "cardDetailScreenCardDataCta": "Gegevens",
+    "cardDetailScreenCardDataIssuedBy": "Uitgegeven door {organization}",
+    "@cardDetailScreenCardDataIssuedBy": {
         "placeholders": {
             "organization": {
                 "example": "Organization",
@@ -81,12 +81,12 @@
             }
         }
     },
-    "cardSummaryScreenCardDeleteCta": "Kaart verwijderen",
-    "cardSummaryScreenCardHistoryCta": "Kaartgeschiedenis",
-    "cardSummaryScreenCardRenewCta": "Gegevens opnieuw ophalen",
-    "cardSummaryScreenCardUpdateCta": "Opnieuw ophalen",
-    "cardSummaryScreenCardValidUntil": "Geldig tot en met {dateTime}",
-    "@cardSummaryScreenCardValidUntil": {
+    "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
+    "cardDetailScreenCardHistoryCta": "Kaartgeschiedenis",
+    "cardDetailScreenCardRenewCta": "Gegevens opnieuw ophalen",
+    "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
+    "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
+    "@cardDetailScreenCardValidUntil": {
         "placeholders": {
             "dateTime": {
                 "example": "April 25 13:31",
@@ -94,9 +94,9 @@
             }
         }
     },
-    "cardSummaryScreenDataAttributesTitle": "Gegevens",
-    "cardSummaryScreenLatestIssuedOperation": "Laatste update {dateTime}",
-    "@cardSummaryScreenLatestIssuedOperation": {
+    "cardDetailScreenDataAttributesTitle": "Gegevens",
+    "cardDetailScreenLatestIssuedOperation": "Laatste update {dateTime}",
+    "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
             "dateTime": {
                 "example": "April 25 13:31",
@@ -104,9 +104,9 @@
             }
         }
     },
-    "cardSummaryScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
-    "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
-    "@cardSummaryScreenLatestSuccessInteraction": {
+    "cardDetailScreenLatestIssuedOperationUnknown": "Laatste update onbekend",
+    "cardDetailScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} met {organization}",
+    "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
             "organization": {
                 "example": "Organization",
@@ -122,10 +122,10 @@
             }
         }
     },
-    "cardSummaryScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
-    "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-    "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-    "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
+    "cardDetailScreenLatestSuccessInteractionUnknown": "Nog nooit gedeeld",
+    "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+    "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+    "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
     "changeLanguageScreenTitle": "Kies een taal",
     "checkAgreementPageCancelCta": "Nee",
     "checkAgreementPageConfirmCta": "Ja, volgende",

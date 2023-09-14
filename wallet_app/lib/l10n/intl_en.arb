@@ -71,9 +71,9 @@
     "cardHistoryTimelineSigningSuccess": "Signed",
     "cardOverviewScreenAddCardCta": "Add data",
     "cardOverviewScreenTitle": "My cards",
-    "cardSummaryScreenCardDataCta": "Data",
-    "cardSummaryScreenCardDataIssuedBy": "Issued by {organization}",
-    "@cardSummaryScreenCardDataIssuedBy": {
+    "cardDetailScreenCardDataCta": "Data",
+    "cardDetailScreenCardDataIssuedBy": "Issued by {organization}",
+    "@cardDetailScreenCardDataIssuedBy": {
         "placeholders": {
             "organization": {
                 "example": "Organization",
@@ -81,12 +81,12 @@
             }
         }
     },
-    "cardSummaryScreenCardDeleteCta": "Delete card",
-    "cardSummaryScreenCardHistoryCta": "Card history",
-    "cardSummaryScreenCardRenewCta": "Renew data",
-    "cardSummaryScreenCardUpdateCta": "Renew data",
-    "cardSummaryScreenCardValidUntil": "Valid until {dateTime}",
-    "@cardSummaryScreenCardValidUntil": {
+    "cardDetailScreenCardDeleteCta": "Delete card",
+    "cardDetailScreenCardHistoryCta": "Card history",
+    "cardDetailScreenCardRenewCta": "Renew data",
+    "cardDetailScreenCardUpdateCta": "Renew data",
+    "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
+    "@cardDetailScreenCardValidUntil": {
         "placeholders": {
             "dateTime": {
                 "example": "April 25 13:31",
@@ -94,9 +94,9 @@
             }
         }
     },
-    "cardSummaryScreenDataAttributesTitle": "Data",
-    "cardSummaryScreenLatestIssuedOperation": "Latest update {dateTime}",
-    "@cardSummaryScreenLatestIssuedOperation": {
+    "cardDetailScreenDataAttributesTitle": "Data",
+    "cardDetailScreenLatestIssuedOperation": "Latest update {dateTime}",
+    "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
             "dateTime": {
                 "example": "April 25 13:31",
@@ -104,9 +104,9 @@
             }
         }
     },
-    "cardSummaryScreenLatestIssuedOperationUnknown": "Latest update unknown",
-    "cardSummaryScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} with {organization}",
-    "@cardSummaryScreenLatestSuccessInteraction": {
+    "cardDetailScreenLatestIssuedOperationUnknown": "Latest update unknown",
+    "cardDetailScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} with {organization}",
+    "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
             "organization": {
                 "example": "Organization",
@@ -122,10 +122,10 @@
             }
         }
     },
-    "cardSummaryScreenLatestSuccessInteractionUnknown": "Never shared yet",
-    "cardSummaryScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
-    "cardSummaryScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
-    "cardSummaryScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
+    "cardDetailScreenLatestSuccessInteractionUnknown": "Never shared yet",
+    "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
+    "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het  een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
+    "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
     "changeLanguageScreenTitle": "Select a language",
     "checkAgreementPageCancelCta": "No",
     "checkAgreementPageConfirmCta": "Yes, next",

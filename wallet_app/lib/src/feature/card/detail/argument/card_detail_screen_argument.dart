@@ -1,11 +1,11 @@
-class CardSummaryScreenArgument {
+class CardDetailScreenArgument {
   static const _kCardIdKey = 'cardId';
   static const _kCardTitleKey = 'cardTitle';
 
   final String cardId;
   final String cardTitle;
 
-  const CardSummaryScreenArgument({required this.cardId, required this.cardTitle});
+  const CardDetailScreenArgument({required this.cardId, required this.cardTitle});
 
   Map<String, dynamic> toMap() {
     return {
@@ -14,8 +14,8 @@ class CardSummaryScreenArgument {
     };
   }
 
-  static CardSummaryScreenArgument fromMap(Map<String, dynamic> map) {
-    return CardSummaryScreenArgument(
+  static CardDetailScreenArgument fromMap(Map<String, dynamic> map) {
+    return CardDetailScreenArgument(
       cardId: map[_kCardIdKey],
       cardTitle: map[_kCardTitleKey],
     );
@@ -24,7 +24,7 @@ class CardSummaryScreenArgument {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is CardSummaryScreenArgument &&
+      other is CardDetailScreenArgument &&
           runtimeType == other.runtimeType &&
           cardId == other.cardId &&
           cardTitle == other.cardTitle;

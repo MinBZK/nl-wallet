@@ -8,12 +8,12 @@ import '../feature/about/about_screen.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
+import '../feature/card/detail/argument/card_detail_screen_argument.dart';
+import '../feature/card/detail/bloc/card_detail_bloc.dart';
+import '../feature/card/detail/card_detail_screen.dart';
 import '../feature/card/history/bloc/card_history_bloc.dart';
 import '../feature/card/history/card_history_screen.dart';
 import '../feature/card/overview/bloc/card_overview_bloc.dart';
-import '../feature/card/summary/argument/card_summary_screen_argument.dart';
-import '../feature/card/summary/bloc/card_summary_bloc.dart';
-import '../feature/card/summary/card_summary_screen.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
@@ -92,7 +92,7 @@ class WalletRoutes {
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletHistoryRoute = '/wallet/history';
   static const homeRoute = '/home';
-  static const cardSummaryRoute = '/card/summary';
+  static const cardDetailRoute = '/card/detail';
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
   static const themeRoute = '/theme';
@@ -148,8 +148,8 @@ class WalletRoutes {
         return _createConfirmScreenBuilder;
       case WalletRoutes.homeRoute:
         return _createHomeScreenBuilder(settings);
-      case WalletRoutes.cardSummaryRoute:
-        return _createCardSummaryScreenBuilder(settings);
+      case WalletRoutes.cardDetailRoute:
+        return _createCardDetailScreenBuilder(settings);
       case WalletRoutes.cardDataRoute:
         return _createCardDataScreenBuilder(settings);
       case WalletRoutes.cardHistoryRoute:
@@ -241,12 +241,12 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createCardSummaryScreenBuilder(RouteSettings settings) {
+WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    CardSummaryScreenArgument argument = CardSummaryScreen.getArgument(settings);
-    return BlocProvider<CardSummaryBloc>(
-      create: (context) => CardSummaryBloc(context.read())..add(CardSummaryLoadTriggered(argument.cardId)),
-      child: CardSummaryScreen(cardTitle: argument.cardTitle),
+    CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
+    return BlocProvider<CardDetailBloc>(
+      create: (context) => CardDetailBloc(context.read())..add(CardDetailLoadTriggered(argument.cardId)),
+      child: CardDetailScreen(cardTitle: argument.cardTitle),
     );
   };
 }
