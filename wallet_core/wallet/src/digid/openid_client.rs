@@ -38,7 +38,7 @@ pub trait OpenIdClient {
     /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
     async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Send + Sync + 'static;
+        P: PkcePair + Sync + 'static;
 }
 
 pub struct HttpOpenIdClient {
@@ -93,7 +93,7 @@ impl OpenIdClient for HttpOpenIdClient {
 
     async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Send + Sync,
+        P: PkcePair + Sync,
     {
         // Forward the received method parameters to our `Client` instance.
         let token = self

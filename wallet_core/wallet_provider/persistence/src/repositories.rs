@@ -1,16 +1,21 @@
+use std::{collections::HashMap, sync::Mutex};
+
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use wallet_provider_domain::model::wallet_user::{WalletUserCreate, WalletUserQueryResult};
+use p256::ecdsa::SigningKey;
 
-use wallet_provider_domain::repository::{PersistenceError, TransactionStarter, WalletUserRepository};
+use wallet_provider_domain::{
+    model::wallet_user::{WalletUserCreate, WalletUserQueryResult},
+    repository::{PersistenceError, TransactionStarter, WalletUserRepository},
+};
 
 use crate::{database::Db, transaction, transaction::Transaction, wallet_user_repository};
 
-pub struct Repositories(Db);
+pub struct Repositories(Db, pub Mutex<HashMap<String, SigningKey>>);
 
 impl Repositories {
     pub fn new(db: Db) -> Self {
-        Self(db)
+        Self(db, Mutex::new(HashMap::new()))
     }
 }
 
@@ -93,5 +98,45 @@ impl WalletUserRepository for Repositories {
         wallet_id: &str,
     ) -> Result<(), PersistenceError> {
         wallet_user_repository::reset_unsuccessful_pin_entries(transaction, wallet_id).await
+    }
+
+    async fn save_key(
+        &self,
+        _transaction: &Self::TransactionType,
+        _wallet_id: &str,
+        keys: &[(String, SigningKey)],
+    ) -> Result<(), PersistenceError> {
+        let mut data = self.1.lock().unwrap();
+        for (key_identifier, private_key) in keys {
+            if !data.contains_key(key_identifier) {
+                data.insert(key_identifier.to_string(), private_key.clone());
+            }
+        }
+        Ok(())
+    }
+
+    async fn get_key(
+        &self,
+        _transaction: &Self::TransactionType,
+        _wallet_id: &str,
+        key_identifier: &str,
+    ) -> Result<Option<SigningKey>, PersistenceError> {
+        Ok(self.1.lock().unwrap().get(key_identifier).cloned())
+    }
+
+    async fn get_keys<T: AsRef<str> + Sync>(
+        &self,
+        _transaction: &Self::TransactionType,
+        _wallet_id: &str,
+        key_identifiers: &[T],
+    ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
+        let data = self.1.lock().unwrap();
+
+        let existing_keys = key_identifiers
+            .iter()
+            .map(|key_identifier| data.get(key_identifier.as_ref()).cloned())
+            .collect();
+
+        Ok(existing_keys)
     }
 }

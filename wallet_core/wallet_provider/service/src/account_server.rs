@@ -1,6 +1,13 @@
+use std::collections::HashMap;
+
+use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use futures::try_join;
-use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
+use p256::{
+    ecdsa::{Signature, SigningKey, VerifyingKey},
+    pkcs8::EncodePublicKey,
+};
+use rand::rngs::OsRng;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::debug;
 use uuid::Uuid;
@@ -12,10 +19,11 @@ use wallet_common::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
             instructions::{
-                CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
+                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
+                InstructionEndpoint, InstructionResult, InstructionResultClaims, Sign, SignResult,
             },
         },
-        serialization::Base64Bytes,
+        serialization::{Base64Bytes, DerVerifyingKey},
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
@@ -116,6 +124,8 @@ pub enum InstructionError {
     Signing(#[source] wallet_common::errors::Error),
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
+    #[error("key not found: {0}")]
+    KeyNotFound(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -165,17 +175,101 @@ impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
-pub trait HandleInstruction {
-    type Result: Serialize + DeserializeOwned;
+#[async_trait]
+pub trait HandleInstruction<'de, T>
+where
+    T: Committable + Send + Sync,
+{
+    type Result: Serialize + Deserialize<'de> + Send + Sync;
 
-    fn handle(&self) -> Result<Self::Result, InstructionError>;
+    async fn handle(
+        &self,
+        wallet_id: &str,
+        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+    ) -> Result<Self::Result, InstructionError>;
 }
 
-impl HandleInstruction for CheckPin {
+#[async_trait]
+impl<T> HandleInstruction<'_, T> for CheckPin
+where
+    T: Committable + Send + Sync,
+{
     type Result = ();
 
-    fn handle(&self) -> Result<(), InstructionError> {
+    async fn handle(
+        &self,
+        _wallet_id: &str,
+        _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+    ) -> Result<(), InstructionError> {
         Ok(())
+    }
+}
+
+#[async_trait]
+impl<T> HandleInstruction<'_, T> for GenerateKey
+where
+    T: Committable + Send + Sync,
+{
+    type Result = GenerateKeyResult;
+
+    async fn handle(
+        &self,
+        wallet_id: &str,
+        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+    ) -> Result<GenerateKeyResult, InstructionError> {
+        let tx = repositories.begin_transaction().await?;
+
+        let existing_keys: Vec<Option<SigningKey>> = repositories.get_keys(&tx, wallet_id, &self.identifiers).await?;
+
+        let keys: Vec<(String, SigningKey)> = self
+            .identifiers
+            .iter()
+            .zip(existing_keys)
+            .map(|(identifier, existing_key)| {
+                (
+                    identifier.clone(),
+                    match existing_key {
+                        Some(key) => key,
+                        None => SigningKey::random(&mut OsRng),
+                    },
+                )
+            })
+            .collect();
+
+        repositories.save_key(&tx, wallet_id, &keys).await?;
+        tx.commit().await?;
+
+        let public_keys: HashMap<String, DerVerifyingKey> = keys
+            .into_iter()
+            .map(|(identifier, key)| (identifier, (*key.verifying_key()).into()))
+            .collect();
+
+        Ok(GenerateKeyResult { public_keys })
+    }
+}
+
+#[async_trait]
+impl<T> HandleInstruction<'_, T> for Sign
+where
+    T: Committable + Send + Sync,
+{
+    type Result = SignResult;
+
+    async fn handle(
+        &self,
+        wallet_id: &str,
+        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+    ) -> Result<SignResult, InstructionError> {
+        let tx = repositories.begin_transaction().await?;
+        let found_key = repositories.get_key(&tx, wallet_id, &self.identifier).await?;
+        tx.commit().await?;
+
+        let key = found_key.ok_or(InstructionError::KeyNotFound(self.identifier.clone()))?;
+        let signature: Signature = p256::ecdsa::signature::Signer::sign(&key, &self.msg.0);
+
+        Ok(SignResult {
+            signature: signature.into(),
+        })
     }
 }
 
@@ -282,16 +376,16 @@ impl AccountServer {
         Ok(challenge)
     }
 
-    pub async fn handle_instruction<T, I, R>(
+    pub async fn handle_instruction<'de, T, I, R>(
         &self,
         instruction: Instruction<I>,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
         pin_policy: &impl PinPolicyEvaluator,
         time_generator: &impl Generator<DateTime<Local>>,
     ) -> Result<InstructionResult<R>, InstructionError>
     where
-        T: Committable,
-        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
+        T: Committable + Send + Sync,
+        I: InstructionEndpoint + HandleInstruction<'de, T, Result = R> + Serialize + DeserializeOwned,
         R: Serialize + DeserializeOwned,
     {
         debug!("Verifying certificate and retrieving wallet user");
@@ -346,7 +440,8 @@ impl AccountServer {
 
                 tx.commit().await?;
 
-                self.sign_instruction_result(payload.payload.handle()?).await
+                let instruction_result = payload.payload.handle(&wallet_user.wallet_id, repositories).await?;
+                self.sign_instruction_result(instruction_result).await
             }
             Err(validation_error) => {
                 let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
@@ -522,13 +617,14 @@ impl AccountServer {
         }
     }
 
-    fn verify_instruction<I, R>(
+    fn verify_instruction<'de, T, I, R>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
-        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
+        T: Committable + Send + Sync,
+        I: HandleInstruction<'de, T, Result = R> + Serialize + DeserializeOwned,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -585,8 +681,8 @@ pub mod stub {
     use async_trait::async_trait;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
-    use wallet_common::account::serialization::DerSigningKey;
 
+    use wallet_common::account::serialization::DerSigningKey;
     use wallet_provider_domain::{
         generator::stub::FixedGenerator,
         repository::{TransactionStarterStub, WalletUserRepositoryStub},
@@ -705,6 +801,35 @@ pub mod stub {
             WalletUserRepositoryStub
                 .reset_unsuccessful_pin_entries(transaction, wallet_id)
                 .await
+        }
+
+        async fn save_key(
+            &self,
+            transaction: &Self::TransactionType,
+            wallet_id: &str,
+            keys: &[(String, SigningKey)],
+        ) -> Result<(), PersistenceError> {
+            WalletUserRepositoryStub.save_key(transaction, wallet_id, keys).await
+        }
+
+        async fn get_key(
+            &self,
+            transaction: &Self::TransactionType,
+            wallet_id: &str,
+            key_identifier: &str,
+        ) -> Result<Option<SigningKey>, PersistenceError> {
+            WalletUserRepositoryStub
+                .get_key(transaction, wallet_id, key_identifier)
+                .await
+        }
+
+        async fn get_keys<T: AsRef<str> + Sync>(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key_identifiers: &[T],
+        ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
+            Ok(vec![])
         }
     }
 }
@@ -836,6 +961,30 @@ mod tests {
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
+        async fn save_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _keys: &[(String, SigningKey)],
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+        async fn get_key(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key_identifier: &str,
+        ) -> Result<Option<SigningKey>, PersistenceError> {
+            Ok(SigningKey::random(&mut OsRng).into())
+        }
+        async fn get_keys<T: AsRef<str> + Sync>(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _key_identifiers: &[T],
+        ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
+            Ok(vec![])
+        }
     }
 
     #[async_trait]
@@ -897,12 +1046,16 @@ mod tests {
         assert_matches!(
             account_server
                 .handle_instruction(
-                    Instruction {
-                        instruction: CheckPin::new_signed(43, &hw_privkey, &pin_privkey, &challenge.clone())
-                            .await
-                            .unwrap(),
-                        certificate: cert.clone(),
-                    },
+                    Instruction::new_signed(
+                        CheckPin,
+                        43,
+                        &hw_privkey,
+                        &pin_privkey,
+                        &challenge.clone(),
+                        cert.clone(),
+                    )
+                    .await
+                    .unwrap(),
                     &WalletUserTestRepo {
                         hw: hw_pubkey,
                         pin: pin_pubkey,
@@ -922,12 +1075,9 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction {
-                    instruction: CheckPin::new_signed(44, &hw_privkey, &pin_privkey, &challenge)
-                        .await
-                        .unwrap(),
-                    certificate: cert.clone(),
-                },
+                Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                    .await
+                    .unwrap(),
                 &WalletUserTestRepo {
                     hw: hw_pubkey,
                     pin: pin_pubkey,

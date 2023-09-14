@@ -10,7 +10,8 @@ use wallet_common::account::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
         instructions::{
-            CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage,
+            Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
+            InstructionResultMessage,
         },
     },
     signed::SignedDouble,
@@ -139,13 +140,16 @@ impl AccountProviderClient for HttpAccountProviderClient {
         Ok(challenge.challenge.0)
     }
 
-    async fn check_pin(
+    async fn instruction<I>(
         &self,
         base_url: &Url,
-        instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountProviderError> {
-        let url = base_url.join("instructions/check_pin")?;
-        let message: InstructionResultMessage<()> = self.send_json_post_request(url, &instruction).await?;
+        instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
+    where
+        I: InstructionEndpoint + Send + Sync,
+    {
+        let url = base_url.join(&format!("instructions/{}", I::ENDPOINT))?;
+        let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;
 
         Ok(message.result)
     }

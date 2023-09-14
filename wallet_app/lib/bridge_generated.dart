@@ -69,6 +69,10 @@ abstract class WalletCore {
   Stream<ProcessUriEvent> processUri({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
+
+  Future<void> acceptPidIssuance({required String pin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta;
 }
 
 class Card {
@@ -394,6 +398,22 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "process_uri",
         argNames: ["uri"],
+      );
+
+  Future<void> acceptPidIssuance({required String pin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(pin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_accept_pid_issuance(port_, arg0),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kAcceptPidIssuanceConstMeta,
+      argValues: [pin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "accept_pid_issuance",
+        argNames: ["pin"],
       );
 
   void dispose() {
@@ -861,6 +881,22 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_process_uriPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_process_uri');
   late final _wire_process_uri = _wire_process_uriPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_accept_pid_issuance(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> pin,
+  ) {
+    return _wire_accept_pid_issuance(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire_accept_pid_issuancePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>(
+          'wire_accept_pid_issuance');
+  late final _wire_accept_pid_issuance =
+      _wire_accept_pid_issuancePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

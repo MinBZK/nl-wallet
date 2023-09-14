@@ -7,11 +7,14 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
     holder::{CborHttpClient, TrustAnchor, Wallet as MdocWallet},
-    utils::mdocs_map::MdocsMap,
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        mdocs_map::MdocsMap,
+    },
     ServiceEngagement,
 };
-use wallet_common::keys::software::SoftwareEcdsaKey;
 
 use crate::utils::reqwest::default_reqwest_client_builder;
 
@@ -56,12 +59,11 @@ impl Default for HttpPidIssuerClient {
 
 #[async_trait]
 impl PidIssuerClient for HttpPidIssuerClient {
-    async fn retrieve_pid<'a>(
-        &self,
+    async fn start_retrieve_pid(
+        &mut self,
         base_url: &Url,
-        mdoc_trust_anchors: &[TrustAnchor<'a>],
         access_token: &str,
-    ) -> Result<(), PidIssuerError> {
+    ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
         let url = base_url
             .join("start")
             .expect("Could not create \"start\" URL from PID issuer base URL");
@@ -94,15 +96,19 @@ impl PidIssuerClient for HttpPidIssuerClient {
             .await?;
 
         let mut mdoc_wallet = self.mdoc_wallet.lock().await;
-        let _unsigned_mdocs = mdoc_wallet.start_issuance(service_engagement).await?;
+        let unsigned_mdocs = mdoc_wallet.start_issuance(service_engagement).await?;
 
-        // TODO: instead of proceeding immediately with mdoc_wallet.finish_issuance():
-        // - return _unsigned_mdocs to the caller of this method so that it can decide whether or not to proceed,
-        // - put mdoc_wallet.finish_issuance() in a new method for if the caller decides to proceed.
+        Ok(unsigned_mdocs.to_vec())
+    }
 
-        mdoc_wallet
-            .finish_issuance::<SoftwareEcdsaKey>(mdoc_trust_anchors)
-            .await?;
+    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+        &mut self,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+    ) -> Result<(), PidIssuerError> {
+        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
+
+        mdoc_wallet.finish_issuance(mdoc_trust_anchors, key_factory).await?;
 
         Ok(())
     }

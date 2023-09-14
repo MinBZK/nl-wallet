@@ -15,7 +15,7 @@ use sea_orm::DbErr;
 use platform_support::utils::UtilitiesError;
 
 pub use self::{
-    data::{KeyedData, RegistrationData},
+    data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
     key_file::KeyFileError,
 };

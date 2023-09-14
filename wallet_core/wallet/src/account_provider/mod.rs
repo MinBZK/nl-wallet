@@ -8,7 +8,7 @@ use wallet_common::account::{
     messages::{
         auth::{Registration, WalletCertificate},
         errors::ErrorData,
-        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResult},
+        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
     },
     signed::SignedDouble,
 };
@@ -52,9 +52,11 @@ pub trait AccountProviderClient {
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
-    async fn check_pin(
+    async fn instruction<I>(
         &self,
         base_url: &Url,
-        instruction: Instruction<CheckPin>,
-    ) -> Result<InstructionResult<()>, AccountProviderError>;
+        instruction: Instruction<I>,
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
+    where
+        I: InstructionEndpoint + Send + Sync + 'static;
 }

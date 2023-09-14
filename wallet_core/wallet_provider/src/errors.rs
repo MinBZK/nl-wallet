@@ -67,7 +67,7 @@ where
         let error_type = value.error_type();
 
         WalletProviderError {
-            status_code: error_type.into(),
+            status_code: (&error_type).into(),
             body: ErrorData {
                 typ: error_type,
                 title: value.error_title(),
@@ -115,6 +115,7 @@ impl ConvertibleError for InstructionError {
             InstructionError::PinTimeout(data) => ErrorType::PinTimeout(*data),
             InstructionError::AccountBlocked => ErrorType::AccountBlocked,
             InstructionError::Validation(_) => ErrorType::InstructionValidation,
+            InstructionError::KeyNotFound(data) => ErrorType::KeyNotFound(data.to_string()),
             InstructionError::Signing(_) | InstructionError::Storage(_) | InstructionError::WalletCertificate(_) => {
                 ErrorType::Unexpected
             }
@@ -125,6 +126,7 @@ impl ConvertibleError for InstructionError {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+
     use wallet_common::account::messages::errors::IncorrectPinData;
 
     use super::*;

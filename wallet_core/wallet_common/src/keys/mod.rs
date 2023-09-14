@@ -9,7 +9,7 @@ pub mod integration_test;
 pub mod software;
 
 #[async_trait]
-pub trait EcdsaKey: Send + Sync {
+pub trait EcdsaKey {
     type Error: Error + Send + Sync + 'static;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
@@ -36,11 +36,13 @@ pub trait SecureEcdsaKey: EcdsaKey {}
 
 /// The contract of this trait includes that a constructed type with the same
 /// identifier behaves exactly the same, i.e. has the same key material backing it.
-pub trait ConstructibleWithIdentifier {
+pub trait ConstructibleWithIdentifier: WithIdentifier {
     fn new(identifier: &str) -> Self
     where
         Self: Sized;
+}
 
+pub trait WithIdentifier {
     fn identifier(&self) -> &str;
 }
 

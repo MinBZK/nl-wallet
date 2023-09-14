@@ -228,7 +228,6 @@ mod tests {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4].into(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
-            instruction_sequence_number: 1,
         };
 
         let mut storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
@@ -272,20 +271,16 @@ mod tests {
             fetched_registration.wallet_certificate.0,
             registration.wallet_certificate.0
         );
-        assert_eq!(
-            fetched_registration.instruction_sequence_number,
-            registration.instruction_sequence_number
-        );
 
         // Save the registration again, should result in an error.
         let save_result = storage.insert_data(&registration).await;
         assert!(save_result.is_err());
 
         // Update registration
+        let new_salt = random_bytes(64).into();
         let updated_registration = RegistrationData {
-            pin_salt: registration.pin_salt.clone(),
+            pin_salt: new_salt,
             wallet_certificate: registration.wallet_certificate.clone(),
-            instruction_sequence_number: registration.instruction_sequence_number + 1,
         };
         storage
             .update_data(&updated_registration)
@@ -298,14 +293,13 @@ mod tests {
             .expect("Could not get registration");
         assert!(fetched_after_update_registration.is_some());
         let fetched_after_update_registration = fetched_after_update_registration.unwrap();
-        assert_eq!(fetched_after_update_registration.pin_salt.0, registration.pin_salt.0);
+        assert_eq!(
+            fetched_after_update_registration.pin_salt.0,
+            updated_registration.pin_salt.0
+        );
         assert_eq!(
             fetched_after_update_registration.wallet_certificate.0,
             registration.wallet_certificate.0
-        );
-        assert_eq!(
-            fetched_after_update_registration.instruction_sequence_number,
-            registration.instruction_sequence_number + 1,
         );
 
         // Clear database, state should be uninitialized.

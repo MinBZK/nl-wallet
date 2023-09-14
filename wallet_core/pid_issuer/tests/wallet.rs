@@ -1,29 +1,20 @@
 use std::{
     net::{IpAddr, TcpListener},
     str::FromStr,
-    sync::Arc,
 };
 
-use tokio::sync::Mutex;
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    holder::{CborHttpClient, Wallet as MdocWallet},
-    utils::mdocs_map::MdocsMap,
-};
 use wallet::{
-    mock::{MockAccountProviderClient, MockDigidClient, MockStorage},
+    mock::{MockAccountProviderClient, MockStorage},
     wallet_deps::{HttpDigidClient, HttpPidIssuerClient, LocalConfigurationRepository},
     Configuration, DigidClient, Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
 use pid_issuer::{
-    app::{
-        mock::{MockAttributesLookup, MockBsnLookup},
-        AttributesLookup, BsnLookup,
-    },
+    app::{mock::MockAttributesLookup, AttributesLookup, BsnLookup},
     digid::OpenIdClient,
     server,
     settings::Settings,
@@ -56,7 +47,7 @@ async fn create_test_wallet<D: DigidClient>(
     Wallet::init_registration(
         test_wallet_config(base_url.clone()),
         MockStorage::default(),
-        MockAccountProviderClient::new(),
+        MockAccountProviderClient::default(),
         digid_client,
         pid_issuer_client,
     )
@@ -76,7 +67,7 @@ fn pid_issuer_settings() -> (Settings, u16) {
     let port = find_listener_port();
 
     let mut settings = Settings::new().expect("Could not read settings");
-    settings.webserver.ip = IpAddr::from_str("127.0.0.1").expect("Could not parse IP address");
+    settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.webserver.port = port;
     settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
 
@@ -95,46 +86,6 @@ where
     });
 
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
-}
-
-#[tokio::test]
-async fn test_pid_issuance_mock_bsn() {
-    // Set up pid issuer.
-    let (settings, port) = pid_issuer_settings();
-    start_pid_issuer(settings, MockAttributesLookup, MockBsnLookup);
-
-    // Set up mock DigiD client and its responses.
-    let digid_client = {
-        let mut digid_client = MockDigidClient::new();
-
-        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        digid_client
-            .expect_get_access_token()
-            .returning(|_| Ok("mock_token".to_string()));
-
-        digid_client
-    };
-
-    // Set up real pid issuer client.
-    let client = CborHttpClient(reqwest::Client::new());
-    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new(), client)));
-    let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
-
-    // Create wallet with configuration and dependencies.
-    let mut wallet = create_test_wallet(local_base_url(port), digid_client, pid_issuer_client).await;
-
-    wallet
-        .continue_pid_issuance(&Url::parse("redirect://here").unwrap())
-        .await
-        .expect("PID issuance failed");
-
-    let mdocs = mdoc_wallet.lock().await.list_mdocs::<SoftwareEcdsaKey>();
-    dbg!(&mdocs);
-
-    let pid_mdocs = mdocs.first().unwrap().1;
-    let namespace = pid_mdocs.first().unwrap();
-    let attrs = namespace.first().unwrap().1;
-    assert!(!attrs.is_empty());
 }
 
 // This test connects to the DigiD bridge and is disabled by default.

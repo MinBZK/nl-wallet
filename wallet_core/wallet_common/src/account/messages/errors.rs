@@ -22,7 +22,7 @@ pub struct ErrorData {
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum ErrorType {
     Unexpected,
@@ -32,6 +32,7 @@ pub enum ErrorType {
     PinTimeout(PinTimeoutData),
     AccountBlocked,
     InstructionValidation,
+    KeyNotFound(String),
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -54,8 +55,8 @@ impl Display for ErrorData {
 /// For the purposes of predictability, there exist a strict mapping
 /// of unique error identifiers to HTTP response codes. In this sense
 /// the error type gives addtional information over the HTTP response code.
-impl From<ErrorType> for StatusCode {
-    fn from(value: ErrorType) -> Self {
+impl From<&ErrorType> for StatusCode {
+    fn from(value: &ErrorType) -> Self {
         match value {
             ErrorType::Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorType::ChallengeValidation => StatusCode::UNAUTHORIZED,
@@ -64,18 +65,20 @@ impl From<ErrorType> for StatusCode {
             ErrorType::PinTimeout(_) => StatusCode::FORBIDDEN,
             ErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
             ErrorType::InstructionValidation => StatusCode::FORBIDDEN,
+            ErrorType::KeyNotFound(_) => StatusCode::NOT_FOUND,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     fn test_status_code_to_error_type() {
-        assert_eq!(StatusCode::from(ErrorType::ChallengeValidation).as_u16(), 401);
+        assert_eq!(StatusCode::from(&ErrorType::ChallengeValidation).as_u16(), 401);
     }
 
     #[test]

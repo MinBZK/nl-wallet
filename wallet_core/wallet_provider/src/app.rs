@@ -7,7 +7,10 @@ use tracing::info;
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration},
-        instructions::{CheckPin, Instruction, InstructionChallengeRequestMessage, InstructionResultMessage},
+        instructions::{
+            CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
+            InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
+        },
     },
     signed::SignedDouble,
 };
@@ -34,7 +37,9 @@ pub fn router(dependencies: Arc<AppDependencies>) -> Router {
             .route("/enroll", post(enroll))
             .route("/createwallet", post(create_wallet))
             .route("/instructions/challenge", post(instruction_challenge))
-            .route("/instructions/check_pin", post(check_pin))
+            .route(&format!("/instructions/{}", CheckPin::ENDPOINT), post(check_pin))
+            .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
+            .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
             .layer(TraceLayer::new_for_http())
             .with_state(dependencies),
     )
@@ -96,6 +101,42 @@ async fn check_pin(
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
+
+    let result = state
+        .account_server
+        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
+        .await?;
+
+    let body = InstructionResultMessage { result };
+
+    info!("Replying with the instruction result");
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn generate_key(
+    State(state): State<Arc<AppDependencies>>,
+    Json(payload): Json<Instruction<GenerateKey>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
+    info!("Received generate key request, handling the GenerateKey instruction");
+
+    let result = state
+        .account_server
+        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
+        .await?;
+
+    let body = InstructionResultMessage { result };
+
+    info!("Replying with the instruction result");
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn sign(
+    State(state): State<Arc<AppDependencies>>,
+    Json(payload): Json<Instruction<Sign>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
+    info!("Received sign request, handling the SignRequest instruction");
 
     let result = state
         .account_server

@@ -75,3 +75,48 @@ impl Storage for MockStorage {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde::{Deserialize, Serialize};
+
+    use crate::storage::{KeyedData, Storage};
+
+    use super::MockStorage;
+
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    struct Data {
+        a: u8,
+        b: String,
+    }
+
+    impl KeyedData for Data {
+        const KEY: &'static str = "test_data";
+    }
+
+    #[tokio::test]
+    async fn it_works() {
+        let mut storage = MockStorage::default();
+        storage.open().await.unwrap();
+
+        let data = Data {
+            a: 32,
+            b: "foo".to_string(),
+        };
+
+        storage.insert_data(&data).await.unwrap();
+
+        let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
+        assert_eq!(data, fetched);
+
+        let updated = Data {
+            a: 64,
+            b: "bar".to_string(),
+        };
+
+        storage.update_data(&updated).await.unwrap();
+
+        let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
+        assert_eq!(updated, fetched);
+    }
+}

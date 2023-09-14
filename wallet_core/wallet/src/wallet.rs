@@ -1,18 +1,17 @@
 use std::error::Error;
 
+use futures::future::TryFutureExt;
+use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 use platform_support::{
     hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
     utils::hardware::HardwareUtilities,
 };
+use tokio::sync::Mutex;
 use tracing::{info, instrument};
 use url::Url;
 
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::messages::{
-    auth::Registration,
-    errors::ErrorType,
-    instructions::{CheckPin, Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage},
-};
+use wallet_common::account::messages::{auth::Registration, errors::ErrorType, instructions::CheckPin};
 
 use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError, HttpAccountProviderClient},
@@ -24,6 +23,7 @@ use crate::{
         key::{new_pin_salt, PinKey},
         validation::{validate_pin, PinValidationError},
     },
+    remote::{InstructionClient, RemoteEcdsaKeyFactory},
     storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
     AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
 };
@@ -62,6 +62,16 @@ pub enum WalletRegistrationError {
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     NotRegistered,
+    #[error("could not retrieve registration from database: {0}")]
+    Database(#[from] StorageError),
+    #[error("could not get hardware public key: {0}")]
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    #[error("error sending instruction to Wallet Provider: {0}")]
+    Instruction(#[from] InstructionError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InstructionError {
     #[error(
         "PIN provided is incorrect: (leftover_attempts: {leftover_attempts}, is_final_attempt: {is_final_attempt})"
     )]
@@ -77,8 +87,6 @@ pub enum WalletUnlockError {
     ServerError(#[source] AccountProviderError),
     #[error("Wallet Provider could not validate instruction")]
     InstructionValidation,
-    #[error("could not get hardware public key: {0}")]
-    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign instruction: {0}")]
     Signing(#[source] wallet_common::errors::Error),
     #[error("could not validate instruction result received from Wallet Provider: {0}")]
@@ -87,35 +95,39 @@ pub enum WalletUnlockError {
     StoreInstructionSequenceNumber(#[from] StorageError),
 }
 
-impl From<AccountProviderError> for WalletUnlockError {
+impl From<AccountProviderError> for InstructionError {
     fn from(value: AccountProviderError) -> Self {
         if let AccountProviderError::Response(AccountProviderResponseError::Data(_, errordata)) = &value {
             match errordata.typ {
-                ErrorType::PinTimeout(data) => WalletUnlockError::Timeout {
+                ErrorType::PinTimeout(data) => Self::Timeout {
                     timeout_millis: data.time_left_in_ms,
                 },
-                ErrorType::IncorrectPin(data) => WalletUnlockError::IncorrectPin {
+                ErrorType::IncorrectPin(data) => Self::IncorrectPin {
                     leftover_attempts: data.attempts_left,
                     is_final_attempt: data.is_final_attempt,
                 },
-                ErrorType::AccountBlocked => WalletUnlockError::Blocked,
-                ErrorType::InstructionValidation => WalletUnlockError::InstructionValidation,
-                _ => WalletUnlockError::ServerError(value),
+                ErrorType::AccountBlocked => Self::Blocked,
+                ErrorType::InstructionValidation => Self::InstructionValidation,
+                _ => Self::ServerError(value),
             }
         } else {
-            WalletUnlockError::ServerError(value)
+            Self::ServerError(value)
         }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
+    #[error("wallet is not registered")]
+    NotRegistered,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
     PidIssuer(#[source] PidIssuerError),
+    #[error("error sending instruction to Wallet Provider: {0}")]
+    InstructionError(#[from] InstructionError),
 }
 
 pub enum RedirectUriType {
@@ -134,7 +146,7 @@ pub struct Wallet<
     P = HttpPidIssuerClient,
 > {
     config_repository: C,
-    storage: S,
+    storage: Mutex<S>,
     hw_privkey: K,
     account_provider_client: A,
     digid_client: D,
@@ -165,9 +177,9 @@ impl Wallet {
 impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
 where
     C: ConfigurationRepository,
-    S: Storage,
-    K: PlatformEcdsaKey,
-    A: AccountProviderClient,
+    S: Storage + Send + Sync,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
     D: DigidClient,
     P: PidIssuerClient,
 {
@@ -183,7 +195,7 @@ where
 
         let wallet = Wallet {
             config_repository,
-            storage,
+            storage: Mutex::new(storage),
             hw_privkey: K::new(WALLET_KEY_ID),
             account_provider_client,
             digid_client,
@@ -196,7 +208,7 @@ where
         Ok(wallet)
     }
 
-    /// Attempts to fetch the registration from storage, without creating a database if there is none.
+    /// Attempts to fetch the registration data from storage, without creating a database if there is none.
     async fn fetch_registration(storage: &mut S) -> Result<Option<RegistrationData>, StorageError> {
         match storage.state().await? {
             // If there is no database file, we can conclude early that there is no registration.
@@ -208,65 +220,6 @@ where
 
         // Finally, fetch the registration.
         storage.fetch_data::<RegistrationData>().await
-    }
-
-    async fn increment_sequence_number(&mut self) -> Result<(), StorageError> {
-        let storage_state = self.storage.state().await?;
-        if !matches!(storage_state, StorageState::Opened) {
-            self.storage.open().await?;
-        }
-
-        let registration_data = self.registration.as_mut().unwrap();
-        registration_data.instruction_sequence_number += 1;
-
-        // Update the registration data in storage with incremented instruction sequence number.
-        self.storage.update_data(registration_data).await?;
-
-        Ok(())
-    }
-
-    async fn new_instruction_challenge_request(
-        &mut self,
-    ) -> Result<InstructionChallengeRequestMessage, WalletUnlockError> {
-        self.increment_sequence_number().await?;
-
-        let registration_data = self.registration.as_ref().unwrap();
-        let seq_num = registration_data.instruction_sequence_number;
-
-        let message = InstructionChallengeRequest::new_signed(seq_num, "wallet", &self.hw_privkey)
-            .await
-            .map_err(WalletUnlockError::Signing)?;
-
-        let challenge_request = InstructionChallengeRequestMessage {
-            message,
-            certificate: registration_data.wallet_certificate.clone(),
-        };
-
-        Ok(challenge_request)
-    }
-
-    async fn new_check_pin_request(
-        &mut self,
-        pin: String,
-        challenge: Vec<u8>,
-    ) -> Result<Instruction<CheckPin>, WalletUnlockError> {
-        self.increment_sequence_number().await?;
-
-        let registration_data = self.registration.as_ref().unwrap();
-
-        let seq_num = registration_data.instruction_sequence_number;
-
-        let pin_key = PinKey::new(&pin, &registration_data.pin_salt.0);
-        let signed = CheckPin::new_signed(seq_num, &self.hw_privkey, &pin_key, &challenge)
-            .await
-            .map_err(WalletUnlockError::Signing)?;
-
-        let instruction = Instruction {
-            instruction: signed,
-            certificate: registration_data.wallet_certificate.clone(),
-        };
-
-        Ok(instruction)
     }
 
     pub fn set_lock_callback<F>(&mut self, callback: F)
@@ -307,37 +260,6 @@ where
         self.lock.lock()
     }
 
-    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
-        info!("Validating pin");
-
-        if self.registration.is_none() {
-            return Err(WalletUnlockError::NotRegistered);
-        }
-
-        let config = self.config_repository.config();
-        let base_url = config.account_server.base_url.clone();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone();
-
-        let challenge_request = self.new_instruction_challenge_request().await?;
-
-        // Retrieve a challenge from the account server
-        let challenge = self
-            .account_provider_client
-            .instruction_challenge(&base_url, challenge_request)
-            .await?;
-
-        let instruction = self.new_check_pin_request(pin, challenge).await?;
-        let signed_result = self.account_provider_client.check_pin(&base_url, instruction).await?;
-
-        signed_result
-            .parse_and_verify(&instruction_result_public_key)
-            .map_err(WalletUnlockError::InstructionResultValidation)?;
-
-        self.lock.unlock();
-
-        Ok(())
-    }
-
     #[instrument(skip_all)]
     pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError> {
         info!("Checking if already registered");
@@ -354,9 +276,9 @@ where
 
         info!("Requesting challenge from account server");
 
-        let config = self.config_repository.config();
-        let base_url = config.account_server.base_url.clone();
-        let certificate_public_key = config.account_server.certificate_public_key.clone();
+        let config = &self.config_repository.config().account_server;
+        let base_url = config.base_url.clone();
+        let certificate_public_key = config.certificate_public_key.clone();
 
         // Retrieve a challenge from the account server
         let challenge = self
@@ -403,18 +325,18 @@ where
         info!("Storing received registration");
 
         // If the storage database does not exist, create it now.
-        let storage_state = self.storage.state().await?;
+        let mut storage = self.storage.lock().await;
+        let storage_state = storage.state().await?;
         if !matches!(storage_state, StorageState::Opened) {
-            self.storage.open().await?;
+            storage.open().await?;
         }
 
         // Save the registration data in storage.
         let registration_data = RegistrationData {
             pin_salt: pin_salt.into(),
             wallet_certificate: cert,
-            instruction_sequence_number: 0,
         };
-        self.storage.insert_data(&registration_data).await?;
+        storage.insert_data(&registration_data).await?;
 
         // Keep the registration data in memory.
         self.registration = Some(registration_data);
@@ -426,18 +348,52 @@ where
     }
 
     #[instrument(skip_all)]
+    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError> {
+        info!("Validating pin");
+
+        info!("Checking if already registered");
+        if !self.has_registration() {
+            return Err(WalletUnlockError::NotRegistered);
+        }
+
+        let registration_data = self.registration.as_ref().unwrap();
+        let config = &self.config_repository.config();
+
+        let remote_instruction = InstructionClient::new(
+            pin,
+            &registration_data.pin_salt,
+            &registration_data.wallet_certificate,
+            &self.hw_privkey,
+            &self.account_provider_client,
+            &self.storage,
+            config.account_server.clone(),
+        );
+
+        remote_instruction
+            .send(CheckPin)
+            .inspect_ok(|_| self.lock.unlock())
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
     pub async fn create_pid_issuance_redirect_uri(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
+        info!("Checking if already registered");
+        if !self.has_registration() {
+            return Err(PidIssuanceError::NotRegistered);
+        }
+
         let config = &self.config_repository.config().pid_issuance;
+        let digid_url = config.digid_url.clone();
+        let digid_client_id = config.digid_client_id.clone();
+        let digid_redirect_uri = config.digid_redirect_uri.clone();
 
         let auth_url = self
             .digid_client
-            .start_session(
-                config.digid_url.clone(),
-                config.digid_client_id.clone(),
-                config.digid_redirect_uri.clone(),
-            )
+            .start_session(digid_url, digid_client_id, digid_redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionStart)?;
 
@@ -459,8 +415,13 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<(), PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<UnsignedMdoc>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
+
+        info!("Checking if already registered");
+        if !self.has_registration() {
+            return Err(PidIssuanceError::NotRegistered);
+        }
 
         let access_token = self
             .digid_client
@@ -472,18 +433,44 @@ where
 
         let config = self.config_repository.config();
 
-        self.pid_issuer
-            .retrieve_pid(
-                &config.pid_issuance.pid_issuer_url,
-                &config.mdoc_trust_anchors(),
-                &access_token,
-            )
+        let unsigned_mdocs = self
+            .pid_issuer
+            .start_retrieve_pid(&config.pid_issuance.pid_issuer_url, &access_token)
             .await
             .map_err(PidIssuanceError::PidIssuer)?;
 
         info!("PID received successfully from issuer");
 
-        Ok(())
+        Ok(unsigned_mdocs)
+    }
+
+    #[instrument(skip_all)]
+    pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError> {
+        info!("Accepting PID issuance");
+
+        info!("Checking if already registered");
+        if !self.has_registration() {
+            return Err(PidIssuanceError::NotRegistered);
+        }
+
+        let registration_data = self.registration.as_ref().unwrap();
+        let config = &self.config_repository.config();
+
+        let remote_instruction = InstructionClient::new(
+            pin,
+            &registration_data.pin_salt,
+            &registration_data.wallet_certificate,
+            &self.hw_privkey,
+            &self.account_provider_client,
+            &self.storage,
+            config.account_server.clone(),
+        );
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
+
+        self.pid_issuer
+            .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
+            .await
+            .map_err(PidIssuanceError::PidIssuer)
     }
 }
 
@@ -514,9 +501,9 @@ mod tests {
         Wallet::init_registration(
             LocalConfigurationRepository::default(),
             storage,
-            MockAccountProviderClient::new(),
-            MockDigidClient::new(),
-            MockPidIssuerClient::new(),
+            MockAccountProviderClient::default(),
+            MockDigidClient::default(),
+            MockPidIssuerClient::default(),
         )
         .await
     }
@@ -541,7 +528,7 @@ mod tests {
         assert!(wallet.registration.is_none());
         assert!(!wallet.has_registration());
         assert!(matches!(
-            wallet.storage.state().await.unwrap(),
+            wallet.storage.lock().await.state().await.unwrap(),
             StorageState::Uninitialized
         ));
 
@@ -556,7 +543,10 @@ mod tests {
         // The wallet should have no registration, the database should be opened.
         assert!(wallet.registration.is_none());
         assert!(!wallet.has_registration());
-        assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
+        assert!(matches!(
+            wallet.storage.lock().await.state().await.unwrap(),
+            StorageState::Opened
+        ));
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = new_pin_salt();
@@ -565,7 +555,6 @@ mod tests {
             Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
-                instruction_sequence_number: 0,
             }),
         )))
         .await
@@ -574,7 +563,10 @@ mod tests {
         // The wallet should have a registration, the database should be opened.
         assert!(wallet.registration.is_some());
         assert!(wallet.has_registration());
-        assert!(matches!(wallet.storage.state().await.unwrap(), StorageState::Opened));
+        assert!(matches!(
+            wallet.storage.lock().await.state().await.unwrap(),
+            StorageState::Opened
+        ));
 
         // The registration data should now be available.
         assert_eq!(wallet.registration.unwrap().pin_salt.0, pin_salt);
