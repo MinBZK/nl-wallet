@@ -52,6 +52,8 @@ void wire_create_pid_issuance_redirect_uri(int64_t port_);
 
 void wire_cancel_pid_issuance(int64_t port_);
 
+void wire_reject_pid_issuance(int64_t port_);
+
 void wire_accept_pid_issuance(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_process_uri(int64_t port_, struct wire_uint_8_list *uri);
@@ -75,6 +77,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_register);
     dummy_var ^= ((int64_t) (void*) wire_create_pid_issuance_redirect_uri);
     dummy_var ^= ((int64_t) (void*) wire_cancel_pid_issuance);
+    dummy_var ^= ((int64_t) (void*) wire_reject_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_accept_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_process_uri);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);

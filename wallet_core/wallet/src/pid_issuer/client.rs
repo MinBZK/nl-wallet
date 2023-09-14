@@ -108,4 +108,12 @@ impl PidRetriever for PidIssuerClient {
 
         Ok(())
     }
+
+    async fn reject_pid_issuance(&mut self) -> Result<(), PidRetrieverError> {
+        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
+
+        mdoc_wallet.stop_issuance().await?;
+
+        Ok(())
+    }
 }

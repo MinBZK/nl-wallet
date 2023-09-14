@@ -156,6 +156,16 @@ pub async fn cancel_pid_issuance() {
     wallet.cancel_pid_issuance()
 }
 
+#[async_runtime]
+#[flutter_api_error]
+pub async fn reject_pid_issuance() -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.reject_pid_issuance().await?;
+
+    Ok(())
+}
+
 // todo: handle inner instructions errors (regarding PIN) similarly to unlock_wallet above.
 #[async_runtime]
 #[flutter_api_error]
