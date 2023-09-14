@@ -9,7 +9,7 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../summary/argument/card_summary_screen_argument.dart';
+import '../detail/argument/card_detail_screen_argument.dart';
 import 'bloc/card_overview_bloc.dart';
 
 /// Defines the width required to render a card,
@@ -75,8 +75,8 @@ class CardOverviewScreen extends StatelessWidget {
   void _onCardPressed(BuildContext context, WalletCard walletCard) {
     Navigator.restorablePushNamed(
       context,
-      WalletRoutes.cardSummaryRoute,
-      arguments: CardSummaryScreenArgument(
+      WalletRoutes.cardDetailRoute,
+      arguments: CardDetailScreenArgument(
         cardId: walletCard.id,
         cardTitle: walletCard.front.title,
       ).toMap(),

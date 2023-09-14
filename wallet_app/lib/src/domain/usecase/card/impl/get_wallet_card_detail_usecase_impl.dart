@@ -5,22 +5,22 @@ import '../../../../feature/verification/model/organization.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../../../model/wallet_card.dart';
-import '../../../model/wallet_card_summary.dart';
-import '../get_wallet_card_summary_usecase.dart';
+import '../../../model/wallet_card_detail.dart';
+import '../get_wallet_card_detail_usecase.dart';
 
-class GetWalletCardSummaryUseCaseImpl implements GetWalletCardSummaryUseCase {
+class GetWalletCardDetailUseCaseImpl implements GetWalletCardDetailUseCase {
   final WalletCardRepository _walletCardRepository;
   final OrganizationRepository _organizationRepository;
   final TimelineAttributeRepository _timelineAttributeRepository;
 
-  GetWalletCardSummaryUseCaseImpl(
+  GetWalletCardDetailUseCaseImpl(
     this._walletCardRepository,
     this._organizationRepository,
     this._timelineAttributeRepository,
   );
 
   @override
-  Future<WalletCardSummary> invoke(String cardId) async {
+  Future<WalletCardDetail> invoke(String cardId) async {
     WalletCard card = await _walletCardRepository.read(cardId);
     Organization organization = (await _organizationRepository.read(card.issuerId))!;
     InteractionTimelineAttribute? interaction = await _timelineAttributeRepository.readMostRecentInteraction(
@@ -32,13 +32,13 @@ class GetWalletCardSummaryUseCaseImpl implements GetWalletCardSummaryUseCase {
       OperationStatus.issued,
     );
 
-    WalletCardSummary summary = WalletCardSummary(
+    WalletCardDetail detail = WalletCardDetail(
       card: card,
       issuer: organization,
       latestSuccessInteraction: interaction,
       latestIssuedOperation: operation,
     );
 
-    return summary;
+    return detail;
   }
 }
