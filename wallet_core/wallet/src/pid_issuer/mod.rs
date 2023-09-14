@@ -19,6 +19,8 @@ pub trait PidRetriever {
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a> + Sync),
     ) -> Result<(), PidRetrieverError>;
+
+    async fn reject_pid_issuance(&mut self) -> Result<(), PidRetrieverError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -40,6 +42,10 @@ impl PidRetriever for MockPidRetriever {
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
         _key_factory: &'a (impl KeyFactory<'a> + Sync),
     ) -> Result<(), PidRetrieverError> {
+        Ok(())
+    }
+
+    async fn reject_pid_issuance(&mut self) -> Result<(), PidRetrieverError> {
         Ok(())
     }
 }

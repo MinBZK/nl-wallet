@@ -67,6 +67,11 @@ pub extern "C" fn wire_cancel_pid_issuance(port_: i64) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_reject_pid_issuance(port_: i64) {
+    wire_reject_pid_issuance_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_accept_pid_issuance(port_: i64, pin: *mut wire_uint_8_list) {
     wire_accept_pid_issuance_impl(port_, pin)
 }

@@ -66,6 +66,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta;
 
+  Future<void> rejectPidIssuance({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta;
+
   Future<void> acceptPidIssuance({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta;
@@ -381,6 +385,21 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "cancel_pid_issuance",
+        argNames: [],
+      );
+
+  Future<void> rejectPidIssuance({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_reject_pid_issuance(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kRejectPidIssuanceConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "reject_pid_issuance",
         argNames: [],
       );
 
@@ -867,6 +886,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_cancel_pid_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_cancel_pid_issuance');
   late final _wire_cancel_pid_issuance = _wire_cancel_pid_issuancePtr.asFunction<void Function(int)>();
+
+  void wire_reject_pid_issuance(
+    int port_,
+  ) {
+    return _wire_reject_pid_issuance(
+      port_,
+    );
+  }
+
+  late final _wire_reject_pid_issuancePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reject_pid_issuance');
+  late final _wire_reject_pid_issuance = _wire_reject_pid_issuancePtr.asFunction<void Function(int)>();
 
   void wire_accept_pid_issuance(
     int port_,
