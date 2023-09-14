@@ -12,22 +12,22 @@ use crate::{account_provider::AccountProviderClient, storage::Storage, wallet::I
 
 use super::InstructionClient;
 
-pub struct RemoteEcdsaKey<'a, S, A, K> {
-    identifier: String,
-    public_key: VerifyingKey,
-    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, A, K>,
-}
-
-pub struct RemoteEcdsaKeyFactory<'a, S, A, K> {
-    remote_instruction: &'a InstructionClient<'a, S, A, K>,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+}
+
+pub struct RemoteEcdsaKeyFactory<'a, S, A, K> {
+    remote_instruction: &'a InstructionClient<'a, S, A, K>,
+}
+
+pub struct RemoteEcdsaKey<'a, S, A, K> {
+    identifier: String,
+    public_key: VerifyingKey,
+    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, A, K>,
 }
 
 impl<'a, S, A, K> RemoteEcdsaKeyFactory<'a, S, A, K> {

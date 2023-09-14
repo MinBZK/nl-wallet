@@ -1,11 +1,11 @@
 mod account_provider;
 mod config;
 mod digid;
+mod instruction;
 mod lock;
 mod pid_issuer;
 mod pin;
 mod pkce;
-mod remote;
 mod storage;
 mod utils;
 mod wallet;
@@ -29,7 +29,7 @@ pub use crate::{
 pub mod wallet_deps {
     pub use crate::{
         account_provider::HttpAccountProviderClient, config::LocalConfigurationRepository, digid::HttpDigidClient,
-        pid_issuer::HttpPidIssuerClient, remote::RemoteEcdsaKey,
+        instruction::RemoteEcdsaKey, pid_issuer::HttpPidIssuerClient,
     };
 }
 

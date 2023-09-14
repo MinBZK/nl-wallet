@@ -1,7 +1,7 @@
-mod instructions;
+mod client;
 mod keys;
 
 pub use self::{
-    instructions::InstructionClient,
+    client::InstructionClient,
     keys::{RemoteEcdsaKey, RemoteEcdsaKeyFactory},
 };

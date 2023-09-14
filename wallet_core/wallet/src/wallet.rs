@@ -17,13 +17,13 @@ use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError, HttpAccountProviderClient},
     config::LocalConfigurationRepository,
     digid::{DigidError, HttpDigidClient},
+    instruction::{InstructionClient, RemoteEcdsaKeyFactory},
     lock::WalletLock,
     pid_issuer::{HttpPidIssuerClient, PidIssuerError},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::{validate_pin, PinValidationError},
     },
-    remote::{InstructionClient, RemoteEcdsaKeyFactory},
     storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
     AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
 };
