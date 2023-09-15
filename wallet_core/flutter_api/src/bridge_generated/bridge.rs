@@ -104,6 +104,26 @@ fn wire_clear_configuration_stream_impl(port_: MessagePort) {
         move || move |task_callback| Ok(clear_configuration_stream()),
     )
 }
+fn wire_set_cards_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "set_cards_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| Ok(set_cards_stream(task_callback.stream_sink())),
+    )
+}
+fn wire_clear_cards_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "clear_cards_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Ok(clear_cards_stream()),
+    )
+}
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
