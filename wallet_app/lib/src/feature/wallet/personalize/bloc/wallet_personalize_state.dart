@@ -69,7 +69,10 @@ class WalletPersonalizeCheckData extends WalletPersonalizeState {
 }
 
 class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
-  const WalletPersonalizeConfirmPin();
+  /// Used to return to [WalletPersonalizeCheckData] when user presses back
+  final List<Attribute> attributes;
+
+  const WalletPersonalizeConfirmPin(this.attributes);
 
   @override
   double get stepperProgress => 4 / _kNrOfPages;

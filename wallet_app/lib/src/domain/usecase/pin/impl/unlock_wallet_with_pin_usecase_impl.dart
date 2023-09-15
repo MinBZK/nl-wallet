@@ -1,5 +1,5 @@
 import '../../../../data/repository/wallet/wallet_repository.dart';
-import '../../../../util/extension/wallet_unlock_result_extension.dart';
+import '../../../../util/extension/wallet_instruction_result_extension.dart';
 import '../unlock_wallet_with_pin_usecase.dart';
 
 class UnlockWalletWithPinUseCaseImpl extends UnlockWalletWithPinUseCase {

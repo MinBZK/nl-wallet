@@ -30,6 +30,7 @@ class WalletDependencyProvider extends StatelessWidget {
         child: WalletRepositoryProvider(
           provideMocks: Environment.mockRepositories,
           child: WalletUseCaseProvider(
+            provideMocks: Environment.mockRepositories,
             child: WalletServiceProvider(
               navigatorKey: navigatorKey,
               child: WalletBlocProvider(child: child),

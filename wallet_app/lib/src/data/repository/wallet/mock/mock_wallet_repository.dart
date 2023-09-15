@@ -5,7 +5,7 @@ import 'package:rxdart/rxdart.dart';
 import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
-import '../../../../util/extension/wallet_unlock_result_extension.dart';
+import '../../../../util/extension/wallet_instruction_result_extension.dart';
 import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/flutter_api_error.dart';
 import '../../../source/wallet_datasource.dart';
@@ -30,18 +30,18 @@ class MockWalletRepository implements WalletRepository {
   void lockWallet() => _locked.add(true);
 
   @override
-  Future<WalletUnlockResult> unlockWallet(String pin) async {
+  Future<WalletInstructionResult> unlockWallet(String pin) async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
     await Future.delayed(const Duration(milliseconds: 500));
     if (kDebugMode && pin != _pin) {
       /// This allows us to test all expected errors (and UI states) on mock builds.
       switch (pin) {
         case '111111':
-          return const WalletUnlockResult.timeout(timeoutMillis: 10000);
+          return const WalletInstructionResult.timeout(timeoutMillis: 10000);
         case '222222':
-          return const WalletUnlockResult.incorrectPin(leftoverAttempts: 5, isFinalAttempt: false);
+          return const WalletInstructionResult.incorrectPin(leftoverAttempts: 5, isFinalAttempt: false);
         case '333333':
-          return const WalletUnlockResult.blocked();
+          return const WalletInstructionResult.blocked();
         case '444444':
           throw FlutterApiError(type: FlutterApiErrorType.generic);
         case '555555':
@@ -51,7 +51,7 @@ class MockWalletRepository implements WalletRepository {
     if (_pin != null && pin == _pin) {
       _locked.add(false);
       _invalidPinAttempts = 0;
-      return const WalletUnlockResult.ok();
+      return const WalletInstructionResult.ok();
     } else {
       return _handlePinInvalid();
     }
@@ -70,17 +70,17 @@ class MockWalletRepository implements WalletRepository {
   }
 
   /// Increase the invalid pin counter and resolve
-  /// the currently relevant [WalletUnlockResult].
-  WalletUnlockResult _handlePinInvalid() {
+  /// the currently relevant [WalletInstructionResult].
+  WalletInstructionResult _handlePinInvalid() {
     _invalidPinAttempts++;
     // Ugly & long, but also temporary
     if (_invalidPinAttempts <= _kTimeoutUnlockAttempts) {
       if (_invalidPinAttempts >= _kTimeoutUnlockAttempts) {
         // Trigger timeout
-        return const WalletUnlockResult.timeout(timeoutMillis: 15 * 1000 /* 15 seconds */);
+        return const WalletInstructionResult.timeout(timeoutMillis: 15 * 1000 /* 15 seconds */);
       } else {
         // Trigger normal (pre timeout) attempts left
-        return WalletUnlockResult.incorrectPin(
+        return WalletInstructionResult.incorrectPin(
           leftoverAttempts: _kTimeoutUnlockAttempts - _invalidPinAttempts,
           isFinalAttempt: false,
         );
@@ -90,11 +90,11 @@ class MockWalletRepository implements WalletRepository {
       if (_invalidPinAttempts >= kMaxUnlockAttempts) {
         // Too many attempts, block user
         destroyWallet();
-        return const WalletUnlockResult.blocked();
+        return const WalletInstructionResult.blocked();
       } else {
         // x Attempts left in final round
         var attemptsLeft = kMaxUnlockAttempts - _invalidPinAttempts;
-        return WalletUnlockResult.incorrectPin(
+        return WalletInstructionResult.incorrectPin(
           leftoverAttempts: attemptsLeft,
           isFinalAttempt: attemptsLeft == 1,
         );

@@ -75,7 +75,7 @@ void main() {
 
   group('Pin validation', () {
     blocTest<PinBloc, PinState>(
-      'Verify that WalletUnlockResultIncorrectPin results in PinValidateFailure with 3 leftover attempts',
+      'Verify that WalletInstructionResult.IncorrectPin results in PinValidateFailure with 3 leftover attempts',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
@@ -85,7 +85,7 @@ void main() {
       expect: () => [const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false)],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that WalletUnlockResultIncorrectPin results in PinValidateFailure with final attempt',
+      'Verify that WalletInstructionResult.IncorrectPin results in PinValidateFailure with final attempt',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
@@ -95,7 +95,7 @@ void main() {
       expect: () => [const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true)],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that WalletUnlockResultBlocked results in PinValidateBlocked',
+      'Verify that WalletInstructionResult.Blocked results in PinValidateBlocked',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
@@ -105,7 +105,7 @@ void main() {
       expect: () => [const PinValidateBlocked()],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that WalletUnlockResultTimeout results in PinValidateTimeout',
+      'Verify that WalletInstructionResult.Timeout results in PinValidateTimeout',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,

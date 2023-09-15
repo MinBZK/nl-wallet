@@ -9,7 +9,7 @@ abstract class TypedWalletCore {
 
   Future<void> lockWallet();
 
-  Future<WalletUnlockResult> unlockWallet(String pin);
+  Future<WalletInstructionResult> unlockWallet(String pin);
 
   Stream<bool> get isLocked;
 
@@ -20,4 +20,8 @@ abstract class TypedWalletCore {
   Future<void> cancelPidIssuance();
 
   Stream<FlutterConfiguration> observeConfig();
+
+  Future<WalletInstructionResult> acceptOfferedPid(String pin);
+
+  Future<void> rejectOfferedPid();
 }

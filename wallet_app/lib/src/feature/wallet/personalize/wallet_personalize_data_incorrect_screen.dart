@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
-import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/numbered_list.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
-  const WalletPersonalizeDataIncorrectScreen({Key? key}) : super(key: key);
+  final VoidCallback onDataRejected;
+
+  const WalletPersonalizeDataIncorrectScreen({required this.onDataRejected, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +83,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ElevatedButton(
-            onPressed: () => Navigator.restorablePushNamedAndRemoveUntil(
-              context,
-              WalletRoutes.walletPersonalizeRoute,
-              (route) => false,
-            ),
+            onPressed: onDataRejected,
             child: Text(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta),
           ),
         ),
@@ -95,10 +92,19 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
     );
   }
 
-  static void show(BuildContext context) {
+  /// Shows the [WalletPersonalizeDataIncorrectScreen] and also makes sure
+  /// the route is popped when the reject button is pressed.
+  static void show(BuildContext context, VoidCallback onDataRejected) {
     Navigator.push(
       context,
-      SecuredPageRoute(builder: (c) => const WalletPersonalizeDataIncorrectScreen()),
+      SecuredPageRoute(
+        builder: (c) => WalletPersonalizeDataIncorrectScreen(
+          onDataRejected: () {
+            Navigator.pop(c);
+            onDataRejected();
+          },
+        ),
+      ),
     );
   }
 }

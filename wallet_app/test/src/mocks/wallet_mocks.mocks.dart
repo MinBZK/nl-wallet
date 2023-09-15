@@ -14,6 +14,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _
 import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart' as _i5;
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart' as _i10;
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i16;
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i17;
 import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart' as _i12;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i7;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i13;
@@ -32,8 +33,8 @@ import 'package:wallet/src/wallet_core/typed_wallet_core.dart' as _i9;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeWalletUnlockResult_0 extends _i1.SmartFake implements _i2.WalletUnlockResult {
-  _FakeWalletUnlockResult_0(
+class _FakeWalletInstructionResult_0 extends _i1.SmartFake implements _i2.WalletInstructionResult {
+  _FakeWalletInstructionResult_0(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -81,6 +82,36 @@ class MockPidRepository extends _i1.Mock implements _i3.PidRepository {
         returnValue: _i4.Stream<_i5.PidIssuanceStatus>.empty(),
         returnValueForMissingStub: _i4.Stream<_i5.PidIssuanceStatus>.empty(),
       ) as _i4.Stream<_i5.PidIssuanceStatus>);
+  @override
+  _i4.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #acceptOfferedPid,
+          [pin],
+        ),
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+          this,
+          Invocation.method(
+            #acceptOfferedPid,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+          this,
+          Invocation.method(
+            #acceptOfferedPid,
+            [pin],
+          ),
+        )),
+      ) as _i4.Future<_i2.WalletInstructionResult>);
+  @override
+  _i4.Future<void> rejectOfferedPid() => (super.noSuchMethod(
+        Invocation.method(
+          #rejectOfferedPid,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [WalletRepository].
@@ -130,26 +161,26 @@ class MockWalletRepository extends _i1.Mock implements _i6.WalletRepository {
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
   @override
-  _i4.Future<_i2.WalletUnlockResult> unlockWallet(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #unlockWallet,
           [pin],
         ),
-        returnValue: _i4.Future<_i2.WalletUnlockResult>.value(_FakeWalletUnlockResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i2.WalletUnlockResult>.value(_FakeWalletUnlockResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-      ) as _i4.Future<_i2.WalletUnlockResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
   @override
   void lockWallet() => super.noSuchMethod(
         Invocation.method(
@@ -228,26 +259,26 @@ class MockTypedWalletCore extends _i1.Mock implements _i9.TypedWalletCore {
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
   @override
-  _i4.Future<_i2.WalletUnlockResult> unlockWallet(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #unlockWallet,
           [pin],
         ),
-        returnValue: _i4.Future<_i2.WalletUnlockResult>.value(_FakeWalletUnlockResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i2.WalletUnlockResult>.value(_FakeWalletUnlockResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-      ) as _i4.Future<_i2.WalletUnlockResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
   @override
   _i4.Future<String> createPidIssuanceRedirectUri() => (super.noSuchMethod(
         Invocation.method(
@@ -284,6 +315,36 @@ class MockTypedWalletCore extends _i1.Mock implements _i9.TypedWalletCore {
         returnValue: _i4.Stream<_i2.FlutterConfiguration>.empty(),
         returnValueForMissingStub: _i4.Stream<_i2.FlutterConfiguration>.empty(),
       ) as _i4.Stream<_i2.FlutterConfiguration>);
+  @override
+  _i4.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #acceptOfferedPid,
+          [pin],
+        ),
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+          this,
+          Invocation.method(
+            #acceptOfferedPid,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+          this,
+          Invocation.method(
+            #acceptOfferedPid,
+            [pin],
+          ),
+        )),
+      ) as _i4.Future<_i2.WalletInstructionResult>);
+  @override
+  _i4.Future<void> rejectOfferedPid() => (super.noSuchMethod(
+        Invocation.method(
+          #rejectOfferedPid,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [DecodeDeeplinkUseCase].
@@ -412,4 +473,31 @@ class MockCheckHasInternetUseCase extends _i1.Mock implements _i16.CheckHasInter
         returnValue: _i4.Future<bool>.value(false),
         returnValueForMissingStub: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
+}
+
+/// A class which mocks [AcceptOfferedPidUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i17.AcceptOfferedPidUseCase {
+  @override
+  _i4.Future<_i7.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i4.Future<_i7.CheckPinResult>.value(_i8.dummyValue<_i7.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+      ) as _i4.Future<_i7.CheckPinResult>);
 }

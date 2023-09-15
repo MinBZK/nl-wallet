@@ -20,16 +20,23 @@ import 'widget/pin_keyboard.dart';
 /// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
 typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, bool isFinalAttempt);
 
+/// Signature for a function that is called on any state change exposed by the [PinBloc]. When this method
+/// is provided AND returns true for the given [PinState], the state is considered consumed and will not be handled
+/// by the [PinPage] to trigger potential (navigation) events.
+typedef PinStateInterceptor = bool Function(PinState);
+
 /// The required minimum height in the header to be able to show the logo
 const _kHeaderHeightLogoCutOff = 180;
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
   final VoidCallback? onPinValidated;
+  final PinStateInterceptor? onStateChanged;
   final PinHeaderBuilder? headerBuilder;
 
   const PinPage({
     this.onPinValidated,
+    this.onStateChanged,
     this.headerBuilder,
     Key? key,
   }) : super(key: key);
@@ -44,6 +51,10 @@ class PinPage extends StatelessWidget {
           } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
             announceEnteredDigits(context, state.enteredDigits);
           }
+        }
+        if (onStateChanged != null) {
+          bool consumed = onStateChanged!(state);
+          if (consumed) return;
         }
         if (state is PinValidateSuccess) {
           onPinValidated?.call();

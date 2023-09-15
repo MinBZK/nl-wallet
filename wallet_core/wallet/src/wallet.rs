@@ -129,7 +129,7 @@ pub enum PidIssuanceError {
     #[error("could not retrieve PID from issuer: {0}")]
     PidIssuer(#[source] PidRetrieverError),
     #[error("error sending instruction to Wallet Provider: {0}")]
-    InstructionError(#[from] InstructionError),
+    Instruction(#[from] InstructionError),
 }
 
 pub enum RedirectUriType {

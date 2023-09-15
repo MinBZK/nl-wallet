@@ -1,7 +1,7 @@
 import '../../../bridge_generated.dart';
 import '../../domain/usecase/pin/check_pin_usecase.dart';
 
-extension WalletUnlockResultExtension on WalletUnlockResult {
+extension WalletInstructionResultExtension on WalletInstructionResult {
   CheckPinResult asCheckPinResult() {
     return map<CheckPinResult>(
       ok: (result) => CheckPinResultOk(),
