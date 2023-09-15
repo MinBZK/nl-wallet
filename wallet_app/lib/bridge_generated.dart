@@ -42,6 +42,14 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta;
 
+  Stream<List<Card>> setCardsStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta;
+
+  Future<void> clearCardsStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta;
+
   Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
@@ -293,6 +301,36 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "clear_configuration_stream",
+        argNames: [],
+      );
+
+  Stream<List<Card>> setCardsStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_cards_stream(port_),
+      parseSuccessData: _wire2api_list_card,
+      constMeta: kSetCardsStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_cards_stream",
+        argNames: [],
+      );
+
+  Future<void> clearCardsStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_cards_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kClearCardsStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_cards_stream",
         argNames: [],
       );
 
@@ -809,6 +847,30 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_clear_configuration_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_configuration_stream');
   late final _wire_clear_configuration_stream = _wire_clear_configuration_streamPtr.asFunction<void Function(int)>();
+
+  void wire_set_cards_stream(
+    int port_,
+  ) {
+    return _wire_set_cards_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_cards_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_cards_stream');
+  late final _wire_set_cards_stream = _wire_set_cards_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_cards_stream(
+    int port_,
+  ) {
+    return _wire_clear_cards_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_cards_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_cards_stream');
+  late final _wire_clear_cards_stream = _wire_clear_cards_streamPtr.asFunction<void Function(int)>();
 
   void wire_unlock_wallet(
     int port_,
