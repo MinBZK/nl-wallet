@@ -226,8 +226,8 @@ async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
             // Then convert then error to JSON, wrapped inside a `PidIssuanceEvent::Error`.
             error.into()
         },
-        |_mdocs| PidIssuanceEvent::Success {
-            preview_cards: mock_cards(), // TODO: actually convert mdocs to card
+        |documents| PidIssuanceEvent::Success {
+            preview_cards: documents.into_iter().map(Card::from).collect(),
         },
     )
 }

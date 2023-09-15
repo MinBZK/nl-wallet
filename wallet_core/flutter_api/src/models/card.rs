@@ -1,8 +1,14 @@
+use wallet::{self, AttributeValue, Document};
+
 pub struct Card {
-    pub id: i64,
-    pub doc_type: String,
-    pub issuer: String,
+    pub id: Option<String>,
+    pub document_type: DocumentType,
     pub attributes: Vec<CardAttribute>,
+}
+
+pub enum DocumentType {
+    Identity,
+    ResidenceAddress,
 }
 
 pub struct CardAttribute {
@@ -24,6 +30,54 @@ pub struct LocalizedString {
     pub value: String,
 }
 
+impl From<Document> for Card {
+    fn from(value: Document) -> Self {
+        let attributes = value
+            .attributes
+            .into_iter()
+            .map(|(key, attribute)| {
+                let labels = attribute
+                    .key_labels
+                    .into_iter()
+                    .map(|(language, value)| LocalizedString {
+                        language: language.to_string(),
+                        value: value.to_string(),
+                    })
+                    .collect();
+
+                CardAttribute {
+                    key: key.to_string(),
+                    labels,
+                    value: CardValue::from(attribute.value),
+                }
+            })
+            .collect();
+
+        Card {
+            id: value.id,
+            document_type: value.document_type.into(),
+            attributes,
+        }
+    }
+}
+
+impl From<wallet::DocumentType> for DocumentType {
+    fn from(value: wallet::DocumentType) -> Self {
+        match value {
+            wallet::DocumentType::Identity => Self::Identity,
+            wallet::DocumentType::ResidenceAddress => Self::ResidenceAddress,
+        }
+    }
+}
+
+impl From<AttributeValue> for CardValue {
+    fn from(value: AttributeValue) -> Self {
+        match value {
+            AttributeValue::String(s) => Self::String { value: s },
+        }
+    }
+}
+
 impl From<(String, String)> for LocalizedString {
     fn from(value: (String, String)) -> Self {
         LocalizedString {
@@ -36,9 +90,8 @@ impl From<(String, String)> for LocalizedString {
 pub fn mock_cards() -> Vec<Card> {
     vec![
         Card {
-            id: 0,
-            doc_type: "pid_id".to_string(),
-            issuer: "rvig".to_string(),
+            id: "025b9338-a1f7-4c57-bdaa-9992be55e5f0".to_string().into(),
+            document_type: DocumentType::Identity,
             attributes: vec![
                 CardAttribute {
                     labels: vec![
@@ -139,9 +192,8 @@ pub fn mock_cards() -> Vec<Card> {
             ],
         },
         Card {
-            id: 0,
-            doc_type: "pid_address".to_string(),
-            issuer: "rvig".to_string(),
+            id: "f553eb44-13a2-416c-aa9d-61a3f75b029a".to_string().into(),
+            document_type: DocumentType::ResidenceAddress,
             attributes: vec![
                 CardAttribute {
                     labels: vec![

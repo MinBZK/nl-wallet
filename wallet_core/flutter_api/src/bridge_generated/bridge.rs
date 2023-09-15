@@ -22,6 +22,7 @@ use std::sync::Arc;
 use crate::models::card::Card;
 use crate::models::card::CardAttribute;
 use crate::models::card::CardValue;
+use crate::models::card::DocumentType;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::instruction::WalletInstructionResult;
@@ -261,8 +262,7 @@ impl support::IntoDart for Card {
     fn into_dart(self) -> support::DartAbi {
         vec![
             self.id.into_dart(),
-            self.doc_type.into_dart(),
-            self.issuer.into_dart(),
+            self.document_type.into_dart(),
             self.attributes.into_dart(),
         ]
         .into_dart()
@@ -290,6 +290,16 @@ impl support::IntoDart for CardValue {
     }
 }
 impl support::IntoDartExceptPrimitive for CardValue {}
+impl support::IntoDart for DocumentType {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Identity => 0,
+            Self::ResidenceAddress => 1,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DocumentType {}
 
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {

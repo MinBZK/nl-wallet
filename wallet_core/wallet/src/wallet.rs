@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use futures::future::TryFutureExt;
-use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 use platform_support::{
     hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
     utils::hardware::HardwareUtilities,
@@ -25,7 +24,7 @@ use crate::{
         validation::{validate_pin, PinValidationError},
     },
     storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
+    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, Document, PidIssuerClient, Storage,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -370,7 +369,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<UnsignedMdoc>, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         info!("Checking if already registered");
@@ -396,7 +395,13 @@ where
 
         info!("PID received successfully from issuer");
 
-        Ok(unsigned_mdocs)
+        // TODO: return error if documents cannot be converted.
+        let documents = unsigned_mdocs
+            .into_iter()
+            .flat_map(|mdoc| Document::from_mdoc_attributes(None, &mdoc.doc_type, mdoc.attributes))
+            .collect();
+
+        Ok(documents)
     }
 
     #[instrument(skip_all)]

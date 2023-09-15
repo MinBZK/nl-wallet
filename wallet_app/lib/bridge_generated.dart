@@ -88,15 +88,13 @@ abstract class WalletCore {
 }
 
 class Card {
-  final int id;
-  final String docType;
-  final String issuer;
+  final String? id;
+  final DocumentType documentType;
   final List<CardAttribute> attributes;
 
   const Card({
-    required this.id,
-    required this.docType,
-    required this.issuer,
+    this.id,
+    required this.documentType,
     required this.attributes,
   });
 }
@@ -130,6 +128,11 @@ class CardValue with _$CardValue {
   const factory CardValue.date({
     required String value,
   }) = CardValue_Date;
+}
+
+enum DocumentType {
+  Identity,
+  ResidenceAddress,
 }
 
 class FlutterConfiguration {
@@ -492,12 +495,11 @@ class WalletCoreImpl implements WalletCore {
 
   Card _wire2api_card(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return Card(
-      id: _wire2api_i64(arr[0]),
-      docType: _wire2api_String(arr[1]),
-      issuer: _wire2api_String(arr[2]),
-      attributes: _wire2api_list_card_attribute(arr[3]),
+      id: _wire2api_opt_String(arr[0]),
+      documentType: _wire2api_document_type(arr[1]),
+      attributes: _wire2api_list_card_attribute(arr[2]),
     );
   }
 
@@ -536,6 +538,10 @@ class WalletCoreImpl implements WalletCore {
       default:
         throw Exception("unreachable");
     }
+  }
+
+  DocumentType _wire2api_document_type(dynamic raw) {
+    return DocumentType.values[raw as int];
   }
 
   double _wire2api_f64(dynamic raw) {
@@ -578,6 +584,10 @@ class WalletCoreImpl implements WalletCore {
       language: _wire2api_String(arr[0]),
       value: _wire2api_String(arr[1]),
     );
+  }
+
+  String? _wire2api_opt_String(dynamic raw) {
+    return raw == null ? null : _wire2api_String(raw);
   }
 
   PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
