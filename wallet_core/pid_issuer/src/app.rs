@@ -152,26 +152,55 @@ pub mod mock {
 
     use super::{AttributesLookup, BsnLookup};
 
-    const MOCK_BSN: &str = "999991772";
+    const MOCK_BSN_1: &str = "999991771";
+    const MOCK_BSN_2: &str = "999991772";
 
     pub struct MockBsnLookup;
 
     #[async_trait]
     impl BsnLookup for MockBsnLookup {
-        async fn bsn(&self, _: &str) -> Result<String, digid::Error> {
-            Ok(MOCK_BSN.to_string())
+        async fn bsn(&self, _access_token: &str) -> Result<String, digid::Error> {
+            if rand::random() {
+                Ok(MOCK_BSN_1.to_string())
+            } else {
+                Ok(MOCK_BSN_2.to_string())
+            }
         }
     }
 
     pub struct MockAttributesLookup;
 
+    // ISO/IEC 5218
+    #[allow(dead_code)]
+    enum Gender {
+        Unknown,
+        Male,
+        Female,
+        NotApplicable,
+    }
+
+    impl From<Gender> for Value {
+        fn from(value: Gender) -> Value {
+            use Gender::*;
+            let value = match value {
+                Unknown => 0,
+                Male => 1,
+                Female => 2,
+                NotApplicable => 9,
+            };
+            Value::Integer(value.into())
+        }
+    }
+
+    const PID_BSN: &str = "bsn";
+
     const PID_FAMILY_NAME: &str = "family_name";
     const PID_GIVEN_NAME: &str = "given_name";
     const PID_BIRTH_DATE: &str = "birth_date";
     const PID_AGE_OVER_18: &str = "age_over_18";
-    const PID_AGE_OVER_NN: &str = "age_over_NN";
-    const PID_AGE_IN_YEARS: &str = "age_in_years";
-    const PID_AGE_BIRTH_YEAR: &str = "age_birth_year";
+    // const PID_AGE_OVER_NN: &str = "age_over_NN";
+    // const PID_AGE_IN_YEARS: &str = "age_in_years";
+    // const PID_AGE_BIRTH_YEAR: &str = "age_birth_year";
     const PID_UNIQUE_ID: &str = "unique_id";
     const PID_FAMILY_NAME_BIRTH: &str = "family_name_birth";
     const PID_GIVEN_NAME_BIRTH: &str = "given_name_birth";
@@ -189,119 +218,244 @@ pub mod mock {
     const PID_GENDER: &str = "gender";
     const PID_NATIONALITY: &str = "nationality";
 
-    const PID_ISSUANCE_DATE: &str = "issuance_date";
-    const PID_EXPIRY_DATE: &str = "expiry_date";
-    const PID_ISSUING_AUTHORITY: &str = "issuing_authority";
-    const PID_DOCUMENT_NUMBER: &str = "document_number";
-    const PID_ADMINISTRATIVE_NUMBER: &str = "administrative_number";
-    const PID_ISSUING_COUNTRY: &str = "issuing_country";
-    const PID_ISSUING_JURISDICTION: &str = "issuing_jurisdiction";
-    const PID_PORTRAIT: &str = "portrait";
-    const PID_PORTRAIT_CAPTURE_DATE: &str = "portrait_capture_date";
+    #[derive(Default)]
+    struct PersonAttributes {
+        bsn: String,
+        family_name: String,
+        given_name: String,
+        birth_date: chrono::NaiveDateTime,
+        age_over_18: bool,
+        // age_over_NN: Option<bool>,
+        // age_in_years: Option<u32>,
+        // age_birth_year: Option<u32>,
+        unique_id: String,
+        family_name_birth: Option<String>,
+        given_name_birth: Option<String>,
+        birth_place: Option<String>,
+        birth_country: Option<String>,
+        birth_state: Option<String>,
+        birth_city: Option<String>,
+        gender: Option<Gender>,
+        nationality: Option<String>,
+    }
+
+    impl From<PersonAttributes> for Vec<Entry> {
+        fn from(value: PersonAttributes) -> Vec<Entry> {
+            vec![
+                Entry {
+                    name: PID_BSN.to_string(),
+                    value: Value::Text(value.bsn),
+                }
+                .into(),
+                Entry {
+                    name: PID_FAMILY_NAME.to_string(),
+                    value: Value::Text(value.family_name),
+                }
+                .into(),
+                Entry {
+                    name: PID_GIVEN_NAME.to_string(),
+                    value: Value::Text(value.given_name),
+                }
+                .into(),
+                Entry {
+                    name: PID_BIRTH_DATE.to_string(),
+                    value: Value::Integer(value.birth_date.timestamp().into()),
+                }
+                .into(),
+                Entry {
+                    name: PID_AGE_OVER_18.to_string(),
+                    value: Value::Bool(value.age_over_18),
+                }
+                .into(),
+                Entry {
+                    name: PID_UNIQUE_ID.to_string(),
+                    value: Value::Text(value.unique_id),
+                }
+                .into(),
+                value.family_name_birth.map(|v| Entry {
+                    name: PID_FAMILY_NAME_BIRTH.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.given_name_birth.map(|v| Entry {
+                    name: PID_GIVEN_NAME_BIRTH.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.birth_place.map(|v| Entry {
+                    name: PID_BIRTH_PLACE.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.birth_country.map(|v| Entry {
+                    name: PID_BIRTH_COUNTRY.to_string(),
+                    // TODO according to ISO 3166-1
+                    value: Value::Text(v),
+                }),
+                value.birth_state.map(|v| Entry {
+                    name: PID_BIRTH_STATE.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.birth_city.map(|v| Entry {
+                    name: PID_BIRTH_CITY.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.gender.map(|v| Entry {
+                    name: PID_GENDER.to_string(),
+                    // TODO must be int according to ISO/IEC 5218
+                    value: v.into(),
+                }),
+                value.nationality.map(|v| Entry {
+                    name: PID_NATIONALITY.to_string(),
+                    // TODO according to ISO 3166-1
+                    value: Value::Text(v),
+                }),
+            ]
+            .into_iter()
+            .flatten()
+            .collect()
+        }
+    }
+
+    #[derive(Default)]
+    struct ResidentAttributes {
+        address: Option<String>,
+        country: Option<String>,
+        state: Option<String>,
+        city: Option<String>,
+        postal_code: Option<String>,
+        street: Option<String>,
+        house_number: Option<String>,
+    }
+
+    impl From<ResidentAttributes> for Vec<Entry> {
+        fn from(value: ResidentAttributes) -> Vec<Entry> {
+            vec![
+                value.address.map(|v| Entry {
+                    name: PID_RESIDENT_ADDRESS.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.country.map(|v| Entry {
+                    name: PID_RESIDENT_COUNTRY.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.state.map(|v| Entry {
+                    name: PID_RESIDENT_STATE.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.city.map(|v| Entry {
+                    name: PID_RESIDENT_CITY.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.postal_code.map(|v| Entry {
+                    name: PID_RESIDENT_POSTAL_CODE.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.street.map(|v| Entry {
+                    name: PID_RESIDENT_STREET.to_string(),
+                    value: Value::Text(v),
+                }),
+                value.house_number.map(|v| Entry {
+                    name: PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                    value: Value::Text(v),
+                }),
+            ]
+            .into_iter()
+            .flatten()
+            .collect()
+        }
+    }
 
     const MOCK_PID_DOCTYPE: &str = "com.example.pid";
     const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
 
-    const NL_PID_NAMESPACE_PREFIX: &str = "eu.europa.ec.eudiw.pid.nl";
-
     impl AttributesLookup for MockAttributesLookup {
         fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc> {
-            let pid = UnsignedMdoc {
-                doc_type: MOCK_PID_DOCTYPE.to_string(),
-                copy_count: 1,
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([
-                    (
-                        MOCK_PID_DOCTYPE.to_string(),
-                        vec![
-                            Entry {
-                                name: PID_GIVEN_NAME.to_string(),
-                                value: Value::Text("Willeke Liselotte".to_string()),
-                            },
-                            Entry {
-                                name: PID_FAMILY_NAME.to_string(),
-                                value: Value::Text("De Bruijn".to_string()),
-                            },
-                            Entry {
-                                name: PID_FAMILY_NAME_BIRTH.to_string(),
-                                value: Value::Text("Molenaar".to_string()),
-                            },
-                            Entry {
-                                name: PID_GENDER.to_string(),
-                                // TODO must be int according to ISO/IEC 5218
-                                value: Value::Text("Vrouw".to_string()),
-                            },
-                            Entry {
-                                name: PID_BIRTH_DATE.to_string(),
-                                value: Value::Integer(
-                                    chrono::DateTime::parse_from_rfc3339("1997-05-10")
-                                        .unwrap()
-                                        .timestamp()
-                                        .into(),
-                                ),
-                            },
-                            Entry {
-                                name: PID_AGE_OVER_18.to_string(),
-                                value: Value::Bool(true),
-                            },
-                            Entry {
-                                name: PID_BIRTH_PLACE.to_string(),
-                                value: Value::Text("Delft NL".to_string()),
-                            },
-                            Entry {
-                                name: PID_BIRTH_COUNTRY.to_string(),
-                                // TODO according to ISO 3166-1
-                                value: Value::Text("NL".to_string()),
-                            },
-                            Entry {
-                                name: PID_BIRTH_CITY.to_string(),
-                                value: Value::Text("Delft".to_string()),
-                            },
-                            Entry {
-                                name: PID_NATIONALITY.to_string(),
-                                // TODO according to ISO 3166-1
-                                value: Value::Text("NL".to_string()),
-                            },
-                        ],
-                    ),
-                    (
-                        format!("{}.{}", NL_PID_NAMESPACE_PREFIX, "1"),
-                        vec![Entry {
-                            name: "bsn".to_string(),
-                            value: Value::Text(bsn.to_string()),
-                        }],
-                    ),
-                ]),
-            };
-            let address_card = UnsignedMdoc {
-                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                copy_count: 1,
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_ADDRESS_DOCTYPE.to_string(),
-                    vec![
-                        Entry {
-                            name: PID_RESIDENT_STREET.to_string(),
-                            value: Value::Text("Turfmarkt".to_string()),
-                        },
-                        Entry {
-                            name: PID_RESIDENT_HOUSE_NUMBER.to_string(),
-                            value: Value::Text("147".to_string()),
-                        },
-                        Entry {
-                            name: PID_RESIDENT_POSTAL_CODE.to_string(),
-                            value: Value::Text("2511 DP".to_string()),
-                        },
-                        Entry {
-                            name: PID_RESIDENT_CITY.to_string(),
-                            value: Value::Text("Den Haag".to_string()),
-                        },
-                    ],
-                )]),
-            };
-            vec![pid, address_card]
+            match bsn {
+                MOCK_BSN_1 => vec![
+                    UnsignedMdoc {
+                        doc_type: MOCK_PID_DOCTYPE.to_string(),
+                        copy_count: 1,
+                        valid_from: Tdate::now(),
+                        valid_until: Utc::now().add(Days::new(365)).into(),
+                        attributes: IndexMap::from([(
+                            MOCK_PID_DOCTYPE.to_string(),
+                            PersonAttributes {
+                                unique_id: "1".to_string(),
+                                bsn: bsn.to_owned(),
+                                given_name: "Johannes Frederik".to_string(),
+                                family_name: "Van Waarde".to_string(),
+                                gender: Some(Gender::Male),
+                                birth_date: chrono::NaiveDateTime::parse_from_str("1995-09-21", "%Y-%m-%d").unwrap(),
+                                age_over_18: true,
+                                birth_country: Some("NL".to_string()),
+                                birth_city: Some("Leiden".to_string()),
+                                nationality: Some("NL".to_string()),
+                                ..PersonAttributes::default()
+                            }
+                            .into(),
+                        )]),
+                    },
+                    UnsignedMdoc {
+                        doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                        copy_count: 1,
+                        valid_from: Tdate::now(),
+                        valid_until: Utc::now().add(Days::new(365)).into(),
+                        attributes: IndexMap::from([(
+                            MOCK_ADDRESS_DOCTYPE.to_string(),
+                            ResidentAttributes {
+                                street: Some("Weena".to_string()),
+                                house_number: Some("10".to_string()),
+                                postal_code: Some("3012 CM".to_string()),
+                                city: Some("Rotterdam".to_string()),
+                                ..ResidentAttributes::default()
+                            }
+                            .into(),
+                        )]),
+                    },
+                ],
+                MOCK_BSN_2 => vec![
+                    UnsignedMdoc {
+                        doc_type: MOCK_PID_DOCTYPE.to_string(),
+                        copy_count: 1,
+                        valid_from: Tdate::now(),
+                        valid_until: Utc::now().add(Days::new(365)).into(),
+                        attributes: IndexMap::from([(
+                            MOCK_PID_DOCTYPE.to_string(),
+                            PersonAttributes {
+                                unique_id: "2".to_string(),
+                                bsn: bsn.to_owned(),
+                                given_name: "Willeke Liselotte".to_string(),
+                                family_name: "De Bruijn".to_string(),
+                                family_name_birth: Some("Molenaar".to_string()),
+                                gender: Some(Gender::Female),
+                                birth_date: chrono::NaiveDateTime::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
+                                age_over_18: true,
+                                birth_country: Some("NL".to_string()),
+                                birth_city: Some("Delft".to_string()),
+                                nationality: Some("NL".to_string()),
+                                ..PersonAttributes::default()
+                            }
+                            .into(),
+                        )]),
+                    },
+                    UnsignedMdoc {
+                        doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                        copy_count: 1,
+                        valid_from: Tdate::now(),
+                        valid_until: Utc::now().add(Days::new(365)).into(),
+                        attributes: IndexMap::from([(
+                            MOCK_ADDRESS_DOCTYPE.to_string(),
+                            ResidentAttributes {
+                                street: Some("Turfmarkt".to_string()),
+                                house_number: Some("147".to_string()),
+                                postal_code: Some("2511 DP".to_string()),
+                                city: Some("Den Haag".to_string()),
+                                ..ResidentAttributes::default()
+                            }
+                            .into(),
+                        )]),
+                    },
+                ],
+                &_ => unreachable!(),
+            }
         }
     }
 }
