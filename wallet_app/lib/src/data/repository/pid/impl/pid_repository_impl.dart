@@ -83,4 +83,10 @@ class PidRepositoryImpl extends PidRepository {
 
   @override
   Stream<PidIssuanceStatus> observePidIssuanceStatus() => _pidIssuanceStatusController.stream;
+
+  @override
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) => _walletCore.acceptOfferedPid(pin);
+
+  @override
+  Future<void> rejectOfferedPid() => _walletCore.rejectOfferedPid();
 }

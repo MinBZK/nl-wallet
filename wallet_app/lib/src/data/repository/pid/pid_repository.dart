@@ -11,4 +11,8 @@ abstract class PidRepository {
   void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event);
 
   Stream<PidIssuanceStatus> observePidIssuanceStatus();
+
+  Future<WalletInstructionResult> acceptOfferedPid(String pin);
+
+  Future<void> rejectOfferedPid();
 }

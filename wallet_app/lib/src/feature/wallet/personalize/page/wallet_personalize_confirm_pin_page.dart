@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
+import '../../../../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/pin_header.dart';
 import '../../../pin/bloc/pin_bloc.dart';
 import '../../../pin/pin_page.dart';
 
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
-  final VoidCallback onPinValidated;
+  final VoidCallback onPidAccepted;
 
   @visibleForTesting
   final PinBloc? bloc;
 
   const WalletPersonalizeConfirmPinPage({
-    required this.onPinValidated,
+    required this.onPidAccepted,
     this.bloc,
     Key? key,
   }) : super(key: key);
@@ -22,7 +22,7 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => bloc ?? PinBloc(context.read<ConfirmTransactionUseCase>()),
+      create: (BuildContext context) => bloc ?? PinBloc(context.read<AcceptOfferedPidUseCase>()),
       child: PinPage(
         headerBuilder: (context, attempts, isFinalAttempt) {
           final hasError = attempts != null;
@@ -40,7 +40,13 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
             description: description,
           );
         },
-        onPinValidated: onPinValidated,
+        onPinValidated: onPidAccepted,
+        onStateChanged: (state) {
+          if (state is PinValidateTimeout) {
+            //TODO: PVW-1176
+          }
+          return false;
+        },
       ),
     );
   }

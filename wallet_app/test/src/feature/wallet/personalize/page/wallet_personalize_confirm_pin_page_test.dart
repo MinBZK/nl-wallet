@@ -16,7 +16,7 @@ void main() {
       ..addScenario(
         widget: WalletPersonalizeConfirmPinPage(
           bloc: PinBloc(Mocks.create()),
-          onPinValidated: () {},
+          onPidAccepted: () {},
         ),
       );
   }
@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidget(
         WalletAppTestWidget(
           child: WalletPersonalizeConfirmPinPage(
-            onPinValidated: () {},
+            onPidAccepted: () {},
             bloc: PinBloc(Mocks.create()),
           ),
         ),

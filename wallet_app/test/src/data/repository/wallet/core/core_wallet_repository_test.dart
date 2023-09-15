@@ -27,8 +27,8 @@ void main() {
     when(core.unlockWallet(any)).thenAnswer((realInvocation) async {
       final pinIsValid = realInvocation.positionalArguments.first == _kValidPin;
       mockLockedStream.add(!pinIsValid);
-      if (pinIsValid) return const WalletUnlockResult.ok();
-      return const WalletUnlockResult.incorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
+      if (pinIsValid) return const WalletInstructionResult.ok();
+      return const WalletInstructionResult.incorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
     repo = CoreWalletRepository(core, PinValidationErrorMapper());
@@ -92,14 +92,14 @@ void main() {
       repo.lockWallet();
 
       when(core.unlockWallet(any)).thenAnswer(
-        (_) async => const WalletUnlockResult.incorrectPin(
+        (_) async => const WalletInstructionResult.incorrectPin(
           leftoverAttempts: 1337,
           isFinalAttempt: false,
         ),
       );
 
       final result = await repo.unlockWallet('invalid');
-      expect((result as WalletUnlockResult_IncorrectPin).leftoverAttempts, 1337);
+      expect((result as WalletInstructionResult_IncorrectPin).leftoverAttempts, 1337);
     });
   });
 

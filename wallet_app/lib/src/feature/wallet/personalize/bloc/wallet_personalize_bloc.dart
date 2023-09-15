@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,12 +7,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
-import '../../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
-import '../../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
+import '../../../../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
@@ -22,27 +20,26 @@ part 'wallet_personalize_event.dart';
 part 'wallet_personalize_state.dart';
 
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
-  final GetPidIssuanceResponseUseCase getPidIssuanceResponseUseCase;
-  final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
   final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
+  final RejectOfferedPidUseCase rejectOfferedPidUseCase;
   final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
 
   StreamSubscription? _pidIssuanceStatusSubscription;
 
   WalletPersonalizeBloc(
-    this.getPidIssuanceResponseUseCase,
-    this.walletAddIssuedCardsUseCase,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
+    this.rejectOfferedPidUseCase,
     this.observePidIssuanceStatusUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeLoginWithDigidFailed>(_onLoginWithDigidFailed);
-    on<WalletPersonalizeOfferingVerified>(_onOfferingVerified);
+    on<WalletPersonalizeOfferingAccepted>(_onOfferingVerified);
+    on<WalletPersonalizeOfferingRejected>(_onOfferingRejected);
     on<WalletPersonalizePinConfirmed>(_onPinConfirmed);
     on<WalletPersonalizeOnBackPressed>(_onBackPressed);
     on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
@@ -101,8 +98,19 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onOfferingVerified(WalletPersonalizeOfferingVerified event, emit) async {
-    emit(const WalletPersonalizeConfirmPin());
+  void _onOfferingVerified(WalletPersonalizeOfferingAccepted event, emit) async {
+    emit(WalletPersonalizeConfirmPin(event.previewAttributes));
+  }
+
+  void _onOfferingRejected(event, emit) async {
+    emit(const WalletPersonalizeLoadInProgress(0));
+    try {
+      await rejectOfferedPidUseCase.invoke();
+    } catch (ex) {
+      Fimber.e('Failed to explicitly reject pid', ex: ex);
+    } finally {
+      emit(const WalletPersonalizeInitial());
+    }
   }
 
   void _onRetryClicked(event, emit) async => emit(const WalletPersonalizeInitial());
@@ -113,13 +121,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {
-        final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-        final allAttributes = issuanceResponse.cards.map((e) => e.attributes).flattened;
         emit(
-          WalletPersonalizeCheckData(
-            didGoBack: true,
-            availableAttributes: allAttributes.toList(),
-          ),
+          WalletPersonalizeCheckData(didGoBack: true, availableAttributes: state.attributes),
         );
       }
     }
@@ -131,8 +134,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       emit(const WalletPersonalizeLoadInProgress(5));
       await Future.delayed(kDefaultMockDelay);
       try {
-        final issuanceResponse = await getPidIssuanceResponseUseCase.invoke();
-        await walletAddIssuedCardsUseCase.invoke(issuanceResponse.cards, issuanceResponse.organization);
         await _loadCardsAndEmitSuccessState(event, emit);
       } catch (ex, stack) {
         Fimber.e('Failed to add cards to wallet', ex: ex, stacktrace: stack);

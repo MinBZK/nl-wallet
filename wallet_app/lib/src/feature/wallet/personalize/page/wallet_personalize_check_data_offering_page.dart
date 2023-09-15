@@ -9,10 +9,12 @@ import '../wallet_personalize_data_incorrect_screen.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAcceptPressed;
+  final VoidCallback onRejectPressed;
   final List<UiAttribute> attributes;
 
   const WalletPersonalizeCheckDataOfferingPage({
     required this.onAcceptPressed,
+    required this.onRejectPressed,
     required this.attributes,
     Key? key,
   }) : super(key: key);
@@ -66,7 +68,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      onDeclinePressed: () => WalletPersonalizeDataIncorrectScreen.show(context),
+      onDeclinePressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
       onAcceptPressed: onAcceptPressed,
       acceptText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
       declineText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
