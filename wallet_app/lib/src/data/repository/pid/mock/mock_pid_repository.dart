@@ -17,4 +17,10 @@ class MockPidRepository extends PidRepository {
 
   @override
   Stream<PidIssuanceStatus> observePidIssuanceStatus() => const Stream.empty();
+
+  @override
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) => throw UnimplementedError();
+
+  @override
+  Future<void> rejectOfferedPid() async => Fimber.d('Pid declined');
 }

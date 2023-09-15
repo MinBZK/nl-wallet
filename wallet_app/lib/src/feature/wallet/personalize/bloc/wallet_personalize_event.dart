@@ -23,7 +23,13 @@ class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
   const WalletPersonalizeLoginWithDigidFailed({this.cancelledByUser = false});
 }
 
-class WalletPersonalizeOfferingVerified extends WalletPersonalizeEvent {}
+class WalletPersonalizeOfferingAccepted extends WalletPersonalizeEvent {
+  final List<Attribute> previewAttributes;
+
+  const WalletPersonalizeOfferingAccepted(this.previewAttributes);
+}
+
+class WalletPersonalizeOfferingRejected extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeOnRetryClicked extends WalletPersonalizeEvent {}
 

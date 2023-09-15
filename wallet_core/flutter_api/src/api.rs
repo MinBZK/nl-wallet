@@ -16,9 +16,9 @@ use crate::{
     models::{
         card::{mock_cards, Card},
         config::FlutterConfiguration,
+        instruction::WalletInstructionResult,
         pin::PinValidationResult,
         process_uri_event::{PidIssuanceEvent, ProcessUriEvent},
-        unlock::WalletUnlockResult,
     },
     stream::ClosingStreamSink,
 };
@@ -125,7 +125,7 @@ pub async fn clear_cards_stream() {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn unlock_wallet(pin: String) -> Result<WalletUnlockResult> {
+pub async fn unlock_wallet(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.unlock(pin).await.try_into()?;
@@ -232,20 +232,19 @@ async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
     )
 }
 
-// todo: handle inner instructions errors (regarding PIN) similarly to unlock_wallet above.
 #[async_runtime]
 #[flutter_api_error]
-pub async fn accept_pid_issuance(pin: String) -> Result<()> {
+pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    wallet.accept_pid_issuance(pin).await?;
+    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
 
     // If PID issuance succeeded, send the mock cards through the cards stream.
     if let Some(cards_callback) = CARDS_CALLBACK.lock().unwrap().as_mut() {
         cards_callback(mock_cards());
     }
 
-    Ok(())
+    Ok(result)
 }
 
 #[async_runtime]

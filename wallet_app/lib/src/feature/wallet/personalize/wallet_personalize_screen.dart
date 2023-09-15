@@ -109,7 +109,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     /// Note that mapping occurs in the UI layer since we need a fresh context (with l10n).
     return WalletPersonalizeCheckDataOfferingPage(
-      onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingVerified()),
+      onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingAccepted(state.availableAttributes)),
+      onRejectPressed: () => context.bloc.add(WalletPersonalizeOfferingRejected()),
       attributes: context.read<PidAttributeMapper>().map(context, state.availableAttributes),
     );
   }
@@ -254,7 +255,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
     return WalletPersonalizeConfirmPinPage(
-      onPinValidated: () => context.bloc.add(WalletPersonalizePinConfirmed()),
+      onPidAccepted: () => context.bloc.add(WalletPersonalizePinConfirmed()),
     );
   }
 }

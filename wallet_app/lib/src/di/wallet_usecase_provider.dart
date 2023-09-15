@@ -45,13 +45,18 @@ import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
+import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/observe_pid_issuance_status_usecase_impl.dart';
+import '../domain/usecase/pid/impl/reject_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/update_pid_issuance_status_usecase_impl.dart';
+import '../domain/usecase/pid/mock/accept_offered_pid_usecase_mock.dart';
 import '../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
+import '../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
@@ -88,9 +93,10 @@ import '../util/extension/bloc_extension.dart';
 /// [WalletRepositoryProvider] as `use cases` will likely depend on one or more
 /// `repositories`.
 class WalletUseCaseProvider extends StatelessWidget {
+  final bool provideMocks;
   final Widget child;
 
-  const WalletUseCaseProvider({required this.child, Key? key}) : super(key: key);
+  const WalletUseCaseProvider({required this.child, this.provideMocks = false, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +232,14 @@ class WalletUseCaseProvider extends StatelessWidget {
             BlocExtensions.checkHasInternetUseCase = usecase;
             return usecase;
           },
+        ),
+        RepositoryProvider<AcceptOfferedPidUseCase>(
+          create: (context) => provideMocks
+              ? AcceptOfferedPidUseCaseMock(context.read(), context.read(), context.read())
+              : AcceptOfferedPidUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<RejectOfferedPidUseCase>(
+          create: (context) => RejectOfferedPidUseCaseImpl(context.read()),
         ),
       ],
       child: child,

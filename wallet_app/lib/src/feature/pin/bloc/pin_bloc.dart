@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/error/network_error.dart';
@@ -54,6 +55,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
           emit(const PinValidateBlocked());
       }
     } catch (ex) {
+      Fimber.e('Pin validation error', ex: ex);
       await handleError(
         ex,
         onNetworkError: (ex, hasInternet) => emit(PinValidateNetworkError(hasInternet: hasInternet)),

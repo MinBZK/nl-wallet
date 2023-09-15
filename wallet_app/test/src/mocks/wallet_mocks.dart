@@ -6,6 +6,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
@@ -33,6 +34,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckHasInternetUseCase>()])
+@GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
 
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
@@ -67,6 +69,7 @@ class Mocks {
       BlocExtensions.checkHasInternetUseCase = mock;
       return mock;
     });
+    sl.registerFactory<AcceptOfferedPidUseCase>(() => MockAcceptOfferedPidUseCase());
     // Repositories
     sl.registerFactory<PidRepository>(() => getMockPidRepository());
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());

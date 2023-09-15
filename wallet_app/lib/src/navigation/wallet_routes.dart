@@ -326,7 +326,6 @@ Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
       context.read(),
       context.read(),
       context.read(),
-      context.read(),
     ),
     child: const WalletPersonalizeScreen(),
   );

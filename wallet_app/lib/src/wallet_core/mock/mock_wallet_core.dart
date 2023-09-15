@@ -58,8 +58,20 @@ class MockWalletCore extends TypedWalletCore {
   }
 
   @override
-  Future<WalletUnlockResult> unlockWallet(String pin) {
+  Future<WalletInstructionResult> unlockWallet(String pin) {
     // TODO: implement unlockWallet
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) {
+    // TODO: implement acceptOfferedPid
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> rejectOfferedPid() {
+    // TODO: implement rejectOfferedPid
     throw UnimplementedError();
   }
 }

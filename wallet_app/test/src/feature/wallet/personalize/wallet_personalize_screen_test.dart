@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -15,6 +16,7 @@ import 'package:wallet/src/util/mapper/pid/pid_data_attributes_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mocks.dart';
 import '../../../util/device_utils.dart';
 import '../../../util/test_utils.dart';
 import '../../pin/pin_page_test.dart';
@@ -231,12 +233,12 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: RepositoryProvider<ConfirmTransactionUseCase>.value(
-              value: MockConfirmTransactionUseCase(),
+            widget: RepositoryProvider<AcceptOfferedPidUseCase>.value(
+              value: Mocks.create<AcceptOfferedPidUseCase>(),
               child: const WalletPersonalizeScreen()
                   .withState<WalletPersonalizeBloc, WalletPersonalizeState>(
                     MockWalletPersonalizeBloc(),
-                    const WalletPersonalizeConfirmPin(),
+                    const WalletPersonalizeConfirmPin([]),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),

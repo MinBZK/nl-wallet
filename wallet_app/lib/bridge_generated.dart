@@ -50,7 +50,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta;
 
-  Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint});
+  Future<WalletInstructionResult> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
 
@@ -78,7 +78,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
 
-  Future<void> acceptPidIssuance({required String pin, dynamic hint});
+  Future<WalletInstructionResult> acceptPidIssuance({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta;
 
@@ -179,16 +179,16 @@ class ProcessUriEvent with _$ProcessUriEvent {
 }
 
 @freezed
-class WalletUnlockResult with _$WalletUnlockResult {
-  const factory WalletUnlockResult.ok() = WalletUnlockResult_Ok;
-  const factory WalletUnlockResult.incorrectPin({
+class WalletInstructionResult with _$WalletInstructionResult {
+  const factory WalletInstructionResult.ok() = WalletInstructionResult_Ok;
+  const factory WalletInstructionResult.incorrectPin({
     required int leftoverAttempts,
     required bool isFinalAttempt,
-  }) = WalletUnlockResult_IncorrectPin;
-  const factory WalletUnlockResult.timeout({
+  }) = WalletInstructionResult_IncorrectPin;
+  const factory WalletInstructionResult.timeout({
     required int timeoutMillis,
-  }) = WalletUnlockResult_Timeout;
-  const factory WalletUnlockResult.blocked() = WalletUnlockResult_Blocked;
+  }) = WalletInstructionResult_Timeout;
+  const factory WalletInstructionResult.blocked() = WalletInstructionResult_Blocked;
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -334,11 +334,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<WalletUnlockResult> unlockWallet({required String pin, dynamic hint}) {
+  Future<WalletInstructionResult> unlockWallet({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_unlock_wallet(port_, arg0),
-      parseSuccessData: _wire2api_wallet_unlock_result,
+      parseSuccessData: _wire2api_wallet_instruction_result,
       constMeta: kUnlockWalletConstMeta,
       argValues: [pin],
       hint: hint,
@@ -442,11 +442,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["uri"],
       );
 
-  Future<void> acceptPidIssuance({required String pin, dynamic hint}) {
+  Future<WalletInstructionResult> acceptPidIssuance({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_accept_pid_issuance(port_, arg0),
-      parseSuccessData: _wire2api_unit,
+      parseSuccessData: _wire2api_wallet_instruction_result,
       constMeta: kAcceptPidIssuanceConstMeta,
       argValues: [pin],
       hint: hint,
@@ -634,21 +634,21 @@ class WalletCoreImpl implements WalletCore {
     return;
   }
 
-  WalletUnlockResult _wire2api_wallet_unlock_result(dynamic raw) {
+  WalletInstructionResult _wire2api_wallet_instruction_result(dynamic raw) {
     switch (raw[0]) {
       case 0:
-        return WalletUnlockResult_Ok();
+        return WalletInstructionResult_Ok();
       case 1:
-        return WalletUnlockResult_IncorrectPin(
+        return WalletInstructionResult_IncorrectPin(
           leftoverAttempts: _wire2api_u8(raw[1]),
           isFinalAttempt: _wire2api_bool(raw[2]),
         );
       case 2:
-        return WalletUnlockResult_Timeout(
+        return WalletInstructionResult_Timeout(
           timeoutMillis: _wire2api_u64(raw[1]),
         );
       case 3:
-        return WalletUnlockResult_Blocked();
+        return WalletInstructionResult_Blocked();
       default:
         throw Exception("unreachable");
     }

@@ -24,10 +24,10 @@ use crate::models::card::CardAttribute;
 use crate::models::card::CardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
+use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::process_uri_event::PidIssuanceEvent;
 use crate::models::process_uri_event::ProcessUriEvent;
-use crate::models::unlock::WalletUnlockResult;
 
 // Section: wire functions
 
@@ -343,7 +343,7 @@ impl support::IntoDart for ProcessUriEvent {
 }
 impl support::IntoDartExceptPrimitive for ProcessUriEvent {}
 
-impl support::IntoDart for WalletUnlockResult {
+impl support::IntoDart for WalletInstructionResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::Ok => vec![0.into_dart()],
@@ -361,7 +361,7 @@ impl support::IntoDart for WalletUnlockResult {
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for WalletUnlockResult {}
+impl support::IntoDartExceptPrimitive for WalletInstructionResult {}
 // Section: executor
 
 support::lazy_static! {

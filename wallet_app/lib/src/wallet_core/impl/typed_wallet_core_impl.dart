@@ -115,7 +115,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Future<WalletUnlockResult> unlockWallet(String pin) async {
+  Future<WalletInstructionResult> unlockWallet(String pin) async {
     try {
       return await _walletCore.unlockWallet(pin: pin);
     } catch (ex) {
@@ -135,6 +135,27 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     }
   }
 
+  @override
+  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+
+  @override
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) async {
+    try {
+      return await _walletCore.acceptPidIssuance(pin: pin);
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
+  Future<void> rejectOfferedPid() async {
+    try {
+      return await _walletCore.rejectPidIssuance();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
   /// Converts the exception to a [CoreError]
   /// if it can be mapped into one, otherwise returns
   /// the original exception.
@@ -148,7 +169,4 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       return ex;
     }
   }
-
-  @override
-  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
 }
