@@ -707,15 +707,15 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
         ),
       ) as _i3.FlutterRustBridgeTaskConstMeta);
   @override
-  _i3.FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => (super.noSuchMethod(
-        Invocation.getter(#kRejectPidIssuanceConstMeta),
+  _i3.FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kProcessUriConstMeta),
         returnValue: _FakeFlutterRustBridgeTaskConstMeta_1(
           this,
-          Invocation.getter(#kRejectPidIssuanceConstMeta),
+          Invocation.getter(#kProcessUriConstMeta),
         ),
         returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_1(
           this,
-          Invocation.getter(#kRejectPidIssuanceConstMeta),
+          Invocation.getter(#kProcessUriConstMeta),
         ),
       ) as _i3.FlutterRustBridgeTaskConstMeta);
   @override
@@ -731,15 +731,15 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
         ),
       ) as _i3.FlutterRustBridgeTaskConstMeta);
   @override
-  _i3.FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta => (super.noSuchMethod(
-        Invocation.getter(#kProcessUriConstMeta),
+  _i3.FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kRejectPidIssuanceConstMeta),
         returnValue: _FakeFlutterRustBridgeTaskConstMeta_1(
           this,
-          Invocation.getter(#kProcessUriConstMeta),
+          Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
         returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_1(
           this,
-          Invocation.getter(#kProcessUriConstMeta),
+          Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
       ) as _i3.FlutterRustBridgeTaskConstMeta);
   @override
@@ -934,15 +934,22 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
         returnValueForMissingStub: _i5.Future<void>.value(),
       ) as _i5.Future<void>);
   @override
-  _i5.Future<void> rejectPidIssuance({dynamic hint}) => (super.noSuchMethod(
+  _i5.Stream<_i2.ProcessUriEvent> processUri({
+    required String? uri,
+    dynamic hint,
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
-          #rejectPidIssuance,
+          #processUri,
           [],
-          {#hint: hint},
+          {
+            #uri: uri,
+            #hint: hint,
+          },
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i5.Stream<_i2.ProcessUriEvent>.empty(),
+        returnValueForMissingStub: _i5.Stream<_i2.ProcessUriEvent>.empty(),
+      ) as _i5.Stream<_i2.ProcessUriEvent>);
   @override
   _i5.Future<_i2.WalletInstructionResult> acceptPidIssuance({
     required String? pin,
@@ -981,20 +988,13 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
         )),
       ) as _i5.Future<_i2.WalletInstructionResult>);
   @override
-  _i5.Stream<_i2.ProcessUriEvent> processUri({
-    required String? uri,
-    dynamic hint,
-  }) =>
-      (super.noSuchMethod(
+  _i5.Future<void> rejectPidIssuance({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
-          #processUri,
+          #rejectPidIssuance,
           [],
-          {
-            #uri: uri,
-            #hint: hint,
-          },
+          {#hint: hint},
         ),
-        returnValue: _i5.Stream<_i2.ProcessUriEvent>.empty(),
-        returnValueForMissingStub: _i5.Stream<_i2.ProcessUriEvent>.empty(),
-      ) as _i5.Stream<_i2.ProcessUriEvent>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 }

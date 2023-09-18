@@ -40,7 +40,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       // as they can contain references to the previous Flutter engine.
       await _walletCore.clearLockStream();
       await _walletCore.clearConfigurationStream();
-      //TODO: Waiting on Core implementation to enable: await _walletCore.clearCardsStream();
+      await _walletCore.clearCardsStream();
       // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
       await _walletCore.lockWallet();
     }
@@ -66,24 +66,9 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   void _setupCardsStream() {
     _cards.onListen = () async {
       await _isInitialized.future;
-
-      //TODO: Waiting on Core implementation to remove:
-      _cards.add([
-        const Card(id: 1, docType: 'pid', issuer: 'rvig', attributes: [
-          CardAttribute(
-            key: 'pid.firstNames',
-            labels: [
-              LocalizedString(language: 'nl', value: 'Voornamen'),
-              LocalizedString(language: 'en', value: 'First names'),
-            ],
-            value: CardValue_String(value: 'Willeke Liselotte'),
-          ),
-        ]),
-      ]);
-
-      //TODO: Waiting on Core implementation to enable: _walletCore.setCardsStream().listen((event) => _cards.add(event));
+      _walletCore.setCardsStream().listen((event) => _cards.add(event));
     };
-    //TODO: Waiting on Core implementation to enable: _cards.onCancel = () => _walletCore.clearCardsStream();
+    _cards.onCancel = () => _walletCore.clearCardsStream();
   }
 
   @override
