@@ -6,9 +6,16 @@ use once_cell::sync::Lazy;
 
 use super::{Attribute, AttributeKey, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document};
 
+#[derive(Debug, Clone)]
 struct DataElementValueMapping {
     key: AttributeKey,
     key_labels: HashMap<AttributeLabelLanguage, AttributeLabel>,
+    value_type: AttributeValueType,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum AttributeValueType {
+    String,
 }
 
 type MappingNameSpace = &'static str;
@@ -26,6 +33,7 @@ static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|| {
             DataElementValueMapping {
                 key: "bsn",
                 key_labels: HashMap::from([("en", "BSN"), ("nl", "BSN")]),
+                value_type: AttributeValueType::String,
             },
         )]),
     )])
@@ -74,8 +82,7 @@ impl Document {
 
 impl Attribute {
     fn from_data_value(value: DataElementValue, value_mapping: &DataElementValueMapping) -> Option<Self> {
-        // TODO: Maybe check the expected value type.
-        AttributeValue::from_data_element_value(value).map(|value| Attribute {
+        AttributeValue::from_data_element_value(value, value_mapping.value_type).map(|value| Attribute {
             key_labels: value_mapping.key_labels.clone(),
             value,
         })
@@ -83,9 +90,9 @@ impl Attribute {
 }
 
 impl AttributeValue {
-    fn from_data_element_value(value: DataElementValue) -> Option<Self> {
-        match value {
-            DataElementValue::Text(s) => Self::String(s).into(),
+    fn from_data_element_value(value: DataElementValue, value_type: AttributeValueType) -> Option<Self> {
+        match (value, value_type) {
+            (DataElementValue::Text(s), AttributeValueType::String) => Self::String(s).into(),
             _ => None,
         }
     }
