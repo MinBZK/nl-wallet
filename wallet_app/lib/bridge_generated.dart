@@ -89,12 +89,12 @@ abstract class WalletCore {
 
 class Card {
   final String? id;
-  final DocumentType documentType;
+  final String docType;
   final List<CardAttribute> attributes;
 
   const Card({
     this.id,
-    required this.documentType,
+    required this.docType,
     required this.attributes,
   });
 }
@@ -128,11 +128,6 @@ class CardValue with _$CardValue {
   const factory CardValue.date({
     required String value,
   }) = CardValue_Date;
-}
-
-enum DocumentType {
-  Identity,
-  ResidenceAddress,
 }
 
 class FlutterConfiguration {
@@ -498,7 +493,7 @@ class WalletCoreImpl implements WalletCore {
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return Card(
       id: _wire2api_opt_String(arr[0]),
-      documentType: _wire2api_document_type(arr[1]),
+      docType: _wire2api_String(arr[1]),
       attributes: _wire2api_list_card_attribute(arr[2]),
     );
   }
@@ -538,10 +533,6 @@ class WalletCoreImpl implements WalletCore {
       default:
         throw Exception("unreachable");
     }
-  }
-
-  DocumentType _wire2api_document_type(dynamic raw) {
-    return DocumentType.values[raw as int];
   }
 
   double _wire2api_f64(dynamic raw) {

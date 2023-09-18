@@ -2,13 +2,8 @@ use wallet::{self, AttributeValue, Document};
 
 pub struct Card {
     pub id: Option<String>,
-    pub document_type: DocumentType,
+    pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
-}
-
-pub enum DocumentType {
-    Identity,
-    ResidenceAddress,
 }
 
 pub struct CardAttribute {
@@ -55,17 +50,8 @@ impl From<Document> for Card {
 
         Card {
             id: value.id,
-            document_type: value.document_type.into(),
+            doc_type: value.doc_type.to_string(),
             attributes,
-        }
-    }
-}
-
-impl From<wallet::DocumentType> for DocumentType {
-    fn from(value: wallet::DocumentType) -> Self {
-        match value {
-            wallet::DocumentType::Identity => Self::Identity,
-            wallet::DocumentType::ResidenceAddress => Self::ResidenceAddress,
         }
     }
 }
@@ -91,7 +77,7 @@ pub fn mock_cards() -> Vec<Card> {
     vec![
         Card {
             id: "025b9338-a1f7-4c57-bdaa-9992be55e5f0".to_string().into(),
-            document_type: DocumentType::Identity,
+            doc_type: "pid_id".to_string(),
             attributes: vec![
                 CardAttribute {
                     labels: vec![
@@ -193,7 +179,7 @@ pub fn mock_cards() -> Vec<Card> {
         },
         Card {
             id: "f553eb44-13a2-416c-aa9d-61a3f75b029a".to_string().into(),
-            document_type: DocumentType::ResidenceAddress,
+            doc_type: "pid_address".to_string(),
             attributes: vec![
                 CardAttribute {
                     labels: vec![
