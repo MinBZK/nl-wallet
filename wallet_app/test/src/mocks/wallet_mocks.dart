@@ -13,7 +13,8 @@ import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
-import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
+import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
+import 'package:wallet/src/wallet_core/wallet_core.dart';
 
 import 'wallet_mocks.mocks.dart';
 
@@ -26,7 +27,7 @@ export 'wallet_mocks.mocks.dart';
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 
-///Mock usecases
+/// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeDeeplinkUseCase>()])
 @GenerateNiceMocks([MockSpec<UpdatePidIssuanceStatusUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedWithPidUseCase>()])
@@ -35,6 +36,9 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckHasInternetUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
+
+/// Core
+@GenerateNiceMocks([MockSpec<WalletCore>()])
 
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
@@ -53,10 +57,14 @@ class Mocks {
   static var isInitialized = false;
 
   static void initialize() {
+    // Core
+    sl.registerFactory<WalletCore>(() => MockWalletCore());
+
     // Services
     sl.registerFactory<AppLifecycleService>(() => AppLifecycleService());
     sl.registerFactory<TypedWalletCore>(() => getTypedWalletCoreMock());
-    // Usecases
+
+    // Use cases
     sl.registerFactory<DecodeDeeplinkUseCase>(() => MockDecodeDeeplinkUseCase());
     sl.registerFactory<UpdatePidIssuanceStatusUseCase>(() => MockUpdatePidIssuanceStatusUseCase());
     sl.registerFactory<IsWalletInitializedWithPidUseCase>(() => MockIsWalletInitializedWithPidUseCase());
@@ -70,6 +78,7 @@ class Mocks {
       return mock;
     });
     sl.registerFactory<AcceptOfferedPidUseCase>(() => MockAcceptOfferedPidUseCase());
+
     // Repositories
     sl.registerFactory<PidRepository>(() => getMockPidRepository());
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());

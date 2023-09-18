@@ -7,9 +7,10 @@ import 'package:rxdart/rxdart.dart';
 import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/attribute/core_attribute.dart';
 import '../../../../util/cast_util.dart';
+import '../../../../util/mapper/card/card_attribute_label_mapper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 import '../../../../wallet_core/error/core_error_mapper.dart';
-import '../../../../wallet_core/typed_wallet_core.dart';
+import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../../store/active_locale_provider.dart';
 import '../pid_repository.dart';
 
@@ -17,9 +18,15 @@ class PidRepositoryImpl extends PidRepository {
   final StreamController<PidIssuanceStatus> _pidIssuanceStatusController = BehaviorSubject();
   final TypedWalletCore _walletCore;
   final CoreErrorMapper _errorMapper;
+  final CardAttributeLabelMapper _attributeLabelMapper;
   final ActiveLocaleProvider _localeProvider;
 
-  PidRepositoryImpl(this._walletCore, this._errorMapper, this._localeProvider);
+  PidRepositoryImpl(
+    this._walletCore,
+    this._errorMapper,
+    this._attributeLabelMapper,
+    this._localeProvider,
+  );
 
   @override
   Future<String> getPidIssuanceUrl() => _walletCore.createPidIssuanceRedirectUri();
@@ -36,22 +43,17 @@ class PidRepositoryImpl extends PidRepository {
         _pidIssuanceStatusController.add(PidIssuanceAuthenticating());
       },
       success: (success) {
+        /// Note: Since we don't output a stream here it's not trivial (e.g. with CombineLatestStream)
+        /// to make sure the output always contains the desired translations, however in this specific
+        /// (pid issuance) case that is irrelevant as the labels are actually ignored. See
+        /// [PidAttributeMapper], which combines the attributes provided here and formats to be
+        /// displayed with custom labels in a friendlier manner.
         final attributes = success
             .map(
               (card) => card.attributes.map(
                 (attribute) => CoreAttribute(
                   key: attribute.key.toString(),
-                  label: attribute.labels
-                      .firstWhere(
-                        /// Note: Since we don't output a stream here it's not trivial (e.g. with CombineLatestStream)
-                        /// to make sure the output always contains the desired translations, however in this specific
-                        /// (pid issuance) case that is irrelevant as the labels are actually ignored. See
-                        /// [PidAttributeMapper], which combines the attributes provided here and formats to be
-                        /// displayed with custom labels in a friendlier manner.
-                        (element) => element.language == activeLocale.languageCode,
-                        orElse: () => attribute.labels.first,
-                      )
-                      .value,
+                  label: _attributeLabelMapper.map(attribute.labels, activeLocale.languageCode),
                   rawValue: attribute.value.value,
                   valueType: AttributeValueType.text,
                 ),

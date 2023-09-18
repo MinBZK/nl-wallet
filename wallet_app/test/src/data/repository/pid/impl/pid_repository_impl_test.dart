@@ -7,10 +7,11 @@ import 'package:wallet/src/data/repository/pid/impl/pid_repository_impl.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/data/store/impl/active_localization_delegate.dart';
+import 'package:wallet/src/util/mapper/card/card_attribute_label_mapper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
-import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
+import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -22,7 +23,7 @@ void main() {
   setUp(() {
     core = Mocks.create();
     localeProvider = ActiveLocalizationDelegate(); // Defaults to 'en'
-    pidRepository = PidRepositoryImpl(core, CoreErrorMapper(), localeProvider);
+    pidRepository = PidRepositoryImpl(core, CoreErrorMapper(), CardAttributeLabelMapper(), localeProvider);
   });
 
   group('DigiD Auth Url', () {

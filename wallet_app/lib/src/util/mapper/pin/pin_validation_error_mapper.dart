@@ -1,6 +1,6 @@
 import '../../../../bridge_generated.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
-import '../mapper.dart';
+import '../../../util/mapper/mapper.dart';
 
 class PinValidationErrorMapper extends Mapper<PinValidationResult, PinValidationError?> {
   @override

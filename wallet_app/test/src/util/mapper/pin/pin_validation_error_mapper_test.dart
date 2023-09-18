@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/bridge_generated.dart';
-import 'package:wallet/src/data/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
 
 void main() {
   final mapper = PinValidationErrorMapper();

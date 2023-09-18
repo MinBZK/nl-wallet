@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/data/repository/wallet/mock/mock_wallet_repository.dart';
-import 'package:wallet/src/data/source/memory/memory_wallet_datasource.dart';
+import 'package:wallet/src/data/source/mock/mock_wallet_datasource.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
 
 void main() {
   //TODO: Replace with proper mocks
-  final walletDataSource = MemoryWalletDataSource();
+  final walletDataSource = MockWalletDataSource();
   final walletRepository = MockWalletRepository(walletDataSource);
 
   late CheckIsValidPinUseCase useCase;

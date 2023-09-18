@@ -6,7 +6,8 @@ import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../wallet_datasource.dart';
 
-class MemoryWalletDataSource implements WalletDataSource {
+/// In-memory implementation of [WalletDataSource]
+class MockWalletDataSource implements WalletDataSource {
   final BehaviorSubject<List<WalletCard>> walletCards = BehaviorSubject.seeded([]);
   final BehaviorSubject<List<TimelineAttribute>> timelineAttributes = BehaviorSubject.seeded([]);
 
