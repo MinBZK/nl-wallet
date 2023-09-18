@@ -299,7 +299,6 @@ pub mod mock {
                 }),
                 value.gender.map(|v| Entry {
                     name: PID_GENDER.to_string(),
-                    // TODO must be int according to ISO/IEC 5218
                     value: v.into(),
                 }),
                 value.nationality.map(|v| Entry {
