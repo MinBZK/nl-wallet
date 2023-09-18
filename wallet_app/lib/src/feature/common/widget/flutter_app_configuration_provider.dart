@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/repository/configuration/configuration_repository.dart';
 import '../../../domain/model/configuration/flutter_app_configuration.dart';
-import '../../../wallet_core/typed_wallet_core.dart';
+import '../../../wallet_core/typed/typed_wallet_core.dart';
 import 'centered_loading_indicator.dart';
 
 class FlutterAppConfigurationProvider extends StatelessWidget {
