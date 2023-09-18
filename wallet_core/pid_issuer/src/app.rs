@@ -259,7 +259,7 @@ pub mod mock {
                 .into(),
                 Entry {
                     name: PID_BIRTH_DATE.to_string(),
-                    value: Value::Integer(value.birth_date.and_hms_opt(0, 0, 0).unwrap().timestamp().into()),
+                    value: Value::Text(value.birth_date.format("%Y-%m-%d").to_string()),
                 }
                 .into(),
                 Entry {
