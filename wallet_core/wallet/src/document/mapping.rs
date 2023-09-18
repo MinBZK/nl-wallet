@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use nl_wallet_mdoc::{basic_sa_ext::Entry, DataElementValue, NameSpace};
@@ -43,36 +43,27 @@ impl Document {
     pub(crate) fn from_mdoc_attributes(
         id: Option<String>,
         doc_type: &str,
-        attributes: IndexMap<NameSpace, Vec<Entry>>,
+        mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Option<Self> {
         MDOC_DOCUMENT_MAPPING.get(doc_type).map(|mdoc_mapping| {
-            // Split the attributes `IndexMap` into two owned `Vec`s.
-            let (name_spaces, entries): (Vec<_>, Vec<_>) = attributes.into_iter().unzip();
-
-            // Build a `HashMap` from the entry values, keyed by a tuple of the name space
-            // and entry name. Note that we have to use a `Cow` for the entry name, which
-            // is an owned string, so that it may be looked up using a `&str`.
-            let mut attribute_values: HashMap<(_, Cow<_>), _> = name_spaces
-                .iter()
-                .zip(entries.into_iter())
-                .flat_map(|(name_space, entries)| {
-                    entries
-                        .into_iter()
-                        .map(|entry| ((name_space.as_str(), entry.name.into()), entry.value))
-                })
-                .collect();
-
-            // Finally, loop through the attributes in the mapping in order, look them up in
-            // the `HashMap` we just created and build an `IndexMap` of `Attribute`s from them.
+            // Loop through the attributes in the mapping in order and find
+            // the corresponding entry in the input attributes, based on the
+            // name space and the entry name. If found, move the entry value
+            // out of the input attributes and try to convert it to an `Attribute`.
             let document_attributes = mdoc_mapping
                 .attribute_mapping
                 .iter()
                 .flat_map(|((name_space, element_id), value_mapping)| {
-                    attribute_values
-                        .remove(&(*name_space, Cow::from(*element_id)))
-                        .and_then(|value| Attribute::from_data_value(value, value_mapping))
-                        .map(|attribute| (value_mapping.key, attribute))
+                    attributes.get_mut(*name_space).map(|entries| {
+                        entries
+                            .iter()
+                            .position(|entry| entry.name == *element_id)
+                            .map(|index| entries.swap_remove(index).value)
+                            .and_then(|value| Attribute::from_data_value(value, value_mapping))
+                            .map(|attribute| (value_mapping.key, attribute))
+                    })
                 })
+                .flatten()
                 .collect();
 
             Document {
