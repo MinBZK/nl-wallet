@@ -223,7 +223,7 @@ pub mod mock {
         bsn: String,
         family_name: String,
         given_name: String,
-        birth_date: chrono::NaiveDateTime,
+        birth_date: chrono::NaiveDate,
         age_over_18: bool,
         // age_over_NN: Option<bool>,
         // age_in_years: Option<u32>,
@@ -259,7 +259,7 @@ pub mod mock {
                 .into(),
                 Entry {
                     name: PID_BIRTH_DATE.to_string(),
-                    value: Value::Integer(value.birth_date.timestamp().into()),
+                    value: Value::Integer(value.birth_date.and_hms_opt(0, 0, 0).unwrap().timestamp().into()),
                 }
                 .into(),
                 Entry {
@@ -383,7 +383,7 @@ pub mod mock {
                                 given_name: "Johannes Frederik".to_string(),
                                 family_name: "Van Waarde".to_string(),
                                 gender: Some(Gender::Male),
-                                birth_date: chrono::NaiveDateTime::parse_from_str("1995-09-21", "%Y-%m-%d").unwrap(),
+                                birth_date: chrono::NaiveDate::parse_from_str("1995-09-21", "%Y-%m-%d").unwrap(),
                                 age_over_18: true,
                                 birth_country: Some("NL".to_string()),
                                 birth_city: Some("Leiden".to_string()),
@@ -426,7 +426,7 @@ pub mod mock {
                                 family_name: "De Bruijn".to_string(),
                                 family_name_birth: Some("Molenaar".to_string()),
                                 gender: Some(Gender::Female),
-                                birth_date: chrono::NaiveDateTime::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
+                                birth_date: chrono::NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                                 age_over_18: true,
                                 birth_country: Some("NL".to_string()),
                                 birth_city: Some("Delft".to_string()),
