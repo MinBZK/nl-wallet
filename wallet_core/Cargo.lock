@@ -2339,6 +2339,7 @@ dependencies = [
  "openssl",
  "pid_issuer",
  "platform_support",
+ "rand 0.8.5",
  "reqwest",
  "serde",
  "serde_json",
