@@ -3,29 +3,31 @@ use http::{header, HeaderMap, HeaderValue};
 use mime::Mime;
 use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
-use url::{ParseError, Url};
+use url::Url;
 
 use wallet_common::account::{
     messages::{
         auth::{Certificate, Challenge, Registration, WalletCertificate},
         errors::ErrorData,
-        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultMessage},
+        instructions::{
+            Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
+            InstructionResultMessage,
+        },
     },
     signed::SignedDouble,
 };
 
-use crate::{account_server::InstructionEndpoint, utils::reqwest::default_reqwest_client_builder};
+use crate::utils::reqwest::default_reqwest_client_builder;
 
-use super::{AccountServerClient, AccountServerClientError, AccountServerResponseError};
+use super::{AccountProviderClient, AccountProviderError, AccountProviderResponseError};
 
-pub struct RemoteAccountServerClient {
-    base_url: Url,
-    client: Client,
+pub struct HttpAccountProviderClient {
+    http_client: Client,
 }
 
-impl RemoteAccountServerClient {
-    fn new(base_url: Url) -> Self {
-        let client = default_reqwest_client_builder()
+impl HttpAccountProviderClient {
+    fn new() -> Self {
+        let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static("application/json"),
@@ -33,27 +35,23 @@ impl RemoteAccountServerClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        RemoteAccountServerClient { base_url, client }
+        HttpAccountProviderClient { http_client }
     }
 
-    fn url(&self, path: &str) -> Result<Url, ParseError> {
-        self.base_url.join(path)
-    }
-
-    async fn send_json_post_request<S, T>(&self, path: &str, json: &S) -> Result<T, AccountServerClientError>
+    async fn send_json_post_request<S, T>(&self, url: Url, json: &S) -> Result<T, AccountProviderError>
     where
         S: Serialize,
         T: DeserializeOwned,
     {
-        let request = self.client.post(self.url(path)?).json(json).build()?;
+        let request = self.http_client.post(url).json(json).build()?;
         self.send_json_request::<T>(request).await
     }
 
-    async fn send_json_request<T>(&self, request: Request) -> Result<T, AccountServerClientError>
+    async fn send_json_request<T>(&self, request: Request) -> Result<T, AccountProviderError>
     where
         T: DeserializeOwned,
     {
-        let response = self.client.execute(request).await?;
+        let response = self.http_client.execute(request).await?;
         let status = response.status();
 
         // In case of a 4xx or 5xx response...
@@ -74,28 +72,28 @@ impl RemoteAccountServerClient {
             let error = match (content_length, content_type_components) {
                 // If we know there is an empty body,
                 // we can stop early and return `AccountServerResponseError::Status`.
-                (Some(content_length), _) if content_length == 0 => AccountServerResponseError::Status(status),
+                (Some(content_length), _) if content_length == 0 => AccountProviderResponseError::Status(status),
                 // When the `Content-Type` header is either `application/json` or `application/???+json`,
                 // attempt to parse the body as `ErrorData`. If this fails, just return
                 // `AccountServerResponseError::Status`.
                 (_, Some((mime::APPLICATION, mime::JSON, _))) | (_, Some((mime::APPLICATION, _, Some(mime::JSON)))) => {
                     match response.json::<ErrorData>().await {
-                        Ok(error_data) => AccountServerResponseError::Data(status, error_data),
-                        Err(_) => AccountServerResponseError::Status(status),
+                        Ok(error_data) => AccountProviderResponseError::Data(status, error_data),
+                        Err(_) => AccountProviderResponseError::Status(status),
                     }
                 }
                 // When the `Content-Type` header is `text/plain`, attempt to get the body as text
                 // and return `AccountServerResponseError::Text`. If this fails or the body is empty,
                 // just return `AccountServerResponseError::Status`.
                 (_, Some((mime::TEXT, mime::PLAIN, _))) => match response.text().await {
-                    Ok(text) if !text.is_empty() => AccountServerResponseError::Text(status, text),
-                    _ => AccountServerResponseError::Status(status),
+                    Ok(text) if !text.is_empty() => AccountProviderResponseError::Text(status, text),
+                    _ => AccountProviderResponseError::Status(status),
                 },
                 // The fallback is to return `AccountServerResponseError::Status`.
-                _ => AccountServerResponseError::Status(status),
+                _ => AccountProviderResponseError::Status(status),
             };
 
-            return Err(AccountServerClientError::Response(error));
+            return Err(AccountProviderError::Response(error));
         }
 
         let body = response.json().await?;
@@ -104,54 +102,54 @@ impl RemoteAccountServerClient {
     }
 }
 
-#[async_trait]
-impl AccountServerClient for RemoteAccountServerClient {
-    async fn new(base_url: &Url) -> Self
-    where
-        Self: Sized,
-    {
-        Self::new(base_url.clone())
+impl Default for HttpAccountProviderClient {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError> {
-        let request = self.client.post(self.url("enroll")?).build()?;
-        let challenge = self.send_json_request::<Challenge>(request).await?.challenge.0;
+#[async_trait]
+impl AccountProviderClient for HttpAccountProviderClient {
+    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError> {
+        let url = base_url.join("enroll")?;
+        let request = self.http_client.post(url).build()?;
+        let challenge: Challenge = self.send_json_request::<Challenge>(request).await?;
 
-        Ok(challenge)
+        Ok(challenge.challenge.0)
     }
 
     async fn register(
         &self,
+        base_url: &Url,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, AccountServerClientError> {
-        let cert: Certificate = self
-            .send_json_post_request("createwallet", &registration_message)
-            .await?;
+    ) -> Result<WalletCertificate, AccountProviderError> {
+        let url = base_url.join("createwallet")?;
+        let cert: Certificate = self.send_json_post_request(url, &registration_message).await?;
 
         Ok(cert.certificate)
     }
 
     async fn instruction_challenge(
         &self,
+        base_url: &Url,
         challenge_request: InstructionChallengeRequestMessage,
-    ) -> Result<Vec<u8>, AccountServerClientError> {
-        let challenge: Challenge = self
-            .send_json_post_request("instructions/challenge", &challenge_request)
-            .await?;
+    ) -> Result<Vec<u8>, AccountProviderError> {
+        let url = base_url.join("instructions/challenge")?;
+        let challenge: Challenge = self.send_json_post_request(url, &challenge_request).await?;
 
         Ok(challenge.challenge.0)
     }
 
     async fn instruction<I>(
         &self,
+        base_url: &Url,
         instruction: Instruction<I>,
-    ) -> Result<InstructionResult<I::Result>, AccountServerClientError>
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
         I: InstructionEndpoint + Send + Sync,
     {
-        let message: InstructionResultMessage<I::Result> = self
-            .send_json_post_request(&format!("instructions/{}", I::ENDPOINT), &instruction)
-            .await?;
+        let url = base_url.join(&format!("instructions/{}", I::ENDPOINT))?;
+        let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;
 
         Ok(message.result)
     }
@@ -183,30 +181,25 @@ mod tests {
         pub bar: u64,
     }
 
-    async fn create_mock_server_and_client() -> (MockServer, RemoteAccountServerClient) {
+    async fn create_mock_server() -> (MockServer, Url) {
         let server = MockServer::start().await;
-        let client =
-            RemoteAccountServerClient::new(Url::parse(&server.uri()).expect("Could not parse mock server URI"));
+        let base_url = Url::parse(&server.uri()).expect("Could not parse mock server URI");
 
-        (server, client)
+        (server, base_url)
     }
 
     async fn post_example_request(
-        client: &RemoteAccountServerClient,
-        path: &str,
-    ) -> Result<ExampleBody, AccountServerClientError> {
-        let request = client
-            .client
-            .post(client.url(path).expect("Could not build URL"))
-            .build()
-            .expect("Could not create request");
+        client: &HttpAccountProviderClient,
+        url: Url,
+    ) -> Result<ExampleBody, AccountProviderError> {
+        let request = client.http_client.post(url).build().expect("Could not create request");
 
         client.send_json_request::<ExampleBody>(request).await
     }
 
     #[tokio::test]
-    async fn test_remote_account_server_client_send_json_request_ok() {
-        let (server, client) = create_mock_server_and_client().await;
+    async fn test_http_account_server_client_send_json_request_ok() {
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar"))
@@ -218,7 +211,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let body = post_example_request(&client, "foobar")
+        let client = HttpAccountProviderClient::default();
+        let body = post_example_request(&client, base_url.join("foobar").unwrap())
             .await
             .expect("Could not get succesful response from server");
 
@@ -227,8 +221,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_remote_account_server_client_send_json_request_error_status() {
-        let (server, client) = create_mock_server_and_client().await;
+    async fn test_http_account_server_client_send_json_request_error_status() {
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_404"))
@@ -237,19 +231,20 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_404")
+        let client = HttpAccountProviderClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_404").unwrap())
             .await
             .expect_err("No error received from server");
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Status(StatusCode::NOT_FOUND))
+            AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::NOT_FOUND))
         ))
     }
 
     #[tokio::test]
-    async fn test_remote_account_server_client_send_json_request_error_text() {
-        let (server, client) = create_mock_server_and_client().await;
+    async fn test_http_account_server_client_send_json_request_error_text() {
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_502"))
@@ -258,19 +253,20 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_502")
+        let client = HttpAccountProviderClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_502").unwrap())
             .await
             .expect_err("No error received from server");
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Text(StatusCode::BAD_GATEWAY, body))
+            AccountProviderError::Response(AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body))
        if body == "Your gateway is bad and you should feel bad!"))
     }
 
     #[tokio::test]
-    async fn test_remote_account_server_client_send_json_request_error_data() {
-        let (server, client) = create_mock_server_and_client().await;
+    async fn test_http_account_server_client_send_json_request_error_data() {
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_400"))
@@ -292,12 +288,12 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_400")
+        let client = HttpAccountProviderClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_400").unwrap())
             .await
             .expect_err("No error received from server");
 
-        if let AccountServerClientError::Response(AccountServerResponseError::Data(StatusCode::BAD_REQUEST, data)) =
-            error
+        if let AccountProviderError::Response(AccountProviderResponseError::Data(StatusCode::BAD_REQUEST, data)) = error
         {
             assert!(matches!(data.typ, ErrorType::ChallengeValidation));
             assert_eq!(data.title, "Error title");
@@ -305,8 +301,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_remote_account_server_client_send_json_request_other_json() {
-        let (server, client) = create_mock_server_and_client().await;
+    async fn test_http_account_server_client_send_json_request_other_json() {
+        let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
             .and(path("/foobar_503"))
@@ -318,13 +314,14 @@ mod tests {
             .mount(&server)
             .await;
 
-        let error = post_example_request(&client, "foobar_503")
+        let client = HttpAccountProviderClient::default();
+        let error = post_example_request(&client, base_url.join("foobar_503").unwrap())
             .await
             .expect_err("No error received from server");
 
         assert!(matches!(
             error,
-            AccountServerClientError::Response(AccountServerResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
+            AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
         ));
     }
 }

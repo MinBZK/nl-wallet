@@ -7,7 +7,7 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
-use std::{array::TryFromSliceError, io, path::PathBuf};
+use std::{array::TryFromSliceError, io};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
@@ -57,16 +57,12 @@ pub enum StorageError {
 /// This trait abstracts the persistent storage for the wallet.
 #[async_trait]
 pub trait Storage {
-    fn new(storage_path: PathBuf) -> Self
-    where
-        Self: Sized;
-
     async fn state(&self) -> Result<StorageState, StorageError>;
 
     async fn open(&mut self) -> Result<(), StorageError>;
     async fn clear(&mut self) -> Result<(), StorageError>;
 
     async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
-    async fn insert_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError>;
-    async fn update_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError>;
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
 }

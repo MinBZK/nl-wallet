@@ -1,16 +1,19 @@
 use super::{Configuration, ConfigurationRepository};
 
-// TODO: This will become RemoteConfigurationRepository in the near future.
+// TODO: This will become HttpConfigurationRepository in the near future.
 pub struct LocalConfigurationRepository {
     config: Configuration,
 }
 
 impl LocalConfigurationRepository {
-    pub fn new_with_initial<F>(f: F) -> Self
-    where
-        F: FnOnce() -> Configuration,
-    {
-        LocalConfigurationRepository { config: f() }
+    pub fn new(config: Configuration) -> Self {
+        LocalConfigurationRepository { config }
+    }
+}
+
+impl Default for LocalConfigurationRepository {
+    fn default() -> Self {
+        Self::new(Configuration::default())
     }
 }
 

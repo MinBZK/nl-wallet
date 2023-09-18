@@ -8,20 +8,9 @@ use wallet_common::{
     keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
 };
 
-use crate::{
-    remote::instructions::InstructionClient,
-    wallet::{AccountServerClient, InstructionError, Storage},
-};
+use crate::{account_provider::AccountProviderClient, storage::Storage};
 
-pub struct RemoteEcdsaKey<'a, S, A, K> {
-    identifier: String,
-    public_key: VerifyingKey,
-    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, A, K>,
-}
-
-pub struct RemoteEcdsaKeyFactory<'a, S, A, K> {
-    remote_instruction: &'a InstructionClient<'a, S, A, K>,
-}
+use super::{InstructionClient, InstructionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {
@@ -31,25 +20,30 @@ pub enum RemoteEcdsaKeyError {
     Signature(#[from] signature::Error),
 }
 
-impl<'a, S, A, K> RemoteEcdsaKeyFactory<'a, S, A, K>
-where
-    S: Storage,
-    A: AccountServerClient,
-    K: PlatformEcdsaKey,
-{
-    pub fn new(remote_instruction: &'a InstructionClient<'a, S, A, K>) -> Self {
+pub struct RemoteEcdsaKeyFactory<'a, S, K, A> {
+    remote_instruction: &'a InstructionClient<'a, S, K, A>,
+}
+
+pub struct RemoteEcdsaKey<'a, S, K, A> {
+    identifier: String,
+    public_key: VerifyingKey,
+    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, K, A>,
+}
+
+impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
+    pub fn new(remote_instruction: &'a InstructionClient<'a, S, K, A>) -> Self {
         Self { remote_instruction }
     }
 }
 
 #[async_trait]
-impl<'a, S, A, K> KeyFactory<'a> for RemoteEcdsaKeyFactory<'a, S, A, K>
+impl<'a, S, K, A> KeyFactory<'a> for RemoteEcdsaKeyFactory<'a, S, K, A>
 where
     S: Storage + Send + Sync,
-    A: AccountServerClient + Sync,
-    K: PlatformEcdsaKey,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
 {
-    type Key = RemoteEcdsaKey<'a, S, A, K>;
+    type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
 
     async fn generate<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<Self::Key>, Self::Error> {
@@ -72,18 +66,18 @@ where
     }
 }
 
-impl<S, A, K> WithIdentifier for RemoteEcdsaKey<'_, S, A, K> {
+impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
 #[async_trait]
-impl<S, A, K> EcdsaKey for RemoteEcdsaKey<'_, S, A, K>
+impl<S, K, A> EcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage + Send + Sync,
-    A: AccountServerClient + Sync,
-    K: PlatformEcdsaKey,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
 {
     type Error = RemoteEcdsaKeyError;
 
@@ -107,19 +101,19 @@ where
     }
 }
 
-impl<S, A, K> SecureEcdsaKey for RemoteEcdsaKey<'_, S, A, K>
+impl<S, K, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage + Send + Sync,
-    A: AccountServerClient + Sync,
-    K: PlatformEcdsaKey,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
 {
 }
 
-impl<S, A, K> MdocEcdsaKey for RemoteEcdsaKey<'_, S, A, K>
+impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage + Send + Sync,
-    A: AccountServerClient + Sync,
-    K: PlatformEcdsaKey,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
 {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Remote;
 }

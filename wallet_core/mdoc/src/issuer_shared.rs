@@ -76,7 +76,7 @@ impl Display for SessionToken {
 }
 
 impl Response {
-    async fn sign(challenge: &ByteBuf, key: &impl SecureEcdsaKey) -> Result<Response> {
+    async fn sign(challenge: &ByteBuf, key: &(impl SecureEcdsaKey + Sync)) -> Result<Response> {
         let response = Response {
             public_key: CoseKey::try_from(
                 &key.verifying_key()
@@ -103,7 +103,11 @@ impl Response {
 }
 
 impl MdocResponses {
-    async fn sign(keys: &[impl SecureEcdsaKey], unsigned: &UnsignedMdoc, challenge: &ByteBuf) -> Result<MdocResponses> {
+    async fn sign(
+        keys: &[impl SecureEcdsaKey + Sync],
+        unsigned: &UnsignedMdoc,
+        challenge: &ByteBuf,
+    ) -> Result<MdocResponses> {
         let responses = try_join_all(keys.iter().map(|key| Response::sign(challenge, key))).await?;
 
         let mdoc_responses = MdocResponses {
@@ -162,7 +166,7 @@ impl KeyGenerationResponseMessage {
 
     pub async fn new(
         request: &RequestKeyGenerationMessage,
-        keys: &[&[impl SecureEcdsaKey]],
+        keys: &[&[impl SecureEcdsaKey + Sync]],
     ) -> Result<KeyGenerationResponseMessage> {
         let mdoc_responses = try_join_all(
             keys.iter()

@@ -8,11 +8,7 @@ use tracing::{info, warn};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::{
-    init_wallet, validate_pin,
-    wallet::{RedirectUriType, WalletInitError},
-    Wallet,
-};
+use wallet::{self, errors::WalletInitError, RedirectUriType, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -66,7 +62,7 @@ async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
     _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
-            let wallet = init_wallet().await?;
+            let wallet = Wallet::init_all().await?;
             created = true;
 
             Ok::<_, WalletInitError>(RwLock::new(wallet))
@@ -78,7 +74,7 @@ async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
 
 #[flutter_api_error]
 pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
-    let result = validate_pin(&pin).into();
+    let result = wallet::validate_pin(&pin).into();
 
     Ok(result)
 }
@@ -176,31 +172,6 @@ pub async fn cancel_pid_issuance() {
     wallet.cancel_pid_issuance()
 }
 
-#[async_runtime]
-#[flutter_api_error]
-pub async fn reject_pid_issuance() -> Result<()> {
-    let mut wallet = wallet().write().await;
-
-    wallet.reject_pid_issuance().await?;
-
-    Ok(())
-}
-
-#[async_runtime]
-#[flutter_api_error]
-pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
-    let mut wallet = wallet().write().await;
-
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
-
-    // If PID issuance succeeded, send the mock cards through the cards stream.
-    if let Some(cards_callback) = CARDS_CALLBACK.lock().unwrap().as_mut() {
-        cards_callback(mock_cards());
-    }
-
-    Ok(result)
-}
-
 // Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
 pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
@@ -259,6 +230,31 @@ async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
             preview_cards: mock_cards(), // TODO: actually convert mdocs to card
         },
     )
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+
+    // If PID issuance succeeded, send the mock cards through the cards stream.
+    if let Some(cards_callback) = CARDS_CALLBACK.lock().unwrap().as_mut() {
+        cards_callback(mock_cards());
+    }
+
+    Ok(result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn reject_pid_issuance() -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.reject_pid_issuance().await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

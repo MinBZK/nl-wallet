@@ -95,7 +95,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
-    pub async fn finish_issuance<'a, K: MdocEcdsaKey>(
+    pub async fn finish_issuance<'a, K: MdocEcdsaKey + Sync>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
@@ -138,7 +138,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 }
 
 impl IssuanceSessionState {
-    pub async fn keys_and_responses<'a, K: MdocEcdsaKey>(
+    pub async fn keys_and_responses<'a, K: MdocEcdsaKey + Sync>(
         &self,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
@@ -165,7 +165,7 @@ impl IssuanceSessionState {
             .map_err(|err| KeyGeneration(Box::new(err)))
     }
 
-    pub async fn construct_mdocs<K: MdocEcdsaKey>(
+    pub async fn construct_mdocs<K: MdocEcdsaKey + Sync>(
         &self,
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
@@ -184,7 +184,7 @@ impl IssuanceSessionState {
         Ok(mdoc_copies)
     }
 
-    async fn create_cred_copies<K: MdocEcdsaKey>(
+    async fn create_cred_copies<K: MdocEcdsaKey + Sync>(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &[K],
@@ -203,7 +203,7 @@ impl IssuanceSessionState {
 }
 
 impl SparseIssuerSigned {
-    pub(super) async fn to_mdoc<K: MdocEcdsaKey>(
+    pub(super) async fn to_mdoc<K: MdocEcdsaKey + Sync>(
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,

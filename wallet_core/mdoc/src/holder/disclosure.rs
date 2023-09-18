@@ -26,7 +26,7 @@ use crate::{
 use super::{HolderError, HttpClient, Mdoc, Storage, Wallet};
 
 impl<C: Storage, H: HttpClient> Wallet<C, H> {
-    pub async fn disclose<'a, K: MdocEcdsaKey>(
+    pub async fn disclose<'a, K: MdocEcdsaKey + Sync>(
         &self,
         device_request: &DeviceRequest,
         challenge: &[u8],
@@ -49,7 +49,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         Ok(response)
     }
 
-    async fn disclose_document<'a, K: MdocEcdsaKey>(
+    async fn disclose_document<'a, K: MdocEcdsaKey + Sync>(
         &self,
         doc_request: &DocRequest,
         challenge: &[u8],
@@ -76,7 +76,7 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 }
 
 impl Mdoc {
-    pub async fn disclose_document<'a, K: MdocEcdsaKey>(
+    pub async fn disclose_document<'a, K: MdocEcdsaKey + Sync>(
         &self,
         items_request: &ItemsRequest,
         challenge: &[u8],
@@ -123,7 +123,7 @@ impl Mdoc {
 }
 
 impl DeviceSigned {
-    pub async fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> DeviceSigned {
+    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> DeviceSigned {
         let cose = sign_cose(challenge, Header::default(), private_key, false).await;
 
         DeviceSigned {

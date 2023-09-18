@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
+use platform_support::utils::PlatformUtilities;
 use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use tokio::fs;
 
@@ -34,9 +35,26 @@ fn key_file_alias_for_name(database_name: &str) -> String {
 ///   [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
-    pub storage_path: PathBuf,
+    storage_path: PathBuf,
     database: Option<Database>,
     _key: PhantomData<K>,
+}
+
+impl<K> DatabaseStorage<K> {
+    pub async fn init<U>() -> Result<Self, StorageError>
+    where
+        U: PlatformUtilities,
+    {
+        let storage_path = U::storage_path().await?;
+
+        let storage = DatabaseStorage {
+            storage_path,
+            database: None,
+            _key: PhantomData,
+        };
+
+        Ok(storage)
+    }
 }
 
 impl<K> DatabaseStorage<K>
@@ -77,18 +95,7 @@ impl<K> Storage for DatabaseStorage<K>
 where
     K: SecureEncryptionKey + Send + Sync,
 {
-    fn new(storage_path: PathBuf) -> Self
-    where
-        Self: Sized,
-    {
-        DatabaseStorage {
-            storage_path,
-            database: None,
-            _key: PhantomData,
-        }
-    }
-
-    /// Indiciate whether there is no database on disk, there is one but it is unopened
+    /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
     async fn state(&self) -> Result<StorageState, StorageError> {
         if self.database.is_some() {
@@ -143,7 +150,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -157,7 +164,7 @@ where
     }
 
     /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData>(&self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
         let database = self.database()?;
 
         keyed_data::Entity::update_many()
@@ -172,8 +179,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
+    use platform_support::utils::software::SoftwareUtilities;
     use tokio::fs;
 
     use wallet_common::{
@@ -191,15 +197,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_database_open_encrypted_database() {
-        let storage_path = env::temp_dir();
-        let storage = DatabaseStorage::<SoftwareEncryptionKey>::new(storage_path.to_path_buf());
+        let storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
+            .await
+            .unwrap();
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        delete_key_file(&storage_path, &key_file_alias).await;
+        delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
         let database = storage
@@ -223,8 +230,9 @@ mod tests {
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
-        let storage_path = env::temp_dir();
-        let mut storage = DatabaseStorage::<SoftwareEncryptionKey>::new(storage_path.to_path_buf());
+        let mut storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
+            .await
+            .unwrap();
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());

@@ -1,62 +1,64 @@
 use std::future::Future;
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use url::Url;
 use wallet_common::account::{
     jwt::EcdsaDecodingKey,
-    messages::{
-        auth::WalletCertificate,
-        instructions::{
-            Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
-        },
+    messages::instructions::{
+        Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
-    serialization::Base64Bytes,
 };
 
 use crate::{
-    account_server::AccountServerClient,
-    errors::InstructionError,
+    account_provider::AccountProviderClient,
     pin::key::PinKey,
-    storage::{InstructionData, Storage},
+    storage::{InstructionData, RegistrationData, Storage},
 };
 
-pub struct InstructionClient<'a, S, A, K> {
+use super::InstructionError;
+
+pub struct InstructionClient<'a, S, K, A> {
     pin: String,
-    pin_salt: &'a Base64Bytes,
-    wallet_certificate: &'a WalletCertificate,
+    storage: &'a RwLock<S>,
     hw_privkey: &'a K,
-    account_server: &'a A,
-    storage: &'a Mutex<S>,
+    account_provider_client: &'a A,
+    registration: &'a RegistrationData,
+    account_provider_base_url: &'a Url,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
-impl<'a, S, A, K> InstructionClient<'a, S, A, K>
+impl<'a, S, K, A> InstructionClient<'a, S, K, A>
 where
-    S: Storage + Sync,
-    A: AccountServerClient + Sync,
+    S: Storage,
     K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     pub fn new(
         pin: String,
-        pin_salt: &'a Base64Bytes,
-        wallet_certificate: &'a WalletCertificate,
+        storage: &'a RwLock<S>,
         hw_privkey: &'a K,
-        account_server: &'a A,
-        storage: &'a Mutex<S>,
+        account_provider_client: &'a A,
+        registration: &'a RegistrationData,
+        account_provider_base_url: &'a Url,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Self {
         Self {
             pin,
-            pin_salt,
-            wallet_certificate,
-            hw_privkey,
-            account_server,
-            instruction_result_public_key,
             storage,
+            hw_privkey,
+            account_provider_client,
+            registration,
+            account_provider_base_url,
+            instruction_result_public_key,
         }
     }
 
-    async fn with_sequence_number<F, O, R>(&self, storage: &MutexGuard<'_, S>, f: F) -> Result<R, InstructionError>
+    async fn with_sequence_number<F, O, R>(
+        &self,
+        storage: &mut RwLockWriteGuard<'_, S>,
+        f: F,
+    ) -> Result<R, InstructionError>
     where
         F: FnOnce(u64) -> O + 'a,
         O: Future<Output = Result<R, wallet_common::errors::Error>> + 'a,
@@ -77,7 +79,7 @@ where
             .map_err(InstructionError::Signing)
     }
 
-    async fn instruction_challenge(&self, storage: &MutexGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
+    async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
         let message = self
             .with_sequence_number(storage, |seq_num| {
                 InstructionChallengeRequest::new_signed(seq_num, "wallet", self.hw_privkey)
@@ -86,40 +88,43 @@ where
 
         let challenge_request = InstructionChallengeRequestMessage {
             message,
-            certificate: self.wallet_certificate.clone(),
+            certificate: self.registration.wallet_certificate.clone(),
         };
 
-        let result = self.account_server.instruction_challenge(challenge_request).await?;
+        let result = self
+            .account_provider_client
+            .instruction_challenge(self.account_provider_base_url, challenge_request)
+            .await?;
 
         Ok(result)
     }
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>
     where
-        I: InstructionEndpoint + Send + Sync,
+        I: InstructionEndpoint + Send + Sync + 'static,
     {
-        let storage = self.storage.lock().await;
+        let mut storage = self.storage.write().await;
 
-        let challenge = self.instruction_challenge(&storage).await?;
+        let challenge = self.instruction_challenge(&mut storage).await?;
 
-        let pin_key = PinKey::new(&self.pin, &self.pin_salt.0);
+        let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt.0);
 
         let instruction = self
-            .with_sequence_number(&storage, |seq_num| {
+            .with_sequence_number(&mut storage, |seq_num| {
                 Instruction::new_signed(
                     instruction,
                     seq_num,
                     self.hw_privkey,
                     &pin_key,
                     &challenge,
-                    self.wallet_certificate.clone(),
+                    self.registration.wallet_certificate.clone(),
                 )
             })
             .await?;
 
         let signed_result = self
-            .account_server
-            .instruction(instruction)
+            .account_provider_client
+            .instruction(self.account_provider_base_url, instruction)
             .await
             .map_err(InstructionError::from)?;
 

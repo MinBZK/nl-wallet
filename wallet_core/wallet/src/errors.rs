@@ -1,12 +1,18 @@
 // Expose some downstream errors that may be useful.
-pub use openid::error::Error as OpenIdError;
-pub use reqwest::Error as ReqwestError;
+pub mod openid {
+    pub use openid::error::Error;
+}
+
+pub mod reqwest {
+    pub use reqwest::Error;
+}
 
 pub use crate::{
-    account_server::{AccountServerClientError, AccountServerResponseError},
-    digid::{DigidAuthenticatorError, OpenIdAuthenticatorError},
-    pid_issuer::PidRetrieverError,
+    account_provider::{AccountProviderError, AccountProviderResponseError},
+    digid::{DigidError, OpenIdError},
+    instruction::InstructionError,
+    pid_issuer::PidIssuerError,
     pin::{key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},
-    wallet::{InstructionError, PidIssuanceError, WalletInitError, WalletRegistrationError, WalletUnlockError},
+    wallet::{PidIssuanceError, WalletInitError, WalletRegistrationError, WalletUnlockError},
 };

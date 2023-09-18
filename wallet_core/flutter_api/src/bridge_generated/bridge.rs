@@ -190,14 +190,17 @@ fn wire_cancel_pid_issuance_impl(port_: MessagePort) {
         move || move |task_callback| Ok(cancel_pid_issuance()),
     )
 }
-fn wire_reject_pid_issuance_impl(port_: MessagePort) {
+fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "reject_pid_issuance",
+            debug_name: "process_uri",
             port: Some(port_),
-            mode: FfiCallMode::Normal,
+            mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| reject_pid_issuance(),
+        move || {
+            let api_uri = uri.wire2api();
+            move |task_callback| Ok(process_uri(api_uri, task_callback.stream_sink()))
+        },
     )
 }
 fn wire_accept_pid_issuance_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
@@ -213,17 +216,14 @@ fn wire_accept_pid_issuance_impl(port_: MessagePort, pin: impl Wire2Api<String> 
         },
     )
 }
-fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+fn wire_reject_pid_issuance_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap(
         WrapInfo {
-            debug_name: "process_uri",
+            debug_name: "reject_pid_issuance",
             port: Some(port_),
-            mode: FfiCallMode::Stream,
+            mode: FfiCallMode::Normal,
         },
-        move || {
-            let api_uri = uri.wire2api();
-            move |task_callback| Ok(process_uri(api_uri, task_callback.stream_sink()))
-        },
+        move || move |task_callback| reject_pid_issuance(),
     )
 }
 // Section: wrapper structs

@@ -7,7 +7,7 @@ use crate::{pkce::PkcePair, utils::reqwest::default_reqwest_client_builder};
 use super::openid_pkce::Client;
 
 #[derive(Debug, thiserror::Error)]
-pub enum OpenIdAuthenticatorError {
+pub enum OpenIdError {
     #[error("could not perform openid operation: {0}")]
     OpenId(#[from] openid::error::Error),
     #[error("no ID token received during authentication")]
@@ -18,9 +18,9 @@ pub enum OpenIdAuthenticatorError {
 /// [`reqwest`] on which [`openid`] depends.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait OpenIdAuthenticator {
+pub trait OpenIdClient {
     /// Perform OpenID discovery and return a client instance on success.
-    async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdAuthenticatorError>
+    async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError>
     where
         Self: Sized;
 
@@ -36,23 +36,18 @@ pub trait OpenIdAuthenticator {
     /// Use an authentication code received in the redirect URI to fetch and validate an access token
     /// from the issuer. This requires both the nonce provided when generating the authentication URL
     /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
-    async fn authenticate<P>(
-        &self,
-        auth_code: &str,
-        nonce: &str,
-        pkce_pair: &P,
-    ) -> Result<String, OpenIdAuthenticatorError>
+    async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Send + Sync + 'static;
+        P: PkcePair + Sync + 'static;
 }
 
-pub struct OpenIdClient {
+pub struct HttpOpenIdClient {
     openid_client: Client,
 }
 
 #[async_trait]
-impl OpenIdAuthenticator for OpenIdClient {
-    async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdAuthenticatorError> {
+impl OpenIdClient for HttpOpenIdClient {
+    async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError> {
         // Configure a simple `reqwest` HTTP client with a timeout.
         let http_client = default_reqwest_client_builder()
             .build()
@@ -62,7 +57,7 @@ impl OpenIdAuthenticator for OpenIdClient {
         let openid_client =
             Client::discover_with_client(http_client, client_id, None, redirect_uri.to_string(), issuer_url).await?;
         // Wrap the newly created `Client` instance in our newtype.
-        let client = OpenIdClient { openid_client };
+        let client = HttpOpenIdClient { openid_client };
 
         Ok(client)
     }
@@ -96,14 +91,9 @@ impl OpenIdAuthenticator for OpenIdClient {
         self.openid_client.auth_url_and_pkce(&options)
     }
 
-    async fn authenticate<P>(
-        &self,
-        auth_code: &str,
-        nonce: &str,
-        pkce_pair: &P,
-    ) -> Result<String, OpenIdAuthenticatorError>
+    async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Send + Sync,
+        P: PkcePair + Sync,
     {
         // Forward the received method parameters to our `Client` instance.
         let token = self
@@ -114,7 +104,7 @@ impl OpenIdAuthenticator for OpenIdClient {
         // Double check if the received token had an ID token, otherwise
         // validation of the token will not actually have taken place.
         if token.id_token.is_none() {
-            return Err(OpenIdAuthenticatorError::NoIdToken);
+            return Err(OpenIdError::NoIdToken);
         }
 
         // Extract the resulting access token and return it.
@@ -139,7 +129,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_remote_open_id_client() {
+    async fn test_http_open_id_client() {
         let server = MockServer::start().await;
         let server_url = Url::parse(&server.uri()).unwrap();
 
@@ -174,7 +164,7 @@ mod tests {
         let nonce = "thisisthenonce";
 
         // Perform OpenID discovery
-        let client = OpenIdClient::discover(server_url.clone(), client_id.to_string(), redirect_uri.clone())
+        let client = HttpOpenIdClient::discover(server_url.clone(), client_id.to_string(), redirect_uri.clone())
             .await
             .expect("Could not perform OpenID discovery");
 

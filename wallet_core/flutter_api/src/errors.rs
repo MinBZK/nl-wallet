@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    AccountServerClientError, DigidAuthenticatorError, InstructionError, OpenIdError, PidIssuanceError, ReqwestError,
-    WalletInitError, WalletRegistrationError, WalletUnlockError,
+    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, WalletInitError,
+    WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -121,17 +121,17 @@ impl FlutterApiErrorFields for PidIssuanceError {
             // This means that the `.source()` method will be forwarded directly to the contained
             // error and the reqwest error itself will be skipped in the source chain!
             // For this reason we need to extract it manually.
-            if let Some(OpenIdError::Http(_)) = source.downcast_ref::<OpenIdError>() {
+            if let Some(openid::Error::Http(_)) = source.downcast_ref::<openid::Error>() {
                 return FlutterApiErrorType::Networking;
             }
 
-            if source.is::<ReqwestError>() {
+            if source.is::<reqwest::Error>() {
                 return FlutterApiErrorType::Networking;
             }
         }
 
         match self {
-            PidIssuanceError::DigidSessionFinish(DigidAuthenticatorError::RedirectUriError {
+            PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
                 error: _,
                 error_description: _,
             }) => FlutterApiErrorType::RedirectUri,
@@ -141,7 +141,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
 
     fn data(&self) -> Option<serde_json::Value> {
         match self {
-            Self::DigidSessionFinish(DigidAuthenticatorError::RedirectUriError {
+            Self::DigidSessionFinish(DigidError::RedirectUriError {
                 error,
                 error_description: _,
             }) => [("redirect_error", error.clone())]
@@ -153,8 +153,8 @@ impl FlutterApiErrorFields for PidIssuanceError {
     }
 }
 
-impl From<&AccountServerClientError> for FlutterApiErrorType {
-    fn from(_value: &AccountServerClientError) -> Self {
+impl From<&AccountProviderError> for FlutterApiErrorType {
+    fn from(_value: &AccountProviderError) -> Self {
         Self::Networking
     }
 }

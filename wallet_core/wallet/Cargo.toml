@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = ["dep:mockall", "dep:dashmap", "wallet_provider/stub"]
+mock = ["dep:mockall"]
 wallet_deps = []
 disable_tls_validation = []
 
@@ -13,7 +13,6 @@ disable_tls_validation = []
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
-dashmap = { workspace = true, optional = true }
 futures = { workspace = true }
 http = { workspace = true }
 libsqlite3-sys = { workspace = true, features = [
@@ -47,7 +46,6 @@ platform_support = { path = "../platform_support" }
 wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
-dashmap = { workspace = true }
 mockall = { workspace = true }
 rstest = { workspace = true }
 serial_test = { workspace = true }
@@ -57,4 +55,3 @@ wiremock = { workspace = true }
 
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
-wallet_provider = { path = "../wallet_provider", features = ["stub"] }

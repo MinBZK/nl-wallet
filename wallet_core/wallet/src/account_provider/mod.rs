@@ -1,7 +1,4 @@
-mod remote;
-
-#[cfg(test)]
-mod mock;
+mod client;
 
 use async_trait::async_trait;
 use reqwest::StatusCode;
@@ -16,12 +13,12 @@ use wallet_common::account::{
     signed::SignedDouble,
 };
 
-pub use self::remote::RemoteAccountServerClient;
+pub use self::client::HttpAccountProviderClient;
 
 #[derive(Debug, thiserror::Error)]
-pub enum AccountServerClientError {
+pub enum AccountProviderError {
     #[error("server responded with {0}")]
-    Response(#[from] AccountServerResponseError),
+    Response(#[from] AccountProviderResponseError),
     #[error("networking error: {0}")]
     Networking(#[from] reqwest::Error),
     #[error("could not parse base URL: {0}")]
@@ -29,7 +26,7 @@ pub enum AccountServerClientError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AccountServerResponseError {
+pub enum AccountProviderResponseError {
     #[error("status code {0}")]
     Status(StatusCode),
     #[error("status code {0} and contents: {1}")]
@@ -38,28 +35,28 @@ pub enum AccountServerResponseError {
     Data(StatusCode, ErrorData),
 }
 
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
-pub trait AccountServerClient {
-    async fn new(base_url: &Url) -> Self
-    where
-        Self: Sized;
-
-    async fn registration_challenge(&self) -> Result<Vec<u8>, AccountServerClientError>;
+pub trait AccountProviderClient {
+    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
+        base_url: &Url,
         registration_message: SignedDouble<Registration>,
-    ) -> Result<WalletCertificate, AccountServerClientError>;
+    ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
+        base_url: &Url,
         challenge_request: InstructionChallengeRequestMessage,
-    ) -> Result<Vec<u8>, AccountServerClientError>;
+    ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(
         &self,
+        base_url: &Url,
         instruction: Instruction<I>,
-    ) -> Result<InstructionResult<I::Result>, AccountServerClientError>
+    ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint + Send + Sync;
+        I: InstructionEndpoint + Send + Sync + 'static;
 }

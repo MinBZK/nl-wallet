@@ -25,14 +25,12 @@ use pid_issuer::{
     server as PidServer,
     settings::Settings as PidSettings,
 };
-use platform_support::{hw_keystore::PlatformEcdsaKey, utils::software::SoftwareUtilities};
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
-    mock::{MockConfigurationRepository, MockDigidAuthenticator, MockPidRetriever, MockStorage},
-    wallet::{
-        AccountServerClient, ConfigurationRepository, DigidAuthenticator, InstructionError, PidRetriever, Storage,
-        Wallet, WalletUnlockError,
-    },
-    wallet_deps::{PidIssuerClient, RemoteAccountServerClient},
+    errors::{InstructionError, WalletUnlockError},
+    mock::{MockDigidClient, MockPidIssuerClient, MockStorage},
+    wallet_deps::{HttpAccountProviderClient, HttpPidIssuerClient, LocalConfigurationRepository},
+    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -70,29 +68,35 @@ async fn create_test_wallet(
     pid_base_url: Option<Url>,
     public_key: EcdsaDecodingKey,
     instruction_result_public_key: EcdsaDecodingKey,
-    digid_authenticator: MockDigidAuthenticator,
-    pid_retriever: impl PidRetriever,
+    digid_client: MockDigidClient,
+    pid_issuer_client: impl PidIssuerClient,
 ) -> Wallet<
-    MockConfigurationRepository,
-    RemoteAccountServerClient,
+    LocalConfigurationRepository,
     MockStorage,
     SoftwareEcdsaKey,
-    MockDigidAuthenticator,
-    impl PidRetriever,
+    HttpAccountProviderClient,
+    MockDigidClient,
+    impl PidIssuerClient,
 > {
     // Create mock Wallet from settings
-    let mut config = MockConfigurationRepository::default();
-    config.0.account_server.base_url = base_url;
-    config.0.account_server.certificate_public_key = public_key;
-    config.0.account_server.instruction_result_public_key = instruction_result_public_key;
+    let mut config = Configuration::default();
+    config.account_server.base_url = base_url;
+    config.account_server.certificate_public_key = public_key;
+    config.account_server.instruction_result_public_key = instruction_result_public_key;
 
     if let Some(pid_base_url) = pid_base_url {
-        config.0.pid_issuance.pid_issuer_url = pid_base_url;
+        config.pid_issuance.pid_issuer_url = pid_base_url;
     }
 
-    Wallet::init_wp_and_storage::<SoftwareUtilities>(config, digid_authenticator, pid_retriever)
-        .await
-        .expect("Could not create test wallet")
+    Wallet::init_registration(
+        LocalConfigurationRepository::new(config),
+        MockStorage::default(),
+        HttpAccountProviderClient::default(),
+        digid_client,
+        pid_issuer_client,
+    )
+    .await
+    .expect("Could not create test wallet")
 }
 
 async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -149,14 +153,14 @@ where
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 }
 
-async fn test_wallet_registration<C, A, S, K, D, P>(mut wallet: Wallet<C, A, S, K, D, P>)
+async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
 where
     C: ConfigurationRepository,
-    A: AccountServerClient + Sync,
     S: Storage + Send + Sync,
-    K: PlatformEcdsaKey,
-    D: DigidAuthenticator,
-    P: PidRetriever,
+    K: PlatformEcdsaKey + Sync,
+    A: AccountProviderClient + Sync,
+    D: DigidClient,
+    P: PidIssuerClient,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
@@ -187,8 +191,8 @@ async fn test_wallet_registration_in_process() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidAuthenticator::new(),
-        MockPidRetriever {},
+        MockDigidClient::default(),
+        MockPidIssuerClient::default(),
     )
     .await;
 
@@ -210,8 +214,8 @@ async fn test_wallet_registration_live() {
         None,
         pub_key,
         instr_pub_key,
-        MockDigidAuthenticator::new(),
-        MockPidRetriever {},
+        MockDigidClient::default(),
+        MockPidIssuerClient::default(),
     )
     .await;
 
@@ -230,8 +234,8 @@ async fn test_unlock_ok() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidAuthenticator::new(),
-        MockPidRetriever {},
+        MockDigidClient::default(),
+        MockPidIssuerClient::default(),
     )
     .await;
 
@@ -269,8 +273,8 @@ async fn test_block() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidAuthenticator::new(),
-        MockPidRetriever {},
+        MockDigidClient::default(),
+        MockPidIssuerClient::default(),
     )
     .await;
 
@@ -324,8 +328,8 @@ async fn test_unlock_error() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidAuthenticator::new(),
-        MockPidRetriever {},
+        MockDigidClient::default(),
+        MockPidIssuerClient::default(),
     )
     .await;
 
@@ -466,7 +470,7 @@ async fn test_pid_ok() {
     start_pid_issuer(pid_settings, MockAttributesLookup, MockBsnLookup);
 
     let digid_client = {
-        let mut digid_client = MockDigidAuthenticator::new();
+        let mut digid_client = MockDigidClient::default();
 
         digid_client
             .expect_start_session()
@@ -482,7 +486,7 @@ async fn test_pid_ok() {
 
     let client = CborHttpClient(reqwest::Client::new());
     let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new(), client)));
-    let pid_issuer_client = PidIssuerClient::new(Arc::clone(&mdoc_wallet));
+    let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
 
     let mut wallet = create_test_wallet(
         local_base_url(port),

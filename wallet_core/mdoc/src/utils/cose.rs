@@ -146,7 +146,7 @@ impl<T> MdocCose<CoseSign1, T> {
     pub async fn sign(
         obj: &T,
         unprotected_header: Header,
-        private_key: &impl SecureEcdsaKey,
+        private_key: &(impl SecureEcdsaKey + Sync),
         include_payload: bool,
     ) -> Result<MdocCose<CoseSign1, T>>
     where
@@ -199,7 +199,7 @@ impl<T> MdocCose<CoseSign1, T> {
 pub async fn sign_cose(
     payload: &[u8],
     unprotected_header: Header,
-    private_key: &impl SecureEcdsaKey,
+    private_key: &(impl SecureEcdsaKey + Sync),
     include_payload: bool,
 ) -> CoseSign1 {
     let protected_header = ProtectedHeader {

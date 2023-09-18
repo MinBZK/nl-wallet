@@ -9,7 +9,7 @@ pub mod integration_test;
 pub mod software;
 
 #[async_trait]
-pub trait EcdsaKey: Send + Sync {
+pub trait EcdsaKey {
     type Error: Error + Send + Sync + 'static;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
