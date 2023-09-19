@@ -10,7 +10,7 @@ pub mod reqwest {
 pub use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
     digid::{DigidError, OpenIdError},
-    instruction::InstructionError,
+    instruction::{InstructionError, RemoteEcdsaKeyError},
     pid_issuer::PidIssuerError,
     pin::{key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},

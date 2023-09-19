@@ -2,6 +2,7 @@ use std::error::Error;
 
 use futures::future::TryFutureExt;
 use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+use p256::ecdsa::signature;
 use platform_support::{
     hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
     utils::hardware::HardwareUtilities,
@@ -17,7 +18,7 @@ use crate::{
     account_provider::{AccountProviderError, HttpAccountProviderClient},
     config::LocalConfigurationRepository,
     digid::{DigidError, HttpDigidClient},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyFactory},
+    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
     pid_issuer::{HttpPidIssuerClient, PidIssuerError},
     pin::{
@@ -82,6 +83,8 @@ pub enum PidIssuanceError {
     PidIssuer(#[source] PidIssuerError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
+    #[error("invalid signature received from Wallet Provider: {0}")]
+    Signature(#[from] signature::Error),
 }
 
 pub enum RedirectUriType {
@@ -425,7 +428,18 @@ where
         self.pid_issuer
             .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
             .await
-            .map_err(PidIssuanceError::PidIssuer)
+            .map_err(|error| {
+                match error {
+                    // We knowingly call unwrap() on the downcast to [RemoteEcdsaKeyError] here because we know that is the error type of the [RemoteEcdsaKeyFactory] we provide above
+                    PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeyGeneration(error)) => {
+                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                            RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
+                            RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
+                        }
+                    }
+                    _ => PidIssuanceError::PidIssuer(error),
+                }
+            })
     }
 
     #[instrument(skip_all)]
