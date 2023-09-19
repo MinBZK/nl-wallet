@@ -217,7 +217,7 @@ then
         echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
         killall pid_issuer || true
     fi
-    if [ "${STOP}" == "0" ]
+    if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
         RUST_LOG=debug cargo run --bin pid_issuer --features disable_tls_validation > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
