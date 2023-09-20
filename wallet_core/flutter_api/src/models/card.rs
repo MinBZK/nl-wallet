@@ -1,4 +1,4 @@
-use wallet::{self, AttributeValue, Document};
+use wallet::{self, AttributeValue, Document, GenderAttributeValue};
 
 pub struct Card {
     pub id: Option<String>,
@@ -14,10 +14,27 @@ pub struct CardAttribute {
 
 pub enum CardValue {
     String { value: String },
-    Integer { value: i64 },
-    Double { value: f64 },
     Boolean { value: bool },
     Date { value: String },
+    Gender { value: GenderCardValue },
+}
+
+pub enum GenderCardValue {
+    Unknown,
+    Male,
+    Female,
+    NotApplicable,
+}
+
+impl From<GenderAttributeValue> for GenderCardValue {
+    fn from(value: GenderAttributeValue) -> Self {
+        match value {
+            GenderAttributeValue::Unknown => Self::Unknown,
+            GenderAttributeValue::Male => Self::Male,
+            GenderAttributeValue::Female => Self::Female,
+            GenderAttributeValue::NotApplicable => Self::NotApplicable,
+        }
+    }
 }
 
 pub struct LocalizedString {
@@ -60,6 +77,11 @@ impl From<AttributeValue> for CardValue {
     fn from(value: AttributeValue) -> Self {
         match value {
             AttributeValue::String(s) => Self::String { value: s },
+            AttributeValue::Boolean(b) => Self::Boolean { value: b },
+            AttributeValue::Date(d) => Self::Date {
+                value: d.format("%Y-%m-%d").to_string(),
+            },
+            AttributeValue::Gender(g) => Self::Gender { value: g.into() },
         }
     }
 }
@@ -163,7 +185,9 @@ pub fn mock_cards() -> Vec<Card> {
                         ("nl".to_string(), "Burgerservicenummer (BSN)".to_string()).into(),
                     ],
                     key: "pid.bsn".to_string(),
-                    value: CardValue::Integer { value: 999999999 },
+                    value: CardValue::String {
+                        value: "999999999".to_string(),
+                    },
                 },
                 CardAttribute {
                     labels: vec![

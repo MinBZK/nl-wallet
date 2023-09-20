@@ -116,18 +116,15 @@ class CardValue with _$CardValue {
   const factory CardValue.string({
     required String value,
   }) = CardValue_String;
-  const factory CardValue.integer({
-    required int value,
-  }) = CardValue_Integer;
-  const factory CardValue.double({
-    required double value,
-  }) = CardValue_Double;
   const factory CardValue.boolean({
     required bool value,
   }) = CardValue_Boolean;
   const factory CardValue.date({
     required String value,
   }) = CardValue_Date;
+  const factory CardValue.gender({
+    required GenderCardValue value,
+  }) = CardValue_Gender;
 }
 
 class FlutterConfiguration {
@@ -138,6 +135,13 @@ class FlutterConfiguration {
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
   });
+}
+
+enum GenderCardValue {
+  Unknown,
+  Male,
+  Female,
+  NotApplicable,
 }
 
 class LocalizedString {
@@ -515,28 +519,20 @@ class WalletCoreImpl implements WalletCore {
           value: _wire2api_String(raw[1]),
         );
       case 1:
-        return CardValue_Integer(
-          value: _wire2api_i64(raw[1]),
-        );
-      case 2:
-        return CardValue_Double(
-          value: _wire2api_f64(raw[1]),
-        );
-      case 3:
         return CardValue_Boolean(
           value: _wire2api_bool(raw[1]),
         );
-      case 4:
+      case 2:
         return CardValue_Date(
           value: _wire2api_String(raw[1]),
+        );
+      case 3:
+        return CardValue_Gender(
+          value: _wire2api_gender_card_value(raw[1]),
         );
       default:
         throw Exception("unreachable");
     }
-  }
-
-  double _wire2api_f64(dynamic raw) {
-    return raw as double;
   }
 
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
@@ -548,12 +544,12 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
-  int _wire2api_i32(dynamic raw) {
-    return raw as int;
+  GenderCardValue _wire2api_gender_card_value(dynamic raw) {
+    return GenderCardValue.values[raw as int];
   }
 
-  int _wire2api_i64(dynamic raw) {
-    return castInt(raw);
+  int _wire2api_i32(dynamic raw) {
+    return raw as int;
   }
 
   List<Card> _wire2api_list_card(dynamic raw) {

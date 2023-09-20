@@ -2,6 +2,7 @@ mod mapping;
 
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use indexmap::IndexMap;
 
 pub use mapping::{AttributeValueType, DocumentMdocError};
@@ -28,4 +29,15 @@ pub struct Attribute {
 #[derive(Debug, Clone)]
 pub enum AttributeValue {
     String(String),
+    Boolean(bool),
+    Date(NaiveDate),
+    Gender(GenderAttributeValue),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum GenderAttributeValue {
+    Unknown,
+    Male,
+    Female,
+    NotApplicable,
 }

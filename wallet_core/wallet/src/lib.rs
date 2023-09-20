@@ -20,7 +20,9 @@ pub use crate::{
         PidIssuanceConfiguration,
     },
     digid::DigidClient,
-    document::{Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentType},
+    document::{
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentType, GenderAttributeValue,
+    },
     pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,
     storage::Storage,

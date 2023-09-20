@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
+use ciborium::value::Integer;
 use indexmap::IndexMap;
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
@@ -7,7 +9,9 @@ use nl_wallet_mdoc::{
 };
 use once_cell::sync::Lazy;
 
-use super::{Attribute, AttributeKey, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document};
+use super::{
+    Attribute, AttributeKey, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, GenderAttributeValue,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DocumentMdocError {
@@ -50,6 +54,9 @@ struct DataElementValueMapping {
 #[derive(Debug, Clone, Copy)]
 pub enum AttributeValueType {
     String,
+    Bool,
+    Date,
+    Gender,
 }
 
 type MappingNameSpace = &'static str;
@@ -185,7 +192,7 @@ impl TryFrom<(DataElementValue, &DataElementValueMapping)> for Attribute {
 
     fn try_from(value: (DataElementValue, &DataElementValueMapping)) -> Result<Self, Self::Error> {
         let (value, value_mapping) = value;
-        let value = (value, value_mapping.value_type).try_into()?;
+        let value = (value_mapping.value_type, value).try_into()?;
 
         let attribute = Attribute {
             key_labels: value_mapping.key_labels.clone(),
@@ -196,13 +203,38 @@ impl TryFrom<(DataElementValue, &DataElementValueMapping)> for Attribute {
     }
 }
 
-impl TryFrom<(DataElementValue, AttributeValueType)> for AttributeValue {
+impl TryFrom<(AttributeValueType, DataElementValue)> for AttributeValue {
     type Error = DataElementValue;
 
-    fn try_from(value: (DataElementValue, AttributeValueType)) -> Result<Self, Self::Error> {
+    fn try_from(value: (AttributeValueType, DataElementValue)) -> Result<Self, Self::Error> {
         match value {
-            (DataElementValue::Text(s), AttributeValueType::String) => Ok(Self::String(s)),
-            _ => Err(value.0),
+            (AttributeValueType::String, DataElementValue::Text(s)) => Ok(Self::String(s)),
+            (AttributeValueType::Bool, DataElementValue::Bool(b)) => Ok(Self::Boolean(b)),
+            (AttributeValueType::Date, DataElementValue::Text(ref s)) => {
+                let date = NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| value.1)?;
+
+                Ok(Self::Date(date))
+            }
+            (AttributeValueType::Gender, DataElementValue::Integer(i)) => {
+                let gender = GenderAttributeValue::try_from(i).map_err(|_| value.1)?;
+
+                Ok(Self::Gender(gender))
+            }
+            _ => Err(value.1),
+        }
+    }
+}
+
+impl TryFrom<Integer> for GenderAttributeValue {
+    type Error = ();
+
+    fn try_from(value: Integer) -> Result<Self, Self::Error> {
+        match value.into() {
+            0 => Ok(Self::Unknown),
+            1 => Ok(Self::Male),
+            2 => Ok(Self::Female),
+            9 => Ok(Self::NotApplicable),
+            _ => Err(()),
         }
     }
 }

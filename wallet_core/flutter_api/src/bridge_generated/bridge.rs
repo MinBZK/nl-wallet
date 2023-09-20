@@ -22,6 +22,7 @@ use std::sync::Arc;
 use crate::models::card::Card;
 use crate::models::card::CardAttribute;
 use crate::models::card::CardValue;
+use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::instruction::WalletInstructionResult;
@@ -280,16 +281,14 @@ impl support::IntoDart for CardValue {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::String { value } => vec![0.into_dart(), value.into_dart()],
-            Self::Integer { value } => vec![1.into_dart(), value.into_dart()],
-            Self::Double { value } => vec![2.into_dart(), value.into_dart()],
-            Self::Boolean { value } => vec![3.into_dart(), value.into_dart()],
-            Self::Date { value } => vec![4.into_dart(), value.into_dart()],
+            Self::Boolean { value } => vec![1.into_dart(), value.into_dart()],
+            Self::Date { value } => vec![2.into_dart(), value.into_dart()],
+            Self::Gender { value } => vec![3.into_dart(), value.into_dart()],
         }
         .into_dart()
     }
 }
 impl support::IntoDartExceptPrimitive for CardValue {}
-
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -300,6 +299,19 @@ impl support::IntoDart for FlutterConfiguration {
     }
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
+
+impl support::IntoDart for GenderCardValue {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Unknown => 0,
+            Self::Male => 1,
+            Self::Female => 2,
+            Self::NotApplicable => 3,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for GenderCardValue {}
 
 impl support::IntoDart for LocalizedString {
     fn into_dart(self) -> support::DartAbi {

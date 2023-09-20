@@ -20,56 +20,50 @@ mixin _$CardValue {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
     required TResult Function(bool value) boolean,
     required TResult Function(String value) date,
+    required TResult Function(GenderCardValue value) gender,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
     TResult? Function(bool value)? boolean,
     TResult? Function(String value)? date,
+    TResult? Function(GenderCardValue value)? gender,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
     TResult Function(bool value)? boolean,
     TResult Function(String value)? date,
+    TResult Function(GenderCardValue value)? gender,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
     required TResult Function(CardValue_Boolean value) boolean,
     required TResult Function(CardValue_Date value) date,
+    required TResult Function(CardValue_Gender value) gender,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
     TResult? Function(CardValue_Boolean value)? boolean,
     TResult? Function(CardValue_Date value)? date,
+    TResult? Function(CardValue_Gender value)? gender,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
     TResult Function(CardValue_Boolean value)? boolean,
     TResult Function(CardValue_Date value)? date,
+    TResult Function(CardValue_Gender value)? gender,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -152,10 +146,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
     required TResult Function(bool value) boolean,
     required TResult Function(String value) date,
+    required TResult Function(GenderCardValue value) gender,
   }) {
     return string(value);
   }
@@ -164,10 +157,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
     TResult? Function(bool value)? boolean,
     TResult? Function(String value)? date,
+    TResult? Function(GenderCardValue value)? gender,
   }) {
     return string?.call(value);
   }
@@ -176,10 +168,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
     TResult Function(bool value)? boolean,
     TResult Function(String value)? date,
+    TResult Function(GenderCardValue value)? gender,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -192,10 +183,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
     required TResult Function(CardValue_Boolean value) boolean,
     required TResult Function(CardValue_Date value) date,
+    required TResult Function(CardValue_Gender value) gender,
   }) {
     return string(this);
   }
@@ -204,10 +194,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
     TResult? Function(CardValue_Boolean value)? boolean,
     TResult? Function(CardValue_Date value)? date,
+    TResult? Function(CardValue_Gender value)? gender,
   }) {
     return string?.call(this);
   }
@@ -216,10 +205,9 @@ class _$CardValue_String implements CardValue_String {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
     TResult Function(CardValue_Boolean value)? boolean,
     TResult Function(CardValue_Date value)? date,
+    TResult Function(CardValue_Gender value)? gender,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -236,302 +224,6 @@ abstract class CardValue_String implements CardValue {
   String get value;
   @JsonKey(ignore: true)
   _$$CardValue_StringCopyWith<_$CardValue_String> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$CardValue_IntegerCopyWith<$Res> {
-  factory _$$CardValue_IntegerCopyWith(_$CardValue_Integer value, $Res Function(_$CardValue_Integer) then) =
-      __$$CardValue_IntegerCopyWithImpl<$Res>;
-  @useResult
-  $Res call({int value});
-}
-
-/// @nodoc
-class __$$CardValue_IntegerCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Integer>
-    implements _$$CardValue_IntegerCopyWith<$Res> {
-  __$$CardValue_IntegerCopyWithImpl(_$CardValue_Integer _value, $Res Function(_$CardValue_Integer) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? value = null,
-  }) {
-    return _then(_$CardValue_Integer(
-      value: null == value
-          ? _value.value
-          : value // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$CardValue_Integer implements CardValue_Integer {
-  const _$CardValue_Integer({required this.value});
-
-  @override
-  final int value;
-
-  @override
-  String toString() {
-    return 'CardValue.integer(value: $value)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CardValue_Integer &&
-            (identical(other.value, value) || other.value == value));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, value);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CardValue_IntegerCopyWith<_$CardValue_Integer> get copyWith =>
-      __$$CardValue_IntegerCopyWithImpl<_$CardValue_Integer>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
-    required TResult Function(bool value) boolean,
-    required TResult Function(String value) date,
-  }) {
-    return integer(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(String value)? date,
-  }) {
-    return integer?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
-    TResult Function(bool value)? boolean,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (integer != null) {
-      return integer(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
-    required TResult Function(CardValue_Boolean value) boolean,
-    required TResult Function(CardValue_Date value) date,
-  }) {
-    return integer(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
-    TResult? Function(CardValue_Boolean value)? boolean,
-    TResult? Function(CardValue_Date value)? date,
-  }) {
-    return integer?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
-    TResult Function(CardValue_Boolean value)? boolean,
-    TResult Function(CardValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (integer != null) {
-      return integer(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class CardValue_Integer implements CardValue {
-  const factory CardValue_Integer({required final int value}) = _$CardValue_Integer;
-
-  @override
-  int get value;
-  @JsonKey(ignore: true)
-  _$$CardValue_IntegerCopyWith<_$CardValue_Integer> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$CardValue_DoubleCopyWith<$Res> {
-  factory _$$CardValue_DoubleCopyWith(_$CardValue_Double value, $Res Function(_$CardValue_Double) then) =
-      __$$CardValue_DoubleCopyWithImpl<$Res>;
-  @useResult
-  $Res call({double value});
-}
-
-/// @nodoc
-class __$$CardValue_DoubleCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Double>
-    implements _$$CardValue_DoubleCopyWith<$Res> {
-  __$$CardValue_DoubleCopyWithImpl(_$CardValue_Double _value, $Res Function(_$CardValue_Double) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? value = null,
-  }) {
-    return _then(_$CardValue_Double(
-      value: null == value
-          ? _value.value
-          : value // ignore: cast_nullable_to_non_nullable
-              as double,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$CardValue_Double implements CardValue_Double {
-  const _$CardValue_Double({required this.value});
-
-  @override
-  final double value;
-
-  @override
-  String toString() {
-    return 'CardValue.double(value: $value)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CardValue_Double &&
-            (identical(other.value, value) || other.value == value));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, value);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CardValue_DoubleCopyWith<_$CardValue_Double> get copyWith =>
-      __$$CardValue_DoubleCopyWithImpl<_$CardValue_Double>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
-    required TResult Function(bool value) boolean,
-    required TResult Function(String value) date,
-  }) {
-    return double(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(String value)? date,
-  }) {
-    return double?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
-    TResult Function(bool value)? boolean,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (double != null) {
-      return double(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
-    required TResult Function(CardValue_Boolean value) boolean,
-    required TResult Function(CardValue_Date value) date,
-  }) {
-    return double(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
-    TResult? Function(CardValue_Boolean value)? boolean,
-    TResult? Function(CardValue_Date value)? date,
-  }) {
-    return double?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
-    TResult Function(CardValue_Boolean value)? boolean,
-    TResult Function(CardValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (double != null) {
-      return double(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class CardValue_Double implements CardValue {
-  const factory CardValue_Double({required final double value}) = _$CardValue_Double;
-
-  @override
-  double get value;
-  @JsonKey(ignore: true)
-  _$$CardValue_DoubleCopyWith<_$CardValue_Double> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -596,10 +288,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
     required TResult Function(bool value) boolean,
     required TResult Function(String value) date,
+    required TResult Function(GenderCardValue value) gender,
   }) {
     return boolean(value);
   }
@@ -608,10 +299,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
     TResult? Function(bool value)? boolean,
     TResult? Function(String value)? date,
+    TResult? Function(GenderCardValue value)? gender,
   }) {
     return boolean?.call(value);
   }
@@ -620,10 +310,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
     TResult Function(bool value)? boolean,
     TResult Function(String value)? date,
+    TResult Function(GenderCardValue value)? gender,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -636,10 +325,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
     required TResult Function(CardValue_Boolean value) boolean,
     required TResult Function(CardValue_Date value) date,
+    required TResult Function(CardValue_Gender value) gender,
   }) {
     return boolean(this);
   }
@@ -648,10 +336,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
     TResult? Function(CardValue_Boolean value)? boolean,
     TResult? Function(CardValue_Date value)? date,
+    TResult? Function(CardValue_Gender value)? gender,
   }) {
     return boolean?.call(this);
   }
@@ -660,10 +347,9 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
     TResult Function(CardValue_Boolean value)? boolean,
     TResult Function(CardValue_Date value)? date,
+    TResult Function(CardValue_Gender value)? gender,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -743,10 +429,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
-    required TResult Function(int value) integer,
-    required TResult Function(double value) double,
     required TResult Function(bool value) boolean,
     required TResult Function(String value) date,
+    required TResult Function(GenderCardValue value) gender,
   }) {
     return date(value);
   }
@@ -755,10 +440,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
-    TResult? Function(int value)? integer,
-    TResult? Function(double value)? double,
     TResult? Function(bool value)? boolean,
     TResult? Function(String value)? date,
+    TResult? Function(GenderCardValue value)? gender,
   }) {
     return date?.call(value);
   }
@@ -767,10 +451,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
-    TResult Function(int value)? integer,
-    TResult Function(double value)? double,
     TResult Function(bool value)? boolean,
     TResult Function(String value)? date,
+    TResult Function(GenderCardValue value)? gender,
     required TResult orElse(),
   }) {
     if (date != null) {
@@ -783,10 +466,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(CardValue_String value) string,
-    required TResult Function(CardValue_Integer value) integer,
-    required TResult Function(CardValue_Double value) double,
     required TResult Function(CardValue_Boolean value) boolean,
     required TResult Function(CardValue_Date value) date,
+    required TResult Function(CardValue_Gender value) gender,
   }) {
     return date(this);
   }
@@ -795,10 +477,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(CardValue_String value)? string,
-    TResult? Function(CardValue_Integer value)? integer,
-    TResult? Function(CardValue_Double value)? double,
     TResult? Function(CardValue_Boolean value)? boolean,
     TResult? Function(CardValue_Date value)? date,
+    TResult? Function(CardValue_Gender value)? gender,
   }) {
     return date?.call(this);
   }
@@ -807,10 +488,9 @@ class _$CardValue_Date implements CardValue_Date {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(CardValue_String value)? string,
-    TResult Function(CardValue_Integer value)? integer,
-    TResult Function(CardValue_Double value)? double,
     TResult Function(CardValue_Boolean value)? boolean,
     TResult Function(CardValue_Date value)? date,
+    TResult Function(CardValue_Gender value)? gender,
     required TResult orElse(),
   }) {
     if (date != null) {
@@ -827,6 +507,148 @@ abstract class CardValue_Date implements CardValue {
   String get value;
   @JsonKey(ignore: true)
   _$$CardValue_DateCopyWith<_$CardValue_Date> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CardValue_GenderCopyWith<$Res> {
+  factory _$$CardValue_GenderCopyWith(_$CardValue_Gender value, $Res Function(_$CardValue_Gender) then) =
+      __$$CardValue_GenderCopyWithImpl<$Res>;
+  @useResult
+  $Res call({GenderCardValue value});
+}
+
+/// @nodoc
+class __$$CardValue_GenderCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Gender>
+    implements _$$CardValue_GenderCopyWith<$Res> {
+  __$$CardValue_GenderCopyWithImpl(_$CardValue_Gender _value, $Res Function(_$CardValue_Gender) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$CardValue_Gender(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as GenderCardValue,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardValue_Gender implements CardValue_Gender {
+  const _$CardValue_Gender({required this.value});
+
+  @override
+  final GenderCardValue value;
+
+  @override
+  String toString() {
+    return 'CardValue.gender(value: $value)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardValue_Gender &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardValue_GenderCopyWith<_$CardValue_Gender> get copyWith =>
+      __$$CardValue_GenderCopyWithImpl<_$CardValue_Gender>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(bool value) boolean,
+    required TResult Function(String value) date,
+    required TResult Function(GenderCardValue value) gender,
+  }) {
+    return gender(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(String value)? date,
+    TResult? Function(GenderCardValue value)? gender,
+  }) {
+    return gender?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(bool value)? boolean,
+    TResult Function(String value)? date,
+    TResult Function(GenderCardValue value)? gender,
+    required TResult orElse(),
+  }) {
+    if (gender != null) {
+      return gender(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardValue_String value) string,
+    required TResult Function(CardValue_Boolean value) boolean,
+    required TResult Function(CardValue_Date value) date,
+    required TResult Function(CardValue_Gender value) gender,
+  }) {
+    return gender(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardValue_String value)? string,
+    TResult? Function(CardValue_Boolean value)? boolean,
+    TResult? Function(CardValue_Date value)? date,
+    TResult? Function(CardValue_Gender value)? gender,
+  }) {
+    return gender?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardValue_String value)? string,
+    TResult Function(CardValue_Boolean value)? boolean,
+    TResult Function(CardValue_Date value)? date,
+    TResult Function(CardValue_Gender value)? gender,
+    required TResult orElse(),
+  }) {
+    if (gender != null) {
+      return gender(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardValue_Gender implements CardValue {
+  const factory CardValue_Gender({required final GenderCardValue value}) = _$CardValue_Gender;
+
+  @override
+  GenderCardValue get value;
+  @JsonKey(ignore: true)
+  _$$CardValue_GenderCopyWith<_$CardValue_Gender> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
