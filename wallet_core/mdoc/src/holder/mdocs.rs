@@ -19,30 +19,21 @@ use crate::{
 use super::{CborHttpClient, HttpClient, IssuanceSessionState};
 
 pub trait Storage {
-    fn add(&self, creds: impl Iterator<Item = Mdoc>) -> Result<()>;
-    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>>;
-
     // TODO returning all copies of all mdocs is very crude and should be refined.
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>>;
 }
 
-pub struct Wallet<C, H = CborHttpClient> {
-    pub(crate) storage: C,
+pub struct Wallet<H = CborHttpClient> {
     pub(crate) session_state: Option<IssuanceSessionState>,
     pub(crate) client: H,
 }
 
-impl<C: Storage, H: HttpClient> Wallet<C, H> {
-    pub fn new(storage: C, client: H) -> Self {
+impl<H: HttpClient> Wallet<H> {
+    pub fn new(client: H) -> Self {
         Self {
-            storage,
             session_state: None,
             client,
         }
-    }
-
-    pub fn list_mdocs(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
-        self.storage.list()
     }
 }
 

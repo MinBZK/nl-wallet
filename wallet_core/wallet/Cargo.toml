@@ -15,6 +15,7 @@ base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 futures = { workspace = true }
 http = { workspace = true }
+indexmap =  { workspace = true }
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -40,7 +41,6 @@ entity = { path = "entity" }
 migration = { path = "migration" }
 nl_wallet_mdoc = { path = "../mdoc", features = [
     "mock",
-    "memory_storage",
 ] } # TODO remove features once actual storage is used
 platform_support = { path = "../platform_support" }
 wallet_common = { path = "../wallet_common" }

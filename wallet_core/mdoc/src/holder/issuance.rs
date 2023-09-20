@@ -25,7 +25,7 @@ use crate::{
     Result,
 };
 
-use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
+use super::{HolderError, Mdoc, MdocCopies, Wallet};
 
 #[async_trait]
 pub trait HttpClient {
@@ -65,7 +65,7 @@ pub(crate) struct IssuanceSessionState {
     request: RequestKeyGenerationMessage,
 }
 
-impl<C: Storage, H: HttpClient> Wallet<C, H> {
+impl<H: HttpClient> Wallet<H> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
     pub async fn start_issuance(&mut self, service_engagement: ServiceEngagement) -> Result<&[UnsignedMdoc]> {
         let url = service_engagement
@@ -99,7 +99,8 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
-    ) -> Result<()> {
+    ) -> Result<Vec<MdocCopies>> {
+        // TODO should return MdocsMap
         let state = self
             .session_state
             .as_ref()
@@ -113,12 +114,11 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
-        self.storage.add(creds.into_iter().flatten())?;
 
         // Clear session state now that all fallible operations have not failed
         self.session_state.take();
 
-        Ok(())
+        Ok(creds)
     }
 
     pub async fn stop_issuance(&mut self) -> Result<()> {

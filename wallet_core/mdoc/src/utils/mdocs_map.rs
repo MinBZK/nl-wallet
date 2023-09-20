@@ -25,14 +25,22 @@ impl<const N: usize> TryFrom<[Mdoc; N]> for MdocsMap {
     }
 }
 
+impl TryFrom<Vec<Mdoc>> for MdocsMap {
+    type Error = Error;
+
+    fn try_from(value: Vec<Mdoc>) -> Result<Self, Self::Error> {
+        let creds = MdocsMap(DashMap::new());
+        creds.add(value.into_iter())?;
+        Ok(creds)
+    }
+}
+
 impl MdocsMap {
     pub fn new() -> MdocsMap {
         MdocsMap(DashMap::new())
     }
-}
 
-impl Storage for MdocsMap {
-    fn add(&self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
+    pub fn add(&self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
@@ -46,16 +54,7 @@ impl Storage for MdocsMap {
         Ok(())
     }
 
-    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
-        self.0.get(doctype).map(|v| {
-            v.value()
-                .iter()
-                .map(|entry| entry.value().cred_copies.to_vec().into())
-                .collect()
-        })
-    }
-
-    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+    pub fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
         self.0
             .iter()
             .map(|allcreds| {
@@ -68,5 +67,16 @@ impl Storage for MdocsMap {
                 )
             })
             .collect()
+    }
+}
+
+impl Storage for MdocsMap {
+    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
+        self.0.get(doctype).map(|v| {
+            v.value()
+                .iter()
+                .map(|entry| entry.value().cred_copies.to_vec().into())
+                .collect()
+        })
     }
 }
