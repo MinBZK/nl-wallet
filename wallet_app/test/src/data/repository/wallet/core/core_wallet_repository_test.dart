@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/bridge_generated.dart';
-import 'package:wallet/src/data/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
-import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
+import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
+import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 

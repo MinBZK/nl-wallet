@@ -5,7 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/service/deeplink_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
-import 'package:wallet/src/wallet_core/typed_wallet_core.dart';
+import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 
 import '../../mocks/wallet_mocks.dart';
 

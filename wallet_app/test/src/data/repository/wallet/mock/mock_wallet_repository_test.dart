@@ -2,12 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/wallet/mock/mock_wallet_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
-import 'package:wallet/src/data/source/memory/memory_wallet_datasource.dart';
+import 'package:wallet/src/data/source/mock/mock_wallet_datasource.dart';
 import 'package:wallet/src/wallet_constants.dart';
 
 void main() {
   /// Future todo; add mocking framework and replace with mocked [WalletDataSource]
-  final walletDataSource = MemoryWalletDataSource();
+  final walletDataSource = MockWalletDataSource();
 
   late WalletRepository walletRepository;
 

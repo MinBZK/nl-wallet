@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../data/mapper/pin/pin_validation_error_mapper.dart';
 import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
 import '../data/repository/card/impl/timeline_attribute_repository_impl.dart';
 import '../data/repository/card/impl/wallet_card_repository_impl.dart';
+import '../data/repository/card/mock/mock_wallet_card_repository.dart';
 import '../data/repository/card/timeline_attribute_repository.dart';
 import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/configuration/configuration_repository.dart';
@@ -34,6 +34,7 @@ import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
+import '../util/mapper/pin/pin_validation_error_mapper.dart';
 
 /// This widget is responsible for initializing and providing all `repositories`.
 /// Most likely to be used once at the top (app) level.
@@ -56,7 +57,9 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => OrganizationRepositoryImpl(context.read()),
         ),
         RepositoryProvider<WalletCardRepository>(
-          create: (context) => WalletCardRepositoryImpl(context.read()),
+          create: (context) => provideMocks
+              ? MockWalletCardRepository(context.read())
+              : WalletCardRepositoryImpl(context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<DataAttributeRepository>(
           create: (context) => DataAttributeRepositoryImpl(context.read()),
@@ -87,8 +90,9 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
         ),
         RepositoryProvider<PidRepository>(
-          create: (context) =>
-              provideMocks ? MockPidRepository() : PidRepositoryImpl(context.read(), context.read(), context.read()),
+          create: (context) => provideMocks
+              ? MockPidRepository()
+              : PidRepositoryImpl(context.read(), context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

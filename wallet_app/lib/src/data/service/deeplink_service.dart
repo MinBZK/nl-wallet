@@ -13,7 +13,7 @@ import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart'
 import '../../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
-import '../../wallet_core/typed_wallet_core.dart';
+import '../../wallet_core/typed/typed_wallet_core.dart';
 import 'app_lifecycle_service.dart';
 
 class DeeplinkService {

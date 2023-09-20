@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../util/mapper/card/card_attribute_label_mapper.dart';
+import '../util/mapper/card/card_attribute_mapper.dart';
+import '../util/mapper/card/card_mapper.dart';
+import '../util/mapper/card/card_value_mapper.dart';
 import '../util/mapper/pid/pid_attributes_mapper.dart';
 import '../util/mapper/pid/pid_core_attributes_mapper.dart';
 import '../util/mapper/pid/pid_data_attributes_mapper.dart';
@@ -22,6 +26,18 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<PidAttributeMapper>(
           create: (context) =>
               (provideMocks ? PidDataAttributeMapper() : PidCoreAttributeMapper()) as PidAttributeMapper,
+        ),
+        RepositoryProvider<CardAttributeLabelMapper>(
+          create: (context) => CardAttributeLabelMapper(),
+        ),
+        RepositoryProvider<CardValueMapper>(
+          create: (context) => CardValueMapper(),
+        ),
+        RepositoryProvider<CardAttributeMapper>(
+          create: (context) => CardAttributeMapper(context.read(), context.read()),
+        ),
+        RepositoryProvider<CardMapper>(
+          create: (context) => CardMapper(context.read()),
         ),
       ],
       child: child,

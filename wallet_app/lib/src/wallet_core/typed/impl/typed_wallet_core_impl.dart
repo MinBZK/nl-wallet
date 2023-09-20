@@ -4,11 +4,11 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../error/core_error.dart';
-import '../error/core_error_mapper.dart';
-import '../error/flutter_api_error.dart';
-import '../typed_wallet_core.dart';
-import '../wallet_core.dart';
+import '../../error/core_error.dart';
+import '../../error/core_error_mapper.dart';
+import '../../error/flutter_api_error.dart';
+import '../../typed/typed_wallet_core.dart';
+import '../../wallet_core.dart';
 
 /// Wraps the generated WalletCore.
 /// Adds auto initialization, pass through of the locked
@@ -19,11 +19,13 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
+  final BehaviorSubject<List<Card>> _cards = BehaviorSubject();
 
   TypedWalletCoreImpl(this._walletCore, this._errorMapper) {
     _initWalletCore();
     _setupLockedStream();
     _setupConfigurationStream();
+    _setupCardsStream();
   }
 
   void _initWalletCore() async {
@@ -38,6 +40,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       // as they can contain references to the previous Flutter engine.
       await _walletCore.clearLockStream();
       await _walletCore.clearConfigurationStream();
+      await _walletCore.clearCardsStream();
       // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
       await _walletCore.lockWallet();
     }
@@ -58,6 +61,14 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
     };
     _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();
+  }
+
+  void _setupCardsStream() {
+    _cards.onListen = () async {
+      await _isInitialized.future;
+      _walletCore.setCardsStream().listen((event) => _cards.add(event));
+    };
+    _cards.onCancel = () => _walletCore.clearCardsStream();
   }
 
   @override
@@ -88,24 +99,6 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Future<String> createPidIssuanceRedirectUri() async {
-    try {
-      return await _walletCore.createPidIssuanceRedirectUri();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
-
-  @override
-  Future<void> cancelPidIssuance() async {
-    try {
-      return await _walletCore.cancelPidIssuance();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
-
-  @override
   Future<void> lockWallet() async {
     try {
       return await _walletCore.lockWallet();
@@ -127,9 +120,27 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   @override
+  Future<String> createPidIssuanceRedirectUri() async {
+    try {
+      return await _walletCore.createPidIssuanceRedirectUri();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
   Stream<ProcessUriEvent> processUri(Uri uri) {
     try {
       return _walletCore.processUri(uri: uri.toString());
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
+  Future<void> cancelPidIssuance() async {
+    try {
+      return await _walletCore.cancelPidIssuance();
     } catch (ex) {
       throw _handleCoreException(ex);
     }
@@ -155,6 +166,9 @@ class TypedWalletCoreImpl extends TypedWalletCore {
       throw _handleCoreException(ex);
     }
   }
+
+  @override
+  Stream<List<Card>> observeCards() => _cards.stream;
 
   /// Converts the exception to a [CoreError]
   /// if it can be mapped into one, otherwise returns

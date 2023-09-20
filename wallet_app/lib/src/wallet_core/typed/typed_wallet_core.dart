@@ -1,4 +1,4 @@
-import '../../bridge_generated.dart';
+import '../../../bridge_generated.dart';
 
 abstract class TypedWalletCore {
   Future<PinValidationResult> isValidPin(String pin);
@@ -24,4 +24,6 @@ abstract class TypedWalletCore {
   Future<WalletInstructionResult> acceptOfferedPid(String pin);
 
   Future<void> rejectOfferedPid();
+
+  Stream<List<Card>> observeCards();
 }

@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/source/memory/memory_wallet_datasource.dart';
 import '../data/source/mock/mock_organization_datasource.dart';
+import '../data/source/mock/mock_wallet_datasource.dart';
 import '../data/source/organization_datasource.dart';
 import '../data/source/wallet_datasource.dart';
 import '../data/store/active_locale_provider.dart';
 import '../data/store/impl/active_localization_delegate.dart';
 import '../data/store/impl/language_store_impl.dart';
 import '../data/store/language_store.dart';
-import '../wallet_core/impl/typed_wallet_core_impl.dart';
-import '../wallet_core/mock/mock_wallet_core.dart';
-import '../wallet_core/typed_wallet_core.dart';
+import '../wallet_core/typed/impl/typed_wallet_core_impl.dart';
+import '../wallet_core/typed/mock/mock_typed_wallet_core.dart';
+import '../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_core/wallet_core.dart';
 
 class WalletDataSourceProvider extends StatelessWidget {
@@ -33,13 +33,13 @@ class WalletDataSourceProvider extends StatelessWidget {
           create: (context) => context.read<ActiveLocalizationDelegate>(),
         ),
         RepositoryProvider<WalletDataSource>(
-          create: (context) => MemoryWalletDataSource(),
+          create: (context) => MockWalletDataSource(),
         ),
         RepositoryProvider<OrganizationDataSource>(
           create: (context) => MockOrganizationDataSource(),
         ),
         RepositoryProvider<TypedWalletCore>(
-          create: (context) => provideMocks ? MockWalletCore() : TypedWalletCoreImpl(api, context.read()),
+          create: (context) => provideMocks ? MockTypedWalletCore() : TypedWalletCoreImpl(api, context.read()),
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),
