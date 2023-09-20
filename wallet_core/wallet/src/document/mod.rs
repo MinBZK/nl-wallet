@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 
+pub use mapping::{AttributeValueType, DocumentMdocError};
+
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
 

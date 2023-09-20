@@ -17,6 +17,7 @@ use crate::{
     account_provider::{AccountProviderError, HttpAccountProviderClient},
     config::LocalConfigurationRepository,
     digid::{DigidError, HttpDigidClient},
+    document::DocumentMdocError,
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
     pid_issuer::{HttpPidIssuerClient, PidIssuerError},
@@ -84,6 +85,8 @@ pub enum PidIssuanceError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("could not interpret mdoc attributes: {0}")]
+    Document(#[from] DocumentMdocError),
 }
 
 pub enum RedirectUriType {
@@ -398,13 +401,10 @@ where
 
         info!("PID received successfully from issuer");
 
-        // TODO: return error if documents cannot be converted.
-        let documents = unsigned_mdocs
+        unsigned_mdocs
             .into_iter()
-            .flat_map(|mdoc| Document::from_mdoc_attributes(None, &mdoc.doc_type, mdoc.attributes))
-            .collect();
-
-        Ok(documents)
+            .map(|unsigned_mdoc| Document::try_from(unsigned_mdoc).map_err(PidIssuanceError::Document))
+            .collect()
     }
 
     #[instrument(skip_all)]
