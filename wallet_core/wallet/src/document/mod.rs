@@ -1,3 +1,4 @@
+mod convert;
 mod mapping;
 
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 
-pub use mapping::{AttributeValueType, DocumentMdocError};
+pub use convert::{AttributeValueType, DocumentMdocError};
 
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
