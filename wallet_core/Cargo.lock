@@ -3543,6 +3543,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
+name = "tests_integration"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "base64 0.21.2",
+ "nl_wallet_mdoc",
+ "pid_issuer",
+ "platform_support",
+ "reqwest",
+ "sea-orm",
+ "serial_test",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "wallet",
+ "wallet_common",
+ "wallet_provider",
+ "wallet_provider_persistence",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4210,7 +4232,6 @@ dependencies = [
 name = "wallet_provider"
 version = "0.1.0"
 dependencies = [
- "assert_matches",
  "async-trait",
  "axum",
  "base64 0.21.2",
@@ -4218,24 +4239,16 @@ dependencies = [
  "config",
  "http",
  "mime",
- "nl_wallet_mdoc",
  "once_cell",
  "p256",
- "pid_issuer",
- "platform_support",
- "reqwest",
- "sea-orm",
  "sea-orm-migration",
  "serde",
  "serde_json",
- "serial_test",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "url",
  "uuid",
- "wallet",
  "wallet_common",
  "wallet_provider_domain",
  "wallet_provider_migration",

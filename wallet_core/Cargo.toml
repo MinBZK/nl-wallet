@@ -7,6 +7,7 @@ members = [
     "mdoc/fieldnames_derive",
     "pid_issuer",
     "platform_support",
+    "tests_integration",
     "wallet",
     "wallet/entity",
     "wallet/migration",

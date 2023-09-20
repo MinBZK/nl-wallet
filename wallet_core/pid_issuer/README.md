@@ -15,11 +15,11 @@ In order to test this issuer locally, and connect the wallet to it, follow the f
 6. Start the wallet.
 
 ## Settings
-Default settings are specified in `src/settings.rs`. They are also shown in `config.example.toml` (optional settings are commented out).
+Default settings are specified in `src/settings.rs`. They are also shown in `pid_issuer.example.toml` (optional settings are commented out).
 
 The default settings can be overridden in two ways:
-- Create a file named `config.toml` in the same location as `config.example.toml`.
-- Using environment variables. All environment variables should be prefixed with `PID_ISSUER`. Grouped settings can be specified as follows: `PID_ISSUER_WEBSERVER__PORT`, where the group name is separated from the key by a double underscore `__`. Environment variables take precedence over entries in `config.toml`.
+- Create a file named `pid_issuer.toml` in the same location as `pid_issuer.example.toml`.
+- Using environment variables. All environment variables should be prefixed with `PID_ISSUER`. Grouped settings can be specified as follows: `PID_ISSUER_WEBSERVER__PORT`, where the group name is separated from the key by a double underscore `__`. Environment variables take precedence over entries in `pid_issuer.toml`.
 
 ### Generating an RSA JWK keypair
 

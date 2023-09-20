@@ -256,7 +256,8 @@ export PID_CA_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/ca_cert.pem")
 export PID_ISSUER_KEY=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_key.pem")
 export PID_ISSUER_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_crt.pem")
 
-render_template "${DEVENV}/pid_issuer/config.toml" "${BASE_DIR}/wallet_core/pid_issuer/config.toml"
+render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
+render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
 
 ########################################################################
 # Configure wallet_provider
@@ -272,7 +273,8 @@ export WP_INSTRUCTION_RESULT_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/i
 
 export WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
 
-render_template "${DEVENV}/wallet_provider/config.toml" "${WP_DIR}/config.toml"
+render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
+render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
 # Get wallet_provider verifying keys
 cd "$BASE_DIR/wallet_core/wallet_provider"

@@ -168,8 +168,6 @@ pub mod mock {
         }
     }
 
-    pub struct MockAttributesLookup;
-
     // ISO/IEC 5218
     #[allow(dead_code)]
     enum Gender {
@@ -364,6 +362,8 @@ pub mod mock {
 
     const MOCK_PID_DOCTYPE: &str = "com.example.pid";
     const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
+
+    pub struct MockAttributesLookup;
 
     impl AttributesLookup for MockAttributesLookup {
         fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc> {
