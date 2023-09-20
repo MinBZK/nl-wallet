@@ -108,7 +108,7 @@ test-rust:
     paths:
       - wallet_core/lcov.info
 
-integration-test-rust-wp:
+integration-test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:534ca807364ac75d02d348f33faa9f1455f9ba7a48af52790811d717b57be001"
@@ -208,7 +208,7 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
-    - job: integration-test-rust-wp
+    - job: integration-test-rust
       artifacts: true
   before_script:
     - cd wallet_core
@@ -277,7 +277,7 @@ build-wp-image:
   needs:
     - job: test-rust
       artifacts: false
-    - job: integration-test-rust-wp
+    - job: integration-test-rust
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
@@ -296,7 +296,7 @@ build-wp-migrations-image:
   needs:
     - job: test-rust
       artifacts: false
-    - job: integration-test-rust-wp
+    - job: integration-test-rust
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false

@@ -506,8 +506,8 @@ async fn test_pid_ok() {
     assert!(wallet.has_registration());
 
     let redirect_url = wallet.create_pid_issuance_redirect_uri().await.unwrap();
-    let unsigned_modcs = wallet.continue_pid_issuance(&redirect_url).await.unwrap();
-    dbg!(&unsigned_modcs);
+    let unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await.unwrap();
+    dbg!(&unsigned_mdocs);
 
     wallet.accept_pid_issuance("112234".to_string()).await.unwrap();
 
