@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
-use super::{convert::AttributeValueType, AttributeKey, AttributeLabel, AttributeLabelLanguage};
+use super::{mdoc::AttributeValueType, AttributeKey, AttributeLabel, AttributeLabelLanguage};
 
 #[derive(Debug, Clone)]
 pub(super) struct DataElementValueMapping {

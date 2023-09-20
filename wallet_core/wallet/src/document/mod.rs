@@ -1,12 +1,12 @@
-mod convert;
 mod mapping;
+mod mdoc;
 
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 
-pub use convert::{AttributeValueType, DocumentMdocError};
+pub use mdoc::{AttributeValueType, DocumentMdocError};
 
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
