@@ -221,6 +221,15 @@ class MockWalletRepository extends _i1.Mock implements _i7.WalletRepository {
           ),
         )),
       ) as _i5.Future<_i8.CheckPinResult>);
+  @override
+  _i5.Future<bool> containsPid() => (super.noSuchMethod(
+        Invocation.method(
+          #containsPid,
+          [],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
 }
 
 /// A class which mocks [TypedWalletCore].

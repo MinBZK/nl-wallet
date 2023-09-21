@@ -140,4 +140,7 @@ class MockWalletRepository implements WalletRepository {
     if (pin.characters.toSet().length <= 1) throw PinValidationError.tooFewUniqueDigits;
     if (pin == '123456') throw PinValidationError.sequentialDigits;
   }
+
+  @override
+  Future<bool> containsPid() async => (await dataSource.read('PID_1')) != null;
 }
