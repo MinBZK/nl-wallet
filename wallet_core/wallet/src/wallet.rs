@@ -449,7 +449,8 @@ where
                 }
             })?;
 
-        self.mdoc_storage.add(mdocs.into_iter().flatten()).unwrap();
+        // TODO store the mdocs in the database
+        self.mdoc_storage = mdocs;
 
         Ok(())
     }

@@ -381,7 +381,7 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.len());
+    assert_eq!(1, mdocs.list().len());
 
     // We can disclose the mdoc that was just issued to us
     custom_disclosure(wallet, ca, mdocs).await;
@@ -403,7 +403,7 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.len());
+    assert_eq!(1, mdocs.list().len());
 }
 
 async fn issuance_using_consent(
@@ -412,7 +412,7 @@ async fn issuance_using_consent(
     wallet: &mut MockWallet,
     issuance_server: Arc<MockServer>,
     ca: &Certificate,
-) -> Option<Vec<MdocCopies>> {
+) -> Option<MdocsMap> {
     let service_engagement = issuance_server.new_session(request).unwrap();
 
     wallet.start_issuance(service_engagement).await.unwrap();
@@ -430,11 +430,8 @@ async fn issuance_using_consent(
     Some(mdocs)
 }
 
-async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: Vec<MdocCopies>) {
-    let mm: Vec<Mdoc> = mdocs.into_iter().flatten().collect();
-    let storage = MdocsMap::try_from(mm).unwrap();
-
-    assert!(!storage.list().is_empty());
+async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap) {
+    assert!(!mdocs.list().is_empty());
 
     // Create a request asking for one attribute
     let request = DeviceRequest::new(vec![ItemsRequest {
@@ -449,7 +446,7 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: Vec<MdocC
     // Do the disclosure and verify it
     let challenge = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref(), &SoftwareKeyFactory {}, &storage)
+        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref(), &SoftwareKeyFactory {}, &mdocs)
         .await
         .unwrap();
     let disclosed_attrs = disclosed

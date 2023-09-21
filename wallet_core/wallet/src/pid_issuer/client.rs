@@ -8,8 +8,11 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    holder::{CborHttpClient, MdocCopies, TrustAnchor, Wallet as MdocWallet},
-    utils::keys::{KeyFactory, MdocEcdsaKey},
+    holder::{CborHttpClient, TrustAnchor, Wallet as MdocWallet},
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        mdocs_map::MdocsMap,
+    },
     ServiceEngagement,
 };
 
@@ -99,7 +102,7 @@ impl PidIssuerClient for HttpPidIssuerClient {
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-    ) -> Result<Vec<MdocCopies>, PidIssuerError> {
+    ) -> Result<MdocsMap, PidIssuerError> {
         let mut mdoc_wallet = self.mdoc_wallet.lock().await;
 
         let mdocs = mdoc_wallet.finish_issuance(mdoc_trust_anchors, key_factory).await?;

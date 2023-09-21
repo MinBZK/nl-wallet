@@ -19,6 +19,7 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::{KeyFactory, MdocEcdsaKey},
+        mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     },
     Error::KeyGeneration,
@@ -99,7 +100,7 @@ impl<H: HttpClient> Wallet<H> {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
-    ) -> Result<Vec<MdocCopies>> {
+    ) -> Result<MdocsMap> {
         // TODO should return MdocsMap
         let state = self
             .session_state
@@ -170,7 +171,7 @@ impl IssuanceSessionState {
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Vec<MdocCopies>> {
+    ) -> Result<MdocsMap> {
         let mdoc_copies = future::try_join_all(
             issuer_response
                 .mobile_eid_documents
@@ -181,7 +182,9 @@ impl IssuanceSessionState {
         )
         .await?;
 
-        Ok(mdoc_copies)
+        let mdocs: Vec<Mdoc> = mdoc_copies.into_iter().flatten().collect();
+
+        MdocsMap::try_from(mdocs)
     }
 
     async fn create_cred_copies<K: MdocEcdsaKey + Sync>(
