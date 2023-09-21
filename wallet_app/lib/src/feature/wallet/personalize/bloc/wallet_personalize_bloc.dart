@@ -13,7 +13,6 @@ import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
-import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
@@ -132,7 +131,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
       emit(const WalletPersonalizeLoadInProgress(5));
-      await Future.delayed(kDefaultMockDelay);
       try {
         await _loadCardsAndEmitSuccessState(event, emit);
       } catch (ex, stack) {

@@ -1,18 +1,15 @@
-import '../../../../data/repository/card/data_attribute_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../is_wallet_initialized_with_pid_usecase.dart';
 
 class IsWalletInitializedWithPidUseCaseImpl implements IsWalletInitializedWithPidUseCase {
   final WalletRepository _walletRepository;
-  final DataAttributeRepository _dataAttributeRepository;
 
-  IsWalletInitializedWithPidUseCaseImpl(this._walletRepository, this._dataAttributeRepository);
+  IsWalletInitializedWithPidUseCaseImpl(this._walletRepository);
 
   @override
   Future<bool> invoke() async {
     final isInitialized = await _walletRepository.isRegistered();
     if (!isInitialized) return false;
-    final pidOnlyAttribute = await _dataAttributeRepository.find('mock.citizenshipNumber');
-    return pidOnlyAttribute != null;
+    return await _walletRepository.containsPid();
   }
 }

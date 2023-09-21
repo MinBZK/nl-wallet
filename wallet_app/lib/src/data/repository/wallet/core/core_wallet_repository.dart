@@ -57,6 +57,13 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
+  Future<bool> containsPid() async {
+    // The timeout here makes sure that we don't infinitely await in case the stream stays empty
+    final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
+    return cards.any((card) => card.docType == 'pid_id');
+  }
+
+  @override
   // TODO: implement destroyWallet
   Future<void> destroyWallet() => throw UnimplementedError();
 }

@@ -139,7 +139,7 @@ pub fn mock_cards() -> Vec<Card> {
             ],
         },
         Card {
-            id: 0,
+            id: 1,
             doc_type: "pid_address".to_string(),
             issuer: "rvig".to_string(),
             attributes: vec![
