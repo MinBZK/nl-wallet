@@ -14,7 +14,7 @@ class CardMapper {
     final String cardId = input.id.toString();
     return WalletCard(
       id: cardId,
-      issuerId: input.issuer,
+      issuerId: '', // FIXME: Eventually remove issuerId (mock builds still rely on them for now)
       front: _getCardFront(input.docType, languageCode),
       attributes: input.attributes.map((attribute) => _attributeMapper.map(attribute, languageCode)).toList(),
     );

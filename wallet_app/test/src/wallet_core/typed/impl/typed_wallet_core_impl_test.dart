@@ -23,18 +23,18 @@ void main() {
   group('Observe Cards', () {
     test('observeCards should fetch cards through WalletCore', () {
       List<Card> mockCards = [
-        const Card(id: 0, docType: 'pid_id', issuer: 'issuer', attributes: []),
-        const Card(id: 0, docType: 'pid_address', issuer: 'issuer', attributes: []),
+        const Card(id: '0', docType: 'pid_id', attributes: []),
+        const Card(id: '0', docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
       expect(typedWalletCore.observeCards(), emits(hasLength(2)));
     });
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
-      List<Card> initialCards = [const Card(id: 0, docType: 'pid_id', issuer: 'issuer', attributes: [])];
+      List<Card> initialCards = [const Card(id: '0', docType: 'pid_id', attributes: [])];
       List<Card> updatedCards = [
-        const Card(id: 0, docType: 'pid_id', issuer: 'issuer', attributes: []),
-        const Card(id: 0, docType: 'pid_address', issuer: 'issuer', attributes: []),
+        const Card(id: '0', docType: 'pid_id', attributes: []),
+        const Card(id: '0', docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 

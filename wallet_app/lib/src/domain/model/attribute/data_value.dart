@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../../bridge_generated.dart';
+
 @JsonSerializable()
 sealed class DataValue extends Equatable {
   const DataValue();
@@ -21,30 +23,6 @@ class DataValueString extends DataValue {
   String stringValue() => value;
 }
 
-class DataValueInteger extends DataValue {
-  final int value;
-
-  const DataValueInteger(this.value);
-
-  @override
-  List<Object> get props => [value];
-
-  @override
-  String stringValue() => value.toString();
-}
-
-class DataValueDouble extends DataValue {
-  final double value;
-
-  const DataValueDouble(this.value);
-
-  @override
-  List<Object> get props => [value];
-
-  @override
-  String stringValue() => value.toString();
-}
-
 class DataValueBoolean extends DataValue {
   final bool value;
 
@@ -61,6 +39,18 @@ class DataValueDate extends DataValue {
   final String value;
 
   const DataValueDate(this.value);
+
+  @override
+  List<Object> get props => [value];
+
+  @override
+  String stringValue() => value.toString();
+}
+
+class DataValueGender extends DataValue {
+  final GenderCardValue value;
+
+  const DataValueGender(this.value);
 
   @override
   List<Object> get props => [value];
