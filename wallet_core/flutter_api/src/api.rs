@@ -107,11 +107,15 @@ pub async fn clear_configuration_stream() {
 }
 
 type CardsCallback = Box<dyn FnMut(Vec<Card>) + Send>;
+
 static CARDS_CALLBACK: Lazy<Mutex<Option<CardsCallback>>> = Lazy::new(|| Mutex::new(None));
 
 #[async_runtime]
 pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) {
     let sink = ClosingStreamSink::from(sink);
+
+    //TODO: Populate with current state. Adding an empty list to avoid publishing an empty stream.
+    sink.add(vec![]);
 
     CARDS_CALLBACK.lock().unwrap().replace(Box::new(move |cards| {
         sink.add(cards);

@@ -63,11 +63,12 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();
   }
 
-  void _setupCardsStream() {
-    _cards.onListen = () async {
-      await _isInitialized.future;
-      _walletCore.setCardsStream().listen((event) => _cards.add(event));
-    };
+  void _setupCardsStream() async {
+    //FIXME: Ideally we don't set the card stream until we start observing it (i.e. in onListen())
+    //FIXME: but since the cards are not persisted yet that means we might miss events, so observing
+    //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
+    await _isInitialized.future;
+    _walletCore.setCardsStream().listen((event) => _cards.add(event));
     _cards.onCancel = () => _walletCore.clearCardsStream();
   }
 

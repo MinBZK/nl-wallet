@@ -9,7 +9,8 @@ class GetWalletCardsUseCaseImpl implements GetWalletCardsUseCase {
 
   @override
   Future<List<WalletCard>> invoke() async {
-    List<WalletCard> results = await walletCardRepository.observeWalletCards().first;
+    List<WalletCard> results =
+        await walletCardRepository.observeWalletCards().first.timeout(const Duration(seconds: 5));
     return List.from(results);
   }
 }
