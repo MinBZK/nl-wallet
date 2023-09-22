@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 
 use crate::{
     basic_sa_ext::Entry,
-    holder::{Mdoc, MdocCopies, Storage},
+    holder::{Mdoc, MdocCopies, MdocRetriever},
     DocType, Error, NameSpace,
 };
 
@@ -70,7 +70,7 @@ impl MdocsMap {
 }
 
 #[cfg(feature = "mock")]
-impl Storage for MdocsMap {
+impl MdocRetriever for MdocsMap {
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
         self.0.get(doctype).map(|v| {
             v.iter()

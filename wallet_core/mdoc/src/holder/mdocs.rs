@@ -18,7 +18,7 @@ use crate::{
 
 use super::{CborHttpClient, HttpClient, IssuanceSessionState};
 
-pub trait Storage {
+pub trait MdocRetriever {
     // TODO returning all copies of all mdocs is very crude and should be refined.
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>>;
 }
