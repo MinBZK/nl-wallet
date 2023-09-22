@@ -64,10 +64,11 @@ test-flutter:
     - flutter --version
     - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage)
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
   artifacts:
     paths:
       - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
+      - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json
 
 test-flutter-ui:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
@@ -235,6 +236,8 @@ sonar-flutter:
       -Dsonar.exclusions="android/**,ios/**"
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
+      -Dsonar.flutter.tests.reportPath=build/reports/test-results.json
+      -Dsonar.flutter.coverage.reportPath=coverage/lcov.info
 
 sonar-ios:
   extends: .default-sonar
