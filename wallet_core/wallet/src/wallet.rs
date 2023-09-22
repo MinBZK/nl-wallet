@@ -8,9 +8,11 @@ use tracing::{info, instrument};
 use url::Url;
 
 use nl_wallet_mdoc::{basic_sa_ext::Entry, utils::mdocs_map::MdocsMap, DocType, NameSpace};
-pub use platform_support::hw_keystore::PlatformEcdsaKey;
 use platform_support::{
-    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+    hw_keystore::{
+        hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+        PlatformEcdsaKey,
+    },
     utils::hardware::HardwareUtilities,
 };
 use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
