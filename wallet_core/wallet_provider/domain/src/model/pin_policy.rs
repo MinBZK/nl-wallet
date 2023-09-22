@@ -17,8 +17,8 @@ pub enum PinPolicyEvaluation {
     BlockedPermanently,
 }
 
-#[cfg(feature = "stub")]
-pub mod stub {
+#[cfg(feature = "mock")]
+pub mod mock {
     use crate::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
     use chrono::{DateTime, Duration, Local};
 

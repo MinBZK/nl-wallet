@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -36,7 +34,7 @@ pub struct Sign {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateKeyResult {
-    pub public_keys: HashMap<String, DerVerifyingKey>,
+    pub public_keys: Vec<(String, DerVerifyingKey)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

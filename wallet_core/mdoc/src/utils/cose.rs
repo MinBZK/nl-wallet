@@ -96,7 +96,7 @@ where
     /// Parse and return the payload without verifying the Cose signature.
     /// DANGEROUS: this ignores the Cose signature/mac entirely, so the authenticity of the Cose and
     /// its payload is in no way guaranteed. Use [`MdocCose::verify_and_parse()`] instead if possible.
-    fn dangerous_parse_unverified(&self) -> Result<T> {
+    pub(crate) fn dangerous_parse_unverified(&self) -> Result<T> {
         let payload = cbor_deserialize(
             self.0
                 .payload()

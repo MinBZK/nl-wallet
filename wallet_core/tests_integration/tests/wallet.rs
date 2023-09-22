@@ -10,7 +10,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use serial_test::serial;
 use tokio::{sync::Mutex, time::sleep};
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -125,7 +125,17 @@ fn settings() -> (Settings, u16) {
 
 fn start_wallet_provider(settings: Settings) {
     tokio::spawn(async { server::serve(settings).await.expect("Could not start server") });
-    let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
+
+    let _ = tracing::subscriber::set_global_default(
+        FmtSubscriber::builder()
+            .with_env_filter(
+                EnvFilter::builder()
+                    .with_default_directive(LevelFilter::DEBUG.into())
+                    .from_env_lossy(),
+            )
+            .with_test_writer()
+            .finish(),
+    );
 }
 
 fn pid_issuer_settings() -> (PidSettings, u16) {

@@ -1,10 +1,13 @@
 use chrono::{DateTime, Local};
+use p256::ecdsa::{SigningKey, VerifyingKey};
 use serde::Serialize;
+use uuid::Uuid;
+
 use wallet_common::account::serialization::DerVerifyingKey;
 
 #[derive(Serialize, Debug)]
 pub struct WalletUser {
-    pub id: uuid::Uuid,
+    pub id: Uuid,
     pub wallet_id: String,
     pub hw_pubkey: DerVerifyingKey,
     pub pin_pubkey: DerVerifyingKey,
@@ -21,8 +24,56 @@ pub enum WalletUserQueryResult {
 }
 
 pub struct WalletUserCreate {
-    pub id: uuid::Uuid,
+    pub id: Uuid,
     pub wallet_id: String,
-    pub hw_pubkey_der: Vec<u8>,
-    pub pin_pubkey_der: Vec<u8>,
+    pub hw_pubkey: VerifyingKey,
+    pub pin_pubkey: VerifyingKey,
+}
+
+pub struct WalletUserKeysCreate {
+    pub wallet_user_id: Uuid,
+    pub keys: Vec<(Uuid, String, SigningKey)>,
+}
+
+#[cfg(feature = "mock")]
+pub mod mock {
+    use std::str::FromStr;
+
+    use p256::ecdsa::VerifyingKey;
+    use uuid::uuid;
+
+    use wallet_common::account::serialization::DerVerifyingKey;
+
+    use crate::model::wallet_user::WalletUser;
+
+    pub fn wallet_user_1() -> WalletUser {
+        WalletUser {
+            id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+            wallet_id: "wallet_123".to_string(),
+            hw_pubkey: DerVerifyingKey(
+                VerifyingKey::from_str(
+                    r#"-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhaPRcKTAS30m0409bpOzQLfLNOh5
+SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
+-----END PUBLIC KEY-----
+"#,
+                )
+                .unwrap(),
+            ),
+            pin_pubkey: DerVerifyingKey(
+                VerifyingKey::from_str(
+                    r#"-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
+3y/LssXgXj1H3QExJGtEtGlh/LqYPvFwdaNvMYgUtpummzqvIgiuIiOYig==
+-----END PUBLIC KEY-----
+"#,
+                )
+                .unwrap(),
+            ),
+            unsuccessful_pin_entries: 0,
+            last_unsuccessful_pin_entry: None,
+            instruction_challenge: None,
+            instruction_sequence_number: 0,
+        }
+    }
 }

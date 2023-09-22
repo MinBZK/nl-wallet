@@ -8,8 +8,8 @@ pub use self::{
     wallet_user_repository::WalletUserRepository,
 };
 
-#[cfg(feature = "stub")]
+#[cfg(feature = "mock")]
 pub use self::{
-    transaction::stub::{TransactionStarterStub, TransactionStub},
-    wallet_user_repository::stub::WalletUserRepositoryStub,
+    transaction::mock::{MockTransaction, MockTransactionStarter},
+    wallet_user_repository::mock::MockWalletUserRepository,
 };

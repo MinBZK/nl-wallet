@@ -3,6 +3,7 @@ use std::{
     net::{SocketAddr, TcpListener},
     sync::Arc,
 };
+
 use tracing::debug;
 
 use super::{app, app_dependencies::AppDependencies, settings::Settings};

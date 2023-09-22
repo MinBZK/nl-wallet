@@ -15,7 +15,7 @@ use wallet_provider_domain::{
 };
 
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
-use wallet_provider_service::account_server::{stub, AccountServer};
+use wallet_provider_service::account_server::{mock, AccountServer};
 
 struct UuidGenerator;
 impl Generator<Uuid> for UuidGenerator {
@@ -93,7 +93,7 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let account_server = stub::account_server().await;
+    let account_server = mock::account_server().await;
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 

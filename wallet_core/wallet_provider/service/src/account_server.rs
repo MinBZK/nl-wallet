@@ -1,13 +1,6 @@
-use std::collections::HashMap;
-
-use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use futures::try_join;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    pkcs8::EncodePublicKey,
-};
-use rand::rngs::OsRng;
+use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::debug;
 use uuid::Uuid;
@@ -19,11 +12,10 @@ use wallet_common::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
             instructions::{
-                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
-                InstructionEndpoint, InstructionResult, InstructionResultClaims, Sign, SignResult,
+                Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
             },
         },
-        serialization::{Base64Bytes, DerVerifyingKey},
+        serialization::Base64Bytes,
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
@@ -38,6 +30,8 @@ use wallet_provider_domain::{
     repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
     wallet_provider_signing_key::WalletProviderEcdsaKey,
 };
+
+use crate::instructions::HandleInstruction;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {
@@ -98,10 +92,6 @@ pub enum RegistrationError {
     JwtSigning(#[source] wallet_common::errors::Error),
     #[error("could not store certificate: {0}")]
     CertificateStorage(#[from] PersistenceError),
-    #[error("registration HW public key decoding error: {0}")]
-    HwPubKeyDecoding(#[source] p256::pkcs8::spki::Error),
-    #[error("registration PIN public key decoding error: {0}")]
-    PinPubKeyDecoding(#[source] p256::pkcs8::spki::Error),
     #[error("registration PIN public key DER encoding error: {0}")]
     PinPubKeyEncoding(#[source] der::Error),
     #[error("wallet certificate validation error: {0}")]
@@ -173,104 +163,6 @@ struct RegistrationChallengeClaims {
 
 impl JwtClaims for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
-}
-
-#[async_trait]
-pub trait HandleInstruction<'de, T>
-where
-    T: Committable + Send + Sync,
-{
-    type Result: Serialize + Deserialize<'de> + Send + Sync;
-
-    async fn handle(
-        &self,
-        wallet_id: &str,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-    ) -> Result<Self::Result, InstructionError>;
-}
-
-#[async_trait]
-impl<T> HandleInstruction<'_, T> for CheckPin
-where
-    T: Committable + Send + Sync,
-{
-    type Result = ();
-
-    async fn handle(
-        &self,
-        _wallet_id: &str,
-        _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-    ) -> Result<(), InstructionError> {
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<T> HandleInstruction<'_, T> for GenerateKey
-where
-    T: Committable + Send + Sync,
-{
-    type Result = GenerateKeyResult;
-
-    async fn handle(
-        &self,
-        wallet_id: &str,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-    ) -> Result<GenerateKeyResult, InstructionError> {
-        let tx = repositories.begin_transaction().await?;
-
-        let existing_keys: Vec<Option<SigningKey>> = repositories.get_keys(&tx, wallet_id, &self.identifiers).await?;
-
-        let keys: Vec<(String, SigningKey)> = self
-            .identifiers
-            .iter()
-            .zip(existing_keys)
-            .map(|(identifier, existing_key)| {
-                (
-                    identifier.clone(),
-                    match existing_key {
-                        Some(key) => key,
-                        None => SigningKey::random(&mut OsRng),
-                    },
-                )
-            })
-            .collect();
-
-        repositories.save_key(&tx, wallet_id, &keys).await?;
-        tx.commit().await?;
-
-        let public_keys: HashMap<String, DerVerifyingKey> = keys
-            .into_iter()
-            .map(|(identifier, key)| (identifier, (*key.verifying_key()).into()))
-            .collect();
-
-        Ok(GenerateKeyResult { public_keys })
-    }
-}
-
-#[async_trait]
-impl<T> HandleInstruction<'_, T> for Sign
-where
-    T: Committable + Send + Sync,
-{
-    type Result = SignResult;
-
-    async fn handle(
-        &self,
-        wallet_id: &str,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-    ) -> Result<SignResult, InstructionError> {
-        let tx = repositories.begin_transaction().await?;
-        let found_key = repositories.get_key(&tx, wallet_id, &self.identifier).await?;
-        tx.commit().await?;
-
-        let key = found_key.ok_or(InstructionError::KeyNotFound(self.identifier.clone()))?;
-        let signature: Signature = p256::ecdsa::signature::Signer::sign(&key, &self.msg.0);
-
-        Ok(SignResult {
-            signature: signature.into(),
-        })
-    }
 }
 
 pub struct AccountServer {
@@ -376,16 +268,17 @@ impl AccountServer {
         Ok(challenge)
     }
 
-    pub async fn handle_instruction<'de, T, I, R>(
+    pub async fn handle_instruction<T, I, R>(
         &self,
         instruction: Instruction<I>,
+        uuid_generator: &(impl Generator<Uuid> + Sync),
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
         pin_policy: &impl PinPolicyEvaluator,
         time_generator: &impl Generator<DateTime<Local>>,
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         T: Committable + Send + Sync,
-        I: InstructionEndpoint + HandleInstruction<'de, T, Result = R> + Serialize + DeserializeOwned,
+        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
         R: Serialize + DeserializeOwned,
     {
         debug!("Verifying certificate and retrieving wallet user");
@@ -440,7 +333,10 @@ impl AccountServer {
 
                 tx.commit().await?;
 
-                let instruction_result = payload.payload.handle(&wallet_user.wallet_id, repositories).await?;
+                let instruction_result = payload
+                    .payload
+                    .handle(&wallet_user, uuid_generator, repositories)
+                    .await?;
                 self.sign_instruction_result(instruction_result).await
             }
             Err(validation_error) => {
@@ -510,14 +406,8 @@ impl AccountServer {
                 WalletUserCreate {
                     id: uuid,
                     wallet_id: wallet_id.clone(),
-                    hw_pubkey_der: hw_pubkey
-                        .to_public_key_der()
-                        .map_err(RegistrationError::HwPubKeyDecoding)?
-                        .to_vec(),
-                    pin_pubkey_der: pin_pubkey
-                        .to_public_key_der()
-                        .map_err(RegistrationError::PinPubKeyDecoding)?
-                        .to_vec(),
+                    hw_pubkey,
+                    pin_pubkey,
                 },
             )
             .await?;
@@ -597,10 +487,10 @@ impl AccountServer {
                 debug!("User found for the provided certificate is blocked");
                 Err(WalletCertificateError::UserBlocked)
             }
-            WalletUserQueryResult::Found(user_box) => {
-                let user = *user_box;
-
+            WalletUserQueryResult::Found(user_boxed) => {
                 debug!("Generating pin public key hash");
+
+                let user = *user_boxed;
 
                 let hash = pubkey_to_hash(self.pin_hash_salt.clone(), user.pin_pubkey.0)?;
 
@@ -617,14 +507,13 @@ impl AccountServer {
         }
     }
 
-    fn verify_instruction<'de, T, I, R>(
+    fn verify_instruction<I, R>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
-        T: Committable + Send + Sync,
-        I: HandleInstruction<'de, T, Result = R> + Serialize + DeserializeOwned,
+        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -676,17 +565,12 @@ fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64
     Ok(sha256(&pin_pubkey_tohash).into())
 }
 
-#[cfg(any(test, feature = "stub"))]
-pub mod stub {
-    use async_trait::async_trait;
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
 
     use wallet_common::account::serialization::DerSigningKey;
-    use wallet_provider_domain::{
-        generator::stub::FixedGenerator,
-        repository::{TransactionStarterStub, WalletUserRepositoryStub},
-    };
 
     use super::*;
 
@@ -698,139 +582,10 @@ pub mod stub {
             account_server_privkey.into(),
             instruction_result_privkey.into(),
             random_bytes(32),
-            "stub_account_server".into(),
+            "mock_account_server".into(),
         )
         .await
         .unwrap()
-    }
-
-    pub struct TestDeps;
-
-    impl Generator<uuid::Uuid> for TestDeps {
-        fn generate(&self) -> Uuid {
-            FixedGenerator.generate()
-        }
-    }
-
-    #[async_trait]
-    impl TransactionStarter for TestDeps {
-        type TransactionType = <TransactionStarterStub as TransactionStarter>::TransactionType;
-
-        async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
-            TransactionStarterStub.begin_transaction().await
-        }
-    }
-
-    #[async_trait]
-    impl WalletUserRepository for TestDeps {
-        type TransactionType = <WalletUserRepositoryStub as WalletUserRepository>::TransactionType;
-
-        async fn create_wallet_user(
-            &self,
-            transaction: &Self::TransactionType,
-            user: WalletUserCreate,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub.create_wallet_user(transaction, user).await
-        }
-
-        async fn find_wallet_user_by_wallet_id(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-        ) -> Result<WalletUserQueryResult, PersistenceError> {
-            WalletUserRepositoryStub
-                .find_wallet_user_by_wallet_id(transaction, wallet_id)
-                .await
-        }
-
-        async fn clear_instruction_challenge(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub
-                .clear_instruction_challenge(transaction, wallet_id)
-                .await
-        }
-
-        async fn update_instruction_sequence_number(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-            instruction_sequence_number: u64,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub
-                .update_instruction_sequence_number(transaction, wallet_id, instruction_sequence_number)
-                .await
-        }
-
-        async fn update_instruction_challenge_and_sequence_number(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-            challenge: Option<Vec<u8>>,
-            instruction_sequence_number: u64,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub
-                .update_instruction_challenge_and_sequence_number(
-                    transaction,
-                    wallet_id,
-                    challenge,
-                    instruction_sequence_number,
-                )
-                .await
-        }
-
-        async fn register_unsuccessful_pin_entry(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-            is_blocked: bool,
-            datetime: DateTime<Local>,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub
-                .register_unsuccessful_pin_entry(transaction, wallet_id, is_blocked, datetime)
-                .await
-        }
-
-        async fn reset_unsuccessful_pin_entries(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub
-                .reset_unsuccessful_pin_entries(transaction, wallet_id)
-                .await
-        }
-
-        async fn save_key(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-            keys: &[(String, SigningKey)],
-        ) -> Result<(), PersistenceError> {
-            WalletUserRepositoryStub.save_key(transaction, wallet_id, keys).await
-        }
-
-        async fn get_key(
-            &self,
-            transaction: &Self::TransactionType,
-            wallet_id: &str,
-            key_identifier: &str,
-        ) -> Result<Option<SigningKey>, PersistenceError> {
-            WalletUserRepositoryStub
-                .get_key(transaction, wallet_id, key_identifier)
-                .await
-        }
-
-        async fn get_keys<T: AsRef<str> + Sync>(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _key_identifiers: &[T],
-        ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
-            Ok(vec![])
-        }
     }
 }
 
@@ -842,14 +597,18 @@ mod tests {
     use rand::rngs::OsRng;
     use uuid::uuid;
 
-    use wallet_common::account::{messages::instructions::InstructionChallengeRequest, serialization::DerVerifyingKey};
+    use wallet_common::account::{
+        messages::instructions::{CheckPin, InstructionChallengeRequest},
+        serialization::DerVerifyingKey,
+    };
     use wallet_provider_domain::{
         model::{FailingPinPolicy, TimeoutPinPolicy},
-        repository::{TransactionStarterStub, WalletUserRepositoryStub},
-        EpochGenerator,
+        repository::{MockTransaction, MockTransactionStarter},
+        EpochGenerator, FixedUuidGenerator,
     };
+    use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use super::{stub::TestDeps, *};
+    use super::*;
 
     async fn do_registration(
         account_server: &AccountServer,
@@ -865,15 +624,21 @@ mod tests {
             .await
             .expect("Could not sign new registration");
 
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo.expect_create_wallet_user().returning(|_, _| Ok(()));
+
         account_server
-            .register(&TestDeps, &TestDeps, registration_message)
+            .register(&FixedUuidGenerator, &wallet_user_repo, registration_message)
             .await
             .expect("Could not process registration message at account server")
     }
 
     #[tokio::test]
     async fn test_register() {
-        let account_server = stub::account_server().await;
+        let account_server = mock::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -896,14 +661,14 @@ mod tests {
 
     #[async_trait]
     impl WalletUserRepository for WalletUserTestRepo {
-        type TransactionType = <WalletUserRepositoryStub as WalletUserRepository>::TransactionType;
+        type TransactionType = MockTransaction;
 
         async fn create_wallet_user(
             &self,
-            transaction: &Self::TransactionType,
-            user: WalletUserCreate,
+            _transaction: &Self::TransactionType,
+            _user: WalletUserCreate,
         ) -> Result<(), PersistenceError> {
-            TestDeps.create_wallet_user(transaction, user).await
+            Ok(())
         }
         async fn find_wallet_user_by_wallet_id(
             &self,
@@ -961,44 +726,36 @@ mod tests {
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
-        async fn save_key(
+        async fn save_keys(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _keys: &[(String, SigningKey)],
+            _wallet_user_id: uuid::Uuid,
+            _keys: &[(uuid::Uuid, String, SigningKey)],
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
         async fn get_key(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_user_id: uuid::Uuid,
             _key_identifier: &str,
         ) -> Result<Option<SigningKey>, PersistenceError> {
             Ok(SigningKey::random(&mut OsRng).into())
-        }
-        async fn get_keys<T: AsRef<str> + Sync>(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _key_identifiers: &[T],
-        ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
-            Ok(vec![])
         }
     }
 
     #[async_trait]
     impl TransactionStarter for WalletUserTestRepo {
-        type TransactionType = <TransactionStarterStub as TransactionStarter>::TransactionType;
+        type TransactionType = <MockTransactionStarter as TransactionStarter>::TransactionType;
 
         async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
-            TransactionStarterStub.begin_transaction().await
+            MockTransactionStarter.begin_transaction().await
         }
     }
 
     #[tokio::test]
     async fn test_check_pin() {
-        let account_server = stub::account_server().await;
+        let account_server = mock::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1056,6 +813,7 @@ mod tests {
                     )
                     .await
                     .unwrap(),
+                    &FixedUuidGenerator,
                     &WalletUserTestRepo {
                         hw: hw_pubkey,
                         pin: pin_pubkey,
@@ -1078,6 +836,7 @@ mod tests {
                 Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
                     .await
                     .unwrap(),
+                &FixedUuidGenerator,
                 &WalletUserTestRepo {
                     hw: hw_pubkey,
                     pin: pin_pubkey,
@@ -1093,7 +852,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_wallet_certificate_should_verify() {
-        let account_server = stub::account_server().await;
+        let account_server = mock::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1138,7 +897,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_hw_key_should_not_validate() {
-        let account_server = stub::account_server().await;
+        let account_server = mock::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1162,7 +921,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_pin_key_should_not_validate() {
-        let account_server = stub::account_server().await;
+        let account_server = mock::account_server().await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
