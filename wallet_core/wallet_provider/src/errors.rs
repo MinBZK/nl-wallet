@@ -99,7 +99,6 @@ impl ConvertibleError for RegistrationError {
                 expected: _,
                 received: _,
             } => ErrorType::RegistrationParsing,
-            RegistrationError::PinPubKeyDecoding(_) | RegistrationError::HwPubKeyDecoding(_) => ErrorType::Unexpected,
             RegistrationError::PinPubKeyEncoding(_) => ErrorType::Unexpected,
             RegistrationError::JwtSigning(_) => ErrorType::Unexpected,
             RegistrationError::CertificateStorage(_) => ErrorType::Unexpected,

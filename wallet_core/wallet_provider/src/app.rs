@@ -101,16 +101,7 @@ async fn check_pin(
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
-
-    let result = state
-        .account_server
-        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
-        .await?;
-
-    let body = InstructionResultMessage { result };
-
-    info!("Replying with the instruction result");
-
+    let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -119,16 +110,7 @@ async fn generate_key(
     Json(payload): Json<Instruction<GenerateKey>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
     info!("Received generate key request, handling the GenerateKey instruction");
-
-    let result = state
-        .account_server
-        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
-        .await?;
-
-    let body = InstructionResultMessage { result };
-
-    info!("Replying with the instruction result");
-
+    let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -137,15 +119,6 @@ async fn sign(
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
-
-    let result = state
-        .account_server
-        .handle_instruction(payload, &state.repositories, &state.pin_policy, state.as_ref())
-        .await?;
-
-    let body = InstructionResultMessage { result };
-
-    info!("Replying with the instruction result");
-
+    let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }

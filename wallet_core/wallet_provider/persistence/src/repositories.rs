@@ -1,21 +1,20 @@
-use std::{collections::HashMap, sync::Mutex};
-
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use p256::ecdsa::SigningKey;
+use uuid;
 
 use wallet_provider_domain::{
-    model::wallet_user::{WalletUserCreate, WalletUserQueryResult},
+    model::wallet_user::{WalletUserCreate, WalletUserKeysCreate, WalletUserQueryResult},
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
 };
 
-use crate::{database::Db, transaction, transaction::Transaction, wallet_user_repository};
+use crate::{database::Db, transaction, transaction::Transaction, wallet_user, wallet_user_key};
 
-pub struct Repositories(Db, pub Mutex<HashMap<String, SigningKey>>);
+pub struct Repositories(Db);
 
 impl Repositories {
     pub fn new(db: Db) -> Self {
-        Self(db, Mutex::new(HashMap::new()))
+        Self(db)
     }
 }
 
@@ -37,7 +36,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         user: WalletUserCreate,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::create_wallet_user(transaction, user).await
+        wallet_user::create_wallet_user(transaction, user).await
     }
 
     async fn find_wallet_user_by_wallet_id(
@@ -45,7 +44,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
     ) -> Result<WalletUserQueryResult, PersistenceError> {
-        wallet_user_repository::find_wallet_user_by_wallet_id(transaction, wallet_id).await
+        wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
     }
 
     async fn clear_instruction_challenge(
@@ -53,7 +52,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::clear_instruction_challenge(transaction, wallet_id).await
+        wallet_user::clear_instruction_challenge(transaction, wallet_id).await
     }
 
     async fn update_instruction_sequence_number(
@@ -62,8 +61,7 @@ impl WalletUserRepository for Repositories {
         wallet_id: &str,
         instruction_sequence_number: u64,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::update_instruction_sequence_number(transaction, wallet_id, instruction_sequence_number)
-            .await
+        wallet_user::update_instruction_sequence_number(transaction, wallet_id, instruction_sequence_number).await
     }
 
     async fn update_instruction_challenge_and_sequence_number(
@@ -73,7 +71,7 @@ impl WalletUserRepository for Repositories {
         challenge: Option<Vec<u8>>,
         instruction_sequence_number: u64,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::update_instruction_challenge_and_sequence_number(
+        wallet_user::update_instruction_challenge_and_sequence_number(
             transaction,
             wallet_id,
             challenge,
@@ -89,7 +87,7 @@ impl WalletUserRepository for Repositories {
         is_blocked: bool,
         datetime: DateTime<Local>,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::register_unsuccessful_pin_entry(transaction, wallet_id, is_blocked, datetime).await
+        wallet_user::register_unsuccessful_pin_entry(transaction, wallet_id, is_blocked, datetime).await
     }
 
     async fn reset_unsuccessful_pin_entries(
@@ -97,46 +95,120 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
     ) -> Result<(), PersistenceError> {
-        wallet_user_repository::reset_unsuccessful_pin_entries(transaction, wallet_id).await
+        wallet_user::reset_unsuccessful_pin_entries(transaction, wallet_id).await
     }
 
-    async fn save_key(
+    async fn save_keys(
         &self,
-        _transaction: &Self::TransactionType,
-        _wallet_id: &str,
-        keys: &[(String, SigningKey)],
+        transaction: &Self::TransactionType,
+        wallet_user_id: uuid::Uuid,
+        keys: &[(uuid::Uuid, String, SigningKey)],
     ) -> Result<(), PersistenceError> {
-        let mut data = self.1.lock().unwrap();
-        for (key_identifier, private_key) in keys {
-            if !data.contains_key(key_identifier) {
-                data.insert(key_identifier.to_string(), private_key.clone());
-            }
-        }
-        Ok(())
+        wallet_user_key::create_keys(
+            transaction,
+            WalletUserKeysCreate {
+                wallet_user_id,
+                keys: keys.to_vec(),
+            },
+        )
+        .await
     }
 
     async fn get_key(
         &self,
-        _transaction: &Self::TransactionType,
-        _wallet_id: &str,
+        transaction: &Self::TransactionType,
+        wallet_user_id: uuid::Uuid,
         key_identifier: &str,
     ) -> Result<Option<SigningKey>, PersistenceError> {
-        Ok(self.1.lock().unwrap().get(key_identifier).cloned())
+        wallet_user_key::find_key_by_identifier(transaction, wallet_user_id, key_identifier).await
     }
+}
 
-    async fn get_keys<T: AsRef<str> + Sync>(
-        &self,
-        _transaction: &Self::TransactionType,
-        _wallet_id: &str,
-        key_identifiers: &[T],
-    ) -> Result<Vec<Option<SigningKey>>, PersistenceError> {
-        let data = self.1.lock().unwrap();
+#[cfg(feature = "mock")]
+pub mod mock {
+    use async_trait::async_trait;
+    use chrono::{DateTime, Local};
+    use mockall;
+    use p256::ecdsa::SigningKey;
+    use wallet_provider_domain::{
+        model::wallet_user::{WalletUserCreate, WalletUserQueryResult},
+        repository::{MockTransaction, PersistenceError, TransactionStarter, WalletUserRepository},
+    };
 
-        let existing_keys = key_identifiers
-            .iter()
-            .map(|key_identifier| data.get(key_identifier.as_ref()).cloned())
-            .collect();
+    mockall::mock! {
+        pub TransactionalWalletUserRepository {}
 
-        Ok(existing_keys)
+        #[async_trait]
+        impl WalletUserRepository for TransactionalWalletUserRepository {
+            type TransactionType = MockTransaction;
+
+            async fn create_wallet_user(
+                &self,
+                transaction: &MockTransaction,
+                user: WalletUserCreate,
+            ) -> Result<(), PersistenceError>;
+
+            async fn find_wallet_user_by_wallet_id(
+                &self,
+                _transaction: &MockTransaction,
+                wallet_id: &str,
+            ) -> Result<WalletUserQueryResult, PersistenceError>;
+
+            async fn register_unsuccessful_pin_entry(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+                _is_blocked: bool,
+                _datetime: DateTime<Local>,
+            ) -> Result<(), PersistenceError>;
+
+            async fn reset_unsuccessful_pin_entries(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+            ) -> Result<(), PersistenceError>;
+
+            async fn clear_instruction_challenge(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+            ) -> Result<(), PersistenceError>;
+
+            async fn update_instruction_challenge_and_sequence_number(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+                _challenge: Option<Vec<u8>>,
+                _instruction_sequence_number: u64,
+            ) -> Result<(), PersistenceError>;
+
+            async fn update_instruction_sequence_number(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_id: &str,
+                _instruction_sequence_number: u64,
+            ) -> Result<(), PersistenceError>;
+
+            async fn save_keys(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: uuid::Uuid,
+                _keys: &[(uuid::Uuid, String, SigningKey)],
+            ) -> Result<(), PersistenceError>;
+
+            async fn get_key(
+                &self,
+                _transaction: &MockTransaction,
+                _wallet_user_id: uuid::Uuid,
+                _key_identifier: &str,
+            ) -> Result<Option<SigningKey>, PersistenceError>;
+        }
+
+        #[async_trait]
+        impl TransactionStarter for TransactionalWalletUserRepository {
+            type TransactionType = MockTransaction;
+
+            async fn begin_transaction(&self) -> Result<MockTransaction, PersistenceError>;
+        }
     }
 }

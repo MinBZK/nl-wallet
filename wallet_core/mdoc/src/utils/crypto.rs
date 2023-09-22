@@ -14,8 +14,10 @@ use x509_parser::nom::AsBytes;
 use wallet_common::utils::{hkdf, sha256};
 
 use crate::{
-    utils::cose::CoseKey,
-    utils::serialization::{cbor_serialize, CborError},
+    utils::{
+        cose::CoseKey,
+        serialization::{cbor_serialize, CborError},
+    },
     Error, Result,
 };
 

@@ -104,6 +104,12 @@ pub struct DeviceKeyInfo {
     pub key_info: Option<KeyInfo>,
 }
 
+impl TryFrom<DeviceKeyInfo> for VerifyingKey {
+    type Error = Error;
+    fn try_from(value: DeviceKeyInfo) -> Result<Self> {
+        (&value.device_key).try_into()
+    }
+}
 impl TryFrom<VerifyingKey> for DeviceKeyInfo {
     type Error = Error;
     fn try_from(value: VerifyingKey) -> Result<Self> {

@@ -10,4 +10,8 @@ pub enum PersistenceError {
     Execution(#[source] Box<dyn Error + Send + Sync>),
     #[error("not found: {0}")]
     NotFound(String),
+    #[error("verifying key conversion error: {0}")]
+    VerifyingKeyConversion(#[from] p256::pkcs8::spki::Error),
+    #[error("signing key conversion error: {0}")]
+    SigningKeyConversion(#[from] p256::ecdsa::Error),
 }
