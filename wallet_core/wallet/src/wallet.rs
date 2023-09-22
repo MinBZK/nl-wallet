@@ -1,17 +1,22 @@
 use std::error::Error;
 
 use futures::future::TryFutureExt;
-use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+use indexmap::IndexMap;
 use p256::ecdsa::signature;
-use platform_support::{
-    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
-    utils::hardware::HardwareUtilities,
-};
 use tokio::sync::RwLock;
 use tracing::{info, instrument};
 use url::Url;
 
+use nl_wallet_mdoc::{
+    basic_sa_ext::{Entry, UnsignedMdoc},
+    utils::mdocs_map::MdocsMap,
+    DocType, NameSpace,
+};
 pub use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::{
+    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+    utils::hardware::HardwareUtilities,
+};
 use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
 
 use crate::{
@@ -111,6 +116,7 @@ pub struct Wallet<
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
+    mdoc_storage: MdocsMap,
 }
 
 impl Wallet {
@@ -160,6 +166,7 @@ where
             lock: WalletLock::new(true),
             registration,
             config_callback: None,
+            mdoc_storage: MdocsMap::new(),
         };
 
         Ok(wallet)
@@ -425,7 +432,8 @@ where
         );
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
-        self.pid_issuer
+        let mdocs = self
+            .pid_issuer
             .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
             .await
             .map_err(|error| {
@@ -439,12 +447,22 @@ where
                     }
                     _ => PidIssuanceError::PidIssuer(error),
                 }
-            })
+            })?;
+
+        // TODO store the mdocs in the database
+        self.mdoc_storage = mdocs;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
     pub async fn reject_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
+    }
+
+    #[instrument(skip_all)]
+    pub async fn list_mdocs(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+        self.mdoc_storage.list()
     }
 }
 

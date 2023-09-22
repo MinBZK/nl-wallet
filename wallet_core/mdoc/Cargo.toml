@@ -5,7 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-memory_storage = []
 mock = ["wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
@@ -41,4 +40,4 @@ wallet_common = { path = "../wallet_common" }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 
-nl_wallet_mdoc = { path = ".", features = ["mock", "memory_storage"] }
+nl_wallet_mdoc = { path = ".", features = ["mock"] }

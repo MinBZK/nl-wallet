@@ -19,13 +19,14 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::{KeyFactory, MdocEcdsaKey},
+        mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     },
     Error::KeyGeneration,
     Result,
 };
 
-use super::{HolderError, Mdoc, MdocCopies, Storage, Wallet};
+use super::{HolderError, Mdoc, MdocCopies, Wallet};
 
 #[async_trait]
 pub trait HttpClient {
@@ -65,7 +66,7 @@ pub(crate) struct IssuanceSessionState {
     request: RequestKeyGenerationMessage,
 }
 
-impl<C: Storage, H: HttpClient> Wallet<C, H> {
+impl<H: HttpClient> Wallet<H> {
     /// Do an ISO 23220-3 issuance session, using the SA-specific protocol from `basic_sa_ext.rs`.
     pub async fn start_issuance(&mut self, service_engagement: ServiceEngagement) -> Result<&[UnsignedMdoc]> {
         let url = service_engagement
@@ -99,7 +100,8 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
-    ) -> Result<()> {
+    ) -> Result<MdocsMap> {
+        // TODO should return MdocsMap
         let state = self
             .session_state
             .as_ref()
@@ -113,12 +115,11 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
-        self.storage.add(creds.into_iter().flatten())?;
 
         // Clear session state now that all fallible operations have not failed
         self.session_state.take();
 
-        Ok(())
+        Ok(creds)
     }
 
     pub async fn stop_issuance(&mut self) -> Result<()> {
@@ -170,7 +171,7 @@ impl IssuanceSessionState {
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Vec<MdocCopies>> {
+    ) -> Result<MdocsMap> {
         let mdoc_copies = future::try_join_all(
             issuer_response
                 .mobile_eid_documents
@@ -181,7 +182,9 @@ impl IssuanceSessionState {
         )
         .await?;
 
-        Ok(mdoc_copies)
+        let mdocs: Vec<Mdoc> = mdoc_copies.into_iter().flatten().collect();
+
+        MdocsMap::try_from(mdocs)
     }
 
     async fn create_cred_copies<K: MdocEcdsaKey + Sync>(
