@@ -160,7 +160,7 @@ impl IssuanceSessionState {
     async fn generate_keys<'a, K>(count: u64, key_factory: &'a impl KeyFactory<'a, Key = K>) -> Result<Vec<K>> {
         let identifiers: Vec<String> = (0..count).map(|_| random_string(32)).collect();
         key_factory
-            .generate(&identifiers)
+            .generate_new(&identifiers)
             .await
             .map_err(|err| KeyGeneration(Box::new(err)))
     }

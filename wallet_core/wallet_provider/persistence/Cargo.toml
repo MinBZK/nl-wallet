@@ -5,11 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
+mock = ["mockall"]
 db_test = []
 
 [dependencies]
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
+mockall = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
@@ -21,6 +23,7 @@ sea-orm = { workspace = true, features = [
 serde_json.workspace = true #todo: remove
 tokio = { workspace = true, features = ["parking_lot"] }
 tracing = { workspace = true }
+uuid = { workspace = true }
 
 wallet_provider_domain = { path = "../domain" }
 wallet_common = { path = "../../wallet_common" }
@@ -33,6 +36,5 @@ tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "parking_lot",
 ] }
-uuid = { workspace = true }
 
-wallet_provider_domain = { path = "../domain", features = ["stub"] }
+wallet_provider_domain = { path = "../domain", features = ["mock"] }

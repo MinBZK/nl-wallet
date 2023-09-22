@@ -4282,6 +4282,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "mockall",
  "p256",
  "sea-orm",
  "serde_json",

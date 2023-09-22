@@ -3,3 +3,4 @@
 pub mod prelude;
 
 pub mod wallet_user;
+pub mod wallet_user_key;

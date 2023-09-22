@@ -47,11 +47,15 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
     type Key = SoftwareEcdsaKey;
     type Error = Error;
 
-    async fn generate<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<SoftwareEcdsaKey>, Error> {
+    async fn generate_new<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<SoftwareEcdsaKey>, Error> {
         Ok(identifiers
             .iter()
             .map(|identifier| SoftwareEcdsaKey::new(identifier.as_ref()))
             .collect())
+    }
+
+    fn generate_existing<I: AsRef<str> + Sync>(&'a self, identifier: &I, _public_key: VerifyingKey) -> Self::Key {
+        SoftwareEcdsaKey::new(identifier.as_ref())
     }
 }
 

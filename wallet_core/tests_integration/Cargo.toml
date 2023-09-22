@@ -21,6 +21,7 @@ sea-orm = { workspace = true, features = [
     "runtime-tokio-rustls",
     "macros",
     "with-uuid",
+    "debug-print",
 ] }
 serial_test = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }

@@ -1,5 +1,8 @@
 use chrono::{DateTime, Local, Utc};
-use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
+use p256::{
+    ecdsa::VerifyingKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
+};
 use sea_orm::{
     sea_query::{Expr, IntoIden, SimpleExpr},
     ActiveModelTrait,
@@ -25,8 +28,8 @@ where
     wallet_user::ActiveModel {
         id: Set(user.id),
         wallet_id: Set(user.wallet_id),
-        hw_pubkey_der: Set(user.hw_pubkey_der),
-        pin_pubkey_der: Set(user.pin_pubkey_der),
+        hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
+        pin_pubkey_der: Set(user.pin_pubkey.to_public_key_der()?.to_vec()),
         instruction_sequence_number: Set(0),
         instruction_challenge: Set(None),
         pin_entries: Set(0),

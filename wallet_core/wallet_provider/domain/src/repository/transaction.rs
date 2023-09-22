@@ -14,27 +14,27 @@ pub trait TransactionStarter {
     async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError>;
 }
 
-#[cfg(feature = "stub")]
-pub mod stub {
+#[cfg(feature = "mock")]
+pub mod mock {
     use super::*;
 
-    pub struct TransactionStub;
+    pub struct MockTransaction;
 
     #[async_trait]
-    impl Committable for TransactionStub {
+    impl Committable for MockTransaction {
         async fn commit(self) -> Result<(), PersistenceError> {
             Ok(())
         }
     }
 
-    pub struct TransactionStarterStub;
+    pub struct MockTransactionStarter;
 
     #[async_trait]
-    impl TransactionStarter for TransactionStarterStub {
-        type TransactionType = TransactionStub;
+    impl TransactionStarter for MockTransactionStarter {
+        type TransactionType = MockTransaction;
 
         async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError> {
-            Ok(TransactionStub {})
+            Ok(MockTransaction {})
         }
     }
 }
