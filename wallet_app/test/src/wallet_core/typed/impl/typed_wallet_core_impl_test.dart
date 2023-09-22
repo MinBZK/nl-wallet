@@ -152,10 +152,10 @@ void main() {
     });
 
     test('observeCards should emit only the last value on a new subscription', () async {
-      List<Card> initialCards = [const Card(id: 0, docType: 'pid_id', issuer: 'issuer', attributes: [])];
+      List<Card> initialCards = [const Card(id: '0', docType: 'pid_id', attributes: [])];
       List<Card> updatedCards = [
-        const Card(id: 0, docType: 'pid_id', issuer: 'issuer', attributes: []),
-        const Card(id: 0, docType: 'pid_address', issuer: 'issuer', attributes: []),
+        const Card(id: '0', docType: 'pid_id', attributes: []),
+        const Card(id: '0', docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 
