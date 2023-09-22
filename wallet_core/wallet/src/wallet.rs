@@ -15,13 +15,16 @@ use platform_support::{
     },
     utils::hardware::HardwareUtilities,
 };
-use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
+use wallet_common::{
+    account::messages::{auth::Registration, instructions::CheckPin},
+    utils::random_string,
+};
 
 use crate::{
     account_provider::{AccountProviderError, HttpAccountProviderClient},
     config::LocalConfigurationRepository,
     digid::{DigidError, HttpDigidClient},
-    document::DocumentMdocError,
+    document::{Document, DocumentMdocError, DocumentPersistence},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
     pid_issuer::{HttpPidIssuerClient, PidIssuerError},
@@ -30,7 +33,7 @@ use crate::{
         validation::{validate_pin, PinValidationError},
     },
     storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, Document, PidIssuerClient, Storage,
+    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -99,6 +102,7 @@ pub enum RedirectUriType {
 }
 
 type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
+type DocumentsCallback = Box<dyn FnMut(Vec<Document>) + Send + Sync>;
 
 pub struct Wallet<
     C = LocalConfigurationRepository,
@@ -117,6 +121,7 @@ pub struct Wallet<
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
+    documents_callback: Option<DocumentsCallback>,
     mdoc_storage: MdocsMap,
 }
 
@@ -167,6 +172,7 @@ where
             lock: WalletLock::new(true),
             registration,
             config_callback: None,
+            documents_callback: None,
             mdoc_storage: MdocsMap::new(),
         };
 
@@ -211,6 +217,43 @@ where
 
     pub fn clear_config_callback(&mut self) {
         self.config_callback.take();
+    }
+
+    pub fn set_documents_callback<F>(&mut self, callback: F)
+    where
+        F: FnMut(Vec<Document>) + Send + Sync + 'static,
+    {
+        self.documents_callback.replace(Box::new(callback));
+        self.emit_documents();
+    }
+
+    fn emit_documents(&mut self) {
+        if let Some(ref mut callback) = self.documents_callback {
+            // Note that this currently panics whenever conversion from Mdoc to Documents fails,
+            // as we assume that the (hardcoded) mapping will always be backwards compatible.
+            // This is particularly important when this mapping comes from a trusted registry
+            // in the near future!
+            let documents = self
+                .mdoc_storage
+                .list()
+                .into_iter()
+                .flat_map(|(doc_type, mdocs_attributes)| {
+                    mdocs_attributes.into_iter().map(move |attributes| {
+                        // TODO: Get id from the database instead of making one up.
+                        let id = random_string(16);
+
+                        Document::from_mdoc_attributes(DocumentPersistence::Stored(id), &doc_type, attributes)
+                            .expect("Could not interpret stored mdoc attributes")
+                    })
+                })
+                .collect();
+
+            callback(documents);
+        }
+    }
+
+    pub fn clear_documents_callback(&mut self) {
+        self.documents_callback.take();
     }
 
     pub fn has_registration(&self) -> bool {
@@ -455,6 +498,8 @@ where
 
         // TODO store the mdocs in the database
         self.mdoc_storage = mdocs;
+
+        self.emit_documents();
 
         Ok(())
     }
