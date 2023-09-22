@@ -60,11 +60,12 @@ impl<H: HttpClient> Wallet<H> {
         let items_request = &doc_request.items_request.0;
 
         // This takes any mdoc of the specified doctype. TODO: allow user choice.
-        let creds = mdoc_retriever
-            .get(&items_request.doc_type)
-            .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                items_request.doc_type.clone(),
-            )))?;
+        let creds =
+            mdoc_retriever
+                .get(&items_request.doc_type)
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?;
         let cred = &creds
             .first()
             .ok_or(Error::from(HolderError::UnsatisfiableRequest(
