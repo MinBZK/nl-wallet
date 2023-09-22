@@ -98,7 +98,7 @@ pub enum RedirectUriType {
     Unknown,
 }
 
-type ConfigurationCallback = Box<dyn Fn(&Configuration) + Send + Sync>;
+type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
 
 pub struct Wallet<
     C = LocalConfigurationRepository,
@@ -187,9 +187,9 @@ where
         storage.fetch_data::<RegistrationData>().await
     }
 
-    pub fn set_lock_callback<F>(&mut self, callback: F)
+    pub fn set_lock_callback<F>(&mut self, mut callback: F)
     where
-        F: Fn(bool) + Send + Sync + 'static,
+        F: FnMut(bool) + Send + Sync + 'static,
     {
         callback(self.lock.is_locked());
         self.lock.set_lock_callback(callback);
@@ -199,9 +199,9 @@ where
         self.lock.clear_lock_callback()
     }
 
-    pub fn set_config_callback<F>(&mut self, callback: F)
+    pub fn set_config_callback<F>(&mut self, mut callback: F)
     where
-        F: Fn(&Configuration) + Send + Sync + 'static,
+        F: FnMut(&Configuration) + Send + Sync + 'static,
     {
         callback(self.config_repository.config());
         // TODO: Once configuration fetching from the Wallet Provider is implemented,
