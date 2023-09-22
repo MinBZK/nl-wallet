@@ -1,9 +1,8 @@
-use dashmap::DashMap;
 use indexmap::IndexMap;
 
 use crate::{
     basic_sa_ext::Entry,
-    holder::{Mdoc, MdocCopies, Storage},
+    holder::{Mdoc, MdocCopies, MdocRetriever},
     DocType, Error, NameSpace,
 };
 
@@ -13,13 +12,23 @@ use crate::{
 ///   with [`Mdoc::hash()`] (see its rustdoc for details),
 /// - multiple mdocs having the same doctype and the same attributes, through the `MdocCopies` data structure.
 #[derive(Debug, Clone, Default)]
-pub struct MdocsMap(pub(crate) DashMap<DocType, DashMap<Vec<u8>, MdocCopies>>);
+pub struct MdocsMap(pub(crate) IndexMap<DocType, IndexMap<Vec<u8>, MdocCopies>>);
 
 impl<const N: usize> TryFrom<[Mdoc; N]> for MdocsMap {
     type Error = Error;
 
     fn try_from(value: [Mdoc; N]) -> Result<Self, Self::Error> {
-        let creds = MdocsMap(DashMap::new());
+        let mut creds = MdocsMap::new();
+        creds.add(value.into_iter())?;
+        Ok(creds)
+    }
+}
+
+impl TryFrom<Vec<Mdoc>> for MdocsMap {
+    type Error = Error;
+
+    fn try_from(value: Vec<Mdoc>) -> Result<Self, Self::Error> {
+        let mut creds = MdocsMap::new();
         creds.add(value.into_iter())?;
         Ok(creds)
     }
@@ -27,16 +36,14 @@ impl<const N: usize> TryFrom<[Mdoc; N]> for MdocsMap {
 
 impl MdocsMap {
     pub fn new() -> MdocsMap {
-        MdocsMap(DashMap::new())
+        MdocsMap(IndexMap::new())
     }
-}
 
-impl Storage for MdocsMap {
-    fn add(&self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
+    pub fn add(&mut self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
-                .or_insert(DashMap::new())
+                .or_insert(IndexMap::new())
                 .entry(cred.hash()?)
                 .or_insert(MdocCopies::new())
                 .cred_copies
@@ -46,27 +53,29 @@ impl Storage for MdocsMap {
         Ok(())
     }
 
-    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
-        self.0.get(doctype).map(|v| {
-            v.value()
-                .iter()
-                .map(|entry| entry.value().cred_copies.to_vec().into())
-                .collect()
-        })
-    }
-
-    fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
+    pub fn list(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
         self.0
             .iter()
-            .map(|allcreds| {
+            .map(|(key, allcreds)| {
                 (
-                    allcreds.key().clone(),
+                    key.clone(),
                     allcreds
                         .iter()
-                        .map(|doctype_creds| doctype_creds.cred_copies.first().unwrap().attributes())
+                        .map(|(_key, doctype_creds)| doctype_creds.cred_copies.first().unwrap().attributes())
                         .collect::<Vec<_>>(),
                 )
             })
             .collect()
+    }
+}
+
+#[cfg(feature = "mock")]
+impl MdocRetriever for MdocsMap {
+    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
+        self.0.get(doctype).map(|v| {
+            v.iter()
+                .map(|(_key, entry)| entry.cred_copies.to_vec().into())
+                .collect()
+        })
     }
 }

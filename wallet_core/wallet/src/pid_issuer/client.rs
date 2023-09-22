@@ -24,11 +24,11 @@ use super::{PidIssuerClient, PidIssuerError};
 //       This should be removed as soon as actual storage is implemented.
 pub struct HttpPidIssuerClient {
     http_client: reqwest::Client,
-    mdoc_wallet: Arc<Mutex<MdocWallet<MdocsMap>>>,
+    mdoc_wallet: Arc<Mutex<MdocWallet>>,
 }
 
 impl HttpPidIssuerClient {
-    pub fn new(mdoc_wallet: Arc<Mutex<MdocWallet<MdocsMap>>>) -> Self {
+    pub fn new(mdoc_wallet: Arc<Mutex<MdocWallet>>) -> Self {
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
@@ -50,10 +50,7 @@ impl Default for HttpPidIssuerClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        Self::new(Arc::new(Mutex::new(MdocWallet::new(
-            MdocsMap::new(),
-            CborHttpClient(http_client),
-        ))))
+        Self::new(Arc::new(Mutex::new(MdocWallet::new(CborHttpClient(http_client)))))
     }
 }
 
@@ -105,12 +102,12 @@ impl PidIssuerClient for HttpPidIssuerClient {
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-    ) -> Result<(), PidIssuerError> {
+    ) -> Result<MdocsMap, PidIssuerError> {
         let mut mdoc_wallet = self.mdoc_wallet.lock().await;
 
-        mdoc_wallet.finish_issuance(mdoc_trust_anchors, key_factory).await?;
+        let mdocs = mdoc_wallet.finish_issuance(mdoc_trust_anchors, key_factory).await?;
 
-        Ok(())
+        Ok(mdocs)
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {

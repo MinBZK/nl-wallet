@@ -21,20 +21,21 @@ use crate::{
     Error, Result,
 };
 
-use super::{HolderError, HttpClient, Mdoc, Storage, Wallet};
+use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
 
-impl<C: Storage, H: HttpClient> Wallet<C, H> {
+impl<H: HttpClient> Wallet<H> {
     pub async fn disclose<'a, K: MdocEcdsaKey + Sync>(
         &self,
         device_request: &DeviceRequest,
         challenge: &[u8],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
+        mdoc_retriever: &impl MdocRetriever,
     ) -> Result<DeviceResponse> {
         let docs: Vec<Document> = try_join_all(
             device_request
                 .doc_requests
                 .iter()
-                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge, key_factory)),
+                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge, key_factory, mdoc_retriever)),
         )
         .await?;
 
@@ -52,16 +53,17 @@ impl<C: Storage, H: HttpClient> Wallet<C, H> {
         doc_request: &DocRequest,
         challenge: &[u8],
         key_factory: &'a impl KeyFactory<'a, Key = K>,
+        mdoc_retriever: &impl MdocRetriever,
     ) -> Result<Document> {
         let items_request = &doc_request.items_request.0;
 
         // This takes any mdoc of the specified doctype. TODO: allow user choice.
-        let creds = self
-            .storage
-            .get(&items_request.doc_type)
-            .ok_or(Error::from(HolderError::UnsatisfiableRequest(
-                items_request.doc_type.clone(),
-            )))?;
+        let creds =
+            mdoc_retriever
+                .get(&items_request.doc_type)
+                .ok_or(Error::from(HolderError::UnsatisfiableRequest(
+                    items_request.doc_type.clone(),
+                )))?;
         let cred = &creds
             .first()
             .ok_or(Error::from(HolderError::UnsatisfiableRequest(

@@ -13,10 +13,7 @@ use tokio::{sync::Mutex, time::sleep};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    holder::{CborHttpClient, Wallet as MdocWallet},
-    utils::mdocs_map::MdocsMap,
-};
+use nl_wallet_mdoc::holder::{CborHttpClient, Wallet as MdocWallet};
 use pid_issuer::{
     app::{
         mock::{MockAttributesLookup, MockBsnLookup},
@@ -472,7 +469,7 @@ async fn test_unlock_error() {
 #[tokio::test]
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_pid_ok() {
+async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (settings, port) = settings();
     let (pid_settings, pid_port) = pid_issuer_settings();
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
@@ -495,7 +492,7 @@ async fn test_pid_ok() {
     };
 
     let client = CborHttpClient(reqwest::Client::new());
-    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(MdocsMap::new(), client)));
+    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(client)));
     let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
 
     let mut wallet = create_test_wallet(
@@ -515,17 +512,20 @@ async fn test_pid_ok() {
 
     assert!(wallet.has_registration());
 
-    let redirect_url = wallet.create_pid_issuance_redirect_uri().await.unwrap();
-    let unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await.unwrap();
+    let redirect_url = wallet.create_pid_issuance_redirect_uri().await?;
+    let unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await?;
     dbg!(&unsigned_mdocs);
 
-    wallet.accept_pid_issuance("112234".to_string()).await.unwrap();
+    wallet.accept_pid_issuance("112234".to_string()).await?;
 
-    let mdocs = mdoc_wallet.lock().await.list_mdocs();
+    let mdocs = wallet.list_mdocs().await;
+
     dbg!(&mdocs);
 
     let pid_mdocs = mdocs.first().unwrap().1;
     let namespace = pid_mdocs.first().unwrap();
     let attrs = namespace.first().unwrap().1;
     assert!(!attrs.is_empty());
+
+    Ok(())
 }

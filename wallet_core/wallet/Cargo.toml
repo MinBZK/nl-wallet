@@ -42,7 +42,6 @@ entity = { path = "entity" }
 migration = { path = "migration" }
 nl_wallet_mdoc = { path = "../mdoc", features = [
     "mock",
-    "memory_storage",
 ] } # TODO remove features once actual storage is used
 platform_support = { path = "../platform_support" }
 wallet_common = { path = "../wallet_common" }
