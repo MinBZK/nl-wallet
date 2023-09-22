@@ -2,9 +2,12 @@ use indexmap::IndexMap;
 
 use crate::{
     basic_sa_ext::Entry,
-    holder::{Mdoc, MdocCopies, MdocRetriever},
+    holder::{Mdoc, MdocCopies},
     DocType, Error, NameSpace,
 };
+
+#[cfg(feature = "mock")]
+use crate::holder::MdocRetriever;
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,
