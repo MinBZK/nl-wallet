@@ -211,10 +211,13 @@ sonar-rust:
       artifacts: true
     - job: integration-test-rust
       artifacts: true
+  variables:
+    GIT_STRATEGY: clone
   before_script:
     - cd wallet_core
   script:
     - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
       -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
@@ -228,10 +231,13 @@ sonar-flutter:
       artifacts: true
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:c20b5e740685054c4d6880be0d1de4a42a32032973c855f0f358e4a9de233eff"
+  variables:
+    GIT_STRATEGY: clone
   before_script:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
     - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.exclusions="android/**,ios/**"
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
@@ -241,10 +247,13 @@ sonar-flutter:
 
 sonar-ios:
   extends: .default-sonar
+  variables:
+    GIT_STRATEGY: clone
   before_script:
     - cd wallet_core/platform_support/ios
   script:
     - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
       -Dsonar.exclusions="*Tests*/**"
       -Dsonar.c.file.suffixes=-
@@ -253,10 +262,13 @@ sonar-ios:
 
 sonar-android:
   extends: .default-sonar
+  variables:
+    GIT_STRATEGY: clone
   before_script:
     - cd wallet_core/platform_support/android
   script:
     - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
       -Dsonar.findbugs.allowuncompiledcode=true
