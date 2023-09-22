@@ -69,6 +69,7 @@ impl MdocsMap {
     }
 }
 
+#[cfg(feature = "mock")]
 impl Storage for MdocsMap {
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
         self.0.get(doctype).map(|v| {
