@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-stub = ["wallet_provider_domain/stub"]
+mock = ["wallet_provider_domain/mock"]
 db_test = []
 
 [dependencies]
@@ -39,6 +39,7 @@ tracing-subscriber = { workspace = true, features = [
     "parking_lot",
 ] }
 
-wallet_provider_persistence = { path = "../persistence" }
-wallet_provider_service = { path = ".", features = ["stub"] }
+wallet_provider_domain = { path = "../domain", features = ["mock"] }
+wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
+wallet_provider_service = { path = ".", features = ["mock"] }
 wallet_common = { path = "../../wallet_common", features = ["mock"] }

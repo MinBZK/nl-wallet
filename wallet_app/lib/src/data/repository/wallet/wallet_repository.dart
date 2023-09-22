@@ -32,4 +32,7 @@ abstract class WalletRepository {
 
   /// Confirm a transaction
   Future<CheckPinResult> confirmTransaction(String pin);
+
+  /// Check if the wallet contains the PID card
+  Future<bool> containsPid();
 }

@@ -202,7 +202,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => DecodeDeeplinkUseCaseImpl(),
         ),
         RepositoryProvider<IsWalletInitializedWithPidUseCase>(
-          create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read(), context.read()),
+          create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read()),
         ),
         RepositoryProvider<HasPreviouslyInteractedWithOrganizationUseCase>(
           create: (context) => HasPreviouslyInteractedWithOrganizationUseCaseImpl(context.read()),

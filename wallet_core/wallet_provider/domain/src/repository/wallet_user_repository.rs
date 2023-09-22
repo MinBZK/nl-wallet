@@ -47,46 +47,34 @@ pub trait WalletUserRepository {
 
     async fn reset_unsuccessful_pin_entries(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
-    async fn save_key(
+    async fn save_keys(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
-        keys: &[(String, SigningKey)],
+        wallet_user_id: uuid::Uuid,
+        keys: &[(uuid::Uuid, String, SigningKey)],
     ) -> Result<()>;
 
     async fn get_key(
         &self,
         transaction: &Self::TransactionType,
-        wallet_id: &str,
+        wallet_user_id: uuid::Uuid,
         key_identifier: &str,
     ) -> Result<Option<SigningKey>>;
-
-    async fn get_keys<T: AsRef<str> + Sync>(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_id: &str,
-        key_identifiers: &[T],
-    ) -> Result<Vec<Option<SigningKey>>>;
 }
 
-#[cfg(feature = "stub")]
-pub mod stub {
-    use std::str::FromStr;
+#[cfg(feature = "mock")]
+pub mod mock {
+    use p256::ecdsa::SigningKey;
 
-    use p256::ecdsa::{SigningKey, VerifyingKey};
-    use uuid::uuid;
+    use crate::model::wallet_user;
 
-    use wallet_common::account::serialization::DerVerifyingKey;
+    use super::{super::transaction::mock::MockTransaction, *};
 
-    use crate::model::wallet_user::WalletUser;
-
-    use super::{super::transaction::stub::TransactionStub, *};
-
-    pub struct WalletUserRepositoryStub;
+    pub struct MockWalletUserRepository;
 
     #[async_trait]
-    impl WalletUserRepository for WalletUserRepositoryStub {
-        type TransactionType = TransactionStub;
+    impl WalletUserRepository for MockWalletUserRepository {
+        type TransactionType = MockTransaction;
 
         async fn create_wallet_user(
             &self,
@@ -101,34 +89,9 @@ pub mod stub {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
         ) -> Result<WalletUserQueryResult> {
-            Ok(WalletUserQueryResult::Found(Box::new(WalletUser {
-                id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                wallet_id: "wallet_123".to_string(),
-                hw_pubkey: DerVerifyingKey(
-                    VerifyingKey::from_str(
-                        r#"-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhaPRcKTAS30m0409bpOzQLfLNOh5
-SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
------END PUBLIC KEY-----
-"#,
-                    )
-                    .unwrap(),
-                ),
-                pin_pubkey: DerVerifyingKey(
-                    VerifyingKey::from_str(
-                        r#"-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
-3y/LssXgXj1H3QExJGtEtGlh/LqYPvFwdaNvMYgUtpummzqvIgiuIiOYig==
------END PUBLIC KEY-----
-"#,
-                    )
-                    .unwrap(),
-                ),
-                unsuccessful_pin_entries: 0,
-                last_unsuccessful_pin_entry: None,
-                instruction_challenge: None,
-                instruction_sequence_number: 0,
-            })))
+            Ok(WalletUserQueryResult::Found(Box::new(
+                wallet_user::mock::wallet_user_1(),
+            )))
         }
 
         async fn update_instruction_challenge_and_sequence_number(
@@ -176,11 +139,11 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
             Ok(())
         }
 
-        async fn save_key(
+        async fn save_keys(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _keys: &[(String, SigningKey)],
+            _wallet_user_id: uuid::Uuid,
+            _keys: &[(uuid::Uuid, String, SigningKey)],
         ) -> Result<()> {
             Ok(())
         }
@@ -188,19 +151,10 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
         async fn get_key(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_id: &str,
+            _wallet_user_id: uuid::Uuid,
             _key_identifier: &str,
         ) -> Result<Option<SigningKey>> {
             todo!()
-        }
-
-        async fn get_keys<T: AsRef<str> + Sync>(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_id: &str,
-            _key_identifiers: &[T],
-        ) -> Result<Vec<Option<SigningKey>>> {
-            Ok(vec![])
         }
     }
 }

@@ -18,9 +18,7 @@ use crate::{
         x509::CertificateUsage,
     },
     verifier::X509Subject,
-    Error,
-    Error::KeyGeneration,
-    Result,
+    Error, Result,
 };
 
 use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
@@ -105,16 +103,8 @@ impl Mdoc {
                 name_spaces: Some(disclosed_namespaces),
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
-            // TODO: this can be optimized by storing the public_key in the Mdoc and provide a different
-            // key_factory method (generate_existing) that constructs a RemoteEcdsaKey based on the provided
-            // info instead of going to the wallet provider.
             device_signed: DeviceSigned::new_signature(
-                key_factory
-                    .generate(&[self.private_key_id.to_string()])
-                    .await
-                    .map_err(|err| KeyGeneration(Box::new(err)))?
-                    .first()
-                    .unwrap(),
+                &key_factory.generate_existing(&self.private_key_id, self.public_key()?),
                 challenge,
             )
             .await,

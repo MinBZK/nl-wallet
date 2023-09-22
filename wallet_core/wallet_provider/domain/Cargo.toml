@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-stub = []
+mock = []
 
 [dependencies]
 async-trait = { workspace = true }

@@ -40,6 +40,11 @@ post_install do |installer|
     
     # Start of the permission_handler configuration
     target.build_configurations.each do |config|
+      # workaround for: https://github.com/CocoaPods/CocoaPods/pull/12009
+      xcconfig_path = config.base_configuration_reference.real_path
+      xcconfig = File.read(xcconfig_path)
+      xcconfig_mod = xcconfig.gsub(/DT_TOOLCHAIN_DIR/, "TOOLCHAIN_DIR")
+      File.open(xcconfig_path, "w") { |file| file << xcconfig_mod }
 
       # List of enabled permissions.
       # Preprocessor definitions can be found in: https://github.com/Baseflow/flutter-permission-handler/blob/master/permission_handler_apple/ios/Classes/PermissionHandlerEnums.h

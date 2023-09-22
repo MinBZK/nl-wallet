@@ -46,7 +46,7 @@ where
     type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
 
-    async fn generate<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<Self::Key>, Self::Error> {
+    async fn generate_new<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<Self::Key>, Self::Error> {
         let generate_key = GenerateKey {
             identifiers: identifiers.iter().map(|i| i.as_ref().to_owned()).collect(),
         };
@@ -63,6 +63,14 @@ where
             .collect();
 
         Ok(keys)
+    }
+
+    fn generate_existing<I: AsRef<str> + Sync>(&'a self, identifier: &I, public_key: VerifyingKey) -> Self::Key {
+        RemoteEcdsaKey {
+            identifier: identifier.as_ref().to_string(),
+            public_key,
+            key_factory: self,
+        }
     }
 }
 
