@@ -134,8 +134,8 @@ void main() {
   group('observeCards', () {
     test('observeCards should fetch cards through WalletCore', () {
       List<Card> mockCards = [
-        const Card(id: '0', docType: 'pid_id', attributes: []),
-        const Card(id: '0', docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
       expect(
@@ -145,10 +145,12 @@ void main() {
     });
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
-      List<Card> initialCards = [const Card(id: '0', docType: 'pid_id', attributes: [])];
+      List<Card> initialCards = [
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+      ];
       List<Card> updatedCards = [
-        const Card(id: '0', docType: 'pid_id', attributes: []),
-        const Card(id: '0', docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
@@ -159,10 +161,12 @@ void main() {
     });
 
     test('observeCards should emit only the last value on a new subscription', () async {
-      List<Card> initialCards = [const Card(id: '0', docType: 'pid_id', attributes: [])];
+      List<Card> initialCards = [
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+      ];
       List<Card> updatedCards = [
-        const Card(id: '0', docType: 'pid_id', attributes: []),
-        const Card(id: '0', docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 
