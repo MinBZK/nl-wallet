@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/widget/button/link_button.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/link_button.dart';
+import '../forgot_pin/forgot_pin_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
 
@@ -70,7 +71,7 @@ class PinTimeoutScreen extends StatelessWidget {
                 child: LinkButton(
                   customPadding: EdgeInsets.zero,
                   child: Text(context.l10n.pinTimeoutScreenForgotPinCta),
-                  onPressed: () => PlaceholderScreen.show(context, secured: false),
+                  onPressed: () => ForgotPinScreen.show(context),
                 ),
               ),
             ],
@@ -81,6 +82,9 @@ class PinTimeoutScreen extends StatelessWidget {
   }
 
   void _onTimeoutExpired(BuildContext context) {
+    // Avoid navigating if the timeout screen is not shown, this will
+    // still be triggered if the user navigates back to this screen.
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
       WalletRoutes.splashRoute,

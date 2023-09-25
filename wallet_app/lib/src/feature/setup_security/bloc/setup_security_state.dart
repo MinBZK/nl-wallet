@@ -1,7 +1,5 @@
 part of 'setup_security_bloc.dart';
 
-const _kTotalSteps = 3;
-
 sealed class SetupSecurityState extends Equatable {
   const SetupSecurityState();
 
@@ -32,7 +30,7 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  double get stepperProgress => 1 / _kTotalSteps;
+  double get stepperProgress => 0.24;
 
   @override
   List<Object?> get props => [enteredDigits, ...super.props];
@@ -44,7 +42,7 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
   const SetupSecuritySelectPinFailed({required this.reason});
 
   @override
-  double get stepperProgress => 1 / _kTotalSteps;
+  double get stepperProgress => 0.24;
 }
 
 class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
@@ -61,7 +59,7 @@ class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
   List<Object?> get props => [enteredDigits, ...super.props];
 
   @override
-  double get stepperProgress => 2 / _kTotalSteps;
+  double get stepperProgress => 0.32;
 }
 
 class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
@@ -73,17 +71,17 @@ class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
   bool get canGoBack => true;
 
   @override
-  double get stepperProgress => 2 / _kTotalSteps;
+  double get stepperProgress => 0.32;
 }
 
 class SetupSecurityCreatingWallet extends SetupSecurityState {
   @override
-  double get stepperProgress => 2.5 / _kTotalSteps;
+  double get stepperProgress => 0.40;
 }
 
 class SetupSecurityCompleted extends SetupSecurityState {
   @override
-  double get stepperProgress => 3 / _kTotalSteps;
+  double get stepperProgress => 0.48;
 }
 
 class SetupSecurityGenericError extends SetupSecurityState {

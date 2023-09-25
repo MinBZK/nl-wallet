@@ -86,6 +86,13 @@ void main() {
     });
   });
 
+  group('reset wallet', () {
+    test('wallet reset is passed on to core', () async {
+      await repo.resetWallet();
+      verify(core.resetWallet()).called(1);
+    });
+  });
+
   group('leftover attempts', () {
     test('result exposes correct amount of leftover pin attempts', () async {
       await repo.createWallet(_kValidPin);
@@ -105,9 +112,6 @@ void main() {
 
   group('unimplemented', () {
     // This group makes sure that, once features are implemented, we are reminded to update the tests.
-    test('destroyWallet', () async {
-      expect(() => repo.destroyWallet(), throwsUnimplementedError);
-    });
     test('confirmTransaction', () async {
       expect(() => repo.confirmTransaction(_kValidPin), throwsUnimplementedError);
     });

@@ -228,6 +228,16 @@ fn wire_reject_pid_issuance_impl(port_: MessagePort) {
         move || move |task_callback| reject_pid_issuance(),
     )
 }
+fn wire_reset_wallet_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "reset_wallet",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Ok(reset_wallet()),
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

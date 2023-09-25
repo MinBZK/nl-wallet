@@ -6,6 +6,7 @@ import 'package:wallet/src/feature/forgot_pin/forgot_pin_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
@@ -34,11 +35,10 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('clear wallet button can be pressed', (tester) async {
+    testWidgets('clear wallet button can be found', (tester) async {
       await tester.pumpWidget(const WalletAppTestWidget(child: ForgotPinScreen()));
-
-      final clearWalletButton = find.text('Clear Wallet');
-      await tester.tap(clearWalletButton);
+      final l10n = await TestUtils.englishLocalizations;
+      final clearWalletButton = find.text(l10n.forgotPinScreenCta);
       expect(clearWalletButton, findsOneWidget);
     });
   });

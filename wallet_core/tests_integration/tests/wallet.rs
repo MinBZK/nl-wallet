@@ -15,10 +15,8 @@ use url::Url;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, Wallet as MdocWallet};
 use pid_issuer::{
-    app::{
-        mock::{MockAttributesLookup, MockBsnLookup},
-        AttributesLookup, BsnLookup,
-    },
+    app::{AttributesLookup, BsnLookup},
+    mock::{MockAttributesLookup, MockBsnLookup},
     server as PidServer,
     settings::Settings as PidSettings,
 };
@@ -473,8 +471,18 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (settings, port) = settings();
     let (pid_settings, pid_port) = pid_issuer_settings();
     let (public_key, instruction_result_public_key) = public_key_from_settings(&settings);
+
+    let attributes_lookup;
+    let bsn_lookup;
+    if let Some(mock_data) = pid_settings.mock_data.clone() {
+        attributes_lookup = MockAttributesLookup::from(mock_data.clone());
+        bsn_lookup = MockBsnLookup::from(mock_data);
+    } else {
+        attributes_lookup = MockAttributesLookup::default();
+        bsn_lookup = MockBsnLookup::default();
+    }
     start_wallet_provider(settings);
-    start_pid_issuer(pid_settings, MockAttributesLookup, MockBsnLookup);
+    start_pid_issuer(pid_settings, attributes_lookup, bsn_lookup);
 
     let digid_client = {
         let mut digid_client = MockDigidClient::default();

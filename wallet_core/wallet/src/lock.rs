@@ -92,7 +92,7 @@ mod tests {
 
         lock.lock();
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), None));
+        assert!(callback_is_locked.lock().unwrap().as_ref().is_none());
 
         lock.unlock();
         assert!(!lock.is_locked());

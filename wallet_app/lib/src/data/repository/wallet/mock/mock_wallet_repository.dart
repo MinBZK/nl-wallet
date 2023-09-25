@@ -89,7 +89,7 @@ class MockWalletRepository implements WalletRepository {
       // After initial timeout (user only gets 1 timeout in mock)
       if (_invalidPinAttempts >= kMaxUnlockAttempts) {
         // Too many attempts, block user
-        destroyWallet();
+        resetWallet();
         return const WalletInstructionResult.blocked();
       } else {
         // x Attempts left in final round
@@ -113,15 +113,6 @@ class MockWalletRepository implements WalletRepository {
     _locked.add(false);
   }
 
-  @override
-  Future<void> destroyWallet() async {
-    if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
-    dataSource.destroy();
-    _pin = null;
-    _isInitialized.add(false);
-    _locked.add(true);
-  }
-
   Stream<bool> get isInitializedStream => _isInitialized.stream.distinct();
 
   bool get isInitialized => _isInitialized.value;
@@ -143,4 +134,14 @@ class MockWalletRepository implements WalletRepository {
 
   @override
   Future<bool> containsPid() async => (await dataSource.read('PID_1')) != null;
+
+  @override
+  Future<void> resetWallet() async {
+    if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
+    dataSource.clear();
+    _pin == null;
+    _isInitialized.add(false);
+    _invalidPinAttempts = 0;
+    _locked.add(true);
+  }
 }

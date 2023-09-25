@@ -20,10 +20,6 @@ abstract class WalletRepository {
   /// registered at the wallet provider
   Future<bool> isRegistered();
 
-  /// Delete the wallet and notify the wallet
-  /// provider that it can be deleted.
-  Future<void> destroyWallet();
-
   /// Unlock the wallet, also updates the [isLockedStream] when successful
   Future<WalletInstructionResult> unlockWallet(String pin);
 
@@ -35,4 +31,7 @@ abstract class WalletRepository {
 
   /// Check if the wallet contains the PID card
   Future<bool> containsPid();
+
+  /// Resets the wallet, i.e. removes cards & registration.
+  Future<void> resetWallet();
 }

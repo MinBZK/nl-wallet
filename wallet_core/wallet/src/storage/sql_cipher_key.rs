@@ -1,8 +1,13 @@
-use std::array::TryFromSliceError;
+use std::{array::TryFromSliceError, fmt::Write};
 
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02X}", b)).collect()
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut result, b| {
+            let _ = write!(result, "{:02X}", b);
+            result
+        })
 }
 
 const KEY_LENGTH: usize = 32;

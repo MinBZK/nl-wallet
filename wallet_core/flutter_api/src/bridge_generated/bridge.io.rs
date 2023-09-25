@@ -91,6 +91,11 @@ pub extern "C" fn wire_reject_pid_issuance(port_: i64) {
     wire_reject_pid_issuance_impl(port_)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_reset_wallet(port_: i64) {
+    wire_reset_wallet_impl(port_)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

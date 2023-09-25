@@ -72,7 +72,7 @@ impl HttpAccountProviderClient {
             let error = match (content_length, content_type_components) {
                 // If we know there is an empty body,
                 // we can stop early and return `AccountServerResponseError::Status`.
-                (Some(content_length), _) if content_length == 0 => AccountProviderResponseError::Status(status),
+                (Some(0), _) => AccountProviderResponseError::Status(status),
                 // When the `Content-Type` header is either `application/json` or `application/???+json`,
                 // attempt to parse the body as `ErrorData`. If this fails, just return
                 // `AccountServerResponseError::Status`.

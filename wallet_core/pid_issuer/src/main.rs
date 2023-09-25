@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tracing::debug;
 
-use pid_issuer::{app::mock::MockAttributesLookup, digid::OpenIdClient, server, settings::Settings};
+use pid_issuer::{digid::OpenIdClient, mock::MockAttributesLookup, server, settings::Settings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,9 +13,10 @@ async fn main() -> Result<()> {
     debug!("Discovering DigiD issuer...");
     let bsn_lookup = OpenIdClient::new(&settings.digid).await?;
 
-    // This will block unil the server shuts down.
-    // TODO: `MockAttributesLookup` issues a hardcoded set of mock attributes. Replace with BRP query.
-    server::serve(settings, MockAttributesLookup, bsn_lookup).await?;
+    // TODO: `MockAttributesLookup` issues a configured set of mock attributes. Replace with BRP query.
+    let attributes_lookup = MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default());
+    // This will block until the server shuts down.
+    server::serve(settings, attributes_lookup, bsn_lookup).await?;
 
     Ok(())
 }

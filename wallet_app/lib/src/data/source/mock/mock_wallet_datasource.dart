@@ -104,7 +104,7 @@ class MockWalletDataSource implements WalletDataSource {
   }
 
   @override
-  void destroy() {
+  void clear() {
     walletCards.value.clear();
     timelineAttributes.value.clear();
   }

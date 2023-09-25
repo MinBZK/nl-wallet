@@ -35,6 +35,9 @@ class CoreWalletRepository implements WalletRepository {
   Future<CheckPinResult> confirmTransaction(String pin) => throw UnimplementedError();
 
   @override
+  Future<void> resetWallet() => _walletCore.resetWallet();
+
+  @override
   Future<bool> isRegistered() => _walletCore.isRegistered();
 
   @override
@@ -62,8 +65,4 @@ class CoreWalletRepository implements WalletRepository {
     final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
     return cards.any((card) => card.docType == 'pid_id');
   }
-
-  @override
-  // TODO: implement destroyWallet
-  Future<void> destroyWallet() => throw UnimplementedError();
 }

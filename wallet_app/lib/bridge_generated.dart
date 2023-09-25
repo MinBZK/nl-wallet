@@ -85,6 +85,10 @@ abstract class WalletCore {
   Future<void> rejectPidIssuance({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta;
+
+  Future<void> resetWallet({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta;
 }
 
 class Card {
@@ -480,6 +484,21 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "reject_pid_issuance",
+        argNames: [],
+      );
+
+  Future<void> resetWallet({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_reset_wallet(port_),
+      parseSuccessData: _wire2api_unit,
+      constMeta: kResetWalletConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "reset_wallet",
         argNames: [],
       );
 
@@ -1004,6 +1023,17 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_reject_pid_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reject_pid_issuance');
   late final _wire_reject_pid_issuance = _wire_reject_pid_issuancePtr.asFunction<void Function(int)>();
+
+  void wire_reset_wallet(
+    int port_,
+  ) {
+    return _wire_reset_wallet(
+      port_,
+    );
+  }
+
+  late final _wire_reset_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reset_wallet');
+  late final _wire_reset_wallet = _wire_reset_walletPtr.asFunction<void Function(int)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

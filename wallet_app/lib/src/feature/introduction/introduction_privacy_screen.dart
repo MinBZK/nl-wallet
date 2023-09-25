@@ -19,7 +19,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const LinearProgressIndicator(value: 0.5),
+            const LinearProgressIndicator(value: 0.08),
             Expanded(child: _buildContent(context)),
           ],
         ),

@@ -4,12 +4,17 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use url::Url;
 
+#[cfg(feature = "mock")]
+use crate::mock::{PersonAttributes, ResidentAttributes};
+
 #[derive(Deserialize)]
 pub struct Settings {
     pub webserver: Webserver,
     pub digid: Digid,
     pub issuer_key: IssuerKey,
     pub public_url: Url,
+    #[cfg(feature = "mock")]
+    pub mock_data: Option<Vec<MockAttributes>>,
 }
 
 #[derive(Deserialize)]
@@ -29,6 +34,13 @@ pub struct Webserver {
 pub struct IssuerKey {
     pub private_key: String,
     pub certificate: String,
+}
+
+#[cfg(feature = "mock")]
+#[derive(Deserialize, Clone)]
+pub struct MockAttributes {
+    pub person: PersonAttributes,
+    pub resident: Option<ResidentAttributes>,
 }
 
 impl Settings {

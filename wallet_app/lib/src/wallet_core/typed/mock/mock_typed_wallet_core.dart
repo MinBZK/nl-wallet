@@ -80,4 +80,10 @@ class MockTypedWalletCore extends TypedWalletCore {
     // TODO: implement observeCards
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> resetWallet() {
+    // TODO: implement resetWallet
+    throw UnimplementedError();
+  }
 }

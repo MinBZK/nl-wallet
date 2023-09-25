@@ -261,6 +261,11 @@ pub async fn reject_pid_issuance() -> Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+pub async fn reset_wallet() {
+    panic!("Unimplemented: UC 9.4")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
