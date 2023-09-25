@@ -26,5 +26,5 @@ abstract class WalletDataSource {
   Stream<List<WalletCard>> observeCards();
 
   /// Removes all in-memory data; both [WalletCard]s and [TimelineAttribute]s
-  void destroy();
+  void clear();
 }

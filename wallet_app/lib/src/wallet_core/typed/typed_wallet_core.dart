@@ -26,4 +26,6 @@ abstract class TypedWalletCore {
   Future<void> rejectOfferedPid();
 
   Stream<List<Card>> observeCards();
+
+  Future<void> resetWallet();
 }

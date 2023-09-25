@@ -171,6 +171,15 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   @override
   Stream<List<Card>> observeCards() => _cards.stream;
 
+  @override
+  Future<void> resetWallet() async {
+    try {
+      return await _walletCore.resetWallet();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
   /// Converts the exception to a [CoreError]
   /// if it can be mapped into one, otherwise returns
   /// the original exception.

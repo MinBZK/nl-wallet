@@ -82,9 +82,11 @@ import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_useca
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
 import '../domain/usecase/wallet/impl/observe_wallet_lock_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
+import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../util/extension/bloc_extension.dart';
 
@@ -240,6 +242,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<RejectOfferedPidUseCase>(
           create: (context) => RejectOfferedPidUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ResetWalletUseCase>(
+          create: (context) => ResetWalletUseCaseImpl(context.read()),
         ),
       ],
       child: child,

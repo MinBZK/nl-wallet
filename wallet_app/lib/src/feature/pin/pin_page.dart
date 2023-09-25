@@ -23,7 +23,7 @@ typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, 
 /// Signature for a function that is called on any state change exposed by the [PinBloc]. When this method
 /// is provided AND returns true for the given [PinState], the state is considered consumed and will not be handled
 /// by the [PinPage] to trigger potential (navigation) events.
-typedef PinStateInterceptor = bool Function(PinState);
+typedef PinStateInterceptor = bool Function(BuildContext context, PinState state);
 
 /// The required minimum height in the header to be able to show the logo
 const _kHeaderHeightLogoCutOff = 180;
@@ -53,7 +53,7 @@ class PinPage extends StatelessWidget {
           }
         }
         if (onStateChanged != null) {
-          bool consumed = onStateChanged!(state);
+          bool consumed = onStateChanged!(context, state);
           if (consumed) return;
         }
         if (state is PinValidateSuccess) {

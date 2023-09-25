@@ -23,12 +23,12 @@ void main() {
       await walletRepository.createWallet(kMockPin);
       expect(await walletRepository.isRegistered(), true);
     });
-    test('destroy wallet should throw when it was not initialized', () async {
-      expect(() async => await walletRepository.destroyWallet(), throwsA(isA<UnsupportedError>()));
+    test('reset wallet should throw when it was not initialized', () async {
+      expect(() async => await walletRepository.resetWallet(), throwsA(isA<UnsupportedError>()));
     });
-    test('wallet should not be initialized after destruction', () async {
+    test('wallet should not be initialized after reset', () async {
       await walletRepository.createWallet(kMockPin);
-      await walletRepository.destroyWallet();
+      await walletRepository.resetWallet();
       expect(await walletRepository.isRegistered(), false);
     });
     test('wallet is locked by default', () async {
@@ -60,7 +60,7 @@ void main() {
       await walletRepository.createWallet(kMockPin);
       var result = await walletRepository.unlockWallet('invalid') as WalletInstructionResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);
-      await walletRepository.destroyWallet();
+      await walletRepository.resetWallet();
       await walletRepository.createWallet(kMockPin);
       result = await walletRepository.unlockWallet('invalid') as WalletInstructionResult_IncorrectPin;
       expect(result.leftoverAttempts, 3);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -64,7 +65,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
     if (diff.inSeconds > 60) {
       return context.l10n.generalMinutes(diff.inMinutes);
     } else {
-      return context.l10n.generalSeconds(diff.inSeconds);
+      return context.l10n.generalSeconds(max(0, diff.inSeconds));
     }
   }
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/usecase/wallet/reset_wallet_usecase.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/screen/placeholder_screen.dart';
 
 class ForgotPinScreen extends StatelessWidget {
   const ForgotPinScreen({Key? key}) : super(key: key);
@@ -60,7 +62,14 @@ class ForgotPinScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ElevatedButton(
-            onPressed: () => PlaceholderScreen.show(context, secured: false),
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await context.read<ResetWalletUseCase>().invoke();
+              navigator.restorablePushNamedAndRemoveUntil(
+                WalletRoutes.setupSecurityRoute,
+                ModalRoute.withName(WalletRoutes.splashRoute),
+              );
+            },
             child: Text(context.l10n.forgotPinScreenCta),
           ),
         ),
