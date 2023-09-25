@@ -14,8 +14,9 @@ use wallet::{
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
 use pid_issuer::{
-    app::{mock::MockAttributesLookup, AttributesLookup, BsnLookup},
+    app::{AttributesLookup, BsnLookup},
     digid::OpenIdClient,
+    mock::MockAttributesLookup,
     server,
     settings::Settings,
 };
@@ -95,7 +96,8 @@ where
 async fn test_pid_issuance_digid_bridge() {
     let (settings, port) = pid_issuer_settings();
     let bsn_lookup = OpenIdClient::new(&settings.digid).await.unwrap();
-    start_pid_issuer(settings, MockAttributesLookup, bsn_lookup);
+    let attributes_lookup = MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default());
+    start_pid_issuer(settings, attributes_lookup, bsn_lookup);
     let mut wallet = create_test_wallet::<HttpDigidClient>(
         local_base_url(port),
         HttpDigidClient::default(),
