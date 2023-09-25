@@ -15,6 +15,295 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
+mixin _$CardPersistence {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() inMemory,
+    required TResult Function(String id) stored,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? inMemory,
+    TResult? Function(String id)? stored,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? inMemory,
+    TResult Function(String id)? stored,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardPersistence_InMemory value) inMemory,
+    required TResult Function(CardPersistence_Stored value) stored,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardPersistence_InMemory value)? inMemory,
+    TResult? Function(CardPersistence_Stored value)? stored,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardPersistence_InMemory value)? inMemory,
+    TResult Function(CardPersistence_Stored value)? stored,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $CardPersistenceCopyWith<$Res> {
+  factory $CardPersistenceCopyWith(CardPersistence value, $Res Function(CardPersistence) then) =
+      _$CardPersistenceCopyWithImpl<$Res, CardPersistence>;
+}
+
+/// @nodoc
+class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence> implements $CardPersistenceCopyWith<$Res> {
+  _$CardPersistenceCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$CardPersistence_InMemoryCopyWith<$Res> {
+  factory _$$CardPersistence_InMemoryCopyWith(
+          _$CardPersistence_InMemory value, $Res Function(_$CardPersistence_InMemory) then) =
+      __$$CardPersistence_InMemoryCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$CardPersistence_InMemoryCopyWithImpl<$Res>
+    extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_InMemory>
+    implements _$$CardPersistence_InMemoryCopyWith<$Res> {
+  __$$CardPersistence_InMemoryCopyWithImpl(
+      _$CardPersistence_InMemory _value, $Res Function(_$CardPersistence_InMemory) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$CardPersistence_InMemory implements CardPersistence_InMemory {
+  const _$CardPersistence_InMemory();
+
+  @override
+  String toString() {
+    return 'CardPersistence.inMemory()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$CardPersistence_InMemory);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() inMemory,
+    required TResult Function(String id) stored,
+  }) {
+    return inMemory();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? inMemory,
+    TResult? Function(String id)? stored,
+  }) {
+    return inMemory?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? inMemory,
+    TResult Function(String id)? stored,
+    required TResult orElse(),
+  }) {
+    if (inMemory != null) {
+      return inMemory();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardPersistence_InMemory value) inMemory,
+    required TResult Function(CardPersistence_Stored value) stored,
+  }) {
+    return inMemory(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardPersistence_InMemory value)? inMemory,
+    TResult? Function(CardPersistence_Stored value)? stored,
+  }) {
+    return inMemory?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardPersistence_InMemory value)? inMemory,
+    TResult Function(CardPersistence_Stored value)? stored,
+    required TResult orElse(),
+  }) {
+    if (inMemory != null) {
+      return inMemory(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardPersistence_InMemory implements CardPersistence {
+  const factory CardPersistence_InMemory() = _$CardPersistence_InMemory;
+}
+
+/// @nodoc
+abstract class _$$CardPersistence_StoredCopyWith<$Res> {
+  factory _$$CardPersistence_StoredCopyWith(
+          _$CardPersistence_Stored value, $Res Function(_$CardPersistence_Stored) then) =
+      __$$CardPersistence_StoredCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String id});
+}
+
+/// @nodoc
+class __$$CardPersistence_StoredCopyWithImpl<$Res> extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_Stored>
+    implements _$$CardPersistence_StoredCopyWith<$Res> {
+  __$$CardPersistence_StoredCopyWithImpl(_$CardPersistence_Stored _value, $Res Function(_$CardPersistence_Stored) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+  }) {
+    return _then(_$CardPersistence_Stored(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$CardPersistence_Stored implements CardPersistence_Stored {
+  const _$CardPersistence_Stored({required this.id});
+
+  @override
+  final String id;
+
+  @override
+  String toString() {
+    return 'CardPersistence.stored(id: $id)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardPersistence_Stored &&
+            (identical(other.id, id) || other.id == id));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, id);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CardPersistence_StoredCopyWith<_$CardPersistence_Stored> get copyWith =>
+      __$$CardPersistence_StoredCopyWithImpl<_$CardPersistence_Stored>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() inMemory,
+    required TResult Function(String id) stored,
+  }) {
+    return stored(id);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? inMemory,
+    TResult? Function(String id)? stored,
+  }) {
+    return stored?.call(id);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? inMemory,
+    TResult Function(String id)? stored,
+    required TResult orElse(),
+  }) {
+    if (stored != null) {
+      return stored(id);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(CardPersistence_InMemory value) inMemory,
+    required TResult Function(CardPersistence_Stored value) stored,
+  }) {
+    return stored(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(CardPersistence_InMemory value)? inMemory,
+    TResult? Function(CardPersistence_Stored value)? stored,
+  }) {
+    return stored?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(CardPersistence_InMemory value)? inMemory,
+    TResult Function(CardPersistence_Stored value)? stored,
+    required TResult orElse(),
+  }) {
+    if (stored != null) {
+      return stored(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CardPersistence_Stored implements CardPersistence {
+  const factory CardPersistence_Stored({required final String id}) = _$CardPersistence_Stored;
+
+  String get id;
+  @JsonKey(ignore: true)
+  _$$CardPersistence_StoredCopyWith<_$CardPersistence_Stored> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$CardValue {
   Object get value => throw _privateConstructorUsedError;
   @optionalTypeArgs

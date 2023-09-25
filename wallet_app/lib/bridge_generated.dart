@@ -88,12 +88,12 @@ abstract class WalletCore {
 }
 
 class Card {
-  final String? id;
+  final CardPersistence persistence;
   final String docType;
   final List<CardAttribute> attributes;
 
   const Card({
-    this.id,
+    required this.persistence,
     required this.docType,
     required this.attributes,
   });
@@ -109,6 +109,14 @@ class CardAttribute {
     required this.labels,
     required this.value,
   });
+}
+
+@freezed
+class CardPersistence with _$CardPersistence {
+  const factory CardPersistence.inMemory() = CardPersistence_InMemory;
+  const factory CardPersistence.stored({
+    required String id,
+  }) = CardPersistence_Stored;
 }
 
 @freezed
@@ -496,7 +504,7 @@ class WalletCoreImpl implements WalletCore {
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return Card(
-      id: _wire2api_opt_String(arr[0]),
+      persistence: _wire2api_card_persistence(arr[0]),
       docType: _wire2api_String(arr[1]),
       attributes: _wire2api_list_card_attribute(arr[2]),
     );
@@ -510,6 +518,19 @@ class WalletCoreImpl implements WalletCore {
       labels: _wire2api_list_localized_string(arr[1]),
       value: _wire2api_card_value(arr[2]),
     );
+  }
+
+  CardPersistence _wire2api_card_persistence(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return CardPersistence_InMemory();
+      case 1:
+        return CardPersistence_Stored(
+          id: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   CardValue _wire2api_card_value(dynamic raw) {
@@ -571,10 +592,6 @@ class WalletCoreImpl implements WalletCore {
       language: _wire2api_String(arr[0]),
       value: _wire2api_String(arr[1]),
     );
-  }
-
-  String? _wire2api_opt_String(dynamic raw) {
-    return raw == null ? null : _wire2api_String(raw);
   }
 
   PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {

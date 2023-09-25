@@ -13,9 +13,15 @@ pub type AttributeKey = &'static str;
 
 #[derive(Debug, Clone)]
 pub struct Document {
-    pub id: Option<String>,
+    pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
     pub attributes: IndexMap<AttributeKey, Attribute>,
+}
+
+#[derive(Debug, Clone)]
+pub enum DocumentPersistence {
+    InMemory,
+    Stored(String),
 }
 
 pub type AttributeLabelLanguage = &'static str;

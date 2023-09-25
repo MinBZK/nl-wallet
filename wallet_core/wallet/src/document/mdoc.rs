@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
 
 use super::{
     mapping::{DataElementValueMapping, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, Document, GenderAttributeValue,
+    Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -54,13 +54,13 @@ impl TryFrom<UnsignedMdoc> for Document {
     type Error = DocumentMdocError;
 
     fn try_from(value: UnsignedMdoc) -> Result<Self, Self::Error> {
-        Document::from_mdoc_attributes(None, &value.doc_type, value.attributes)
+        Document::from_mdoc_attributes(DocumentPersistence::InMemory, &value.doc_type, value.attributes)
     }
 }
 
 impl Document {
     fn from_mdoc_attributes(
-        id: Option<String>,
+        persistence: DocumentPersistence,
         doc_type: &str,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
@@ -147,7 +147,7 @@ impl Document {
         }
 
         let document = Document {
-            id,
+            persistence,
             doc_type,
             attributes: document_attributes,
         };
@@ -306,7 +306,7 @@ mod tests {
 
         let document = Document::try_from(unsigned_mdoc).expect("Could not convert minimal mdoc to document");
 
-        assert!(document.id.is_none());
+        assert_matches!(document.persistence, DocumentPersistence::InMemory);
         assert_eq!(document.doc_type, "com.example.pid");
         assert_eq!(
             document.attributes.keys().cloned().collect::<Vec<_>>(),

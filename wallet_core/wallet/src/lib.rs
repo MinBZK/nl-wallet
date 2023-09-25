@@ -21,7 +21,8 @@ pub use crate::{
     },
     digid::DigidClient,
     document::{
-        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentType, GenderAttributeValue,
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentPersistence, DocumentType,
+        GenderAttributeValue,
     },
     pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,

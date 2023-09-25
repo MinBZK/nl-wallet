@@ -1,9 +1,14 @@
-use wallet::{self, AttributeValue, Document, GenderAttributeValue};
+use wallet::{self, AttributeValue, Document, DocumentPersistence, GenderAttributeValue};
 
 pub struct Card {
-    pub id: Option<String>,
+    pub persistence: CardPersistence,
     pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
+}
+
+pub enum CardPersistence {
+    InMemory,
+    Stored { id: String },
 }
 
 pub struct CardAttribute {
@@ -24,6 +29,15 @@ pub enum GenderCardValue {
     Male,
     Female,
     NotApplicable,
+}
+
+impl From<DocumentPersistence> for CardPersistence {
+    fn from(value: DocumentPersistence) -> Self {
+        match value {
+            DocumentPersistence::InMemory => CardPersistence::InMemory,
+            DocumentPersistence::Stored(id) => CardPersistence::Stored { id },
+        }
+    }
 }
 
 impl From<GenderAttributeValue> for GenderCardValue {
@@ -66,7 +80,7 @@ impl From<Document> for Card {
             .collect();
 
         Card {
-            id: value.id,
+            persistence: value.persistence.into(),
             doc_type: value.doc_type.to_string(),
             attributes,
         }
@@ -98,7 +112,9 @@ impl From<(String, String)> for LocalizedString {
 pub fn mock_cards() -> Vec<Card> {
     vec![
         Card {
-            id: "025b9338-a1f7-4c57-bdaa-9992be55e5f0".to_string().into(),
+            persistence: CardPersistence::Stored {
+                id: "025b9338-a1f7-4c57-bdaa-9992be55e5f0".to_string(),
+            },
             doc_type: "pid_id".to_string(),
             attributes: vec![
                 CardAttribute {
@@ -202,7 +218,9 @@ pub fn mock_cards() -> Vec<Card> {
             ],
         },
         Card {
-            id: "f553eb44-13a2-416c-aa9d-61a3f75b029a".to_string().into(),
+            persistence: CardPersistence::Stored {
+                id: "f553eb44-13a2-416c-aa9d-61a3f75b029a".to_string(),
+            },
             doc_type: "pid_address".to_string(),
             attributes: vec![
                 CardAttribute {

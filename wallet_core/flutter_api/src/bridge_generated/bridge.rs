@@ -21,6 +21,7 @@ use std::sync::Arc;
 
 use crate::models::card::Card;
 use crate::models::card::CardAttribute;
+use crate::models::card::CardPersistence;
 use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
@@ -261,7 +262,7 @@ impl Wire2Api<u8> for u8 {
 impl support::IntoDart for Card {
     fn into_dart(self) -> support::DartAbi {
         vec![
-            self.id.into_dart(),
+            self.persistence.into_dart(),
             self.doc_type.into_dart(),
             self.attributes.into_dart(),
         ]
@@ -277,6 +278,16 @@ impl support::IntoDart for CardAttribute {
 }
 impl support::IntoDartExceptPrimitive for CardAttribute {}
 
+impl support::IntoDart for CardPersistence {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::InMemory => vec![0.into_dart()],
+            Self::Stored { id } => vec![1.into_dart(), id.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for CardPersistence {}
 impl support::IntoDart for CardValue {
     fn into_dart(self) -> support::DartAbi {
         match self {
