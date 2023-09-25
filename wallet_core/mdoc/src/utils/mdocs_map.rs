@@ -46,9 +46,9 @@ impl MdocsMap {
         for cred in creds.into_iter() {
             self.0
                 .entry(cred.doc_type.clone())
-                .or_insert(IndexMap::new())
+                .or_default()
                 .entry(cred.hash()?)
-                .or_insert(MdocCopies::new())
+                .or_default()
                 .cred_copies
                 .push(cred);
         }
