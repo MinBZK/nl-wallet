@@ -21,19 +21,18 @@ use wallet_common::{
 };
 
 use crate::{
-    account_provider::{AccountProviderError, HttpAccountProviderClient},
-    config::LocalConfigurationRepository,
-    digid::{DigidError, HttpDigidClient},
+    account_provider::{AccountProviderClient, AccountProviderError, HttpAccountProviderClient},
+    config::{Configuration, ConfigurationRepository, LocalConfigurationRepository},
+    digid::{DigidClient, DigidError, HttpDigidClient},
     document::{Document, DocumentMdocError, DocumentPersistence},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
-    pid_issuer::{HttpPidIssuerClient, PidIssuerError},
+    pid_issuer::{HttpPidIssuerClient, PidIssuerClient, PidIssuerError},
     pin::{
         key::{new_pin_salt, PinKey},
         validation::{validate_pin, PinValidationError},
     },
-    storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
+    storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
 };
 
 const WALLET_KEY_ID: &str = "wallet";
