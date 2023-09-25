@@ -226,3 +226,14 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
         ),
     ])
 });
+
+/// A map of `doc_type` strings that have a higher priority than 0.
+/// The higher the priority, the higher it should be displayed to the user.
+pub(super) static MDOC_DOC_TYPE_PRIORITY: Lazy<HashMap<&str, usize>> = Lazy::new(|| {
+    ["com.example.pid", "com.example.address"]
+        .into_iter()
+        .rev()
+        .enumerate()
+        .map(|(index, doc_type)| (doc_type, index + 1))
+        .collect()
+});

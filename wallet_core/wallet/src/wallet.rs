@@ -232,7 +232,7 @@ where
             // as we assume that the (hardcoded) mapping will always be backwards compatible.
             // This is particularly important when this mapping comes from a trusted registry
             // in the near future!
-            let documents = self
+            let mut documents = self
                 .mdoc_storage
                 .list()
                 .into_iter()
@@ -245,7 +245,9 @@ where
                             .expect("Could not interpret stored mdoc attributes")
                     })
                 })
-                .collect();
+                .collect::<Vec<_>>();
+
+            documents.sort_by(Document::compare_inverse_priority);
 
             callback(documents);
         }
@@ -449,10 +451,14 @@ where
 
         info!("PID received successfully from issuer");
 
-        unsigned_mdocs
+        let mut documents = unsigned_mdocs
             .into_iter()
-            .map(|unsigned_mdoc| Document::try_from(unsigned_mdoc).map_err(PidIssuanceError::Document))
-            .collect()
+            .map(Document::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        documents.sort_by(Document::compare_inverse_priority);
+
+        Ok(documents)
     }
 
     #[instrument(skip_all)]
