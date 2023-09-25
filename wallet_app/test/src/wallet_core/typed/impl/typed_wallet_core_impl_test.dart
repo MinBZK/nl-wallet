@@ -124,6 +124,13 @@ void main() {
     });
   });
 
+  group('resetWallet', () {
+    test('reset wallet pid is passed on to core', () async {
+      await typedWalletCore.resetWallet();
+      verify(core.resetWallet()).called(1);
+    });
+  });
+
   group('observeCards', () {
     test('observeCards should fetch cards through WalletCore', () {
       List<Card> mockCards = [
@@ -221,6 +228,11 @@ void main() {
     test('rejectOfferedPid', () async {
       when(core.rejectPidIssuance()).thenAnswer((_) async => throw ffiException);
       expect(() async => await typedWalletCore.rejectOfferedPid(), throwsA(isA<CoreError>()));
+    });
+
+    test('resetWallet', () async {
+      when(core.resetWallet()).thenAnswer((_) async => throw ffiException);
+      expect(() async => await typedWalletCore.resetWallet(), throwsA(isA<CoreError>()));
     });
   });
 }

@@ -6,6 +6,7 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/pin_header.dart';
 import '../../../pin/bloc/pin_bloc.dart';
 import '../../../pin/pin_page.dart';
+import '../wallet_personalize_setup_failed_screen.dart';
 
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   final VoidCallback onPidAccepted;
@@ -41,9 +42,10 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
           );
         },
         onPinValidated: onPidAccepted,
-        onStateChanged: (state) {
+        onStateChanged: (context, state) {
           if (state is PinValidateTimeout) {
-            //TODO: PVW-1176
+            WalletPersonalizeSetupFailedScreen.show(context);
+            return true;
           }
           return false;
         },
