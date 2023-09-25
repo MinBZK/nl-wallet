@@ -19,7 +19,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const LinearProgressIndicator(value: 0.85),
+            const LinearProgressIndicator(value: 0.16),
             Expanded(child: _buildContent(context)),
           ],
         ),

@@ -1,7 +1,5 @@
 part of 'wallet_personalize_bloc.dart';
 
-const _kNrOfPages = 6;
-
 sealed class WalletPersonalizeState extends Equatable {
   double get stepperProgress => 0.0;
 
@@ -22,14 +20,14 @@ class WalletPersonalizeInitial extends WalletPersonalizeState {
   const WalletPersonalizeInitial({this.didGoBack = false});
 
   @override
-  double get stepperProgress => 1 / _kNrOfPages;
+  double get stepperProgress => 0.56;
 }
 
 class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
   const WalletPersonalizeLoadingIssuanceUrl();
 
   @override
-  double get stepperProgress => 2 / _kNrOfPages;
+  double get stepperProgress => 0.64;
 
   @override
   List<Object?> get props => [...super.props];
@@ -41,7 +39,7 @@ class WalletPersonalizeConnectDigid extends WalletPersonalizeState {
   const WalletPersonalizeConnectDigid(this.authUrl);
 
   @override
-  double get stepperProgress => 2 / _kNrOfPages;
+  double get stepperProgress => 0.72;
 
   @override
   List<Object?> get props => [...super.props, authUrl];
@@ -51,7 +49,7 @@ class WalletPersonalizeAuthenticating extends WalletPersonalizeState {
   const WalletPersonalizeAuthenticating();
 
   @override
-  double get stepperProgress => 2 / _kNrOfPages;
+  double get stepperProgress => 0.72;
 }
 
 class WalletPersonalizeCheckData extends WalletPersonalizeState {
@@ -62,7 +60,7 @@ class WalletPersonalizeCheckData extends WalletPersonalizeState {
   const WalletPersonalizeCheckData({required this.availableAttributes, this.didGoBack = false});
 
   @override
-  double get stepperProgress => 3 / _kNrOfPages;
+  double get stepperProgress => 0.8;
 
   @override
   List<Object?> get props => [availableAttributes, ...super.props];
@@ -75,7 +73,7 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
   const WalletPersonalizeConfirmPin(this.attributes);
 
   @override
-  double get stepperProgress => 4 / _kNrOfPages;
+  double get stepperProgress => 0.88;
 
   @override
   bool get canGoBack => true;
@@ -98,27 +96,27 @@ class WalletPersonalizeSuccess extends WalletPersonalizeState {
 
 class WalletPersonalizeFailure extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 1;
+  double get stepperProgress => 0;
 }
 
 class WalletPersonalizeDigidFailure extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 1;
+  double get stepperProgress => 0;
 }
 
 class WalletPersonalizeDigidCancelled extends WalletPersonalizeState {
   @override
-  double get stepperProgress => 1;
+  double get stepperProgress => 0;
 }
 
 class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
-  final double step;
+  final double progress;
 
-  const WalletPersonalizeLoadInProgress(this.step);
-
-  @override
-  double get stepperProgress => step / _kNrOfPages;
+  const WalletPersonalizeLoadInProgress(this.progress);
 
   @override
-  List<Object?> get props => [step, ...super.props];
+  double get stepperProgress => progress;
+
+  @override
+  List<Object?> get props => [progress, ...super.props];
 }
