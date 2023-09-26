@@ -69,5 +69,6 @@ spec:
             name: nl-pid-issuer-mock-data
             items:
               - key: config.toml
+                path: config.toml
 
 
