@@ -13,9 +13,10 @@ disable_tls_validation = []
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
+ciborium = { workspace = true }
 futures = { workspace = true }
 http = { workspace = true }
-indexmap =  { workspace = true }
+indexmap = { workspace = true }
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -46,6 +47,7 @@ platform_support = { path = "../platform_support" }
 wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
+assert_matches = { workspace = true }
 mockall = { workspace = true }
 rstest = { workspace = true }
 serial_test = { workspace = true }

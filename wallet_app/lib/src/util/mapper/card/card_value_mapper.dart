@@ -5,19 +5,11 @@ class CardValueMapper {
   CardValueMapper();
 
   DataValue map(CardValue input) {
-    switch (input) {
-      case final CardValue_String string:
-        return DataValueString(string.value);
-      case final CardValue_Integer integer:
-        return DataValueInteger(integer.value);
-      case final CardValue_Double double:
-        return DataValueDouble(double.value);
-      case final CardValue_Boolean boolean:
-        return DataValueBoolean(boolean.value);
-      case final CardValue_Date date:
-        return DataValueDate(date.value);
-      default:
-        return DataValueString(input.value.toString());
-    }
+    return input.map(
+      string: (input) => DataValueString(input.value),
+      boolean: (input) => DataValueBoolean(input.value),
+      date: (input) => DataValueDate(input.value),
+      gender: (input) => DataValueGender(input.value),
+    );
   }
 }

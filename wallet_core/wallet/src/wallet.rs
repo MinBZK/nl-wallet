@@ -7,14 +7,12 @@ use tokio::sync::RwLock;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
-    utils::mdocs_map::MdocsMap,
-    DocType, NameSpace,
-};
-pub use platform_support::hw_keystore::PlatformEcdsaKey;
+use nl_wallet_mdoc::{basic_sa_ext::Entry, utils::mdocs_map::MdocsMap, DocType, NameSpace};
 use platform_support::{
-    hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+    hw_keystore::{
+        hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
+        PlatformEcdsaKey,
+    },
     utils::hardware::HardwareUtilities,
 };
 use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
@@ -23,6 +21,7 @@ use crate::{
     account_provider::{AccountProviderError, HttpAccountProviderClient},
     config::LocalConfigurationRepository,
     digid::{DigidError, HttpDigidClient},
+    document::DocumentMdocError,
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
     pid_issuer::{HttpPidIssuerClient, PidIssuerError},
@@ -31,7 +30,7 @@ use crate::{
         validation::{validate_pin, PinValidationError},
     },
     storage::{DatabaseStorage, RegistrationData, StorageError, StorageState},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage,
+    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, Document, PidIssuerClient, Storage,
 };
 
 const WALLET_KEY_ID: &str = "wallet";
@@ -90,6 +89,8 @@ pub enum PidIssuanceError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("could not interpret mdoc attributes: {0}")]
+    Document(#[from] DocumentMdocError),
 }
 
 pub enum RedirectUriType {
@@ -380,7 +381,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<UnsignedMdoc>, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         info!("Checking if already registered");
@@ -406,7 +407,10 @@ where
 
         info!("PID received successfully from issuer");
 
-        Ok(unsigned_mdocs)
+        unsigned_mdocs
+            .into_iter()
+            .map(|unsigned_mdoc| Document::try_from(unsigned_mdoc).map_err(PidIssuanceError::Document))
+            .collect()
     }
 
     #[instrument(skip_all)]
