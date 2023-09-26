@@ -48,3 +48,49 @@ pub enum GenderAttributeValue {
     Female,
     NotApplicable,
 }
+
+impl Document {
+    /// A lower priority means that this [`Document`] should be displayed above others.
+    pub fn priority(&self) -> usize {
+        match self.doc_type {
+            "com.example.pid" => 0,
+            "com.example.address" => 1,
+            _ => usize::MAX,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn empty_document(doc_type: &'static str) -> Document {
+        Document {
+            persistence: DocumentPersistence::InMemory,
+            doc_type,
+            attributes: Default::default(),
+        }
+    }
+
+    #[test]
+    fn test_document_compare_inverse_priority() {
+        let mut documents = vec![
+            empty_document("foo"),
+            empty_document("com.example.address"),
+            empty_document("bar"),
+            empty_document("com.example.pid"),
+            empty_document("baz"),
+        ];
+
+        documents.sort_by_key(Document::priority);
+        let doc_types = documents
+            .into_iter()
+            .map(|document| document.doc_type)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            doc_types,
+            vec!["com.example.pid", "com.example.address", "foo", "bar", "baz"]
+        );
+    }
+}

@@ -59,7 +59,7 @@ impl TryFrom<UnsignedMdoc> for Document {
 }
 
 impl Document {
-    fn from_mdoc_attributes(
+    pub(crate) fn from_mdoc_attributes(
         persistence: DocumentPersistence,
         doc_type: &str,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,

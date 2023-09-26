@@ -6,7 +6,7 @@ use std::fmt::Debug;
 /// state changes.
 pub struct WalletLock {
     is_locked: bool,
-    update_callback: Option<Box<dyn Fn(bool) + Send + Sync>>,
+    update_callback: Option<Box<dyn FnMut(bool) + Send + Sync>>,
 }
 
 impl WalletLock {
@@ -17,8 +17,8 @@ impl WalletLock {
         }
     }
 
-    fn call_update_callback(&self) {
-        if let Some(update_callback) = &self.update_callback {
+    fn call_update_callback(&mut self) {
+        if let Some(ref mut update_callback) = self.update_callback {
             update_callback(self.is_locked)
         }
     }
@@ -47,7 +47,7 @@ impl WalletLock {
 
     pub fn set_lock_callback<F>(&mut self, callback: F)
     where
-        F: Fn(bool) + Send + Sync + 'static,
+        F: FnMut(bool) + Send + Sync + 'static,
     {
         self.update_callback.replace(Box::new(callback));
     }

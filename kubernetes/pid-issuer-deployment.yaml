@@ -38,7 +38,7 @@ spec:
             - containerPort: 3003
           volumeMounts:
             - name: config-volume
-              mountPath: /
+              mountPath: /config.toml
           env:
             - name: PID_ISSUER_ISSUER_KEY__PRIVATE_KEY
               valueFrom:
@@ -67,8 +67,3 @@ spec:
         - name: config-volume
           configMap:
             name: nl-pid-issuer-mock-data
-            items:
-              - key: config.toml
-                path: config.toml
-
-
