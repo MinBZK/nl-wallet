@@ -15,3 +15,23 @@ certificate = "${PID_ISSUER_CRT}"
 client_id = "${WALLET_CLIENT_ID}"
 issuer_url = "https://${DIGID_CONNECTOR_HOST}:8006"
 bsn_privkey = '${BSN_PRIVKEY}'
+
+[[mock_data]]
+[mock_data.person]
+unique_id = "2"
+bsn = "999991772"
+given_name = "Willeke Liselotte"
+family_name = "De Bruijn"
+family_name_birth = "Molenaar"
+gender = "Female"
+birth_date = "1997-05-10"
+age_over_18 = true
+birth_country = "NL"
+birth_city = "Delft"
+nationality = "NL"
+
+[mock_data.resident]
+street = "Turfmarkt"
+house_number = "147"
+postal_code = "2511 DP"
+city = "Den Haag"
