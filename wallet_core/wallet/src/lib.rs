@@ -1,6 +1,7 @@
 mod account_provider;
 mod config;
 mod digid;
+mod document;
 mod instruction;
 mod lock;
 mod pid_issuer;
@@ -19,6 +20,10 @@ pub use crate::{
         PidIssuanceConfiguration,
     },
     digid::DigidClient,
+    document::{
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentPersistence, DocumentType,
+        GenderAttributeValue,
+    },
     pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,
     storage::Storage,

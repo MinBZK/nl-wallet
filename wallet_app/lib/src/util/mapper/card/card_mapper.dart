@@ -11,10 +11,13 @@ class CardMapper {
   CardMapper(this._attributeMapper);
 
   WalletCard map(Card input, String languageCode) {
-    final String cardId = input.id.toString();
+    final String cardId = input.persistence.map(
+      inMemory: (inMemory) => '',
+      stored: (stored) => stored.id,
+    );
     return WalletCard(
       id: cardId,
-      issuerId: input.issuer,
+      issuerId: '', // FIXME: Eventually remove issuerId (mock builds still rely on them for now)
       front: _getCardFront(input.docType, languageCode),
       attributes: input.attributes.map((attribute) => _attributeMapper.map(attribute, languageCode)).toList(),
     );

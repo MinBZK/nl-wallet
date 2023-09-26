@@ -6,52 +6,51 @@ import 'pid_attributes_mapper.dart';
 class PidCoreAttributeMapper extends PidAttributeMapper<CoreAttribute> {
   @override
   String getBirthCountry(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.countryOfBirth').value;
+      attributes.firstWhere((element) => element.key == 'birth_country').value;
 
   @override
   String getBirthDate(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.birthDate').value;
+      attributes.firstWhere((element) => element.key == 'birth_date').value;
 
   @override
   String getBirthName(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.birthName').value;
+      attributes.firstWhere((element) => element.key == 'family_name_birth').value;
 
   @override
   String getBirthPlace(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.birthplace').value;
+      attributes.firstWhere((element) => element.key == 'birth_city').value;
 
   @override
-  String getCitizenId(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.bsn').value;
+  String getCitizenId(List<CoreAttribute> attributes) => attributes.firstWhere((element) => element.key == 'bsn').value;
 
   @override
   String getFirstNames(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.firstNames').value;
+      attributes.firstWhere((element) => element.key == 'given_name').value;
 
   @override
   String getHouseNumber(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.houseNumber').value;
+      attributes.firstWhere((element) => element.key == 'resident_house_number').value;
 
   @override
   String getLastName(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.lastName').value;
+      attributes.firstWhere((element) => element.key == 'family_name').value;
 
   @override
   String getNationality(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.nationality').value;
+      attributes.firstWhere((element) => element.key == 'nationality').value;
 
   @override
   String getPostalCode(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.postalCode').value;
+      attributes.firstWhere((element) => element.key == 'resident_postal_code').value;
 
   @override
   String getResidence(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.residence').value;
+      attributes.firstWhere((element) => element.key == 'resident_city').value;
 
   @override
-  String getSex(List<CoreAttribute> attributes) => attributes.firstWhere((element) => element.key == 'pid.sex').value;
+  String getSex(List<CoreAttribute> attributes) => attributes.firstWhere((element) => element.key == 'gender').value;
 
   @override
   String getStreetName(List<CoreAttribute> attributes) =>
-      attributes.firstWhere((element) => element.key == 'pid.streetName').value;
+      attributes.firstWhere((element) => element.key == 'resident_street').value;
 }

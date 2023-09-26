@@ -92,15 +92,13 @@ abstract class WalletCore {
 }
 
 class Card {
-  final int id;
+  final CardPersistence persistence;
   final String docType;
-  final String issuer;
   final List<CardAttribute> attributes;
 
   const Card({
-    required this.id,
+    required this.persistence,
     required this.docType,
-    required this.issuer,
     required this.attributes,
   });
 }
@@ -118,22 +116,27 @@ class CardAttribute {
 }
 
 @freezed
+class CardPersistence with _$CardPersistence {
+  const factory CardPersistence.inMemory() = CardPersistence_InMemory;
+  const factory CardPersistence.stored({
+    required String id,
+  }) = CardPersistence_Stored;
+}
+
+@freezed
 class CardValue with _$CardValue {
   const factory CardValue.string({
     required String value,
   }) = CardValue_String;
-  const factory CardValue.integer({
-    required int value,
-  }) = CardValue_Integer;
-  const factory CardValue.double({
-    required double value,
-  }) = CardValue_Double;
   const factory CardValue.boolean({
     required bool value,
   }) = CardValue_Boolean;
   const factory CardValue.date({
     required String value,
   }) = CardValue_Date;
+  const factory CardValue.gender({
+    required GenderCardValue value,
+  }) = CardValue_Gender;
 }
 
 class FlutterConfiguration {
@@ -144,6 +147,13 @@ class FlutterConfiguration {
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
   });
+}
+
+enum GenderCardValue {
+  Unknown,
+  Male,
+  Female,
+  NotApplicable,
 }
 
 class LocalizedString {
@@ -511,12 +521,11 @@ class WalletCoreImpl implements WalletCore {
 
   Card _wire2api_card(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return Card(
-      id: _wire2api_i64(arr[0]),
+      persistence: _wire2api_card_persistence(arr[0]),
       docType: _wire2api_String(arr[1]),
-      issuer: _wire2api_String(arr[2]),
-      attributes: _wire2api_list_card_attribute(arr[3]),
+      attributes: _wire2api_list_card_attribute(arr[2]),
     );
   }
 
@@ -530,6 +539,19 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
+  CardPersistence _wire2api_card_persistence(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return CardPersistence_InMemory();
+      case 1:
+        return CardPersistence_Stored(
+          id: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   CardValue _wire2api_card_value(dynamic raw) {
     switch (raw[0]) {
       case 0:
@@ -537,28 +559,20 @@ class WalletCoreImpl implements WalletCore {
           value: _wire2api_String(raw[1]),
         );
       case 1:
-        return CardValue_Integer(
-          value: _wire2api_i64(raw[1]),
-        );
-      case 2:
-        return CardValue_Double(
-          value: _wire2api_f64(raw[1]),
-        );
-      case 3:
         return CardValue_Boolean(
           value: _wire2api_bool(raw[1]),
         );
-      case 4:
+      case 2:
         return CardValue_Date(
           value: _wire2api_String(raw[1]),
+        );
+      case 3:
+        return CardValue_Gender(
+          value: _wire2api_gender_card_value(raw[1]),
         );
       default:
         throw Exception("unreachable");
     }
-  }
-
-  double _wire2api_f64(dynamic raw) {
-    return raw as double;
   }
 
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
@@ -570,12 +584,12 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
-  int _wire2api_i32(dynamic raw) {
-    return raw as int;
+  GenderCardValue _wire2api_gender_card_value(dynamic raw) {
+    return GenderCardValue.values[raw as int];
   }
 
-  int _wire2api_i64(dynamic raw) {
-    return castInt(raw);
+  int _wire2api_i32(dynamic raw) {
+    return raw as int;
   }
 
   List<Card> _wire2api_list_card(dynamic raw) {
