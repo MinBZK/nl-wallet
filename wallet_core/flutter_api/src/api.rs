@@ -1,8 +1,5 @@
-use std::sync::Mutex;
-
 use anyhow::Result;
 use flutter_rust_bridge::StreamSink;
-use once_cell::sync::Lazy;
 use tokio::sync::{OnceCell, RwLock};
 use tracing::{info, warn};
 use url::Url;
@@ -14,7 +11,7 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::{mock_cards, Card},
+        card::Card,
         config::FlutterConfiguration,
         instruction::WalletInstructionResult,
         pin::PinValidationResult,
@@ -106,25 +103,20 @@ pub async fn clear_configuration_stream() {
     wallet().write().await.clear_config_callback();
 }
 
-type CardsCallback = Box<dyn FnMut(Vec<Card>) + Send>;
-
-static CARDS_CALLBACK: Lazy<Mutex<Option<CardsCallback>>> = Lazy::new(|| Mutex::new(None));
-
 #[async_runtime]
 pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) {
     let sink = ClosingStreamSink::from(sink);
 
-    //TODO: Populate with current state. Adding an empty list to avoid publishing an empty stream.
-    sink.add(vec![]);
+    wallet().write().await.set_documents_callback(move |documents| {
+        let cards = documents.into_iter().map(|document| document.into()).collect();
 
-    CARDS_CALLBACK.lock().unwrap().replace(Box::new(move |cards| {
         sink.add(cards);
-    }));
+    });
 }
 
 #[async_runtime]
 pub async fn clear_cards_stream() {
-    CARDS_CALLBACK.lock().unwrap().take();
+    wallet().write().await.clear_documents_callback();
 }
 
 #[async_runtime]
@@ -242,11 +234,6 @@ pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult>
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_pid_issuance(pin).await.try_into()?;
-
-    // If PID issuance succeeded, send the mock cards through the cards stream.
-    if let Some(cards_callback) = CARDS_CALLBACK.lock().unwrap().as_mut() {
-        cards_callback(mock_cards());
-    }
 
     Ok(result)
 }
