@@ -42,6 +42,7 @@ coset = { version = "0.3.3" }
 cstr = { version = "0.2.11" }
 dashmap = { version = "5.4.0" }
 der = { version = "0.7.7" }
+dotenvy = { version = "0.15.7" }
 flutter_rust_bridge = { version = "1.70.0" }
 futures = { version = "0.3.17" }
 hex = { version = "0.4.3" }

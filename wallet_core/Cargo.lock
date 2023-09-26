@@ -4173,6 +4173,7 @@ dependencies = [
  "async-trait",
  "base64 0.21.2",
  "chrono",
+ "dotenvy",
  "entity",
  "futures",
  "http",

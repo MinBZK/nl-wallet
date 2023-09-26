@@ -8,6 +8,7 @@ rust-version.workspace = true
 mock = ["dep:mockall"]
 wallet_deps = []
 disable_tls_validation = []
+env_config = ["dep:dotenvy"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -15,7 +16,7 @@ base64 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 futures = { workspace = true }
 http = { workspace = true }
-indexmap =  { workspace = true }
+indexmap = { workspace = true }
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }
@@ -55,3 +56,6 @@ wiremock = { workspace = true }
 
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
+
+[build-dependencies]
+dotenvy = { workspace = true, optional = true }

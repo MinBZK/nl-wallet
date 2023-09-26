@@ -263,6 +263,6 @@ then
     if [ "${START}" == "0" ]
     then
         cd ${BASE_DIR}/wallet_app
-        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define DISABLE_TLS_VALIDATION=true
+        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define DISABLE_TLS_VALIDATION=true --dart-define ENV_CONFIGURATION=true
     fi
 fi

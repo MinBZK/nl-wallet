@@ -281,8 +281,8 @@ cd "$BASE_DIR/wallet_core/wallet_provider"
 echo -e "${INFO}Exporting wallet_provider verifying keys${NC}"
 WALLET_PROVIDER_CONFIGURATION=$(cargo run --bin wallet_provider_configuration)
 
-WP_CERTIFICATE_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.certificate_verifying_key')
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.instruction_result_verifying_key')
+export WP_CERTIFICATE_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.certificate_verifying_key')
+export WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.instruction_result_verifying_key')
 
 ########################################################################
 # Configure wallet
@@ -290,26 +290,7 @@ WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r
 echo
 echo -e "${SECTION}Configure wallet${NC}"
 
-cd "${BASE_DIR}"
-
-WALLET_DATA="${BASE_DIR}/wallet_core/wallet/src/config/data.rs"
-
-echo -e "Generating ${CYAN}${WALLET_DATA}${NC}"
-
-${GNUSED} -i "/const BASE_URL:/c\
-const BASE_URL: &str = \"http://${DIGID_CONNECTOR_HOST}:3000/api/v1/\";" ${WALLET_DATA}
-${GNUSED} -i "/const CERTIFICATE_PUBLIC_KEY:/c\
-const CERTIFICATE_PUBLIC_KEY: &str = \"${WP_CERTIFICATE_PUBLIC_KEY}\";" ${WALLET_DATA}
-${GNUSED} -i "/const INSTRUCTION_RESULT_PUBLIC_KEY:/c\
-const INSTRUCTION_RESULT_PUBLIC_KEY: &str = \"${WP_INSTRUCTION_RESULT_PUBLIC_KEY}\";" ${WALLET_DATA}
-${GNUSED} -i "/const PID_ISSUER_URL:/c\
-const PID_ISSUER_URL: &str = \"http://${DIGID_CONNECTOR_HOST}:3003/\";" ${WALLET_DATA}
-${GNUSED} -i "/const DIGID_URL:/c\
-const DIGID_URL: &str = \"https://${DIGID_CONNECTOR_HOST}:8006\";" ${WALLET_DATA}
-${GNUSED} -i "/const DIGID_CLIENT_ID:/c\
-const DIGID_CLIENT_ID: &str = \"${WALLET_CLIENT_ID}\";" ${WALLET_DATA}
-${GNUSED} -i "/const TRUST_ANCHOR_CERTS:/c\
-const TRUST_ANCHOR_CERTS: [&str; 1] = [\"${PID_CA_CRT}\"];" ${WALLET_DATA}
+render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env"
 
 ########################################################################
 # Configure Android Emulator
