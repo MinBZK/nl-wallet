@@ -1,14 +1,12 @@
 mod mapping;
 mod mdoc;
 
-use std::{cmp::Ordering, collections::HashMap};
+use std::collections::HashMap;
 
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 
 pub use mdoc::{AttributeValueType, DocumentMdocError};
-
-use self::mapping::MDOC_DOC_TYPE_PRIORITY;
 
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
@@ -52,14 +50,13 @@ pub enum GenderAttributeValue {
 }
 
 impl Document {
-    pub fn compare_inverse_priority(left: &Self, right: &Self) -> Ordering {
-        right.priority().cmp(&left.priority())
-    }
-
-    /// A higher priority means that this [`Document`] should be displayed above
-    /// others with a lower priority.
-    fn priority(&self) -> usize {
-        MDOC_DOC_TYPE_PRIORITY.get(&self.doc_type).copied().unwrap_or_default()
+    /// A lower priority means that this [`Document`] should be displayed above others.
+    pub fn priority(&self) -> usize {
+        match self.doc_type {
+            "com.example.pid" => 0,
+            "com.example.address" => 1,
+            _ => usize::MAX,
+        }
     }
 }
 
@@ -85,7 +82,7 @@ mod tests {
             empty_document("baz"),
         ];
 
-        documents.sort_by(Document::compare_inverse_priority);
+        documents.sort_by_key(Document::priority);
         let doc_types = documents
             .into_iter()
             .map(|document| document.doc_type)

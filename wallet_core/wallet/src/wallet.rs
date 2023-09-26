@@ -247,7 +247,7 @@ where
                 })
                 .collect::<Vec<_>>();
 
-            documents.sort_by(Document::compare_inverse_priority);
+            documents.sort_by_key(Document::priority);
 
             callback(documents);
         }
@@ -456,7 +456,7 @@ where
             .map(Document::try_from)
             .collect::<Result<Vec<_>, _>>()?;
 
-        documents.sort_by(Document::compare_inverse_priority);
+        documents.sort_by_key(Document::priority);
 
         Ok(documents)
     }
