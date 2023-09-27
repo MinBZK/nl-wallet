@@ -9,8 +9,10 @@
 use fieldnames_derive::FieldNames;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+use url::Url;
 
 use crate::{
     iso::{disclosure::*, mdocs::*},
@@ -74,8 +76,33 @@ pub type DeviceEngagement = CborIntMap<Engagement>;
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct Engagement {
     pub version: String,
-    pub security: Security,
+    pub security: Option<Security>,
     pub connection_methods: Option<ConnectionMethods>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub origin_infos: Vec<OriginInfo>,
+}
+
+/// Describes the kind and direction of the previously received protocol message.
+/// Part of the [`DeviceAuthenticationBytes`] which are signed with the mdoc private key during disclosure.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct OriginInfo {
+    pub cat: OriginInfoDirection,
+    #[serde(flatten)]
+    pub typ: OriginInfoType,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum OriginInfoDirection {
+    Delivered = 0,
+    Received = 1,
+}
+
+#[derive(Debug, Clone)]
+pub enum OriginInfoType {
+    Website(Url),   // 1
+    OnDeviceQRCode, // 2
+    MessageData,    // 4
 }
 
 pub type Security = CborSeq<SecurityKeyed>;
@@ -116,7 +143,7 @@ impl RequiredValueTrait for RestApiOptionsVersion {
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct RestApiOptionsKeyed {
-    uri: String,
+    uri: Url,
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;

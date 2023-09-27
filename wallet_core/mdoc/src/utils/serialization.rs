@@ -13,6 +13,7 @@ use serde::{
 };
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
+use url::Url;
 
 use crate::{
     iso::*,
@@ -340,6 +341,64 @@ impl RequiredValueTrait for ReaderAuthenticationString {
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
 }
 
+#[derive(Serialize, Deserialize)]
+struct OriginInfoTypeSerialized {
+    #[serde(rename = "type")]
+    typ: u64,
+    #[serde(rename = "Details")] // This is capitalized in the standard for unknown reasons
+    details: Value,
+}
+
+#[derive(Serialize, Deserialize)]
+struct OriginInfoWebsiteDetails {
+    #[serde(rename = "ReferrerUrl")]
+    referrer_url: Url,
+}
+
+impl Serialize for OriginInfoType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let result = match self {
+            OriginInfoType::Website(url) => OriginInfoTypeSerialized {
+                typ: 1,
+                details: Value::serialized(&OriginInfoWebsiteDetails {
+                    referrer_url: url.clone(),
+                })
+                .map_err(ser::Error::custom)?,
+            },
+            OriginInfoType::OnDeviceQRCode => OriginInfoTypeSerialized {
+                typ: 2,
+                details: Value::Null,
+            },
+            OriginInfoType::MessageData => OriginInfoTypeSerialized {
+                typ: 4,
+                details: Value::Null,
+            },
+        };
+        result.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for OriginInfoType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bar: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
+        match bar.typ {
+            1 => {
+                let details: OriginInfoWebsiteDetails = bar.details.deserialized().map_err(de::Error::custom)?;
+                Ok(OriginInfoType::Website(details.referrer_url))
+            }
+            2 => Ok(OriginInfoType::OnDeviceQRCode),
+            4 => Ok(OriginInfoType::MessageData),
+            _ => Err(de::Error::custom("unsupported OriginInfoType")),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ciborium::value::Value;
@@ -360,6 +419,8 @@ mod tests {
 
     #[test]
     fn message_type() {
+        use Value::*;
+
         // Use `RequestEndSessionMessage` as an example of a message that should have a `messageType` field
         let msg = RequestEndSessionMessage {
             e_session_id: ByteBuf::from("session_id").into(),
@@ -368,12 +429,32 @@ mod tests {
         // Explicitly assert CBOR structure of the serialized data
         assert_eq!(
             Value::serialized(&msg).unwrap(),
-            Value::Map(vec![
+            Map(vec![
+                (Text("messageType".into()), Text(REQUEST_END_SESSION_MSG_TYPE.into()),),
+                (Text("eSessionId".into()), Bytes(b"session_id".to_vec())),
+            ])
+        );
+    }
+
+    #[test]
+    fn origin_info() {
+        use Value::*;
+
+        let val = OriginInfo {
+            cat: OriginInfoDirection::Delivered,
+            typ: OriginInfoType::Website("https://example.com".parse().unwrap()),
+        };
+
+        // Explicitly assert CBOR structure of the serialized data
+        assert_eq!(
+            Value::serialized(&val).unwrap(),
+            Map(vec![
+                (Text("cat".into()), Integer(0.into())),
+                (Text("type".into()), Integer(1.into())),
                 (
-                    Value::Text("messageType".into()),
-                    Value::Text(REQUEST_END_SESSION_MSG_TYPE.into()),
-                ),
-                (Value::Text("eSessionId".into()), Value::Bytes(b"session_id".to_vec())),
+                    Text("Details".into()),
+                    Map(vec![(Text("ReferrerUrl".into()), Text("https://example.com/".into()))])
+                )
             ])
         );
     }
