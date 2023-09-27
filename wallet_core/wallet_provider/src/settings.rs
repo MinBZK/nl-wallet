@@ -54,7 +54,7 @@ impl Settings {
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
-            .add_source(File::from(config_path.join("wallet_provider")).required(false))
+            .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
