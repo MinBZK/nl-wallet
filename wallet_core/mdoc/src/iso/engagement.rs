@@ -6,7 +6,6 @@
 //! [`disclosure`](super::disclosure) module (which contains the holder's signature over [`DeviceAuthentication`]
 //! defined here).
 
-use ciborium::value::Value;
 use fieldnames_derive::FieldNames;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -77,8 +76,6 @@ pub struct Engagement {
     pub version: String,
     pub security: Security,
     pub connection_methods: Option<ConnectionMethods>,
-    pub server_retrieval_methods: Option<ServerRetrievalMethods>,
-    pub protocol_info: Option<ProtocolInfo>,
 }
 
 pub type Security = CborSeq<SecurityKeyed>;
@@ -91,26 +88,6 @@ pub struct SecurityKeyed {
 
 // Called DeviceRetrievalMethods in ISO 18013-5
 pub type ConnectionMethods = Vec<ConnectionMethod>;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerRetrievalMethods {
-    pub web_api: WebApi,
-    pub oidc: Oidc,
-}
-
-pub type Oidc = CborSeq<WebSessionInfo>;
-
-pub type WebApi = CborSeq<WebSessionInfo>;
-
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
-pub struct WebSessionInfo {
-    pub version: u64,
-    pub issuer_url: String,
-    pub server_retrieval_token: String,
-}
-
-pub type ProtocolInfo = Value;
 
 // Called DeviceRetrievalMethod in ISO 18013-5
 pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
