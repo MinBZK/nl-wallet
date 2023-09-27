@@ -49,7 +49,7 @@ pub struct DocRequest {
     pub reader_auth: Option<ReaderAuth>,
 }
 
-pub type ReaderAuth = MdocCose<CoseSign1, Value>;
+pub type ReaderAuth = MdocCose<CoseSign1, ReaderAuthenticationBytes>;
 pub type ReaderAuthenticationBytes = TaggedBytes<ReaderAuthentication>;
 pub type ReaderAuthentication = CborSeq<ReaderAuthenticationKeyed>;
 
