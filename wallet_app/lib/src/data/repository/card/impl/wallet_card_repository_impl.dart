@@ -1,59 +1,30 @@
-import 'package:rxdart/rxdart.dart';
-
 import '../../../../domain/model/wallet_card.dart';
-import '../../../../util/mapper/card/card_mapper.dart';
-import '../../../../wallet_core/typed/typed_wallet_core.dart';
-import '../../../../wallet_core/wallet_core.dart';
-import '../../../store/active_locale_provider.dart';
+import '../../../source/wallet_datasource.dart';
 import '../wallet_card_repository.dart';
 
 class WalletCardRepositoryImpl implements WalletCardRepository {
-  final TypedWalletCore _walletCore;
-  final ActiveLocaleProvider _localeProvider;
-  final CardMapper _cardMapper;
+  final WalletDataSource dataSource;
 
-  WalletCardRepositoryImpl(this._walletCore, this._localeProvider, this._cardMapper);
-
-  List<WalletCard> _mapCards(List<Card> cards, languageCode) {
-    return cards.map((card) => _cardMapper.map(card, languageCode)).toList();
-  }
+  WalletCardRepositoryImpl(this.dataSource);
 
   @override
-  Stream<List<WalletCard>> observeWalletCards() {
-    return CombineLatestStream.combine2(
-      _walletCore.observeCards(),
-      _localeProvider.observe(),
-      (cards, locale) => _mapCards(cards, locale.languageCode),
-    );
-  }
+  Stream<List<WalletCard>> observeWalletCards() => dataSource.observeCards();
 
   @override
-  Future<bool> exists(String cardId) async {
-    throw UnimplementedError();
-  }
+  Future<bool> exists(String cardId) async => await dataSource.read(cardId) != null;
 
   @override
-  Future<void> create(WalletCard card) async {
-    throw UnimplementedError();
-  }
+  Future<void> create(WalletCard card) async => await dataSource.create(card);
 
   @override
-  Future<List<WalletCard>> readAll() async {
-    throw UnimplementedError();
-  }
+  Future<List<WalletCard>> readAll() async => dataSource.readAll();
 
   @override
-  Future<WalletCard> read(String cardId) async {
-    throw UnimplementedError();
-  }
+  Future<WalletCard> read(String cardId) async => (await dataSource.read(cardId))!;
 
   @override
-  Future<void> update(WalletCard card) async {
-    throw UnimplementedError();
-  }
+  Future<void> update(WalletCard card) async => await dataSource.update(card);
 
   @override
-  Future<void> delete(String cardId) async {
-    throw UnimplementedError();
-  }
+  Future<void> delete(String cardId) async => await dataSource.delete(cardId);
 }

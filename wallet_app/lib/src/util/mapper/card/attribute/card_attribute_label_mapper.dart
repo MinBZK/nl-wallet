@@ -1,4 +1,4 @@
-import '../../../wallet_core/wallet_core.dart';
+import '../../../../wallet_core/wallet_core.dart';
 
 class CardAttributeLabelMapper {
   String map(List<LocalizedString> input, String languageCode) {

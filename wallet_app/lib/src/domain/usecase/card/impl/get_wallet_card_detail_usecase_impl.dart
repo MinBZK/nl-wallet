@@ -1,3 +1,6 @@
+import 'package:fimber/fimber.dart';
+
+import '../../../../../environment.dart';
 import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/organization/organization_repository.dart';
@@ -22,23 +25,34 @@ class GetWalletCardDetailUseCaseImpl implements GetWalletCardDetailUseCase {
   @override
   Future<WalletCardDetail> invoke(String cardId) async {
     WalletCard card = await _walletCardRepository.read(cardId);
-    Organization organization = (await _organizationRepository.read(card.issuerId))!;
-    InteractionTimelineAttribute? interaction = await _timelineAttributeRepository.readMostRecentInteraction(
-      cardId,
-      InteractionStatus.success,
-    );
-    OperationTimelineAttribute? operation = await _timelineAttributeRepository.readMostRecentOperation(
-      cardId,
-      OperationStatus.issued,
-    );
 
-    WalletCardDetail detail = WalletCardDetail(
-      card: card,
-      issuer: organization,
-      latestSuccessInteraction: interaction,
-      latestIssuedOperation: operation,
-    );
+    try {
+      Organization organization = (await _organizationRepository.read(card.issuerId))!;
+      InteractionTimelineAttribute? interaction = await _timelineAttributeRepository.readMostRecentInteraction(
+        cardId,
+        InteractionStatus.success,
+      );
+      OperationTimelineAttribute? operation = await _timelineAttributeRepository.readMostRecentOperation(
+        cardId,
+        OperationStatus.issued,
+      );
 
-    return detail;
+      return WalletCardDetail(
+        card: card,
+        issuer: organization,
+        latestSuccessInteraction: interaction,
+        latestIssuedOperation: operation,
+      );
+    } catch (ex) {
+      if (Environment.mockRepositories) rethrow;
+      //FIXME: Fetch organization info through wallet_core
+      Fimber.e('Could not load card details because we\'re running a core build. Enriching with mock data.', ex: ex);
+      return WalletCardDetail(
+        card: card,
+        issuer: const Organization(id: '', name: 'RvIG', shortName: 'RvIG', category: '', description: '', logoUrl: ''),
+        latestIssuedOperation: null,
+        latestSuccessInteraction: null,
+      );
+    }
   }
 }

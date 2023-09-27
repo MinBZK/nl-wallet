@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/source/impl/core_wallet_datasource.dart';
 import '../data/source/mock/mock_organization_datasource.dart';
 import '../data/source/mock/mock_wallet_datasource.dart';
 import '../data/source/organization_datasource.dart';
@@ -32,9 +33,6 @@ class WalletDataSourceProvider extends StatelessWidget {
           /// Re-exposing the [ActiveLocalizationDelegate] as [ActiveLocaleProvider] for saner lookup.
           create: (context) => context.read<ActiveLocalizationDelegate>(),
         ),
-        RepositoryProvider<WalletDataSource>(
-          create: (context) => MockWalletDataSource(),
-        ),
         RepositoryProvider<OrganizationDataSource>(
           create: (context) => MockOrganizationDataSource(),
         ),
@@ -43,6 +41,11 @@ class WalletDataSourceProvider extends StatelessWidget {
         ),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),
+        ),
+        RepositoryProvider<WalletDataSource>(
+          create: (context) => provideMocks
+              ? MockWalletDataSource()
+              : CoreWalletDataSource(context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

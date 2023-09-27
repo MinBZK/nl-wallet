@@ -11,8 +11,8 @@ import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
-import 'package:wallet/src/util/mapper/pid/pid_attributes_mapper.dart';
-import 'package:wallet/src/util/mapper/pid/pid_data_attributes_mapper.dart';
+import 'package:wallet/src/util/mapper/pid/mock_pid_attribute_mapper.dart';
+import 'package:wallet/src/util/mapper/pid/pid_attribute_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/mock_data.dart';
@@ -257,7 +257,7 @@ void main() {
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: RepositoryProvider<PidAttributeMapper>(
-              create: (c) => PidDataAttributeMapper(),
+              create: (c) => MockPidAttributeMapper(),
               child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
                 MockWalletPersonalizeBloc(),
                 const WalletPersonalizeCheckData(availableAttributes: pidAttributes),
@@ -381,7 +381,7 @@ void main() {
         // Show the loading state (which contains the cancel button)
         await tester.pumpWidgetWithAppWrapper(
           RepositoryProvider<PidAttributeMapper>(
-            create: (c) => PidDataAttributeMapper(),
+            create: (c) => MockPidAttributeMapper(),
             child: BlocProvider<WalletPersonalizeBloc>(
               create: (c) => mockBloc,
               child: Builder(builder: (context) => const WalletPersonalizeScreen()),
