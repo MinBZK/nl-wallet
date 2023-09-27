@@ -5,9 +5,8 @@ import 'package:fimber/fimber.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../../bridge_generated.dart';
-import '../../../../domain/model/attribute/core_attribute.dart';
 import '../../../../util/cast_util.dart';
-import '../../../../util/mapper/card/card_attribute_label_mapper.dart';
+import '../../../../util/mapper/card/card_mapper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 import '../../../../wallet_core/error/core_error_mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
@@ -17,14 +16,14 @@ import '../pid_repository.dart';
 class PidRepositoryImpl extends PidRepository {
   final StreamController<PidIssuanceStatus> _pidIssuanceStatusController = BehaviorSubject();
   final TypedWalletCore _walletCore;
-  final CoreErrorMapper _errorMapper;
-  final CardAttributeLabelMapper _attributeLabelMapper;
+  final CoreErrorMapper _coreErrorMapper;
+  final CardMapper _cardMapper;
   final ActiveLocaleProvider _localeProvider;
 
   PidRepositoryImpl(
     this._walletCore,
-    this._errorMapper,
-    this._attributeLabelMapper,
+    this._coreErrorMapper,
+    this._cardMapper,
     this._localeProvider,
   );
 
@@ -48,19 +47,9 @@ class PidRepositoryImpl extends PidRepository {
         /// (pid issuance) case that is irrelevant as the labels are actually ignored. See
         /// [PidAttributeMapper], which combines the attributes provided here and formats to be
         /// displayed with custom labels in a friendlier manner.
-        final attributes = success
-            .map(
-              (card) => card.attributes.map(
-                (attribute) => CoreAttribute(
-                  key: attribute.key.toString(),
-                  label: _attributeLabelMapper.map(attribute.labels, activeLocale.languageCode),
-                  rawValue: attribute.value.value,
-                  valueType: AttributeValueType.text,
-                ),
-              ),
-            )
-            .flattened
-            .toList(growable: false);
+        final cards = success.map((card) => _cardMapper.map(card, activeLocale));
+
+        final attributes = cards.map((card) => card.attributes).flattened.toList(growable: false);
         _pidIssuanceStatusController.add(PidIssuanceSuccess(attributes));
         _pidIssuanceStatusController.add(PidIssuanceIdle());
       },
@@ -74,7 +63,7 @@ class PidRepositoryImpl extends PidRepository {
 
   RedirectError _extractRedirectError(String flutterApiErrorJson) {
     try {
-      final coreError = _errorMapper.map(flutterApiErrorJson);
+      final coreError = _coreErrorMapper.map(flutterApiErrorJson);
       final redirectUriError = tryCast<CoreRedirectUriError>(coreError);
       return redirectUriError?.redirectError ?? RedirectError.unknown;
     } catch (ex) {

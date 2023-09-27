@@ -69,7 +69,6 @@ class TypedWalletCoreImpl extends TypedWalletCore {
     //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
     await _isInitialized.future;
     _walletCore.setCardsStream().listen((event) => _cards.add(event));
-    _cards.onCancel = () => _walletCore.clearCardsStream();
   }
 
   @override

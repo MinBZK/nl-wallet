@@ -5,9 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../environment.dart';
+import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/usecase/card/get_pid_issuance_response_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/mapper/pid/pid_attributes_mapper.dart';
+import '../../../util/mapper/pid/pid_attribute_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../common/page/flow_terminal_page.dart';
 import '../../common/page/generic_loading_page.dart';
@@ -108,10 +109,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
     /// Note that mapping occurs in the UI layer since we need a fresh context (with l10n).
+    List<UiAttribute> attributes = [];
+    try {
+      attributes = context.read<PidAttributeMapper>().map(context, state.availableAttributes);
+    } catch (ex) {
+      Fimber.e('Failed to map pid attributes to expected preview attributes', ex: ex);
+      context.bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+    }
     return WalletPersonalizeCheckDataOfferingPage(
       onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingAccepted(state.availableAttributes)),
       onRejectPressed: () => context.bloc.add(WalletPersonalizeOfferingRejected()),
-      attributes: context.read<PidAttributeMapper>().map(context, state.availableAttributes),
+      attributes: attributes,
     );
   }
 
