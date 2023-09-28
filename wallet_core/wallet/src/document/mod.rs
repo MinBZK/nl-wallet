@@ -8,6 +8,9 @@ use indexmap::IndexMap;
 
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
+const PID_DOCTYPE: &str = "com.example.pid";
+const ADDRESS_DOCTYPE: &str = "com.example.address";
+
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
 
@@ -53,8 +56,8 @@ impl Document {
     /// A lower priority means that this [`Document`] should be displayed above others.
     pub fn priority(&self) -> usize {
         match self.doc_type {
-            "com.example.pid" => 0,
-            "com.example.address" => 1,
+            PID_DOCTYPE => 0,
+            ADDRESS_DOCTYPE => 1,
             _ => usize::MAX,
         }
     }
@@ -76,9 +79,9 @@ mod tests {
     fn test_document_compare_inverse_priority() {
         let mut documents = vec![
             empty_document("foo"),
-            empty_document("com.example.address"),
+            empty_document(ADDRESS_DOCTYPE),
             empty_document("bar"),
-            empty_document("com.example.pid"),
+            empty_document(PID_DOCTYPE),
             empty_document("baz"),
         ];
 
@@ -88,9 +91,6 @@ mod tests {
             .map(|document| document.doc_type)
             .collect::<Vec<_>>();
 
-        assert_eq!(
-            doc_types,
-            vec!["com.example.pid", "com.example.address", "foo", "bar", "baz"]
-        );
+        assert_eq!(doc_types, vec![PID_DOCTYPE, ADDRESS_DOCTYPE, "foo", "bar", "baz"]);
     }
 }

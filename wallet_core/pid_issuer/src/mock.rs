@@ -70,7 +70,6 @@ const PID_AGE_OVER_18: &str = "age_over_18";
 // const PID_AGE_OVER_NN: &str = "age_over_NN";
 // const PID_AGE_IN_YEARS: &str = "age_in_years";
 // const PID_AGE_BIRTH_YEAR: &str = "age_birth_year";
-const PID_UNIQUE_ID: &str = "unique_id";
 const PID_FAMILY_NAME_BIRTH: &str = "family_name_birth";
 const PID_GIVEN_NAME_BIRTH: &str = "given_name_birth";
 const PID_BIRTH_PLACE: &str = "birth_place";
@@ -97,7 +96,6 @@ pub struct PersonAttributes {
     // age_over_NN: Option<bool>,
     // age_in_years: Option<u32>,
     // age_birth_year: Option<u32>,
-    unique_id: String,
     family_name_birth: Option<String>,
     given_name_birth: Option<String>,
     birth_place: Option<String>,
@@ -134,11 +132,6 @@ impl From<PersonAttributes> for Vec<Entry> {
             Entry {
                 name: PID_AGE_OVER_18.to_string(),
                 value: Value::Bool(value.age_over_18),
-            }
-            .into(),
-            Entry {
-                name: PID_UNIQUE_ID.to_string(),
-                value: Value::Text(value.unique_id),
             }
             .into(),
             value.family_name_birth.map(|v| Entry {
@@ -244,7 +237,6 @@ impl Default for MockAttributesLookup {
             "999999999".to_owned(),
             (
                 PersonAttributes {
-                    unique_id: "1".to_owned(),
                     bsn: "999999999".to_owned(),
                     family_name: "Van Waarde".to_owned(),
                     given_name: "Johannes Frederik".to_owned(),
