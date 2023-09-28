@@ -41,7 +41,7 @@
 set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail
-# set -x # echo statements before executing, usefull while debugging
+# set -x # echo statements before executing, useful while debugging
 
 ########################################################################
 # Configuration
@@ -63,9 +63,9 @@ then
 # export DB_PASSWORD=${DB_PASSWORD}
 # export DB_NAME=${DB_NAME}" \
     > "${SCRIPTS_DIR}/.env"
-    echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}"
-    echo -e "${INFO}Edit this file to reflect your environment, and uncomment the relevant variables${NC}"
-    echo -e "${INFO}Note that variables in this file can no longer be overridden by the commandline${NC}"
+    echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
+    echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
+    echo -e "${INFO}Note that variables in this file can no longer be overridden by the command line.${NC}"
 fi
 
 ########################################################################

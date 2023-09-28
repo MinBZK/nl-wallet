@@ -12,7 +12,7 @@
 set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail
-# set -x # echo statements before executing, usefull while debugging
+# set -x # echo statements before executing, useful while debugging
 
 ########################################################################
 # Configuration
