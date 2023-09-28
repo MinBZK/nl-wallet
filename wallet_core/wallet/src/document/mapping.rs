@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
-use super::{mdoc::AttributeValueType, AttributeKey, AttributeLabel, AttributeLabelLanguage};
+use super::{
+    mdoc::AttributeValueType, AttributeKey, AttributeLabel, AttributeLabelLanguage, ADDRESS_DOCTYPE, PID_DOCTYPE,
+};
 
 #[derive(Debug, Clone)]
 pub(super) struct DataElementValueMapping {
@@ -23,10 +25,10 @@ pub(super) type MdocDocumentMapping = HashMap<MappingDocType, AttributeMapping>;
 pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|| {
     HashMap::from([
         (
-            "com.example.pid",
+            PID_DOCTYPE,
             IndexMap::from([
                 (
-                    ("com.example.pid", "given_name"),
+                    (PID_DOCTYPE, "given_name"),
                     DataElementValueMapping {
                         key: "given_name",
                         is_mandatory: true,
@@ -35,7 +37,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "family_name"),
+                    (PID_DOCTYPE, "family_name"),
                     DataElementValueMapping {
                         key: "family_name",
                         is_mandatory: true,
@@ -44,7 +46,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "given_name_birth"),
+                    (PID_DOCTYPE, "given_name_birth"),
                     DataElementValueMapping {
                         key: "given_name_birth",
                         is_mandatory: false,
@@ -53,7 +55,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "family_name_birth"),
+                    (PID_DOCTYPE, "family_name_birth"),
                     DataElementValueMapping {
                         key: "family_name_birth",
                         is_mandatory: false,
@@ -62,7 +64,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "gender"),
+                    (PID_DOCTYPE, "gender"),
                     DataElementValueMapping {
                         key: "gender",
                         is_mandatory: false,
@@ -71,7 +73,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "birth_date"),
+                    (PID_DOCTYPE, "birth_date"),
                     DataElementValueMapping {
                         key: "birth_date",
                         is_mandatory: true,
@@ -80,7 +82,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "age_over_18"),
+                    (PID_DOCTYPE, "age_over_18"),
                     DataElementValueMapping {
                         key: "age_over_18",
                         is_mandatory: true,
@@ -89,7 +91,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "birth_place"),
+                    (PID_DOCTYPE, "birth_place"),
                     DataElementValueMapping {
                         key: "birth_place",
                         is_mandatory: false,
@@ -98,7 +100,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "birth_city"),
+                    (PID_DOCTYPE, "birth_city"),
                     DataElementValueMapping {
                         key: "birth_city",
                         is_mandatory: false,
@@ -107,7 +109,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "birth_state"),
+                    (PID_DOCTYPE, "birth_state"),
                     DataElementValueMapping {
                         key: "birth_state",
                         is_mandatory: false,
@@ -119,7 +121,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "birth_country"),
+                    (PID_DOCTYPE, "birth_country"),
                     DataElementValueMapping {
                         key: "birth_country",
                         is_mandatory: false,
@@ -128,7 +130,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "bsn"),
+                    (PID_DOCTYPE, "bsn"),
                     DataElementValueMapping {
                         key: "bsn",
                         is_mandatory: true,
@@ -137,7 +139,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.pid", "nationality"),
+                    (PID_DOCTYPE, "nationality"),
                     DataElementValueMapping {
                         key: "nationality",
                         is_mandatory: false,
@@ -148,10 +150,10 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
             ]),
         ),
         (
-            "com.example.address",
+            ADDRESS_DOCTYPE,
             IndexMap::from([
                 (
-                    ("com.example.address", "resident_address"),
+                    (ADDRESS_DOCTYPE, "resident_address"),
                     DataElementValueMapping {
                         key: "resident_address",
                         is_mandatory: false,
@@ -160,7 +162,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_street"),
+                    (ADDRESS_DOCTYPE, "resident_street"),
                     DataElementValueMapping {
                         key: "resident_street",
                         is_mandatory: false,
@@ -169,7 +171,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_house_number"),
+                    (ADDRESS_DOCTYPE, "resident_house_number"),
                     DataElementValueMapping {
                         key: "resident_house_number",
                         is_mandatory: false,
@@ -178,7 +180,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_postal_code"),
+                    (ADDRESS_DOCTYPE, "resident_postal_code"),
                     DataElementValueMapping {
                         key: "resident_postal_code",
                         is_mandatory: false,
@@ -187,7 +189,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_city"),
+                    (ADDRESS_DOCTYPE, "resident_city"),
                     DataElementValueMapping {
                         key: "resident_city",
                         is_mandatory: false,
@@ -196,7 +198,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_state"),
+                    (ADDRESS_DOCTYPE, "resident_state"),
                     DataElementValueMapping {
                         key: "resident_state",
                         is_mandatory: false,
@@ -205,7 +207,7 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    ("com.example.address", "resident_country"),
+                    (ADDRESS_DOCTYPE, "resident_country"),
                     DataElementValueMapping {
                         key: "resident_country",
                         is_mandatory: false,

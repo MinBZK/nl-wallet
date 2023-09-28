@@ -217,17 +217,17 @@ mod tests {
 
     use nl_wallet_mdoc::Tdate;
 
-    use super::*;
+    use super::{super::PID_DOCTYPE, *};
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
-            doc_type: "com.example.pid".to_string(),
+            doc_type: PID_DOCTYPE.to_string(),
             copy_count: 1,
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(
-                "com.example.pid".to_string(),
+                PID_DOCTYPE.to_string(),
                 vec![
                     Entry {
                         name: "bsn".to_string(),
@@ -258,40 +258,36 @@ mod tests {
     fn create_full_unsigned_pid_mdoc() -> UnsignedMdoc {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        unsigned_mdoc
-            .attributes
-            .get_mut("com.example.pid")
-            .unwrap()
-            .extend(vec![
-                Entry {
-                    name: "family_name_birth".to_string(),
-                    value: DataElementValue::Text("Molenaar".to_string()),
-                },
-                Entry {
-                    name: "given_name_birth".to_string(),
-                    value: DataElementValue::Text("Liselotte Willeke".to_string()),
-                },
-                Entry {
-                    name: "birth_place".to_string(),
-                    value: DataElementValue::Text("Delft".to_string()),
-                },
-                Entry {
-                    name: "birth_country".to_string(),
-                    value: DataElementValue::Text("NL".to_string()),
-                },
-                Entry {
-                    name: "birth_state".to_string(),
-                    value: DataElementValue::Text("Zuid-Holland".to_string()),
-                },
-                Entry {
-                    name: "birth_city".to_string(),
-                    value: DataElementValue::Text("Delft".to_string()),
-                },
-                Entry {
-                    name: "gender".to_string(),
-                    value: DataElementValue::Integer(2.into()),
-                },
-            ]);
+        unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
+            Entry {
+                name: "family_name_birth".to_string(),
+                value: DataElementValue::Text("Molenaar".to_string()),
+            },
+            Entry {
+                name: "given_name_birth".to_string(),
+                value: DataElementValue::Text("Liselotte Willeke".to_string()),
+            },
+            Entry {
+                name: "birth_place".to_string(),
+                value: DataElementValue::Text("Delft".to_string()),
+            },
+            Entry {
+                name: "birth_country".to_string(),
+                value: DataElementValue::Text("NL".to_string()),
+            },
+            Entry {
+                name: "birth_state".to_string(),
+                value: DataElementValue::Text("Zuid-Holland".to_string()),
+            },
+            Entry {
+                name: "birth_city".to_string(),
+                value: DataElementValue::Text("Delft".to_string()),
+            },
+            Entry {
+                name: "gender".to_string(),
+                value: DataElementValue::Integer(2.into()),
+            },
+        ]);
 
         unsigned_mdoc
     }
@@ -303,7 +299,7 @@ mod tests {
         let document = Document::try_from(unsigned_mdoc).expect("Could not convert minimal mdoc to document");
 
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
-        assert_eq!(document.doc_type, "com.example.pid");
+        assert_eq!(document.doc_type, PID_DOCTYPE);
         assert_eq!(
             document.attributes.keys().cloned().collect::<Vec<_>>(),
             vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
@@ -379,7 +375,7 @@ mod tests {
     fn test_unsigned_mdoc_to_document_mapping_missing_attribute_error() {
         // Test removing the `age_over_18` attribute.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
-        unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap().pop();
+        unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
         let result = Document::try_from(unsigned_mdoc);
 
@@ -389,12 +385,12 @@ mod tests {
                 doc_type,
                 name_space,
                 name
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "age_over_18"
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE && name == "age_over_18"
         );
 
         // Test removing the "gender" attribute, conversion should still succeed.
         unsigned_mdoc = create_full_unsigned_pid_mdoc();
-        unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap().pop();
+        unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
         _ = Document::try_from(unsigned_mdoc).expect("Could not convert full mdoc to document");
     }
@@ -404,7 +400,7 @@ mod tests {
         // Test changing the "bsn" attribute to an integer.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         _ = mem::replace(
-            &mut unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap()[0],
+            &mut unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap()[0],
             Entry {
                 name: "bsn".to_string(),
                 value: DataElementValue::Integer(1234.into()),
@@ -421,14 +417,14 @@ mod tests {
                 name,
                 expected_type: AttributeValueType::String,
                 value,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" &&
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "bsn" && value == DataElementValue::Integer(1234.into())
         );
 
         // Test changing the "birth_date" attribute to an invalid date.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         _ = mem::replace(
-            &mut unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap()[3],
+            &mut unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap()[3],
             Entry {
                 name: "birth_date".to_string(),
                 value: DataElementValue::Text("1997-04-31".to_string()),
@@ -445,7 +441,7 @@ mod tests {
                 name,
                 expected_type: AttributeValueType::Date,
                 value,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" &&
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "birth_date" && value == DataElementValue::Text("1997-04-31".to_string())
         );
 
@@ -454,7 +450,7 @@ mod tests {
         _ = mem::replace(
             unsigned_mdoc
                 .attributes
-                .get_mut("com.example.pid")
+                .get_mut(PID_DOCTYPE)
                 .unwrap()
                 .last_mut()
                 .unwrap(),
@@ -474,7 +470,7 @@ mod tests {
                 name,
                 expected_type: AttributeValueType::Gender,
                 value,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" &&
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "gender" && value == DataElementValue::Integer(5.into())
         );
     }
@@ -483,14 +479,10 @@ mod tests {
     fn test_unsigned_mdoc_to_document_mapping_unknown_attribute_error() {
         // Test adding an unknown entry.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
-        unsigned_mdoc
-            .attributes
-            .get_mut("com.example.pid")
-            .unwrap()
-            .push(Entry {
-                name: "foobar".to_string(),
-                value: DataElementValue::Text("Foo Bar".to_string()),
-            });
+        unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().push(Entry {
+            name: "foobar".to_string(),
+            value: DataElementValue::Text("Foo Bar".to_string()),
+        });
 
         let result = Document::try_from(unsigned_mdoc);
 
@@ -501,7 +493,7 @@ mod tests {
                 name_space,
                 name,
                 value,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" &&
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "foobar" && value == DataElementValue::Text("Foo Bar".to_string())
         );
     }
