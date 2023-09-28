@@ -10,11 +10,11 @@ TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 [ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
 
 # Path of the nl-rdo-max-private repository
-export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath ${BASE_DIR}/../nl-rdo-max-private)}
+export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath "${BASE_DIR}"/../nl-rdo-max-private)}
 
 # Set to `10.0.2.2` for android or to `localhost` for ios
-# export DIGID_CONNECTOR_HOST=10.0.2.2
-export DIGID_CONNECTOR_HOST=localhost
+# export SERVICES_HOST=10.0.2.2
+export SERVICES_HOST=localhost
 
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.

@@ -8,6 +8,7 @@ rust-version.workspace = true
 mock = ["dep:mockall"]
 wallet_deps = []
 disable_tls_validation = []
+env_config = ["dep:dotenvy"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -57,3 +58,6 @@ wiremock = { workspace = true }
 
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
+
+[build-dependencies]
+dotenvy = { workspace = true, optional = true }

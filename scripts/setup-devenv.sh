@@ -17,7 +17,7 @@
 # - openssl: needed to generate keys and certificates
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
-# - docker: with compose extension, to run the digid-connector
+# - docker: with compose v2 extension, to run the digid-connector
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -41,16 +41,18 @@
 set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail
-# set -x # echo statements before executing, usefull while debugging
+# set -x # echo statements before executing, useful while debugging
 
 ########################################################################
 # Configuration
 ########################################################################
 
-export SCRIPTS_DIR=$(dirname $(realpath $(command -v ${BASH_SOURCE[0]})))
-export BASE_DIR=$(dirname $SCRIPTS_DIR)
+SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
+export SCRIPTS_DIR
+BASE_DIR=$(dirname "${SCRIPTS_DIR}")
+export BASE_DIR
 
-source ${SCRIPTS_DIR}/configuration.sh
+source "${SCRIPTS_DIR}"/configuration.sh
 
 if [ ! -f "${SCRIPTS_DIR}/.env" ]
 then
@@ -63,9 +65,9 @@ then
 # export DB_PASSWORD=${DB_PASSWORD}
 # export DB_NAME=${DB_NAME}" \
     > "${SCRIPTS_DIR}/.env"
-    echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}"
-    echo -e "${INFO}Edit this file to reflect your environment, and uncomment the relevant variables${NC}"
-    echo -e "${INFO}Note that variables in this file can no longer be overridden by the commandline${NC}"
+    echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
+    echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
+    echo -e "${INFO}Note that variables in this file can no longer be overridden by the command line.${NC}"
 fi
 
 ########################################################################
@@ -77,7 +79,7 @@ fi
 # $1 - COMMAND: Name of the shell command
 # $2 - MESSAGE: Error message to show when COMMAND does not exist
 function expect_command {
-    if ! command -v $1 > /dev/null
+    if ! command -v "$1" > /dev/null
     then
         echo -e "${RED}ERROR${NC}: $2"
         exit 1
@@ -90,7 +92,7 @@ function expect_command {
 # $2 - TARGET: Target file
 function render_template {
     echo -e "Generating ${CYAN}$2${NC} from template ${CYAN}$1${NC}"
-    cat "$1" | envsubst > "$2"
+    envsubst < "$1" > "$2"
 }
 
 # Return the body of a pem file.
@@ -98,7 +100,7 @@ function render_template {
 #
 # $1 FILENAME of pem file
 function get_pem_body {
-    cat "$1" | grep -v "\-\-\-\-\-" | tr -d "\n"
+    grep -v "\-\-\-\-\-" < "$1" | tr -d "\n"
 }
 
 # Generate a key and certificate to use for local TLS.
@@ -137,7 +139,7 @@ function generate_ssl_key_pair_with_san {
     echo -e "${INFO}Exporting SSL public key${NC}"
     openssl rsa \
             -in "$1/$2.key" \
-            -pubout > "$1/$2.pub" > /dev/null
+            -pubout > "$1/$2.pub"
 }
 
 # Generate a private EC key and return the PEM body
@@ -200,12 +202,12 @@ expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
 expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
 
-if [ $(uname -s) == "Darwin" ]
+if [ "$(uname -s)" == "Darwin" ]
 then
     expect_command gsed "Missing binary 'gsed', please install gnu-sed"
-    GNUSED=gsed
+    GNUSED="gsed"
 else
-    GNUSED=sed
+    GNUSED="sed"
 fi
 
 ########################################################################
@@ -236,7 +238,8 @@ docker compose build max
 CLIENT_PRIVKEY_JWK=$(docker compose run max make --silent create-jwk)
 # Remove the 'kid' json field, otherwise the digid-connector will fail on it.
 # TODO: find out what a correct value of 'kid' is and how to configure it for both the pid_issuer and digid-connector.
-export BSN_PRIVKEY=$(echo ${CLIENT_PRIVKEY_JWK} | jq -c 'del(.kid)')
+BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
+export BSN_PRIVKEY
 
 ########################################################################
 # Configure pid_issuer
@@ -252,9 +255,12 @@ generate_pid_issuer_root_ca
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
 
-export PID_CA_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/ca_cert.pem")
-export PID_ISSUER_KEY=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_key.pem")
-export PID_ISSUER_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_crt.pem")
+PID_CA_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/ca_cert.pem")
+export PID_CA_CRT
+PID_ISSUER_KEY=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_key.pem")
+export PID_ISSUER_KEY
+PID_ISSUER_CRT=$(get_pem_body "${TARGET_DIR}/pid_issuer/issuer_crt.pem")
+export PID_ISSUER_CRT
 
 render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
 render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
@@ -266,12 +272,15 @@ echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
 
 generate_wp_private_key certificate
-export WP_CERTIFICATE_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/certificate.pem")
+WP_CERTIFICATE_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/certificate.pem")
+export WP_CERTIFICATE_KEY
 
 generate_wp_private_key instruction_result
-export WP_INSTRUCTION_RESULT_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/instruction_result.pem")
+WP_INSTRUCTION_RESULT_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/instruction_result.pem")
+export WP_INSTRUCTION_RESULT_KEY
 
-export WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
+WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
+export WP_PIN_HASH_SALT
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
@@ -281,8 +290,10 @@ cd "$BASE_DIR/wallet_core/wallet_provider"
 echo -e "${INFO}Exporting wallet_provider verifying keys${NC}"
 WALLET_PROVIDER_CONFIGURATION=$(cargo run --bin wallet_provider_configuration)
 
-WP_CERTIFICATE_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.certificate_verifying_key')
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r '.instruction_result_verifying_key')
+WP_CERTIFICATE_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.certificate_verifying_key')
+export WP_CERTIFICATE_PUBLIC_KEY
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.instruction_result_verifying_key')
+export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 ########################################################################
 # Configure wallet
@@ -290,26 +301,7 @@ WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo ${WALLET_PROVIDER_CONFIGURATION} | jq -r
 echo
 echo -e "${SECTION}Configure wallet${NC}"
 
-cd "${BASE_DIR}"
-
-WALLET_DATA="${BASE_DIR}/wallet_core/wallet/src/config/data.rs"
-
-echo -e "Generating ${CYAN}${WALLET_DATA}${NC}"
-
-${GNUSED} -i "/const BASE_URL:/c\
-const BASE_URL: &str = \"http://${DIGID_CONNECTOR_HOST}:3000/api/v1/\";" ${WALLET_DATA}
-${GNUSED} -i "/const CERTIFICATE_PUBLIC_KEY:/c\
-const CERTIFICATE_PUBLIC_KEY: &str = \"${WP_CERTIFICATE_PUBLIC_KEY}\";" ${WALLET_DATA}
-${GNUSED} -i "/const INSTRUCTION_RESULT_PUBLIC_KEY:/c\
-const INSTRUCTION_RESULT_PUBLIC_KEY: &str = \"${WP_INSTRUCTION_RESULT_PUBLIC_KEY}\";" ${WALLET_DATA}
-${GNUSED} -i "/const PID_ISSUER_URL:/c\
-const PID_ISSUER_URL: &str = \"http://${DIGID_CONNECTOR_HOST}:3003/\";" ${WALLET_DATA}
-${GNUSED} -i "/const DIGID_URL:/c\
-const DIGID_URL: &str = \"https://${DIGID_CONNECTOR_HOST}:8006\";" ${WALLET_DATA}
-${GNUSED} -i "/const DIGID_CLIENT_ID:/c\
-const DIGID_CLIENT_ID: &str = \"${WALLET_CLIENT_ID}\";" ${WALLET_DATA}
-${GNUSED} -i "/const TRUST_ANCHOR_CERTS:/c\
-const TRUST_ANCHOR_CERTS: [&str; 1] = [\"${PID_CA_CRT}\"];" ${WALLET_DATA}
+render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env"
 
 ########################################################################
 # Configure Android Emulator
@@ -319,7 +311,7 @@ then
     echo
     echo -e "${SECTION}Configure Android Emulator${NC}"
 
-    ${SCRIPTS_DIR}/map_android_ports.sh
+    "${SCRIPTS_DIR}"/map_android_ports.sh
 fi
 
 ########################################################################

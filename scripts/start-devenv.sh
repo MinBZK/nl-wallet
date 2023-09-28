@@ -12,16 +12,18 @@
 set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail
-# set -x # echo statements before executing, usefull while debugging
+# set -x # echo statements before executing, useful while debugging
 
 ########################################################################
 # Configuration
 ########################################################################
 
-export SCRIPTS_DIR=$(dirname $(realpath $(command -v ${BASH_SOURCE[0]})))
-export BASE_DIR=$(dirname $SCRIPTS_DIR)
+SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
+export SCRIPTS_DIR
+BASE_DIR=$(dirname "${SCRIPTS_DIR}")
+export BASE_DIR
 
-source ${SCRIPTS_DIR}/configuration.sh
+source "${SCRIPTS_DIR}"/configuration.sh
 
 ########################################################################
 # Functions
@@ -32,7 +34,7 @@ source ${SCRIPTS_DIR}/configuration.sh
 # $1 - COMMAND: Name of the shell command
 # $2 - MESSAGE: Error message to show when COMMAND does not exist
 function expect_command {
-    if ! command -v $1 > /dev/null
+    if ! command -v "$1" > /dev/null
     then
         echo -e "${RED}ERROR${NC}: $2"
         exit 1
@@ -41,9 +43,9 @@ function expect_command {
 
 # Echo help information about this script
 function usage() {
-    echo -e "$(basename ${BASH_SOURCE[0]}): Manage the Wallet Development environment
+    echo -e "$(basename "${BASH_SOURCE[0]}"): Manage the Wallet Development environment
 
-Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] <SERVICES>
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] <SERVICES>
 
   Starts or restarts the services that are part of the development environment.
 
@@ -164,7 +166,7 @@ then
     echo
     echo -e "${SECTION}Manage digid-connector${NC}"
 
-    cd ${DIGID_CONNECTOR_PATH}
+    cd "${DIGID_CONNECTOR_PATH}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -188,7 +190,7 @@ then
     echo
     echo -e "${SECTION}Manage wallet docker services${NC}"
 
-    cd ${BASE_DIR}
+    cd "${BASE_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -210,7 +212,7 @@ then
     echo
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
-    cd ${PID_ISSUER_DIR}
+    cd "${PID_ISSUER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -234,7 +236,7 @@ then
     echo
     echo -e "${SECTION}Manage wallet_provider${NC}"
 
-    cd ${WP_DIR}
+    cd "${WP_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -262,7 +264,7 @@ then
 
     if [ "${START}" == "0" ]
     then
-        cd ${BASE_DIR}/wallet_app
-        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define DISABLE_TLS_VALIDATION=true
+        cd "${BASE_DIR}"/wallet_app
+        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define DISABLE_TLS_VALIDATION=true --dart-define ENV_CONFIGURATION=true
     fi
 fi

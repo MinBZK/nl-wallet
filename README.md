@@ -194,9 +194,14 @@ All these applications will need to be configured correctly. A local development
 
 The `setup-devenv.sh` script will configure the digid-connector to listen on https://localhost:8006/ . Note the https
 in the URL, which is provided using self-signed certificates, therefore we have to disable TLS validation in the wallet
-and the pid_issuer. Also when using the browser for the first time, a security exception must be added to allow
+and the `pid_issuer`. Also when using the browser for the first time, a security exception must be added to allow
 connecting to localhost. Disabling TLS validation is gated behind the feature `disable_tls_validation` on the `wallet`
 and the `pid_issuer` crates.
+
+Additionally, the `wallet` crate offers the `config_env` feature to aid during local development, which does the following:
+
+* Any constant defined in the file `data.rs` can be overridden by an environment variable of the same name at compile time.
+* Additional environment variables are read from a file named `.env` in the `wallet` crate directory, if present.
 
 ##### Android Emulator
 
