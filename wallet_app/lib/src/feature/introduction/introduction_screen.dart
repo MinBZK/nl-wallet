@@ -299,7 +299,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
     //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
     //FIXME: setup that allows us to configure the app with (custom) mock data.
-    if (kDebugMode && !Environment.isTest) {
+    if (kDebugMode && !Environment.isTest && Environment.mockRepositories) {
       // Inject the skip setup button
       skipButton = Row(
         mainAxisSize: MainAxisSize.max,
