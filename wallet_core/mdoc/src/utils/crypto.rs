@@ -12,7 +12,7 @@ use p256::{
     EncodedPoint, PublicKey,
 };
 use ring::hmac;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
@@ -25,6 +25,8 @@ use crate::{
     },
     Error, Result, SessionData, SessionTranscript,
 };
+
+use super::serialization::cbor_deserialize;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CryptoError {
@@ -167,6 +169,10 @@ impl SessionData {
         *Nonce::<Aes256Gcm>::from_slice(&nonce)
     }
 
+    pub fn serialize_and_encrypt<T: Serialize>(data: &T, key: &SessionKey) -> Result<Self> {
+        Self::encrypt(&cbor_serialize(data)?, key)
+    }
+
     pub fn encrypt(data: &[u8], key: &SessionKey) -> Result<Self> {
         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
         let ciphertext = cipher
@@ -186,20 +192,40 @@ impl SessionData {
             .map_err(|_| CryptoError::Aes)?;
         Ok(plaintext)
     }
+
+    pub fn decrypt_and_deserialize<T: DeserializeOwned>(&self, key: &SessionKey) -> Result<T> {
+        let parsed = cbor_deserialize(self.decrypt(key)?.as_bytes())?;
+        Ok(parsed)
+    }
 }
 
 #[cfg(test)]
 mod test {
     use aes_gcm::aead::OsRng;
     use p256::ecdh::EphemeralSecret;
+    use serde::{Deserialize, Serialize};
 
     use crate::{examples::Example, DeviceAuthenticationBytes, SessionData};
 
     use super::{SessionKey, SessionKeyUser};
 
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+    struct ToyMessage {
+        number: u8,
+        string: String,
+    }
+    impl Default for ToyMessage {
+        fn default() -> Self {
+            Self {
+                number: 42,
+                string: "Hello, world!".to_string(),
+            }
+        }
+    }
+
     #[test]
     fn session_data_encryption() {
-        let plaintext = b"Hello, world!";
+        let plaintext = ToyMessage::default();
 
         let device_privkey = EphemeralSecret::random(&mut OsRng);
         let reader_privkey = EphemeralSecret::random(&mut OsRng);
@@ -212,11 +238,11 @@ mod test {
         )
         .unwrap();
 
-        let session_data = SessionData::encrypt(plaintext, &key).unwrap();
+        let session_data = SessionData::serialize_and_encrypt(&plaintext, &key).unwrap();
         assert!(session_data.data.is_some());
         assert!(session_data.status.is_none());
 
-        let decrypted = session_data.decrypt(&key).unwrap();
-        assert_eq!(&plaintext[..], &decrypted);
+        let decrypted = session_data.decrypt_and_deserialize(&key).unwrap();
+        assert_eq!(plaintext, decrypted);
     }
 }
