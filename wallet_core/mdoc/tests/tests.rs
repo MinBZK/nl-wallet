@@ -15,10 +15,12 @@ use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    examples::*,
     holder::*,
     iso::*,
     issuer::*,
     utils::{
+        keys::KeyFactory,
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
@@ -27,9 +29,6 @@ use nl_wallet_mdoc::{
     Error,
 };
 
-mod examples;
-use examples::*;
-use nl_wallet_mdoc::utils::keys::KeyFactory;
 use wallet_common::keys::ConstructibleWithIdentifier;
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";

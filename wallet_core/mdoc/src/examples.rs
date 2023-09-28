@@ -9,7 +9,7 @@ use p256::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-use nl_wallet_mdoc::{
+use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize},
     DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
 };
