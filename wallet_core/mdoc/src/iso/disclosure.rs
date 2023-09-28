@@ -6,6 +6,8 @@
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
@@ -99,3 +101,17 @@ pub enum DeviceAuth {
 pub type Errors = IndexMap<NameSpace, ErrorItems>;
 pub type ErrorItems = IndexMap<DataElementIdentifier, ErrorCode>;
 pub type ErrorCode = i32;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SessionData {
+    pub data: Option<ByteBuf>,
+    pub status: Option<SessionStatus>,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum SessionStatus {
+    EncryptionError = 10,
+    DecodingError = 11,
+    Termination = 20,
+}

@@ -9,6 +9,7 @@ mock = ["wallet_common/mock", "wallet_common/software-keys"]
 examples = ["anyhow", "hex-literal"]
 
 [dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium = { workspace = true }

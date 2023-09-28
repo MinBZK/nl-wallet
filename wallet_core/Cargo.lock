@@ -1976,6 +1976,7 @@ dependencies = [
 name = "nl_wallet_mdoc"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
  "chrono",

@@ -67,8 +67,11 @@ pub struct NFCHandover {
     pub handover_request_message: Option<ByteBuf>,
 }
 
-/// Describes available methods for the holder to connect to the RP.
+/// Describes available methods for the RP to connect to the holder.
 pub type DeviceEngagement = CborIntMap<Engagement>;
+
+/// Describes available methods for the holder to connect to the RP.
+pub type ReaderEngagement = CborIntMap<Engagement>;
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
