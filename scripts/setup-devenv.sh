@@ -17,7 +17,7 @@
 # - openssl: needed to generate keys and certificates
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
-# - docker: with compose extension, to run the digid-connector
+# - docker: with compose v2 extension, to run the digid-connector
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
