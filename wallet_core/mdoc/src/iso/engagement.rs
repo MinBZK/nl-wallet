@@ -18,9 +18,7 @@ use crate::{
     iso::{disclosure::*, mdocs::*},
     utils::{
         cose::CoseKey,
-        serialization::{
-            CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, RequiredValueTrait, TaggedBytes,
-        },
+        serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
     },
 };
 
@@ -75,11 +73,17 @@ pub type DeviceEngagement = CborIntMap<Engagement>;
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct Engagement {
-    pub version: String,
+    pub version: EngagementVersion,
     pub security: Option<Security>,
     pub connection_methods: Option<ConnectionMethods>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub origin_infos: Vec<OriginInfo>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum EngagementVersion {
+    #[serde(rename = "1.0")]
+    V1_0,
 }
 
 /// Describes the kind and direction of the previously received protocol message.
@@ -109,8 +113,14 @@ pub type Security = CborSeq<SecurityKeyed>;
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SecurityKeyed {
-    pub cipher_suite_identifier: u64,
+    pub cipher_suite_identifier: CipherSuiteIdentifier,
     pub e_sender_key_bytes: ESenderKeyBytes,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum CipherSuiteIdentifier {
+    P256 = 1,
 }
 
 // Called DeviceRetrievalMethods in ISO 18013-5
@@ -122,23 +132,21 @@ pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
     #[serde(rename = "type")]
-    pub typ: RequiredValue<RestApiType>,
-    pub version: RequiredValue<RestApiOptionsVersion>,
+    pub typ: ConnectionMethodType,
+    pub version: ConnectionMethodVersion,
     pub connection_options: CborSeq<RestApiOptionsKeyed>,
 }
 
-#[derive(Debug, Clone)]
-pub struct RestApiType {}
-impl RequiredValueTrait for RestApiType {
-    type Type = u64;
-    const REQUIRED_VALUE: Self::Type = 4;
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum ConnectionMethodType {
+    RestApi = 4,
 }
 
-#[derive(Debug, Clone)]
-pub struct RestApiOptionsVersion {}
-impl RequiredValueTrait for RestApiOptionsVersion {
-    type Type = u64;
-    const REQUIRED_VALUE: Self::Type = 1;
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum ConnectionMethodVersion {
+    RestApi = 1,
 }
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
