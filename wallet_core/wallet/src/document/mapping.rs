@@ -26,15 +26,6 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
             "com.example.pid",
             IndexMap::from([
                 (
-                    ("com.example.pid", "unique_id"),
-                    DataElementValueMapping {
-                        key: "unique_id",
-                        is_mandatory: true,
-                        key_labels: HashMap::from([("en", "Unique identifier"), ("nl", "Unieke identificatiecode")]),
-                        value_type: AttributeValueType::String,
-                    },
-                ),
-                (
                     ("com.example.pid", "given_name"),
                     DataElementValueMapping {
                         key: "given_name",

@@ -18,7 +18,6 @@ bsn_privkey = '{"kty":"RSA","alg":"RSA-OAEP","n":"xfmmVxzkfT61O7W2C5PsFEL2Hc3MzX
 
 [[mock_data]]
 [mock_data.person]
-unique_id = "2"
 bsn = "999991772"
 given_name = "Willeke Liselotte"
 family_name = "De Bruijn"

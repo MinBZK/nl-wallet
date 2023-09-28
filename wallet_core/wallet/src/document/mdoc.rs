@@ -249,10 +249,6 @@ mod tests {
                         name: "age_over_18".to_string(),
                         value: DataElementValue::Bool(true),
                     },
-                    Entry {
-                        name: "unique_id".to_string(),
-                        value: DataElementValue::Text("78f39496-701f-4f05-a507-5852fa898fd8".to_string()),
-                    },
                 ],
             )]),
         }
@@ -310,29 +306,15 @@ mod tests {
         assert_eq!(document.doc_type, "com.example.pid");
         assert_eq!(
             document.attributes.keys().cloned().collect::<Vec<_>>(),
-            vec![
-                "unique_id",
-                "given_name",
-                "family_name",
-                "birth_date",
-                "age_over_18",
-                "bsn"
-            ]
-        );
-        assert_matches!(
-            document.attributes.get("unique_id").unwrap(),
-            Attribute {
-                key_labels,
-                value: AttributeValue::String(unique_id),
-            } if key_labels == &HashMap::from([("en", "Unique identifier"), ("nl", "Unieke identificatiecode")]) &&
-                 unique_id == "78f39496-701f-4f05-a507-5852fa898fd8"
+            vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
             document.attributes.get("given_name").unwrap(),
             Attribute {
-                key_labels: _,
+                key_labels,
                 value: AttributeValue::String(given_name),
-            } if given_name == "Willeke Liselotte"
+            } if key_labels == &HashMap::from([("en", "First names"), ("nl", "Voornamen")]) &&
+                 given_name == "Willeke Liselotte"
         );
         assert_matches!(
             document.attributes.get("family_name").unwrap(),
@@ -395,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_unsigned_mdoc_to_document_mapping_missing_attribute_error() {
-        // Test removing the "unique_id" attribute.
+        // Test removing the `age_over_18` attribute.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap().pop();
 
@@ -407,7 +389,7 @@ mod tests {
                 doc_type,
                 name_space,
                 name
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "unique_id"
+            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "age_over_18"
         );
 
         // Test removing the "gender" attribute, conversion should still succeed.
@@ -470,7 +452,12 @@ mod tests {
         // Test changing the "gender" attribute to an invalid value.
         let mut unsigned_mdoc = create_full_unsigned_pid_mdoc();
         _ = mem::replace(
-            &mut unsigned_mdoc.attributes.get_mut("com.example.pid").unwrap()[12],
+            unsigned_mdoc
+                .attributes
+                .get_mut("com.example.pid")
+                .unwrap()
+                .last_mut()
+                .unwrap(),
             Entry {
                 name: "gender".to_string(),
                 value: DataElementValue::Integer(5.into()),

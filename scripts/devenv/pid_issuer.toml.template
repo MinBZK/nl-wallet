@@ -18,7 +18,6 @@ bsn_privkey = '${BSN_PRIVKEY}'
 
 [[mock_data]]
 [mock_data.person]
-unique_id = "2"
 bsn = "999991772"
 given_name = "Willeke Liselotte"
 family_name = "De Bruijn"
