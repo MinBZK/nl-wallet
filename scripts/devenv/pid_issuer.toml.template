@@ -1,7 +1,7 @@
 # The commented out lines show optional configuration with their default value.
 # All key material should be replaced with secret values.
 
-public_url = "http://${DIGID_CONNECTOR_HOST}:3003/"
+public_url = "http://${SERVICES_HOST}:3003/"
 
 [webserver]
 # ip = "0.0.0.0"
@@ -13,7 +13,7 @@ certificate = "${PID_ISSUER_CRT}"
 
 [digid]
 client_id = "${WALLET_CLIENT_ID}"
-issuer_url = "https://${DIGID_CONNECTOR_HOST}:8006"
+issuer_url = "https://${SERVICES_HOST}:8006"
 bsn_privkey = '${BSN_PRIVKEY}'
 
 [[mock_data]]
