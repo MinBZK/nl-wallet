@@ -14,6 +14,7 @@ use serde::{
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
+use x509_parser::nom::AsBytes;
 
 use crate::{
     iso::*,
@@ -250,25 +251,33 @@ impl Serialize for Handover {
                 }
             }
             .serialize(serializer),
+            Handover::SchemeHandoverBytes(reader_engagement) => reader_engagement.serialize(serializer),
         }
     }
 }
+
+// In production code, this struct is never deserialized.
+#[cfg(feature = "examples")]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO check: will this correctly deserialize `null`?
-        match Option::<Vec<ByteBuf>>::deserialize(deserializer)? {
-            None => Ok(Handover::QRHandover),
-            Some(bts_vec) => match bts_vec.len() {
+        let val = Value::deserialize(deserializer).unwrap();
+        match val {
+            Value::Null => Ok(Handover::QRHandover),
+            Value::Bytes(bytes) => Ok(Handover::SchemeHandoverBytes(
+                cbor_deserialize(bytes.as_bytes()).unwrap(),
+            )),
+            Value::Array(bts_vec) => match bts_vec.len() {
                 1 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].clone(),
+                    handover_select_message: bts_vec[0].deserialized().unwrap(),
                     handover_request_message: None,
                 })),
                 2 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].clone(),
-                    handover_request_message: Some(bts_vec[1].clone()),
+                    handover_select_message: bts_vec[0].deserialized().unwrap(),
+                    handover_request_message: Some(bts_vec[1].deserialized().unwrap()),
                 })),
-                _ => Err(de::Error::custom("unexpected amount of byte sequences found")),
+                _ => panic!(),
             },
+            _ => panic!(),
         }
     }
 }

@@ -35,7 +35,9 @@ pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
 pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 
 /// See [`DeviceAuthentication`].
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+// In production code, this struct is never deserialized.
+#[cfg_attr(feature = "examples", derive(Deserialize))]
+#[derive(Serialize, FieldNames, Debug, Clone)]
 pub struct DeviceAuthenticationKeyed {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,
     pub session_transcript: SessionTranscript,
@@ -43,7 +45,9 @@ pub struct DeviceAuthenticationKeyed {
     pub device_name_spaces_bytes: DeviceNameSpacesBytes,
 }
 
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+// In production code, this struct is never deserialized.
+#[cfg_attr(feature = "examples", derive(Deserialize))]
+#[derive(Serialize, FieldNames, Debug, Clone)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: DeviceEngagementBytes,
     pub ereader_key_bytes: ESenderKeyBytes,
@@ -59,6 +63,7 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 pub enum Handover {
     QRHandover,
     NFCHandover(NFCHandover),
+    SchemeHandoverBytes(TaggedBytes<ReaderEngagement>),
 }
 
 #[derive(Debug, Clone)]
