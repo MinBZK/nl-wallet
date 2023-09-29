@@ -123,6 +123,7 @@ impl TryFrom<&CoseKey> for VerifyingKey {
     }
 }
 
+/// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
 pub struct SessionKey {
     key: Vec<u8>,
     user: SessionKeyUser,
@@ -136,6 +137,8 @@ pub enum SessionKeyUser {
 }
 
 impl SessionKey {
+    /// Return a new [`SessionKey`] derived using Diffie-Hellman and a Key Derivation Function (KDF),
+    /// as specified by the standard.
     pub fn new(
         privkey: &EphemeralSecret,
         pubkey: &PublicKey,
@@ -155,6 +158,7 @@ impl SessionKey {
 }
 
 impl SessionData {
+    /// Construct a nonce for AES GCM encryption as specified by the standard.
     fn nonce(user: SessionKeyUser) -> Nonce<Aes256Gcm> {
         let mut nonce = vec![0u8; 12];
 
@@ -228,11 +232,11 @@ mod test {
         let plaintext = ToyMessage::default();
 
         let device_privkey = EphemeralSecret::random(&mut OsRng);
-        let reader_privkey = EphemeralSecret::random(&mut OsRng);
+        let reader_pubkey = EphemeralSecret::random(&mut OsRng).public_key();
 
         let key = SessionKey::new(
             &device_privkey,
-            &reader_privkey.public_key(),
+            &reader_pubkey,
             &DeviceAuthenticationBytes::example().0 .0.session_transcript,
             SessionKeyUser::Device,
         )

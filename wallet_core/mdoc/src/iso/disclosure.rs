@@ -102,12 +102,15 @@ pub type Errors = IndexMap<NameSpace, ErrorItems>;
 pub type ErrorItems = IndexMap<DataElementIdentifier, ErrorCode>;
 pub type ErrorCode = i32;
 
+/// Contains an encrypted mdoc disclosure protocol message, and a status code containing an error code or a code
+/// that aborts the session.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SessionData {
     pub data: Option<ByteBuf>,
     pub status: Option<SessionStatus>,
 }
 
+/// Status codes sent along with encrypted mdoc disclosure protocol messages in [`StatusCode`].
 #[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
 #[repr(u8)]
 pub enum SessionStatus {

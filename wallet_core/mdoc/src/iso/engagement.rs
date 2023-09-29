@@ -107,13 +107,14 @@ pub enum OriginInfoDirection {
 
 #[derive(Debug, Clone)]
 pub enum OriginInfoType {
-    Website(Url),   // 1
-    OnDeviceQRCode, // 2
-    MessageData,    // 4
+    Website(Url),
+    OnDeviceQRCode,
+    MessageData,
 }
 
 pub type Security = CborSeq<SecurityKeyed>;
 
+/// The ephemeral public key used for establishing an E2E encrypted protocol channel.
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: CipherSuiteIdentifier,
@@ -126,12 +127,13 @@ pub enum CipherSuiteIdentifier {
     P256 = 1,
 }
 
-// Called DeviceRetrievalMethods in ISO 18013-5
+/// Describes the available connection methods. Called DeviceRetrievalMethods in ISO 18013-5
 pub type ConnectionMethods = Vec<ConnectionMethod>;
 
-// Called DeviceRetrievalMethod in ISO 18013-5
+/// Describes an available connection method. Called DeviceRetrievalMethod in ISO 18013-5
 pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 
+/// Describes an available connection method.
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
     #[serde(rename = "type")]
