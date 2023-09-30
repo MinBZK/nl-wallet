@@ -100,7 +100,7 @@ sequenceDiagram
     user->>issuer_website: click button [e.g. "login" or "prove older than 18"]
     issuer_website->>issuer_app: buttonClicked()
     activate issuer_app
-        issuer_app->>issuer_app: compute attributes to be issued
+        issuer_app->>issuer_app: authenticate user and<br>compute attributes to be issued
         issuer_app->>issuer_server: startIssuance(unsigned_attributes)
         activate issuer_server
             issuer_server->>issuer_server: generate session_token,<br>store session
