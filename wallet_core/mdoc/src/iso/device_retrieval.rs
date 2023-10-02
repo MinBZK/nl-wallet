@@ -11,7 +11,7 @@ use crate::{
     iso::{engagement::*, mdocs::*},
     utils::{
         cose::MdocCose,
-        serialization::{CborSeq, NullCborValue, ReaderAuthenticationString, RequiredValue, TaggedBytes},
+        serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
     },
 };
 use fieldnames_derive::FieldNames;
