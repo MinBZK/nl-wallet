@@ -2,11 +2,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/model/attribute/data_attribute.dart';
+import '../domain/model/card_front.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_label_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
+import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/locale_mapper.dart';
@@ -34,23 +36,26 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => CoreErrorMapper(),
         ),
 
-        /// Card mappers
-        RepositoryProvider<LocaleMapper<Card, WalletCard>>(
-          create: (context) => CardMapper(context.read(), context.read()),
-        ),
-        RepositoryProvider<LocaleMapper<Card, String>>(
-          create: (context) => CardSubtitleMapper(context.read()),
-        ),
-
         /// Card attribute mappers
+        RepositoryProvider<LocaleMapper<CardValue, String>>(
+          create: (context) => CardAttributeValueMapper(),
+        ),
         RepositoryProvider<LocaleMapper<List<LocalizedString>, String>>(
           create: (context) => CardAttributeLabelMapper(),
         ),
         RepositoryProvider<LocaleMapper<CardAttribute, DataAttribute>>(
           create: (context) => CardAttributeMapper(context.read(), context.read()),
         ),
-        RepositoryProvider<LocaleMapper<CardValue, String>>(
-          create: (context) => CardAttributeValueMapper(),
+
+        /// Card mappers
+        RepositoryProvider<LocaleMapper<Card, String>>(
+          create: (context) => CardSubtitleMapper(context.read()),
+        ),
+        RepositoryProvider<LocaleMapper<Card, CardFront>>(
+          create: (context) => CardFrontMapper(context.read()),
+        ),
+        RepositoryProvider<LocaleMapper<Card, WalletCard>>(
+          create: (context) => CardMapper(context.read(), context.read()),
         ),
 
         /// Pid mappers

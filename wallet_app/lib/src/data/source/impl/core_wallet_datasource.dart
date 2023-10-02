@@ -3,14 +3,15 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../../util/mapper/card/card_mapper.dart';
+import '../../../util/mapper/locale_mapper.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
+import '../../../wallet_core/wallet_core.dart';
 import '../../store/active_locale_provider.dart';
 import '../wallet_datasource.dart';
 
 class CoreWalletDataSource implements WalletDataSource {
   final TypedWalletCore _walletCore;
-  final CardMapper _cardMapper;
+  final LocaleMapper<Card, WalletCard> _cardMapper;
   final ActiveLocaleProvider _localeProvider;
 
   CoreWalletDataSource(this._walletCore, this._cardMapper, this._localeProvider);
