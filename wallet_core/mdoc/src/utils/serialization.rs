@@ -14,7 +14,6 @@ use serde::{
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
-use x509_parser::nom::AsBytes;
 
 use crate::{
     iso::*,
@@ -141,9 +140,9 @@ impl<T> From<T> for CborIntMap<T> {
     }
 }
 
-impl<'de, T> Serialize for CborSeq<T>
+impl<T> Serialize for CborSeq<T>
 where
-    T: Serialize + Deserialize<'de>,
+    T: Serialize,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
@@ -158,7 +157,7 @@ where
 }
 impl<'de, T> Deserialize<'de> for CborSeq<T>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Deserialize<'de> + FieldNames,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<Value>::deserialize(deserializer)?;
@@ -176,9 +175,9 @@ where
     }
 }
 
-impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
+impl<T, const STRING: bool> Serialize for CborIntMap<T, STRING>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Serialize + FieldNames,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let field_name_indices: IndexMap<String, Value> = T::field_names()
@@ -215,7 +214,7 @@ where
 }
 impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Deserialize<'de> + FieldNames,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let ordered_map = match Value::deserialize(deserializer)? {
@@ -260,6 +259,7 @@ impl Serialize for Handover {
 #[cfg(feature = "examples")]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use x509_parser::nom::AsBytes;
         let val = Value::deserialize(deserializer).unwrap();
         match val {
             Value::Null => Ok(Handover::QRHandover),
