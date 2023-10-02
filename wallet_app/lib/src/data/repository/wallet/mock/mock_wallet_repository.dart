@@ -16,7 +16,8 @@ const _kTimeoutUnlockAttempts = 4;
 const kMaxUnlockAttempts = 6;
 
 class MockWalletRepository implements WalletRepository {
-  WalletDataSource dataSource;
+  final WalletDataSource _dataSource;
+
   String? _pin;
 
   /// The amount of times the user incorrectly entered the pin, resets to 0 on a successful attempt.
@@ -24,7 +25,7 @@ class MockWalletRepository implements WalletRepository {
   final BehaviorSubject<bool> _locked = BehaviorSubject<bool>.seeded(true);
   final BehaviorSubject<bool> _isInitialized = BehaviorSubject<bool>.seeded(false);
 
-  MockWalletRepository(this.dataSource);
+  MockWalletRepository(this._dataSource);
 
   @override
   void lockWallet() => _locked.add(true);
@@ -133,12 +134,12 @@ class MockWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<bool> containsPid() async => (await dataSource.read('PID_1')) != null;
+  Future<bool> containsPid() async => (await _dataSource.read('PID_1')) != null;
 
   @override
   Future<void> resetWallet() async {
     if (!isInitialized) throw UnsupportedError('Wallet not yet initialized!');
-    dataSource.clear();
+    _dataSource.clear();
     _pin == null;
     _isInitialized.add(false);
     _invalidPinAttempts = 0;

@@ -12,7 +12,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/mapper/timeline_attribute_status_mapper.dart';
+import '../../../util/formatter/timeline_attribute_status_formatter.dart';
 import '../../../wallet_feature_flags.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
@@ -140,7 +140,7 @@ class CardDetailScreen extends StatelessWidget {
   String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
-      final String status = TimelineAttributeStatusTextMapper.map(context, attribute).toLowerCase();
+      final String status = TimelineAttributeStatusTextFormatter.map(context, attribute).toLowerCase();
       return context.l10n.cardDetailScreenLatestSuccessInteraction(
         attribute.organization.shortName,
         status,

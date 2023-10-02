@@ -1,21 +1,19 @@
-import 'dart:ui';
-
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../wallet_core/wallet_core.dart';
-import 'card_attribute_label_mapper.dart';
-import 'card_attribute_value_mapper.dart';
+import '../../locale_mapper.dart';
 
-class CardAttributeMapper {
-  final CardAttributeLabelMapper _labelMapper;
-  final CardAttributeValueMapper _valueMapper;
+class CardAttributeMapper extends LocaleMapper<CardAttribute, DataAttribute> {
+  final LocaleMapper<List<LocalizedString>, String> _attributeLabelMapper;
+  final LocaleMapper<CardValue, String> _attributeValueMapper;
 
-  CardAttributeMapper(this._labelMapper, this._valueMapper);
+  CardAttributeMapper(this._attributeLabelMapper, this._attributeValueMapper);
 
-  DataAttribute map(CardAttribute input, Locale locale) {
+  @override
+  DataAttribute map(Locale locale, CardAttribute input) {
     return DataAttribute(
       key: input.key,
-      label: _labelMapper.map(input.labels, locale.languageCode),
-      value: _valueMapper.map(input.value, locale),
+      label: _attributeLabelMapper.map(locale, input.labels),
+      value: _attributeValueMapper.map(locale, input.value),
       sourceCardId: '',
       valueType: AttributeValueType.text,
     );

@@ -4,10 +4,13 @@ import '../../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/formatter/time_ago_formatter.dart';
+import '../../../../util/formatter/timeline_attribute_status_formatter.dart';
 import '../../../../util/formatter/timeline_attribute_title_formatter.dart';
-import '../../../../util/mapper/timeline_attribute_error_status_icon_mapper.dart';
-import '../../../../util/mapper/timeline_attribute_status_color_mapper.dart';
-import '../../../../util/mapper/timeline_attribute_status_mapper.dart';
+import '../../../../util/mapper/timeline/interaction_error_status_icon_mapper.dart';
+import '../../../../util/mapper/timeline/interaction_status_color_mapper.dart';
+import '../../../../util/mapper/timeline/signing_error_status_icon_mapper.dart';
+import '../../../../util/mapper/timeline/timeline_attribute_error_status_icon_mapper.dart';
+import '../../../../util/mapper/timeline/timeline_attribute_status_color_mapper.dart';
 import '../organization/organization_logo.dart';
 
 const _kOrganizationLogoSize = 40.0;
@@ -83,9 +86,18 @@ class TimelineAttributeRow extends StatelessWidget {
   Widget _buildTypeRow(BuildContext context, TimelineAttribute attribute) {
     final bool hideTypeRow = attribute is InteractionTimelineAttribute && attribute.status == InteractionStatus.success;
     if (!hideTypeRow) {
-      final IconData? errorStatusIcon = TimelineAttributeErrorStatusIconMapper.map(attribute);
-      final String typeText = TimelineAttributeStatusTextMapper.map(context, attribute);
-      final Color typeTextColor = TimelineAttributeStatusColorMapper.map(context, attribute);
+      final interactionErrorStatusIconMapper = InteractionErrorStatusIconMapper();
+      final signingErrorStatusIconMapper = SigningErrorStatusIconMapper();
+      final errorStatusIconMapper = TimelineAttributeErrorStatusIconMapper(
+        interactionErrorStatusIconMapper,
+        signingErrorStatusIconMapper,
+      );
+      final interactionStatusColorMapper = InteractionStatusColorMapper();
+      final statusColorMapper = TimelineAttributeStatusColorMapper(interactionStatusColorMapper);
+
+      final IconData? errorStatusIcon = errorStatusIconMapper.map(attribute);
+      final String typeText = TimelineAttributeStatusTextFormatter.map(context, attribute);
+      final Color typeTextColor = statusColorMapper.map(context, attribute);
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 2),

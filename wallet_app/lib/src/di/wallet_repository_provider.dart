@@ -33,7 +33,6 @@ import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
-import '../util/mapper/pin/pin_validation_error_mapper.dart';
 
 /// This widget is responsible for initializing and providing all `repositories`.
 /// Most likely to be used once at the top (app) level.
@@ -50,7 +49,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<WalletRepository>(
           create: (context) => provideMocks
               ? MockWalletRepository(context.read())
-              : CoreWalletRepository(context.read(), PinValidationErrorMapper()),
+              : CoreWalletRepository(context.read(), context.read()),
         ),
         RepositoryProvider<OrganizationRepository>(
           create: (context) => OrganizationRepositoryImpl(context.read()),
@@ -74,9 +73,8 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => provideMocks ? MockQrRepository() : QrRepositoryImpl(),
         ),
         RepositoryProvider<IssuanceResponseRepository>(
-          create: (context) => provideMocks
-              ? MockIssuanceResponseRepository(context.read(), context.read())
-              : IssuanceResponseRepositoryImpl(),
+          create: (context) =>
+              provideMocks ? MockIssuanceResponseRepository(context.read()) : IssuanceResponseRepositoryImpl(),
         ),
         RepositoryProvider<SignRequestRepository>(
           create: (context) => provideMocks ? MockSignRequestRepository(context.read()) : SignRequestRepositoryImpl(),
