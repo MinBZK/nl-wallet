@@ -25,7 +25,8 @@ use wallet::{
     errors::{InstructionError, WalletUnlockError},
     mock::{MockDigidClient, MockPidIssuerClient, MockStorage},
     wallet_deps::{HttpAccountProviderClient, HttpPidIssuerClient, LocalConfigurationRepository},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
+    AccountProviderClient, AttributeValue, Configuration, ConfigurationRepository, DigidClient, Document,
+    PidIssuerClient, Storage, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -521,19 +522,31 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     assert!(wallet.has_registration());
 
     let redirect_url = wallet.create_pid_issuance_redirect_uri().await?;
-    let unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await?;
-    dbg!(&unsigned_mdocs);
-
+    let _unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await?;
     wallet.accept_pid_issuance("112234".to_string()).await?;
 
-    let mdocs = wallet.list_mdocs().await;
+    // Emit documents into this local variable
+    let documents: Arc<std::sync::Mutex<Vec<Document>>> = Arc::new(std::sync::Mutex::new(vec![]));
+    {
+        let documents = documents.clone();
+        wallet
+            .set_documents_callback(move |mut d| {
+                let mut documents = documents.lock().unwrap();
+                documents.append(&mut d)
+            })
+            .await
+            .unwrap();
+    }
 
-    dbg!(&mdocs);
+    // Verify that the first mdoc contains the bns
+    let documents = documents.lock().unwrap();
+    let pid_mdoc = documents.first().unwrap();
+    let bsn_attr = pid_mdoc.attributes.iter().find(|a| *a.0 == "bsn");
 
-    let pid_mdocs = mdocs.first().unwrap().1;
-    let namespace = pid_mdocs.first().unwrap();
-    let attrs = namespace.first().unwrap().1;
-    assert!(!attrs.is_empty());
+    match bsn_attr {
+        Some(bsn_attr) => assert_eq!(bsn_attr.1.value, AttributeValue::String("999991772".to_string())),
+        None => panic!("BSN attribute not found"),
+    }
 
     Ok(())
 }

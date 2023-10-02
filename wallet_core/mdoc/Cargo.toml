@@ -5,7 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = ["wallet_common/mock", "wallet_common/software-keys"]
+examples = ["dep:anyhow", "dep:hex-literal"]
+mock = ["examples", "wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -29,6 +30,9 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
+
+anyhow = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
 
 fieldnames = { path = "./fieldnames" }
 fieldnames_derive = { path = "./fieldnames_derive" }

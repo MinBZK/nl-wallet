@@ -1,13 +1,11 @@
 use std::error::Error;
 
 use futures::future::TryFutureExt;
-use indexmap::IndexMap;
 use p256::ecdsa::signature;
 use tokio::sync::RwLock;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{basic_sa_ext::Entry, utils::mdocs_map::MdocsMap, DocType, NameSpace};
 use platform_support::{
     hw_keystore::{
         hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
@@ -15,10 +13,7 @@ use platform_support::{
     },
     utils::hardware::HardwareUtilities,
 };
-use wallet_common::{
-    account::messages::{auth::Registration, instructions::CheckPin},
-    utils::random_string,
-};
+use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError, HttpAccountProviderClient},
@@ -93,6 +88,14 @@ pub enum PidIssuanceError {
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
     Document(#[from] DocumentMdocError),
+    #[error("could not access mdocs database: {0}")]
+    Database(#[from] StorageError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SetDocumentsCallbackError {
+    #[error("Could not fetch mdocs from database storage: {0}")]
+    Storage(#[from] StorageError),
 }
 
 pub enum RedirectUriType {
@@ -121,7 +124,6 @@ pub struct Wallet<
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
     documents_callback: Option<DocumentsCallback>,
-    mdoc_storage: MdocsMap,
 }
 
 impl Wallet {
@@ -172,7 +174,6 @@ where
             registration,
             config_callback: None,
             documents_callback: None,
-            mdoc_storage: MdocsMap::new(),
         };
 
         Ok(wallet)
@@ -218,39 +219,55 @@ where
         self.config_callback.take();
     }
 
-    pub fn set_documents_callback<F>(&mut self, callback: F)
+    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), SetDocumentsCallbackError>
     where
         F: FnMut(Vec<Document>) + Send + Sync + 'static,
     {
         self.documents_callback.replace(Box::new(callback));
-        self.emit_documents();
+
+        // If the `Wallet` is not registered, the database will not be open.
+        // In that case send an empty vec, so the UI has something to work with.
+        //
+        // TODO: have the UI not call this until after registration.
+        if self.has_registration() {
+            self.emit_documents().await?;
+        } else {
+            self.documents_callback.as_mut().unwrap()(Default::default());
+        }
+
+        Ok(())
     }
 
-    fn emit_documents(&mut self) {
+    async fn emit_documents(&mut self) -> Result<(), StorageError> {
+        info!("Emit mdocs from storage");
+
+        let storage = self.storage.read().await;
+
+        // Note that this currently panics whenever conversion from Mdoc to Documents fails,
+        // as we assume that the (hardcoded) mapping will always be backwards compatible.
+        // This is particularly important when this mapping comes from a trusted registry
+        // in the near future!
+        let mut documents = storage
+            .fetch_unique_mdocs()
+            .await?
+            .into_iter()
+            .map(|(id, mdoc)| {
+                Document::from_mdoc_attributes(
+                    DocumentPersistence::Stored(id.to_string()),
+                    &mdoc.doc_type,
+                    mdoc.attributes(),
+                )
+                .expect("Could not interpret stored mdoc attributes")
+            })
+            .collect::<Vec<_>>();
+
+        documents.sort_by_key(Document::priority);
+
         if let Some(ref mut callback) = self.documents_callback {
-            // Note that this currently panics whenever conversion from Mdoc to Documents fails,
-            // as we assume that the (hardcoded) mapping will always be backwards compatible.
-            // This is particularly important when this mapping comes from a trusted registry
-            // in the near future!
-            let mut documents = self
-                .mdoc_storage
-                .list()
-                .into_iter()
-                .flat_map(|(doc_type, mdocs_attributes)| {
-                    mdocs_attributes.into_iter().map(move |attributes| {
-                        // TODO: Get id from the database instead of making one up.
-                        let id = random_string(16);
-
-                        Document::from_mdoc_attributes(DocumentPersistence::Stored(id), &doc_type, attributes)
-                            .expect("Could not interpret stored mdoc attributes")
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            documents.sort_by_key(Document::priority);
-
             callback(documents);
         }
+
+        Ok(())
     }
 
     pub fn clear_documents_callback(&mut self) {
@@ -501,10 +518,9 @@ where
                 }
             })?;
 
-        // TODO store the mdocs in the database
-        self.mdoc_storage = mdocs;
+        self.storage.get_mut().insert_mdocs(mdocs).await?;
 
-        self.emit_documents();
+        self.emit_documents().await?;
 
         Ok(())
     }
@@ -512,11 +528,6 @@ where
     #[instrument(skip_all)]
     pub async fn reject_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
-    }
-
-    #[instrument(skip_all)]
-    pub async fn list_mdocs(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
-        self.mdoc_storage.list()
     }
 }
 

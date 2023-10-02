@@ -85,7 +85,7 @@ impl Cose for CoseMac0 {
 }
 
 /// Wrapper around [`Cose`] implementors adding typesafe verification and CBOR parsing functions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MdocCose<C, T>(pub C, PhantomData<T>);
 
 impl<C, T> MdocCose<C, T>
@@ -284,7 +284,7 @@ impl ClonePayload for CoseMac0 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CoseKey(pub coset::CoseKey);
 impl From<coset::CoseKey> for CoseKey {
     fn from(key: coset::CoseKey) -> Self {

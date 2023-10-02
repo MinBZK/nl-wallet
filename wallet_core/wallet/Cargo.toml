@@ -31,6 +31,7 @@ ring = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
+    "with-uuid",
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -38,12 +39,11 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
 entity = { path = "entity" }
 migration = { path = "migration" }
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "mock",
-] } # TODO remove features once actual storage is used
+nl_wallet_mdoc = { path = "../mdoc" }
 platform_support = { path = "../platform_support" }
 wallet_common = { path = "../wallet_common" }
 
@@ -56,6 +56,7 @@ tempfile = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 wiremock = { workspace = true }
 
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
 

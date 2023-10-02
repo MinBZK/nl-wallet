@@ -16,3 +16,9 @@ pub mod utils;
 /// Errors that can happen throughout the crate.
 pub mod errors;
 pub use errors::*;
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock;
+
+#[cfg(any(test, feature = "examples"))]
+pub mod examples;

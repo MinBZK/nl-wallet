@@ -14,8 +14,8 @@ use crate::holder::MdocRetriever;
 /// - multiple mdocs having the same doctype but distinct attributes, through the map over `Vec<u8>` which is computed
 ///   with [`Mdoc::hash()`] (see its rustdoc for details),
 /// - multiple mdocs having the same doctype and the same attributes, through the `MdocCopies` data structure.
-#[derive(Debug, Clone, Default)]
-pub struct MdocsMap(pub(crate) IndexMap<DocType, IndexMap<Vec<u8>, MdocCopies>>);
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct MdocsMap(pub IndexMap<DocType, IndexMap<Vec<u8>, MdocCopies>>);
 
 impl<const N: usize> TryFrom<[Mdoc; N]> for MdocsMap {
     type Error = Error;
@@ -43,7 +43,7 @@ impl MdocsMap {
     }
 
     pub fn add(&mut self, creds: impl Iterator<Item = Mdoc>) -> Result<(), Error> {
-        for cred in creds.into_iter() {
+        for cred in creds {
             self.0
                 .entry(cred.doc_type.clone())
                 .or_default()
@@ -80,5 +80,37 @@ impl MdocRetriever for MdocsMap {
                 .map(|(_key, entry)| entry.cred_copies.to_vec().into())
                 .collect()
         })
+    }
+}
+
+pub struct MdocsMapIntoIterator {
+    mdocs: Vec<Mdoc>,
+}
+
+impl IntoIterator for MdocsMap {
+    type Item = Mdoc;
+
+    type IntoIter = MdocsMapIntoIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let mdocs = self
+            .0
+            .into_iter()
+            .flat_map(|(_, allcreds)| allcreds.into_iter())
+            .flat_map(|(_, doctype_creds)| doctype_creds.cred_copies.into_iter())
+            .collect();
+        MdocsMapIntoIterator { mdocs }
+    }
+}
+
+impl Iterator for MdocsMapIntoIterator {
+    type Item = Mdoc;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.mdocs.is_empty() {
+            None
+        } else {
+            Some(self.mdocs.remove(0))
+        }
     }
 }
