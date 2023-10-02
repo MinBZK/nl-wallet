@@ -11,7 +11,7 @@ use crate::{
     iso::{engagement::*, mdocs::*},
     utils::{
         cose::MdocCose,
-        serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
+        serialization::{CborSeq, NullCborValue, ReaderAuthenticationString, RequiredValue, TaggedBytes},
     },
 };
 use fieldnames_derive::FieldNames;
@@ -49,11 +49,12 @@ pub struct DocRequest {
     pub reader_auth: Option<ReaderAuth>,
 }
 
-pub type ReaderAuth = MdocCose<CoseSign1, ReaderAuthenticationBytes>;
+pub type ReaderAuth = MdocCose<CoseSign1, RequiredValue<NullCborValue>>;
 pub type ReaderAuthenticationBytes = TaggedBytes<ReaderAuthentication>;
 pub type ReaderAuthentication = CborSeq<ReaderAuthenticationKeyed>;
 
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[cfg_attr(feature = "examples", derive(Deserialize))]
+#[derive(Serialize, FieldNames, Debug, Clone)]
 pub struct ReaderAuthenticationKeyed {
     pub reader_auth_string: RequiredValue<ReaderAuthenticationString>,
     pub session_transcript: SessionTranscript,
