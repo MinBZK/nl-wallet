@@ -36,11 +36,25 @@ class CardDataScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(cardTitle),
-      ),
+      appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final fallbackAppBarTitleText = Text(cardTitle);
+    return AppBar(
+      title: BlocBuilder<CardDataBloc, CardDataState>(
+        builder: (context, state) {
+          return switch (state) {
+            CardDataInitial() => fallbackAppBarTitleText,
+            CardDataLoadInProgress() => fallbackAppBarTitleText,
+            CardDataLoadSuccess() => Text(state.card.front.title),
+            CardDataLoadFailure() => fallbackAppBarTitleText,
+          };
+        },
       ),
     );
   }
@@ -58,7 +72,7 @@ class CardDataScreen extends StatelessWidget {
               return switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
-                CardDataLoadSuccess() => _buildDataAttributes(context, state.attributes),
+                CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
                 CardDataLoadFailure() => _buildError(context),
               };
             },

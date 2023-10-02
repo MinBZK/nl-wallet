@@ -45,11 +45,25 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(cardTitle),
-      ),
+      appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final fallbackAppBarTitleText = Text(cardTitle);
+    return AppBar(
+      title: BlocBuilder<CardDetailBloc, CardDetailState>(
+        builder: (context, state) {
+          return switch (state) {
+            CardDetailInitial() => fallbackAppBarTitleText,
+            CardDetailLoadInProgress() => fallbackAppBarTitleText,
+            CardDetailLoadSuccess() => Text(state.detail.card.front.title),
+            CardDetailLoadFailure() => fallbackAppBarTitleText,
+          };
+        },
       ),
     );
   }

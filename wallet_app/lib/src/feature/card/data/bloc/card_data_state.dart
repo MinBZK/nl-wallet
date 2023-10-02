@@ -17,12 +17,12 @@ class CardDataLoadInProgress extends CardDataState {
 }
 
 class CardDataLoadSuccess extends CardDataState {
-  final List<DataAttribute> attributes;
+  final WalletCard card;
 
-  const CardDataLoadSuccess(this.attributes);
+  const CardDataLoadSuccess(this.card);
 
   @override
-  List<Object> get props => [attributes];
+  List<Object> get props => [card];
 }
 
 class CardDataLoadFailure extends CardDataState {
