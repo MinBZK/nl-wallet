@@ -46,6 +46,8 @@ pub enum CryptoError {
     KeyParseFailed(#[from] p256::ecdsa::Error),
     #[error("AES encryption/decryption failed")]
     Aes,
+    #[error("AES encryption/decryption failed: missing ciphertext")]
+    MissingCiphertext,
 }
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
@@ -192,7 +194,10 @@ impl SessionData {
     pub fn decrypt(&self, key: &SessionKey) -> Result<Vec<u8>> {
         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
         let plaintext = cipher
-            .decrypt(&Self::nonce(key.user), self.data.as_ref().unwrap().as_bytes())
+            .decrypt(
+                &Self::nonce(key.user),
+                self.data.as_ref().ok_or(CryptoError::MissingCiphertext)?.as_bytes(),
+            )
             .map_err(|_| CryptoError::Aes)?;
         Ok(plaintext)
     }
