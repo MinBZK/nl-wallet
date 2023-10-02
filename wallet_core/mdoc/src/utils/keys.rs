@@ -15,7 +15,7 @@ pub trait MdocEcdsaKey: SecureEcdsaKey + WithIdentifier {
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MdocKeyType {
     Software,
     Remote,

@@ -42,7 +42,7 @@ impl<H: HttpClient> Wallet<H> {
 ///
 /// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
 /// for unlinkability.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct MdocCopies {
     pub cred_copies: Vec<Mdoc>,
 }
@@ -66,7 +66,7 @@ impl MdocCopies {
 }
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mdoc {
     /// Doctype of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).

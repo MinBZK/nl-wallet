@@ -45,7 +45,7 @@ pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
 
 /// Wrapper for `T` that serializes as `#6.24(bstr .cbor T)`: a tagged CBOR byte sequence, in which the byte sequence
 /// is the CBOR-serialization of `T`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TaggedBytes<T>(pub T);
 impl<T> From<T> for TaggedBytes<T> {
     fn from(val: T) -> Self {

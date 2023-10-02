@@ -60,7 +60,7 @@ pub struct Document {
 /// of the mdoc), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
 /// attributes may be absent, i.e., not disclosed).
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSigned {
     pub name_spaces: Option<IssuerNameSpaces>,

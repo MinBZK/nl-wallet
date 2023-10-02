@@ -5,4 +5,5 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-sea-orm = { workspace = true, features = ["macros", "with-json"] }
+sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid"] }
+uuid = { workspace = true }

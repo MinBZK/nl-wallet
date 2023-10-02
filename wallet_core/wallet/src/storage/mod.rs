@@ -11,7 +11,12 @@ use std::{array::TryFromSliceError, io};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
+use uuid::Uuid;
 
+use nl_wallet_mdoc::{
+    holder::Mdoc,
+    utils::{mdocs_map::MdocsMap, serialization::CborError},
+};
 use platform_support::utils::UtilitiesError;
 
 pub use self::{
@@ -46,6 +51,8 @@ pub enum StorageError {
     Database(#[from] DbErr),
     #[error("storage database JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("storage database CBOR error: {0}")]
+    Cbor(#[from] CborError),
     #[error("storage database SQLCipher key error: {0}")]
     SqlCipherKey(#[from] TryFromSliceError),
     #[error("{0}")]
@@ -54,15 +61,20 @@ pub enum StorageError {
     PlatformUtilities(#[from] UtilitiesError),
 }
 
+pub type StorageResult<T> = Result<T, StorageError>;
+
 /// This trait abstracts the persistent storage for the wallet.
 #[async_trait]
 pub trait Storage {
-    async fn state(&self) -> Result<StorageState, StorageError>;
+    async fn state(&self) -> StorageResult<StorageState>;
 
-    async fn open(&mut self) -> Result<(), StorageError>;
-    async fn clear(&mut self) -> Result<(), StorageError>;
+    async fn open(&mut self) -> StorageResult<()>;
+    async fn clear(&mut self) -> StorageResult<()>;
 
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError>;
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError>;
+    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
+
+    async fn insert_mdocs(&mut self, mdocs: MdocsMap) -> StorageResult<()>;
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>>;
 }
