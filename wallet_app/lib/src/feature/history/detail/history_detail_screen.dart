@@ -9,15 +9,15 @@ import '../../../domain/model/timeline/signing_timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/history_details_time_formatter.dart';
-import '../../../util/mapper/timeline_attribute_status_description_text_mapper.dart';
+import '../../../util/formatter/timeline_attribute_status_description_text_formatter.dart';
 import '../../../wallet_assets.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/data_attribute_section.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../organization/detail/organization_detail_screen.dart';
@@ -300,7 +300,7 @@ class HistoryDetailScreen extends StatelessWidget {
       title = context.l10n.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
     } else if (attribute is OperationTimelineAttribute) {
       title = attribute.cardTitle;
-      subtitle = TimelineAttributeStatusDescriptionTextMapper.map(context, attribute);
+      subtitle = TimelineAttributeStatusDescriptionTextFormatter.map(context, attribute);
       icon = Icon(
         Icons.credit_card_outlined,
         color: iconColor,

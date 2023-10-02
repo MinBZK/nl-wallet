@@ -5,10 +5,11 @@ import 'package:fimber/fimber.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../../bridge_generated.dart';
+import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/cast_util.dart';
-import '../../../../util/mapper/card/card_mapper.dart';
+import '../../../../util/mapper/locale_mapper.dart';
+import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/error/core_error.dart';
-import '../../../../wallet_core/error/core_error_mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../../store/active_locale_provider.dart';
 import '../pid_repository.dart';
@@ -16,8 +17,8 @@ import '../pid_repository.dart';
 class PidRepositoryImpl extends PidRepository {
   final StreamController<PidIssuanceStatus> _pidIssuanceStatusController = BehaviorSubject();
   final TypedWalletCore _walletCore;
-  final CoreErrorMapper _coreErrorMapper;
-  final CardMapper _cardMapper;
+  final Mapper<String, CoreError> _coreErrorMapper;
+  final LocaleMapper<Card, WalletCard> _cardMapper;
   final ActiveLocaleProvider _localeProvider;
 
   PidRepositoryImpl(
@@ -47,7 +48,7 @@ class PidRepositoryImpl extends PidRepository {
         /// (pid issuance) case that is irrelevant as the labels are actually ignored. See
         /// [PidAttributeMapper], which combines the attributes provided here and formats to be
         /// displayed with custom labels in a friendlier manner.
-        final cards = success.map((card) => _cardMapper.map(card, activeLocale));
+        final cards = success.map((card) => _cardMapper.map(activeLocale, card));
 
         final attributes = cards.map((card) => card.attributes).flattened.toList(growable: false);
         _pidIssuanceStatusController.add(PidIssuanceSuccess(attributes));

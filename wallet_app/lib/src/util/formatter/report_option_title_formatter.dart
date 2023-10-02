@@ -3,9 +3,9 @@ import 'package:flutter/cupertino.dart';
 import '../../feature/report_issue/report_issue_screen.dart';
 import '../extension/build_context_extension.dart';
 
-class ReportingOptionTitleMapper {
-  static String map(BuildContext context, ReportingOption option) {
-    switch (option) {
+class ReportOptionTitleFormatter {
+  static String map(BuildContext context, ReportingOption input) {
+    switch (input) {
       case ReportingOption.unknownOrganization:
         return context.l10n.reportOptionUnknownOrganization;
       case ReportingOption.requestNotInitiated:

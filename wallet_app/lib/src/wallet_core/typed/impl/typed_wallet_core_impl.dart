@@ -4,8 +4,8 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../util/mapper/mapper.dart';
 import '../../error/core_error.dart';
-import '../../error/core_error_mapper.dart';
 import '../../error/flutter_api_error.dart';
 import '../../typed/typed_wallet_core.dart';
 import '../../wallet_core.dart';
@@ -15,7 +15,7 @@ import '../../wallet_core.dart';
 /// flag and parsing of the [FlutterApiError]s.
 class TypedWalletCoreImpl extends TypedWalletCore {
   final WalletCore _walletCore;
-  final CoreErrorMapper _errorMapper;
+  final Mapper<String, CoreError> _errorMapper;
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();

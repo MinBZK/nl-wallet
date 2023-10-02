@@ -3,28 +3,28 @@ import '../../../source/wallet_datasource.dart';
 import '../wallet_card_repository.dart';
 
 class WalletCardRepositoryImpl implements WalletCardRepository {
-  final WalletDataSource dataSource;
+  final WalletDataSource _dataSource;
 
-  WalletCardRepositoryImpl(this.dataSource);
-
-  @override
-  Stream<List<WalletCard>> observeWalletCards() => dataSource.observeCards();
+  WalletCardRepositoryImpl(this._dataSource);
 
   @override
-  Future<bool> exists(String cardId) async => await dataSource.read(cardId) != null;
+  Stream<List<WalletCard>> observeWalletCards() => _dataSource.observeCards();
 
   @override
-  Future<void> create(WalletCard card) async => await dataSource.create(card);
+  Future<bool> exists(String cardId) async => await _dataSource.read(cardId) != null;
 
   @override
-  Future<List<WalletCard>> readAll() async => dataSource.readAll();
+  Future<void> create(WalletCard card) async => await _dataSource.create(card);
 
   @override
-  Future<WalletCard> read(String cardId) async => (await dataSource.read(cardId))!;
+  Future<List<WalletCard>> readAll() async => _dataSource.readAll();
 
   @override
-  Future<void> update(WalletCard card) async => await dataSource.update(card);
+  Future<WalletCard> read(String cardId) async => (await _dataSource.read(cardId))!;
 
   @override
-  Future<void> delete(String cardId) async => await dataSource.delete(cardId);
+  Future<void> update(WalletCard card) async => await _dataSource.update(card);
+
+  @override
+  Future<void> delete(String cardId) async => await _dataSource.delete(cardId);
 }

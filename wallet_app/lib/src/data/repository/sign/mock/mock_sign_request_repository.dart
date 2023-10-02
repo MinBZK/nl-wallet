@@ -9,9 +9,9 @@ import '../../../source/organization_datasource.dart';
 import '../sign_request_repository.dart';
 
 class MockSignRequestRepository implements SignRequestRepository {
-  final OrganizationDataSource organizationDataSource;
+  final OrganizationDataSource _organizationDataSource;
 
-  MockSignRequestRepository(this.organizationDataSource);
+  MockSignRequestRepository(this._organizationDataSource);
 
   @override
   Future<SignRequest> getRequest(String sessionId) async {
@@ -19,7 +19,7 @@ class MockSignRequestRepository implements SignRequestRepository {
       case 'RENTAL_AGREEMENT':
         return SignRequest(
           id: 'RENTAL_AGREEMENT',
-          organization: (await organizationDataSource.read('housing_corp_1'))!,
+          organization: (await _organizationDataSource.read('housing_corp_1'))!,
           trustProvider: const TrustProvider(
             name: 'Veilig Ondertekenen B.V.',
             logoUrl: WalletAssets.logo_sign_provider,

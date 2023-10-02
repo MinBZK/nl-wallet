@@ -3,12 +3,12 @@ import '../../../source/organization_datasource.dart';
 import '../organization_repository.dart';
 
 class OrganizationRepositoryImpl extends OrganizationRepository {
-  final OrganizationDataSource dataSource;
+  final OrganizationDataSource _dataSource;
 
-  OrganizationRepositoryImpl(this.dataSource);
+  OrganizationRepositoryImpl(this._dataSource);
 
   @override
   Future<Organization?> read(String organizationId) {
-    return dataSource.read(organizationId);
+    return _dataSource.read(organizationId);
   }
 }

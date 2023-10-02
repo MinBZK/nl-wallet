@@ -22,7 +22,7 @@ class CoreWalletDataSource implements WalletDataSource {
   Future<List<WalletCard>> readAll() async {
     final locale = await _localeProvider.observe().first;
     final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
-    return cards.map((e) => _cardMapper.map(e, locale)).toList();
+    return cards.map((card) => _cardMapper.map(locale, card)).toList();
   }
 
   @override
@@ -55,7 +55,7 @@ class CoreWalletDataSource implements WalletDataSource {
   Stream<List<WalletCard>> observeCards() => CombineLatestStream.combine2(
         _walletCore.observeCards(),
         _localeProvider.observe(),
-        (cards, locale) => cards.map((e) => _cardMapper.map(e, locale)).toList(),
+        (cards, locale) => cards.map((card) => _cardMapper.map(locale, card)).toList(),
       );
 
   @override

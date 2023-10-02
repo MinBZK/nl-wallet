@@ -1,14 +1,14 @@
-import 'dart:ui';
-
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../wallet_core/wallet_core.dart';
+import '../../locale_mapper.dart';
 
-class CardAttributeValueMapper {
+class CardAttributeValueMapper extends LocaleMapper<CardValue, String> {
   CardAttributeValueMapper();
 
-  String map(CardValue input, Locale locale) {
+  @override
+  String map(Locale locale, CardValue input) {
     return input.map(
       string: (input) => input.value,
       boolean: (input) {
