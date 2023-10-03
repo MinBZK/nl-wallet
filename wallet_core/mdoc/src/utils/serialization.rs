@@ -395,10 +395,10 @@ impl<'de> Deserialize<'de> for OriginInfoType {
     where
         D: serde::Deserializer<'de>,
     {
-        let bar: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
-        match bar.typ {
+        let info_type: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
+        match info_type.typ {
             1 => {
-                let details: OriginInfoWebsiteDetails = bar.details.deserialized().map_err(de::Error::custom)?;
+                let details: OriginInfoWebsiteDetails = info_type.details.deserialized().map_err(de::Error::custom)?;
                 Ok(OriginInfoType::Website(details.referrer_url))
             }
             2 => Ok(OriginInfoType::OnDeviceQRCode),
