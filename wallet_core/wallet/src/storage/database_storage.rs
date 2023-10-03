@@ -7,7 +7,7 @@ use sea_orm::{
 use tokio::fs;
 use uuid::Uuid;
 
-use entity::{keyed_data, mdoc_copy, mdoc_type};
+use entity::{keyed_data, mdoc, mdoc_copy};
 use nl_wallet_mdoc::{
     holder::Mdoc,
     utils::serialization::{cbor_deserialize, cbor_serialize},
@@ -189,7 +189,7 @@ where
 
         let transaction = database.connection().begin().await?;
 
-        // Construct a vec of tuples of 1 `mdoc_type` and 1 or more `mdoc_copy` models,
+        // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
         let mdoc_models = mdocs
             .0
@@ -197,7 +197,7 @@ where
             .flat_map(|doc_type_mdocs| doc_type_mdocs.into_values())
             .filter(|mdoc_copies| !mdoc_copies.cred_copies.is_empty())
             .map(|mdoc_copies| {
-                let mdoc_type_id = Uuid::new_v4();
+                let mdoc_id = Uuid::new_v4();
 
                 let copy_models = mdoc_copies
                     .cred_copies
@@ -205,7 +205,7 @@ where
                     .map(|mdoc| {
                         let model = mdoc_copy::ActiveModel {
                             id: Set(Uuid::new_v4()),
-                            mdoc_type_id: Set(mdoc_type_id),
+                            mdoc_id: Set(mdoc_id),
                             mdoc: Set(cbor_serialize(&mdoc)?),
                         };
 
@@ -215,19 +215,19 @@ where
 
                 // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
                 let doc_type = mdoc_copies.cred_copies.into_iter().next().unwrap().doc_type;
-                let type_model = mdoc_type::ActiveModel {
-                    id: Set(mdoc_type_id),
+                let mdoc_model = mdoc::ActiveModel {
+                    id: Set(mdoc_id),
                     doc_type: Set(doc_type),
                 };
 
-                Ok((type_model, copy_models))
+                Ok((mdoc_model, copy_models))
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
         // Make two separate vecs out of the vec of tuples.
-        let (type_models, copy_models): (Vec<_>, Vec<_>) = mdoc_models.into_iter().unzip();
+        let (mdoc_models, copy_models): (Vec<_>, Vec<_>) = mdoc_models.into_iter().unzip();
 
-        mdoc_type::Entity::insert_many(type_models).exec(&transaction).await?;
+        mdoc::Entity::insert_many(mdoc_models).exec(&transaction).await?;
         mdoc_copy::Entity::insert_many(copy_models.into_iter().flatten())
             .exec(&transaction)
             .await?;
@@ -243,9 +243,9 @@ where
         let mdoc_copies = mdoc_copy::Entity::find()
             .select_only()
             .column_as(mdoc_copy::Column::Id.min(), "id")
-            .column(mdoc_copy::Column::MdocTypeId)
+            .column(mdoc_copy::Column::MdocId)
             .column(mdoc_copy::Column::Mdoc)
-            .group_by(mdoc_copy::Column::MdocTypeId)
+            .group_by(mdoc_copy::Column::MdocId)
             .all(database.connection())
             .await?;
 
@@ -254,7 +254,7 @@ where
             .map(|m| {
                 let mdoc = cbor_deserialize(m.mdoc.as_slice())?;
 
-                Ok((m.mdoc_type_id, mdoc))
+                Ok((m.mdoc_id, mdoc))
             })
             .collect::<Result<_, CborError>>()?;
 

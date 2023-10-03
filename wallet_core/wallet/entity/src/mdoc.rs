@@ -2,7 +2,7 @@ use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "mdoc_type")]
+#[sea_orm(table_name = "mdoc")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
