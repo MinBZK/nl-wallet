@@ -999,6 +999,7 @@ name = "entity"
 version = "0.1.0"
 dependencies = [
  "sea-orm",
+ "uuid",
 ]
 
 [[package]]
@@ -4214,6 +4215,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
  "wallet_common",
  "wiremock",
 ]

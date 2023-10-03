@@ -20,7 +20,7 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
-    typedWalletCore = TypedWalletCoreImpl(core, CoreErrorMapper());
+    typedWalletCore = TypedWalletCoreImpl(core, CoreErrorMapper()); //FIXME: Mock mapper
 
     /// Setup default initialization mock
     when(core.isInitialized()).thenAnswer((realInvocation) async => false);

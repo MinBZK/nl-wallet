@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = ["wallet_common/mock", "wallet_common/software-keys"]
-examples = ["anyhow", "hex-literal"]
+examples = ["dep:anyhow", "dep:hex-literal"]
+mock = ["examples", "wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }

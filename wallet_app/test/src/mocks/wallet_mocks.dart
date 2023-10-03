@@ -1,6 +1,9 @@
 import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/card/timeline_attribute_repository.dart';
+import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
@@ -13,6 +16,7 @@ import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_lock_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
+import 'package:wallet/src/util/mapper/locale_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet/src/wallet_core/wallet_core.dart';
 
@@ -20,9 +24,15 @@ import 'wallet_mocks.mocks.dart';
 
 export 'wallet_mocks.mocks.dart';
 
+/// Mock mappers
+@GenerateNiceMocks([MockSpec<LocaleMapper>()])
+
 /// Mock repositories
 @GenerateNiceMocks([MockSpec<PidRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
+@GenerateNiceMocks([MockSpec<WalletCardRepository>()])
+@GenerateNiceMocks([MockSpec<OrganizationRepository>()])
+@GenerateNiceMocks([MockSpec<TimelineAttributeRepository>()])
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
@@ -82,6 +92,9 @@ class Mocks {
     // Repositories
     sl.registerFactory<PidRepository>(() => getMockPidRepository());
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());
+
+    // Mappers
+    sl.registerFactory<LocaleMapper>(() => MockLocaleMapper());
 
     isInitialized = true;
   }

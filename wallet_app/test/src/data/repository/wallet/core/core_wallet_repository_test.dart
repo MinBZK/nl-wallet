@@ -31,7 +31,7 @@ void main() {
       return const WalletInstructionResult.incorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
-    repo = CoreWalletRepository(core, PinValidationErrorMapper());
+    repo = CoreWalletRepository(core, PinValidationErrorMapper()); //FIXME: Mock mapper
   });
 
   group('locked state', () {

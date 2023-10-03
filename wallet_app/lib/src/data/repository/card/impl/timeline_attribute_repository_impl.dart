@@ -7,39 +7,39 @@ import '../../../source/wallet_datasource.dart';
 import '../timeline_attribute_repository.dart';
 
 class TimelineAttributeRepositoryImpl implements TimelineAttributeRepository {
-  final WalletDataSource dataSource;
+  final WalletDataSource _dataSource;
 
-  TimelineAttributeRepositoryImpl(this.dataSource);
+  TimelineAttributeRepositoryImpl(this._dataSource);
 
   @override
   Future<void> create(TimelineAttribute attribute) async {
-    dataSource.createTimelineAttribute(attribute);
+    _dataSource.createTimelineAttribute(attribute);
   }
 
   @override
   Future<List<TimelineAttribute>> readAll() {
-    return dataSource.readTimelineAttributes();
+    return _dataSource.readTimelineAttributes();
   }
 
   @override
   Future<List<TimelineAttribute>> readFiltered({required String cardId}) async {
-    return dataSource.readTimelineAttributesByCardId(cardId: cardId);
+    return _dataSource.readTimelineAttributesByCardId(cardId: cardId);
   }
 
   @override
   Future<TimelineAttribute> read({required String timelineAttributeId, String? cardId}) {
-    return dataSource.readTimelineAttributeById(timelineAttributeId: timelineAttributeId, cardId: cardId);
+    return _dataSource.readTimelineAttributeById(timelineAttributeId: timelineAttributeId, cardId: cardId);
   }
 
   @override
   Future<InteractionTimelineAttribute?> readMostRecentInteraction(String cardId, InteractionStatus status) async {
-    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId: cardId);
+    List<TimelineAttribute> attributes = await _dataSource.readTimelineAttributesByCardId(cardId: cardId);
     return _readMostRecentInteraction(attributes, status);
   }
 
   @override
   Future<OperationTimelineAttribute?> readMostRecentOperation(String cardId, OperationStatus status) async {
-    List<TimelineAttribute> attributes = await dataSource.readTimelineAttributesByCardId(cardId: cardId);
+    List<TimelineAttribute> attributes = await _dataSource.readTimelineAttributesByCardId(cardId: cardId);
     return _readMostRecentOperation(attributes, status);
   }
 

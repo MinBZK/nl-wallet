@@ -9,6 +9,8 @@ abstract class TestUtils {
 
   static Future<AppLocalizations> get dutchLocalizations => AppLocalizations.delegate.load(const Locale('nl'));
 
+  static Future<AppLocalizations> getLocalizations(Locale locale) => AppLocalizations.delegate.load(locale);
+
   static void mockAccelerometerPlugin() {
     // Mock the accelerometer, as this is used by e.g. [CardHolograph] to make it appear reflective.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
