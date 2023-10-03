@@ -15,10 +15,13 @@ use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    examples::*,
     holder::*,
     iso::*,
     issuer::*,
+    mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
     utils::{
+        keys::KeyFactory,
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
@@ -27,7 +30,6 @@ use nl_wallet_mdoc::{
     Error,
 };
 
-use nl_wallet_mdoc::{examples::*, mock::*, utils::keys::KeyFactory};
 use wallet_common::keys::ConstructibleWithIdentifier;
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
@@ -79,7 +81,7 @@ async fn verify_iso_example_disclosure() {
     let disclosed_attrs = device_response
         .verify(
             Some(&eph_reader_key),
-            &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
+            &DeviceAuthenticationBytes::example(), // To be signed by device key found in MSO
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -147,7 +149,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let disclosed_attrs = resp
         .verify(
             None,
-            &DeviceAuthenticationBytes::example_bts(),
+            &DeviceAuthenticationBytes::example(),
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -196,7 +198,7 @@ async fn iso_examples_custom_disclosure() {
     let disclosed_attrs = resp
         .verify(
             None,
-            &DeviceAuthenticationBytes::example_bts(),
+            &DeviceAuthenticationBytes::example(),
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -420,13 +422,14 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
     }]);
 
     // Do the disclosure and verify it
-    let challenge = DeviceAuthenticationBytes::example_bts();
+    let device_auth_bts = DeviceAuthenticationBytes::example();
+    let challenge_bts = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref(), &SoftwareKeyFactory {}, &mdocs)
+        .disclose::<SoftwareEcdsaKey>(&request, challenge_bts.as_ref(), &SoftwareKeyFactory {}, &mdocs)
         .await
         .unwrap();
     let disclosed_attrs = disclosed
-        .verify(None, &challenge, &TimeGenerator, &[(&ca).try_into().unwrap()])
+        .verify(None, &device_auth_bts, &TimeGenerator, &[(&ca).try_into().unwrap()])
         .unwrap();
     println!("Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
 

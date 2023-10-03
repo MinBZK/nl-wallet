@@ -13,6 +13,7 @@ use serde::{
 };
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
+use url::Url;
 
 use crate::{
     iso::*,
@@ -139,9 +140,9 @@ impl<T> From<T> for CborIntMap<T> {
     }
 }
 
-impl<'de, T> Serialize for CborSeq<T>
+impl<T> Serialize for CborSeq<T>
 where
-    T: Serialize + Deserialize<'de>,
+    T: Serialize,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
@@ -156,7 +157,7 @@ where
 }
 impl<'de, T> Deserialize<'de> for CborSeq<T>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Deserialize<'de> + FieldNames,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<Value>::deserialize(deserializer)?;
@@ -174,9 +175,9 @@ where
     }
 }
 
-impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
+impl<T, const STRING: bool> Serialize for CborIntMap<T, STRING>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Serialize + FieldNames,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let field_name_indices: IndexMap<String, Value> = T::field_names()
@@ -213,7 +214,7 @@ where
 }
 impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
 where
-    T: Serialize + Deserialize<'de> + FieldNames,
+    T: Deserialize<'de> + FieldNames,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let ordered_map = match Value::deserialize(deserializer)? {
@@ -249,25 +250,34 @@ impl Serialize for Handover {
                 }
             }
             .serialize(serializer),
+            Handover::SchemeHandoverBytes(reader_engagement) => reader_engagement.serialize(serializer),
         }
     }
 }
+
+// In production code, this struct is never deserialized.
+#[cfg(feature = "examples")]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // TODO check: will this correctly deserialize `null`?
-        match Option::<Vec<ByteBuf>>::deserialize(deserializer)? {
-            None => Ok(Handover::QRHandover),
-            Some(bts_vec) => match bts_vec.len() {
+        use x509_parser::nom::AsBytes;
+        let val = Value::deserialize(deserializer).unwrap();
+        match val {
+            Value::Null => Ok(Handover::QRHandover),
+            Value::Bytes(bytes) => Ok(Handover::SchemeHandoverBytes(
+                cbor_deserialize(bytes.as_bytes()).unwrap(),
+            )),
+            Value::Array(bts_vec) => match bts_vec.len() {
                 1 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].clone(),
+                    handover_select_message: bts_vec[0].deserialized().unwrap(),
                     handover_request_message: None,
                 })),
                 2 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].clone(),
-                    handover_request_message: Some(bts_vec[1].clone()),
+                    handover_select_message: bts_vec[0].deserialized().unwrap(),
+                    handover_request_message: Some(bts_vec[1].deserialized().unwrap()),
                 })),
-                _ => Err(de::Error::custom("unexpected amount of byte sequences found")),
+                _ => panic!(),
             },
+            _ => panic!(),
         }
     }
 }
@@ -340,6 +350,64 @@ impl RequiredValueTrait for ReaderAuthenticationString {
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
 }
 
+#[derive(Serialize, Deserialize)]
+struct OriginInfoTypeSerialized {
+    #[serde(rename = "type")]
+    typ: u64,
+    #[serde(rename = "Details")] // This is capitalized in the standard for unknown reasons
+    details: Value,
+}
+
+#[derive(Serialize, Deserialize)]
+struct OriginInfoWebsiteDetails {
+    #[serde(rename = "ReferrerUrl")]
+    referrer_url: Url,
+}
+
+impl Serialize for OriginInfoType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let result = match self {
+            OriginInfoType::Website(url) => OriginInfoTypeSerialized {
+                typ: 1,
+                details: Value::serialized(&OriginInfoWebsiteDetails {
+                    referrer_url: url.clone(),
+                })
+                .map_err(ser::Error::custom)?,
+            },
+            OriginInfoType::OnDeviceQRCode => OriginInfoTypeSerialized {
+                typ: 2,
+                details: Value::Null,
+            },
+            OriginInfoType::MessageData => OriginInfoTypeSerialized {
+                typ: 4,
+                details: Value::Null,
+            },
+        };
+        result.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for OriginInfoType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let info_type: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
+        match info_type.typ {
+            1 => {
+                let details: OriginInfoWebsiteDetails = info_type.details.deserialized().map_err(de::Error::custom)?;
+                Ok(OriginInfoType::Website(details.referrer_url))
+            }
+            2 => Ok(OriginInfoType::OnDeviceQRCode),
+            4 => Ok(OriginInfoType::MessageData),
+            _ => Err(de::Error::custom("unsupported OriginInfoType")),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ciborium::value::Value;
@@ -360,6 +428,8 @@ mod tests {
 
     #[test]
     fn message_type() {
+        use Value::*;
+
         // Use `RequestEndSessionMessage` as an example of a message that should have a `messageType` field
         let msg = RequestEndSessionMessage {
             e_session_id: ByteBuf::from("session_id").into(),
@@ -368,12 +438,32 @@ mod tests {
         // Explicitly assert CBOR structure of the serialized data
         assert_eq!(
             Value::serialized(&msg).unwrap(),
-            Value::Map(vec![
+            Map(vec![
+                (Text("messageType".into()), Text(REQUEST_END_SESSION_MSG_TYPE.into()),),
+                (Text("eSessionId".into()), Bytes(b"session_id".to_vec())),
+            ])
+        );
+    }
+
+    #[test]
+    fn origin_info() {
+        use Value::*;
+
+        let val = OriginInfo {
+            cat: OriginInfoDirection::Delivered,
+            typ: OriginInfoType::Website("https://example.com".parse().unwrap()),
+        };
+
+        // Explicitly assert CBOR structure of the serialized data
+        assert_eq!(
+            Value::serialized(&val).unwrap(),
+            Map(vec![
+                (Text("cat".into()), Integer(0.into())),
+                (Text("type".into()), Integer(1.into())),
                 (
-                    Value::Text("messageType".into()),
-                    Value::Text(REQUEST_END_SESSION_MSG_TYPE.into()),
-                ),
-                (Value::Text("eSessionId".into()), Value::Bytes(b"session_id".to_vec())),
+                    Text("Details".into()),
+                    Map(vec![(Text("ReferrerUrl".into()), Text("https://example.com/".into()))])
+                )
             ])
         );
     }

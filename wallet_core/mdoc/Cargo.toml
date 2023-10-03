@@ -9,6 +9,7 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 mock = ["examples", "wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium = { workspace = true }
@@ -25,6 +26,7 @@ ring = { workspace = true }
 rustls-webpki = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
+serde_repr = { workspace = true }
 serde_with = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
@@ -39,9 +41,7 @@ fieldnames_derive = { path = "./fieldnames_derive" }
 wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
-anyhow = { workspace = true }
-hex-literal = { workspace = true }
 regex = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 
-nl_wallet_mdoc = { path = ".", features = ["mock"] }
+nl_wallet_mdoc = { path = ".", features = ["mock", "examples"] }

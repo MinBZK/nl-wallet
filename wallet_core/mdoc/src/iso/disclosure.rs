@@ -6,6 +6,8 @@
 use coset::{CoseMac0, CoseSign1};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
@@ -99,3 +101,20 @@ pub enum DeviceAuth {
 pub type Errors = IndexMap<NameSpace, ErrorItems>;
 pub type ErrorItems = IndexMap<DataElementIdentifier, ErrorCode>;
 pub type ErrorCode = i32;
+
+/// Contains an encrypted mdoc disclosure protocol message, and a status code containing an error code or a code
+/// that aborts the session.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SessionData {
+    pub data: Option<ByteBuf>,
+    pub status: Option<SessionStatus>,
+}
+
+/// Status codes sent along with encrypted mdoc disclosure protocol messages in [`StatusCode`].
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[repr(u8)]
+pub enum SessionStatus {
+    EncryptionError = 10,
+    DecodingError = 11,
+    Termination = 20,
+}

@@ -101,11 +101,10 @@ pub const START_PROVISIONING_MSG_TYPE: &str = "StartProvisioning";
 
 /// Holder -> issuer. Starts the session and indicates that we want to speak ISO 23220-3.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename = "StartProvisioning")]
 #[serde(tag = "messageType")]
 #[serde(rename_all = "camelCase")]
-#[derive(Default)]
 pub struct StartProvisioningMessage {
     pub provisioning_code: Option<String>,
 }

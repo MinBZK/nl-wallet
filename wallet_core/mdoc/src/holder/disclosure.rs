@@ -14,7 +14,7 @@ use crate::{
         cose::{sign_cose, ClonePayload},
         crypto::dh_hmac_key,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::cbor_deserialize,
+        serialization::cbor_serialize,
         x509::CertificateUsage,
     },
     verifier::X509Subject,
@@ -125,8 +125,11 @@ impl DeviceSigned {
     }
 
     #[allow(dead_code)] // TODO test this
-    pub fn new_mac(private_key: &SigningKey, reader_pub_key: &VerifyingKey, challenge: &[u8]) -> Result<DeviceSigned> {
-        let device_auth: DeviceAuthenticationBytes = cbor_deserialize(challenge)?;
+    pub fn new_mac(
+        private_key: &SigningKey,
+        reader_pub_key: &VerifyingKey,
+        device_auth: &DeviceAuthenticationBytes,
+    ) -> Result<DeviceSigned> {
         let key = dh_hmac_key(
             private_key,
             reader_pub_key,
@@ -136,7 +139,7 @@ impl DeviceSigned {
         )?;
 
         let cose = CoseMac0Builder::new()
-            .payload(Vec::from(challenge))
+            .payload(cbor_serialize(device_auth)?)
             .protected(HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build())
             .create_tag(&[], |data| ring::hmac::sign(&key, data).as_ref().into())
             .build()
