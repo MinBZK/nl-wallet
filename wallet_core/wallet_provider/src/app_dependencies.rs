@@ -26,6 +26,7 @@ impl AppDependencies {
             settings.certificate_private_key.into(),
             settings.instruction_result_private_key.into(),
             settings.pin_hash_salt.0,
+            settings.instruction_challenge_timeout_in_ms,
             "account_server".into(),
         )
         .await?;

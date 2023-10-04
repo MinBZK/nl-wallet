@@ -84,7 +84,7 @@ async fn instruction_challenge(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, &state.repositories)
+        .instruction_challenge(payload, &state.repositories, state.as_ref())
         .await?;
 
     let body = Challenge {

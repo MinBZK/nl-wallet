@@ -4260,6 +4260,7 @@ dependencies = [
  "sea-orm-migration",
  "serde",
  "serde_json",
+ "serde_with",
  "tokio",
  "tower-http",
  "tracing",

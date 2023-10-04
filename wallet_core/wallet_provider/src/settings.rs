@@ -1,10 +1,13 @@
 use std::{env, net::IpAddr, path::PathBuf};
 
+use chrono::Duration;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
+use serde_with::{serde_as, DurationMilliSeconds};
 
 use wallet_common::account::serialization::{Base64Bytes, DerSigningKey};
 
+#[serde_as]
 #[derive(Deserialize)]
 pub struct Settings {
     pub certificate_private_key: DerSigningKey,
@@ -14,6 +17,8 @@ pub struct Settings {
     pub webserver: Webserver,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
+    #[serde_as(as = "DurationMilliSeconds<i64>")]
+    pub instruction_challenge_timeout_in_ms: Duration,
 }
 
 #[derive(Deserialize)]
@@ -54,6 +59,7 @@ impl Settings {
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
+            .set_default("instruction_challenge_timeout_in_ms", 15_000)?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")

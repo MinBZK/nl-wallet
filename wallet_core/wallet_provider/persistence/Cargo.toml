@@ -14,11 +14,11 @@ chrono = { workspace = true, features = ["std", "clock"] }
 mockall = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
-    "sqlx-postgres",
-    "runtime-tokio-rustls",
     "macros",
-    "with-uuid",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
     "with-chrono",
+    "with-uuid",
 ] }
 serde_json.workspace = true #todo: remove
 tokio = { workspace = true, features = ["parking_lot"] }
