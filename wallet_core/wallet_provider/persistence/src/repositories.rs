@@ -4,7 +4,7 @@ use p256::ecdsa::SigningKey;
 use uuid;
 
 use wallet_provider_domain::{
-    model::wallet_user::{WalletUserCreate, WalletUserKeysCreate, WalletUserQueryResult},
+    model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeysCreate, WalletUserQueryResult},
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
 };
 
@@ -68,7 +68,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-        challenge: Option<Vec<u8>>,
+        challenge: InstructionChallenge,
         instruction_sequence_number: u64,
     ) -> Result<(), PersistenceError> {
         wallet_user::update_instruction_challenge_and_sequence_number(
@@ -131,7 +131,7 @@ pub mod mock {
     use mockall;
     use p256::ecdsa::SigningKey;
     use wallet_provider_domain::{
-        model::wallet_user::{WalletUserCreate, WalletUserQueryResult},
+        model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult},
         repository::{MockTransaction, PersistenceError, TransactionStarter, WalletUserRepository},
     };
 
@@ -178,7 +178,7 @@ pub mod mock {
                 &self,
                 _transaction: &MockTransaction,
                 _wallet_id: &str,
-                _challenge: Option<Vec<u8>>,
+                _challenge: InstructionChallenge,
                 _instruction_sequence_number: u64,
             ) -> Result<(), PersistenceError>;
 

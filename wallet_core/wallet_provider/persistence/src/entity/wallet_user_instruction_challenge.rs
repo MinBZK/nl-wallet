@@ -3,14 +3,15 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "wallet_user_key")]
+#[sea_orm(table_name = "wallet_user_instruction_challenge")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(unique)]
     pub wallet_user_id: Uuid,
-    pub identifier: String,
     #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
-    pub private_key_der: Vec<u8>,
+    pub instruction_challenge: Vec<u8>,
+    pub expiration_date_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

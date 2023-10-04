@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use p256::ecdsa::SigningKey;
 
-use crate::model::wallet_user::{WalletUserCreate, WalletUserQueryResult};
+use crate::model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult};
 
 use super::{errors::PersistenceError, transaction::Committable};
 
@@ -26,7 +26,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-        challenge: Option<Vec<u8>>,
+        challenge: InstructionChallenge,
         instruction_sequence_number: u64,
     ) -> Result<()>;
 
@@ -98,7 +98,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-            _challenge: Option<Vec<u8>>,
+            _challenge: InstructionChallenge,
             _instruction_sequence_number: u64,
         ) -> Result<()> {
             Ok(())
