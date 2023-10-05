@@ -162,7 +162,7 @@ pub async fn register(pin: String) -> Result<()> {
 pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     let mut wallet = wallet().write().await;
 
-    let auth_url = wallet.create_pid_issuance_redirect_uri().await?;
+    let auth_url = wallet.create_pid_issuance_auth_url().await?;
 
     Ok(auth_url.into())
 }
