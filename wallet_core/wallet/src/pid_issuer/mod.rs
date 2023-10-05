@@ -8,11 +8,8 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    holder::TrustAnchor,
-    utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
-        mdocs_map::MdocsMap,
-    },
+    holder::{MdocCopies, TrustAnchor},
+    utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
 pub use client::HttpPidIssuerClient;
@@ -42,7 +39,7 @@ pub trait PidIssuerClient {
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-    ) -> Result<MdocsMap, PidIssuerError>;
+    ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;
 }

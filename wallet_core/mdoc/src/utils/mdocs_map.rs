@@ -6,7 +6,6 @@ use crate::{
     DocType, Error, NameSpace,
 };
 
-#[cfg(feature = "mock")]
 use crate::holder::MdocRetriever;
 
 /// An implementation of [`Storage`] using maps, structured as follows::
@@ -72,7 +71,6 @@ impl MdocsMap {
     }
 }
 
-#[cfg(feature = "mock")]
 impl MdocRetriever for MdocsMap {
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
         self.0.get(doctype).map(|v| {
@@ -80,37 +78,5 @@ impl MdocRetriever for MdocsMap {
                 .map(|(_key, entry)| entry.cred_copies.to_vec().into())
                 .collect()
         })
-    }
-}
-
-pub struct MdocsMapIntoIterator {
-    mdocs: Vec<Mdoc>,
-}
-
-impl IntoIterator for MdocsMap {
-    type Item = Mdoc;
-
-    type IntoIter = MdocsMapIntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let mdocs = self
-            .0
-            .into_iter()
-            .flat_map(|(_, allcreds)| allcreds.into_iter())
-            .flat_map(|(_, doctype_creds)| doctype_creds.cred_copies.into_iter())
-            .collect();
-        MdocsMapIntoIterator { mdocs }
-    }
-}
-
-impl Iterator for MdocsMapIntoIterator {
-    type Item = Mdoc;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.mdocs.is_empty() {
-            None
-        } else {
-            Some(self.mdocs.remove(0))
-        }
     }
 }
