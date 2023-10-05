@@ -359,10 +359,11 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.list().len());
+    assert_eq!(1, mdocs.len());
 
     // We can disclose the mdoc that was just issued to us
-    custom_disclosure(wallet, ca, mdocs).await;
+    let mdocs_map = mdocs.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap();
+    custom_disclosure(wallet, ca, mdocs_map).await;
 
     // Decline issuance
     let (mut wallet, server, ca) = setup_issuance_test();
@@ -381,7 +382,7 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.list().len());
+    assert_eq!(1, mdocs.len());
 }
 
 async fn issuance_using_consent(
@@ -390,7 +391,7 @@ async fn issuance_using_consent(
     wallet: &mut MockWallet,
     issuance_server: Arc<MockServer>,
     ca: &Certificate,
-) -> Option<MdocsMap> {
+) -> Option<Vec<MdocCopies>> {
     let service_engagement = issuance_server.new_session(request).unwrap();
 
     wallet.start_issuance(service_engagement).await.unwrap();

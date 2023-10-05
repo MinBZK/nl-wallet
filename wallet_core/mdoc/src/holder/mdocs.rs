@@ -59,11 +59,6 @@ impl From<Vec<Mdoc>> for MdocCopies {
         Self { cred_copies: creds }
     }
 }
-impl MdocCopies {
-    pub fn new() -> Self {
-        MdocCopies { cred_copies: vec![] }
-    }
-}
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -127,6 +122,7 @@ impl Mdoc {
     /// Credentials having the exact same attributes
     /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
     /// signature; or the validity of the mdoc.
+    #[cfg(feature = "mock")]
     pub fn hash(&self) -> Result<Vec<u8>> {
         let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
         Ok(digest)
