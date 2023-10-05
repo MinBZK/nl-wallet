@@ -1,10 +1,26 @@
 // ignore_for_file: constant_identifier_names
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletAssets {
+  static Future<void> preloadPidSvgs() async {
+    final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark];
+    final loaders = svgs.map((svg) => SvgAssetLoader(svg, assetBundle: rootBundle));
+    await Future.wait(
+      loaders.map(
+        (loader) => svg.cache.putIfAbsent(
+          loader.cacheKey(null),
+          () => loader.loadBytes(null),
+        ),
+      ),
+    );
+  }
+
   // SVGS
   static const svg_rijks_card_holo = 'assets/non-free/svg/rijks_card_holo.svg';
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
+
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
   static const image_bg_nl_driving_license = 'assets/non-free/images/bg_nl_driving_license.png';
@@ -15,6 +31,7 @@ class WalletAssets {
   static const image_intro_page_3 = 'assets/non-free/images/intro_page_3.png';
   static const image_intro_page_2 = 'assets/non-free/images/intro_page_2.png';
   static const image_intro_page_1 = 'assets/non-free/images/intro_page_1.png';
+
   // ILLUSTRATIONS
   static const illustration_sign_1 = 'assets/non-free/illustrations/sign_1.png';
   static const illustration_pin_timeout = 'assets/non-free/illustrations/pin_timeout.png';
@@ -29,6 +46,7 @@ class WalletAssets {
   static const illustration_server_error = 'assets/non-free/illustrations/server_error.png';
   static const illustration_placeholder_generic = 'assets/non-free/illustrations/placeholder_generic.png';
   static const illustration_personalize_wallet_intro = 'assets/non-free/illustrations/personalize_wallet_intro.png';
+
   // LOGOS
   static const logo_sign_provider = 'assets/non-free/logos/sign_provider.png';
   static const logo_wallet = 'assets/non-free/logos/wallet.png';
@@ -50,6 +68,7 @@ class WalletAssets {
   static const logo_zorgverzekeraar_z = 'assets/non-free/logos/zorgverzekeraar_z.png';
   static const logo_delft = 'assets/non-free/logos/delft.png';
   static const logo_rdw = 'assets/non-free/logos/rdw.png';
+
   // ICONS
   static const icon_first_share = 'assets/non-free/icons/first_share.png';
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
