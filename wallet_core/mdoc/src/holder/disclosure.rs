@@ -4,7 +4,6 @@ use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use webpki::TrustAnchor;
-use x509_parser::nom::AsBytes;
 
 use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
@@ -14,7 +13,7 @@ use crate::{
         cose::{sign_cose, ClonePayload},
         crypto::dh_hmac_key,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::cbor_serialize,
+        serialization::{cbor_serialize, CborSeq, TaggedBytes},
         x509::CertificateUsage,
     },
     verifier::X509Subject,
@@ -27,16 +26,13 @@ impl<H: HttpClient> Wallet<H> {
     pub async fn disclose<'a, K: MdocEcdsaKey + Sync>(
         &self,
         device_request: &DeviceRequest,
-        challenge: &[u8],
+        session_transcript: &SessionTranscript,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
         mdoc_retriever: &impl MdocRetriever,
     ) -> Result<DeviceResponse> {
-        let docs: Vec<Document> = try_join_all(
-            device_request
-                .doc_requests
-                .iter()
-                .map(|doc_request| self.disclose_document::<K>(doc_request, challenge, key_factory, mdoc_retriever)),
-        )
+        let docs: Vec<Document> = try_join_all(device_request.doc_requests.iter().map(|doc_request| {
+            self.disclose_document::<K>(doc_request, session_transcript, key_factory, mdoc_retriever)
+        }))
         .await?;
 
         let response = DeviceResponse {
@@ -51,7 +47,7 @@ impl<H: HttpClient> Wallet<H> {
     async fn disclose_document<'a, K: MdocEcdsaKey + Sync>(
         &self,
         doc_request: &DocRequest,
-        challenge: &[u8],
+        session_transcript: &SessionTranscript,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
         mdoc_retriever: &impl MdocRetriever,
     ) -> Result<Document> {
@@ -70,7 +66,9 @@ impl<H: HttpClient> Wallet<H> {
                 items_request.doc_type.clone(),
             )))?
             .cred_copies[0];
-        let document = cred.disclose_document(items_request, challenge, key_factory).await?;
+        let document = cred
+            .disclose_document(items_request, session_transcript, key_factory)
+            .await?;
         Ok(document)
     }
 }
@@ -79,7 +77,7 @@ impl Mdoc {
     pub async fn disclose_document<'a, K: MdocEcdsaKey + Sync>(
         &self,
         items_request: &ItemsRequest,
-        challenge: &[u8],
+        session_transcript: &SessionTranscript,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<Document> {
         let disclosed_namespaces: IssuerNameSpaces = self
@@ -105,7 +103,12 @@ impl Mdoc {
             },
             device_signed: DeviceSigned::new_signature(
                 &key_factory.generate_existing(&self.private_key_id, self.public_key()?),
-                challenge,
+                &cbor_serialize(&TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+                    device_authentication: Default::default(),
+                    session_transcript: session_transcript.clone(),
+                    doc_type: self.doc_type.clone(),
+                    device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+                })))?,
             )
             .await,
             errors: None,
@@ -128,12 +131,13 @@ impl DeviceSigned {
     pub fn new_mac(
         private_key: &SigningKey,
         reader_pub_key: &VerifyingKey,
+        session_transcript: &SessionTranscript,
         device_auth: &DeviceAuthenticationBytes,
     ) -> Result<DeviceSigned> {
         let key = dh_hmac_key(
             private_key,
             reader_pub_key,
-            device_auth.0.session_transcript_bts()?.as_bytes(),
+            &cbor_serialize(&TaggedBytes(session_transcript))?,
             "EMacKey",
             32,
         )?;

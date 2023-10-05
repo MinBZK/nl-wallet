@@ -81,7 +81,7 @@ async fn verify_iso_example_disclosure() {
     let disclosed_attrs = device_response
         .verify(
             Some(&eph_reader_key),
-            &DeviceAuthenticationBytes::example(), // To be signed by device key found in MSO
+            &DeviceAuthenticationBytes::example().0 .0.session_transcript, // To be signed by device key found in MSO
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -136,23 +136,20 @@ async fn do_and_verify_iso_example_disclosure() {
     // Do the disclosure and verify it
     let wallet = Wallet::new(DummyHttpClient);
     let storage = MdocsMap::try_from([mdoc]).unwrap();
+    let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
     let resp = wallet
         .disclose::<SoftwareEcdsaKey>(
             &device_request,
-            &DeviceAuthenticationBytes::example_bts(),
+            &session_transcript.clone(),
             &SoftwareKeyFactory {},
             &storage,
         )
         .await
         .unwrap();
     println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
+
     let disclosed_attrs = resp
-        .verify(
-            None,
-            &DeviceAuthenticationBytes::example(),
-            &IsoCertTimeGenerator,
-            trust_anchors,
-        )
+        .verify(None, &session_transcript, &IsoCertTimeGenerator, trust_anchors)
         .unwrap();
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts(&disclosed_attrs));
 
@@ -181,27 +178,18 @@ async fn iso_examples_custom_disclosure() {
 
     let trust_anchors = Examples::iaca_trust_anchors();
     let mdoc = mdoc_from_example_device_response(trust_anchors);
-
     let storage = MdocsMap::try_from([mdoc]).unwrap();
     let wallet = Wallet::new(DummyHttpClient);
+    let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
+
     let resp = wallet
-        .disclose::<SoftwareEcdsaKey>(
-            &request,
-            &DeviceAuthenticationBytes::example_bts(),
-            &SoftwareKeyFactory {},
-            &storage,
-        )
+        .disclose::<SoftwareEcdsaKey>(&request, &session_transcript.clone(), &SoftwareKeyFactory {}, &storage)
         .await
         .unwrap();
-
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
+
     let disclosed_attrs = resp
-        .verify(
-            None,
-            &DeviceAuthenticationBytes::example(),
-            &IsoCertTimeGenerator,
-            trust_anchors,
-        )
+        .verify(None, &session_transcript, &IsoCertTimeGenerator, trust_anchors)
         .unwrap();
     println!("My Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
 
@@ -422,14 +410,13 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
     }]);
 
     // Do the disclosure and verify it
-    let device_auth_bts = DeviceAuthenticationBytes::example();
-    let challenge_bts = DeviceAuthenticationBytes::example_bts();
+    let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, challenge_bts.as_ref(), &SoftwareKeyFactory {}, &mdocs)
+        .disclose::<SoftwareEcdsaKey>(&request, &session_transcript.clone(), &SoftwareKeyFactory {}, &mdocs)
         .await
         .unwrap();
     let disclosed_attrs = disclosed
-        .verify(None, &device_auth_bts, &TimeGenerator, &[(&ca).try_into().unwrap()])
+        .verify(None, &session_transcript, &TimeGenerator, &[(&ca).try_into().unwrap()])
         .unwrap();
     println!("Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
 

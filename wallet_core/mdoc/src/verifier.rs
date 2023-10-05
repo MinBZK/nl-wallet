@@ -4,7 +4,6 @@ use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use webpki::TrustAnchor;
-use x509_parser::nom::AsBytes;
 
 use wallet_common::generator::Generator;
 
@@ -14,7 +13,7 @@ use crate::{
     utils::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, TaggedBytes},
+        serialization::{cbor_serialize, CborSeq, TaggedBytes},
         x509::CertificateUsage,
     },
     Result,
@@ -61,7 +60,7 @@ impl DeviceResponse {
     pub fn verify(
         &self,
         eph_reader_key: Option<&SigningKey>,
-        device_authentication: &DeviceAuthenticationBytes,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes> {
@@ -78,7 +77,7 @@ impl DeviceResponse {
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
-            let (doc_type, doc_attrs) = doc.verify(eph_reader_key, device_authentication, time, trust_anchors)?;
+            let (doc_type, doc_attrs) = doc.verify(eph_reader_key, session_transcript, time, trust_anchors)?;
             if doc_type != doc.doc_type {
                 return Err(VerificationError::WrongDocType {
                     document: doc.doc_type.clone(),
@@ -193,7 +192,7 @@ impl Document {
     pub fn verify(
         &self,
         eph_reader_key: Option<&SigningKey>,
-        device_authentication: &DeviceAuthenticationBytes,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
@@ -201,7 +200,15 @@ impl Document {
             .issuer_signed
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
-        let device_authentication_bts = cbor_serialize(device_authentication)?;
+        let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
+        let device_authentication = DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript: session_transcript.clone(),
+            doc_type: self.doc_type.clone(),
+            device_name_spaces_bytes: self.device_signed.name_spaces.clone(),
+        };
+        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
@@ -212,7 +219,7 @@ impl Document {
                 let mac_key = dh_hmac_key(
                     eph_reader_key.ok_or_else(|| VerificationError::EphemeralKeyMissing)?,
                     &device_key,
-                    device_authentication.0.session_transcript_bts()?.as_bytes(),
+                    &session_transcript_bts,
                     "EMacKey",
                     32,
                 )?;
