@@ -16,6 +16,19 @@ pub trait SessionStore {
     fn get(&self, id: &SessionToken) -> Result<Self::Data>;
     fn write(&self, session: &Self::Data);
     fn cleanup(&self);
+
+    fn start_cleanup_task(sessions: Arc<Self>, interval: Duration) -> JoinHandle<()>
+    where
+        Self: Send + Sync + 'static,
+    {
+        let mut interval = time::interval(interval);
+        tokio::spawn(async move {
+            loop {
+                interval.tick().await;
+                sessions.cleanup();
+            }
+        })
+    }
 }
 
 #[derive(Debug, Default)]
@@ -68,17 +81,4 @@ impl<T: Clone> SessionStore for MemorySessionStore<T> {
         let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
         self.sessions.retain(|_, session| now - session.last_active < cutoff);
     }
-}
-
-pub fn start_cleanup_task<S: SessionStore + Send + Sync + 'static>(
-    sessions: Arc<S>,
-    interval: Duration,
-) -> JoinHandle<()> {
-    let mut interval = time::interval(interval);
-    tokio::spawn(async move {
-        loop {
-            interval.tick().await;
-            sessions.cleanup();
-        }
-    })
 }

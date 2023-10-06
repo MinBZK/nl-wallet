@@ -32,7 +32,7 @@ use crate::{
     },
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
-    server_state::{start_cleanup_task, SessionStore, CLEANUP_INTERVAL_SECONDS},
+    server_state::{SessionStore, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
@@ -140,7 +140,7 @@ where
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
         let sessions = Arc::new(session_store);
         Server {
-            cleanup_task: start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+            cleanup_task: S::start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
             url,
             keys,
             sessions,
@@ -471,7 +471,7 @@ mod tests {
 
     use crate::{
         basic_sa_ext::RequestKeyGenerationMessage,
-        server_state::{start_cleanup_task, MemorySessionStore, SessionStore},
+        server_state::{MemorySessionStore, SessionStore},
         DocType,
     };
 
@@ -493,7 +493,10 @@ mod tests {
         // Construct a `Server`, but not using Server::new() so we can control our own cleanup task
         let sessions = Arc::new(MemorySessionStore::new());
         let server = Server {
-            cleanup_task: start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+            cleanup_task: MemorySessionStore::<IssuanceData>::start_cleanup_task(
+                Arc::clone(&sessions),
+                CLEANUP_INTERVAL,
+            ),
             url: "https://example.com".parse().unwrap(),
             keys: EmptyKeyRing,
             sessions,
@@ -527,7 +530,10 @@ mod tests {
             // Construct a `Server`, but not using Server::new() so we can keep our sessions reference
             // and control our own cleanup task.
             let server = Server {
-                cleanup_task: start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+                cleanup_task: MemorySessionStore::<IssuanceData>::start_cleanup_task(
+                    Arc::clone(&sessions),
+                    CLEANUP_INTERVAL,
+                ),
                 url: "https://example.com".parse().unwrap(),
                 keys: EmptyKeyRing,
                 sessions: Arc::clone(&sessions),
