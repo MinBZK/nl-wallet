@@ -4,8 +4,9 @@
 use anyhow::{bail, Context, Result};
 use hex_literal::hex;
 use p256::{
+    ecdh::EphemeralSecret,
     ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint,
+    EncodedPoint, NonZeroScalar,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
@@ -82,13 +83,28 @@ impl Examples {
     }
 
     /// Reader ephemeral private key, for deriving MAC key
-    pub fn ephemeral_reader_key() -> SigningKey {
-        ecdsa_keypair(
+    pub fn ephemeral_reader_key() -> EphemeralSecret {
+        /// Copy of EphemeralSecret with identical layout
+        struct EphemeralSecretCopy {
+            _scalar: NonZeroScalar,
+        }
+
+        let privkey = ecdsa_keypair(
             "60e3392385041f51403051f2415531cb56dd3f999c71687013aac6768bc8187e",
             "e58deb8fdbe907f7dd5368245551a34796f7d2215c440c339bb0f7b67beccdfa",
             "de3b4b9e5f72dd9b58406ae3091434da48a6f9fd010d88fcb0958e2cebec947c",
         )
-        .expect("ECDSA key parsing failed")
+        .expect("ECDSA key parsing failed");
+
+        let privkey = EphemeralSecretCopy {
+            _scalar: *privkey.as_nonzero_scalar(),
+        };
+
+        // The API of `EphemeralSecret` allows only random instances to ever be created; it offers no way
+        // to construct an instance containing the example from the spec.
+        // The rustdoc of `transmute()` says we really shouldn't be doing this, but I know of no other way,
+        // and this is testing code anyway.
+        unsafe { std::mem::transmute(privkey) }
     }
 
     /// Device private key corresponding to the public key in the MSO

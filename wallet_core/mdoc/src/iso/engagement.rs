@@ -96,21 +96,21 @@ pub enum EngagementVersion {
 
 /// Describes the kind and direction of the previously received protocol message.
 /// Part of the [`DeviceAuthenticationBytes`] which are signed with the mdoc private key during disclosure.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct OriginInfo {
     pub cat: OriginInfoDirection,
     #[serde(flatten)]
     pub typ: OriginInfoType,
 }
 
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OriginInfoDirection {
     Delivered = 0,
     Received = 1,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OriginInfoType {
     Website(Url),
     OnDeviceQRCode,
@@ -161,7 +161,7 @@ pub enum ConnectionMethodVersion {
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct RestApiOptionsKeyed {
-    uri: Url,
+    pub uri: Url,
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;

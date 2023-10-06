@@ -2,7 +2,8 @@ use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::ecdsa::{SigningKey, VerifyingKey};
+use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng, PublicKey};
+use url::Url;
 use webpki::TrustAnchor;
 
 use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
@@ -129,8 +130,8 @@ impl DeviceSigned {
 
     #[allow(dead_code)] // TODO test this
     pub fn new_mac(
-        private_key: &SigningKey,
-        reader_pub_key: &VerifyingKey,
+        private_key: &EphemeralSecret,
+        reader_pub_key: &PublicKey,
         session_transcript: &SessionTranscript,
         device_auth: &DeviceAuthenticationBytes,
     ) -> Result<DeviceSigned> {
@@ -206,5 +207,29 @@ impl Attributes {
             .filter(|attr| requested.contains_key(&attr.0.element_identifier))
             .collect::<Vec<_>>()
             .into()
+    }
+}
+
+impl DeviceEngagement {
+    pub fn new_device_engagement(referrer_url: Url) -> Result<(DeviceEngagement, EphemeralSecret)> {
+        let privkey = EphemeralSecret::random(&mut OsRng);
+
+        let engagement = Engagement {
+            version: EngagementVersion::V1_0,
+            security: Some((&privkey.public_key()).try_into()?),
+            connection_methods: None,
+            origin_infos: vec![
+                OriginInfo {
+                    cat: OriginInfoDirection::Received,
+                    typ: OriginInfoType::Website(referrer_url),
+                },
+                OriginInfo {
+                    cat: OriginInfoDirection::Delivered,
+                    typ: OriginInfoType::MessageData,
+                },
+            ],
+        };
+
+        Ok((engagement.into(), privkey))
     }
 }

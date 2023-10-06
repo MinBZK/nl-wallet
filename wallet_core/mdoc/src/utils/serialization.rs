@@ -287,7 +287,7 @@ impl<'de> Deserialize<'de> for Handover {
 /// * During serialization, always serializes to `T::required_value()`.
 /// * During deserialization, accepts only `T::required_value()`.
 #[derive(Debug, Clone)]
-pub struct RequiredValue<T: RequiredValueTrait>(T::Type);
+pub struct RequiredValue<T: RequiredValueTrait>(pub T::Type);
 
 impl<T: RequiredValueTrait> Default for RequiredValue<T> {
     fn default() -> Self {

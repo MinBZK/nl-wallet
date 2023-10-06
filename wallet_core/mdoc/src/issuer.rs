@@ -91,7 +91,7 @@ impl KeyRing for SingleKeyRing {
 }
 
 #[derive(Debug, Clone)]
-enum SessionState {
+enum IssuanceStatus {
     Created,
     Started,
     WaitingForResponse,
@@ -100,10 +100,10 @@ enum SessionState {
     Cancelled,
 }
 
-use SessionState::*;
+use IssuanceStatus::*;
 
-impl SessionState {
-    fn update(&mut self, new_state: SessionState) {
+impl IssuanceStatus {
+    fn update(&mut self, new_state: IssuanceStatus) {
         match self {
             Created => assert!(matches!(new_state, Started | Failed | Cancelled)),
             Started => assert!(matches!(new_state, WaitingForResponse | Failed | Cancelled)),
@@ -117,17 +117,19 @@ impl SessionState {
 }
 
 pub trait SessionStore {
-    fn get(&self, id: &SessionToken) -> Result<SessionData>;
-    fn write(&self, session: &SessionData);
+    type Data: Clone;
+
+    fn get(&self, id: &SessionToken) -> Result<Self::Data>;
+    fn write(&self, session: &Self::Data);
     fn cleanup(&self);
 }
 
 #[derive(Debug, Default)]
-pub struct MemorySessionStore {
-    sessions: DashMap<SessionToken, SessionData>,
+pub struct MemorySessionStore<T> {
+    sessions: DashMap<SessionToken, SessionState<T>>,
 }
 
-impl MemorySessionStore {
+impl<T> MemorySessionStore<T> {
     pub fn new() -> Self {
         Self {
             sessions: DashMap::new(),
@@ -141,8 +143,10 @@ const SESSION_EXPIRY_MINUTES: u64 = 5;
 /// The cleanup task that removes stale sessions runs every so often.
 const CLEANUP_INTERVAL_SECONDS: u64 = 10;
 
-impl SessionStore for MemorySessionStore {
-    fn get(&self, token: &SessionToken) -> Result<SessionData> {
+impl<T: Clone> SessionStore for MemorySessionStore<T> {
+    type Data = SessionState<T>;
+
+    fn get(&self, token: &SessionToken) -> Result<SessionState<T>> {
         let data = self
             .sessions
             .get(token)
@@ -151,7 +155,7 @@ impl SessionStore for MemorySessionStore {
         Ok(data)
     }
 
-    fn write(&self, session: &SessionData) {
+    fn write(&self, session: &SessionState<T>) {
         self.sessions.insert(session.token.clone(), session.clone());
     }
 
@@ -176,7 +180,11 @@ impl<K, S> Drop for Server<K, S> {
     }
 }
 
-impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
+impl<K, S> Server<K, S>
+where
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
     /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
@@ -216,8 +224,10 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
             unsigned_mdocs: docs,
         };
 
-        self.sessions
-            .write(&SessionData::new(token.clone(), session_id, request));
+        self.sessions.write(&SessionState::new(
+            token.clone(),
+            IssuanceData::new(request, session_id),
+        ));
 
         let url = self.url.join(&token.0).unwrap(); // token is alphanumeric so this will always succeed
         Ok(ServiceEngagement {
@@ -251,7 +261,7 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
         if msg_type != START_PROVISIONING_MSG_TYPE {
             Self::expect_session_id(
                 &session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?,
-                &session.session_data.id,
+                &session.session_data.data.id,
             )?;
         }
 
@@ -261,7 +271,7 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
         }
 
         // Process the holder's message according to the current session state.
-        match session.session_data.state {
+        match session.session_data.data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
                 Self::handle_cbor(Session::process_start, session, msg).await
@@ -332,14 +342,20 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
 }
 
 #[derive(Debug)]
-struct Session<'a, K, S: SessionStore> {
+struct Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
     sessions: &'a S,
-    session_data: &'a mut SessionData,
+    session_data: &'a mut SessionState<IssuanceData>,
     keys: &'a K,
     updated: bool,
 }
 
-impl<'a, K, S: SessionStore> Drop for Session<'a, K, S> {
+impl<'a, K, S> Drop for Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
     fn drop(&mut self) {
         if self.updated {
             self.sessions.write(self.session_data);
@@ -348,30 +364,46 @@ impl<'a, K, S: SessionStore> Drop for Session<'a, K, S> {
 }
 
 #[derive(Debug, Clone)]
-pub struct SessionData {
-    request: RequestKeyGenerationMessage,
-    state: SessionState,
-    id: SessionId,
-    token: SessionToken,
-    last_active: DateTime<Local>,
+pub struct SessionState<T> {
+    pub data: T,
+    pub token: SessionToken,
+    pub last_active: DateTime<Local>,
 }
 
-impl SessionData {
-    fn new(token: SessionToken, id: SessionId, request: RequestKeyGenerationMessage) -> SessionData {
-        SessionData {
-            token,
+#[derive(Debug, Clone)]
+pub struct IssuanceData {
+    request: RequestKeyGenerationMessage,
+    id: SessionId,
+    state: IssuanceStatus,
+}
+
+impl IssuanceData {
+    fn new(request: RequestKeyGenerationMessage, id: SessionId) -> Self {
+        Self {
             request,
             id,
             state: Created,
+        }
+    }
+}
+
+impl<T> SessionState<T> {
+    pub fn new(token: SessionToken, data: T) -> SessionState<T> {
+        SessionState {
+            data,
+            token,
             last_active: Local::now(),
         }
     }
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
-    fn update_state(&mut self, new_state: SessionState) {
-        self.session_data.state.update(new_state);
+impl<'a, K: KeyRing, S> Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
+    fn update_state(&mut self, new_state: IssuanceStatus) {
+        self.session_data.data.state.update(new_state);
         self.session_data.last_active = Local::now();
         self.updated = true;
     }
@@ -379,14 +411,14 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     async fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
         self.update_state(Started);
         let response = ReadyToProvisionMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.data.request.e_session_id.clone(),
         };
         Ok(response)
     }
 
     async fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
         self.update_state(WaitingForResponse);
-        Ok(self.session_data.request.clone())
+        Ok(self.session_data.data.request.clone())
     }
 
     async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
@@ -401,7 +433,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     async fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
         self.update_state(Cancelled);
         let response = EndSessionMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.data.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
@@ -481,13 +513,13 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     }
 
     pub async fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        device_response.verify(&self.session_data.request)?;
+        device_response.verify(&self.session_data.data.request)?;
 
         let mut docs = vec![];
         for (responses, unsigned) in device_response
             .mdoc_responses
             .iter()
-            .zip(&self.session_data.request.unsigned_mdocs)
+            .zip(&self.session_data.data.request.unsigned_mdocs)
         {
             docs.push(MobileeIDDocuments {
                 doc_type: unsigned.doc_type.clone(),
@@ -496,7 +528,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         }
 
         let response = DataToIssueMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.data.request.e_session_id.clone(),
             mobile_eid_documents: docs,
         };
         Ok(response)
@@ -512,7 +544,7 @@ mod tests {
 
     use crate::{basic_sa_ext::RequestKeyGenerationMessage, DocType};
 
-    use super::{KeyRing, MemorySessionStore, PrivateKey, SessionData, SessionStore};
+    use super::{IssuanceData, KeyRing, MemorySessionStore, PrivateKey, SessionState, SessionStore};
 
     struct EmptyKeyRing;
     impl KeyRing for EmptyKeyRing {
@@ -521,7 +553,7 @@ mod tests {
         }
     }
 
-    type Server = super::Server<EmptyKeyRing, MemorySessionStore>;
+    type Server = super::Server<EmptyKeyRing, MemorySessionStore<IssuanceData>>;
 
     const CLEANUP_INTERVAL: Duration = Duration::from_millis(50);
 
@@ -584,15 +616,17 @@ mod tests {
         assert_eq!(sessions.sessions.len(), 1)
     }
 
-    fn dummy_session_data() -> SessionData {
-        SessionData::new(
+    fn dummy_session_data() -> SessionState<IssuanceData> {
+        SessionState::new(
             random_string(32).into(),
-            "123".to_string().as_bytes().to_vec().into(),
-            RequestKeyGenerationMessage {
-                e_session_id: "123".to_string().as_bytes().to_vec().into(),
-                challenge: ByteBuf::from(vec![]),
-                unsigned_mdocs: vec![],
-            },
+            IssuanceData::new(
+                RequestKeyGenerationMessage {
+                    e_session_id: "123".to_string().as_bytes().to_vec().into(),
+                    challenge: ByteBuf::from(vec![]),
+                    unsigned_mdocs: vec![],
+                },
+                "123".to_string().as_bytes().to_vec().into(),
+            ),
         )
     }
 }

@@ -1,22 +1,33 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use chrono::{DateTime, Utc};
+#![allow(unused)]
+
+use chrono::{DateTime, Local, Utc};
 use indexmap::IndexMap;
-use p256::ecdsa::SigningKey;
+use p256::{
+    ecdh::EphemeralSecret,
+    ecdsa::{SigningKey, VerifyingKey},
+    elliptic_curve::rand_core::OsRng,
+    PublicKey,
+};
+use serde::{Deserialize, Serialize};
+use url::Url;
 use webpki::TrustAnchor;
 
-use wallet_common::generator::Generator;
+use wallet_common::generator::{Generator, TimeGenerator};
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
+    issuer::SessionState,
+    issuer_shared::SessionToken,
     utils::{
         cose::ClonePayload,
-        crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, CborSeq, TaggedBytes},
+        crypto::{cbor_digest, dh_hmac_key, SessionKey},
+        serialization::{cbor_serialize, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
         x509::CertificateUsage,
     },
-    Result,
+    Result, SessionData,
 };
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -45,6 +56,327 @@ pub enum VerificationError {
     EphemeralKeyMissing,
     #[error("validity error: {0}")]
     Validity(#[from] ValidityError),
+    #[error("missing OriginInfo in engagement: {0}")]
+    MissingOriginInfo(usize),
+    #[error("incorrect OriginInfo in engagement")]
+    IncorrectOriginInfo,
+}
+
+impl ReaderEngagement {
+    pub fn new_reader_engagement(referrer_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
+        let privkey = EphemeralSecret::random(&mut OsRng);
+
+        let engagement = Engagement {
+            version: EngagementVersion::V1_0,
+            security: Some((&privkey.public_key()).try_into()?),
+            connection_methods: Some(vec![ConnectionMethodKeyed {
+                typ: ConnectionMethodType::RestApi,
+                version: ConnectionMethodVersion::RestApi,
+                connection_options: RestApiOptionsKeyed {
+                    uri: referrer_url.clone(),
+                }
+                .into(),
+            }
+            .into()]),
+            origin_infos: vec![OriginInfo {
+                cat: OriginInfoDirection::Delivered,
+                typ: OriginInfoType::Website(referrer_url),
+            }],
+        };
+
+        Ok((engagement.into(), privkey))
+    }
+}
+
+struct Session<S: DisclosureState> {
+    disclosure_state: S,
+    session_state: SessionState<DisclosureData>,
+}
+
+#[derive(Debug, Clone)]
+struct DisclosureData {
+    request: DeviceRequest,
+    state: DisclosureStateEnum,
+}
+
+/// An enum whose variants correspond 1-to-1 with all possible states for a session, i.e., all implementations
+/// of the [`DisclosureState`] trait.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+enum DisclosureStateEnum {
+    Created,
+    WaitingForResponse,
+    Done,
+}
+
+/// State for a session that has just been created.
+struct Created {
+    ephemeral_privkey: EphemeralSecret,
+    reader_engagement: ReaderEngagement,
+}
+
+/// State for a session that is waiting for the user's disclosure, i.e., the device has read our
+/// [`ReaderEngagement`] and contacted us at the session URL.
+struct WaitingForResponse {
+    ephemeral_privkey: EphemeralSecret,
+    our_key: SessionKey,
+    session_transcript: SessionTranscript,
+}
+
+/// State for a session that has finished (perhaps due to cancellation or errors).
+struct Done {
+    session_result: SessionResult,
+}
+
+enum SessionResult {
+    Done { disclosed_attributes: DisclosedAttributes },
+    Failed, // TODO add error details
+    Cancelled,
+}
+
+impl From<SessionStatus> for SessionResult {
+    fn from(status: SessionStatus) -> Self {
+        match status {
+            SessionStatus::EncryptionError => SessionResult::Failed,
+            SessionStatus::DecodingError => SessionResult::Failed,
+            SessionStatus::Termination => SessionResult::Cancelled,
+        }
+    }
+}
+
+/// Disclosure session states for use as `T` in `Session<T>`.
+trait DisclosureState {}
+
+impl DisclosureState for Created {}
+impl DisclosureState for WaitingForResponse {}
+impl DisclosureState for Done {}
+
+impl SessionState<DisclosureData> {
+    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
+    fn update(self, new_state: DisclosureStateEnum) -> SessionState<DisclosureData> {
+        SessionState::<DisclosureData> {
+            data: DisclosureData {
+                request: self.data.request,
+                state: new_state,
+            },
+            token: self.token,
+            last_active: Local::now(),
+        }
+    }
+}
+
+// State transitions that are valid for all states
+impl<T: DisclosureState> Session<T> {
+    fn fail(self) -> Session<Done> {
+        Session::<Done> {
+            disclosure_state: Done {
+                session_result: SessionResult::Failed,
+            },
+            session_state: self.session_state.update(DisclosureStateEnum::Done),
+        }
+    }
+
+    fn abort(self, status: SessionStatus) -> Session<Done> {
+        Session::<Done> {
+            disclosure_state: Done {
+                session_result: status.into(),
+            },
+            session_state: self.session_state.update(DisclosureStateEnum::Done),
+        }
+    }
+}
+
+impl Session<Created> {
+    // TODO: update this API when it has been decided on,
+    // and implement RP authentication in this function instead of leaving it up to the caller.
+    /// Create a new disclosure session.
+    fn new(request: DeviceRequest, url: Url) -> Result<Session<Created>> {
+        let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
+        let session = Session::<Created> {
+            disclosure_state: Created {
+                ephemeral_privkey,
+                reader_engagement,
+            },
+            session_state: SessionState::new(
+                SessionToken::new(),
+                DisclosureData {
+                    request,
+                    state: DisclosureStateEnum::Created,
+                },
+            ),
+        };
+        Ok(session)
+    }
+
+    /// Process the device's [`DeviceEngagement`],
+    /// returning a response to answer the device with and the next session state.
+    fn process_device_engagement(
+        self,
+        device_engagement: DeviceEngagement,
+    ) -> (
+        SessionData,
+        std::result::Result<Session<WaitingForResponse>, Session<Done>>,
+    ) {
+        let (response, next) = match self.process_device_engagement_inner(&device_engagement) {
+            Ok((response, our_key, session_transcript)) => {
+                (response, Ok(self.wait_for_response(our_key, session_transcript)))
+            }
+            Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
+        };
+
+        (response, next)
+    }
+
+    // Helper function that returns ordinary errors instead of `Session<...>`
+    fn process_device_engagement_inner(
+        &self,
+        device_engagement: &DeviceEngagement,
+    ) -> Result<(SessionData, SessionKey, SessionTranscript)> {
+        // Check that the device has sent the expected OriginInfo
+        let url = self
+            .disclosure_state
+            .reader_engagement
+            .0
+            .connection_methods
+            .as_ref()
+            .unwrap()[0]
+            .0
+            .connection_options
+            .0
+            .uri
+            .clone();
+
+        if device_engagement.0.origin_infos
+            != vec![
+                OriginInfo {
+                    cat: OriginInfoDirection::Received,
+                    typ: OriginInfoType::Website(url),
+                },
+                OriginInfo {
+                    cat: OriginInfoDirection::Delivered,
+                    typ: OriginInfoType::MessageData,
+                },
+            ]
+        {
+            return Err(VerificationError::IncorrectOriginInfo.into());
+        }
+
+        // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
+        let session_transcript = SessionTranscriptKeyed {
+            device_engagement_bytes: device_engagement.clone().into(),
+            handover: Handover::SchemeHandoverBytes(TaggedBytes(self.disclosure_state.reader_engagement.clone())),
+            ereader_key_bytes: self
+                .disclosure_state
+                .reader_engagement
+                .0
+                .security
+                .as_ref()
+                .unwrap()
+                .0
+                .e_sender_key_bytes
+                .clone(),
+        }
+        .into();
+
+        // Compute the AES key which which we encrypt responses
+        let their_pubkey = (device_engagement.0.security.as_ref().unwrap()).try_into()?;
+        let our_key = SessionKey::new(
+            &self.disclosure_state.ephemeral_privkey,
+            &their_pubkey,
+            &session_transcript,
+            crate::utils::crypto::SessionKeyUser::Reader,
+        )?;
+
+        let response = SessionData::serialize_and_encrypt(&self.session_state.data.request, &our_key)?;
+
+        Ok((response, our_key, session_transcript))
+    }
+
+    fn wait_for_response(
+        self,
+        our_key: SessionKey,
+        session_transcript: SessionTranscript,
+    ) -> Session<WaitingForResponse> {
+        Session::<WaitingForResponse> {
+            disclosure_state: WaitingForResponse {
+                ephemeral_privkey: self.disclosure_state.ephemeral_privkey,
+                our_key,
+                session_transcript,
+            },
+            session_state: self.session_state.update(DisclosureStateEnum::WaitingForResponse),
+        }
+    }
+}
+
+impl Session<WaitingForResponse> {
+    /// Process the user's encrypted [`DeviceResponse`], i.e. its disclosure,
+    /// returning a response to answer the device with and the next session state.
+    fn process_response(
+        self,
+        session_data: SessionData,
+        trust_anchors: &[TrustAnchor],
+    ) -> (SessionData, Session<Done>) {
+        // Abort if user wants to abort
+        if let Some(status) = session_data.status {
+            return (SessionData::new_termination(), self.abort(status));
+        };
+
+        let (response, next) = match self.process_response_inner(&session_data, trust_anchors) {
+            Ok((response, disclosed_attributes)) => (response, self.finish(disclosed_attributes)),
+            Err(_) => (SessionData::new_decoding_error(), self.fail()),
+        };
+
+        (response, next)
+    }
+
+    // Helper function that returns ordinary errors instead of `Session<Done>`
+    fn process_response_inner(
+        &self,
+        session_data: &SessionData,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<(SessionData, DisclosedAttributes)> {
+        // Compute the AES key with which the device should have encrypted its message
+        let their_pubkey: PublicKey = self
+            .disclosure_state
+            .session_transcript
+            .0
+            .device_engagement_bytes
+            .0
+             .0
+            .security
+            .as_ref()
+            .unwrap() // Our protocol assumes the device always passes a key, TODO abort with an error message otherwise
+            .try_into()?;
+        let their_key = SessionKey::new(
+            &self.disclosure_state.ephemeral_privkey,
+            &their_pubkey,
+            &self.disclosure_state.session_transcript,
+            crate::utils::crypto::SessionKeyUser::Device,
+        )?;
+
+        let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&their_key)?;
+
+        let disclosed_attributes = device_response.verify(
+            Some(&self.disclosure_state.ephemeral_privkey),
+            &self.disclosure_state.session_transcript,
+            &TimeGenerator,
+            trust_anchors,
+        )?;
+        let response = SessionData {
+            data: None,
+            status: Some(SessionStatus::Termination),
+        };
+
+        Ok((response, disclosed_attributes))
+    }
+
+    fn finish(self, disclosed_attributes: DisclosedAttributes) -> Session<Done> {
+        Session::<Done> {
+            disclosure_state: Done {
+                session_result: SessionResult::Done { disclosed_attributes },
+            },
+            session_state: self.session_state.update(DisclosureStateEnum::Done),
+        }
+    }
 }
 
 impl DeviceResponse {
@@ -56,10 +388,9 @@ impl DeviceResponse {
     ///   to be signed by the holder.
     /// - `time` - a generator of the current time.
     /// - `trust_anchors` - trust anchors against which verification is done.
-    #[allow(dead_code)] // TODO use this in verifier
     pub fn verify(
         &self,
-        eph_reader_key: Option<&SigningKey>,
+        eph_reader_key: Option<&EphemeralSecret>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -191,7 +522,7 @@ impl MobileSecurityObject {
 impl Document {
     pub fn verify(
         &self,
-        eph_reader_key: Option<&SigningKey>,
+        eph_reader_key: Option<&EphemeralSecret>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -218,7 +549,7 @@ impl Document {
             DeviceAuth::DeviceMac(mac) => {
                 let mac_key = dh_hmac_key(
                     eph_reader_key.ok_or_else(|| VerificationError::EphemeralKeyMissing)?,
-                    &device_key,
+                    &device_key.into(),
                     &session_transcript_bts,
                     "EMacKey",
                     32,
@@ -229,16 +560,6 @@ impl Document {
         }
 
         Ok((mso.doc_type, attrs))
-    }
-}
-
-impl DeviceAuthentication {
-    // TODO the reader should instead take this from earlier on in the protocol
-    // TODO: maybe grab this from the DeviceAuthenticationBytes instead, so we can avoid deserialize -> serialize sequence
-    pub fn session_transcript_bts(&self) -> Result<Vec<u8>> {
-        let tagged: TaggedBytes<&SessionTranscript> = (&self.0.session_transcript).into();
-        let bts = cbor_serialize(&tagged)?;
-        Ok(bts)
     }
 }
 

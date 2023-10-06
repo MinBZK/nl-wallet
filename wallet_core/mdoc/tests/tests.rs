@@ -37,8 +37,8 @@ const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 const EXAMPLE_ATTR_NAME: &str = "family_name";
 static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string())); // Lazy since can't have a const String
 
-type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore>>;
-type MockServer = Server<MockIssuanceKeyring, MemorySessionStore>;
+type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>>;
+type MockServer = Server<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
 
 struct SoftwareKeyFactory {}
 
@@ -290,7 +290,7 @@ struct MockHttpClient<K, S> {
 impl<K, S> HttpClient for MockHttpClient<K, S>
 where
     K: KeyRing + Send + Sync,
-    S: SessionStore + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R, Error>
     where

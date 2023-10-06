@@ -6,11 +6,7 @@ use aes_gcm::{
 };
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
-use p256::{
-    ecdh::{self, EphemeralSecret},
-    ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint, PublicKey,
-};
+use p256::{ecdh::EphemeralSecret, ecdsa::VerifyingKey, EncodedPoint, PublicKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
@@ -23,7 +19,7 @@ use crate::{
         cose::CoseKey,
         serialization::{cbor_serialize, CborError, TaggedBytes},
     },
-    Error, Result, SessionData, SessionTranscript,
+    CipherSuiteIdentifier, Error, Result, Security, SecurityKeyed, SessionData, SessionTranscript,
 };
 
 use super::serialization::cbor_deserialize;
@@ -58,13 +54,13 @@ pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborEr
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
 pub fn dh_hmac_key(
-    privkey: &SigningKey,
-    pubkey: &VerifyingKey,
+    privkey: &EphemeralSecret,
+    pubkey: &PublicKey,
     salt: &[u8],
     info: &str,
     len: usize,
 ) -> Result<hmac::Key> {
-    let dh = ecdh::diffie_hellman(privkey.as_nonzero_scalar(), pubkey.as_affine());
+    let dh = privkey.diffie_hellman(pubkey);
     hmac_key(dh.raw_secret_bytes().as_ref(), salt, info, len)
 }
 
@@ -122,6 +118,29 @@ impl TryFrom<&CoseKey> for VerifyingKey {
         ))
         .map_err(CryptoError::KeyParseFailed)?;
         Ok(key)
+    }
+}
+
+impl TryFrom<&PublicKey> for Security {
+    type Error = Error;
+
+    fn try_from(value: &PublicKey) -> Result<Self> {
+        let cose_key: CoseKey = (&VerifyingKey::from(value)).try_into()?;
+        let security = SecurityKeyed {
+            cipher_suite_identifier: CipherSuiteIdentifier::P256,
+            e_sender_key_bytes: cose_key.into(),
+        }
+        .into();
+        Ok(security)
+    }
+}
+
+impl TryFrom<&Security> for PublicKey {
+    type Error = Error;
+
+    fn try_from(value: &Security) -> Result<Self> {
+        let key: VerifyingKey = (&value.0.e_sender_key_bytes.0).try_into()?;
+        Ok(key.into())
     }
 }
 
@@ -210,8 +229,8 @@ impl SessionData {
 
 #[cfg(test)]
 mod test {
-    use aes_gcm::aead::OsRng;
-    use p256::ecdh::EphemeralSecret;
+    use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng};
+
     use serde::{Deserialize, Serialize};
 
     use crate::{examples::Example, DeviceAuthenticationBytes, SessionData};

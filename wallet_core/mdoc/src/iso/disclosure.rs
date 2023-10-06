@@ -118,3 +118,19 @@ pub enum SessionStatus {
     DecodingError = 11,
     Termination = 20,
 }
+
+impl SessionData {
+    pub fn new_decoding_error() -> Self {
+        SessionData {
+            data: None,
+            status: Some(SessionStatus::DecodingError),
+        }
+    }
+
+    pub fn new_termination() -> Self {
+        SessionData {
+            data: None,
+            status: Some(SessionStatus::Termination),
+        }
+    }
+}
