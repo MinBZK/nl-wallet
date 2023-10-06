@@ -21,13 +21,16 @@ use crate::{
     iso::*,
     issuer::SessionState,
     issuer_shared::SessionToken,
+    server_state::SessionStore,
     utils::{
         cose::ClonePayload,
-        crypto::{cbor_digest, dh_hmac_key, SessionKey},
-        serialization::{cbor_serialize, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
+        crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
+        serialization::{
+            cbor_deserialize, cbor_serialize, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes,
+        },
         x509::CertificateUsage,
     },
-    Result, SessionData,
+    Error, Result, SessionData,
 };
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -60,6 +63,8 @@ pub enum VerificationError {
     MissingOriginInfo(usize),
     #[error("incorrect OriginInfo in engagement")]
     IncorrectOriginInfo,
+    #[error("unexpected input: session is done")]
+    UnexpectedInput,
 }
 
 impl ReaderEngagement {
@@ -119,6 +124,7 @@ struct Created {
 struct WaitingForResponse {
     ephemeral_privkey: EphemeralSecret,
     our_key: SessionKey,
+    their_key: SessionKey,
     session_transcript: SessionTranscript,
 }
 
@@ -217,9 +223,10 @@ impl Session<Created> {
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
         let (response, next) = match self.process_device_engagement_inner(&device_engagement) {
-            Ok((response, our_key, session_transcript)) => {
-                (response, Ok(self.wait_for_response(our_key, session_transcript)))
-            }
+            Ok((response, our_key, their_key, session_transcript)) => (
+                response,
+                Ok(self.wait_for_response(our_key, their_key, session_transcript)),
+            ),
             Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
         };
 
@@ -230,7 +237,7 @@ impl Session<Created> {
     fn process_device_engagement_inner(
         &self,
         device_engagement: &DeviceEngagement,
-    ) -> Result<(SessionData, SessionKey, SessionTranscript)> {
+    ) -> Result<(SessionData, SessionKey, SessionKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
         let url = self
             .disclosure_state
@@ -277,29 +284,38 @@ impl Session<Created> {
         }
         .into();
 
-        // Compute the AES key which which we encrypt responses
-        let their_pubkey = (device_engagement.0.security.as_ref().unwrap()).try_into()?;
+        // Compute the AES keys with which we and the device encrypt responses
+        // TODO remove unwrap() and return an error if the device passes no key
+        let their_pubkey = device_engagement.0.security.as_ref().unwrap().try_into()?;
         let our_key = SessionKey::new(
             &self.disclosure_state.ephemeral_privkey,
             &their_pubkey,
             &session_transcript,
-            crate::utils::crypto::SessionKeyUser::Reader,
+            SessionKeyUser::Reader,
+        )?;
+        let their_key = SessionKey::new(
+            &self.disclosure_state.ephemeral_privkey,
+            &their_pubkey,
+            &session_transcript,
+            SessionKeyUser::Device,
         )?;
 
         let response = SessionData::serialize_and_encrypt(&self.session_state.data.request, &our_key)?;
 
-        Ok((response, our_key, session_transcript))
+        Ok((response, our_key, their_key, session_transcript))
     }
 
     fn wait_for_response(
         self,
         our_key: SessionKey,
+        their_key: SessionKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
         Session::<WaitingForResponse> {
             disclosure_state: WaitingForResponse {
                 ephemeral_privkey: self.disclosure_state.ephemeral_privkey,
                 our_key,
+                their_key,
                 session_transcript,
             },
             session_state: self.session_state.update(DisclosureStateEnum::WaitingForResponse),
@@ -334,26 +350,7 @@ impl Session<WaitingForResponse> {
         session_data: &SessionData,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(SessionData, DisclosedAttributes)> {
-        // Compute the AES key with which the device should have encrypted its message
-        let their_pubkey: PublicKey = self
-            .disclosure_state
-            .session_transcript
-            .0
-            .device_engagement_bytes
-            .0
-             .0
-            .security
-            .as_ref()
-            .unwrap() // Our protocol assumes the device always passes a key, TODO abort with an error message otherwise
-            .try_into()?;
-        let their_key = SessionKey::new(
-            &self.disclosure_state.ephemeral_privkey,
-            &their_pubkey,
-            &self.disclosure_state.session_transcript,
-            crate::utils::crypto::SessionKeyUser::Device,
-        )?;
-
-        let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&their_key)?;
+        let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.disclosure_state.their_key)?;
 
         let disclosed_attributes = device_response.verify(
             Some(&self.disclosure_state.ephemeral_privkey),
