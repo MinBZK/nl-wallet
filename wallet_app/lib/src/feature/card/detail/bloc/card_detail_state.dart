@@ -10,10 +10,12 @@ class CardDetailInitial extends CardDetailState {
 }
 
 class CardDetailLoadInProgress extends CardDetailState {
-  const CardDetailLoadInProgress();
+  final WalletCard? card;
+
+  const CardDetailLoadInProgress({this.card});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [card];
 }
 
 class CardDetailLoadSuccess extends CardDetailState {
