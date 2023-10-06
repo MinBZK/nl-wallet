@@ -27,7 +27,7 @@ pub use crate::{
     pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,
     storage::Storage,
-    wallet::{RedirectUriType, Wallet},
+    wallet::{UriType, Wallet},
 };
 
 #[cfg(feature = "wallet_deps")]
