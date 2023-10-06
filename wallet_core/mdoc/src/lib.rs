@@ -10,6 +10,8 @@ pub mod verifier;
 // Data types shared between agents
 pub mod issuer_shared;
 
+pub mod server_state;
+
 /// General code used throughout the crate.
 pub mod utils;
 

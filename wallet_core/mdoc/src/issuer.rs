@@ -9,7 +9,6 @@ use std::{future::Future, sync::Arc, time::Duration};
 use chrono::{DateTime, Local, Utc};
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
-use dashmap::DashMap;
 use futures::future::try_join_all;
 use p256::{
     ecdsa::{Signature, SigningKey},
@@ -17,7 +16,7 @@ use p256::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use tokio::{task::JoinHandle, time};
+use tokio::task::JoinHandle;
 use url::Url;
 
 use wallet_common::{
@@ -33,6 +32,7 @@ use crate::{
     },
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
+    server_state::{start_cleanup_task, SessionStore, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
@@ -116,56 +116,6 @@ impl IssuanceStatus {
     }
 }
 
-pub trait SessionStore {
-    type Data: Clone;
-
-    fn get(&self, id: &SessionToken) -> Result<Self::Data>;
-    fn write(&self, session: &Self::Data);
-    fn cleanup(&self);
-}
-
-#[derive(Debug, Default)]
-pub struct MemorySessionStore<T> {
-    sessions: DashMap<SessionToken, SessionState<T>>,
-}
-
-impl<T> MemorySessionStore<T> {
-    pub fn new() -> Self {
-        Self {
-            sessions: DashMap::new(),
-        }
-    }
-}
-
-/// After this amount of inactivity, a session should be cleaned up.
-const SESSION_EXPIRY_MINUTES: u64 = 5;
-
-/// The cleanup task that removes stale sessions runs every so often.
-const CLEANUP_INTERVAL_SECONDS: u64 = 10;
-
-impl<T: Clone> SessionStore for MemorySessionStore<T> {
-    type Data = SessionState<T>;
-
-    fn get(&self, token: &SessionToken) -> Result<SessionState<T>> {
-        let data = self
-            .sessions
-            .get(token)
-            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?
-            .clone();
-        Ok(data)
-    }
-
-    fn write(&self, session: &SessionState<T>) {
-        self.sessions.insert(session.token.clone(), session.clone());
-    }
-
-    fn cleanup(&self) {
-        let now = Local::now();
-        let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
-        self.sessions.retain(|_, session| now - session.last_active < cutoff);
-    }
-}
-
 pub struct Server<K, S> {
     url: Url,
     keys: K,
@@ -190,24 +140,11 @@ where
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
         let sessions = Arc::new(session_store);
         Server {
-            cleanup_task: Self::start_cleanup_task(
-                Arc::clone(&sessions),
-                Duration::from_secs(CLEANUP_INTERVAL_SECONDS),
-            ),
+            cleanup_task: start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
             url,
             keys,
             sessions,
         }
-    }
-
-    fn start_cleanup_task(sessions: Arc<S>, interval: Duration) -> JoinHandle<()> {
-        let mut interval = time::interval(interval);
-        tokio::spawn(async move {
-            loop {
-                interval.tick().await;
-                sessions.cleanup();
-            }
-        })
     }
 
     /// Start a new issuance session for the specified (unsigned) mdocs. Returns the [`ServiceEngagement`] to be
@@ -387,16 +324,6 @@ impl IssuanceData {
     }
 }
 
-impl<T> SessionState<T> {
-    pub fn new(token: SessionToken, data: T) -> SessionState<T> {
-        SessionState {
-            data,
-            token,
-            last_active: Local::now(),
-        }
-    }
-}
-
 // The `process_` methods process specific issuance protocol messages from the holder.
 impl<'a, K: KeyRing, S> Session<'a, K, S>
 where
@@ -542,9 +469,13 @@ mod tests {
     use serde_bytes::ByteBuf;
     use wallet_common::utils::random_string;
 
-    use crate::{basic_sa_ext::RequestKeyGenerationMessage, DocType};
+    use crate::{
+        basic_sa_ext::RequestKeyGenerationMessage,
+        server_state::{start_cleanup_task, MemorySessionStore, SessionStore},
+        DocType,
+    };
 
-    use super::{IssuanceData, KeyRing, MemorySessionStore, PrivateKey, SessionState, SessionStore};
+    use super::{IssuanceData, KeyRing, PrivateKey, SessionState};
 
     struct EmptyKeyRing;
     impl KeyRing for EmptyKeyRing {
@@ -562,7 +493,7 @@ mod tests {
         // Construct a `Server`, but not using Server::new() so we can control our own cleanup task
         let sessions = Arc::new(MemorySessionStore::new());
         let server = Server {
-            cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+            cleanup_task: start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
             url: "https://example.com".parse().unwrap(),
             keys: EmptyKeyRing,
             sessions,
@@ -596,7 +527,7 @@ mod tests {
             // Construct a `Server`, but not using Server::new() so we can keep our sessions reference
             // and control our own cleanup task.
             let server = Server {
-                cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+                cleanup_task: start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
                 url: "https://example.com".parse().unwrap(),
                 keys: EmptyKeyRing,
                 sessions: Arc::clone(&sessions),
