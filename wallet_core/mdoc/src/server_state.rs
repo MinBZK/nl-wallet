@@ -47,7 +47,7 @@ impl<T> MemorySessionStore<T> {
 impl<T> SessionState<T> {
     pub fn new(token: SessionToken, data: T) -> SessionState<T> {
         SessionState {
-            data,
+            session_data: data,
             token,
             last_active: Local::now(),
         }

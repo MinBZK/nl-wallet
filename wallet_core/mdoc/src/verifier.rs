@@ -94,14 +94,14 @@ impl ReaderEngagement {
 }
 
 struct Session<S: DisclosureState> {
-    disclosure_state: S,
-    session_state: SessionState<DisclosureData>,
+    state: SessionState<DisclosureData<S>>,
 }
 
 #[derive(Debug, Clone)]
-struct DisclosureData {
+struct DisclosureData<S: DisclosureState> {
     request: DeviceRequest,
-    state: DisclosureStateEnum,
+    disclosure_state_enum: DisclosureStateEnum,
+    disclosure_state: S,
 }
 
 /// An enum whose variants correspond 1-to-1 with all possible states for a session, i.e., all implementations
@@ -122,7 +122,6 @@ struct Created {
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
 struct WaitingForResponse {
-    ephemeral_privkey: EphemeralSecret,
     our_key: SessionKey,
     their_key: SessionKey,
     session_transcript: SessionTranscript,
@@ -150,44 +149,57 @@ impl From<SessionStatus> for SessionResult {
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
-trait DisclosureState {}
+trait DisclosureState {
+    fn state_enum() -> DisclosureStateEnum;
+}
 
-impl DisclosureState for Created {}
-impl DisclosureState for WaitingForResponse {}
-impl DisclosureState for Done {}
-
-impl SessionState<DisclosureData> {
-    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
-    fn update(self, new_state: DisclosureStateEnum) -> SessionState<DisclosureData> {
-        SessionState::<DisclosureData> {
-            data: DisclosureData {
-                request: self.data.request,
-                state: new_state,
-            },
-            token: self.token,
-            last_active: Local::now(),
-        }
+impl DisclosureState for Created {
+    fn state_enum() -> DisclosureStateEnum {
+        DisclosureStateEnum::Created
+    }
+}
+impl DisclosureState for WaitingForResponse {
+    fn state_enum() -> DisclosureStateEnum {
+        DisclosureStateEnum::WaitingForResponse
+    }
+}
+impl DisclosureState for Done {
+    fn state_enum() -> DisclosureStateEnum {
+        DisclosureStateEnum::Done
     }
 }
 
-// State transitions that are valid for all states
+// State transitions and helper methods that are valid for all states
 impl<T: DisclosureState> Session<T> {
     fn fail(self) -> Session<Done> {
-        Session::<Done> {
-            disclosure_state: Done {
-                session_result: SessionResult::Failed,
-            },
-            session_state: self.session_state.update(DisclosureStateEnum::Done),
-        }
+        self.transition(Done {
+            session_result: SessionResult::Failed,
+        })
     }
 
     fn abort(self, status: SessionStatus) -> Session<Done> {
-        Session::<Done> {
-            disclosure_state: Done {
-                session_result: status.into(),
+        self.transition(Done {
+            session_result: status.into(),
+        })
+    }
+
+    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
+    fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
+        Session {
+            state: SessionState::<DisclosureData<NewT>> {
+                session_data: DisclosureData {
+                    request: self.state.session_data.request,
+                    disclosure_state: new_state,
+                    disclosure_state_enum: NewT::state_enum(),
+                },
+                token: self.state.token,
+                last_active: Local::now(),
             },
-            session_state: self.session_state.update(DisclosureStateEnum::Done),
         }
+    }
+
+    fn state(&self) -> &T {
+        &self.state.session_data.disclosure_state
     }
 }
 
@@ -198,15 +210,15 @@ impl Session<Created> {
     fn new(request: DeviceRequest, url: Url) -> Result<Session<Created>> {
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
-            disclosure_state: Created {
-                ephemeral_privkey,
-                reader_engagement,
-            },
-            session_state: SessionState::new(
+            state: SessionState::new(
                 SessionToken::new(),
                 DisclosureData {
                     request,
-                    state: DisclosureStateEnum::Created,
+                    disclosure_state_enum: DisclosureStateEnum::Created,
+                    disclosure_state: Created {
+                        ephemeral_privkey,
+                        reader_engagement,
+                    },
                 },
             ),
         };
@@ -239,13 +251,7 @@ impl Session<Created> {
         device_engagement: &DeviceEngagement,
     ) -> Result<(SessionData, SessionKey, SessionKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
-        let url = self
-            .disclosure_state
-            .reader_engagement
-            .0
-            .connection_methods
-            .as_ref()
-            .unwrap()[0]
+        let url = self.state().reader_engagement.0.connection_methods.as_ref().unwrap()[0]
             .0
             .connection_options
             .0
@@ -270,9 +276,9 @@ impl Session<Created> {
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
         let session_transcript = SessionTranscriptKeyed {
             device_engagement_bytes: device_engagement.clone().into(),
-            handover: Handover::SchemeHandoverBytes(TaggedBytes(self.disclosure_state.reader_engagement.clone())),
+            handover: Handover::SchemeHandoverBytes(TaggedBytes(self.state().reader_engagement.clone())),
             ereader_key_bytes: self
-                .disclosure_state
+                .state()
                 .reader_engagement
                 .0
                 .security
@@ -288,19 +294,19 @@ impl Session<Created> {
         // TODO remove unwrap() and return an error if the device passes no key
         let their_pubkey = device_engagement.0.security.as_ref().unwrap().try_into()?;
         let our_key = SessionKey::new(
-            &self.disclosure_state.ephemeral_privkey,
+            &self.state().ephemeral_privkey,
             &their_pubkey,
             &session_transcript,
             SessionKeyUser::Reader,
         )?;
         let their_key = SessionKey::new(
-            &self.disclosure_state.ephemeral_privkey,
+            &self.state().ephemeral_privkey,
             &their_pubkey,
             &session_transcript,
             SessionKeyUser::Device,
         )?;
 
-        let response = SessionData::serialize_and_encrypt(&self.session_state.data.request, &our_key)?;
+        let response = SessionData::serialize_and_encrypt(&self.state.session_data.request, &our_key)?;
 
         Ok((response, our_key, their_key, session_transcript))
     }
@@ -311,15 +317,11 @@ impl Session<Created> {
         their_key: SessionKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
-        Session::<WaitingForResponse> {
-            disclosure_state: WaitingForResponse {
-                ephemeral_privkey: self.disclosure_state.ephemeral_privkey,
-                our_key,
-                their_key,
-                session_transcript,
-            },
-            session_state: self.session_state.update(DisclosureStateEnum::WaitingForResponse),
-        }
+        self.transition(WaitingForResponse {
+            our_key,
+            their_key,
+            session_transcript,
+        })
     }
 }
 
@@ -350,11 +352,11 @@ impl Session<WaitingForResponse> {
         session_data: &SessionData,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(SessionData, DisclosedAttributes)> {
-        let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.disclosure_state.their_key)?;
+        let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.state().their_key)?;
 
         let disclosed_attributes = device_response.verify(
-            Some(&self.disclosure_state.ephemeral_privkey),
-            &self.disclosure_state.session_transcript,
+            None, // TODO without this, documents using MAC can't be verified
+            &self.state().session_transcript,
             &TimeGenerator,
             trust_anchors,
         )?;
@@ -367,12 +369,9 @@ impl Session<WaitingForResponse> {
     }
 
     fn finish(self, disclosed_attributes: DisclosedAttributes) -> Session<Done> {
-        Session::<Done> {
-            disclosure_state: Done {
-                session_result: SessionResult::Done { disclosed_attributes },
-            },
-            session_state: self.session_state.update(DisclosureStateEnum::Done),
-        }
+        self.transition(Done {
+            session_result: SessionResult::Done { disclosed_attributes },
+        })
     }
 }
 

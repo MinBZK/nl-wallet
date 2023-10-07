@@ -198,7 +198,7 @@ where
         if msg_type != START_PROVISIONING_MSG_TYPE {
             Self::expect_session_id(
                 &session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?,
-                &session.session_data.data.id,
+                &session.session_data.session_data.id,
             )?;
         }
 
@@ -208,7 +208,7 @@ where
         }
 
         // Process the holder's message according to the current session state.
-        match session.session_data.data.state {
+        match session.session_data.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
                 Self::handle_cbor(Session::process_start, session, msg).await
@@ -302,7 +302,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct SessionState<T> {
-    pub data: T,
+    pub session_data: T,
     pub token: SessionToken,
     pub last_active: DateTime<Local>,
 }
@@ -330,7 +330,7 @@ where
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     fn update_state(&mut self, new_state: IssuanceStatus) {
-        self.session_data.data.state.update(new_state);
+        self.session_data.session_data.state.update(new_state);
         self.session_data.last_active = Local::now();
         self.updated = true;
     }
@@ -338,14 +338,14 @@ where
     async fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
         self.update_state(Started);
         let response = ReadyToProvisionMessage {
-            e_session_id: self.session_data.data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
         };
         Ok(response)
     }
 
     async fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
         self.update_state(WaitingForResponse);
-        Ok(self.session_data.data.request.clone())
+        Ok(self.session_data.session_data.request.clone())
     }
 
     async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
@@ -360,7 +360,7 @@ where
     async fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
         self.update_state(Cancelled);
         let response = EndSessionMessage {
-            e_session_id: self.session_data.data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
@@ -440,13 +440,13 @@ where
     }
 
     pub async fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        device_response.verify(&self.session_data.data.request)?;
+        device_response.verify(&self.session_data.session_data.request)?;
 
         let mut docs = vec![];
         for (responses, unsigned) in device_response
             .mdoc_responses
             .iter()
-            .zip(&self.session_data.data.request.unsigned_mdocs)
+            .zip(&self.session_data.session_data.request.unsigned_mdocs)
         {
             docs.push(MobileeIDDocuments {
                 doc_type: unsigned.doc_type.clone(),
@@ -455,7 +455,7 @@ where
         }
 
         let response = DataToIssueMessage {
-            e_session_id: self.session_data.data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
             mobile_eid_documents: docs,
         };
         Ok(response)
