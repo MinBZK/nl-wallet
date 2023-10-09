@@ -72,32 +72,6 @@ pub enum VerificationError {
     UnexpectedInput,
 }
 
-impl ReaderEngagement {
-    pub fn new_reader_engagement(referrer_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
-        let privkey = EphemeralSecret::random(&mut OsRng);
-
-        let engagement = Engagement {
-            version: EngagementVersion::V1_0,
-            security: Some((&privkey.public_key()).try_into()?),
-            connection_methods: Some(vec![ConnectionMethodKeyed {
-                typ: ConnectionMethodType::RestApi,
-                version: ConnectionMethodVersion::RestApi,
-                connection_options: RestApiOptionsKeyed {
-                    uri: referrer_url.clone(),
-                }
-                .into(),
-            }
-            .into()]),
-            origin_infos: vec![OriginInfo {
-                cat: OriginInfoDirection::Delivered,
-                typ: OriginInfoType::Website(referrer_url),
-            }],
-        };
-
-        Ok((engagement.into(), privkey))
-    }
-}
-
 struct Session<S> {
     state: SessionState<DisclosureData<S>>,
 }
@@ -146,16 +120,6 @@ enum SessionResult {
     Cancelled,
 }
 
-impl From<SessionStatus> for SessionResult {
-    fn from(status: SessionStatus) -> Self {
-        match status {
-            SessionStatus::EncryptionError => SessionResult::Failed,
-            SessionStatus::DecodingError => SessionResult::Failed,
-            SessionStatus::Termination => SessionResult::Cancelled,
-        }
-    }
-}
-
 /// Disclosure session states for use as `T` in `Session<T>`.
 trait DisclosureState {
     fn state_enum() -> DisclosureStateEnum
@@ -176,65 +140,6 @@ impl DisclosureState for WaitingForResponse {
 impl DisclosureState for Done {
     fn state_enum() -> DisclosureStateEnum {
         DisclosureStateEnum::Done
-    }
-}
-
-impl SessionState<DisclosureData<Box<dyn Any>>> {
-    /// Unpack the boxed state. NOTE: will panic if the box does not contain the right type.
-    fn into_unboxed<NewT: Sized + 'static>(self) -> SessionState<DisclosureData<NewT>> {
-        SessionState {
-            session_data: DisclosureData {
-                disclosure_state: *self.session_data.disclosure_state.downcast().unwrap(),
-                disclosure_state_enum: self.session_data.disclosure_state_enum,
-            },
-            token: self.token,
-            last_active: Local::now(),
-        }
-    }
-}
-
-impl<T: DisclosureState + 'static> SessionState<DisclosureData<T>> {
-    fn into_boxed(self) -> SessionState<DisclosureData<Box<(dyn DisclosureState + 'static)>>> {
-        SessionState {
-            session_data: DisclosureData {
-                disclosure_state: Box::new(self.session_data.disclosure_state),
-                disclosure_state_enum: self.session_data.disclosure_state_enum,
-            },
-            token: self.token,
-            last_active: Local::now(),
-        }
-    }
-}
-
-impl<T: DisclosureState> Session<T> {
-    fn fail(self) -> Session<Done> {
-        self.transition(Done {
-            session_result: SessionResult::Failed,
-        })
-    }
-
-    fn abort(self, status: SessionStatus) -> Session<Done> {
-        self.transition(Done {
-            session_result: status.into(),
-        })
-    }
-
-    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
-    fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
-        Session {
-            state: SessionState::<DisclosureData<NewT>> {
-                session_data: DisclosureData {
-                    disclosure_state: new_state,
-                    disclosure_state_enum: NewT::state_enum(),
-                },
-                token: self.state.token,
-                last_active: Local::now(),
-            },
-        }
-    }
-
-    fn state(&self) -> &T {
-        &self.state.session_data.disclosure_state
     }
 }
 
@@ -296,6 +201,39 @@ async fn process_message(
     sessions.write(&next);
 
     Ok(response)
+}
+
+// Transitioning functions and helpers valid for any state
+impl<T: DisclosureState> Session<T> {
+    fn fail(self) -> Session<Done> {
+        self.transition(Done {
+            session_result: SessionResult::Failed,
+        })
+    }
+
+    fn abort(self, status: SessionStatus) -> Session<Done> {
+        self.transition(Done {
+            session_result: status.into(),
+        })
+    }
+
+    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
+    fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
+        Session {
+            state: SessionState::<DisclosureData<NewT>> {
+                session_data: DisclosureData {
+                    disclosure_state: new_state,
+                    disclosure_state_enum: NewT::state_enum(),
+                },
+                token: self.state.token,
+                last_active: Local::now(),
+            },
+        }
+    }
+
+    fn state(&self) -> &T {
+        &self.state.session_data.disclosure_state
+    }
 }
 
 impl Session<Created> {
@@ -521,6 +459,69 @@ impl Session<WaitingForResponse> {
         self.transition(Done {
             session_result: SessionResult::Done { disclosed_attributes },
         })
+    }
+}
+
+impl ReaderEngagement {
+    fn new_reader_engagement(referrer_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
+        let privkey = EphemeralSecret::random(&mut OsRng);
+
+        let engagement = Engagement {
+            version: EngagementVersion::V1_0,
+            security: Some((&privkey.public_key()).try_into()?),
+            connection_methods: Some(vec![ConnectionMethodKeyed {
+                typ: ConnectionMethodType::RestApi,
+                version: ConnectionMethodVersion::RestApi,
+                connection_options: RestApiOptionsKeyed {
+                    uri: referrer_url.clone(),
+                }
+                .into(),
+            }
+            .into()]),
+            origin_infos: vec![OriginInfo {
+                cat: OriginInfoDirection::Delivered,
+                typ: OriginInfoType::Website(referrer_url),
+            }],
+        };
+
+        Ok((engagement.into(), privkey))
+    }
+}
+
+impl SessionState<DisclosureData<Box<dyn Any>>> {
+    /// Unpack the boxed state. NOTE: will panic if the box does not contain the right type.
+    fn into_unboxed<NewT: Sized + 'static>(self) -> SessionState<DisclosureData<NewT>> {
+        SessionState {
+            session_data: DisclosureData {
+                disclosure_state: *self.session_data.disclosure_state.downcast().unwrap(),
+                disclosure_state_enum: self.session_data.disclosure_state_enum,
+            },
+            token: self.token,
+            last_active: Local::now(),
+        }
+    }
+}
+
+impl<T: DisclosureState + 'static> SessionState<DisclosureData<T>> {
+    fn into_boxed(self) -> SessionState<DisclosureData<Box<(dyn DisclosureState + 'static)>>> {
+        SessionState {
+            session_data: DisclosureData {
+                disclosure_state: Box::new(self.session_data.disclosure_state),
+                disclosure_state_enum: self.session_data.disclosure_state_enum,
+            },
+            token: self.token,
+            last_active: Local::now(),
+        }
+    }
+}
+
+impl From<SessionStatus> for SessionResult {
+    fn from(status: SessionStatus) -> Self {
+        match status {
+            SessionStatus::EncryptionError => SessionResult::Failed,
+            SessionStatus::DecodingError => SessionResult::Failed,
+            SessionStatus::Termination => SessionResult::Cancelled,
+        }
     }
 }
 
