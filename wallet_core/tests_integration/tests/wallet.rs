@@ -24,9 +24,11 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     errors::{InstructionError, WalletUnlockError},
     mock::{MockDigidSession, MockPidIssuerClient, MockStorage},
-    wallet_deps::{HttpAccountProviderClient, HttpPidIssuerClient, LocalConfigurationRepository},
-    AccountProviderClient, AttributeValue, Configuration, ConfigurationRepository, DigidSession, Document,
-    PidIssuerClient, Storage, Wallet,
+    wallet_deps::{
+        AccountProviderClient, ConfigurationRepository, DigidSession, HttpAccountProviderClient, HttpPidIssuerClient,
+        LocalConfigurationRepository, PidIssuerClient, Storage,
+    },
+    AttributeValue, Configuration, Document, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};

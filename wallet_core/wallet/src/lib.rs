@@ -14,27 +14,23 @@ mod wallet;
 pub mod errors;
 
 pub use crate::{
-    account_provider::AccountProviderClient,
-    config::{
-        AccountServerConfiguration, Configuration, ConfigurationRepository, LockTimeoutConfiguration,
-        PidIssuanceConfiguration,
-    },
-    digid::DigidSession,
+    config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration, PidIssuanceConfiguration},
     document::{
         Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentPersistence, DocumentType,
         GenderAttributeValue,
     },
-    pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,
-    storage::Storage,
     wallet::{RedirectUriType, Wallet},
 };
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
     pub use crate::{
-        account_provider::HttpAccountProviderClient, config::LocalConfigurationRepository, digid::HttpDigidSession,
-        instruction::RemoteEcdsaKey, pid_issuer::HttpPidIssuerClient,
+        account_provider::{AccountProviderClient, HttpAccountProviderClient},
+        config::{ConfigurationRepository, LocalConfigurationRepository},
+        digid::{DigidSession, HttpDigidSession},
+        pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
+        storage::Storage,
     };
 }
 
