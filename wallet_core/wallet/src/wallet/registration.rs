@@ -1,0 +1,139 @@
+use std::error::Error;
+
+use tracing::{info, instrument};
+
+use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::account::messages::auth::Registration;
+
+use crate::{
+    account_provider::{AccountProviderClient, AccountProviderError},
+    config::ConfigurationRepository,
+    pin::{
+        key::{self as pin_key, PinKey},
+        validation::{validate_pin, PinValidationError},
+    },
+    storage::{RegistrationData, Storage, StorageError, StorageState},
+};
+
+use super::Wallet;
+
+#[derive(Debug, thiserror::Error)]
+pub enum WalletRegistrationError {
+    #[error("wallet is already registered")]
+    AlreadyRegistered,
+    #[error("PIN provided for registration does not adhere to requirements: {0}")]
+    InvalidPin(#[from] PinValidationError),
+    #[error("could not request registration challenge from Wallet Provider: {0}")]
+    ChallengeRequest(#[source] AccountProviderError),
+    #[error("could not get hardware public key: {0}")]
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    #[error("could not sign registration message: {0}")]
+    Signing(#[source] wallet_common::errors::Error),
+    #[error("could not request registration from Wallet Provider: {0}")]
+    RegistrationRequest(#[source] AccountProviderError),
+    #[error("could not validate registration certificate received from Wallet Provider: {0}")]
+    CertificateValidation(#[source] wallet_common::errors::Error),
+    #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
+    PublicKeyMismatch,
+    #[error("could not store registration certificate in database: {0}")]
+    StoreCertificate(#[from] StorageError),
+}
+
+impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
+    pub fn has_registration(&self) -> bool {
+        self.registration.is_some()
+    }
+
+    #[instrument(skip_all)]
+    pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
+    where
+        C: ConfigurationRepository,
+        S: Storage,
+        A: AccountProviderClient,
+        K: PlatformEcdsaKey,
+    {
+        info!("Checking if already registered");
+
+        // Registration is only allowed if we do not currently have a registration on record.
+        if self.has_registration() {
+            return Err(WalletRegistrationError::AlreadyRegistered);
+        }
+
+        info!("Validating PIN");
+
+        // Make sure the PIN adheres to the requirements.
+        validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight
+
+        info!("Requesting challenge from account server");
+
+        let config = &self.config_repository.config().account_server;
+        let base_url = config.base_url.clone();
+        let certificate_public_key = config.certificate_public_key.clone();
+
+        // Retrieve a challenge from the account server
+        let challenge = self
+            .account_provider_client
+            .registration_challenge(&base_url)
+            .await
+            .map_err(WalletRegistrationError::ChallengeRequest)?;
+
+        info!("Challenge received from account server, signing and sending registration to account server");
+
+        // Create a registration message and double sign it with the challenge.
+        // Generate a new PIN salt and derive the private key from the provided PIN.
+        let pin_salt = pin_key::new_pin_salt();
+        let pin_key = PinKey::new(&pin, &pin_salt);
+
+        // Retrieve the public key and sign the registration message.
+        let hw_pubkey = self
+            .hw_privkey
+            .verifying_key()
+            .await
+            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
+        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)
+            .await
+            .map_err(WalletRegistrationError::Signing)?;
+
+        // Send the registration message to the account server and receive the wallet certificate in response.
+        let cert = self
+            .account_provider_client
+            .register(&base_url, registration_message)
+            .await
+            .map_err(WalletRegistrationError::RegistrationRequest)?;
+
+        info!("Certificate received from account server, verifying contents");
+
+        // Double check that the public key returned in the wallet certificate
+        // matches that of our hardware key.
+        let cert_claims = cert
+            .parse_and_verify(&certificate_public_key)
+            .map_err(WalletRegistrationError::CertificateValidation)?;
+        if cert_claims.hw_pubkey.0 != hw_pubkey {
+            return Err(WalletRegistrationError::PublicKeyMismatch);
+        }
+
+        info!("Storing received registration");
+
+        // If the storage database does not exist, create it now.
+        let storage = self.storage.get_mut();
+        let storage_state = storage.state().await?;
+        if !matches!(storage_state, StorageState::Opened) {
+            storage.open().await?;
+        }
+
+        // Save the registration data in storage.
+        let registration_data = RegistrationData {
+            pin_salt: pin_salt.into(),
+            wallet_certificate: cert,
+        };
+        storage.insert_data(&registration_data).await?;
+
+        // Keep the registration data in memory.
+        self.registration = Some(registration_data);
+
+        // Unlock the wallet after successful registration
+        self.lock.unlock();
+
+        Ok(())
+    }
+}
