@@ -77,7 +77,7 @@ struct Session<S> {
 }
 
 #[derive(Debug, Clone)]
-struct DisclosureData<S> {
+pub struct DisclosureData<S> {
     disclosure_state_enum: DisclosureStateEnum,
     disclosure_state: S,
 }
@@ -85,7 +85,7 @@ struct DisclosureData<S> {
 /// An enum whose variants correspond 1-to-1 with all possible states for a session, i.e., all implementations
 /// of the [`DisclosureState`] trait.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-enum DisclosureStateEnum {
+pub enum DisclosureStateEnum {
     Created,
     WaitingForResponse,
     Done,
@@ -121,7 +121,7 @@ enum SessionResult {
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
-trait DisclosureState {
+pub trait DisclosureState {
     fn state_enum() -> DisclosureStateEnum
     where
         Self: Sized;
@@ -143,7 +143,7 @@ impl DisclosureState for Done {
     }
 }
 
-fn new_session(
+pub fn new_session(
     base_url: Url,
     items_requests: Vec<ItemsRequest>,
     reader_cert: &Certificate,
@@ -158,7 +158,7 @@ fn new_session(
     Ok(reader_engagement)
 }
 
-async fn process_message(
+pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
     sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
