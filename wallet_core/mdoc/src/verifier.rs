@@ -235,6 +235,18 @@ impl<T: DisclosureState> Session<T> {
     }
 }
 
+fn new_session(
+    base_url: Url,
+    request: DeviceRequest,
+    sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+) -> Result<ReaderEngagement> {
+    let token = SessionToken::new();
+    let url = base_url.join(&token.0).unwrap();
+    let (reader_engagement, session_state) = Session::<Created>::new(request, url)?;
+    sessions.write(&session_state.state.into_boxed());
+    Ok(reader_engagement)
+}
+
 fn process_message(
     msg: &[u8],
     token: SessionToken,
@@ -285,7 +297,7 @@ impl Session<Created> {
     // TODO: update this API when it has been decided on,
     // and implement RP authentication in this function instead of leaving it up to the caller.
     /// Create a new disclosure session.
-    fn new(request: DeviceRequest, url: Url) -> Result<Session<Created>> {
+    fn new(request: DeviceRequest, url: Url) -> Result<(ReaderEngagement, Session<Created>)> {
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
@@ -295,12 +307,13 @@ impl Session<Created> {
                     disclosure_state_enum: DisclosureStateEnum::Created,
                     disclosure_state: Created {
                         ephemeral_privkey,
-                        reader_engagement,
+                        reader_engagement: reader_engagement.clone(),
                     },
                 },
             ),
         };
-        Ok(session)
+
+        Ok((reader_engagement, session))
     }
 
     /// Process the device's [`DeviceEngagement`],
