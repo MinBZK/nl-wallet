@@ -113,7 +113,7 @@ fn wire_set_cards_stream_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Stream,
         },
-        move || move |task_callback| Ok(set_cards_stream(task_callback.stream_sink())),
+        move || move |task_callback| set_cards_stream(task_callback.stream_sink()),
     )
 }
 fn wire_clear_cards_stream_impl(port_: MessagePort) {

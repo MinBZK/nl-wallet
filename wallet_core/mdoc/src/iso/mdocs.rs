@@ -32,7 +32,7 @@ pub type Digest = ByteBuf;
 pub type DigestID = u64;
 
 /// A map containing attribute digests keyed by the attribute ID (an incrementing integer).
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
 impl TryFrom<&Attributes> for DigestIDs {
     type Error = Error;
@@ -49,7 +49,7 @@ impl TryFrom<&Attributes> for DigestIDs {
 }
 
 /// Digests of the attributes, grouped per [`NameSpace`].
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = Error;
@@ -86,7 +86,7 @@ pub type DataElementValue = Value;
 /// Specific attributes that the holder of this mdoc is allowed to self-assert, or whole namespaces under which the
 /// holder is allowed to self-assert attributes.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAuthorizations {
     pub name_spaces: Option<AuthorizedNameSpaces>,
@@ -96,7 +96,7 @@ pub struct KeyAuthorizations {
 /// An mdoc public key ([`DeviceKey`]) along with some information about it, as part of the
 /// [`MobileSecurityObject`] of an mdoc.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceKeyInfo {
     pub device_key: DeviceKey,
@@ -141,7 +141,7 @@ pub type DeviceKey = CoseKey;
 /// - When the mdoc was signed by the issuer and when it expires ([`ValidityInfo`]).
 ///
 /// This is signed by the issuer during issuance into a COSE and included in an [`IssuerSigned`](super::IssuerSigned).
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {
     pub version: MobileSecurityObjectVersion,
@@ -152,20 +152,20 @@ pub struct MobileSecurityObject {
     pub validity_info: ValidityInfo,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum MobileSecurityObjectVersion {
     #[serde(rename = "1.0")]
     V1_0,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum DigestAlgorithm {
     #[serde(rename = "SHA-256")]
     SHA256,
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
     pub signed: Tdate,
@@ -175,7 +175,7 @@ pub struct ValidityInfo {
 }
 
 /// A date-time, serialized as a string value as specified in RFC 3339, e.g. `"2020-10-01T13:30:02Z"`.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Tdate(pub tag::Required<String, 0>);
 impl From<chrono::DateTime<Utc>> for Tdate {
     fn from(t: chrono::DateTime<Utc>) -> Self {
@@ -205,7 +205,7 @@ pub type IssuerNameSpaces = IndexMap<NameSpace, Attributes>;
 
 /// A `Vec` of [`IssuerSignedItemBytes`], i.e., attributes. In the [`IssuerNameSpaces`] map,
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Attributes(pub Vec<IssuerSignedItemBytes>);
 impl From<Vec<IssuerSignedItemBytes>> for Attributes {
     fn from(val: Vec<IssuerSignedItemBytes>) -> Self {
@@ -252,7 +252,7 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 /// See also
 /// - [`Entry`], which contains just the name and value of the attribute,
 /// - [`Digest`] and [`DigestIDs`]: the digests (hashes) of [`IssuerSignedItem`]s, contained in the MSO.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSignedItem {
     #[serde(rename = "digestID")]

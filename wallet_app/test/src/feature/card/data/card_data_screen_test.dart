@@ -19,7 +19,7 @@ void main() {
           ..addScenario(
             widget: const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
               MockCardDataBloc(),
-              CardDataLoadSuccess(WalletMockData.card.attributes),
+              const CardDataLoadSuccess(WalletMockData.card),
             ),
             name: 'card data',
           ),
@@ -34,7 +34,7 @@ void main() {
           ..addScenario(
             widget: const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
               MockCardDataBloc(),
-              CardDataLoadSuccess(WalletMockData.card.attributes),
+              const CardDataLoadSuccess(WalletMockData.card),
             ),
             name: 'card data',
           ),
@@ -67,7 +67,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.card.attributes),
+          const CardDataLoadSuccess(WalletMockData.card),
         ),
       );
       await tester.tap(find.byKey(kPrivacyBannerKey));
@@ -94,16 +94,16 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          const CardDataLoadSuccess([WalletMockData.textDataAttribute]),
+          const CardDataLoadSuccess(WalletMockData.card),
         ),
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text('Card Title');
+      final titleFinder = find.text('Sample Card');
       final labelFinder = find.text(WalletMockData.textDataAttribute.label);
       final valueFinder = find.text(WalletMockData.textDataAttribute.value);
       expect(titleFinder, findsOneWidget);
-      expect(labelFinder, findsOneWidget);
+      expect(labelFinder, findsNWidgets(2));
       expect(valueFinder, findsOneWidget);
     });
   });

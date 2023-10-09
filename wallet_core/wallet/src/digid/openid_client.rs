@@ -24,12 +24,9 @@ pub trait OpenIdClient {
     where
         Self: Sized;
 
-    /// Return the `redirect_uri` provided during discovery as a string slice.
-    fn redirect_uri(&self) -> &str;
-
-    /// Generate an authentication URL and PKCE pair for the configured issuer.
-    /// This takes two generated tokens as parameters.
-    fn auth_url_and_pkce<P>(&self, csrf_token: &str, nonce: &str) -> (Url, P)
+    /// Generate an authentication URL for the configured issuer This takes two
+    /// generated tokens and a generated PKCE pair as parameters.
+    fn auth_url<P>(&self, csrf_token: String, nonce: String, pkce_pair: &P) -> Url
     where
         P: PkcePair + 'static;
 
@@ -55,18 +52,14 @@ impl OpenIdClient for HttpOpenIdClient {
 
         // Perform OpenID discovery at the issuer, using our modified `Client`.
         let openid_client =
-            Client::discover_with_client(http_client, client_id, None, redirect_uri.to_string(), issuer_url).await?;
+            Client::discover_with_client(http_client, client_id, None, Some(redirect_uri.into()), issuer_url).await?;
         // Wrap the newly created `Client` instance in our newtype.
         let client = HttpOpenIdClient { openid_client };
 
         Ok(client)
     }
 
-    fn redirect_uri(&self) -> &str {
-        self.openid_client.redirect_url()
-    }
-
-    fn auth_url_and_pkce<P>(&self, csrf_token: &str, nonce: &str) -> (Url, P)
+    fn auth_url<P>(&self, csrf_token: String, nonce: String, pkce_pair: &P) -> Url
     where
         P: PkcePair,
     {
@@ -83,12 +76,12 @@ impl OpenIdClient for HttpOpenIdClient {
         // Generate the authentication URL containing these scopes and the provided tokens.
         let options = Options {
             scope: Some(scopes_supported),
-            state: Some(csrf_token.to_string()),
-            nonce: Some(nonce.to_string()),
+            state: Some(csrf_token),
+            nonce: Some(nonce),
             ..Default::default()
         };
 
-        self.openid_client.auth_url_and_pkce(&options)
+        self.openid_client.auth_url(&options, pkce_pair)
     }
 
     async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
@@ -167,9 +160,7 @@ mod tests {
         let client = HttpOpenIdClient::discover(server_url.clone(), client_id.to_string(), redirect_uri.clone())
             .await
             .expect("Could not perform OpenID discovery");
-
-        let pkce_pair_generate_context = MockPkcePair::generate_context();
-        pkce_pair_generate_context.expect().returning(|| {
+        let pkce_pair = {
             let mut pkce_pair = MockPkcePair::new();
 
             pkce_pair
@@ -177,10 +168,10 @@ mod tests {
                 .return_const("pkcecodechallenge".to_string());
 
             pkce_pair
-        });
+        };
 
         // Generate authentication URL
-        let (url, _) = client.auth_url_and_pkce::<MockPkcePair>(csrf_token, nonce);
+        let url = client.auth_url(csrf_token.to_string(), nonce.to_string(), &pkce_pair);
 
         assert_eq!(
             url,
@@ -192,8 +183,6 @@ mod tests {
                 )
                 .unwrap(),
         );
-
-        pkce_pair_generate_context.checkpoint();
 
         // TODO: Add test for the authenticate() method by mocking an authentication
         //       response that can actually be verified by the client.

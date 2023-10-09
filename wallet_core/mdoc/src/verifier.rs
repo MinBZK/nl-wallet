@@ -14,7 +14,7 @@ use crate::{
     utils::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        serialization::{cbor_serialize, TaggedBytes},
         x509::CertificateUsage,
     },
     Result,
@@ -61,7 +61,7 @@ impl DeviceResponse {
     pub fn verify(
         &self,
         eph_reader_key: Option<&SigningKey>,
-        device_authentication_bts: &[u8],
+        device_authentication: &DeviceAuthenticationBytes,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes> {
@@ -76,17 +76,9 @@ impl DeviceResponse {
             return Err(VerificationError::NoDocuments.into());
         }
 
-        let device_authentication: DeviceAuthenticationBytes = cbor_deserialize(device_authentication_bts)?;
-
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
-            let (doc_type, doc_attrs) = doc.verify(
-                eph_reader_key,
-                &device_authentication,
-                device_authentication_bts,
-                time,
-                trust_anchors,
-            )?;
+            let (doc_type, doc_attrs) = doc.verify(eph_reader_key, device_authentication, time, trust_anchors)?;
             if doc_type != doc.doc_type {
                 return Err(VerificationError::WrongDocType {
                     document: doc.doc_type.clone(),
@@ -202,7 +194,6 @@ impl Document {
         &self,
         eph_reader_key: Option<&SigningKey>,
         device_authentication: &DeviceAuthenticationBytes,
-        device_authentication_bts: &[u8],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
@@ -210,6 +201,7 @@ impl Document {
             .issuer_signed
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
+        let device_authentication_bts = cbor_serialize(device_authentication)?;
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {

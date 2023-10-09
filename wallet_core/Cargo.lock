@@ -999,6 +999,7 @@ name = "entity"
 version = "0.1.0"
 dependencies = [
  "sea-orm",
+ "uuid",
 ]
 
 [[package]]
@@ -1976,6 +1977,7 @@ dependencies = [
 name = "nl_wallet_mdoc"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
  "chrono",
@@ -1998,6 +2000,7 @@ dependencies = [
  "rustls-webpki",
  "serde",
  "serde_bytes",
+ "serde_repr",
  "serde_with",
  "thiserror",
  "tokio",
@@ -3163,6 +3166,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_repr"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8725e1dfadb3a50f7e5ce0b1a540466f6ed3fe7a0fca2ac2b8b831d31316bd00"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.23",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4201,6 +4215,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
  "wallet_common",
  "wiremock",
 ]
@@ -4245,6 +4260,7 @@ dependencies = [
  "sea-orm-migration",
  "serde",
  "serde_json",
+ "serde_with",
  "tokio",
  "tower-http",
  "tracing",

@@ -21,7 +21,7 @@ pub struct MockBsnLookup(Vec<String>);
 
 impl Default for MockBsnLookup {
     fn default() -> Self {
-        Self(vec!["999999999".to_owned()])
+        Self(vec!["999991772".to_owned()])
     }
 }
 
@@ -234,17 +234,31 @@ impl Default for MockAttributesLookup {
     fn default() -> Self {
         let mut map = HashMap::new();
         map.insert(
-            "999999999".to_owned(),
+            "999991772".to_owned(),
             (
                 PersonAttributes {
-                    bsn: "999999999".to_owned(),
-                    family_name: "Van Waarde".to_owned(),
-                    given_name: "Johannes Frederik".to_owned(),
-                    birth_date: chrono::NaiveDate::parse_from_str("1995-09-21", "%Y-%m-%d").unwrap(),
+                    bsn: "999991772".to_owned(),
+                    given_name: "Willeke Liselotte".to_owned(),
+                    family_name: "De Bruijn".to_owned(),
+                    family_name_birth: Some("Molenaar".to_owned()),
+                    gender: Some(Gender::Female),
+                    birth_date: chrono::NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                     age_over_18: true,
+                    birth_country: Some("NL".to_owned()),
+                    birth_city: Some("Delft".to_owned()),
+                    birth_state: Some("Zuid-Holland".to_owned()),
+                    nationality: Some("NL".to_owned()),
                     ..PersonAttributes::default()
                 },
-                None,
+                Some(ResidentAttributes {
+                    street: Some("Turfmarkt".to_owned()),
+                    house_number: Some("147".to_owned()),
+                    postal_code: Some("2511 DP".to_owned()),
+                    city: Some("Den Haag".to_owned()),
+                    state: Some("Zuid-Holland".to_owned()),
+                    country: Some("NL".to_owned()),
+                    ..ResidentAttributes::default()
+                }),
             ),
         );
         Self(map)

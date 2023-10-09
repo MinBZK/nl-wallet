@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../../util/mapper/reporting_option_title_mapper.dart';
+import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
 
@@ -70,7 +70,7 @@ class ReportIssueScreen extends StatelessWidget {
                 color: context.colorScheme.primary,
               ),
               text: Text(
-                ReportingOptionTitleMapper.map(context, options[index]),
+                ReportOptionTitleFormatter.map(context, options[index]),
                 style: context.textTheme.titleMedium,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),

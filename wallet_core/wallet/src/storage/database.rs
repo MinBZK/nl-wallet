@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection, DbErr};
+use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use tokio::fs;
 
 use migration::{Migrator, MigratorTrait};
@@ -76,7 +76,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn connection(&self) -> &impl ConnectionTrait {
+    pub fn connection(&self) -> &(impl ConnectionTrait + TransactionTrait) {
         &self.connection
     }
 }
@@ -86,6 +86,10 @@ mod tests {
     use wallet_common::utils::random_bytes;
 
     use super::*;
+
+    pub async fn down(db: &Database) -> Result<(), DbErr> {
+        Migrator::down(&db.connection, None).await
+    }
 
     #[test]
     fn test_sqlite_url() {
@@ -167,6 +171,9 @@ mod tests {
         // Verify our test [Person] was correctly inserted.
         assert_eq!(persons, [me]);
 
+        // Verify whether migrations can be undone
+        down(&db).await.expect("Could not undo the migrations");
+
         // Finally, delete the test database.
         db.close_and_delete()
             .await
@@ -222,6 +229,9 @@ mod tests {
             serde_json::from_value::<Configuration>(keyed_data.data).unwrap(),
             configuration
         );
+
+        // Verify whether migrations can be undone
+        down(&db).await.expect("Could not undo the migrations");
 
         // Finally, delete the test database.
         db.close_and_delete()

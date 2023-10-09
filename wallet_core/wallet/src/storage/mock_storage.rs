@@ -1,10 +1,16 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use uuid::Uuid;
+
+use nl_wallet_mdoc::{
+    holder::{Mdoc, MdocCopies},
+    utils::mdocs_map::MdocsMap,
+};
 
 use super::{
     data::{KeyedData, RegistrationData},
-    Storage, StorageError, StorageState,
+    Storage, StorageResult, StorageState,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -12,6 +18,7 @@ use super::{
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
+    pub mdocs: MdocsMap,
 }
 
 impl MockStorage {
@@ -22,7 +29,9 @@ impl MockStorage {
             data.insert(RegistrationData::KEY, serde_json::to_string(&registration).unwrap());
         }
 
-        MockStorage { state, data }
+        let mdocs = MdocsMap::new();
+
+        MockStorage { state, data, mdocs }
     }
 }
 
@@ -34,29 +43,29 @@ impl Default for MockStorage {
 
 #[async_trait]
 impl Storage for MockStorage {
-    async fn state(&self) -> Result<StorageState, StorageError> {
+    async fn state(&self) -> StorageResult<StorageState> {
         Ok(self.state)
     }
 
-    async fn open(&mut self) -> Result<(), StorageError> {
+    async fn open(&mut self) -> StorageResult<()> {
         self.state = StorageState::Opened;
 
         Ok(())
     }
 
-    async fn clear(&mut self) -> Result<(), StorageError> {
+    async fn clear(&mut self) -> StorageResult<()> {
         self.state = StorageState::Uninitialized;
 
         Ok(())
     }
 
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
+    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {
         let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s).unwrap());
 
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         if self.data.contains_key(D::KEY) {
             panic!("Registration already present");
         }
@@ -66,7 +75,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         if !self.data.contains_key(D::KEY) {
             panic!("Registration not present");
         }
@@ -74,6 +83,26 @@ impl Storage for MockStorage {
         self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
 
         Ok(())
+    }
+
+    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+        self.mdocs.add(mdocs.into_iter().flatten()).unwrap();
+
+        Ok(())
+    }
+
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+        // Get a single copy of every unique Mdoc, along with a random `Uuid`.
+        let mdocs = self
+            .mdocs
+            .0
+            .values()
+            .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
+            .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
+            .map(|mdoc| (Uuid::new_v4(), mdoc.clone()))
+            .collect();
+
+        Ok(mdocs)
     }
 }
 

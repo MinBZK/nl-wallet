@@ -1,14 +1,19 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
+use aes_gcm::{
+    aead::{Aead, Nonce},
+    Aes256Gcm, Key, KeyInit,
+};
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
 use p256::{
-    ecdh,
+    ecdh::{self, EphemeralSecret},
     ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint,
+    EncodedPoint, PublicKey,
 };
 use ring::hmac;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
 use wallet_common::utils::{hkdf, sha256};
@@ -16,10 +21,12 @@ use wallet_common::utils::{hkdf, sha256};
 use crate::{
     utils::{
         cose::CoseKey,
-        serialization::{cbor_serialize, CborError},
+        serialization::{cbor_serialize, CborError, TaggedBytes},
     },
-    Error, Result,
+    Error, Result, SessionData, SessionTranscript,
 };
+
+use super::serialization::cbor_deserialize;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CryptoError {
@@ -37,6 +44,10 @@ pub enum CryptoError {
     KeyCoordinateParseFailed,
     #[error("key parse failed: {0}")]
     KeyParseFailed(#[from] p256::ecdsa::Error),
+    #[error("AES encryption/decryption failed")]
+    Aes,
+    #[error("AES encryption/decryption failed: missing ciphertext")]
+    MissingCiphertext,
 }
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
@@ -111,5 +122,136 @@ impl TryFrom<&CoseKey> for VerifyingKey {
         ))
         .map_err(CryptoError::KeyParseFailed)?;
         Ok(key)
+    }
+}
+
+/// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
+pub struct SessionKey {
+    key: Vec<u8>,
+    user: SessionKeyUser,
+}
+
+/// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SessionKeyUser {
+    Reader,
+    Device,
+}
+
+impl SessionKey {
+    /// Return a new [`SessionKey`] derived using Diffie-Hellman and a Key Derivation Function (KDF),
+    /// as specified by the standard.
+    pub fn new(
+        privkey: &EphemeralSecret,
+        pubkey: &PublicKey,
+        session_transcript: &SessionTranscript,
+        user: SessionKeyUser,
+    ) -> Result<Self> {
+        let dh = privkey.diffie_hellman(pubkey);
+        let salt = sha256(&cbor_serialize(&TaggedBytes(session_transcript))?);
+        let user_str = match user {
+            SessionKeyUser::Reader => "SKReader",
+            SessionKeyUser::Device => "SKDevice",
+        };
+        let key = hkdf(dh.raw_secret_bytes(), &salt, user_str, 32).map_err(|_| CryptoError::Hkdf)?;
+        let key = SessionKey { key, user };
+        Ok(key)
+    }
+}
+
+impl SessionData {
+    /// Construct a nonce for AES GCM encryption as specified by the standard.
+    fn nonce(user: SessionKeyUser) -> Nonce<Aes256Gcm> {
+        let mut nonce = vec![0u8; 12];
+
+        if user == SessionKeyUser::Device {
+            nonce[7] = 1; // the 8th byte indicates the user (0 = reader, 1 = device)
+        }
+
+        // The final byte is the message count, starting at one.
+        // We will support sending a maximum of 1 message per sender.
+        nonce[11] = 1;
+
+        *Nonce::<Aes256Gcm>::from_slice(&nonce)
+    }
+
+    pub fn serialize_and_encrypt<T: Serialize>(data: &T, key: &SessionKey) -> Result<Self> {
+        Self::encrypt(&cbor_serialize(data)?, key)
+    }
+
+    pub fn encrypt(data: &[u8], key: &SessionKey) -> Result<Self> {
+        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
+        let ciphertext = cipher
+            .encrypt(&Self::nonce(key.user), data)
+            .map_err(|_| CryptoError::Aes)?;
+
+        Ok(SessionData {
+            data: Some(ByteBuf::from(ciphertext)),
+            status: None,
+        })
+    }
+
+    pub fn decrypt(&self, key: &SessionKey) -> Result<Vec<u8>> {
+        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key.key.as_bytes()));
+        let plaintext = cipher
+            .decrypt(
+                &Self::nonce(key.user),
+                self.data.as_ref().ok_or(CryptoError::MissingCiphertext)?.as_bytes(),
+            )
+            .map_err(|_| CryptoError::Aes)?;
+        Ok(plaintext)
+    }
+
+    pub fn decrypt_and_deserialize<T: DeserializeOwned>(&self, key: &SessionKey) -> Result<T> {
+        let parsed = cbor_deserialize(self.decrypt(key)?.as_bytes())?;
+        Ok(parsed)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use aes_gcm::aead::OsRng;
+    use p256::ecdh::EphemeralSecret;
+    use serde::{Deserialize, Serialize};
+
+    use crate::{examples::Example, DeviceAuthenticationBytes, SessionData};
+
+    use super::{SessionKey, SessionKeyUser};
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+    struct ToyMessage {
+        number: u8,
+        string: String,
+    }
+    impl Default for ToyMessage {
+        fn default() -> Self {
+            Self {
+                number: 42,
+                string: "Hello, world!".to_string(),
+            }
+        }
+    }
+
+    #[test]
+    fn session_data_encryption() {
+        let plaintext = ToyMessage::default();
+
+        let device_privkey = EphemeralSecret::random(&mut OsRng);
+        let reader_pubkey = EphemeralSecret::random(&mut OsRng).public_key();
+
+        let key = SessionKey::new(
+            &device_privkey,
+            &reader_pubkey,
+            &DeviceAuthenticationBytes::example().0 .0.session_transcript,
+            SessionKeyUser::Device,
+        )
+        .unwrap();
+
+        let session_data = SessionData::serialize_and_encrypt(&plaintext, &key).unwrap();
+        assert!(session_data.data.is_some());
+        assert!(session_data.status.is_none());
+
+        let decrypted = session_data.decrypt_and_deserialize(&key).unwrap();
+        assert_eq!(plaintext, decrypted);
     }
 }

@@ -1,13 +1,11 @@
 use std::error::Error;
 
 use futures::future::TryFutureExt;
-use indexmap::IndexMap;
 use p256::ecdsa::signature;
 use tokio::sync::RwLock;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 use url::Url;
 
-use nl_wallet_mdoc::{basic_sa_ext::Entry, utils::mdocs_map::MdocsMap, DocType, NameSpace};
 use platform_support::{
     hw_keystore::{
         hardware::{HardwareEcdsaKey, HardwareEncryptionKey},
@@ -15,15 +13,12 @@ use platform_support::{
     },
     utils::hardware::HardwareUtilities,
 };
-use wallet_common::{
-    account::messages::{auth::Registration, instructions::CheckPin},
-    utils::random_string,
-};
+use wallet_common::account::messages::{auth::Registration, instructions::CheckPin};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError, HttpAccountProviderClient},
     config::{Configuration, ConfigurationRepository, LocalConfigurationRepository},
-    digid::{DigidClient, DigidError, HttpDigidClient},
+    digid::{DigidError, DigidSession, HttpDigidSession},
     document::{Document, DocumentMdocError, DocumentPersistence},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
@@ -83,6 +78,8 @@ pub enum PidIssuanceError {
     NotRegistered,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
+    #[error("no DigiD session was found")]
+    NoSession,
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
@@ -93,6 +90,14 @@ pub enum PidIssuanceError {
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
     Document(#[from] DocumentMdocError),
+    #[error("could not access mdocs database: {0}")]
+    Database(#[from] StorageError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SetDocumentsCallbackError {
+    #[error("Could not fetch mdocs from database storage: {0}")]
+    Storage(#[from] StorageError),
 }
 
 pub enum RedirectUriType {
@@ -108,20 +113,19 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,
     K = HardwareEcdsaKey,
     A = HttpAccountProviderClient,
-    D = HttpDigidClient,
+    D = HttpDigidSession,
     P = HttpPidIssuerClient,
 > {
     config_repository: C,
     storage: RwLock<S>,
     hw_privkey: K,
     account_provider_client: A,
-    digid_client: D,
+    digid_session: Option<D>,
     pid_issuer: P,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
     documents_callback: Option<DocumentsCallback>,
-    mdoc_storage: MdocsMap,
 }
 
 impl Wallet {
@@ -135,7 +139,6 @@ impl Wallet {
             LocalConfigurationRepository::default(),
             storage,
             HttpAccountProviderClient::default(),
-            HttpDigidClient::default(),
             HttpPidIssuerClient::default(),
         )
         .await
@@ -148,7 +151,7 @@ where
     S: Storage + Send + Sync,
     K: PlatformEcdsaKey + Sync,
     A: AccountProviderClient + Sync,
-    D: DigidClient,
+    D: DigidSession,
     P: PidIssuerClient,
 {
     /// Initialize the wallet by loading initial state.
@@ -156,7 +159,6 @@ where
         config_repository: C,
         mut storage: S,
         account_provider_client: A,
-        digid_client: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
@@ -166,13 +168,12 @@ where
             storage: RwLock::new(storage),
             hw_privkey: K::new(WALLET_KEY_ID),
             account_provider_client,
-            digid_client,
+            digid_session: None,
             pid_issuer,
             lock: WalletLock::new(true),
             registration,
             config_callback: None,
             documents_callback: None,
-            mdoc_storage: MdocsMap::new(),
         };
 
         Ok(wallet)
@@ -218,39 +219,55 @@ where
         self.config_callback.take();
     }
 
-    pub fn set_documents_callback<F>(&mut self, callback: F)
+    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), SetDocumentsCallbackError>
     where
         F: FnMut(Vec<Document>) + Send + Sync + 'static,
     {
         self.documents_callback.replace(Box::new(callback));
-        self.emit_documents();
+
+        // If the `Wallet` is not registered, the database will not be open.
+        // In that case send an empty vec, so the UI has something to work with.
+        //
+        // TODO: have the UI not call this until after registration.
+        if self.has_registration() {
+            self.emit_documents().await?;
+        } else {
+            self.documents_callback.as_mut().unwrap()(Default::default());
+        }
+
+        Ok(())
     }
 
-    fn emit_documents(&mut self) {
+    async fn emit_documents(&mut self) -> Result<(), StorageError> {
+        info!("Emit mdocs from storage");
+
+        let storage = self.storage.read().await;
+
+        // Note that this currently panics whenever conversion from Mdoc to Documents fails,
+        // as we assume that the (hardcoded) mapping will always be backwards compatible.
+        // This is particularly important when this mapping comes from a trusted registry
+        // in the near future!
+        let mut documents = storage
+            .fetch_unique_mdocs()
+            .await?
+            .into_iter()
+            .map(|(id, mdoc)| {
+                Document::from_mdoc_attributes(
+                    DocumentPersistence::Stored(id.to_string()),
+                    &mdoc.doc_type,
+                    mdoc.attributes(),
+                )
+                .expect("Could not interpret stored mdoc attributes")
+            })
+            .collect::<Vec<_>>();
+
+        documents.sort_by_key(Document::priority);
+
         if let Some(ref mut callback) = self.documents_callback {
-            // Note that this currently panics whenever conversion from Mdoc to Documents fails,
-            // as we assume that the (hardcoded) mapping will always be backwards compatible.
-            // This is particularly important when this mapping comes from a trusted registry
-            // in the near future!
-            let mut documents = self
-                .mdoc_storage
-                .list()
-                .into_iter()
-                .flat_map(|(doc_type, mdocs_attributes)| {
-                    mdocs_attributes.into_iter().map(move |attributes| {
-                        // TODO: Get id from the database instead of making one up.
-                        let id = random_string(16);
-
-                        Document::from_mdoc_attributes(DocumentPersistence::Stored(id), &doc_type, attributes)
-                            .expect("Could not interpret stored mdoc attributes")
-                    })
-                })
-                .collect::<Vec<_>>();
-
-            documents.sort_by_key(Document::priority);
-
             callback(documents);
         }
+
+        Ok(())
     }
 
     pub fn clear_documents_callback(&mut self) {
@@ -387,7 +404,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn create_pid_issuance_redirect_uri(&mut self) -> Result<Url, PidIssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
         info!("Checking if already registered");
@@ -395,25 +412,35 @@ where
             return Err(PidIssuanceError::NotRegistered);
         }
 
+        if self.digid_session.is_some() {
+            warn!("DigiD auth url is requested for PID issuance while another Digid session is present, overwriting");
+        }
+
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
 
-        let auth_url = self
-            .digid_client
-            .start_session(
-                &pid_issuance_config.digid_url,
-                &pid_issuance_config.digid_client_id,
-                &pid_issuance_config.digid_redirect_uri,
-            )
-            .await
-            .map_err(PidIssuanceError::DigidSessionStart)?;
+        let session = D::start(
+            pid_issuance_config.digid_url.clone(),
+            pid_issuance_config.digid_client_id.to_string(),
+            pid_issuance_config.digid_redirect_uri.clone(),
+        )
+        .await
+        .map_err(PidIssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
+
+        let auth_url = session.auth_url();
+        self.digid_session.replace(session);
 
         Ok(auth_url)
     }
 
     pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
-        if self.digid_client.accepts_redirect_uri(redirect_uri) {
+        if self
+            .digid_session
+            .as_ref()
+            .map(|session| session.matches_received_redirect_uri(redirect_uri))
+            .unwrap_or_default()
+        {
             return RedirectUriType::PidIssuance;
         }
 
@@ -421,7 +448,15 @@ where
     }
 
     pub fn cancel_pid_issuance(&mut self) {
-        self.digid_client.cancel_session();
+        if self.digid_session.is_none() {
+            warn!("PID issuance was cancelled, but no DigiD session is currently present");
+
+            return;
+        }
+
+        info!("PID issuance cancelled, removing DigiD session");
+
+        self.digid_session.take();
     }
 
     #[instrument(skip_all)]
@@ -433,8 +468,10 @@ where
             return Err(PidIssuanceError::NotRegistered);
         }
 
-        let access_token = self
-            .digid_client
+        // Try to take ownership of any active `DigidSession`.
+        let session = self.digid_session.take().ok_or(PidIssuanceError::NoSession)?;
+
+        let access_token = session
             .get_access_token(redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
@@ -501,10 +538,9 @@ where
                 }
             })?;
 
-        // TODO store the mdocs in the database
-        self.mdoc_storage = mdocs;
+        self.storage.get_mut().insert_mdocs(mdocs).await?;
 
-        self.emit_documents();
+        self.emit_documents().await?;
 
         Ok(())
     }
@@ -513,11 +549,6 @@ where
     pub async fn reject_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
     }
-
-    #[instrument(skip_all)]
-    pub async fn list_mdocs(&self) -> IndexMap<DocType, Vec<IndexMap<NameSpace, Vec<Entry>>>> {
-        self.mdoc_storage.list()
-    }
 }
 
 #[cfg(test)]
@@ -525,7 +556,7 @@ mod tests {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::{
-        account_provider::MockAccountProviderClient, config::LocalConfigurationRepository, digid::MockDigidClient,
+        account_provider::MockAccountProviderClient, config::LocalConfigurationRepository, digid::MockDigidSession,
         pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 
@@ -536,7 +567,7 @@ mod tests {
         MockStorage,
         SoftwareEcdsaKey,
         MockAccountProviderClient,
-        MockDigidClient,
+        MockDigidSession,
         MockPidIssuerClient,
     >;
 
@@ -548,7 +579,6 @@ mod tests {
             LocalConfigurationRepository::default(),
             storage,
             MockAccountProviderClient::default(),
-            MockDigidClient::default(),
             MockPidIssuerClient::default(),
         )
         .await

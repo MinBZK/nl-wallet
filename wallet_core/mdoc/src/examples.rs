@@ -8,12 +8,12 @@ use p256::{
     EncodedPoint,
 };
 use serde::{de::DeserializeOwned, Serialize};
+use webpki::TrustAnchor;
 
-use nl_wallet_mdoc::{
+use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize},
     DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
 };
-use webpki::TrustAnchor;
 
 // This requires the type name twice in impls, see below.
 // If we could use Deserialize as a supertrait instead that would not be necesarry, but that seems impossible.

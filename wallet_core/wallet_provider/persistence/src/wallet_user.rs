@@ -4,19 +4,23 @@ use p256::{
     pkcs8::{DecodePublicKey, EncodePublicKey},
 };
 use sea_orm::{
-    sea_query::{Expr, IntoIden, SimpleExpr},
+    sea_query::{Expr, IntoIden, OnConflict, Query, SimpleExpr},
     ActiveModelTrait,
     ActiveValue::Set,
     ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
 };
 
+use uuid::Uuid;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::{
-    model::wallet_user::{WalletUser, WalletUserCreate, WalletUserQueryResult},
+    model::wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
     repository::PersistenceError,
 };
 
-use crate::{entity::wallet_user, PersistenceConnection};
+use crate::{
+    entity::{wallet_user, wallet_user_instruction_challenge},
+    PersistenceConnection,
+};
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -31,7 +35,6 @@ where
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
         pin_pubkey_der: Set(user.pin_pubkey.to_public_key_der()?.to_vec()),
         instruction_sequence_number: Set(0),
-        instruction_challenge: Set(None),
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
         is_blocked: Set(false),
@@ -47,26 +50,32 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let user = wallet_user::Entity::find()
+    let user_challenge = wallet_user::Entity::find()
+        .find_also_related(wallet_user_instruction_challenge::Entity)
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
         .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    Ok(user
-        .map(|model| {
-            if model.is_blocked {
+    Ok(user_challenge
+        .map(|(wallet_user, challenge)| {
+            if wallet_user.is_blocked {
                 WalletUserQueryResult::Blocked
             } else {
                 WalletUserQueryResult::Found(Box::new(WalletUser {
-                    id: model.id,
-                    wallet_id: model.wallet_id.to_string(),
-                    pin_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.pin_pubkey_der).unwrap()),
-                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&model.hw_pubkey_der).unwrap()),
-                    unsuccessful_pin_entries: model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-                    last_unsuccessful_pin_entry: model.last_unsuccessful_pin.map(DateTime::<Local>::from),
-                    instruction_challenge: model.instruction_challenge,
-                    instruction_sequence_number: u64::try_from(model.instruction_sequence_number).unwrap(),
+                    id: wallet_user.id,
+                    wallet_id: wallet_user.wallet_id,
+                    pin_pubkey: DerVerifyingKey(
+                        VerifyingKey::from_public_key_der(&wallet_user.pin_pubkey_der).unwrap(),
+                    ),
+                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&wallet_user.hw_pubkey_der).unwrap()),
+                    unsuccessful_pin_entries: wallet_user.pin_entries.try_into().ok().unwrap_or(u8::MAX),
+                    last_unsuccessful_pin_entry: wallet_user.last_unsuccessful_pin.map(DateTime::<Local>::from),
+                    instruction_challenge: challenge.map(|c| InstructionChallenge {
+                        bytes: c.instruction_challenge,
+                        expiration_date_time: DateTime::<Local>::from(c.expiration_date_time),
+                    }),
+                    instruction_sequence_number: u64::try_from(wallet_user.instruction_sequence_number).unwrap(),
                 }))
             }
         })
@@ -77,38 +86,77 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let challenge: Option<Vec<u8>> = None;
+    let stmt = Query::delete()
+        .from_table(wallet_user_instruction_challenge::Entity)
+        .and_where(
+            wallet_user_instruction_challenge::Column::WalletUserId.in_subquery(
+                Query::select()
+                    .column(wallet_user::Column::Id)
+                    .from(wallet_user::Entity)
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .to_owned(),
+            ),
+        )
+        .to_owned();
 
-    update_fields(
-        db,
-        wallet_id,
-        vec![(wallet_user::Column::InstructionChallenge, Expr::value(challenge))],
-    )
-    .await
+    let conn = db.connection();
+    let builder = conn.get_database_backend();
+    conn.execute(builder.build(&stmt))
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
 }
 
 pub async fn update_instruction_challenge_and_sequence_number<S, T>(
     db: &T,
     wallet_id: &str,
-    challenge: Option<Vec<u8>>,
+    instruction_challenge: InstructionChallenge,
     instruction_sequence_number: u64,
 ) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    update_fields(
-        db,
-        wallet_id,
-        vec![
-            (wallet_user::Column::InstructionChallenge, Expr::value(challenge)),
-            (
-                wallet_user::Column::InstructionSequenceNumber,
-                Expr::value(instruction_sequence_number),
-            ),
-        ],
-    )
-    .await
+    update_instruction_sequence_number(db, wallet_id, instruction_sequence_number).await?;
+
+    // insert a new instruction challenge, or update if one already exists with this wallet.id
+    let stmt = Query::insert()
+        .into_table(wallet_user_instruction_challenge::Entity)
+        .columns([
+            wallet_user_instruction_challenge::Column::Id,
+            wallet_user_instruction_challenge::Column::WalletUserId,
+            wallet_user_instruction_challenge::Column::InstructionChallenge,
+            wallet_user_instruction_challenge::Column::ExpirationDateTime,
+        ])
+        .select_from(
+            Query::select()
+                .expr(Expr::value(Uuid::new_v4()))
+                .column(wallet_user::Column::Id)
+                .expr(Expr::value(instruction_challenge.bytes))
+                .expr(Expr::value(instruction_challenge.expiration_date_time))
+                .from(wallet_user::Entity)
+                .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                .to_owned(),
+        )
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .on_conflict(
+            OnConflict::column(wallet_user_instruction_challenge::Column::WalletUserId)
+                .update_columns([
+                    wallet_user_instruction_challenge::Column::InstructionChallenge,
+                    wallet_user_instruction_challenge::Column::ExpirationDateTime,
+                ])
+                .to_owned(),
+        )
+        .to_owned();
+
+    let conn = db.connection();
+    let builder = conn.get_database_backend();
+    conn.execute(builder.build(&stmt))
+        .await
+        .map_err(|e| PersistenceError::Execution(e.into()))?;
+
+    Ok(())
 }
 
 pub async fn update_instruction_sequence_number<S, T>(

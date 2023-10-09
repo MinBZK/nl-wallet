@@ -8,11 +8,12 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
 import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/mapper/timeline_attribute_status_mapper.dart';
+import '../../../util/formatter/timeline_attribute_status_formatter.dart';
 import '../../../wallet_feature_flags.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
@@ -25,6 +26,10 @@ import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
 
+/// This value can be used with [SecuredPageRoute.overrideDurationOfNextTransition] when navigating to the
+/// [CardDetailScreen] to slow down the entry transition a bit, making it feel a bit less rushed when the card
+/// animates into place.
+const kPreferredCardDetailEntryTransitionDuration = Duration(milliseconds: 600);
 const _kCardExpiresInDays = 365; // 1 year for demo purposes
 
 class CardDetailScreen extends StatelessWidget {
@@ -45,11 +50,25 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(cardTitle),
-      ),
+      appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final fallbackAppBarTitleText = Text(cardTitle);
+    return AppBar(
+      title: BlocBuilder<CardDetailBloc, CardDetailState>(
+        builder: (context, state) {
+          return switch (state) {
+            CardDetailInitial() => fallbackAppBarTitleText,
+            CardDetailLoadInProgress() => fallbackAppBarTitleText,
+            CardDetailLoadSuccess() => Text(state.detail.card.front.title),
+            CardDetailLoadFailure() => fallbackAppBarTitleText,
+          };
+        },
       ),
     );
   }
@@ -58,8 +77,8 @@ class CardDetailScreen extends StatelessWidget {
     return BlocBuilder<CardDetailBloc, CardDetailState>(
       builder: (context, state) {
         return switch (state) {
-          CardDetailInitial() => _buildLoading(),
-          CardDetailLoadInProgress() => _buildLoading(),
+          CardDetailInitial() => _buildLoading(context),
+          CardDetailLoadInProgress() => _buildLoading(context, card: state.card),
           CardDetailLoadSuccess() => _buildDetail(context, state.detail),
           CardDetailLoadFailure() => _buildError(context, state),
         };
@@ -67,7 +86,38 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading() => const CenteredLoadingIndicator();
+  Widget _buildLoading(BuildContext context, {WalletCard? card}) {
+    if (card == null) return const CenteredLoadingIndicator();
+    return Column(
+      children: [
+        const SizedBox(height: 24 + 8),
+        ExcludeSemantics(
+          child: FractionallySizedBox(
+            widthFactor: 0.6,
+            child: Hero(
+              tag: card.id,
+              flightShuttleBuilder: (
+                BuildContext flightContext,
+                Animation<double> animation,
+                HeroFlightDirection flightDirection,
+                BuildContext fromHeroContext,
+                BuildContext toHeroContext,
+              ) {
+                animation.addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
+                return WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeOut);
+              },
+              child: WalletCardItem.fromCardFront(front: card.front),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        const Divider(height: 1),
+        const Expanded(
+          child: CenteredLoadingIndicator(),
+        ),
+      ],
+    );
+  }
 
   Widget _buildDetail(BuildContext context, WalletCardDetail detail) {
     final card = detail.card;
@@ -83,7 +133,18 @@ class CardDetailScreen extends StatelessWidget {
                 ExcludeSemantics(
                   child: FractionallySizedBox(
                     widthFactor: 0.6,
-                    child: WalletCardItem.fromCardFront(front: card.front),
+                    child: Hero(
+                      tag: card.id,
+                      flightShuttleBuilder: (
+                        BuildContext flightContext,
+                        Animation<double> animation,
+                        HeroFlightDirection flightDirection,
+                        BuildContext fromHeroContext,
+                        BuildContext toHeroContext,
+                      ) =>
+                          WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeIn),
+                      child: WalletCardItem.fromCardFront(front: card.front),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -140,7 +201,7 @@ class CardDetailScreen extends StatelessWidget {
   String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
-      final String status = TimelineAttributeStatusTextMapper.map(context, attribute).toLowerCase();
+      final String status = TimelineAttributeStatusTextFormatter.map(context, attribute).toLowerCase();
       return context.l10n.cardDetailScreenLatestSuccessInteraction(
         attribute.organization.shortName,
         status,

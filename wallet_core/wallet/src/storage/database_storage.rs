@@ -1,11 +1,19 @@
 use std::{marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
-use platform_support::utils::PlatformUtilities;
-use sea_orm::{sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set, TransactionTrait,
+};
 use tokio::fs;
+use uuid::Uuid;
 
-use entity::keyed_data;
+use entity::{keyed_data, mdoc, mdoc_copy};
+use nl_wallet_mdoc::{
+    holder::{Mdoc, MdocCopies},
+    utils::serialization::CborError,
+    utils::serialization::{cbor_deserialize, cbor_serialize},
+};
+use platform_support::utils::PlatformUtilities;
 use wallet_common::keys::SecureEncryptionKey;
 
 use super::{
@@ -13,7 +21,7 @@ use super::{
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
-    Storage, StorageError, StorageState,
+    Storage, StorageError, StorageResult, StorageState,
 };
 
 const DATABASE_NAME: &str = "wallet";
@@ -41,7 +49,7 @@ pub struct DatabaseStorage<K> {
 }
 
 impl<K> DatabaseStorage<K> {
-    pub async fn init<U>() -> Result<Self, StorageError>
+    pub async fn init<U>() -> StorageResult<Self>
     where
         U: PlatformUtilities,
     {
@@ -62,7 +70,7 @@ where
     K: SecureEncryptionKey,
 {
     // Helper method, should be called before accessing database.
-    fn database(&self) -> Result<&Database, StorageError> {
+    fn database(&self) -> StorageResult<&Database> {
         self.database.as_ref().ok_or(StorageError::NotOpened)
     }
 
@@ -74,7 +82,7 @@ where
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> Result<Database, StorageError> {
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<Database> {
         let key_file_alias = key_file_alias_for_name(name);
         let database_path = self.database_path_for_name(name);
 
@@ -97,7 +105,7 @@ where
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
-    async fn state(&self) -> Result<StorageState, StorageError> {
+    async fn state(&self) -> StorageResult<StorageState> {
         if self.database.is_some() {
             return Ok(StorageState::Opened);
         }
@@ -112,7 +120,7 @@ where
     }
 
     /// Load a database, creating a new key file and database file if necessary.
-    async fn open(&mut self) -> Result<(), StorageError> {
+    async fn open(&mut self) -> StorageResult<()> {
         if self.database.is_some() {
             return Err(StorageError::AlreadyOpened);
         }
@@ -124,7 +132,7 @@ where
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
-    async fn clear(&mut self) -> Result<(), StorageError> {
+    async fn clear(&mut self) -> StorageResult<()> {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
         let database = self.database.take().ok_or(StorageError::NotOpened)?;
         let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
@@ -137,7 +145,7 @@ where
     }
 
     /// Get data entry from the key-value table, if present.
-    async fn fetch_data<D: KeyedData>(&self) -> Result<Option<D>, StorageError> {
+    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {
         let database = self.database()?;
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
@@ -150,7 +158,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -164,7 +172,7 @@ where
     }
 
     /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> Result<(), StorageError> {
+    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         keyed_data::Entity::update_many()
@@ -175,10 +183,86 @@ where
 
         Ok(())
     }
+
+    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+        let database = self.database()?;
+
+        let transaction = database.connection().begin().await?;
+
+        // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
+        // based on the unique `MdocCopies`, to be inserted into the database.
+        let mdoc_models = mdocs
+            .into_iter()
+            .filter(|mdoc_copies| !mdoc_copies.cred_copies.is_empty())
+            .map(|mdoc_copies| {
+                let mdoc_id = Uuid::new_v4();
+
+                let copy_models = mdoc_copies
+                    .cred_copies
+                    .iter()
+                    .map(|mdoc| {
+                        let model = mdoc_copy::ActiveModel {
+                            id: Set(Uuid::new_v4()),
+                            mdoc_id: Set(mdoc_id),
+                            mdoc: Set(cbor_serialize(&mdoc)?),
+                        };
+
+                        Ok(model)
+                    })
+                    .collect::<Result<Vec<_>, CborError>>()?;
+
+                // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
+                let doc_type = mdoc_copies.cred_copies.into_iter().next().unwrap().doc_type;
+                let mdoc_model = mdoc::ActiveModel {
+                    id: Set(mdoc_id),
+                    doc_type: Set(doc_type),
+                };
+
+                Ok((mdoc_model, copy_models))
+            })
+            .collect::<Result<Vec<_>, CborError>>()?;
+
+        // Make two separate vecs out of the vec of tuples.
+        let (mdoc_models, copy_models): (Vec<_>, Vec<_>) = mdoc_models.into_iter().unzip();
+
+        mdoc::Entity::insert_many(mdoc_models).exec(&transaction).await?;
+        mdoc_copy::Entity::insert_many(copy_models.into_iter().flatten())
+            .exec(&transaction)
+            .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+        let database = self.database()?;
+
+        let mdoc_copies = mdoc_copy::Entity::find()
+            .select_only()
+            .column_as(mdoc_copy::Column::Id.min(), "id")
+            .column(mdoc_copy::Column::MdocId)
+            .column(mdoc_copy::Column::Mdoc)
+            .group_by(mdoc_copy::Column::MdocId)
+            .all(database.connection())
+            .await?;
+
+        let mdocs = mdoc_copies
+            .into_iter()
+            .map(|m| {
+                let mdoc = cbor_deserialize(m.mdoc.as_slice())?;
+
+                Ok((m.mdoc_id, mdoc))
+            })
+            .collect::<Result<_, CborError>>()?;
+
+        Ok(mdocs)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use nl_wallet_mdoc::{examples::Examples, mock as mdoc_mock};
     use platform_support::utils::software::SoftwareUtilities;
     use tokio::fs;
 
@@ -223,13 +307,7 @@ mod tests {
             .expect("Could not close and delete database");
     }
 
-    #[tokio::test]
-    async fn test_database_storage() {
-        let registration = RegistrationData {
-            pin_salt: vec![1, 2, 3, 4].into(),
-            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
-        };
-
+    async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
         let mut storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
             .await
             .unwrap();
@@ -240,6 +318,18 @@ mod tests {
             .await
             .expect("Could not open in-memory database");
         storage.database = Some(database);
+
+        storage
+    }
+
+    #[tokio::test]
+    async fn test_database_storage() {
+        let registration = RegistrationData {
+            pin_salt: vec![1, 2, 3, 4].into(),
+            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
+        };
+
+        let mut storage = open_test_database_storage().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
@@ -303,10 +393,33 @@ mod tests {
         );
 
         // Clear database, state should be uninitialized.
-
         storage.clear().await.expect("Could not clear storage");
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_storage() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        // Create MdocsMap from example Mdoc
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let mdoc = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
+
+        // Insert mdocs
+        storage.insert_mdocs(vec![mdoc_copies.clone()]).await.unwrap();
+
+        // Fetch unique mdocs
+        let fetched = storage.fetch_unique_mdocs().await.unwrap();
+
+        // Only one unique `Mdoc` should be returned and it should match all copies.
+        assert_eq!(fetched.len(), 1);
+        assert_eq!(&fetched.first().unwrap().1, mdoc_copies.cred_copies.first().unwrap());
     }
 }

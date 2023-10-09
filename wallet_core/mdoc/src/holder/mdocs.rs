@@ -4,15 +4,12 @@ use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, utils::sha256};
+use wallet_common::generator::Generator;
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{
-        keys::{MdocEcdsaKey, MdocKeyType},
-        serialization::cbor_serialize,
-    },
+    utils::keys::{MdocEcdsaKey, MdocKeyType},
     verifier::ValidityRequirement,
     Result,
 };
@@ -42,7 +39,7 @@ impl<H: HttpClient> Wallet<H> {
 ///
 /// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
 /// for unlinkability.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct MdocCopies {
     pub cred_copies: Vec<Mdoc>,
 }
@@ -59,14 +56,9 @@ impl From<Vec<Mdoc>> for MdocCopies {
         Self { cred_copies: creds }
     }
 }
-impl MdocCopies {
-    pub fn new() -> Self {
-        MdocCopies { cred_copies: vec![] }
-    }
-}
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mdoc {
     /// Doctype of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
@@ -118,17 +110,5 @@ impl Mdoc {
             .0
             .device_key_info
             .try_into()
-    }
-
-    /// Hash of the mdoc, acting as an identifier for the mdoc. Takes into account its doctype
-    /// and all of its attributes, using [`Self::attributes()`].
-    /// Computed schematically as `SHA256(CBOR(doctype, attributes))`.
-    ///
-    /// Credentials having the exact same attributes
-    /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
-    /// signature; or the validity of the mdoc.
-    pub fn hash(&self) -> Result<Vec<u8>> {
-        let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
-        Ok(digest)
     }
 }

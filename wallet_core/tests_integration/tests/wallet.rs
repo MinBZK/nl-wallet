@@ -23,9 +23,10 @@ use pid_issuer::{
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     errors::{InstructionError, WalletUnlockError},
-    mock::{MockDigidClient, MockPidIssuerClient, MockStorage},
+    mock::{MockDigidSession, MockPidIssuerClient, MockStorage},
     wallet_deps::{HttpAccountProviderClient, HttpPidIssuerClient, LocalConfigurationRepository},
-    AccountProviderClient, Configuration, ConfigurationRepository, DigidClient, PidIssuerClient, Storage, Wallet,
+    AccountProviderClient, AttributeValue, Configuration, ConfigurationRepository, DigidSession, Document,
+    PidIssuerClient, Storage, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -63,14 +64,13 @@ async fn create_test_wallet(
     pid_base_url: Option<Url>,
     public_key: EcdsaDecodingKey,
     instruction_result_public_key: EcdsaDecodingKey,
-    digid_client: MockDigidClient,
     pid_issuer_client: impl PidIssuerClient,
 ) -> Wallet<
     LocalConfigurationRepository,
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
-    MockDigidClient,
+    MockDigidSession,
     impl PidIssuerClient,
 > {
     // Create mock Wallet from settings
@@ -87,7 +87,6 @@ async fn create_test_wallet(
         LocalConfigurationRepository::new(config),
         MockStorage::default(),
         HttpAccountProviderClient::default(),
-        digid_client,
         pid_issuer_client,
     )
     .await
@@ -164,7 +163,7 @@ where
     S: Storage + Send + Sync,
     K: PlatformEcdsaKey + Sync,
     A: AccountProviderClient + Sync,
-    D: DigidClient,
+    D: DigidSession,
     P: PidIssuerClient,
 {
     // No registration should be loaded initially.
@@ -196,7 +195,6 @@ async fn test_wallet_registration_in_process() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidClient::default(),
         MockPidIssuerClient::default(),
     )
     .await;
@@ -214,15 +212,7 @@ async fn test_wallet_registration_live() {
     let base_url = Url::parse("http://localhost:3000/api/v1/").unwrap();
     let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
     let instr_pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
-    let wallet = create_test_wallet(
-        base_url,
-        None,
-        pub_key,
-        instr_pub_key,
-        MockDigidClient::default(),
-        MockPidIssuerClient::default(),
-    )
-    .await;
+    let wallet = create_test_wallet(base_url, None, pub_key, instr_pub_key, MockPidIssuerClient::default()).await;
 
     test_wallet_registration(wallet).await;
 }
@@ -239,7 +229,6 @@ async fn test_unlock_ok() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidClient::default(),
         MockPidIssuerClient::default(),
     )
     .await;
@@ -278,7 +267,6 @@ async fn test_block() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidClient::default(),
         MockPidIssuerClient::default(),
     )
     .await;
@@ -333,7 +321,6 @@ async fn test_unlock_error() {
         None,
         public_key,
         instruction_result_public_key,
-        MockDigidClient::default(),
         MockPidIssuerClient::default(),
     )
     .await;
@@ -484,20 +471,21 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     start_wallet_provider(settings);
     start_pid_issuer(pid_settings, attributes_lookup, bsn_lookup);
 
-    let digid_client = {
-        let mut digid_client = MockDigidClient::default();
+    let start_context = MockDigidSession::start_context();
+    start_context.expect().return_once(|_, _, _| {
+        let mut session = MockDigidSession::default();
 
-        digid_client
-            .expect_start_session()
-            .returning(|_, _, _| Ok(Url::parse("http://localhost/").unwrap()));
+        session
+            .expect_auth_url()
+            .return_const(Url::parse("http://localhost/").unwrap());
 
         // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        digid_client
+        session
             .expect_get_access_token()
             .returning(|_| Ok("mock_token".to_string()));
 
-        digid_client
-    };
+        Ok(session)
+    });
 
     let client = CborHttpClient(reqwest::Client::new());
     let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(client)));
@@ -508,7 +496,6 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Some(local_pid_base_url(pid_port)),
         public_key,
         instruction_result_public_key,
-        digid_client,
         pid_issuer_client,
     )
     .await;
@@ -520,20 +507,32 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     assert!(wallet.has_registration());
 
-    let redirect_url = wallet.create_pid_issuance_redirect_uri().await?;
-    let unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await?;
-    dbg!(&unsigned_mdocs);
-
+    let redirect_url = wallet.create_pid_issuance_auth_url().await?;
+    let _unsigned_mdocs = wallet.continue_pid_issuance(&redirect_url).await?;
     wallet.accept_pid_issuance("112234".to_string()).await?;
 
-    let mdocs = wallet.list_mdocs().await;
+    // Emit documents into this local variable
+    let documents: Arc<std::sync::Mutex<Vec<Document>>> = Arc::new(std::sync::Mutex::new(vec![]));
+    {
+        let documents = documents.clone();
+        wallet
+            .set_documents_callback(move |mut d| {
+                let mut documents = documents.lock().unwrap();
+                documents.append(&mut d)
+            })
+            .await
+            .unwrap();
+    }
 
-    dbg!(&mdocs);
+    // Verify that the first mdoc contains the bns
+    let documents = documents.lock().unwrap();
+    let pid_mdoc = documents.first().unwrap();
+    let bsn_attr = pid_mdoc.attributes.iter().find(|a| *a.0 == "bsn");
 
-    let pid_mdocs = mdocs.first().unwrap().1;
-    let namespace = pid_mdocs.first().unwrap();
-    let attrs = namespace.first().unwrap().1;
-    assert!(!attrs.is_empty());
+    match bsn_attr {
+        Some(bsn_attr) => assert_eq!(bsn_attr.1.value, AttributeValue::String("999991772".to_string())),
+        None => panic!("BSN attribute not found"),
+    }
 
     Ok(())
 }

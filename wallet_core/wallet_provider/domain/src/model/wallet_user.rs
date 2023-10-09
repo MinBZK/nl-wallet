@@ -13,10 +13,17 @@ pub struct WalletUser {
     pub pin_pubkey: DerVerifyingKey,
     pub unsuccessful_pin_entries: u8,
     pub last_unsuccessful_pin_entry: Option<DateTime<Local>>,
-    pub instruction_challenge: Option<Vec<u8>>,
+    pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
 }
 
+#[derive(Clone, Serialize, Debug)]
+pub struct InstructionChallenge {
+    pub bytes: Vec<u8>,
+    pub expiration_date_time: DateTime<Local>,
+}
+
+#[derive(Debug)]
 pub enum WalletUserQueryResult {
     Found(Box<WalletUser>),
     NotFound,

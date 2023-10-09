@@ -21,7 +21,6 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(ColumnDef::new(WalletUser::InstructionChallenge).binary().null())
                     .col(
                         ColumnDef::new(WalletUser::PinEntries)
                             .small_unsigned()
@@ -55,7 +54,6 @@ enum WalletUser {
     HwPubkeyDer,
     PinPubkeyDer,
     InstructionSequenceNumber,
-    InstructionChallenge,
     PinEntries,
     LastUnsuccessfulPin,
     IsBlocked,

@@ -36,7 +36,7 @@ pub struct Attribute {
     pub value: AttributeValue,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttributeValue {
     String(String),
     Boolean(bool),
@@ -44,7 +44,7 @@ pub enum AttributeValue {
     Gender(GenderAttributeValue),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GenderAttributeValue {
     Unknown,
     Male,

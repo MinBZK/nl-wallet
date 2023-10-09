@@ -3,7 +3,7 @@ use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -15,10 +15,13 @@ use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    examples::*,
     holder::*,
     iso::*,
     issuer::*,
+    mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
     utils::{
+        keys::KeyFactory,
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
@@ -27,9 +30,6 @@ use nl_wallet_mdoc::{
     Error,
 };
 
-mod examples;
-use examples::*;
-use nl_wallet_mdoc::utils::keys::KeyFactory;
 use wallet_common::keys::ConstructibleWithIdentifier;
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
@@ -81,7 +81,7 @@ async fn verify_iso_example_disclosure() {
     let disclosed_attrs = device_response
         .verify(
             Some(&eph_reader_key),
-            &DeviceAuthenticationBytes::example_bts(), // To be signed by device key found in MSO
+            &DeviceAuthenticationBytes::example(), // To be signed by device key found in MSO
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -149,7 +149,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let disclosed_attrs = resp
         .verify(
             None,
-            &DeviceAuthenticationBytes::example_bts(),
+            &DeviceAuthenticationBytes::example(),
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -198,7 +198,7 @@ async fn iso_examples_custom_disclosure() {
     let disclosed_attrs = resp
         .verify(
             None,
-            &DeviceAuthenticationBytes::example_bts(),
+            &DeviceAuthenticationBytes::example(),
             &IsoCertTimeGenerator,
             trust_anchors,
         )
@@ -213,32 +213,6 @@ async fn iso_examples_custom_disclosure() {
         EXAMPLE_ATTR_NAME,
         &EXAMPLE_ATTR_VALUE,
     );
-}
-
-/// Out of the example data structures in the standard, assemble an mdoc.
-/// The issuer-signed part of the mdoc is based on a [`DeviceResponse`] in which not all attributes of the originating
-/// mdoc are disclosed. Consequentially, the issuer signed-part of the resulting mdoc misses some [`IssuerSignedItem`]
-/// instances, i.e. attributes.
-/// This is because the other attributes are actually nowhere present in the standard so it is impossible to construct
-/// the example mdoc with all attributes present.
-///
-/// Using tests should not rely on all attributes being present.
-fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> Mdoc {
-    // Prepare the mdoc's private key
-    let static_device_key = Examples::static_device_key();
-    SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-
-    let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
-        .issuer_signed
-        .clone();
-
-    Mdoc::new::<SoftwareEcdsaKey>(
-        "example_static_device_key".to_string(),
-        issuer_signed,
-        &IsoCertTimeGenerator,
-        trust_anchors,
-    )
-    .unwrap()
 }
 
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
@@ -385,10 +359,11 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.list().len());
+    assert_eq!(1, mdocs.len());
 
     // We can disclose the mdoc that was just issued to us
-    custom_disclosure(wallet, ca, mdocs).await;
+    let mdocs_map = mdocs.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap();
+    custom_disclosure(wallet, ca, mdocs_map).await;
 
     // Decline issuance
     let (mut wallet, server, ca) = setup_issuance_test();
@@ -407,7 +382,7 @@ async fn issuance_and_disclosure() {
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
         .await
         .unwrap();
-    assert_eq!(1, mdocs.list().len());
+    assert_eq!(1, mdocs.len());
 }
 
 async fn issuance_using_consent(
@@ -416,7 +391,7 @@ async fn issuance_using_consent(
     wallet: &mut MockWallet,
     issuance_server: Arc<MockServer>,
     ca: &Certificate,
-) -> Option<MdocsMap> {
+) -> Option<Vec<MdocCopies>> {
     let service_engagement = issuance_server.new_session(request).unwrap();
 
     wallet.start_issuance(service_engagement).await.unwrap();
@@ -448,13 +423,14 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
     }]);
 
     // Do the disclosure and verify it
-    let challenge = DeviceAuthenticationBytes::example_bts();
+    let device_auth_bts = DeviceAuthenticationBytes::example();
+    let challenge_bts = DeviceAuthenticationBytes::example_bts();
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, challenge.as_ref(), &SoftwareKeyFactory {}, &mdocs)
+        .disclose::<SoftwareEcdsaKey>(&request, challenge_bts.as_ref(), &SoftwareKeyFactory {}, &mdocs)
         .await
         .unwrap();
     let disclosed_attrs = disclosed
-        .verify(None, &challenge, &TimeGenerator, &[(&ca).try_into().unwrap()])
+        .verify(None, &device_auth_bts, &TimeGenerator, &[(&ca).try_into().unwrap()])
         .unwrap();
     println!("Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
 
@@ -467,15 +443,6 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
         attr.0,
         &Value::Text(attr.1.to_string()),
     );
-}
-
-/// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
-/// This generator returns a time in that window.
-struct IsoCertTimeGenerator;
-impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
-    }
 }
 
 struct TimeGenerator;

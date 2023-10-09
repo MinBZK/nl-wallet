@@ -5,9 +5,10 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../extension/build_context_extension.dart';
+import '../context_mapper.dart';
 
 /// Mapper that takes a list of attributes and turns them into a list of decorated [UiAttribute]s.
-abstract class PidAttributeMapper<T extends Attribute> {
+abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<List<T>, List<UiAttribute>> {
   String get firstNamesKey;
 
   String get lastNameKey;
@@ -34,12 +35,13 @@ abstract class PidAttributeMapper<T extends Attribute> {
 
   String get residenceCityKey;
 
-  List<UiAttribute> map(BuildContext context, List<T> attributes) {
+  @override
+  List<UiAttribute> map(BuildContext context, List<T> input) {
     final l10n = context.l10n;
-    final birthName = getBirthName(attributes);
+    final birthName = getBirthName(input);
     return [
       UiAttribute(
-        value: getFullName(attributes),
+        value: getFullName(input),
         icon: Icons.portrait_outlined,
         label: l10n.walletPersonalizeCheckDataOfferingPageNameLabel,
       ),
@@ -51,28 +53,28 @@ abstract class PidAttributeMapper<T extends Attribute> {
               label: l10n.walletPersonalizeCheckDataOfferingPageBirthNameLabel,
             ),
       UiAttribute(
-        value: getBirthDetails(context, attributes),
+        value: getBirthDetails(context, input),
         icon: Icons.cake_outlined,
         label: l10n.walletPersonalizeCheckDataOfferingPageBirthInfoLabel,
       ),
       UiAttribute(
-        value: getGender(attributes),
+        value: getGender(input),
         icon: Icons.sentiment_satisfied, //FIXME: This icon should probably become dynamic in the future
         label: l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
       ),
       UiAttribute(
         label: l10n.walletPersonalizeCheckDataOfferingPageNationalityLabel,
-        value: getNationality(attributes),
+        value: getNationality(input),
         icon: Icons.language_outlined,
       ),
       UiAttribute(
         label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
-        value: getBsn(attributes),
+        value: getBsn(input),
         icon: Icons.badge_outlined,
       ),
       UiAttribute(
         label: l10n.walletPersonalizeCheckDataOfferingPageAddressLabel,
-        value: getResidentialAddress(attributes),
+        value: getResidentialAddress(input),
         icon: Icons.cottage_outlined,
       ),
     ].nonNulls.toList();

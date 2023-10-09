@@ -104,14 +104,20 @@ pub async fn clear_configuration_stream() {
 }
 
 #[async_runtime]
-pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) {
+pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> Result<()> {
     let sink = ClosingStreamSink::from(sink);
 
-    wallet().write().await.set_documents_callback(move |documents| {
-        let cards = documents.into_iter().map(|document| document.into()).collect();
+    wallet()
+        .write()
+        .await
+        .set_documents_callback(move |documents| {
+            let cards = documents.into_iter().map(|document| document.into()).collect();
 
-        sink.add(cards);
-    });
+            sink.add(cards);
+        })
+        .await?;
+
+    Ok(())
 }
 
 #[async_runtime]
@@ -156,7 +162,7 @@ pub async fn register(pin: String) -> Result<()> {
 pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     let mut wallet = wallet().write().await;
 
-    let auth_url = wallet.create_pid_issuance_redirect_uri().await?;
+    let auth_url = wallet.create_pid_issuance_auth_url().await?;
 
     Ok(auth_url.into())
 }

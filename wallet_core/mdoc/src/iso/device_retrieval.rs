@@ -53,7 +53,8 @@ pub type ReaderAuth = MdocCose<CoseSign1, Value>;
 pub type ReaderAuthenticationBytes = TaggedBytes<ReaderAuthentication>;
 pub type ReaderAuthentication = CborSeq<ReaderAuthenticationKeyed>;
 
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[cfg_attr(feature = "examples", derive(Deserialize))]
+#[derive(Serialize, FieldNames, Debug, Clone)]
 pub struct ReaderAuthenticationKeyed {
     pub reader_auth_string: RequiredValue<ReaderAuthenticationString>,
     pub session_transcript: SessionTranscript,

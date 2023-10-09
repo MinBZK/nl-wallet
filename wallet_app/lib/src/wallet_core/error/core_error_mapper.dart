@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import '../../util/mapper/mapper.dart';
 import 'core_error.dart';
 import 'flutter_api_error.dart';
 
-class CoreErrorMapper {
-  CoreError map(String flutterApiErrorJson) {
-    final decodedJson = json.decode(flutterApiErrorJson);
+/// Maps a 'FlutterApiErrorJson' [String] to a [CoreError].
+class CoreErrorMapper extends Mapper<String, CoreError> {
+  @override
+  CoreError map(String input) {
+    final decodedJson = json.decode(input);
     final flutterApiError = FlutterApiError.fromJson(decodedJson);
     switch (flutterApiError.type) {
       case FlutterApiErrorType.generic:

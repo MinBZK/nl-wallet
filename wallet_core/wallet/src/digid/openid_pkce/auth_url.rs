@@ -10,12 +10,10 @@ const PARAM_CODE_CHALLENGE_METHOD: &str = "code_challenge_method";
 
 impl Client {
     /// This wraps `openid::Client.auth_url()`, but adds a PKCE code challenge.
-    pub fn auth_url_and_pkce<P>(&self, options: &Options) -> (Url, P)
+    pub fn auth_url<P>(&self, options: &Options, pkce_pair: &P) -> Url
     where
         P: PkcePair,
     {
-        let pkce_pair = P::generate();
-
         let url = url_with_query_pairs(
             self.0.auth_url(options),
             &[
@@ -24,7 +22,7 @@ impl Client {
             ],
         );
 
-        (url, pkce_pair)
+        url
     }
 }
 
@@ -33,7 +31,7 @@ mod tests {
     use openid::Config;
     use serde_json::json;
 
-    use crate::pkce::S256PkcePair;
+    use crate::pkce::MockPkcePair;
 
     use super::*;
 
@@ -66,17 +64,26 @@ mod tests {
             nonce: Some("thisisthenonce".to_string()),
             ..Default::default()
         };
-        let (url, pkce_pair) = client.auth_url_and_pkce::<S256PkcePair>(&options);
+        let pkce_pair = {
+            let mut pkce_pair = MockPkcePair::new();
+
+            pkce_pair
+                .expect_code_challenge()
+                .return_const("pkcecodechallenge".to_string());
+
+            pkce_pair
+        };
+
+        let url = client.auth_url(&options, &pkce_pair);
 
         assert_eq!(
-            url.as_str(),
-            format!(
+            url,
+            Url::parse(
                 "http://example.com/oauth2/auth?response_type=code&client_id=foo&redirect_uri=\
-             http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+scope_a+scope_b+scope_c&state=csrftoken\
-             &nonce=thisisthenonce&code_challenge={}&code_challenge_method={}",
-                pkce_pair.code_challenge(),
-                S256PkcePair::CODE_CHALLENGE_METHOD
+                 http%3A%2F%2Fexample-client.com%2Foauth2%2Fcallback&scope=openid+scope_a+scope_b+scope_c\
+                 &state=csrftoken&nonce=thisisthenonce&code_challenge=pkcecodechallenge&code_challenge_method=INVALID"
             )
+            .unwrap()
         );
     }
 }
