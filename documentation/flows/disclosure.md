@@ -2,7 +2,7 @@
 
 The diagrams here show the interactions that take place when the user discloses information.
 
-## 5.1 Disclosure
+## Disclosure
 
 The following diagram shows how all components interact when performing the disclosure flow using the mdoc online disclosure protocol from ISO 23220-4. As can be seen from the diagram this protocol works as follows (c.f. Figure 1 in §5.3 of the standard).
 

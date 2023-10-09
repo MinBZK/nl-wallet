@@ -1,6 +1,6 @@
 # Session flow
 
-## 13.1 Disclosure
+## Disclosure
 
 The following diagram shows a disclosure session from the perspective of the RP, showing in particular all interactions between the different components that the RP must be running:
 
@@ -74,7 +74,7 @@ sequenceDiagram
     RP_webserver-->>-RP_website: user is authenticated
 ```
 
-## 12.1 Issuance
+## Issuance
 
 Attribute issuance is to a large extent very similar to disclosure. Calling the rightmost three agents `issuer_website`, `issuer_webserver` and `issuer_server` respectively, issuance differs from disclosure in the following ways. 
 
