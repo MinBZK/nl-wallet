@@ -84,7 +84,7 @@ Attribute issuance is to a large extent very similar to disclosure. Calling the 
 
 The sequence diagram follows. Note that all arrows are the same as in the diagram above; the only differences are in the descriptions above the arrows.
 
-See also [the PID issuance sequence diagrams](./wallet_personalisation.md), which does not distinguish the various issuer components but also takes into account the wallet's GUI and Rust core, as well as the Wallet Provider protocol.
+See also [the PID issuance sequence diagrams](./wallet_personalisation.md), which does not distinguish the various issuer components but does takes into account the wallet's GUI and Rust core, as well as the Wallet Provider protocol.
 
 ```mermaid
 sequenceDiagram
