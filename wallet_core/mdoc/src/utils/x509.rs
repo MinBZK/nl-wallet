@@ -95,6 +95,7 @@ impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
 /// - parsing data: `x509_parser`
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
+#[derive(Clone)]
 pub struct Certificate(ByteBuf);
 
 impl<'a> TryInto<TrustAnchor<'a>> for &'a Certificate {

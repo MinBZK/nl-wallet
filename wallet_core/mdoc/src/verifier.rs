@@ -5,6 +5,9 @@
 use std::any::Any;
 
 use chrono::{DateTime, Local, Utc};
+use ciborium::Value;
+use coset::{CoseSign1, HeaderBuilder};
+use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{
     ecdh::EphemeralSecret,
@@ -25,12 +28,12 @@ use crate::{
     issuer_shared::SessionToken,
     server_state::SessionStore,
     utils::{
-        cose::ClonePayload,
+        cose::{self, ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
         serialization::{
             cbor_deserialize, cbor_serialize, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes,
         },
-        x509::CertificateUsage,
+        x509::{Certificate, CertificateUsage},
     },
     Error, Result, SessionData,
 };
@@ -101,7 +104,6 @@ struct Session<S> {
 
 #[derive(Debug, Clone)]
 struct DisclosureData<S> {
-    request: DeviceRequest,
     disclosure_state_enum: DisclosureStateEnum,
     disclosure_state: S,
 }
@@ -117,6 +119,9 @@ enum DisclosureStateEnum {
 
 /// State for a session that has just been created.
 struct Created {
+    items_requests: Vec<ItemsRequest>,
+    reader_cert: Certificate,
+    reader_cert_privkey: SigningKey,
     ephemeral_privkey: EphemeralSecret,
     reader_engagement: ReaderEngagement,
 }
@@ -124,6 +129,7 @@ struct Created {
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
 struct WaitingForResponse {
+    items_requests: Vec<ItemsRequest>,
     our_key: SessionKey,
     their_key: SessionKey,
     session_transcript: SessionTranscript,
@@ -178,7 +184,6 @@ impl SessionState<DisclosureData<Box<dyn Any>>> {
     fn into_unboxed<NewT: Sized + 'static>(self) -> SessionState<DisclosureData<NewT>> {
         SessionState {
             session_data: DisclosureData {
-                request: self.session_data.request,
                 disclosure_state: *self.session_data.disclosure_state.downcast().unwrap(),
                 disclosure_state_enum: self.session_data.disclosure_state_enum,
             },
@@ -192,7 +197,6 @@ impl<T: DisclosureState + 'static> SessionState<DisclosureData<T>> {
     fn into_boxed(self) -> SessionState<DisclosureData<Box<(dyn DisclosureState + 'static)>>> {
         SessionState {
             session_data: DisclosureData {
-                request: self.session_data.request,
                 disclosure_state: Box::new(self.session_data.disclosure_state),
                 disclosure_state_enum: self.session_data.disclosure_state_enum,
             },
@@ -220,7 +224,6 @@ impl<T: DisclosureState> Session<T> {
         Session {
             state: SessionState::<DisclosureData<NewT>> {
                 session_data: DisclosureData {
-                    request: self.state.session_data.request,
                     disclosure_state: new_state,
                     disclosure_state_enum: NewT::state_enum(),
                 },
@@ -237,28 +240,30 @@ impl<T: DisclosureState> Session<T> {
 
 fn new_session(
     base_url: Url,
-    request: DeviceRequest,
+    items_requests: Vec<ItemsRequest>,
+    reader_cert: &Certificate,
+    reader_cert_privkey: &SigningKey,
     sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
 ) -> Result<ReaderEngagement> {
     let token = SessionToken::new();
     let url = base_url.join(&token.0).unwrap();
-    let (reader_engagement, session_state) = Session::<Created>::new(request, url)?;
+    let (reader_engagement, session_state) =
+        Session::<Created>::new(items_requests, reader_cert, reader_cert_privkey, url)?;
     sessions.write(&session_state.state.into_boxed());
     Ok(reader_engagement)
 }
 
-fn process_message(
+async fn process_message(
     msg: &[u8],
     token: SessionToken,
     sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
-    trust_anchors: &[TrustAnchor],
+    trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions.get(&token)?;
 
     let session = Session::<Box<dyn Any>> {
         state: SessionState {
             session_data: DisclosureData {
-                request: state.session_data.request,
                 disclosure_state_enum: state.session_data.disclosure_state_enum,
                 disclosure_state: Box::new(state.session_data.disclosure_state),
             },
@@ -272,7 +277,7 @@ fn process_message(
             let session = Session::<Created> {
                 state: session.state.into_unboxed(),
             };
-            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?);
+            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?).await;
             match session {
                 Ok(next) => Ok((response, next.state.into_boxed())),
                 Err(next) => Ok((response, next.state.into_boxed())),
@@ -297,15 +302,22 @@ impl Session<Created> {
     // TODO: update this API when it has been decided on,
     // and implement RP authentication in this function instead of leaving it up to the caller.
     /// Create a new disclosure session.
-    fn new(request: DeviceRequest, url: Url) -> Result<(ReaderEngagement, Session<Created>)> {
+    fn new(
+        items_requests: Vec<ItemsRequest>,
+        reader_cert: &Certificate,
+        reader_cert_privkey: &SigningKey,
+        url: Url,
+    ) -> Result<(ReaderEngagement, Session<Created>)> {
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
                 SessionToken::new(),
                 DisclosureData {
-                    request,
                     disclosure_state_enum: DisclosureStateEnum::Created,
                     disclosure_state: Created {
+                        items_requests,
+                        reader_cert: reader_cert.clone(),
+                        reader_cert_privkey: reader_cert_privkey.clone(),
                         ephemeral_privkey,
                         reader_engagement: reader_engagement.clone(),
                     },
@@ -318,17 +330,17 @@ impl Session<Created> {
 
     /// Process the device's [`DeviceEngagement`],
     /// returning a response to answer the device with and the next session state.
-    fn process_device_engagement(
+    async fn process_device_engagement(
         self,
         device_engagement: DeviceEngagement,
     ) -> (
         SessionData,
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
-        let (response, next) = match self.process_device_engagement_inner(&device_engagement) {
-            Ok((response, our_key, their_key, session_transcript)) => (
+        let (response, next) = match self.process_device_engagement_inner(&device_engagement).await {
+            Ok((response, items_requests, our_key, their_key, session_transcript)) => (
                 response,
-                Ok(self.wait_for_response(our_key, their_key, session_transcript)),
+                Ok(self.wait_for_response(items_requests, our_key, their_key, session_transcript)),
             ),
             Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
         };
@@ -337,10 +349,16 @@ impl Session<Created> {
     }
 
     // Helper function that returns ordinary errors instead of `Session<...>`
-    fn process_device_engagement_inner(
+    async fn process_device_engagement_inner(
         &self,
         device_engagement: &DeviceEngagement,
-    ) -> Result<(SessionData, SessionKey, SessionKey, SessionTranscript)> {
+    ) -> Result<(
+        SessionData,
+        Vec<ItemsRequest>,
+        SessionKey,
+        SessionKey,
+        SessionTranscript,
+    )> {
         // Check that the device has sent the expected OriginInfo
         let url = self.state().reader_engagement.0.connection_methods.as_ref().unwrap()[0]
             .0
@@ -381,6 +399,9 @@ impl Session<Created> {
         }
         .into();
 
+        let state = self.state();
+        let device_request = self.new_device_request(&session_transcript).await?;
+
         // Compute the AES keys with which we and the device encrypt responses
         // TODO remove unwrap() and return an error if the device passes no key
         let their_pubkey = device_engagement.0.security.as_ref().unwrap().try_into()?;
@@ -397,21 +418,58 @@ impl Session<Created> {
             SessionKeyUser::Device,
         )?;
 
-        let response = SessionData::serialize_and_encrypt(&self.state.session_data.request, &our_key)?;
+        let response = SessionData::serialize_and_encrypt(&device_request, &our_key)?;
 
-        Ok((response, our_key, their_key, session_transcript))
+        Ok((
+            response,
+            self.state.session_data.disclosure_state.items_requests.clone(),
+            our_key,
+            their_key,
+            session_transcript,
+        ))
     }
 
     fn wait_for_response(
         self,
+        items_requests: Vec<ItemsRequest>,
         our_key: SessionKey,
         their_key: SessionKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
         self.transition(WaitingForResponse {
+            items_requests,
             our_key,
             their_key,
             session_transcript,
+        })
+    }
+
+    async fn new_device_request(&self, session_transcript: &SessionTranscript) -> Result<DeviceRequest> {
+        let doc_requests = try_join_all(self.state().items_requests.iter().map(|items_request| async {
+            let reader_auth = ReaderAuthenticationKeyed {
+                reader_auth_string: Default::default(),
+                session_transcript: session_transcript.clone(),
+                items_request_bytes: items_request.clone().into(),
+            };
+            let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
+                &TaggedBytes(CborSeq(reader_auth)),
+                cose::new_certificate_header(&self.state().reader_cert),
+                &self.state().reader_cert_privkey,
+                false,
+            )
+            .await?;
+            let cose = MdocCose::from(cose.0);
+            let doc_request = DocRequest {
+                items_request: items_request.clone().into(),
+                reader_auth: Some(cose),
+            };
+            Result::<DocRequest>::Ok(doc_request)
+        }))
+        .await?;
+
+        Ok(DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests,
         })
     }
 }

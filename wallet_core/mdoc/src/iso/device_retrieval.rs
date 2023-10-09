@@ -21,13 +21,13 @@ use fieldnames_derive::FieldNames;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
-    pub version: String,
+    pub version: DeviceRequestVersion,
     pub doc_requests: Vec<DocRequest>,
 }
 impl DeviceRequest {
     pub fn new(items_requests: Vec<ItemsRequest>) -> DeviceRequest {
         DeviceRequest {
-            version: "1.0".to_string(),
+            version: DeviceRequestVersion::V1_0,
             doc_requests: items_requests
                 .into_iter()
                 .map(|items_request| DocRequest {
@@ -37,6 +37,12 @@ impl DeviceRequest {
                 .collect(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum DeviceRequestVersion {
+    #[serde(rename = "1.0")]
+    V1_0,
 }
 
 /// Requests attributes out of an mdoc of a specified doctype to be disclosed, as part of a [`DeviceRequest`].
