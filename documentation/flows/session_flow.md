@@ -13,7 +13,7 @@ This diagram does not distinguish between the wallet's GUI and its Rust core, an
 It uses the following mdoc-specific data structure names:
 - `ReaderEngagement` (step (6)): contains (among others) the URL at which the wallet can perform the mdoc disclosure protocol with the `RP_server`.
 - `DeviceEngagement` (step (15)): requests the following message (`DeviceRequest`) from the `RP_server`.
-- `DeviceRequest` (step (16)): contains the attributes that the RP requests from the wallet, as well as the RP authentication (an X.509 certificate containing the RP's name combined with a proof of possession of that certificate).
+- `DeviceRequest` (step (16)): contains the attributes that the RP requests from the wallet, as well as the RP authentication (an X.509 certificate containing the RP's name and any other data about the RP that the GUI needs to be able to display (such as the RP's reason for the disclosure), combined with a proof of possession of that certificate).
 - `DeviceResponse` (step (20)): contains the attributes disclosed by the wallet, including a cryptographic proof of possession of them so that the RP can verify their authenticity.
 
 ```mermaid
