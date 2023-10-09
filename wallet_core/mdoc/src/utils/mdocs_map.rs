@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use wallet_common::utils::sha256;
 
 use crate::{
     basic_sa_ext::Entry,
@@ -6,7 +7,7 @@ use crate::{
     DocType, Error, NameSpace,
 };
 
-use crate::holder::MdocRetriever;
+use crate::{holder::MdocRetriever, utils::serialization::cbor_serialize};
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,
@@ -78,5 +79,19 @@ impl MdocRetriever for MdocsMap {
                 .map(|(_key, entry)| entry.cred_copies.to_vec().into())
                 .collect()
         })
+    }
+}
+
+impl Mdoc {
+    /// Hash of the mdoc, acting as an identifier for the mdoc. Takes into account its doctype
+    /// and all of its attributes, using [`Self::attributes()`].
+    /// Computed schematically as `SHA256(CBOR(doctype, attributes))`.
+    ///
+    /// Credentials having the exact same attributes
+    /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
+    /// signature; or the validity of the mdoc.
+    pub fn hash(&self) -> crate::Result<Vec<u8>> {
+        let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
+        Ok(digest)
     }
 }
