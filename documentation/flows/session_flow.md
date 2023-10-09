@@ -78,7 +78,7 @@ sequenceDiagram
 
 Attribute issuance is to a large extent very similar to disclosure. Calling the rightmost three agents `issuer_website`, `issuer_webserver` and `issuer_server` respectively, issuance differs from disclosure in the following ways. 
 
-1. Instead of step (3) in the sequence diagram above, the `issuer_webserver` needs to somehow authenticate the user has being a valid recipient for the attributes to be issued, as well as determine the contents of those attributes. The process for this will differ for each issuer. For example, the PID issuer authenticates the user using DigiD and retrieves the attributes to be issued from the BRP. This step is thus part of the business logic of the `issuer_webserver` and the specifics are out of scope here.
+1. Instead of step (3) in the sequence diagram above, the `issuer_webserver` needs to somehow authenticate the user as being a valid recipient for the attributes to be issued, as well as determine the contents of those attributes. The process for this will differ for each issuer. For example, the PID issuer authenticates the user using DigiD and retrieves the attributes to be issued from the BRP. This step is thus part of the business logic of the `issuer_webserver` and the specifics are out of scope here.
 1. The protocol messages exchanged are replaced by those of the issuance protocol.
 1. At the end of a disclosure session, the RP's application flow generally proceeds to a next part in which it somehow uses the authenticated `disclosed_attributes`. By contrast, at the end of issuance the `issuer_webserver` receives only a status from the `issuer_server` indicating issuance was succesful, and the issuer's application flow generally stops.
 
