@@ -43,20 +43,16 @@ impl Wallet {
 impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
 where
     S: Storage,
+    K: PlatformEcdsaKey,
 {
-    /// Initialize the wallet by loading initial state.
-    pub async fn init_registration(
+    pub(super) fn new(
         config_repository: C,
-        mut storage: S,
+        storage: S,
         account_provider_client: A,
         pid_issuer: P,
-    ) -> Result<Self, WalletInitError>
-    where
-        K: PlatformEcdsaKey,
-    {
-        let registration = Self::fetch_registration(&mut storage).await?;
-
-        let wallet = Wallet {
+        registration: Option<RegistrationData>,
+    ) -> Self {
+        Wallet {
             config_repository,
             storage: RwLock::new(storage),
             hw_privkey: K::new(WALLET_KEY_ID),
@@ -67,7 +63,25 @@ where
             registration,
             config_callback: None,
             documents_callback: None,
-        };
+        }
+    }
+
+    /// Initialize the wallet by loading initial state.
+    pub async fn init_registration(
+        config_repository: C,
+        mut storage: S,
+        account_provider_client: A,
+        pid_issuer: P,
+    ) -> Result<Self, WalletInitError> {
+        let registration = Self::fetch_registration(&mut storage).await?;
+
+        let wallet = Self::new(
+            config_repository,
+            storage,
+            account_provider_client,
+            pid_issuer,
+            registration,
+        );
 
         Ok(wallet)
     }
@@ -89,41 +103,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use crate::{pin::key as pin_key, storage::MockStorage};
 
-    use crate::{
-        account_provider::MockAccountProviderClient, config::LocalConfigurationRepository, digid::MockDigidSession,
-        pid_issuer::MockPidIssuerClient, pin::key as pin_key, storage::MockStorage,
-    };
-
-    use super::*;
-
-    type MockWallet = Wallet<
-        LocalConfigurationRepository,
-        MockStorage,
-        SoftwareEcdsaKey,
-        MockAccountProviderClient,
-        MockDigidSession,
-        MockPidIssuerClient,
-    >;
-
-    // Create mocks and call `Wallet::init_registration()`, with the option to override the mock storage.
-    async fn init_wallet(storage: Option<MockStorage>) -> Result<MockWallet, WalletInitError> {
-        let storage = storage.unwrap_or_default();
-
-        Wallet::init_registration(
-            LocalConfigurationRepository::default(),
-            storage,
-            MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
-        )
-        .await
-    }
+    use super::{super::tests::WalletWithMocks, *};
 
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
-    async fn test_init() {
-        let wallet = init_wallet(None).await.expect("Could not initialize wallet");
+    async fn test_init_registration() {
+        let wallet = WalletWithMocks::init_registration_mocks()
+            .await
+            .expect("Could not initialize wallet");
 
         assert!(!wallet.has_registration());
     }
@@ -132,7 +121,9 @@ mod tests {
     #[tokio::test]
     async fn test_init_fetch_registration() {
         // Test with a wallet without a database file.
-        let wallet = init_wallet(None).await.expect("Could not initialize wallet");
+        let wallet = WalletWithMocks::init_registration_mocks()
+            .await
+            .expect("Could not initialize wallet");
 
         // The wallet should have no registration, and no database should be opened.
         assert!(wallet.registration.is_none());
@@ -146,9 +137,10 @@ mod tests {
         assert!(wallet.is_locked());
 
         // Test with a wallet with a database file, no registration.
-        let wallet = init_wallet(Some(MockStorage::mock(StorageState::Unopened, None)))
-            .await
-            .expect("Could not initialize wallet");
+        let wallet =
+            WalletWithMocks::init_registration_mocks_with_storage(MockStorage::mock(StorageState::Unopened, None))
+                .await
+                .expect("Could not initialize wallet");
 
         // The wallet should have no registration, the database should be opened.
         assert!(wallet.registration.is_none());
@@ -160,13 +152,13 @@ mod tests {
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = pin_key::new_pin_salt();
-        let wallet = init_wallet(Some(MockStorage::mock(
+        let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::mock(
             StorageState::Unopened,
             Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
-        )))
+        ))
         .await
         .expect("Could not initialize wallet");
 

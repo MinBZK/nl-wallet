@@ -6,6 +6,9 @@ mod lock;
 mod registration;
 mod uri;
 
+#[cfg(test)]
+mod tests;
+
 use tokio::sync::RwLock;
 
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
