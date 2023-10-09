@@ -51,6 +51,7 @@ url = { workspace = true }
 nl_wallet_mdoc = { path = "../mdoc" }
 
 [dev-dependencies]
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
 pid_issuer = { path = ".", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }
