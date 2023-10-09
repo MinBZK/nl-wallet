@@ -2,6 +2,8 @@
 
 #![allow(unused)]
 
+use std::any::Any;
+
 use chrono::{DateTime, Local, Utc};
 use indexmap::IndexMap;
 use p256::{
@@ -93,12 +95,12 @@ impl ReaderEngagement {
     }
 }
 
-struct Session<S: DisclosureState> {
+struct Session<S> {
     state: SessionState<DisclosureData<S>>,
 }
 
 #[derive(Debug, Clone)]
-struct DisclosureData<S: DisclosureState> {
+struct DisclosureData<S> {
     request: DeviceRequest,
     disclosure_state_enum: DisclosureStateEnum,
     disclosure_state: S,
@@ -106,7 +108,7 @@ struct DisclosureData<S: DisclosureState> {
 
 /// An enum whose variants correspond 1-to-1 with all possible states for a session, i.e., all implementations
 /// of the [`DisclosureState`] trait.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 enum DisclosureStateEnum {
     Created,
     WaitingForResponse,
@@ -150,7 +152,9 @@ impl From<SessionStatus> for SessionResult {
 
 /// Disclosure session states for use as `T` in `Session<T>`.
 trait DisclosureState {
-    fn state_enum() -> DisclosureStateEnum;
+    fn state_enum() -> DisclosureStateEnum
+    where
+        Self: Sized;
 }
 
 impl DisclosureState for Created {
@@ -169,7 +173,35 @@ impl DisclosureState for Done {
     }
 }
 
-// State transitions and helper methods that are valid for all states
+impl SessionState<DisclosureData<Box<dyn Any>>> {
+    /// Unpack the boxed state. NOTE: will panic if the box does not contain the right type.
+    fn into_unboxed<NewT: Sized + 'static>(self) -> SessionState<DisclosureData<NewT>> {
+        SessionState {
+            session_data: DisclosureData {
+                request: self.session_data.request,
+                disclosure_state: *self.session_data.disclosure_state.downcast().unwrap(),
+                disclosure_state_enum: self.session_data.disclosure_state_enum,
+            },
+            token: self.token,
+            last_active: Local::now(),
+        }
+    }
+}
+
+impl<T: DisclosureState + 'static> SessionState<DisclosureData<T>> {
+    fn into_boxed(self) -> SessionState<DisclosureData<Box<(dyn DisclosureState + 'static)>>> {
+        SessionState {
+            session_data: DisclosureData {
+                request: self.session_data.request,
+                disclosure_state: Box::new(self.session_data.disclosure_state),
+                disclosure_state_enum: self.session_data.disclosure_state_enum,
+            },
+            token: self.token,
+            last_active: Local::now(),
+        }
+    }
+}
+
 impl<T: DisclosureState> Session<T> {
     fn fail(self) -> Session<Done> {
         self.transition(Done {
@@ -201,6 +233,52 @@ impl<T: DisclosureState> Session<T> {
     fn state(&self) -> &T {
         &self.state.session_data.disclosure_state
     }
+}
+
+fn process_message(
+    msg: &[u8],
+    token: SessionToken,
+    sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    trust_anchors: &[TrustAnchor],
+) -> Result<SessionData> {
+    let state = sessions.get(&token)?;
+
+    let session = Session::<Box<dyn Any>> {
+        state: SessionState {
+            session_data: DisclosureData {
+                request: state.session_data.request,
+                disclosure_state_enum: state.session_data.disclosure_state_enum,
+                disclosure_state: Box::new(state.session_data.disclosure_state),
+            },
+            token: state.token,
+            last_active: state.last_active,
+        },
+    };
+
+    let (response, next) = match state.session_data.disclosure_state_enum {
+        DisclosureStateEnum::Created => {
+            let session = Session::<Created> {
+                state: session.state.into_unboxed(),
+            };
+            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?);
+            match session {
+                Ok(next) => Ok((response, next.state.into_boxed())),
+                Err(next) => Ok((response, next.state.into_boxed())),
+            }
+        }
+        DisclosureStateEnum::WaitingForResponse => {
+            let session = Session::<WaitingForResponse> {
+                state: session.state.into_unboxed(),
+            };
+            let (response, session) = session.process_response(cbor_deserialize(msg)?, trust_anchors);
+            Ok((response, session.state.into_boxed()))
+        }
+        DisclosureStateEnum::Done => Err(Error::from(VerificationError::UnexpectedInput)),
+    }?;
+
+    sessions.write(&next);
+
+    Ok(response)
 }
 
 impl Session<Created> {
