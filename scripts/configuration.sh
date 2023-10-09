@@ -9,6 +9,18 @@ TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 # source user variables
 [ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
 
+function is_macos() {
+  uname -a | grep -i darwin >/dev/null
+}
+
+function detect_softhsm() {
+  if is_macos; then
+    find "${HOMEBREW_CELLAR}"/softhsm -name "libsofthsm2.so" | head -n 1
+  else
+    find "/usr/lib/" -name "libsofthsm2.so" | head -n 1
+  fi
+}
+
 # Path of the nl-rdo-max-private repository
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath "${BASE_DIR}"/../nl-rdo-max-private)}
 
@@ -23,6 +35,14 @@ export DB_HOST="${DB_HOST:-localhost}" # default: localhost
 export DB_USERNAME="${DB_USERNAME:-postgres}" # default: postgres
 export DB_PASSWORD="${DB_PASSWORD:-postgres}" # default: postgres
 export DB_NAME="${DB_NAME:-wallet_provider}" # default: wallet_provider
+
+# HSM properties, with defaults
+HSM_LIBRARY_PATH=$(detect_softhsm)
+export HSM_LIBRARY_PATH
+export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
+export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
+export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
+export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9

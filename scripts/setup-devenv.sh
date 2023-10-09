@@ -8,6 +8,7 @@
 # - pid_issuer
 # - wallet_provider
 # - wallet
+# - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
 #
@@ -18,6 +19,7 @@
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
 # - docker: with compose v2 extension, to run the digid-connector
+# - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -63,7 +65,11 @@ then
 # export DB_HOST=${DB_HOST}
 # export DB_USERNAME=${DB_USERNAME}
 # export DB_PASSWORD=${DB_PASSWORD}
-# export DB_NAME=${DB_NAME}" \
+# export DB_NAME=${DB_NAME}
+# export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
+# export HSM_SO_PIN=${HSM_SO_PIN}
+# export HSM_USER_PIN=${HSM_USER_PIN}
+# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}" \
     > "${SCRIPTS_DIR}/.env"
     echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
     echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
@@ -201,6 +207,7 @@ expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
 expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
 expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
+expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
 
 if [ "$(uname -s)" == "Darwin" ]
 then
@@ -294,6 +301,22 @@ WP_CERTIFICATE_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.ce
 export WP_CERTIFICATE_PUBLIC_KEY
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.instruction_result_verifying_key')
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
+
+########################################################################
+# Configure HSM
+
+echo
+echo -e "${SECTION}Configure HSM${NC}"
+
+mkdir -p "${HOME}/.config/softhsm2"
+if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+  mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
+fi
+
+render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
+
+softhsm2-util --delete-token --token test_token --force || true
+softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${HSM_USER_PIN}"
 
 ########################################################################
 # Configure wallet
