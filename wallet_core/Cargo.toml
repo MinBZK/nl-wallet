@@ -40,19 +40,20 @@ ciborium = { version = "0.2.1" }
 config = { version = "0.13.3", default-features = false }
 coset = { version = "0.3.3" }
 cstr = { version = "0.2.11" }
+ctor = { version = "0.2.5" }
 dashmap = { version = "5.4.0" }
 der = { version = "0.7.7" }
 dotenvy = { version = "0.15.7" }
 flutter_rust_bridge = { version = "1.70.0" }
 futures = { version = "0.3.17" }
 hex = { version = "0.4.3" }
-hex-literal = { version = "0.3.4" }
+hex-literal = { version = "0.4.1" }
 http = { version = "0.2.9" }
-indexmap = { version = "1.9.2" }
+indexmap = { version = "2.0.2" }
 jni = { version = "0.21.1" }
 josekit = { version = "0.8.3" }
 jsonwebtoken = { version = "8.2.0" }
-libsqlite3-sys = { version = "0.24.2", default-features = false }
+libsqlite3-sys = { version = "0.26.0", default-features = false }
 mime = { version = "0.3.17" }
 mockall = { version = "0.11.4" }
 never = { version = "0.1.0" }
@@ -65,14 +66,14 @@ proc-macro2 = { version = "1.0.66" }
 quote = { version = "1.0.26" }
 rand = { version = "0.8.5" }
 rand_core = { version = "0.6.4" }
-rcgen = { version = "0.10.0", default-features = false }
+rcgen = { version = "0.11.3", default-features = false }
 regex = { version = "1.7.0" }
 reqwest = { version = "0.11.18", default-features = false }
-ring = { version = "0.16.20" }
+ring = { version = "0.17.0" }
 rstest = { version = "0.18.1" }
 rustls-webpki = { version = "0.101.2" }
-sea-orm = { version = "0.11.3", default-features = false }
-sea-orm-migration = { version = "0.11.0", default-features = false }
+sea-orm = { version = "0.12.3", default-features = false }
+sea-orm-migration = { version = "0.12.3", default-features = false }
 serde = { version = "1.0.147", default-features = false }
 serde_bytes = { version = "0.11.7" }
 serde_json = { version = "1.0.92", default-features = false }
@@ -91,4 +92,4 @@ uniffi = { version = "0.24.1", default-features = false }
 url = { version = "2.4.0" }
 uuid = { version = "1.4.0" }
 wiremock = { version = "0.5.19" }
-x509-parser = { version = "0.14.0" }
+x509-parser = { version = "0.15.1" }
