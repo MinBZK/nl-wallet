@@ -1,11 +1,14 @@
+use std::iter;
+
 use async_trait::async_trait;
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, MdocKeyType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign, SignResult},
+    account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
     keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    utils::random_string,
 };
 
 use crate::{account_provider::AccountProviderClient, storage::Storage};
@@ -18,10 +21,12 @@ pub enum RemoteEcdsaKeyError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("key '{0}' not found in Wallet Provider")]
+    KeyNotFound(String),
 }
 
 pub struct RemoteEcdsaKeyFactory<'a, S, K, A> {
-    remote_instruction: &'a InstructionClient<'a, S, K, A>,
+    instruction_client: &'a InstructionClient<'a, S, K, A>,
 }
 
 pub struct RemoteEcdsaKey<'a, S, K, A> {
@@ -31,8 +36,8 @@ pub struct RemoteEcdsaKey<'a, S, K, A> {
 }
 
 impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
-    pub fn new(remote_instruction: &'a InstructionClient<'a, S, K, A>) -> Self {
-        Self { remote_instruction }
+    pub fn new(instruction_client: &'a InstructionClient<'a, S, K, A>) -> Self {
+        Self { instruction_client }
     }
 }
 
@@ -46,11 +51,9 @@ where
     type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
 
-    async fn generate_new<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<Self::Key>, Self::Error> {
-        let generate_key = GenerateKey {
-            identifiers: identifiers.iter().map(|i| i.as_ref().to_owned()).collect(),
-        };
-        let result: GenerateKeyResult = self.remote_instruction.send(generate_key).await?;
+    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+        let identifiers = iter::repeat_with(|| random_string(32)).take(count as usize).collect();
+        let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { identifiers }).await?;
 
         let keys = result
             .public_keys
@@ -65,12 +68,40 @@ where
         Ok(keys)
     }
 
-    fn generate_existing<I: AsRef<str> + Sync>(&'a self, identifier: &I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
-            identifier: identifier.as_ref().to_string(),
+            identifier: identifier.into(),
             public_key,
             key_factory: self,
         }
+    }
+
+    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+        &'a self,
+        msg: T,
+        number_of_keys: u64,
+    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+        let keys = self.generate_new_multiple(number_of_keys).await?;
+
+        let result = self
+            .instruction_client
+            .send(Sign {
+                msg_with_identifiers: (
+                    msg.into().into(),
+                    keys.iter().map(|key| key.identifier.clone()).collect(),
+                ),
+            })
+            .await?;
+
+        keys.into_iter()
+            .map(|key| {
+                result
+                    .signatures_by_identifier
+                    .get(key.identifier())
+                    .ok_or(RemoteEcdsaKeyError::KeyNotFound(key.identifier().to_string()))
+                    .map(|der_signature| (key, der_signature.0))
+            })
+            .collect()
     }
 }
 
@@ -94,18 +125,22 @@ where
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let result: SignResult = self
+        let result = self
             .key_factory
-            .remote_instruction
+            .instruction_client
             .send(Sign {
-                msg: msg.to_vec().into(),
-                identifier: self.identifier.clone(),
+                msg_with_identifiers: (msg.to_vec().into(), vec![self.identifier.clone()]),
             })
             .await?;
 
-        self.public_key.verify(msg, &result.signature.0)?;
+        let signature = result
+            .signatures_by_identifier
+            .get(&self.identifier)
+            .ok_or(RemoteEcdsaKeyError::KeyNotFound(self.identifier.clone()))?;
 
-        Ok(result.signature.0)
+        self.public_key.verify(msg, &signature.0)?;
+
+        Ok(signature.0)
     }
 }
 

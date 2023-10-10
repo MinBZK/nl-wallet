@@ -7,7 +7,7 @@ use url::Url;
 pub use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::{generator::TimeGenerator, utils::random_string};
+use wallet_common::generator::TimeGenerator;
 
 use crate::{
     basic_sa_ext::{
@@ -21,7 +21,6 @@ use crate::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
     },
-    Error::KeyGeneration,
     Result,
 };
 
@@ -141,27 +140,8 @@ impl IssuanceSessionState {
         &self,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
-        // Group the keys by distinct mdocs, and then per copies of each distinct mdoc
-        let private_keys: Vec<Vec<K>> = future::try_join_all(
-            self.request
-                .unsigned_mdocs
-                .iter()
-                .map(|unsigned| Self::generate_keys(unsigned.copy_count, key_factory)),
-        )
-        .await?;
-
-        let private_keys_refs = private_keys.iter().map(|f| f.as_slice()).collect::<Vec<_>>();
-        let response = KeyGenerationResponseMessage::new(&self.request, private_keys_refs.as_slice()).await?;
-
+        let (private_keys, response) = KeyGenerationResponseMessage::new(&self.request, key_factory).await?;
         Ok((private_keys, response))
-    }
-
-    async fn generate_keys<'a, K>(count: u64, key_factory: &'a impl KeyFactory<'a, Key = K>) -> Result<Vec<K>> {
-        let identifiers: Vec<String> = (0..count).map(|_| random_string(32)).collect();
-        key_factory
-            .generate_new(&identifiers)
-            .await
-            .map_err(|err| KeyGeneration(Box::new(err)))
     }
 
     pub async fn construct_mdocs<K: MdocEcdsaKey + Sync>(
