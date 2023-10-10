@@ -30,6 +30,12 @@ Additionally, the `wallet` crate has some error types provided for internal func
 
 ### Regenerate the flutter bindings
 
+Generating the flutter bindings requires installing the `cargo-expand` utility:
+
+```sh
+cargo install cargo-expand
+```
+
 To regenerate the bindings, run the following command from `wallet_core`:
 
 ```sh

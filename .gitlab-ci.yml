@@ -279,7 +279,7 @@ sonar-android:
 test-codegen:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:54381ea22c4e2d28dc648f01a98d1eb986c69235a4db93ab55b233a17f2c0403"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:4b46583ac9579ce080d8f6954615a5f88aa229f15af7ff62329e553ae23f638e"
   script:
     - set -euxo pipefail
     - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
