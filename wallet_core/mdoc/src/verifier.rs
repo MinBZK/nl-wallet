@@ -161,7 +161,7 @@ pub fn new_session(
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions.get(&token)?;
