@@ -17,10 +17,10 @@ async fn test_create_keys() {
     let wallet_user_id = Uuid::new_v4();
     let wallet_id = Uuid::new_v4().to_string();
 
-    common::create_wallet_user_with_random_keys(db, wallet_user_id, wallet_id.clone()).await;
+    common::create_wallet_user_with_random_keys(&db, wallet_user_id, wallet_id.clone()).await;
 
     create_keys(
-        db,
+        &db,
         WalletUserKeysCreate {
             wallet_user_id,
             keys: vec![key1.clone(), key2.clone()],
@@ -29,12 +29,12 @@ async fn test_create_keys() {
     .await
     .unwrap();
 
-    let persisted_key1 = find_key_by_identifier(db, wallet_user_id, "key1")
+    let persisted_key1 = find_key_by_identifier(&db, wallet_user_id, "key1")
         .await
         .unwrap()
         .unwrap();
 
-    let persisted_key2 = find_key_by_identifier(db, wallet_user_id, "key2")
+    let persisted_key2 = find_key_by_identifier(&db, wallet_user_id, "key2")
         .await
         .unwrap()
         .unwrap();
