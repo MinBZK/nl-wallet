@@ -104,6 +104,7 @@ class DeeplinkService {
           // - else if the wallet is registered and the PID is available, PidIssuance is no longer relevant.
           _updatePidIssuanceStatusUseCase.invoke(event);
         },
+        disclosure: (DisclosureEvent event) => Fimber.d('Received disclosure event: $event'),
         unknownUri: () => Fimber.d('walletCore did not recognize $uri, ignoring.'),
       );
     }, onError: (ex) {

@@ -73,6 +73,14 @@ pub enum WalletUnlockError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum UriIdentificationError {
+    #[error("could not parse URI: {0}")]
+    Parse(#[from] url::ParseError),
+    #[error("unknown URI")]
+    Unknown,
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
     #[error("wallet is not registered")]
     NotRegistered,
@@ -102,9 +110,9 @@ pub enum SetDocumentsCallbackError {
     Storage(#[from] StorageError),
 }
 
-pub enum RedirectUriType {
-    PidIssuance,
-    Unknown,
+pub enum UriType {
+    PidIssuance(Url),
+    Disclosure(Url),
 }
 
 type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
@@ -436,17 +444,27 @@ where
         Ok(auth_url)
     }
 
-    pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
+    pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
+        let uri = Url::parse(uri_str)?;
+
         if self
             .digid_session
             .as_ref()
-            .map(|session| session.matches_received_redirect_uri(redirect_uri))
+            .map(|session| session.matches_received_redirect_uri(&uri))
             .unwrap_or_default()
         {
-            return RedirectUriType::PidIssuance;
+            return Ok(UriType::PidIssuance(uri));
         }
 
-        RedirectUriType::Unknown
+        // TODO: actually implement disclosure recognition.
+        if uri
+            .as_str()
+            .starts_with("walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure")
+        {
+            return Ok(UriType::Disclosure(uri));
+        }
+
+        Err(UriIdentificationError::Unknown)
     }
 
     pub fn cancel_pid_issuance(&mut self) {
