@@ -1,3 +1,4 @@
+import '../../../../../environment.dart';
 import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/issuance/issuance_response_repository.dart';
@@ -21,6 +22,9 @@ class SetupMockedWalletUseCaseImpl implements SetupMockedWalletUseCase {
 
   @override
   Future<void> invoke() async {
+    if (!Environment.mockRepositories) {
+      throw UnsupportedError('Configuring a mocked wallet is only possible on mock builds');
+    }
     // Create wallet
     await walletRepository.createWallet('000000');
     await walletRepository.unlockWallet('000000');

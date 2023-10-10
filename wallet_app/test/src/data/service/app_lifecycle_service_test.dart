@@ -16,6 +16,7 @@ void main() {
         service.observe(),
         emitsInOrder(
           [
+            AppLifecycleState.resumed /* initial value */,
             AppLifecycleState.inactive,
             AppLifecycleState.resumed,
             AppLifecycleState.paused,

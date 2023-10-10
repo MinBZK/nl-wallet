@@ -11,6 +11,7 @@ environment:
 
 dependencies:
   after_layout: ^1.2.0
+  app_links: ^3.4.5
   collection: ^1.17.2
   connectivity_plus: ^4.0.2
   device_info_plus: ^9.0.3
@@ -41,7 +42,6 @@ dependencies:
   rxdart: ^0.27.7
   screen_brightness: ^0.2.2+1
   shared_preferences: ^2.2.1
-  uni_links: ^0.5.1
   url_launcher: ^6.1.14
   vibration: ^1.8.1
 

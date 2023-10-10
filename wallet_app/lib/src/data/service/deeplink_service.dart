@@ -1,35 +1,42 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:uni_links/uni_links.dart';
 
 import '../../../bridge_generated.dart';
-import '../../domain/model/navigation/navigation_request.dart';
+import '../../domain/model/navigation/wallet_deeplink.dart';
 import '../../domain/usecase/deeplink/decode_deeplink_usecase.dart';
+import '../../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
+import '../../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../../domain/usecase/pid/update_pid_issuance_status_usecase.dart';
-import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
-import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
+import '../../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../wallet_core/typed/typed_wallet_core.dart';
 import 'app_lifecycle_service.dart';
 
+@visibleForTesting
+const kResumeDebounceDuration = Duration(milliseconds: 100);
+
 class DeeplinkService {
+  final AppLinks _appLinks;
+
   /// Key that holds [NavigatorState], used to perform navigation from a non-Widget.
   final GlobalKey<NavigatorState> _navigatorKey;
 
   /// The [TypedWalletCore], used as a fallback for handling deeplinks
   final TypedWalletCore _walletCore;
 
-  /// StreamController to which all incoming [Uri]s are published
-  final _uriController = StreamController<Uri?>.broadcast();
-
   /// A queued [NavigationRequest], when navigation can't be performed (e.g. app
   /// not in a state where it can be handled) maximum 1 [NavigationRequest] is queued
   /// here to be handled when [processQueue] is called.
   NavigationRequest? _queuedRequest;
+
+  /// Subscription of the stream that passes the uri to the wallet_core, making sure the wallet is unlocked
+  /// before doing so. If a new deeplink comes in before the current one could be processed (i.e. the wallet was
+  /// never unlocked) then the previous deeplink is dismissed by cancelling the old subscription.
+  StreamSubscription? _coreDelegationSubscription;
 
   /// Service used to observe the current [AppLifecycleState], so that [Uri]s are
   /// only processed when the app is in the foreground.
@@ -37,54 +44,49 @@ class DeeplinkService {
 
   final DecodeDeeplinkUseCase _decodeDeeplinkUseCase;
   final UpdatePidIssuanceStatusUseCase _updatePidIssuanceStatusUseCase;
-  final ObserveWalletLockUseCase _observeWalletLockUseCase;
-  final IsWalletInitializedWithPidUseCase _isWalletInitializedWithPidUseCase;
-  final SetupMockedWalletUseCase _setupMockedWalletUseCase;
+  final ObserveWalletLockedUseCase _observeWalletLockUseCase;
+  final CheckNavigationPrerequisitesUseCase _checkNavigationPrerequisitesUseCase;
+  final PerformPreNavigationActionsUseCase _performPreNavigationActionsUseCase;
 
   DeeplinkService(
+    this._appLinks,
     this._navigatorKey,
     this._decodeDeeplinkUseCase,
     this._updatePidIssuanceStatusUseCase,
-    this._isWalletInitializedWithPidUseCase,
-    this._setupMockedWalletUseCase,
+    this._checkNavigationPrerequisitesUseCase,
+    this._performPreNavigationActionsUseCase,
     this._observeWalletLockUseCase,
     this._walletCore,
     this._appLifecycleService,
   ) {
-    // Delay the actual processing of the (last seen) [Uri] until the app is resumed and unlocked
-    // Note: The order and delay is important, as the apps 'locked' flag is set when the [AppLifecycleState]
-    //       changes. Meaning that without that debounce the isLockedStream could produce a stale value.
-    _uriController.stream
-        .whereNotNull()
-        .debounce((uri) => _appLifecycleService.observe().where((state) => state == AppLifecycleState.resumed))
-        .debounceTime(const Duration(milliseconds: 200))
-        .debounce((uri) => _debounceUriHost(uri.host))
-        .listen(processUri);
+    // Delay the actual processing of the (last seen) [Uri] until the app is resumed.
+    // Note: The delay is important, as the apps 'locked' flag is set when the [AppLifecycleState]
+    //       changes. Meaning that without the debounceTime the [ObserveWalletLockUseCase] could produce a stale value.
+    final resumedStream = _appLifecycleService
+        .observe()
+        .map((state) => state == AppLifecycleState.resumed)
+        .debounceTime(kResumeDebounceDuration);
 
-    // Pass the [Uri]s to the [_uriController] so they can be processed when the app is unlocked
-    getInitialUri().then((uri) => _uriController.add(uri));
-    uriLinkStream.listen((uri) => _uriController.add(uri));
+    Rx.merge([Stream.fromFuture(_appLinks.getInitialAppLink()).whereNotNull(), _appLinks.allUriLinkStream])
+        .debounce((uri) => resumedStream)
+        .map((uri) {
+      final request = _decodeDeeplinkUseCase.invoke(uri);
+      if (request != null) return NavigationRequestDeeplink(request, uri);
+      return UnknownDeeplink(uri);
+    }).listen(_processDeeplink);
   }
 
-  /// Determines debouncing based on [Uri] host and wallet lock state:
-  /// - Deep dive links are always allowed, no debounce
-  /// - Non-deep dive links are only allowed when the wallet is unlocked, debounce
-  Stream<bool> _debounceUriHost(String host) {
-    return host == _decodeDeeplinkUseCase.deepDiveHost
-        ? Stream.value(true)
-        : _observeWalletLockUseCase.invoke().where((locked) => !locked);
-  }
-
-  /// Process the incoming [Uri], first attempting to resolve it inside the wallet_app, but if the link is
-  /// unsupported, it is passed on to the wallet_core to handle it there.
-  @visibleForTesting
-  Future<void> processUri(Uri uri) async {
-    Fimber.d('Processing uri: $uri');
-    final navRequest = _decodeDeeplinkUseCase.invoke(uri);
-    if (navRequest != null) {
-      await _handleNavRequest(navRequest);
-    } else {
-      await _delegateToWalletCore(uri);
+  Future<void> _processDeeplink(WalletDeeplink deeplink) async {
+    assert(await _appLifecycleService.observe().first == AppLifecycleState.resumed,
+        '_processUri should only be called when the app is visible.');
+    switch (deeplink) {
+      case NavigationRequestDeeplink():
+        await _handleNavRequest(deeplink.request);
+      case UnknownDeeplink():
+        _coreDelegationSubscription?.cancel();
+        _coreDelegationSubscription = Stream.value(deeplink.uri)
+            .debounce((uri) => _observeWalletLockUseCase.invoke().where((locked) => !locked))
+            .listen(_delegateToWalletCore);
     }
   }
 
@@ -115,22 +117,17 @@ class DeeplinkService {
   /// Process the provided [NavigationRequest], or queue it if the app is in a state where it can't be handled.
   /// Overrides any previously set [NavigationRequest] if this request has to be queued as well.
   Future<void> _handleNavRequest(NavigationRequest request) async {
-    if (await _canNavigate(request)) {
-      _navigate(request);
+    final readyToNavigate = await _checkNavigationPrerequisitesUseCase.invoke(request.navigatePrerequisites);
+    if (readyToNavigate) {
+      await _navigate(request);
     } else {
       Fimber.d('Not yet ready to handle $request, queued and awaiting call to DeeplinkService.processQueue().');
       _queuedRequest = request;
     }
   }
 
-  /// Check whether the apps current state allows navigation based on the provided [NavigationRequest]
-  /// If no [NavigationRequest.navigatePrerequisite] is provided, the wallet is checked to be initialized with a PID.
-  Future<bool> _canNavigate(NavigationRequest request) {
-    return request.navigatePrerequisite == null ? _isWalletInitializedWithPidUseCase.invoke() : Future.value(true);
-  }
-
   Future<void> _navigate(NavigationRequest request) async {
-    _handleNavigatePrerequisite(request);
+    await _performPreNavigationActionsUseCase.invoke(request.preNavigationActions);
 
     _navigatorKey.currentState?.restorablePushNamedAndRemoveUntil(
       request.destination,
@@ -139,22 +136,17 @@ class DeeplinkService {
     );
   }
 
-  Future<void> _handleNavigatePrerequisite(NavigationRequest request) async {
-    switch (request.navigatePrerequisite) {
-      case NavigationPrerequisite.setupMockedWallet:
-        await _setupMockedWalletUseCase.invoke();
-        break;
-      case null:
-        return;
-    }
-  }
-
   /// Process any outstanding [NavigationRequest] and consume it if it can be handled.
   Future<void> processQueue() async {
     final queuedRequest = _queuedRequest;
-    if (queuedRequest != null && await _canNavigate(queuedRequest)) {
+    if (queuedRequest == null) return;
+    final readyToNavigate = await _checkNavigationPrerequisitesUseCase.invoke(queuedRequest.navigatePrerequisites);
+    if (readyToNavigate) {
+      Fimber.d('Prerequisites for $queuedRequest met, clearing queue and executing navigation.');
       _queuedRequest = null;
-      _navigate(queuedRequest);
+      await _navigate(queuedRequest);
+    } else {
+      Fimber.d('Still not ready to navigate based on $queuedRequest, awaiting next call to processQueue() to retry');
     }
   }
 }

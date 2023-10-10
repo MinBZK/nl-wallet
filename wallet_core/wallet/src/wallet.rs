@@ -100,6 +100,8 @@ pub enum PidIssuanceError {
     Document(#[from] DocumentMdocError),
     #[error("could not access mdocs database: {0}")]
     Database(#[from] StorageError),
+    #[error("key '{0}' not found in Wallet Provider")]
+    KeyNotFound(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -550,6 +552,7 @@ where
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
+                            RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
                         }
                     }
                     _ => PidIssuanceError::PidIssuer(error),

@@ -612,6 +612,7 @@ mod tests {
     use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
+    use std::collections::HashMap;
     use uuid::uuid;
 
     use wallet_common::account::{
@@ -754,13 +755,16 @@ mod tests {
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
-        async fn get_key(
+        async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_user_id: uuid::Uuid,
-            _key_identifier: &str,
-        ) -> Result<Option<SigningKey>, PersistenceError> {
-            Ok(SigningKey::random(&mut OsRng).into())
+            _wallet_user_id: Uuid,
+            key_identifiers: &[String],
+        ) -> Result<HashMap<String, SigningKey>, PersistenceError> {
+            Ok(key_identifiers
+                .iter()
+                .map(|id| (id.clone(), SigningKey::random(&mut OsRng)))
+                .collect())
         }
     }
 

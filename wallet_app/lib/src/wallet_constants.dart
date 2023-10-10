@@ -8,3 +8,10 @@ const kMockPin = '123456';
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 1000);
 const kDefaultDigidMockDelay = Duration(seconds: 2);
+
+// Deeplink / dive related
+const kDeeplinkScheme = 'walletdebuginteraction';
+const kDeeplinkHost = 'deeplink'; //Used in our custom deeplinks
+const kDeeplinkPath = '/deeplink'; //Used to support deeplinks with dedicated host
+const kDeepDiveHost = 'deepdive'; //Used in our custom deepdives
+const kDeepDivePath = '/deepdive'; //Used to support deepdives with dedicated host
