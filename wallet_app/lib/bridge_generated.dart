@@ -139,6 +139,22 @@ class CardValue with _$CardValue {
   }) = CardValue_Gender;
 }
 
+@freezed
+class DisclosureEvent with _$DisclosureEvent {
+  const factory DisclosureEvent.fetchingRequest() = DisclosureEvent_FetchingRequest;
+  const factory DisclosureEvent.request({
+    required RelyingParty relyingParty,
+    required List<RequestedCard> requestedCards,
+  }) = DisclosureEvent_Request;
+  const factory DisclosureEvent.requestAttributesMissing({
+    required RelyingParty relyingParty,
+    required List<MissingAttribute> missingAttributes,
+  }) = DisclosureEvent_RequestAttributesMissing;
+  const factory DisclosureEvent.error({
+    required String data,
+  }) = DisclosureEvent_Error;
+}
+
 class FlutterConfiguration {
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
@@ -166,6 +182,14 @@ class LocalizedString {
   });
 }
 
+class MissingAttribute {
+  final List<LocalizedString> labels;
+
+  const MissingAttribute({
+    required this.labels,
+  });
+}
+
 @freezed
 class PidIssuanceEvent with _$PidIssuanceEvent {
   const factory PidIssuanceEvent.authenticating() = PidIssuanceEvent_Authenticating;
@@ -189,7 +213,28 @@ class ProcessUriEvent with _$ProcessUriEvent {
   const factory ProcessUriEvent.pidIssuance({
     required PidIssuanceEvent event,
   }) = ProcessUriEvent_PidIssuance;
+  const factory ProcessUriEvent.disclosure({
+    required DisclosureEvent event,
+  }) = ProcessUriEvent_Disclosure;
   const factory ProcessUriEvent.unknownUri() = ProcessUriEvent_UnknownUri;
+}
+
+class RelyingParty {
+  final String name;
+
+  const RelyingParty({
+    required this.name,
+  });
+}
+
+class RequestedCard {
+  final String docType;
+  final List<CardAttribute> attributes;
+
+  const RequestedCard({
+    required this.docType,
+    required this.attributes,
+  });
 }
 
 @freezed
@@ -538,8 +583,16 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  DisclosureEvent _wire2api_box_autoadd_disclosure_event(dynamic raw) {
+    return _wire2api_disclosure_event(raw);
+  }
+
   PidIssuanceEvent _wire2api_box_autoadd_pid_issuance_event(dynamic raw) {
     return _wire2api_pid_issuance_event(raw);
+  }
+
+  RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
+    return _wire2api_relying_party(raw);
   }
 
   Card _wire2api_card(dynamic raw) {
@@ -598,6 +651,29 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
+  DisclosureEvent _wire2api_disclosure_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return DisclosureEvent_FetchingRequest();
+      case 1:
+        return DisclosureEvent_Request(
+          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          requestedCards: _wire2api_list_requested_card(raw[2]),
+        );
+      case 2:
+        return DisclosureEvent_RequestAttributesMissing(
+          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          missingAttributes: _wire2api_list_missing_attribute(raw[2]),
+        );
+      case 3:
+        return DisclosureEvent_Error(
+          data: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -627,12 +703,28 @@ class WalletCoreImpl implements WalletCore {
     return (raw as List<dynamic>).map(_wire2api_localized_string).toList();
   }
 
+  List<MissingAttribute> _wire2api_list_missing_attribute(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_missing_attribute).toList();
+  }
+
+  List<RequestedCard> _wire2api_list_requested_card(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_requested_card).toList();
+  }
+
   LocalizedString _wire2api_localized_string(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
     return LocalizedString(
       language: _wire2api_String(arr[0]),
       value: _wire2api_String(arr[1]),
+    );
+  }
+
+  MissingAttribute _wire2api_missing_attribute(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return MissingAttribute(
+      labels: _wire2api_list_localized_string(arr[0]),
     );
   }
 
@@ -664,10 +756,31 @@ class WalletCoreImpl implements WalletCore {
           event: _wire2api_box_autoadd_pid_issuance_event(raw[1]),
         );
       case 1:
+        return ProcessUriEvent_Disclosure(
+          event: _wire2api_box_autoadd_disclosure_event(raw[1]),
+        );
+      case 2:
         return ProcessUriEvent_UnknownUri();
       default:
         throw Exception("unreachable");
     }
+  }
+
+  RelyingParty _wire2api_relying_party(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return RelyingParty(
+      name: _wire2api_String(arr[0]),
+    );
+  }
+
+  RequestedCard _wire2api_requested_card(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return RequestedCard(
+      docType: _wire2api_String(arr[0]),
+      attributes: _wire2api_list_card_attribute(arr[1]),
+    );
   }
 
   int _wire2api_u16(dynamic raw) {

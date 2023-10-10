@@ -23,8 +23,11 @@ use crate::{
 };
 
 pub use self::{
-    init::WalletInitError, issuance::PidIssuanceError, lock::WalletUnlockError, registration::WalletRegistrationError,
-    uri::RedirectUriType,
+    init::WalletInitError,
+    issuance::PidIssuanceError,
+    lock::WalletUnlockError,
+    registration::WalletRegistrationError,
+    uri::{UriIdentificationError, UriType},
 };
 
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};

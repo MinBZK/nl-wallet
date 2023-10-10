@@ -20,7 +20,7 @@ pub use crate::{
         GenderAttributeValue,
     },
     pin::validation::validate_pin,
-    wallet::{RedirectUriType, Wallet},
+    wallet::{UriType, Wallet},
 };
 
 #[cfg(feature = "wallet_deps")]

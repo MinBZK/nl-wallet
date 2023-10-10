@@ -27,8 +27,12 @@ use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
+use crate::models::disclosure::MissingAttribute;
+use crate::models::disclosure::RelyingParty;
+use crate::models::disclosure::RequestedCard;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
+use crate::models::process_uri_event::DisclosureEvent;
 use crate::models::process_uri_event::PidIssuanceEvent;
 use crate::models::process_uri_event::ProcessUriEvent;
 
@@ -346,6 +350,38 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
+impl support::IntoDart for DisclosureEvent {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::FetchingRequest => vec![0.into_dart()],
+            Self::Request {
+                relying_party,
+                requested_cards,
+            } => vec![
+                1.into_dart(),
+                relying_party.into_into_dart().into_dart(),
+                requested_cards.into_into_dart().into_dart(),
+            ],
+            Self::RequestAttributesMissing {
+                relying_party,
+                missing_attributes,
+            } => vec![
+                2.into_dart(),
+                relying_party.into_into_dart().into_dart(),
+                missing_attributes.into_into_dart().into_dart(),
+            ],
+            Self::Error { data } => vec![3.into_dart(), data.into_into_dart().into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureEvent {}
+impl rust2dart::IntoIntoDart<DisclosureEvent> for DisclosureEvent {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -396,6 +432,18 @@ impl rust2dart::IntoIntoDart<LocalizedString> for LocalizedString {
     }
 }
 
+impl support::IntoDart for MissingAttribute {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.labels.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for MissingAttribute {}
+impl rust2dart::IntoIntoDart<MissingAttribute> for MissingAttribute {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for PidIssuanceEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -435,13 +483,42 @@ impl support::IntoDart for ProcessUriEvent {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::PidIssuance { event } => vec![0.into_dart(), event.into_into_dart().into_dart()],
-            Self::UnknownUri => vec![1.into_dart()],
+            Self::Disclosure { event } => vec![1.into_dart(), event.into_into_dart().into_dart()],
+            Self::UnknownUri => vec![2.into_dart()],
         }
         .into_dart()
     }
 }
 impl support::IntoDartExceptPrimitive for ProcessUriEvent {}
 impl rust2dart::IntoIntoDart<ProcessUriEvent> for ProcessUriEvent {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for RelyingParty {
+    fn into_dart(self) -> support::DartAbi {
+        vec![self.name.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for RelyingParty {}
+impl rust2dart::IntoIntoDart<RelyingParty> for RelyingParty {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for RequestedCard {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.doc_type.into_into_dart().into_dart(),
+            self.attributes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for RequestedCard {}
+impl rust2dart::IntoIntoDart<RequestedCard> for RequestedCard {
     fn into_into_dart(self) -> Self {
         self
     }
