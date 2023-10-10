@@ -1,11 +1,10 @@
 // ignore_for_file: constant_identifier_names
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletAssets {
   static Future<void> preloadPidSvgs() async {
     final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark];
-    final loaders = svgs.map((svg) => SvgAssetLoader(svg, assetBundle: rootBundle));
+    final loaders = svgs.map((svg) => SvgAssetLoader(svg));
     await Future.wait(
       loaders.map(
         (loader) => svg.cache.putIfAbsent(
