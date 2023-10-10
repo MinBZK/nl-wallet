@@ -20,8 +20,7 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
     "with-uuid",
 ] }
-serde_json.workspace = true #todo: remove
-tokio = { workspace = true, features = ["parking_lot"] }
+tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
@@ -29,8 +28,12 @@ wallet_provider_domain = { path = "../domain" }
 wallet_common = { path = "../../wallet_common" }
 
 [dev-dependencies]
-sea-orm = { workspace = true, features = ["debug-print"] }
-serial_test = { workspace = true }
+ctor = { workspace = true }
+sea-orm = { workspace = true, features = [
+    "debug-print",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+] }
 tokio = { workspace = true, features = ["macros"] }
 tracing-subscriber = { workspace = true, features = [
     "env-filter",

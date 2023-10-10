@@ -1,4 +1,4 @@
-use flutter_rust_bridge::{IntoDart, StreamSink};
+use flutter_rust_bridge::{rust2dart::IntoIntoDart, IntoDart, StreamSink};
 
 pub struct ClosingStreamSink<T>(StreamSink<T>)
 where
@@ -8,7 +8,11 @@ impl<T> ClosingStreamSink<T>
 where
     T: IntoDart,
 {
-    pub fn add(&self, value: T) {
+    pub fn add<D>(&self, value: T)
+    where
+        D: IntoDart,
+        T: IntoIntoDart<D>,
+    {
         _ = self.0.add(value);
     }
 }
