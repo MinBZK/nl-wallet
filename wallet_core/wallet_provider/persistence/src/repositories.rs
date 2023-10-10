@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use p256::ecdsa::SigningKey;
-use uuid;
+use std::collections::HashMap;
+use uuid::{self, Uuid};
 
 use wallet_provider_domain::{
     model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeysCreate, WalletUserQueryResult},
@@ -101,8 +102,8 @@ impl WalletUserRepository for Repositories {
     async fn save_keys(
         &self,
         transaction: &Self::TransactionType,
-        wallet_user_id: uuid::Uuid,
-        keys: &[(uuid::Uuid, String, SigningKey)],
+        wallet_user_id: Uuid,
+        keys: &[(Uuid, String, SigningKey)],
     ) -> Result<(), PersistenceError> {
         wallet_user_key::create_keys(
             transaction,
@@ -114,13 +115,13 @@ impl WalletUserRepository for Repositories {
         .await
     }
 
-    async fn get_key(
+    async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
-        wallet_user_id: uuid::Uuid,
-        key_identifier: &str,
-    ) -> Result<Option<SigningKey>, PersistenceError> {
-        wallet_user_key::find_key_by_identifier(transaction, wallet_user_id, key_identifier).await
+        wallet_user_id: Uuid,
+        key_identifiers: &[String],
+    ) -> Result<HashMap<String, SigningKey>, PersistenceError> {
+        wallet_user_key::find_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 }
 
@@ -130,6 +131,9 @@ pub mod mock {
     use chrono::{DateTime, Local};
     use mockall;
     use p256::ecdsa::SigningKey;
+    use std::collections::HashMap;
+    use uuid::Uuid;
+
     use wallet_provider_domain::{
         model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult},
         repository::{MockTransaction, PersistenceError, TransactionStarter, WalletUserRepository},
@@ -192,16 +196,16 @@ pub mod mock {
             async fn save_keys(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_user_id: uuid::Uuid,
-                _keys: &[(uuid::Uuid, String, SigningKey)],
+                _wallet_user_id: Uuid,
+                _keys: &[(Uuid, String, SigningKey)],
             ) -> Result<(), PersistenceError>;
 
-            async fn get_key(
+            async fn find_keys_by_identifiers(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_user_id: uuid::Uuid,
-                _key_identifier: &str,
-            ) -> Result<Option<SigningKey>, PersistenceError>;
+                wallet_user_id: Uuid,
+                key_identifiers: &[String],
+            ) -> Result<HashMap<String, SigningKey>, PersistenceError>;
         }
 
         #[async_trait]

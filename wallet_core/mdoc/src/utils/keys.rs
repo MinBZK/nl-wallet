@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use async_trait::async_trait;
-use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
 use wallet_common::keys::{SecureEcdsaKey, WithIdentifier};
@@ -26,8 +26,18 @@ pub trait KeyFactory<'a> {
     type Key: MdocEcdsaKey + 'a;
     type Error: Error + Send + Sync + 'static;
 
-    async fn generate_new<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<Self::Key>, Self::Error>;
-    fn generate_existing<I: AsRef<str> + Sync>(&'a self, identifier: &I, public_key: VerifyingKey) -> Self::Key;
+    async fn generate_new(&'a self) -> Result<Self::Key, Self::Error> {
+        self.generate_new_multiple(1).await.map(|mut keys| keys.remove(1))
+    }
+
+    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
+    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key;
+
+    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+        &'a self,
+        msg: T,
+        number_of_keys: u64,
+    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }
 
 #[cfg(any(test, feature = "mock"))]

@@ -2,12 +2,13 @@ use async_trait::async_trait;
 use p256::ecdsa::{Signature, SigningKey};
 use rand::rngs::OsRng;
 use serde::Serialize;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use wallet_common::{
     account::{
         messages::instructions::{CheckPin, GenerateKey, GenerateKeyResult, Sign, SignResult},
-        serialization::DerVerifyingKey,
+        serialization::{DerSignature, DerVerifyingKey},
     },
     generator::Generator,
 };
@@ -101,15 +102,24 @@ impl HandleInstruction for Sign {
     where
         T: Committable + Send + Sync,
     {
+        let (msg, identifiers) = &self.msg_with_identifiers;
+
         let tx = repositories.begin_transaction().await?;
-        let found_key = repositories.get_key(&tx, wallet_user.id, &self.identifier).await?;
+        let found_keys = repositories
+            .find_keys_by_identifiers(&tx, wallet_user.id, identifiers)
+            .await?;
         tx.commit().await?;
 
-        let key = found_key.ok_or(InstructionError::KeyNotFound(self.identifier.clone()))?;
-        let signature: Signature = p256::ecdsa::signature::Signer::sign(&key, &self.msg.0);
+        let signatures: HashMap<String, DerSignature> = found_keys
+            .into_iter()
+            .map(|(identifier, key)| {
+                let signature: Signature = p256::ecdsa::signature::Signer::sign(&key, &msg.0);
+                (identifier, signature.into())
+            })
+            .collect();
 
         Ok(SignResult {
-            signature: signature.into(),
+            signatures_by_identifier: signatures,
         })
     }
 }
@@ -118,6 +128,7 @@ impl HandleInstruction for Sign {
 mod tests {
     use p256::ecdsa::{signature::Verifier, SigningKey};
     use rand::rngs::OsRng;
+    use std::collections::HashMap;
 
     use wallet_common::{
         account::messages::instructions::{CheckPin, GenerateKey, Sign},
@@ -178,8 +189,7 @@ mod tests {
         let returned_signing_key = signing_key.clone();
 
         let instruction = Sign {
-            identifier: "key1".to_string(),
-            msg: random_bytes(32).into(),
+            msg_with_identifiers: (random_bytes(32).into(), vec!["key1".to_string()]),
         };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
@@ -187,18 +197,23 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_get_key()
-            .withf(|_, _, key_identifier| key_identifier == "key1")
-            .return_once(move |_, _, _| Ok(Some(returned_signing_key)));
+            .expect_find_keys_by_identifiers()
+            .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
+            .return_once(move |_, _, _| Ok(HashMap::from([("key1".to_string(), returned_signing_key)])));
 
         let result = instruction
             .handle(&wallet_user, &FixedUuidGenerator, &wallet_user_repo)
             .await
             .unwrap();
 
-        signing_key
-            .verifying_key()
-            .verify(&instruction.msg.0, &result.signature.0)
-            .unwrap();
+        result
+            .signatures_by_identifier
+            .iter()
+            .for_each(|(_identifier, signature)| {
+                signing_key
+                    .verifying_key()
+                    .verify(&instruction.msg_with_identifiers.0 .0, &signature.0)
+                    .unwrap();
+            })
     }
 }

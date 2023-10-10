@@ -1,17 +1,16 @@
 use core::fmt::Debug;
-use std::{ops::Add, sync::Arc};
+use std::{iter, ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
+use futures::future;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{de::DeserializeOwned, Serialize};
-
 use url::Url;
-use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
@@ -29,8 +28,11 @@ use nl_wallet_mdoc::{
     verifier::DisclosedAttributes,
     Error,
 };
-
-use wallet_common::keys::ConstructibleWithIdentifier;
+use wallet_common::{
+    generator::Generator,
+    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, WithIdentifier},
+    utils::random_string,
+};
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -47,15 +49,38 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
     type Key = SoftwareEcdsaKey;
     type Error = Error;
 
-    async fn generate_new<I: AsRef<str> + Sync>(&'a self, identifiers: &[I]) -> Result<Vec<SoftwareEcdsaKey>, Error> {
-        Ok(identifiers
-            .iter()
-            .map(|identifier| SoftwareEcdsaKey::new(identifier.as_ref()))
-            .collect())
+    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Error> {
+        let keys = iter::repeat_with(|| SoftwareEcdsaKey::new(&random_string(32)))
+            .take(count as usize)
+            .collect();
+        Ok(keys)
     }
 
-    fn generate_existing<I: AsRef<str> + Sync>(&'a self, identifier: &I, _public_key: VerifyingKey) -> Self::Key {
-        SoftwareEcdsaKey::new(identifier.as_ref())
+    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, _public_key: VerifyingKey) -> Self::Key {
+        SoftwareEcdsaKey::new(&identifier.into())
+    }
+
+    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+        &'a self,
+        msg: T,
+        number_of_keys: u64,
+    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+        let bytes = msg.into();
+        let keys = self.generate_new_multiple(number_of_keys).await?;
+
+        let signatures_by_identifier = future::join_all(keys.into_iter().map(|key| async {
+            let signature = SoftwareEcdsaKey::new(key.identifier())
+                .try_sign(bytes.as_slice())
+                .await
+                .unwrap();
+
+            (key, signature)
+        }))
+        .await
+        .into_iter()
+        .collect();
+
+        Ok(signatures_by_identifier)
     }
 }
 

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use p256::ecdsa::SigningKey;
+use std::collections::HashMap;
 
 use crate::model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult};
 
@@ -54,17 +55,18 @@ pub trait WalletUserRepository {
         keys: &[(uuid::Uuid, String, SigningKey)],
     ) -> Result<()>;
 
-    async fn get_key(
+    async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: uuid::Uuid,
-        key_identifier: &str,
-    ) -> Result<Option<SigningKey>>;
+        key_identifiers: &[String],
+    ) -> Result<HashMap<String, SigningKey>>;
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
     use p256::ecdsa::SigningKey;
+    use uuid::Uuid;
 
     use crate::model::wallet_user;
 
@@ -148,13 +150,13 @@ pub mod mock {
             Ok(())
         }
 
-        async fn get_key(
+        async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_user_id: uuid::Uuid,
-            _key_identifier: &str,
-        ) -> Result<Option<SigningKey>> {
-            todo!()
+            _wallet_user_id: Uuid,
+            _key_identifiers: &[String],
+        ) -> Result<HashMap<String, SigningKey>> {
+            Ok(HashMap::new())
         }
     }
 }
