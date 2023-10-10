@@ -463,7 +463,7 @@ impl Session<WaitingForResponse> {
 }
 
 impl ReaderEngagement {
-    fn new_reader_engagement(referrer_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
+    fn new_reader_engagement(session_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
         let privkey = EphemeralSecret::random(&mut OsRng);
 
         let engagement = Engagement {
@@ -473,7 +473,7 @@ impl ReaderEngagement {
                 typ: ConnectionMethodType::RestApi,
                 version: ConnectionMethodVersion::RestApi,
                 connection_options: RestApiOptionsKeyed {
-                    uri: referrer_url.clone(),
+                    uri: session_url.clone(),
                 }
                 .into(),
             }
