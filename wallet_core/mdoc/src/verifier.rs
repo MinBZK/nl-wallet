@@ -478,10 +478,7 @@ impl ReaderEngagement {
                 .into(),
             }
             .into()]),
-            origin_infos: vec![OriginInfo {
-                cat: OriginInfoDirection::Delivered,
-                typ: OriginInfoType::Website(referrer_url),
-            }],
+            origin_infos: vec![],
         };
 
         Ok((engagement.into(), privkey))
