@@ -31,7 +31,7 @@ mod tests {
 
     // Tests both setting and clearing the configuration callback.
     #[test]
-    fn test_set_clear_config_callback() {
+    fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
         let mut wallet = WalletWithMocks::default();
 

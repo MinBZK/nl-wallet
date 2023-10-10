@@ -109,7 +109,7 @@ mod tests {
 
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
-    async fn test_init_registration() {
+    async fn test_wallet_init_registration() {
         let wallet = WalletWithMocks::init_registration_mocks()
             .await
             .expect("Could not initialize wallet");
@@ -119,7 +119,7 @@ mod tests {
 
     // Tests the logic of fetching the wallet registration during init and its interaction with the database.
     #[tokio::test]
-    async fn test_init_fetch_registration() {
+    async fn test_wallet_init_fetch_registration() {
         // Test with a wallet without a database file.
         let wallet = WalletWithMocks::init_registration_mocks()
             .await

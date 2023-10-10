@@ -40,7 +40,7 @@ mod tests {
     use super::{super::tests::WalletWithMocks, *};
 
     #[test]
-    fn test_identify_redirect_uri() {
+    fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
         let mut wallet = WalletWithMocks::default();
 
