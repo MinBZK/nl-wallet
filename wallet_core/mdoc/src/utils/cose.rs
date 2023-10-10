@@ -16,8 +16,11 @@ use webpki::TrustAnchor;
 use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
-    utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
-    Result,
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        serialization::{cbor_deserialize, cbor_serialize, CborError},
+    },
+    Error, Result,
 };
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
@@ -158,6 +161,29 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
+    pub async fn generate_keys_and_sign<'a, K: MdocEcdsaKey + Sync>(
+        obj: &T,
+        unprotected_header: Header,
+        number_of_keys: u64,
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        include_payload: bool,
+    ) -> Result<Vec<(K, MdocCose<CoseSign1, T>)>>
+    where
+        T: Clone + Serialize,
+    {
+        let payload = cbor_serialize(obj).map_err(CoseError::Cbor)?;
+        let coses = generate_keys_and_sign_cose(
+            &payload,
+            unprotected_header,
+            number_of_keys,
+            key_factory,
+            include_payload,
+        )
+        .await?;
+
+        Ok(coses.into_iter().map(|(key, cose)| (key, cose.into())).collect())
+    }
+
     // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
     pub fn signing_cert(&self) -> Result<Certificate>
@@ -227,6 +253,53 @@ pub async fn sign_cose(
         protected: protected_header,
         unprotected: unprotected_header,
     }
+}
+
+pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
+    payload: &[u8],
+    unprotected_header: Header,
+    number_of_keys: u64,
+    key_factory: &'a impl KeyFactory<'a, Key = K>,
+    include_payload: bool,
+) -> Result<Vec<(K, CoseSign1)>> {
+    let protected_header = ProtectedHeader {
+        original_data: None,
+        header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
+    };
+
+    let sig_data = sig_structure_data(
+        SignatureContext::CoseSign1,
+        protected_header.clone(),
+        None,
+        &[],
+        payload,
+    );
+
+    let signatures = key_factory
+        .sign_with_new_keys(sig_data, number_of_keys)
+        .await
+        .map_err(|err| Error::KeyGeneration(Box::new(err)))?;
+
+    let coses = signatures
+        .into_iter()
+        .map(|(key, signature)| {
+            (
+                key,
+                CoseSign1 {
+                    signature: signature.to_vec(),
+                    payload: if include_payload {
+                        Some(Vec::from(payload))
+                    } else {
+                        None
+                    },
+                    protected: protected_header.clone(),
+                    unprotected: unprotected_header.clone(),
+                },
+            )
+        })
+        .collect();
+
+    Ok(coses)
 }
 
 pub trait ClonePayload {

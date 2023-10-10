@@ -3,10 +3,10 @@
 use std::fmt::Display;
 
 use coset::Header;
-use futures::future::try_join_all;
+use futures::future;
 use serde_bytes::ByteBuf;
 
-use wallet_common::{keys::SecureEcdsaKey, utils::random_string};
+use wallet_common::utils::random_string;
 
 use crate::{
     basic_sa_ext::{
@@ -15,6 +15,7 @@ use crate::{
     },
     utils::{
         cose::{ClonePayload, CoseKey, MdocCose},
+        keys::{KeyFactory, MdocEcdsaKey},
         serialization::cbor_serialize,
     },
     DocType, Result, SessionId,
@@ -76,22 +77,27 @@ impl Display for SessionToken {
 }
 
 impl Response {
-    async fn sign(challenge: &ByteBuf, key: &(impl SecureEcdsaKey + Sync)) -> Result<Response> {
-        let response = Response {
-            public_key: CoseKey::try_from(
-                &key.verifying_key()
-                    .await
-                    .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?,
-            )?,
-            signature: MdocCose::sign(
-                &ResponseSignaturePayload::new(challenge.to_vec()),
-                Header::default(),
-                key,
-                false,
-            )
-            .await?,
-        };
-        Ok(response)
+    async fn generate_keys_and_sign<'a, K: MdocEcdsaKey + Sync>(
+        challenge: &ByteBuf,
+        number_of_keys: u64,
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<Vec<(K, Response)>> {
+        let payload = ResponseSignaturePayload::new(challenge.to_vec());
+
+        let coses: Vec<(K, MdocCose<_, _>)> =
+            MdocCose::generate_keys_and_sign(&payload, Header::default(), number_of_keys, key_factory, false).await?;
+
+        let responses: Vec<(K, Response)> = future::try_join_all(coses.into_iter().map(|(key, signature)| async {
+            let verifying_key = key
+                .verifying_key()
+                .await
+                .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?;
+
+            CoseKey::try_from(&verifying_key).map(|public_key| (key, Response { public_key, signature }))
+        }))
+        .await?;
+
+        Ok(responses)
     }
 
     pub fn verify(&self, challenge: &ByteBuf) -> Result<()> {
@@ -99,22 +105,6 @@ impl Response {
         self.signature
             .clone_with_payload(cbor_serialize(&expected_payload)?)
             .verify(&(&self.public_key).try_into()?)
-    }
-}
-
-impl MdocResponses {
-    async fn sign(
-        keys: &[impl SecureEcdsaKey + Sync],
-        unsigned: &UnsignedMdoc,
-        challenge: &ByteBuf,
-    ) -> Result<MdocResponses> {
-        let responses = try_join_all(keys.iter().map(|key| Response::sign(challenge, key))).await?;
-
-        let mdoc_responses = MdocResponses {
-            doc_type: unsigned.doc_type.clone(),
-            responses,
-        };
-        Ok(mdoc_responses)
     }
 }
 
@@ -164,21 +154,49 @@ impl KeyGenerationResponseMessage {
             .map_or(Ok(()), Err)
     }
 
-    pub async fn new(
+    pub async fn new<'a, K: MdocEcdsaKey + Sync>(
         request: &RequestKeyGenerationMessage,
-        keys: &[&[impl SecureEcdsaKey + Sync]],
-    ) -> Result<KeyGenerationResponseMessage> {
-        let mdoc_responses = try_join_all(
-            keys.iter()
-                .zip(&request.unsigned_mdocs)
-                .map(|(keys, unsigned)| MdocResponses::sign(keys, unsigned, &request.challenge)),
-        )
-        .await?;
+        key_factory: &'a impl KeyFactory<'a, Key = K>,
+    ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
+        let keys_count: u64 = request.unsigned_mdocs.iter().map(|unsigned| unsigned.copy_count).sum();
 
-        let response = KeyGenerationResponseMessage {
+        let mut keys_and_responses =
+            Response::generate_keys_and_sign(&request.challenge, keys_count, key_factory).await?;
+
+        let keys_and_mdoc_responses: Vec<(_, _)> = request
+            .unsigned_mdocs
+            .iter()
+            .map(|unsigned| {
+                let (keys, responses) = keys_and_responses.drain(..unsigned.copy_count as usize).unzip();
+
+                let mdoc_responses = MdocResponses {
+                    doc_type: unsigned.doc_type.clone(),
+                    responses,
+                };
+
+                (keys, mdoc_responses)
+            })
+            .collect();
+
+        assert!(
+            keys_and_responses.is_empty(),
+            "all keys_and_responses items should have been converted"
+        );
+
+        let empty_response = KeyGenerationResponseMessage {
             e_session_id: request.e_session_id.clone(),
-            mdoc_responses,
+            mdoc_responses: vec![],
         };
+
+        let response = keys_and_mdoc_responses.into_iter().fold(
+            (vec![], empty_response),
+            |(mut acc_keys, mut response), (keys, mdoc_responses)| {
+                response.mdoc_responses.push(mdoc_responses);
+                acc_keys.push(keys);
+                (acc_keys, response)
+            },
+        );
+
         Ok(response)
     }
 }
