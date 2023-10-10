@@ -1,12 +1,12 @@
 use std::env;
 
 use chrono::{DateTime, Local};
+use ctor::ctor;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use sea_orm::{
     sea_query::{Expr, Query},
     ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, QueryFilter,
 };
-use tokio::sync::OnceCell;
 use uuid::Uuid;
 
 use wallet_common::utils::random_bytes;
@@ -21,25 +21,23 @@ use wallet_provider_persistence::{
     PersistenceConnection,
 };
 
-static DB: OnceCell<Db> = OnceCell::const_new();
-
-pub async fn db_from_env() -> Result<&'static Db, PersistenceError> {
+#[ctor]
+fn init_logging() {
     let _ = tracing::subscriber::set_global_default(
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::DEBUG)
             .with_test_writer()
             .finish(),
     );
+}
 
-    DB.get_or_try_init(|| async {
-        Db::new(
-            &env::var("WALLET_PROVIDER_DATABASE__HOST").unwrap_or("localhost".to_string()),
-            &env::var("WALLET_PROVIDER_DATABASE__NAME").unwrap_or("wallet_provider".to_string()),
-            Some(&env::var("WALLET_PROVIDER_DATABASE__USERNAME").unwrap_or("postgres".to_string())),
-            Some(&env::var("WALLET_PROVIDER_DATABASE__PASSWORD").unwrap_or("postgres".to_string())),
-        )
-        .await
-    })
+pub async fn db_from_env() -> Result<Db, PersistenceError> {
+    Db::new(
+        &env::var("WALLET_PROVIDER_DATABASE__HOST").unwrap_or("localhost".to_string()),
+        &env::var("WALLET_PROVIDER_DATABASE__NAME").unwrap_or("wallet_provider".to_string()),
+        Some(&env::var("WALLET_PROVIDER_DATABASE__USERNAME").unwrap_or("postgres".to_string())),
+        Some(&env::var("WALLET_PROVIDER_DATABASE__PASSWORD").unwrap_or("postgres".to_string())),
+    )
     .await
 }
 

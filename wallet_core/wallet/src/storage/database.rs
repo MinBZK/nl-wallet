@@ -9,7 +9,7 @@ use tracing::log::LevelFilter;
 use super::sql_cipher_key::SqlCipherKey;
 
 /// This represents a URL to a SQLite database, either on the filesystem or in memory.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SqliteUrl {
     File(PathBuf),
     InMemory,
@@ -53,7 +53,7 @@ impl Database {
 
     pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self, DbErr> {
         // Open database connection and set database key
-        let mut connection_options = ConnectOptions::new((&url).into());
+        let mut connection_options = ConnectOptions::new(url.clone());
         connection_options.sqlx_logging_level(LevelFilter::Trace);
         connection_options.sqlcipher_key(format!("\"{}\"", String::from(key)));
         let connection = sea_orm::Database::connect(connection_options).await?;
