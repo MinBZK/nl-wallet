@@ -1,4 +1,5 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::{
     account::{
@@ -27,19 +28,18 @@ pub struct GenerateKey {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Sign {
-    pub identifier: String,
-    pub msg: Base64Bytes,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateKeyResult {
     pub public_keys: Vec<(String, DerVerifyingKey)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct Sign {
+    pub msg_with_identifiers: (Base64Bytes, Vec<String>),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SignResult {
-    pub signature: DerSignature,
+    pub signatures_by_identifier: HashMap<String, DerSignature>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
