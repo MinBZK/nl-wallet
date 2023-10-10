@@ -88,7 +88,9 @@ test-flutter-ui:
 test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:d308bc4581520b481dd6f78dd9da205fc98d99ce27e1a9069dca05b3ee74e404"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3d7224c9929d7d2f25a4ffbb5945f3a40d3efad931887795fda81f13e75ab988"
+  before_script:
+    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${HSM_USER_PIN}"
   script:
     - set -euxo pipefail
     # Check Rust formatting
@@ -110,7 +112,7 @@ test-rust:
 integration-test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:d308bc4581520b481dd6f78dd9da205fc98d99ce27e1a9069dca05b3ee74e404"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3d7224c9929d7d2f25a4ffbb5945f3a40d3efad931887795fda81f13e75ab988"
   variables:
     POSTGRES_USER: "postgres"
     POSTGRES_PASSWORD: "postgres"
@@ -123,6 +125,7 @@ integration-test-rust:
   before_script:
     - set -euxo pipefail
     - cd wallet_core
+    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${HSM_USER_PIN}"
   script:
     - cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info

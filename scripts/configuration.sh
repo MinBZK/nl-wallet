@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "${SCRIPTS_DIR}/utils.sh"
+
 WP_DIR="${BASE_DIR}/wallet_core/wallet_provider"
 PID_ISSUER_DIR="${BASE_DIR}/wallet_core/pid_issuer"
 
@@ -8,18 +10,6 @@ TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
 
 # source user variables
 [ -f "${SCRIPTS_DIR}/.env" ] && . "${SCRIPTS_DIR}/.env"
-
-function is_macos() {
-  uname -a | grep -i darwin >/dev/null
-}
-
-function detect_softhsm() {
-  if is_macos; then
-    find "${HOMEBREW_CELLAR}"/softhsm -name "libsofthsm2.so" | head -n 1
-  else
-    find "/usr/lib/" -name "libsofthsm2.so" | head -n 1
-  fi
-}
 
 # Path of the nl-rdo-max-private repository
 export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath "${BASE_DIR}"/../nl-rdo-max-private)}
@@ -46,9 +36,3 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
-
-source "${SCRIPTS_DIR}/colors.sh"
-
-SECTION=${LIGHT_BLUE}
-SUCCESS=${LIGHT_GREEN}
-INFO=${PURPLE}

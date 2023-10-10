@@ -23,23 +23,12 @@ export SCRIPTS_DIR
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 export BASE_DIR
 
-source "${SCRIPTS_DIR}"/configuration.sh
+source "${SCRIPTS_DIR}/utils.sh"
+source "${SCRIPTS_DIR}/configuration.sh"
 
 ########################################################################
 # Functions
 ########################################################################
-
-# Check whether COMMAND exists, and if not echo an error MESSAGE, and exit
-#
-# $1 - COMMAND: Name of the shell command
-# $2 - MESSAGE: Error message to show when COMMAND does not exist
-function expect_command {
-    if ! command -v "$1" > /dev/null
-    then
-        echo -e "${RED}ERROR${NC}: $2"
-        exit 1
-    fi
-}
 
 # Echo help information about this script
 function usage() {
@@ -69,7 +58,6 @@ Where:
     -h, --help                  Show this help
 "
 }
-
 
 ########################################################################
 # Check prerequisites
