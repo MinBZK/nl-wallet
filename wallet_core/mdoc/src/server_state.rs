@@ -1,14 +1,20 @@
 use std::{sync::Arc, time::Duration};
 
-use chrono::Local;
+use chrono::{DateTime, Local};
 use dashmap::DashMap;
 use tokio::{task::JoinHandle, time};
 
 use crate::{
-    issuer::SessionState,
     issuer_shared::{IssuanceError, SessionToken},
     Error, Result,
 };
+
+#[derive(Debug, Clone)]
+pub struct SessionState<T> {
+    pub session_data: T,
+    pub token: SessionToken,
+    pub last_active: DateTime<Local>,
+}
 
 pub trait SessionStore {
     type Data: Clone;

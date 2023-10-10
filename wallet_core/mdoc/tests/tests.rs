@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
     iso::*,
     issuer::*,
     mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
-    server_state::{MemorySessionStore, SessionStore},
+    server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
         keys::KeyFactory,
         mdocs_map::MdocsMap,

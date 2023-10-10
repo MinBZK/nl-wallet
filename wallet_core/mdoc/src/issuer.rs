@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use core::panic;
 use std::{future::Future, sync::Arc, time::Duration};
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{Local, Utc};
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use futures::future::try_join_all;
@@ -32,7 +32,7 @@ use crate::{
     },
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
-    server_state::{SessionStore, CLEANUP_INTERVAL_SECONDS},
+    server_state::{SessionState, SessionStore, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
@@ -298,13 +298,6 @@ where
             self.sessions.write(self.session_data);
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct SessionState<T> {
-    pub session_data: T,
-    pub token: SessionToken,
-    pub last_active: DateTime<Local>,
 }
 
 #[derive(Debug, Clone)]

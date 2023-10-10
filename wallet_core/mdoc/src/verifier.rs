@@ -24,9 +24,8 @@ use wallet_common::generator::{Generator, TimeGenerator};
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    issuer::SessionState,
     issuer_shared::SessionToken,
-    server_state::SessionStore,
+    server_state::{SessionState, SessionStore},
     utils::{
         cose::{self, ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
