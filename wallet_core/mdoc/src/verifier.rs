@@ -16,7 +16,8 @@ use p256::{
     elliptic_curve::rand_core::OsRng,
     PublicKey, SecretKey,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -24,6 +25,7 @@ use wallet_common::{
     account::serialization::{DerSecretKey, DerSigningKey},
     generator::{Generator, TimeGenerator},
 };
+use x509_parser::nom::AsBytes;
 
 use crate::{
     basic_sa_ext::Entry,
@@ -157,7 +159,7 @@ pub fn new_session(
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData<ByteBuf>>>,
 ) -> Result<ReaderEngagement> {
     if !certificates.contains_key(&usecase_id) {
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
@@ -166,49 +168,40 @@ pub fn new_session(
     let token = SessionToken::new();
     let url = base_url.join(&token.0).unwrap();
     let (reader_engagement, session_state) = Session::<Created>::new(items_requests, usecase_id, url)?;
-    sessions.write(&session_state.state.into_boxed());
+    sessions.write(&session_state.state.into_serialized()?);
     Ok(reader_engagement)
 }
 
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData<ByteBuf>>>,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions.get(&token)?;
 
-    let session = Session::<Box<dyn Any>> {
-        state: SessionState {
-            session_data: DisclosureData {
-                disclosure_state_enum: state.session_data.disclosure_state_enum,
-                disclosure_state: Box::new(state.session_data.disclosure_state),
-            },
-            token: state.token,
-            last_active: state.last_active,
-        },
-    };
+    let session = Session::<ByteBuf> { state };
 
-    let (response, next) = match state.session_data.disclosure_state_enum {
+    let (response, next) = match session.state.session_data.disclosure_state_enum {
         DisclosureStateEnum::Created => {
             let session = Session::<Created> {
-                state: session.state.into_unboxed(),
+                state: session.state.into_deserialized()?,
             };
             let (response, session) = session
                 .process_device_engagement(cbor_deserialize(msg)?, certificates)
                 .await;
             match session {
-                Ok(next) => Ok((response, next.state.into_boxed())),
-                Err(next) => Ok((response, next.state.into_boxed())),
+                Ok(next) => Ok((response, next.state.into_serialized()?)),
+                Err(next) => Ok((response, next.state.into_serialized()?)),
             }
         }
         DisclosureStateEnum::WaitingForResponse => {
             let session = Session::<WaitingForResponse> {
-                state: session.state.into_unboxed(),
+                state: session.state.into_deserialized()?,
             };
             let (response, session) = session.process_response(cbor_deserialize(msg)?, trust_anchors);
-            Ok((response, session.state.into_boxed()))
+            Ok((response, session.state.into_serialized()?))
         }
         DisclosureStateEnum::Done => Err(Error::from(VerificationError::UnexpectedInput)),
     }?;
@@ -524,30 +517,31 @@ impl ReaderEngagement {
     }
 }
 
-impl SessionState<DisclosureData<Box<dyn Any>>> {
-    /// Unpack the boxed state. NOTE: will panic if the box does not contain the right type.
-    fn into_unboxed<NewT: Sized + 'static>(self) -> SessionState<DisclosureData<NewT>> {
-        SessionState {
+impl SessionState<DisclosureData<ByteBuf>> {
+    fn into_deserialized<NewT: DeserializeOwned>(self) -> Result<SessionState<DisclosureData<NewT>>> {
+        let session = SessionState {
             session_data: DisclosureData {
-                disclosure_state: *self.session_data.disclosure_state.downcast().unwrap(),
+                disclosure_state: cbor_deserialize(self.session_data.disclosure_state.as_bytes())?,
                 disclosure_state_enum: self.session_data.disclosure_state_enum,
             },
             token: self.token,
             last_active: Local::now(),
-        }
+        };
+        Ok(session)
     }
 }
 
-impl<T: DisclosureState + 'static> SessionState<DisclosureData<T>> {
-    fn into_boxed(self) -> SessionState<DisclosureData<Box<(dyn DisclosureState + 'static)>>> {
-        SessionState {
+impl<T: DisclosureState + Serialize> SessionState<DisclosureData<T>> {
+    fn into_serialized(self) -> Result<SessionState<DisclosureData<ByteBuf>>> {
+        let session = SessionState {
             session_data: DisclosureData {
-                disclosure_state: Box::new(self.session_data.disclosure_state),
+                disclosure_state: ByteBuf::from(cbor_serialize(&self.session_data.disclosure_state)?),
                 disclosure_state_enum: self.session_data.disclosure_state_enum,
             },
             token: self.token,
             last_active: Local::now(),
-        }
+        };
+        Ok(session)
     }
 }
 
