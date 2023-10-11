@@ -155,7 +155,7 @@ pub fn new_session(
     items_requests: Vec<ItemsRequest>,
     reader_cert: &Certificate,
     reader_cert_privkey: &SigningKey,
-    sessions: impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
 ) -> Result<ReaderEngagement> {
     let token = SessionToken::new();
     let url = base_url.join(&token.0).unwrap();
