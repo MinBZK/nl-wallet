@@ -65,6 +65,9 @@ pub enum VerificationError {
     UnknownSessionId(SessionToken),
 }
 
+/// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
+/// The session progresses through the possible states using a state engine that uses the typestate pattern:
+/// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.
 struct Session<S> {
     state: SessionState<S>,
 }
@@ -89,12 +92,13 @@ pub struct WaitingForResponse {
     session_transcript: SessionTranscript,
 }
 
-/// State for a session that has finished (perhaps due to cancellation or errors).
+/// State for a session that has ended (for any reason).
 #[derive(Clone)]
 pub struct Done {
     pub session_result: SessionResult,
 }
 
+/// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
 #[derive(Serialize, Deserialize, Clone)]
 pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
@@ -109,6 +113,7 @@ impl DisclosureState for Created {}
 impl DisclosureState for WaitingForResponse {}
 impl DisclosureState for Done {}
 
+/// Disclosure-specific session data, of any state, for storing in a session store.
 #[derive(Clone)]
 pub enum DisclosureData {
     Created(Created),
@@ -146,6 +151,15 @@ impl SessionState<Done> {
     }
 }
 
+/// Start a new disclosure session. Returns a [`ReaderEngagement`] instance that should be put in a QR
+/// or Universal Link or `mdoc://` URI.
+///
+/// - `base_url` is the URL at which the server is publically reachable; this is included in the [`ReaderEngagement`]
+///   returned to the wallet.
+/// - `items_requests` contains the attributes to be requested.
+/// - `usecase_id` should point to an existing item in the `certificates` parameter.
+/// - `certificates` contains for each usecase a certificate and corresponding private key for use in RP authentication.
+/// - `sessions` contains all currently active sessions, managed by this function and by [`process_message()`].
 pub fn new_session(
     base_url: Url,
     items_requests: Vec<ItemsRequest>,
@@ -164,11 +178,18 @@ pub fn new_session(
     Ok(reader_engagement)
 }
 
+/// Process a disclosure protocol message of the wallet.
+///
+/// - `msg` is the received protocol message.
+/// - `token` is the session token as parsed from the URL.
+/// - `sessions` and `certtificates` are as in [`new_session()`].
+/// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
+///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions
@@ -211,21 +232,23 @@ pub async fn process_message(
     Ok(response)
 }
 
+// Implementation of the typestate state engine follows.
+
 // Transitioning functions and helpers valid for any state
 impl<T: DisclosureState> Session<T> {
-    fn fail(self) -> Session<Done> {
+    fn transition_fail(self) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Failed,
         })
     }
 
-    fn abort(self, status: SessionStatus) -> Session<Done> {
+    fn transition_abort(self, status: SessionStatus) -> Session<Done> {
         self.transition(Done {
             session_result: status.into(),
         })
     }
 
-    /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
+    /// Transition `self` to a new state, consuming the old state, also updating the `last_active` timestamp.
     fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
         Session {
             state: SessionState::<NewT> {
@@ -242,8 +265,6 @@ impl<T: DisclosureState> Session<T> {
 }
 
 impl Session<Created> {
-    // TODO: update this API when it has been decided on,
-    // and implement RP authentication in this function instead of leaving it up to the caller.
     /// Create a new disclosure session.
     fn new(
         items_requests: Vec<ItemsRequest>,
@@ -282,9 +303,9 @@ impl Session<Created> {
         {
             Ok((response, items_requests, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
-                Ok(self.wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
+                Ok(self.transition_wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
             ),
-            Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
+            Err(_) => (SessionData::new_decoding_error(), Err(self.transition_fail())),
         };
 
         (response, next)
@@ -371,7 +392,7 @@ impl Session<Created> {
         ))
     }
 
-    fn wait_for_response(
+    fn transition_wait_for_response(
         self,
         items_requests: Vec<ItemsRequest>,
         their_key: SessionKey,
@@ -431,12 +452,12 @@ impl Session<WaitingForResponse> {
     ) -> (SessionData, Session<Done>) {
         // Abort if user wants to abort
         if let Some(status) = session_data.status {
-            return (SessionData::new_termination(), self.abort(status));
+            return (SessionData::new_termination(), self.transition_abort(status));
         };
 
         let (response, next) = match self.process_response_inner(&session_data, trust_anchors) {
-            Ok((response, disclosed_attributes)) => (response, self.finish(disclosed_attributes)),
-            Err(_) => (SessionData::new_decoding_error(), self.fail()),
+            Ok((response, disclosed_attributes)) => (response, self.transition_finish(disclosed_attributes)),
+            Err(_) => (SessionData::new_decoding_error(), self.transition_fail()),
         };
 
         (response, next)
@@ -464,7 +485,7 @@ impl Session<WaitingForResponse> {
         Ok((response, disclosed_attributes))
     }
 
-    fn finish(self, disclosed_attributes: DisclosedAttributes) -> Session<Done> {
+    fn transition_finish(self, disclosed_attributes: DisclosedAttributes) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done { disclosed_attributes },
         })
