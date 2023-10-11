@@ -13,7 +13,7 @@ use p256::{
     ecdh::EphemeralSecret,
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::rand_core::OsRng,
-    PublicKey,
+    PublicKey, SecretKey,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -95,7 +95,7 @@ struct Created {
     items_requests: Vec<ItemsRequest>,
     reader_cert: Certificate,
     reader_cert_privkey: SigningKey,
-    ephemeral_privkey: EphemeralSecret,
+    ephemeral_privkey: SecretKey,
     reader_engagement: ReaderEngagement,
 }
 
@@ -105,6 +105,7 @@ struct WaitingForResponse {
     items_requests: Vec<ItemsRequest>,
     our_key: SessionKey,
     their_key: SessionKey,
+    ephemeral_privkey: SecretKey,
     session_transcript: SessionTranscript,
 }
 
@@ -275,9 +276,15 @@ impl Session<Created> {
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
         let (response, next) = match self.process_device_engagement_inner(&device_engagement).await {
-            Ok((response, items_requests, our_key, their_key, session_transcript)) => (
+            Ok((response, items_requests, our_key, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
-                Ok(self.wait_for_response(items_requests, our_key, their_key, session_transcript)),
+                Ok(self.wait_for_response(
+                    items_requests,
+                    our_key,
+                    their_key,
+                    ephemeral_privkey,
+                    session_transcript,
+                )),
             ),
             Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
         };
@@ -294,6 +301,7 @@ impl Session<Created> {
         Vec<ItemsRequest>,
         SessionKey,
         SessionKey,
+        SecretKey,
         SessionTranscript,
     )> {
         // Check that the device has sent the expected OriginInfo
@@ -359,9 +367,10 @@ impl Session<Created> {
 
         Ok((
             response,
-            self.state.session_data.disclosure_state.items_requests.clone(),
+            self.state().items_requests.clone(),
             our_key,
             their_key,
+            self.state().ephemeral_privkey.clone(),
             session_transcript,
         ))
     }
@@ -371,12 +380,14 @@ impl Session<Created> {
         items_requests: Vec<ItemsRequest>,
         our_key: SessionKey,
         their_key: SessionKey,
+        ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
         self.transition(WaitingForResponse {
             items_requests,
             our_key,
             their_key,
+            ephemeral_privkey,
             session_transcript,
         })
     }
@@ -441,7 +452,7 @@ impl Session<WaitingForResponse> {
         let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.state().their_key)?;
 
         let disclosed_attributes = device_response.verify(
-            None, // TODO without this, documents using MAC can't be verified
+            Some(&self.state().ephemeral_privkey),
             &self.state().session_transcript,
             &TimeGenerator,
             trust_anchors,
@@ -462,8 +473,8 @@ impl Session<WaitingForResponse> {
 }
 
 impl ReaderEngagement {
-    fn new_reader_engagement(session_url: Url) -> Result<(ReaderEngagement, EphemeralSecret)> {
-        let privkey = EphemeralSecret::random(&mut OsRng);
+    fn new_reader_engagement(session_url: Url) -> Result<(ReaderEngagement, SecretKey)> {
+        let privkey = SecretKey::random(&mut OsRng);
 
         let engagement = Engagement {
             version: EngagementVersion::V1_0,
@@ -532,7 +543,7 @@ impl DeviceResponse {
     /// - `trust_anchors` - trust anchors against which verification is done.
     pub fn verify(
         &self,
-        eph_reader_key: Option<&EphemeralSecret>,
+        eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -664,7 +675,7 @@ impl MobileSecurityObject {
 impl Document {
     pub fn verify(
         &self,
-        eph_reader_key: Option<&EphemeralSecret>,
+        eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],

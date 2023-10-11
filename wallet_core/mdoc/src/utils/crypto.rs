@@ -6,7 +6,7 @@ use aes_gcm::{
 };
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
-use p256::{ecdh::EphemeralSecret, ecdsa::VerifyingKey, EncodedPoint, PublicKey};
+use p256::{ecdh, ecdsa::VerifyingKey, EncodedPoint, PublicKey, SecretKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
@@ -53,14 +53,8 @@ pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborEr
 }
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
-pub fn dh_hmac_key(
-    privkey: &EphemeralSecret,
-    pubkey: &PublicKey,
-    salt: &[u8],
-    info: &str,
-    len: usize,
-) -> Result<hmac::Key> {
-    let dh = privkey.diffie_hellman(pubkey);
+pub fn dh_hmac_key(privkey: &SecretKey, pubkey: &PublicKey, salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
+    let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
     hmac_key(dh.raw_secret_bytes().as_ref(), salt, info, len)
 }
 
@@ -161,12 +155,12 @@ impl SessionKey {
     /// Return a new [`SessionKey`] derived using Diffie-Hellman and a Key Derivation Function (KDF),
     /// as specified by the standard.
     pub fn new(
-        privkey: &EphemeralSecret,
+        privkey: &SecretKey,
         pubkey: &PublicKey,
         session_transcript: &SessionTranscript,
         user: SessionKeyUser,
     ) -> Result<Self> {
-        let dh = privkey.diffie_hellman(pubkey);
+        let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
         let salt = sha256(&cbor_serialize(&TaggedBytes(session_transcript))?);
         let user_str = match user {
             SessionKeyUser::Reader => "SKReader",
@@ -229,7 +223,7 @@ impl SessionData {
 
 #[cfg(test)]
 mod test {
-    use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng};
+    use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 
     use serde::{Deserialize, Serialize};
 
@@ -255,8 +249,8 @@ mod test {
     fn session_data_encryption() {
         let plaintext = ToyMessage::default();
 
-        let device_privkey = EphemeralSecret::random(&mut OsRng);
-        let reader_pubkey = EphemeralSecret::random(&mut OsRng).public_key();
+        let device_privkey = SecretKey::random(&mut OsRng);
+        let reader_pubkey = SecretKey::random(&mut OsRng).public_key();
 
         let key = SessionKey::new(
             &device_privkey,

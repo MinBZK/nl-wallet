@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng, PublicKey};
+use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -130,7 +130,7 @@ impl DeviceSigned {
 
     #[allow(dead_code)] // TODO test this
     pub fn new_mac(
-        private_key: &EphemeralSecret,
+        private_key: &SecretKey,
         reader_pub_key: &PublicKey,
         session_transcript: &SessionTranscript,
         device_auth: &DeviceAuthenticationBytes,
