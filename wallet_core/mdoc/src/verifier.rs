@@ -97,8 +97,6 @@ pub enum DisclosureStateEnum {
 #[derive(Serialize, Deserialize)]
 struct Created {
     items_requests: Vec<ItemsRequest>,
-    reader_cert: Certificate,
-    reader_cert_privkey: DerSigningKey,
     ephemeral_privkey: DerSecretKey,
     reader_engagement: ReaderEngagement,
 }
@@ -153,14 +151,11 @@ impl DisclosureState for Done {
 pub fn new_session(
     base_url: Url,
     items_requests: Vec<ItemsRequest>,
-    reader_cert: &Certificate,
-    reader_cert_privkey: &SigningKey,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
 ) -> Result<ReaderEngagement> {
     let token = SessionToken::new();
     let url = base_url.join(&token.0).unwrap();
-    let (reader_engagement, session_state) =
-        Session::<Created>::new(items_requests, reader_cert, reader_cert_privkey, url)?;
+    let (reader_engagement, session_state) = Session::<Created>::new(items_requests, url)?;
     sessions.write(&session_state.state.into_boxed());
     Ok(reader_engagement)
 }
@@ -169,6 +164,8 @@ pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData<Box<dyn DisclosureState>>>>,
+    reader_cert: &Certificate,
+    reader_cert_privkey: &SigningKey,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions.get(&token)?;
@@ -189,7 +186,9 @@ pub async fn process_message(
             let session = Session::<Created> {
                 state: session.state.into_unboxed(),
             };
-            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?).await;
+            let (response, session) = session
+                .process_device_engagement(cbor_deserialize(msg)?, reader_cert, reader_cert_privkey)
+                .await;
             match session {
                 Ok(next) => Ok((response, next.state.into_boxed())),
                 Err(next) => Ok((response, next.state.into_boxed())),
@@ -247,12 +246,7 @@ impl Session<Created> {
     // TODO: update this API when it has been decided on,
     // and implement RP authentication in this function instead of leaving it up to the caller.
     /// Create a new disclosure session.
-    fn new(
-        items_requests: Vec<ItemsRequest>,
-        reader_cert: &Certificate,
-        reader_cert_privkey: &SigningKey,
-        url: Url,
-    ) -> Result<(ReaderEngagement, Session<Created>)> {
+    fn new(items_requests: Vec<ItemsRequest>, url: Url) -> Result<(ReaderEngagement, Session<Created>)> {
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
@@ -261,8 +255,6 @@ impl Session<Created> {
                     disclosure_state_enum: DisclosureStateEnum::Created,
                     disclosure_state: Created {
                         items_requests,
-                        reader_cert: reader_cert.clone(),
-                        reader_cert_privkey: reader_cert_privkey.clone().into(),
                         ephemeral_privkey: ephemeral_privkey.into(),
                         reader_engagement: reader_engagement.clone(),
                     },
@@ -278,11 +270,16 @@ impl Session<Created> {
     async fn process_device_engagement(
         self,
         device_engagement: DeviceEngagement,
+        reader_cert: &Certificate,
+        reader_cert_privkey: &SigningKey,
     ) -> (
         SessionData,
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
-        let (response, next) = match self.process_device_engagement_inner(&device_engagement).await {
+        let (response, next) = match self
+            .process_device_engagement_inner(&device_engagement, reader_cert, reader_cert_privkey)
+            .await
+        {
             Ok((response, items_requests, our_key, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
                 Ok(self.wait_for_response(
@@ -303,6 +300,8 @@ impl Session<Created> {
     async fn process_device_engagement_inner(
         &self,
         device_engagement: &DeviceEngagement,
+        reader_cert: &Certificate,
+        reader_cert_privkey: &SigningKey,
     ) -> Result<(
         SessionData,
         Vec<ItemsRequest>,
@@ -352,7 +351,9 @@ impl Session<Created> {
         .into();
 
         let state = self.state();
-        let device_request = self.new_device_request(&session_transcript).await?;
+        let device_request = self
+            .new_device_request(&session_transcript, reader_cert, reader_cert_privkey)
+            .await?;
 
         // Compute the AES keys with which we and the device encrypt responses
         // TODO remove unwrap() and return an error if the device passes no key
@@ -399,7 +400,12 @@ impl Session<Created> {
         })
     }
 
-    async fn new_device_request(&self, session_transcript: &SessionTranscript) -> Result<DeviceRequest> {
+    async fn new_device_request(
+        &self,
+        session_transcript: &SessionTranscript,
+        reader_cert: &Certificate,
+        reader_cert_privkey: &SigningKey,
+    ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.iter().map(|items_request| async {
             let reader_auth = ReaderAuthenticationKeyed {
                 reader_auth_string: Default::default(),
@@ -408,8 +414,8 @@ impl Session<Created> {
             };
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
-                cose::new_certificate_header(&self.state().reader_cert),
-                &self.state().reader_cert_privkey.0,
+                cose::new_certificate_header(reader_cert),
+                reader_cert_privkey,
                 false,
             )
             .await?;
