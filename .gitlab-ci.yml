@@ -560,6 +560,7 @@ deploy-wallet-provider-live-cert:
 deploy-pid-issuer:
   extends: .deploy-k8s
   rules: !reference [ .default-branch, rules ]
+  when: manual
   needs:
     - job: build-pid-issuer-image
       artifacts: false
