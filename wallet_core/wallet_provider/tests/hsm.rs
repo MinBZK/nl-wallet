@@ -17,6 +17,7 @@ use wallet_common::utils::{random_bytes, sha256};
 use wallet_provider::settings::Settings;
 
 #[test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 fn it_works() {
     let settings = Settings::new().unwrap();
 
@@ -25,7 +26,7 @@ fn it_works() {
 
     let user_pin = AuthPin::new(settings.hsm.user_pin);
 
-    let mut slots = dbg!(pkcs11_client.get_slots_with_initialized_token().unwrap());
+    let mut slots = pkcs11_client.get_slots_with_initialized_token().unwrap();
     let slot = slots.remove(0);
 
     // open a session
