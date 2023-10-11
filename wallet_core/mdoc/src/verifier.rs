@@ -19,7 +19,10 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
-use wallet_common::generator::{Generator, TimeGenerator};
+use wallet_common::{
+    account::serialization::{DerSecretKey, DerSigningKey},
+    generator::{Generator, TimeGenerator},
+};
 
 use crate::{
     basic_sa_ext::Entry,
@@ -91,29 +94,33 @@ pub enum DisclosureStateEnum {
 }
 
 /// State for a session that has just been created.
+#[derive(Serialize, Deserialize)]
 struct Created {
     items_requests: Vec<ItemsRequest>,
     reader_cert: Certificate,
-    reader_cert_privkey: SigningKey,
-    ephemeral_privkey: SecretKey,
+    reader_cert_privkey: DerSigningKey,
+    ephemeral_privkey: DerSecretKey,
     reader_engagement: ReaderEngagement,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
+#[derive(Serialize, Deserialize)]
 struct WaitingForResponse {
     items_requests: Vec<ItemsRequest>,
     our_key: SessionKey,
     their_key: SessionKey,
-    ephemeral_privkey: SecretKey,
+    ephemeral_privkey: DerSecretKey,
     session_transcript: SessionTranscript,
 }
 
 /// State for a session that has finished (perhaps due to cancellation or errors).
+#[derive(Serialize, Deserialize)]
 struct Done {
     session_result: SessionResult,
 }
 
+#[derive(Serialize, Deserialize)]
 enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
     Failed, // TODO add error details
@@ -255,8 +262,8 @@ impl Session<Created> {
                     disclosure_state: Created {
                         items_requests,
                         reader_cert: reader_cert.clone(),
-                        reader_cert_privkey: reader_cert_privkey.clone(),
-                        ephemeral_privkey,
+                        reader_cert_privkey: reader_cert_privkey.clone().into(),
+                        ephemeral_privkey: ephemeral_privkey.into(),
                         reader_engagement: reader_engagement.clone(),
                     },
                 },
@@ -351,13 +358,13 @@ impl Session<Created> {
         // TODO remove unwrap() and return an error if the device passes no key
         let their_pubkey = device_engagement.0.security.as_ref().unwrap().try_into()?;
         let our_key = SessionKey::new(
-            &self.state().ephemeral_privkey,
+            &self.state().ephemeral_privkey.0,
             &their_pubkey,
             &session_transcript,
             SessionKeyUser::Reader,
         )?;
         let their_key = SessionKey::new(
-            &self.state().ephemeral_privkey,
+            &self.state().ephemeral_privkey.0,
             &their_pubkey,
             &session_transcript,
             SessionKeyUser::Device,
@@ -370,7 +377,7 @@ impl Session<Created> {
             self.state().items_requests.clone(),
             our_key,
             their_key,
-            self.state().ephemeral_privkey.clone(),
+            self.state().ephemeral_privkey.clone().0,
             session_transcript,
         ))
     }
@@ -387,7 +394,7 @@ impl Session<Created> {
             items_requests,
             our_key,
             their_key,
-            ephemeral_privkey,
+            ephemeral_privkey: ephemeral_privkey.into(),
             session_transcript,
         })
     }
@@ -402,7 +409,7 @@ impl Session<Created> {
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
                 cose::new_certificate_header(&self.state().reader_cert),
-                &self.state().reader_cert_privkey,
+                &self.state().reader_cert_privkey.0,
                 false,
             )
             .await?;
@@ -452,7 +459,7 @@ impl Session<WaitingForResponse> {
         let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.state().their_key)?;
 
         let disclosed_attributes = device_response.verify(
-            Some(&self.state().ephemeral_privkey),
+            Some(&self.state().ephemeral_privkey.0),
             &self.state().session_transcript,
             &TimeGenerator,
             trust_anchors,

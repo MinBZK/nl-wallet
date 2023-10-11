@@ -11,6 +11,7 @@ use p256::{
 use rcgen::{
     BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, RcgenError,
 };
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
@@ -95,7 +96,7 @@ impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
 /// - parsing data: `x509_parser`
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Certificate(ByteBuf);
 
 impl<'a> TryInto<TrustAnchor<'a>> for &'a Certificate {

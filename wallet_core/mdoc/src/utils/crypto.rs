@@ -8,7 +8,7 @@ use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
 use p256::{ecdh, ecdsa::VerifyingKey, EncodedPoint, PublicKey, SecretKey};
 use ring::hmac;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
@@ -139,13 +139,14 @@ impl TryFrom<&Security> for PublicKey {
 }
 
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
+#[derive(Serialize, Deserialize)]
 pub struct SessionKey {
-    key: Vec<u8>,
+    key: ByteBuf,
     user: SessionKeyUser,
 }
 
 /// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum SessionKeyUser {
     Reader,
     Device,
@@ -167,7 +168,10 @@ impl SessionKey {
             SessionKeyUser::Device => "SKDevice",
         };
         let key = hkdf(dh.raw_secret_bytes(), &salt, user_str, 32).map_err(|_| CryptoError::Hkdf)?;
-        let key = SessionKey { key, user };
+        let key = SessionKey {
+            key: ByteBuf::from(key),
+            user,
+        };
         Ok(key)
     }
 }
