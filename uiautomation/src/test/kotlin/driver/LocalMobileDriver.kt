@@ -21,18 +21,18 @@ class LocalMobileDriver : WebDriverProvider {
             ?: throw UninitializedPropertyAccessException("Make sure 'device' in testDataConfig resolves to a localDevice")
 
         // Set Android or iOS specific capabilities
-        val options = if (localDevice.platformName == "android") {
-            UiAutomator2Options().apply {
+        val options = when (localDevice.platformName) {
+            "android" -> UiAutomator2Options().apply {
                 setAppPackage(testDataConfig.appPackage)
                 setAppActivity(testDataConfig.appActivity)
                 setApp(apkPath)
                 ignoreHiddenApiPolicyError()
             }
-        } else {
-            XCUITestOptions().apply {
+            "ios" -> XCUITestOptions().apply {
                 setBundleId(testDataConfig.bundleId)
                 setApp(ipaPath)
             }
+            else -> throw IllegalArgumentException("Invalid platformName: ${localDevice.platformName}")
         }
         options.merge(capabilities)
 
@@ -43,6 +43,7 @@ class LocalMobileDriver : WebDriverProvider {
         options.setPlatformVersion(localDevice.platformVersion)
         options.setLanguage(SetupTestTagHandler.language)
         options.setLocale(SetupTestTagHandler.locale)
+
         // Initialise the local Webdriver
         // and desired capabilities defined above
         return AppiumDriver(AppiumServiceProvider.server?.url, options)

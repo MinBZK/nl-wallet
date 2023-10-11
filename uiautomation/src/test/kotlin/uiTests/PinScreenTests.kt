@@ -8,6 +8,9 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junitpioneer.jupiter.RetryingTest
+import screen.introduction.IntroductionConditionsScreen
+import screen.introduction.IntroductionExpectationsScreen
+import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 import screen.pin.PinScreen
 import screen.pin.SetupSecurityCompletedScreen
@@ -20,6 +23,10 @@ class PinScreenTests : TestBase() {
     private val localizationHelper = LocalizationHelper()
 
     private lateinit var introductionScreen: IntroductionScreen
+    private lateinit var expectationsScreen: IntroductionExpectationsScreen
+    private lateinit var privacyScreen: IntroductionPrivacyScreen
+    private lateinit var conditionsScreen: IntroductionConditionsScreen
+
     private lateinit var pinScreen: PinScreen
     private lateinit var setupSecurityCompletedScreen: SetupSecurityCompletedScreen
     private lateinit var setupSecurityConfirmationErrorScreen: SetupSecurityConfirmationErrorScreen
@@ -27,18 +34,24 @@ class PinScreenTests : TestBase() {
     @BeforeEach
     fun setUp() {
         introductionScreen = IntroductionScreen()
+        expectationsScreen = IntroductionExpectationsScreen()
+        privacyScreen = IntroductionPrivacyScreen()
+        conditionsScreen = IntroductionConditionsScreen()
+
         pinScreen = PinScreen()
         setupSecurityCompletedScreen = SetupSecurityCompletedScreen()
         setupSecurityConfirmationErrorScreen = SetupSecurityConfirmationErrorScreen()
+
+        introductionScreen.clickSkipButton()
+        expectationsScreen.clickNextButton()
+        privacyScreen.clickNextButton()
+        conditionsScreen.clickNextButton()
     }
 
     @RetryingTest(value = 3, name = "{displayName} - #{index}")
     @DisplayName("UC 2.1 - Verify easy pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyEasyPinErrorMessage() {
-        introductionScreen.clickSkipButton()
-        introductionScreen.clickNextButton()
-
         assertTrue(
             pinScreen.waitForScreenVisibility(),
             "pin screen is not visible"
@@ -75,9 +88,6 @@ class PinScreenTests : TestBase() {
     @DisplayName("UC 2.1 - Verify wrong pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyWrongPin() {
-        introductionScreen.clickSkipButton()
-        introductionScreen.clickNextButton()
-
         assertTrue(
             pinScreen.waitForScreenVisibility(),
             "pin screen is not visible"
@@ -122,9 +132,6 @@ class PinScreenTests : TestBase() {
     @DisplayName("UC 2.1 - Verify correct pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyCorrectPin() {
-        introductionScreen.clickSkipButton()
-        introductionScreen.clickNextButton()
-
         assertTrue(
             pinScreen.waitForScreenVisibility(),
             "setup pin screen is not visible"

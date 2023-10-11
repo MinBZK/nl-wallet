@@ -85,6 +85,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ElevatedButton(
+            key: const Key('introductionConditionsScreenNextCta'),
             onPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
               WalletRoutes.setupSecurityRoute,
               ModalRoute.withName(WalletRoutes.splashRoute),

@@ -7,33 +7,52 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junitpioneer.jupiter.RetryingTest
+import screen.introduction.IntroductionConditionsScreen
+import screen.introduction.IntroductionExpectationsScreen
+import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
-import screen.placeholder.PlaceholderScreen
 
 class IntroductionScreenTests : TestBase() {
 
     private lateinit var introductionScreen: IntroductionScreen
-    private lateinit var placeholderScreen: PlaceholderScreen
+    private lateinit var expectationsScreen: IntroductionExpectationsScreen
+    private lateinit var privacyScreen: IntroductionPrivacyScreen
+    private lateinit var conditionsScreen: IntroductionConditionsScreen
 
     @BeforeEach
     fun setUp() {
         introductionScreen = IntroductionScreen()
-        placeholderScreen = PlaceholderScreen()
+        expectationsScreen = IntroductionExpectationsScreen()
+        privacyScreen = IntroductionPrivacyScreen()
+        conditionsScreen = IntroductionConditionsScreen()
     }
 
     @RetryingTest(value = 3, name = "{displayName} - #{index}")
-    @DisplayName("UC 9.3 - Verify introduction pages, privacy policy and placeholder screen flow")
+    @DisplayName("UC 9.3 - Verify introduction and expectations screens")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyIntroductionScreens() {
         introductionScreen.clickNextButton()
         introductionScreen.clickNextButton()
         introductionScreen.clickNextButton()
         introductionScreen.clickNextButton()
-        introductionScreen.clickPrivacyPolicyButton()
 
         assertTrue(
-            placeholderScreen.waitForScreenVisibility(),
-            "placeholder screen is not visible"
+            expectationsScreen.waitForButtonVisibility(),
+            "expectations screen not visible"
+        )
+    }
+
+    @RetryingTest(value = 3, name = "{displayName} - #{index}")
+    @DisplayName("UC 9.3 - Verify privacy and conditions screens")
+    @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
+    fun verifyPrivacyConditionsScreens() {
+        introductionScreen.clickSkipButton()
+        expectationsScreen.clickNextButton()
+        privacyScreen.clickNextButton()
+
+        assertTrue(
+            conditionsScreen.waitForButtonVisibility(),
+            "conditions screen not visible"
         )
     }
 

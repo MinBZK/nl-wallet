@@ -12,26 +12,21 @@ class IntroductionScreen : MobileActions() {
 
     private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
     private val nextButtonText = find.byValueKey("introductionNextPageCtaText")
-    private val privacyPolicyButton = find.byValueKey("introductionPrivacyPolicyCta")
+    private val nextButton = find.byValueKey("introductionNextPageCta")
     private val skipButton = find.byValueKey("introductionSkipCta")
+
+    @Step("read next button text")
+    fun readNextButtonText(): String? {
+        return readText(nextButtonText)
+    }
 
     @Step("click next button")
     fun clickNextButton() {
-        tapElement(nextButtonText)
-    }
-
-    @Step("click privacy policy button")
-    fun clickPrivacyPolicyButton() {
-        tapElement(privacyPolicyButton)
+        tapElement(nextButton)
     }
 
     @Step("click skip button")
     fun clickSkipButton() {
         tapElement(skipButton)
-    }
-
-    @Step("read next button text")
-    fun readNextButtonText(): String? {
-        return readText(nextButtonText)
     }
 }
