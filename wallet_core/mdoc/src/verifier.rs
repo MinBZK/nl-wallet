@@ -70,6 +70,7 @@ struct Session<S> {
 }
 
 /// State for a session that has just been created.
+#[derive(Clone)]
 pub struct Created {
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
@@ -79,7 +80,7 @@ pub struct Created {
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
-
+#[derive(Clone)]
 pub struct WaitingForResponse {
     #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: Vec<ItemsRequest>,
@@ -89,12 +90,12 @@ pub struct WaitingForResponse {
 }
 
 /// State for a session that has finished (perhaps due to cancellation or errors).
-
+#[derive(Clone)]
 pub struct Done {
     pub session_result: SessionResult,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
     Failed, // TODO add error details
@@ -108,6 +109,7 @@ impl DisclosureState for Created {}
 impl DisclosureState for WaitingForResponse {}
 impl DisclosureState for Done {}
 
+#[derive(Clone)]
 pub enum DisclosureData {
     Created(Created),
     WaitingForResponse(WaitingForResponse),

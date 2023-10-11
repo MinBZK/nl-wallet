@@ -139,7 +139,7 @@ impl TryFrom<&Security> for PublicKey {
 }
 
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SessionKey {
     key: ByteBuf,
     user: SessionKeyUser,
