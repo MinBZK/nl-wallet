@@ -31,8 +31,8 @@ use crate::{
         KEY_GEN_RESP_MSG_TYPE, START_ISSUING_MSG_TYPE,
     },
     iso::*,
-    issuer_shared::{IssuanceError, SessionToken},
-    server_state::{SessionState, SessionStore, CLEANUP_INTERVAL_SECONDS},
+    issuer_shared::IssuanceError,
+    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
@@ -186,7 +186,10 @@ where
     pub async fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Vec<u8>> {
         let (msg_type, session_id) = Self::inspect_message(msg)?;
 
-        let mut session_data = self.sessions.get(&token)?;
+        let mut session_data = self
+            .sessions
+            .get(&token)
+            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?;
         let session = Session {
             sessions: self.sessions.as_ref(),
             session_data: &mut session_data,

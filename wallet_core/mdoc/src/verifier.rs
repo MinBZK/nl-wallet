@@ -17,8 +17,7 @@ use wallet_common::{
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    issuer_shared::SessionToken,
-    server_state::{SessionState, SessionStore},
+    server_state::{SessionState, SessionStore, SessionToken},
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
@@ -62,6 +61,8 @@ pub enum VerificationError {
     UnexpectedInput,
     #[error("unknown certificate")]
     UnknownCertificate(String),
+    #[error("unknown session ID: {0}")]
+    UnknownSessionId(SessionToken),
 }
 
 struct Session<S> {
@@ -168,7 +169,9 @@ pub async fn process_message(
     certificates: &DashMap<String, (Certificate, SigningKey)>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
-    let state = sessions.get(&token)?;
+    let state = sessions
+        .get(&token)
+        .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
 
     let (response, next) = match state.session_data {
         DisclosureData::Created(session_data) => {
