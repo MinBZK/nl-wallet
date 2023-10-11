@@ -82,7 +82,6 @@ pub struct Created {
 pub struct WaitingForResponse {
     #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: Vec<ItemsRequest>,
-    our_key: SessionKey,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
     session_transcript: SessionTranscript,
@@ -91,11 +90,11 @@ pub struct WaitingForResponse {
 /// State for a session that has finished (perhaps due to cancellation or errors).
 
 pub struct Done {
-    session_result: SessionResult,
+    pub session_result: SessionResult,
 }
 
 #[derive(Serialize, Deserialize)]
-enum SessionResult {
+pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
     Failed, // TODO add error details
     Cancelled,
@@ -276,15 +275,9 @@ impl Session<Created> {
             .process_device_engagement_inner(&device_engagement, certificates)
             .await
         {
-            Ok((response, items_requests, our_key, their_key, ephemeral_privkey, session_transcript)) => (
+            Ok((response, items_requests, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
-                Ok(self.wait_for_response(
-                    items_requests,
-                    our_key,
-                    their_key,
-                    ephemeral_privkey,
-                    session_transcript,
-                )),
+                Ok(self.wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
             ),
             Err(_) => (SessionData::new_decoding_error(), Err(self.fail())),
         };
@@ -297,14 +290,7 @@ impl Session<Created> {
         &self,
         device_engagement: &DeviceEngagement,
         certificates: &DashMap<String, (Certificate, SigningKey)>,
-    ) -> Result<(
-        SessionData,
-        Vec<ItemsRequest>,
-        SessionKey,
-        SessionKey,
-        SecretKey,
-        SessionTranscript,
-    )> {
+    ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
         let url = self.state().reader_engagement.0.connection_methods.as_ref().unwrap()[0]
             .0
@@ -374,7 +360,6 @@ impl Session<Created> {
         Ok((
             response,
             self.state().items_requests.clone(),
-            our_key,
             their_key,
             self.state().ephemeral_privkey.clone().0,
             session_transcript,
@@ -384,14 +369,12 @@ impl Session<Created> {
     fn wait_for_response(
         self,
         items_requests: Vec<ItemsRequest>,
-        our_key: SessionKey,
         their_key: SessionKey,
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
         self.transition(WaitingForResponse {
             items_requests,
-            our_key,
             their_key,
             ephemeral_privkey: ephemeral_privkey.into(),
             session_transcript,
