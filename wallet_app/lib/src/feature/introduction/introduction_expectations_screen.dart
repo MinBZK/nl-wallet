@@ -109,6 +109,7 @@ class IntroductionExpectationsScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
       child: ElevatedButton(
+        key: const Key('introductionExpectationsScreenCta'),
         onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
