@@ -1,31 +1,18 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-#![allow(unused)]
-
-use std::any::Any;
-
 use chrono::{DateTime, Local, Utc};
-use ciborium::Value;
-use coset::{CoseSign1, HeaderBuilder};
 use dashmap::DashMap;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::{
-    ecdh::EphemeralSecret,
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-    PublicKey, SecretKey,
-};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_bytes::ByteBuf;
+use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, SecretKey};
+use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
 use wallet_common::{
-    account::serialization::{DerSecretKey, DerSigningKey},
+    account::serialization::DerSecretKey,
     generator::{Generator, TimeGenerator},
 };
-use x509_parser::nom::AsBytes;
 
 use crate::{
     basic_sa_ext::Entry,
@@ -33,11 +20,9 @@ use crate::{
     issuer_shared::SessionToken,
     server_state::{SessionState, SessionStore},
     utils::{
-        cose::{self, ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
+        cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
-        serialization::{
-            cbor_deserialize, cbor_serialize, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes,
-        },
+        serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateUsage},
     },
     Error, Result, SessionData,
@@ -80,27 +65,11 @@ pub enum VerificationError {
 }
 
 struct Session<S> {
-    state: SessionState<DisclosureData<S>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct DisclosureData<S> {
-    disclosure_state_enum: DisclosureStateEnum,
-    disclosure_state: S,
-}
-
-/// An enum whose variants correspond 1-to-1 with all possible states for a session, i.e., all implementations
-/// of the [`DisclosureState`] trait.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum DisclosureStateEnum {
-    Created,
-    WaitingForResponse,
-    Done,
+    state: SessionState<S>,
 }
 
 /// State for a session that has just been created.
-#[derive(Serialize, Deserialize)]
-struct Created {
+pub struct Created {
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
     ephemeral_privkey: DerSecretKey,
@@ -109,8 +78,9 @@ struct Created {
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
-#[derive(Serialize, Deserialize)]
-struct WaitingForResponse {
+
+pub struct WaitingForResponse {
+    #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: Vec<ItemsRequest>,
     our_key: SessionKey,
     their_key: SessionKey,
@@ -119,8 +89,8 @@ struct WaitingForResponse {
 }
 
 /// State for a session that has finished (perhaps due to cancellation or errors).
-#[derive(Serialize, Deserialize)]
-struct Done {
+
+pub struct Done {
     session_result: SessionResult,
 }
 
@@ -132,25 +102,45 @@ enum SessionResult {
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
-pub trait DisclosureState {
-    fn state_enum() -> DisclosureStateEnum
-    where
-        Self: Sized;
+pub trait DisclosureState {}
+
+impl DisclosureState for Created {}
+impl DisclosureState for WaitingForResponse {}
+impl DisclosureState for Done {}
+
+pub enum DisclosureData {
+    Created(Created),
+    WaitingForResponse(WaitingForResponse),
+    Done(Done),
 }
 
-impl DisclosureState for Created {
-    fn state_enum() -> DisclosureStateEnum {
-        DisclosureStateEnum::Created
+impl SessionState<Created> {
+    fn into_enum(self) -> SessionState<DisclosureData> {
+        SessionState {
+            session_data: DisclosureData::Created(self.session_data),
+            token: self.token,
+            last_active: self.last_active,
+        }
     }
 }
-impl DisclosureState for WaitingForResponse {
-    fn state_enum() -> DisclosureStateEnum {
-        DisclosureStateEnum::WaitingForResponse
+
+impl SessionState<WaitingForResponse> {
+    fn into_enum(self) -> SessionState<DisclosureData> {
+        SessionState {
+            session_data: DisclosureData::WaitingForResponse(self.session_data),
+            token: self.token,
+            last_active: self.last_active,
+        }
     }
 }
-impl DisclosureState for Done {
-    fn state_enum() -> DisclosureStateEnum {
-        DisclosureStateEnum::Done
+
+impl SessionState<Done> {
+    fn into_enum(self) -> SessionState<DisclosureData> {
+        SessionState {
+            session_data: DisclosureData::Done(self.session_data),
+            token: self.token,
+            last_active: self.last_active,
+        }
     }
 }
 
@@ -159,7 +149,7 @@ pub fn new_session(
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData<ByteBuf>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
 ) -> Result<ReaderEngagement> {
     if !certificates.contains_key(&usecase_id) {
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
@@ -168,42 +158,48 @@ pub fn new_session(
     let token = SessionToken::new();
     let url = base_url.join(&token.0).unwrap();
     let (reader_engagement, session_state) = Session::<Created>::new(items_requests, usecase_id, url)?;
-    sessions.write(&session_state.state.into_serialized()?);
+    sessions.write(&session_state.state.into_enum());
     Ok(reader_engagement)
 }
 
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData<ByteBuf>>>,
+    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
     let state = sessions.get(&token)?;
 
-    let session = Session::<ByteBuf> { state };
-
-    let (response, next) = match session.state.session_data.disclosure_state_enum {
-        DisclosureStateEnum::Created => {
+    let (response, next) = match state.session_data {
+        DisclosureData::Created(session_data) => {
             let session = Session::<Created> {
-                state: session.state.into_deserialized()?,
+                state: SessionState {
+                    session_data,
+                    token: state.token,
+                    last_active: state.last_active,
+                },
             };
             let (response, session) = session
                 .process_device_engagement(cbor_deserialize(msg)?, certificates)
                 .await;
             match session {
-                Ok(next) => Ok((response, next.state.into_serialized()?)),
-                Err(next) => Ok((response, next.state.into_serialized()?)),
+                Ok(next) => Ok((response, next.state.into_enum())),
+                Err(next) => Ok((response, next.state.into_enum())),
             }
         }
-        DisclosureStateEnum::WaitingForResponse => {
+        DisclosureData::WaitingForResponse(session_data) => {
             let session = Session::<WaitingForResponse> {
-                state: session.state.into_deserialized()?,
+                state: SessionState {
+                    session_data,
+                    token: state.token,
+                    last_active: state.last_active,
+                },
             };
             let (response, session) = session.process_response(cbor_deserialize(msg)?, trust_anchors);
-            Ok((response, session.state.into_serialized()?))
+            Ok((response, session.state.into_enum()))
         }
-        DisclosureStateEnum::Done => Err(Error::from(VerificationError::UnexpectedInput)),
+        DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
     }?;
 
     sessions.write(&next);
@@ -228,11 +224,8 @@ impl<T: DisclosureState> Session<T> {
     /// Converts `self` to a fresh copy with an updated timestamp and the specified state.
     fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
         Session {
-            state: SessionState::<DisclosureData<NewT>> {
-                session_data: DisclosureData {
-                    disclosure_state: new_state,
-                    disclosure_state_enum: NewT::state_enum(),
-                },
+            state: SessionState::<NewT> {
+                session_data: new_state,
                 token: self.state.token,
                 last_active: Local::now(),
             },
@@ -240,7 +233,7 @@ impl<T: DisclosureState> Session<T> {
     }
 
     fn state(&self) -> &T {
-        &self.state.session_data.disclosure_state
+        &self.state.session_data
     }
 }
 
@@ -257,14 +250,11 @@ impl Session<Created> {
         let session = Session::<Created> {
             state: SessionState::new(
                 SessionToken::new(),
-                DisclosureData {
-                    disclosure_state_enum: DisclosureStateEnum::Created,
-                    disclosure_state: Created {
-                        items_requests,
-                        usecase_id,
-                        ephemeral_privkey: ephemeral_privkey.into(),
-                        reader_engagement: reader_engagement.clone(),
-                    },
+                Created {
+                    items_requests,
+                    usecase_id,
+                    ephemeral_privkey: ephemeral_privkey.into(),
+                    reader_engagement: reader_engagement.clone(),
                 },
             ),
         };
@@ -359,7 +349,6 @@ impl Session<Created> {
             .get(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
-        let state = self.state();
         let device_request = self
             .new_device_request(&session_transcript, &cert_pair.0, &cert_pair.1)
             .await?;
@@ -514,34 +503,6 @@ impl ReaderEngagement {
         };
 
         Ok((engagement.into(), privkey))
-    }
-}
-
-impl SessionState<DisclosureData<ByteBuf>> {
-    fn into_deserialized<NewT: DeserializeOwned>(self) -> Result<SessionState<DisclosureData<NewT>>> {
-        let session = SessionState {
-            session_data: DisclosureData {
-                disclosure_state: cbor_deserialize(self.session_data.disclosure_state.as_bytes())?,
-                disclosure_state_enum: self.session_data.disclosure_state_enum,
-            },
-            token: self.token,
-            last_active: Local::now(),
-        };
-        Ok(session)
-    }
-}
-
-impl<T: DisclosureState + Serialize> SessionState<DisclosureData<T>> {
-    fn into_serialized(self) -> Result<SessionState<DisclosureData<ByteBuf>>> {
-        let session = SessionState {
-            session_data: DisclosureData {
-                disclosure_state: ByteBuf::from(cbor_serialize(&self.session_data.disclosure_state)?),
-                disclosure_state_enum: self.session_data.disclosure_state_enum,
-            },
-            token: self.token,
-            last_active: Local::now(),
-        };
-        Ok(session)
     }
 }
 
