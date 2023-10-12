@@ -171,9 +171,7 @@ pub fn new_session(
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
     }
 
-    let token = SessionToken::new();
-    let url = base_url.join(&token.0).unwrap();
-    let (reader_engagement, session_state) = Session::<Created>::new(items_requests, usecase_id, url)?;
+    let (reader_engagement, session_state) = Session::<Created>::new(items_requests, usecase_id, base_url)?;
     sessions.write(&session_state.state.into_enum());
     Ok(reader_engagement)
 }
@@ -269,12 +267,14 @@ impl Session<Created> {
     fn new(
         items_requests: Vec<ItemsRequest>,
         usecase_id: String,
-        url: Url,
+        base_url: Url,
     ) -> Result<(ReaderEngagement, Session<Created>)> {
+        let session_token = SessionToken::new();
+        let url = base_url.join(&session_token.0).unwrap();
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
-                SessionToken::new(),
+                session_token,
                 Created {
                     items_requests,
                     usecase_id,
