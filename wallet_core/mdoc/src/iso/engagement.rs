@@ -57,6 +57,24 @@ pub struct SessionTranscriptKeyed {
 /// Transcript of the session so far. Used in [`DeviceAuthentication`].
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
 
+impl SessionTranscript {
+    pub fn new(reader_engagement: &ReaderEngagement, device_engagement: &DeviceEngagement) -> Self {
+        SessionTranscriptKeyed {
+            device_engagement_bytes: device_engagement.clone().into(),
+            handover: Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+            ereader_key_bytes: reader_engagement
+                .0
+                .security
+                .as_ref()
+                .unwrap()
+                .0
+                .e_sender_key_bytes
+                .clone(),
+        }
+        .into()
+    }
+}
+
 pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 
 #[derive(Debug, Clone)]

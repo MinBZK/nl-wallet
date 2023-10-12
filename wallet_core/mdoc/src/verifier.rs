@@ -336,21 +336,7 @@ impl Session<Created> {
         // }
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript = SessionTranscriptKeyed {
-            device_engagement_bytes: device_engagement.clone().into(),
-            handover: Handover::SchemeHandoverBytes(TaggedBytes(self.state().reader_engagement.clone())),
-            ereader_key_bytes: self
-                .state()
-                .reader_engagement
-                .0
-                .security
-                .as_ref()
-                .unwrap()
-                .0
-                .e_sender_key_bytes
-                .clone(),
-        }
-        .into();
+        let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement);
 
         let cert_pair = certificates
             .get(&self.state().usecase_id)
