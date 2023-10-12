@@ -171,7 +171,7 @@ where
         )
         .deserialized()
         .map(|v| CborSeq(v))
-        .map_err(|e| de::Error::custom(format!("MapAsCborSeq::deserialize failed: {}", e)))
+        .map_err(|e| de::Error::custom(format!("CborSeq::deserialize failed: {}", e)))
     }
 }
 
@@ -219,20 +219,32 @@ where
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let ordered_map = match Value::deserialize(deserializer)? {
             Value::Map(v) => Ok(v),
-            _ => Err(de::Error::custom("not a map")),
+            _ => Err(de::Error::custom("CborIntMap::deserialize failed: not a map")),
         }?;
 
-        let zipped: Vec<(Value, Value)> = ordered_map
-            .iter()
-            .map(|(_, val)| val)
-            .zip(T::field_names())
-            .map(|(key, val)| (Value::Text(val), key.clone()))
-            .collect();
+        let fieldnames = T::field_names();
+        let with_fieldnames: Vec<(Value, Value)> = ordered_map
+            .into_iter()
+            .map(|(index, val)| {
+                let index: usize = index
+                    .as_integer()
+                    .ok_or(de::Error::custom(
+                        "CborIntMap::deserialize failed: key was not an integer",
+                    ))?
+                    .try_into()
+                    .map_err(|e| de::Error::custom(format!("CborIntMap::deserialize failed: {e}")))?;
+                let fieldname = fieldnames
+                    .get(index)
+                    .ok_or(de::Error::custom("CborIntMap::deserialize failed: index out of bounds"))?
+                    .clone();
+                Ok((Value::Text(fieldname), val))
+            })
+            .collect::<Result<_, _>>()?;
 
-        Value::Map(zipped)
+        Value::Map(with_fieldnames)
             .deserialized()
             .map(|v| CborIntMap(v))
-            .map_err(|e| de::Error::custom(format!("MapAsCborMap::deserialize failed: {e}")))
+            .map_err(|e| de::Error::custom(format!("CborIntMap::deserialize failed: {e}")))
     }
 }
 
