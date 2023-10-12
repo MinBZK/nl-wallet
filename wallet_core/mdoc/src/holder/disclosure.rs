@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::{ecdh::EphemeralSecret, elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
+use p256::{elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -211,8 +211,8 @@ impl Attributes {
 }
 
 impl DeviceEngagement {
-    pub fn new_device_engagement(referrer_url: Url) -> Result<(DeviceEngagement, EphemeralSecret)> {
-        let privkey = EphemeralSecret::random(&mut OsRng);
+    pub fn new_device_engagement(referrer_url: Url) -> Result<(DeviceEngagement, SecretKey)> {
+        let privkey = SecretKey::random(&mut OsRng);
 
         let engagement = Engagement {
             version: EngagementVersion::V1_0,
