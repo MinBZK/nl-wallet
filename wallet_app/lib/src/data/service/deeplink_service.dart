@@ -59,17 +59,23 @@ class DeeplinkService {
     this._walletCore,
     this._appLifecycleService,
   ) {
-    // Delay the actual processing of the (last seen) [Uri] until the app is resumed.
-    // Note: The delay is important, as the apps 'locked' flag is set when the [AppLifecycleState]
-    //       changes. Meaning that without the debounceTime the [ObserveWalletLockUseCase] could produce a stale value.
-    final resumedStream = _appLifecycleService
-        .observe()
-        .map((state) => state == AppLifecycleState.resumed)
-        .debounceTime(kResumeDebounceDuration);
+    _startObservingAppLinks();
+  }
 
-    Rx.merge([Stream.fromFuture(_appLinks.getInitialAppLink()).whereNotNull(), _appLinks.allUriLinkStream])
-        .debounce((uri) => resumedStream)
-        .map((uri) {
+  /// Observe [_appLinks] to process any incoming deeplink. The logic here makes sure the incoming [Uri]s are only
+  /// processed when the app is resumed and thus any potential calls to lockWallet have been processed.
+  void _startObservingAppLinks() {
+    // Note: The [kResumeDebounceDuration] is important, as the apps 'locked' flag is set when the [AppLifecycleState]
+    //       changes. Meaning that without the debounceTime the [ObserveWalletLockUseCase] could produce a stale value.
+    final initialLinkStream = Stream.fromFuture(_appLinks.getInitialAppLink()).whereNotNull();
+    // This clearController is used to make [allLinksStream] emit null after processing so that the same Uri is not
+    // processed twice, which would otherwise happen when the user hides and shows the app.
+    final clearController = StreamController<Uri?>();
+    final allLinksStream = Rx.merge<Uri?>([initialLinkStream, _appLinks.allUriLinkStream, clearController.stream]);
+    final debounceUntilResumedStream = CombineLatestStream.combine2(allLinksStream, _appLifecycleService.observe(),
+        (uri, state) => state == AppLifecycleState.resumed ? uri : null).whereNotNull();
+    debounceUntilResumedStream.debounceTime(kResumeDebounceDuration).map((uri) {
+      clearController.add(null);
       final request = _decodeDeeplinkUseCase.invoke(uri);
       if (request != null) return NavigationRequestDeeplink(request, uri);
       return UnknownDeeplink(uri);
