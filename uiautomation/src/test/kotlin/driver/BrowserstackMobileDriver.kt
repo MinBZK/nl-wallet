@@ -26,7 +26,7 @@ class BrowserstackMobileDriver : WebDriverProvider {
 
         // Set other BrowserStack capabilities
         browserstackOptions["projectName"] = testDataConfig.browserStackCapabilities.project
-        browserstackOptions["appiumVersion"] = "2.0.0"
+        browserstackOptions["appiumVersion"] = "2.0.1"
         browserstackOptions["disableAnimations"] = "true"
         browserstackOptions["buildName"] = Browserstack.buildName
         browserstackOptions["sessionName"] = TestBase.sessionName
@@ -47,7 +47,7 @@ class BrowserstackMobileDriver : WebDriverProvider {
             "appium:app",
             when (remoteDevice.platformName) {
                 "android" -> Browserstack.getAppUrl("NLWalletAndroid")
-                "ios" -> Browserstack.getAppUrl("NLWalletios")
+                "ios" -> Browserstack.getAppUrl("NLWalletIos")
                 else -> throw IllegalArgumentException("Invalid app: ${remoteDevice.platformName}")
             },
         )

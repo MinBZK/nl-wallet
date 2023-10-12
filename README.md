@@ -148,6 +148,7 @@ the [installation guide](https://www.rust-lang.org/tools/install). After install
 to add the following targets:
 
 - For iOS: `rustup target add aarch64-apple-ios x86_64-apple-ios`
+- For iOS simulator: `rustup target add aarch64-apple-ios-sim x86_64-apple-ios-sim`
 - For Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
 #### Android
@@ -169,10 +170,14 @@ easiest way to do so is:
 5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 6. Optional: let Android Studio use Flutter SDK installed via FVM by following
    [these steps](https://fvm.app/docs/getting_started/configuration#android-studio)
+7. Run `${HOME}/Library/Android/sdk/emulator/emulator -list-avds` to list the installed devices
+8. Start the emulator using `${HOME}/Library/Android/sdk/emulator/emulator [[AVDs] FROM PREVIOUS OUTPUT]``
 
 #### iOS
 
-Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
+1. Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12)
+2. Follow the steps to install iOS simulators
+3. Start the simulator using `open -a Simulator`
 
 ### Prerequisites
 

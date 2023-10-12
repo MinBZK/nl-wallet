@@ -9,17 +9,18 @@ object AppiumServiceProvider {
 
     fun startService() {
         if (server != null) throw UnsupportedOperationException("Server already running!")
-        val serviceBuilder = AppiumServiceBuilder()
-        // Use any port, in case the default 4723 is already taken (maybe by another Appium server)
 
         val environment = HashMap<String, String>()
         environment["PATH"] = "/usr/local/bin:" + System.getenv("PATH")
-        serviceBuilder.usingAnyFreePort()
+
+        val serviceBuilder = AppiumServiceBuilder()
+            .usingAnyFreePort() // Use any port, in case the default 4723 is already taken
             .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
             .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
             .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
             .withArgument(GeneralServerFlag.RELAXED_SECURITY)
             .withEnvironment(environment)
+
         server = AppiumDriverLocalService.buildService(serviceBuilder)
         server?.start()
     }

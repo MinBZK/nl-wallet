@@ -85,6 +85,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ElevatedButton(
+            key: const Key('introductionPrivacyScreenNextCta'),
             onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionConditionsRoute),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
