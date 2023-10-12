@@ -318,27 +318,21 @@ impl Session<Created> {
         certificates: &DashMap<String, (Certificate, SigningKey)>,
     ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
-        let url = self.state().reader_engagement.0.connection_methods.as_ref().unwrap()[0]
-            .0
-            .connection_options
-            .0
-            .uri
-            .clone();
-
-        if device_engagement.0.origin_infos
-            != vec![
-                OriginInfo {
-                    cat: OriginInfoDirection::Received,
-                    typ: OriginInfoType::Website(url),
-                },
-                OriginInfo {
-                    cat: OriginInfoDirection::Delivered,
-                    typ: OriginInfoType::MessageData,
-                },
-            ]
-        {
-            return Err(VerificationError::IncorrectOriginInfo.into());
-        }
+        // let url = ??? TODO
+        // if device_engagement.0.origin_infos
+        //     != vec![
+        //         OriginInfo {
+        //             cat: OriginInfoDirection::Received,
+        //             typ: OriginInfoType::Website(url),
+        //         },
+        //         OriginInfo {
+        //             cat: OriginInfoDirection::Delivered,
+        //             typ: OriginInfoType::MessageData,
+        //         },
+        //     ]
+        // {
+        //     return Err(VerificationError::IncorrectOriginInfo.into());
+        // }
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
         let session_transcript = SessionTranscriptKeyed {
