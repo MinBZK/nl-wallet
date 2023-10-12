@@ -2,6 +2,7 @@ use std::{fmt::Display, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Local};
 use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
 use wallet_common::utils::random_string;
 
@@ -90,7 +91,7 @@ impl<T: Clone> SessionStore for MemorySessionStore<T> {
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct SessionToken(pub(crate) String);
 
 impl SessionToken {

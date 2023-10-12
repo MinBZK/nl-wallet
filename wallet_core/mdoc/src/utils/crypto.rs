@@ -139,14 +139,14 @@ impl TryFrom<&Security> for PublicKey {
 }
 
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SessionKey {
     key: ByteBuf,
     user: SessionKeyUser,
 }
 
 /// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionKeyUser {
     Reader,
     Device,

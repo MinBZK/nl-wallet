@@ -68,12 +68,13 @@ pub enum VerificationError {
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
 /// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.
+#[derive(Debug)]
 struct Session<S> {
     state: SessionState<S>,
 }
 
 /// State for a session that has just been created.
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
@@ -83,7 +84,7 @@ pub struct Created {
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has read our
 /// [`ReaderEngagement`] and contacted us at the session URL.
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: Vec<ItemsRequest>,
@@ -93,13 +94,13 @@ pub struct WaitingForResponse {
 }
 
 /// State for a session that has ended (for any reason).
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Done {
     pub session_result: SessionResult,
 }
 
 /// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
     Failed, // TODO add error details
@@ -114,7 +115,7 @@ impl DisclosureState for WaitingForResponse {}
 impl DisclosureState for Done {}
 
 /// Disclosure-specific session data, of any state, for storing in a session store.
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DisclosureData {
     Created(Created),
     WaitingForResponse(WaitingForResponse),
