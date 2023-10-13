@@ -23,3 +23,7 @@ pin_hash_salt = "AIZwpO3BYBpjMLPsTqF2bExLEj1i4zKUCsgOUhSlK60"
 # rounds = 4
 # attempts_per_round = 4
 # timeouts_in_ms = [60_000, 300_000, 3_600_000]
+
+[hsm]
+library_path = "/usr/lib/softhsm/libsofthsm2.so"
+user_pin = "12345678"
