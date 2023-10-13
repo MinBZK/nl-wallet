@@ -29,7 +29,9 @@ import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
+import '../domain/usecase/deeplink/check_is_deepdive_uri_usecase.dart';
 import '../domain/usecase/deeplink/decode_deeplink_usecase.dart';
+import '../domain/usecase/deeplink/impl/check_is_deepdive_uri_usecase_impl.dart';
 import '../domain/usecase/deeplink/impl/decode_deeplink_usecase_impl.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
@@ -41,6 +43,10 @@ import '../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../domain/usecase/issuance/get_my_government_issuance_responses_usecase.dart';
 import '../domain/usecase/issuance/impl/get_issuance_response_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/get_my_government_issuance_responses_usecase_impl.dart';
+import '../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
+import '../domain/usecase/navigation/impl/check_navigation_prerequisites_usecase_impl.dart';
+import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase_impl.dart';
+import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
@@ -81,11 +87,11 @@ import '../domain/usecase/wallet/impl/get_first_names_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
-import '../domain/usecase/wallet/impl/observe_wallet_lock_usecase_impl.dart';
+import '../domain/usecase/wallet/impl/observe_wallet_locked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
-import '../domain/usecase/wallet/observe_wallet_lock_usecase.dart';
+import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../util/extension/bloc_extension.dart';
@@ -224,8 +230,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<UpdatePidIssuanceStatusUseCase>(
           create: (context) => UpdatePidIssuanceStatusUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ObserveWalletLockUseCase>(
-          create: (context) => ObserveWalletLockUseCaseImpl(context.read()),
+        RepositoryProvider<ObserveWalletLockedUseCase>(
+          create: (context) => ObserveWalletLockedUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CheckHasInternetUseCase>(
           lazy: false /* false to make sure [BlocExtensions.instance] is available */,
@@ -245,6 +251,15 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ResetWalletUseCase>(
           create: (context) => ResetWalletUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CheckIsDeepdiveUriUseCase>(
+          create: (context) => CheckIsDeepdiveUriUseCaseImpl(),
+        ),
+        RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
+          create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<PerformPreNavigationActionsUseCase>(
+          create: (context) => PerformPreNavigationActionsUseCaseImpl(context.read()),
         ),
       ],
       child: child,

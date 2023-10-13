@@ -39,15 +39,16 @@ Note that when using FVM, all Flutter commands below should be prefixed with `fv
 
 ## Building
 
-The easiest way to build the app locally is to use [fastlane](https://docs.fastlane.tools/getting-started/ios/setup/).
+The easiest way to build the app locally is to use [fastlane](https://docs.fastlane.tools/).
+To install use: `bundle install`.
 
 ### iOS
 
-To build the iOS app use: `fastlane ios build`. Note that password for fastlane match repository will be requested while building,
+To build the iOS app use: `bundle exec fastlane ios build`. Note that password for fastlane match repository will be requested while building,
 this repository is not public. Alternatively you can build the app using `flutter build ios`, which will rely on your own certificate.
 
 ### Android
-To build the Android app use: `fastlane android build`. Note that this requires you to configure a local signing key.
+To build the Android app use: `bundle exec fastlane android build`. Note that this requires you to configure a local signing key.
 To do so:
 1. Generate a new key: `keytool -genkey -v -keystore local_key.jks -alias wallet -keyalg RSA -keysize 2048 -validity 10000`
 2. Provide some details through the cli, in this example I opted to use `nl-wallet` as the password.
@@ -59,7 +60,7 @@ To do so:
     keyAlias=wallet
     storeFile=local_key.jks
     ```
-5. That's it! Building release builds, e.g. with `fastlane android build` should now work.
+5. That's it! Building release builds, e.g. with `bundle exec fastlane android build` should now work.
 
 ## App Configuration
 
@@ -75,6 +76,7 @@ During local development, two additional variables should be set:
 
 * Setting `DISABLE_TLS_VALIDATION=true` will disable TLS validation during PID issuance, so a self-signed certificate may be used.
 * Setting `ENV_CONFIGURATION=true` will allow overriding of hardcoded configuration values in the Rust core from the environment during compilation.
+
 
 # File Structure
 
@@ -139,6 +141,7 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | E2E Test Scenario    | Deep dive link                         | Explanation                                                                                                           |
 |----------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | Skip (setup) to home | walletdebuginteraction://deepdive#home | Use on clean app startup; to setup wallet with mock data and jump straight to the home (a.k.a. cards overview) screen |
+
 
 # Conventions
 
@@ -230,6 +233,7 @@ void main() {
 }
 ```
 
+
 # Architecture
 
 > Note: This section needs to be updated, as some changes have since be made. Mainly splitting the mock and real implementation at the Repository layer in favour of the DataSource layer.
@@ -295,6 +299,7 @@ working with real datasources, this abstraction allows us to get started now, an
 migrate to a fully functional app (once the data comes online) by replacing our MockRepositories /
 MockDataSources with the actual implementations, without touching anything in the Domain or UI
 Layer.
+
 
 # App Distribution
 

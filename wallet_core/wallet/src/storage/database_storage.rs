@@ -9,9 +9,9 @@ use uuid::Uuid;
 
 use entity::{keyed_data, mdoc, mdoc_copy};
 use nl_wallet_mdoc::{
-    holder::Mdoc,
+    holder::{Mdoc, MdocCopies},
+    utils::serialization::CborError,
     utils::serialization::{cbor_deserialize, cbor_serialize},
-    utils::{mdocs_map::MdocsMap, serialization::CborError},
 };
 use platform_support::utils::PlatformUtilities;
 use wallet_common::keys::SecureEncryptionKey;
@@ -184,7 +184,7 @@ where
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: MdocsMap) -> StorageResult<()> {
+    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         let database = self.database()?;
 
         let transaction = database.connection().begin().await?;
@@ -192,9 +192,7 @@ where
         // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
         let mdoc_models = mdocs
-            .0
-            .into_values()
-            .flat_map(|doc_type_mdocs| doc_type_mdocs.into_values())
+            .into_iter()
             .filter(|mdoc_copies| !mdoc_copies.cred_copies.is_empty())
             .map(|mdoc_copies| {
                 let mdoc_id = Uuid::new_v4();
@@ -412,21 +410,13 @@ mod tests {
         // Create MdocsMap from example Mdoc
         let trust_anchors = Examples::iaca_trust_anchors();
         let mdoc = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
-        let mdocs_map = MdocsMap::try_from([mdoc.clone(), mdoc.clone(), mdoc]).unwrap();
+        let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
 
-        // Insert MdocsMap
-        storage.insert_mdocs(mdocs_map.clone()).await.unwrap();
+        // Insert mdocs
+        storage.insert_mdocs(vec![mdoc_copies.clone()]).await.unwrap();
 
-        // Fetch MdocsMap
+        // Fetch unique mdocs
         let fetched = storage.fetch_unique_mdocs().await.unwrap();
-
-        // By the logic above, there is one and only one `MdocCopies`.
-        let mdoc_copies = mdocs_map
-            .0
-            .values()
-            .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
-            .next()
-            .unwrap();
 
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched.len(), 1);

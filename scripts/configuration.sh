@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "${SCRIPTS_DIR}/utils.sh"
+
 WP_DIR="${BASE_DIR}/wallet_core/wallet_provider"
 PID_ISSUER_DIR="${BASE_DIR}/wallet_core/pid_issuer"
 
@@ -24,11 +26,13 @@ export DB_USERNAME="${DB_USERNAME:-postgres}" # default: postgres
 export DB_PASSWORD="${DB_PASSWORD:-postgres}" # default: postgres
 export DB_NAME="${DB_NAME:-wallet_provider}" # default: wallet_provider
 
+# HSM properties, with defaults
+HSM_LIBRARY_PATH=$(detect_softhsm)
+export HSM_LIBRARY_PATH
+export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
+export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
+export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
+export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
+
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
-
-source "${SCRIPTS_DIR}/colors.sh"
-
-SECTION=${LIGHT_BLUE}
-SUCCESS=${LIGHT_GREEN}
-INFO=${PURPLE}

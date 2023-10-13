@@ -19,3 +19,7 @@ name = "${DB_NAME}"
 # rounds = 4
 # attempts_per_round = 4
 # timeouts_in_ms = [60_000, 300_000, 3_600_000]
+
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"

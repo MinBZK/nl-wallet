@@ -2,7 +2,7 @@ use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use uuid::Uuid;
 
 use wallet_provider_domain::model::wallet_user::WalletUserKeysCreate;
-use wallet_provider_persistence::wallet_user_key::{create_keys, find_key_by_identifier};
+use wallet_provider_persistence::wallet_user_key::{create_keys, find_keys_by_identifiers};
 
 pub mod common;
 
@@ -17,10 +17,10 @@ async fn test_create_keys() {
     let wallet_user_id = Uuid::new_v4();
     let wallet_id = Uuid::new_v4().to_string();
 
-    common::create_wallet_user_with_random_keys(db, wallet_user_id, wallet_id.clone()).await;
+    common::create_wallet_user_with_random_keys(&db, wallet_user_id, wallet_id.clone()).await;
 
     create_keys(
-        db,
+        &db,
         WalletUserKeysCreate {
             wallet_user_id,
             keys: vec![key1.clone(), key2.clone()],
@@ -29,15 +29,13 @@ async fn test_create_keys() {
     .await
     .unwrap();
 
-    let persisted_key1 = find_key_by_identifier(db, wallet_user_id, "key1")
+    let mut persisted_keys = find_keys_by_identifiers(&db, wallet_user_id, &["key1".to_string(), "key2".to_string()])
         .await
         .unwrap()
-        .unwrap();
+        .into_iter()
+        .collect::<Vec<_>>();
+    persisted_keys.sort_by_key(|(key, _)| key.clone());
+    let keys = persisted_keys.into_iter().map(|(_, key)| key).collect::<Vec<_>>();
 
-    let persisted_key2 = find_key_by_identifier(db, wallet_user_id, "key2")
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(vec![key1.2, key2.2], vec![persisted_key1, persisted_key2]);
+    assert_eq!(vec![key1.2, key2.2], keys);
 }

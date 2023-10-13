@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Duration, Local};
 use futures::try_join;
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -25,7 +25,7 @@ use wallet_common::{
 use wallet_provider_domain::{
     model::{
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
-        wallet_user::{WalletUser, WalletUserCreate, WalletUserQueryResult},
+        wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
     },
     repository::{Committable, PersistenceError, TransactionStarter, WalletUserRepository},
     wallet_provider_signing_key::WalletProviderEcdsaKey,
@@ -124,6 +124,8 @@ pub enum InstructionValidationError {
     SequenceNumberMismatch,
     #[error("instruction challenge mismatch")]
     ChallengeMismatch,
+    #[error("instruction challenge timeout")]
+    ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
     VerificationFailed(#[source] wallet_common::errors::Error),
 }
@@ -170,6 +172,7 @@ pub struct AccountServer {
     instruction_result_signing_key: WalletProviderEcdsaKey,
 
     pin_hash_salt: Vec<u8>,
+    instruction_challenge_timeout: Duration,
 
     pub name: String,
     pub certificate_pubkey: EcdsaDecodingKey,
@@ -181,6 +184,7 @@ impl AccountServer {
         certificate_signing_key: WalletProviderEcdsaKey,
         instruction_result_signing_key: WalletProviderEcdsaKey,
         pin_hash_salt: Vec<u8>,
+        instruction_challenge_timeout: Duration,
         name: String,
     ) -> Result<AccountServer, AccountServerInitError> {
         let (certificate_pubkey, instruction_result_pubkey) = try_join!(
@@ -192,6 +196,7 @@ impl AccountServer {
             certificate_signing_key,
             instruction_result_signing_key,
             pin_hash_salt,
+            instruction_challenge_timeout,
             name,
             certificate_pubkey: certificate_pubkey.into(),
             instruction_result_pubkey: instruction_result_pubkey.into(),
@@ -221,6 +226,7 @@ impl AccountServer {
         &self,
         challenge_request: InstructionChallengeRequestMessage,
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        time_generator: &impl Generator<DateTime<Local>>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -251,13 +257,16 @@ impl AccountServer {
 
         debug!("Sequence number valid, persisting generated challenge and incremented sequence number");
 
-        let challenge = random_bytes(32);
+        let challenge = InstructionChallenge {
+            bytes: random_bytes(32),
+            expiration_date_time: time_generator.generate() + self.instruction_challenge_timeout,
+        };
 
         repositories
             .update_instruction_challenge_and_sequence_number(
                 &tx,
                 &user.wallet_id,
-                Some(challenge.clone()),
+                challenge.clone(),
                 parsed.sequence_number,
             )
             .await?;
@@ -265,7 +274,7 @@ impl AccountServer {
 
         debug!("Responding with generated challenge");
 
-        Ok(challenge)
+        Ok(challenge.bytes)
     }
 
     pub async fn handle_instruction<T, I, R>(
@@ -317,7 +326,7 @@ impl AccountServer {
 
         debug!("Verifying instruction");
 
-        match self.verify_instruction(instruction, &wallet_user) {
+        match self.verify_instruction(instruction, &wallet_user, time_generator) {
             Ok(payload) => {
                 debug!("Instruction successfully verified, resetting pin retries");
 
@@ -511,6 +520,7 @@ impl AccountServer {
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
+        time_generator: &impl Generator<DateTime<Local>>,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
@@ -520,10 +530,14 @@ impl AccountServer {
             .as_ref()
             .ok_or(InstructionValidationError::ChallengeMismatch)?;
 
+        if challenge.expiration_date_time < time_generator.generate() {
+            return Err(InstructionValidationError::ChallengeTimeout);
+        }
+
         let parsed = instruction
             .instruction
             .parse_and_verify(
-                challenge,
+                &challenge.bytes,
                 SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
                 &wallet_user.hw_pubkey.0,
                 &wallet_user.pin_pubkey.0,
@@ -567,6 +581,7 @@ fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use chrono::Duration;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
 
@@ -582,6 +597,7 @@ pub mod mock {
             account_server_privkey.into(),
             instruction_result_privkey.into(),
             random_bytes(32),
+            Duration::milliseconds(15000),
             "mock_account_server".into(),
         )
         .await
@@ -593,8 +609,10 @@ pub mod mock {
 mod tests {
     use assert_matches::assert_matches;
     use async_trait::async_trait;
+    use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
+    use std::collections::HashMap;
     use uuid::uuid;
 
     use wallet_common::account::{
@@ -682,7 +700,10 @@ mod tests {
                 pin_pubkey: DerVerifyingKey(self.pin),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
-                instruction_challenge: self.challenge.clone(),
+                instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
+                    bytes: c,
+                    expiration_date_time: Local::now() + Duration::milliseconds(15000),
+                }),
                 instruction_sequence_number: self.instruction_sequence_number,
             })))
         }
@@ -713,7 +734,7 @@ mod tests {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-            _challenge: Option<Vec<u8>>,
+            _challenge: InstructionChallenge,
             _instruction_sequence_number: u64,
         ) -> Result<(), PersistenceError> {
             Ok(())
@@ -734,13 +755,16 @@ mod tests {
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
-        async fn get_key(
+        async fn find_keys_by_identifiers(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_user_id: uuid::Uuid,
-            _key_identifier: &str,
-        ) -> Result<Option<SigningKey>, PersistenceError> {
-            Ok(SigningKey::random(&mut OsRng).into())
+            _wallet_user_id: Uuid,
+            key_identifiers: &[String],
+        ) -> Result<HashMap<String, SigningKey>, PersistenceError> {
+            Ok(key_identifiers
+                .iter()
+                .map(|id| (id.clone(), SigningKey::random(&mut OsRng)))
+                .collect())
         }
     }
 
@@ -781,6 +805,7 @@ mod tests {
                         certificate: cert.clone(),
                     },
                     &deps,
+                    &EpochGenerator,
                 )
                 .await
                 .expect_err("should return instruction sequence number mismatch error"),
@@ -796,6 +821,7 @@ mod tests {
                     certificate: cert.clone(),
                 },
                 &deps,
+                &EpochGenerator,
             )
             .await
             .unwrap();
@@ -877,6 +903,7 @@ mod tests {
                     challenge: None,
                     instruction_sequence_number: 0,
                 },
+                &EpochGenerator,
             )
             .await
             .unwrap();
@@ -940,5 +967,169 @@ mod tests {
             )
             .await
             .expect_err("Should not validate");
+    }
+
+    #[tokio::test]
+    async fn valid_challenge_should_verify() {
+        let account_server = mock::account_server().await;
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        let hw_pubkey = *hw_privkey.verifying_key();
+        let pin_pubkey = *pin_privkey.verifying_key();
+
+        let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
+
+        let mut repo = WalletUserTestRepo {
+            hw: hw_pubkey,
+            pin: pin_pubkey,
+            challenge: None,
+            instruction_sequence_number: 0,
+        };
+
+        let challenge_request = InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                .await
+                .unwrap(),
+            certificate: cert.clone(),
+        };
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .await
+            .unwrap();
+
+        repo.challenge = Some(challenge.clone());
+
+        let tx = repo.begin_transaction().await.unwrap();
+        let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
+        tx.commit().await.unwrap();
+
+        assert_matches!(
+            wallet_user,
+            WalletUserQueryResult::Found(user) if account_server
+                .verify_instruction(
+                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                        .await
+                        .unwrap(),
+                    &user,
+                    &EpochGenerator,
+                )
+                .is_ok()
+        )
+    }
+
+    #[tokio::test]
+    async fn wrong_challenge_should_not_verify() {
+        let account_server = mock::account_server().await;
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        let hw_pubkey = *hw_privkey.verifying_key();
+        let pin_pubkey = *pin_privkey.verifying_key();
+
+        let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
+
+        let mut repo = WalletUserTestRepo {
+            hw: hw_pubkey,
+            pin: pin_pubkey,
+            challenge: None,
+            instruction_sequence_number: 0,
+        };
+
+        let challenge_request = InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                .await
+                .unwrap(),
+            certificate: cert.clone(),
+        };
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .await
+            .unwrap();
+
+        repo.challenge = Some(random_bytes(32));
+
+        let tx = repo.begin_transaction().await.unwrap();
+        let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
+        tx.commit().await.unwrap();
+
+        assert_matches!(
+            wallet_user,
+            WalletUserQueryResult::Found(user) if matches!(
+                account_server.verify_instruction(
+                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                        .await
+                        .unwrap(),
+                    &user,
+                    &EpochGenerator,
+                ),
+                Err(InstructionValidationError::VerificationFailed(
+                    wallet_common::errors::Error::ChallengeMismatch
+                ))
+            )
+        );
+    }
+
+    struct ExpiredAtEpochGeneretor;
+
+    impl Generator<DateTime<Local>> for ExpiredAtEpochGeneretor {
+        fn generate(&self) -> DateTime<Local> {
+            Local.timestamp_nanos(-1)
+        }
+    }
+
+    #[tokio::test]
+    async fn expired_challenge_should_not_verify() {
+        let account_server = mock::account_server().await;
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        let hw_pubkey = *hw_privkey.verifying_key();
+        let pin_pubkey = *pin_privkey.verifying_key();
+
+        let cert = do_registration(&account_server, &hw_privkey, &pin_privkey).await;
+
+        let repo = WalletUserTestRepo {
+            hw: hw_pubkey,
+            pin: pin_pubkey,
+            challenge: None,
+            instruction_sequence_number: 0,
+        };
+
+        let challenge_request = InstructionChallengeRequestMessage {
+            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                .await
+                .unwrap(),
+            certificate: cert.clone(),
+        };
+
+        let challenge = account_server
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .await
+            .unwrap();
+
+        let tx = repo.begin_transaction().await.unwrap();
+        let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
+        assert_matches!(wallet_user, WalletUserQueryResult::Found(_));
+
+        if let WalletUserQueryResult::Found(mut user) = wallet_user {
+            user.instruction_challenge = Some(InstructionChallenge {
+                bytes: challenge.clone(),
+                expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+            });
+
+            assert_matches!(
+                account_server.verify_instruction(
+                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                        .await
+                        .unwrap(),
+                    &user,
+                    &EpochGenerator,
+                ),
+                Err(InstructionValidationError::ChallengeTimeout)
+            );
+        }
     }
 }

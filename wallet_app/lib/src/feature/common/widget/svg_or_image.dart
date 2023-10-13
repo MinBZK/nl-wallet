@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
-const kSvgFileExtensions = ['svg', 'svg.vec'];
+import 'package:vector_graphics/vector_graphics.dart';
 
 /// Takes an [asset] of either an SVG or a 'normal' image and
 /// renders it with the provided [fit] and [alignment].
@@ -19,19 +18,17 @@ class SvgOrImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSvg = kSvgFileExtensions.any((extension) => asset.endsWith(extension));
-    if (isSvg) {
-      return SvgPicture.asset(
-        asset,
-        fit: fit,
-        alignment: alignment,
-      );
-    } else {
-      return Image.asset(
-        asset,
-        fit: fit,
-        alignment: alignment,
-      );
+    switch (asset) {
+      case (String svg) when asset.endsWith('.svg'):
+        return SvgPicture.asset(svg, fit: fit, alignment: alignment);
+      case (String vec) when asset.endsWith('.svg.vec'):
+        return SvgPicture(
+          AssetBytesLoader(vec, assetBundle: DefaultAssetBundle.of(context)),
+          fit: fit,
+          alignment: alignment,
+        );
+      case (String other):
+        return Image.asset(other, fit: fit, alignment: alignment);
     }
   }
 }

@@ -5,11 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 import '../../../domain/model/wallet_card.dart';
+import '../../../navigation/secured_page_route.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../detail/argument/card_detail_screen_argument.dart';
+import '../detail/card_detail_screen.dart';
 import 'bloc/card_overview_bloc.dart';
 
 /// Defines the width required to render a card,
@@ -73,13 +75,11 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   void _onCardPressed(BuildContext context, WalletCard walletCard) {
+    SecuredPageRoute.overrideDurationOfNextTransition(kPreferredCardDetailEntryTransitionDuration);
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDetailRoute,
-      arguments: CardDetailScreenArgument(
-        cardId: walletCard.id,
-        cardTitle: walletCard.front.title,
-      ).toMap(),
+      arguments: CardDetailScreenArgument.forCard(walletCard).toMap(),
     );
   }
 

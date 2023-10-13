@@ -14,8 +14,8 @@ use sea_orm::DbErr;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::Mdoc,
-    utils::{mdocs_map::MdocsMap, serialization::CborError},
+    holder::{Mdoc, MdocCopies},
+    utils::serialization::CborError,
 };
 use platform_support::utils::UtilitiesError;
 
@@ -75,6 +75,6 @@ pub trait Storage {
     async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
     async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
 
-    async fn insert_mdocs(&mut self, mdocs: MdocsMap) -> StorageResult<()>;
+    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>>;
 }

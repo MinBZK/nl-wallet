@@ -19,7 +19,7 @@ pub use crate::{
         AccountServerConfiguration, Configuration, ConfigurationRepository, LockTimeoutConfiguration,
         PidIssuanceConfiguration,
     },
-    digid::DigidClient,
+    digid::DigidSession,
     document::{
         Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentPersistence, DocumentType,
         GenderAttributeValue,
@@ -27,13 +27,13 @@ pub use crate::{
     pid_issuer::PidIssuerClient,
     pin::validation::validate_pin,
     storage::Storage,
-    wallet::{RedirectUriType, Wallet},
+    wallet::{UriType, Wallet},
 };
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
     pub use crate::{
-        account_provider::HttpAccountProviderClient, config::LocalConfigurationRepository, digid::HttpDigidClient,
+        account_provider::HttpAccountProviderClient, config::LocalConfigurationRepository, digid::HttpDigidSession,
         instruction::RemoteEcdsaKey, pid_issuer::HttpPidIssuerClient,
     };
 }
@@ -41,7 +41,7 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_provider::MockAccountProviderClient, digid::MockDigidClient, pid_issuer::MockPidIssuerClient,
+        account_provider::MockAccountProviderClient, digid::MockDigidSession, pid_issuer::MockPidIssuerClient,
         storage::MockStorage,
     };
 }

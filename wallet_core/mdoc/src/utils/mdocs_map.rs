@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use wallet_common::utils::sha256;
 
 use crate::{
     basic_sa_ext::Entry,
@@ -6,8 +7,7 @@ use crate::{
     DocType, Error, NameSpace,
 };
 
-#[cfg(feature = "mock")]
-use crate::holder::MdocRetriever;
+use crate::{holder::MdocRetriever, utils::serialization::cbor_serialize};
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,
@@ -72,7 +72,6 @@ impl MdocsMap {
     }
 }
 
-#[cfg(feature = "mock")]
 impl MdocRetriever for MdocsMap {
     fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
         self.0.get(doctype).map(|v| {
@@ -83,34 +82,16 @@ impl MdocRetriever for MdocsMap {
     }
 }
 
-pub struct MdocsMapIntoIterator {
-    mdocs: Vec<Mdoc>,
-}
-
-impl IntoIterator for MdocsMap {
-    type Item = Mdoc;
-
-    type IntoIter = MdocsMapIntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let mdocs = self
-            .0
-            .into_iter()
-            .flat_map(|(_, allcreds)| allcreds.into_iter())
-            .flat_map(|(_, doctype_creds)| doctype_creds.cred_copies.into_iter())
-            .collect();
-        MdocsMapIntoIterator { mdocs }
-    }
-}
-
-impl Iterator for MdocsMapIntoIterator {
-    type Item = Mdoc;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.mdocs.is_empty() {
-            None
-        } else {
-            Some(self.mdocs.remove(0))
-        }
+impl Mdoc {
+    /// Hash of the mdoc, acting as an identifier for the mdoc. Takes into account its doctype
+    /// and all of its attributes, using [`Self::attributes()`].
+    /// Computed schematically as `SHA256(CBOR(doctype, attributes))`.
+    ///
+    /// Credentials having the exact same attributes
+    /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
+    /// signature; or the validity of the mdoc.
+    pub fn hash(&self) -> crate::Result<Vec<u8>> {
+        let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
+        Ok(digest)
     }
 }

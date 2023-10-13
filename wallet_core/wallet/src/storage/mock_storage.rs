@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{holder::Mdoc, utils::mdocs_map::MdocsMap};
+use nl_wallet_mdoc::{
+    holder::{Mdoc, MdocCopies},
+    utils::mdocs_map::MdocsMap,
+};
 
 use super::{
     data::{KeyedData, RegistrationData},
@@ -82,8 +85,8 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: MdocsMap) -> StorageResult<()> {
-        self.mdocs.add(mdocs.into_iter()).unwrap();
+    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+        self.mdocs.add(mdocs.into_iter().flatten()).unwrap();
 
         Ok(())
     }

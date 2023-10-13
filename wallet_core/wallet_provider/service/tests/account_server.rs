@@ -12,6 +12,7 @@ use wallet_common::{
 use wallet_provider_domain::{
     model::wallet_user::WalletUserQueryResult,
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
+    EpochGenerator,
 };
 
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
@@ -108,6 +109,7 @@ async fn test_instruction_challenge() {
                     .unwrap(),
             },
             &repos,
+            &EpochGenerator,
         )
         .await
         .unwrap();
@@ -123,6 +125,7 @@ async fn test_instruction_challenge() {
                     .unwrap(),
             },
             &repos,
+            &EpochGenerator,
         )
         .await
         .unwrap();

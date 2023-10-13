@@ -4,12 +4,10 @@ import 'package:fimber/fimber.dart';
 
 import '../../../../feature/issuance/argument/issuance_screen_argument.dart';
 import '../../../../navigation/wallet_routes.dart';
+import '../../../../wallet_constants.dart';
 import '../../../model/navigation/navigation_request.dart';
 import '../../../model/qr/edi_qr_code.dart';
 import '../decode_deeplink_usecase.dart';
-
-const _kDeeplinkHost = 'deeplink';
-const _kDeepDiveHost = 'deepdive';
 
 /// Takes a [Uri] and attempts to provide a [NavigationRequest] that contains
 /// the information to navigate the user to the related destination.
@@ -20,19 +18,13 @@ const _kDeepDiveHost = 'deepdive';
 /// Sample to trigger deepdive test scenario from the terminal:
 /// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deepdive#home" nl.rijksoverheid.edi.wallet
 class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
-  @override
-  get deeplinkHost => _kDeeplinkHost;
-
-  @override
-  get deepDiveHost => _kDeepDiveHost;
-
   DecodeDeeplinkUseCaseImpl();
 
   @override
   NavigationRequest? invoke(Uri uri) {
-    if (uri.host == _kDeeplinkHost) {
+    if (uri.host == kDeeplinkHost || uri.path.startsWith(kDeeplinkPath)) {
       return _decodeDeeplink(uri);
-    } else if (uri.host == _kDeepDiveHost) {
+    } else if (uri.host == kDeepDiveHost || uri.path.startsWith(kDeepDivePath)) {
       return _decodeDeepDive(uri);
     } else {
       Fimber.i('Unhandled incoming uri: $uri');
@@ -62,7 +54,11 @@ class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
           argument = code.id;
           break;
       }
-      return NavigationRequest(destination, argument: argument);
+      return NavigationRequest(
+        destination,
+        argument: argument,
+        navigatePrerequisites: [NavigationPrerequisite.walletUnlocked, NavigationPrerequisite.pidInitialized],
+      );
     } catch (ex, stack) {
       Fimber.e('Failed to parse deeplink uri: $uri', ex: ex, stacktrace: stack);
       return null;
@@ -74,7 +70,7 @@ class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
       return NavigationRequest(
         WalletRoutes.homeRoute,
         argument: null,
-        navigatePrerequisite: NavigationPrerequisite.setupMockedWallet,
+        preNavigationActions: [PreNavigationAction.setupMockedWallet],
       );
     } else {
       Fimber.i('Unhandled deep dive uri: $uri');

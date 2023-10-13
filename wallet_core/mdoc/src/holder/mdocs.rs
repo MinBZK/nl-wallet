@@ -4,15 +4,12 @@ use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, utils::sha256};
+use wallet_common::generator::Generator;
 
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::{
-        keys::{MdocEcdsaKey, MdocKeyType},
-        serialization::cbor_serialize,
-    },
+    utils::keys::{MdocEcdsaKey, MdocKeyType},
     verifier::ValidityRequirement,
     Result,
 };
@@ -57,11 +54,6 @@ impl IntoIterator for MdocCopies {
 impl From<Vec<Mdoc>> for MdocCopies {
     fn from(creds: Vec<Mdoc>) -> Self {
         Self { cred_copies: creds }
-    }
-}
-impl MdocCopies {
-    pub fn new() -> Self {
-        MdocCopies { cred_copies: vec![] }
     }
 }
 
@@ -118,17 +110,5 @@ impl Mdoc {
             .0
             .device_key_info
             .try_into()
-    }
-
-    /// Hash of the mdoc, acting as an identifier for the mdoc. Takes into account its doctype
-    /// and all of its attributes, using [`Self::attributes()`].
-    /// Computed schematically as `SHA256(CBOR(doctype, attributes))`.
-    ///
-    /// Credentials having the exact same attributes
-    /// with the exact same values have the same hash, regardless of the randoms of the attributes; the issuer
-    /// signature; or the validity of the mdoc.
-    pub fn hash(&self) -> Result<Vec<u8>> {
-        let digest = sha256(&cbor_serialize(&(&self.doc_type, &self.attributes()))?);
-        Ok(digest)
     }
 }

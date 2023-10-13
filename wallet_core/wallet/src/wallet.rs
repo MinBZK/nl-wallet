@@ -3,7 +3,7 @@ use std::error::Error;
 use futures::future::TryFutureExt;
 use p256::ecdsa::signature;
 use tokio::sync::RwLock;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 use url::Url;
 
 use platform_support::{
@@ -18,7 +18,7 @@ use wallet_common::account::messages::{auth::Registration, instructions::CheckPi
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError, HttpAccountProviderClient},
     config::{Configuration, ConfigurationRepository, LocalConfigurationRepository},
-    digid::{DigidClient, DigidError, HttpDigidClient},
+    digid::{DigidError, DigidSession, HttpDigidSession},
     document::{Document, DocumentMdocError, DocumentPersistence},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     lock::WalletLock,
@@ -73,11 +73,21 @@ pub enum WalletUnlockError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum UriIdentificationError {
+    #[error("could not parse URI: {0}")]
+    Parse(#[from] url::ParseError),
+    #[error("unknown URI")]
+    Unknown,
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
     #[error("wallet is not registered")]
     NotRegistered,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
+    #[error("no DigiD session was found")]
+    NoSession,
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
@@ -90,6 +100,8 @@ pub enum PidIssuanceError {
     Document(#[from] DocumentMdocError),
     #[error("could not access mdocs database: {0}")]
     Database(#[from] StorageError),
+    #[error("key '{0}' not found in Wallet Provider")]
+    KeyNotFound(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -98,9 +110,9 @@ pub enum SetDocumentsCallbackError {
     Storage(#[from] StorageError),
 }
 
-pub enum RedirectUriType {
-    PidIssuance,
-    Unknown,
+pub enum UriType {
+    PidIssuance(Url),
+    Disclosure(Url),
 }
 
 type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
@@ -111,14 +123,14 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,
     K = HardwareEcdsaKey,
     A = HttpAccountProviderClient,
-    D = HttpDigidClient,
+    D = HttpDigidSession,
     P = HttpPidIssuerClient,
 > {
     config_repository: C,
     storage: RwLock<S>,
     hw_privkey: K,
     account_provider_client: A,
-    digid_client: D,
+    digid_session: Option<D>,
     pid_issuer: P,
     lock: WalletLock,
     registration: Option<RegistrationData>,
@@ -137,7 +149,6 @@ impl Wallet {
             LocalConfigurationRepository::default(),
             storage,
             HttpAccountProviderClient::default(),
-            HttpDigidClient::default(),
             HttpPidIssuerClient::default(),
         )
         .await
@@ -150,7 +161,7 @@ where
     S: Storage + Send + Sync,
     K: PlatformEcdsaKey + Sync,
     A: AccountProviderClient + Sync,
-    D: DigidClient,
+    D: DigidSession,
     P: PidIssuerClient,
 {
     /// Initialize the wallet by loading initial state.
@@ -158,7 +169,6 @@ where
         config_repository: C,
         mut storage: S,
         account_provider_client: A,
-        digid_client: D,
         pid_issuer: P,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
@@ -168,7 +178,7 @@ where
             storage: RwLock::new(storage),
             hw_privkey: K::new(WALLET_KEY_ID),
             account_provider_client,
-            digid_client,
+            digid_session: None,
             pid_issuer,
             lock: WalletLock::new(true),
             registration,
@@ -404,7 +414,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn create_pid_issuance_redirect_uri(&mut self) -> Result<Url, PidIssuanceError> {
+    pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
         info!("Checking if already registered");
@@ -412,33 +422,61 @@ where
             return Err(PidIssuanceError::NotRegistered);
         }
 
+        if self.digid_session.is_some() {
+            warn!("DigiD auth url is requested for PID issuance while another Digid session is present, overwriting");
+        }
+
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
 
-        let auth_url = self
-            .digid_client
-            .start_session(
-                &pid_issuance_config.digid_url,
-                &pid_issuance_config.digid_client_id,
-                &pid_issuance_config.digid_redirect_uri,
-            )
-            .await
-            .map_err(PidIssuanceError::DigidSessionStart)?;
+        let session = D::start(
+            pid_issuance_config.digid_url.clone(),
+            pid_issuance_config.digid_client_id.to_string(),
+            pid_issuance_config.digid_redirect_uri.clone(),
+        )
+        .await
+        .map_err(PidIssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
+
+        let auth_url = session.auth_url();
+        self.digid_session.replace(session);
 
         Ok(auth_url)
     }
 
-    pub fn identify_redirect_uri(&self, redirect_uri: &Url) -> RedirectUriType {
-        if self.digid_client.accepts_redirect_uri(redirect_uri) {
-            return RedirectUriType::PidIssuance;
+    pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
+        let uri = Url::parse(uri_str)?;
+
+        if self
+            .digid_session
+            .as_ref()
+            .map(|session| session.matches_received_redirect_uri(&uri))
+            .unwrap_or_default()
+        {
+            return Ok(UriType::PidIssuance(uri));
         }
 
-        RedirectUriType::Unknown
+        // TODO: actually implement disclosure recognition.
+        if uri
+            .as_str()
+            .starts_with("walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure")
+        {
+            return Ok(UriType::Disclosure(uri));
+        }
+
+        Err(UriIdentificationError::Unknown)
     }
 
     pub fn cancel_pid_issuance(&mut self) {
-        self.digid_client.cancel_session();
+        if self.digid_session.is_none() {
+            warn!("PID issuance was cancelled, but no DigiD session is currently present");
+
+            return;
+        }
+
+        info!("PID issuance cancelled, removing DigiD session");
+
+        self.digid_session.take();
     }
 
     #[instrument(skip_all)]
@@ -450,8 +488,10 @@ where
             return Err(PidIssuanceError::NotRegistered);
         }
 
-        let access_token = self
-            .digid_client
+        // Try to take ownership of any active `DigidSession`.
+        let session = self.digid_session.take().ok_or(PidIssuanceError::NoSession)?;
+
+        let access_token = session
             .get_access_token(redirect_uri)
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
@@ -512,6 +552,7 @@ where
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
+                            RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
                         }
                     }
                     _ => PidIssuanceError::PidIssuer(error),
@@ -536,7 +577,7 @@ mod tests {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::{
-        account_provider::MockAccountProviderClient, config::LocalConfigurationRepository, digid::MockDigidClient,
+        account_provider::MockAccountProviderClient, config::LocalConfigurationRepository, digid::MockDigidSession,
         pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 
@@ -547,7 +588,7 @@ mod tests {
         MockStorage,
         SoftwareEcdsaKey,
         MockAccountProviderClient,
-        MockDigidClient,
+        MockDigidSession,
         MockPidIssuerClient,
     >;
 
@@ -559,7 +600,6 @@ mod tests {
             LocalConfigurationRepository::default(),
             storage,
             MockAccountProviderClient::default(),
-            MockDigidClient::default(),
             MockPidIssuerClient::default(),
         )
         .await

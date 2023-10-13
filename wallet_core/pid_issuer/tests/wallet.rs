@@ -8,8 +8,8 @@ use url::Url;
 
 use wallet::{
     mock::{MockAccountProviderClient, MockStorage},
-    wallet_deps::{HttpDigidClient, HttpPidIssuerClient, LocalConfigurationRepository},
-    Configuration, DigidClient, Wallet,
+    wallet_deps::{HttpDigidSession, HttpPidIssuerClient, LocalConfigurationRepository},
+    Configuration, DigidSession, Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -33,9 +33,8 @@ fn test_wallet_config(base_url: Url) -> LocalConfigurationRepository {
 }
 
 /// Create an instance of [`Wallet`].
-async fn create_test_wallet<D: DigidClient>(
+async fn create_test_wallet<D: DigidSession>(
     base_url: Url,
-    digid_client: D,
     pid_issuer_client: HttpPidIssuerClient,
 ) -> Wallet<
     LocalConfigurationRepository,
@@ -49,7 +48,6 @@ async fn create_test_wallet<D: DigidClient>(
         test_wallet_config(base_url.clone()),
         MockStorage::default(),
         MockAccountProviderClient::default(),
-        digid_client,
         pid_issuer_client,
     )
     .await
@@ -98,16 +96,11 @@ async fn test_pid_issuance_digid_bridge() {
     let bsn_lookup = OpenIdClient::new(&settings.digid).await.unwrap();
     let attributes_lookup = MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default());
     start_pid_issuer(settings, attributes_lookup, bsn_lookup);
-    let mut wallet = create_test_wallet::<HttpDigidClient>(
-        local_base_url(port),
-        HttpDigidClient::default(),
-        HttpPidIssuerClient::default(),
-    )
-    .await;
+    let mut wallet = create_test_wallet::<HttpDigidSession>(local_base_url(port), HttpPidIssuerClient::default()).await;
 
     // Prepare DigiD flow
     let authorization_url = wallet
-        .create_pid_issuance_redirect_uri()
+        .create_pid_issuance_auth_url()
         .await
         .expect("failed to get digid url");
 

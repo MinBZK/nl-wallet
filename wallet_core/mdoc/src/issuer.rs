@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(server.sessions.sessions.len(), 1);
 
         // wait at least one duration: session should still be here
-        tokio::time::sleep(CLEANUP_INTERVAL).await;
+        tokio::time::sleep(2 * CLEANUP_INTERVAL).await;
         assert_eq!(server.sessions.sessions.len(), 1);
 
         // insert a stale session
@@ -514,7 +514,7 @@ mod tests {
         assert_eq!(server.sessions.sessions.len(), 2);
 
         // wait at least one duration: stale session should be removed
-        tokio::time::sleep(CLEANUP_INTERVAL).await;
+        tokio::time::sleep(2 * CLEANUP_INTERVAL).await;
         assert_eq!(server.sessions.sessions.len(), 1)
     }
 
