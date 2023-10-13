@@ -159,7 +159,6 @@ pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 /// Describes an available connection method.
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
-    #[serde(rename = "type")]
     pub typ: ConnectionMethodType,
     pub version: ConnectionMethodVersion,
     pub connection_options: CborSeq<RestApiOptionsKeyed>,
