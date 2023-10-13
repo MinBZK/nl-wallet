@@ -1,12 +1,21 @@
 use once_cell::sync::Lazy;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
+use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
+    holder::{Mdoc, TrustAnchor},
+    issuer::PrivateKey,
+    mock as mdoc_mock,
+    utils::x509::OwnedTrustAnchor,
+    IssuerSigned,
+};
 use wallet_common::{
     account::{
         jwt::Jwt,
         messages::auth::{WalletCertificate, WalletCertificateClaims},
     },
-    keys::{software::SoftwareEcdsaKey, EcdsaKey},
+    generator::TimeGenerator,
+    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
     utils,
 };
 
@@ -14,6 +23,7 @@ use crate::{
     account_provider::MockAccountProviderClient,
     config::LocalConfigurationRepository,
     digid::MockDigidSession,
+    document,
     pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
@@ -25,6 +35,12 @@ use super::{Wallet, WalletInitError};
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
     pub certificate_signing_key: SigningKey,
+}
+
+/// This contains key material that is used to issue mdocs.
+pub struct IssuerKey {
+    pub issuance_key: PrivateKey,
+    pub trust_anchor: OwnedTrustAnchor,
 }
 
 pub type WalletWithMocks = Wallet<
@@ -40,6 +56,43 @@ pub type WalletWithMocks = Wallet<
 pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountServerKeys {
     certificate_signing_key: SigningKey::random(&mut OsRng),
 });
+
+/// The issuer key material, generated once for testing.
+pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
+    let (issuance_key, ca) = mdoc_mock::generate_issuance_key_and_ca().unwrap();
+    let trust_anchor: TrustAnchor<'_> = (&ca).try_into().unwrap();
+
+    IssuerKey {
+        issuance_key,
+        trust_anchor: (&trust_anchor).into(),
+    }
+});
+
+/// Generates a valid `Mdoc` that contains a full PID.
+pub async fn create_full_pid_mdoc() -> Mdoc {
+    let private_key_id = utils::random_string(16);
+    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+
+    mdoc_from_unsigned(unsigned_mdoc, private_key_id).await
+}
+
+/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
+pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: String) -> Mdoc {
+    let mdoc_public_key = (&SoftwareEcdsaKey::new(&private_key_id).verifying_key().await.unwrap())
+        .try_into()
+        .unwrap();
+    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &ISSUER_KEY.issuance_key)
+        .await
+        .unwrap();
+
+    Mdoc::new::<SoftwareEcdsaKey>(
+        private_key_id,
+        issuer_signed,
+        &TimeGenerator,
+        &[(&ISSUER_KEY.trust_anchor).into()],
+    )
+    .unwrap()
+}
 
 impl WalletWithMocks {
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
@@ -109,10 +162,11 @@ impl Default for WalletWithMocks {
     fn default() -> Self {
         let keys = Lazy::force(&ACCOUNT_SERVER_KEYS);
 
-        // Override public keys in the `Configuration`.
+        // Override public key material in the `Configuration`.
         let config = {
             let mut config = Configuration::default();
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
+            config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
 
             config
         };
