@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
-    mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
+    mock::{generate_issuance_key_and_ca, mdoc_from_example_device_response, IsoCertTimeGenerator},
     utils::{
         keys::KeyFactory,
         mdocs_map::MdocsMap,
@@ -284,8 +284,6 @@ fn iso_examples_consistency() {
     );
 }
 
-const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
-const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
 const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
@@ -356,11 +354,7 @@ impl KeyRing for MockIssuanceKeyring {
 }
 
 fn setup_issuance_test() -> (MockWallet, Arc<MockServer>, Certificate) {
-    // Issuer CA certificate and normal certificate
-    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
-    let (issuer_cert, issuer_privkey) =
-        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
+    let (issuance_key, ca) = generate_issuance_key_and_ca().unwrap();
 
     // Setup issuer
     let issuance_server = Arc::new(MockServer::new(

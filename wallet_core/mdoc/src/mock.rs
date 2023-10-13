@@ -6,6 +6,8 @@ use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 use crate::{
     examples::{Example, Examples},
     holder::Mdoc,
+    issuer::PrivateKey,
+    utils::x509::{Certificate, CertificateError, CertificateUsage},
     DeviceResponse,
 };
 
@@ -42,4 +44,16 @@ pub fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> M
         trust_anchors,
     )
     .unwrap()
+}
+
+const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
+const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
+
+pub fn generate_issuance_key_and_ca() -> Result<(PrivateKey, Certificate), CertificateError> {
+    // Issuer CA certificate and normal certificate
+    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+    let (issuer_cert, issuer_privkey) = Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl)?;
+    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
+
+    Ok((issuance_key, ca))
 }
