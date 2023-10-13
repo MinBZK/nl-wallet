@@ -167,14 +167,15 @@ pub fn new_session(
     usecase_id: String,
     certificates: &DashMap<String, (Certificate, SigningKey)>,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
-) -> Result<ReaderEngagement> {
+) -> Result<(SessionToken, ReaderEngagement)> {
     if !certificates.contains_key(&usecase_id) {
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
     }
 
-    let (reader_engagement, session_state) = Session::<Created>::new(items_requests, usecase_id, base_url)?;
+    let (session_token, reader_engagement, session_state) =
+        Session::<Created>::new(items_requests, usecase_id, base_url)?;
     sessions.write(&session_state.state.into_enum());
-    Ok(reader_engagement)
+    Ok((session_token, reader_engagement))
 }
 
 /// Process a disclosure protocol message of the wallet.
@@ -269,13 +270,13 @@ impl Session<Created> {
         items_requests: Vec<ItemsRequest>,
         usecase_id: String,
         base_url: Url,
-    ) -> Result<(ReaderEngagement, Session<Created>)> {
+    ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
         let session_token = SessionToken::new();
         let url = base_url.join(&session_token.0).unwrap();
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
-                session_token,
+                session_token.clone(),
                 Created {
                     items_requests,
                     usecase_id,
@@ -285,7 +286,7 @@ impl Session<Created> {
             ),
         };
 
-        Ok((reader_engagement, session))
+        Ok((session_token, reader_engagement, session))
     }
 
     /// Process the device's [`DeviceEngagement`],
