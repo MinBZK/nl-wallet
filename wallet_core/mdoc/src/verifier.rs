@@ -696,13 +696,21 @@ mod tests {
     use std::ops::Add;
 
     use chrono::{Duration, Utc};
+    use dashmap::DashMap;
+    use indexmap::IndexMap;
 
     use crate::{
+        server_state::MemorySessionStore,
+        utils::{
+            crypto::{SessionKey, SessionKeyUser},
+            serialization::cbor_serialize,
+            x509::{Certificate, CertificateUsage},
+        },
         verifier::{
-            ValidityError,
+            new_session, process_message, ValidityError,
             ValidityRequirement::{AllowNotYetValid, Valid},
         },
-        ValidityInfo,
+        DeviceEngagement, DeviceRequest, ItemsRequest, SessionData, SessionStatus, SessionTranscript, ValidityInfo,
     };
 
     fn new_validity_info(add_from_days: i64, add_until_days: i64) -> ValidityInfo {
@@ -739,5 +747,89 @@ mod tests {
             Err(ValidityError::NotYetValid(_))
         ));
         validity.verify_is_valid_at(now, AllowNotYetValid).unwrap();
+    }
+
+    const RP_CA_CN: &str = "ca.rp.example.com";
+    const RP_CERT_CN: &str = "cert.rp.example.com";
+    const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
+    const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
+    const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
+    const DISCLOSURE_USECASE: &str = "example_usecase";
+
+    fn new_disclosure_request() -> Vec<ItemsRequest> {
+        vec![ItemsRequest {
+            doc_type: DISCLOSURE_DOC_TYPE.to_string(),
+            request_info: None,
+            name_spaces: IndexMap::from([(
+                DISCLOSURE_NAME_SPACE.to_string(),
+                IndexMap::from_iter(
+                    DISCLOSURE_ATTRS
+                        .iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                ),
+            )]),
+        }]
+    }
+
+    #[tokio::test]
+    async fn disclosure() {
+        // Initialize server state
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let trust_anchors = &[(&ca).try_into().unwrap()];
+        let (rp_cert, rp_privkey) =
+            Certificate::new(&ca, &ca_privkey, RP_CERT_CN, CertificateUsage::ReaderAuth).unwrap();
+        let cert_store = DashMap::from_iter([(DISCLOSURE_USECASE.to_string(), (rp_cert, rp_privkey))]);
+        let session_store = MemorySessionStore::new();
+
+        // Start session
+        let url = "https://example.com".parse().unwrap();
+        let (session_token, reader_engagement) = new_session(
+            url,
+            new_disclosure_request(),
+            DISCLOSURE_USECASE.to_string(),
+            &cert_store,
+            &session_store,
+        )
+        .unwrap();
+
+        // Construct first device protocol message
+        let (device_engagement, device_eph_key) =
+            DeviceEngagement::new_device_engagement("https://example.com/".parse().unwrap()).unwrap();
+        let msg = cbor_serialize(&device_engagement).unwrap();
+
+        // send first device protocol message
+        let encrypted_device_request =
+            process_message(&msg, session_token.clone(), &cert_store, &session_store, trust_anchors)
+                .await
+                .unwrap();
+
+        // decrypt server response
+        let rp_key = SessionKey::new(
+            &device_eph_key,
+            &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
+            &SessionTranscript::new(&reader_engagement, &device_engagement),
+            SessionKeyUser::Reader,
+        )
+        .unwrap();
+        let device_request: DeviceRequest = encrypted_device_request.decrypt_and_deserialize(&rp_key).unwrap();
+        dbg!(device_request);
+
+        // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
+        let end_session_message = cbor_serialize(&SessionData {
+            data: None,
+            status: Some(SessionStatus::Termination),
+        })
+        .unwrap();
+        let ended_session_response = process_message(
+            &end_session_message,
+            session_token,
+            &cert_store,
+            &session_store,
+            trust_anchors,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(ended_session_response.status.unwrap(), SessionStatus::Termination);
     }
 }
