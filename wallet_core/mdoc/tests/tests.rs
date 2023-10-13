@@ -29,7 +29,7 @@ use nl_wallet_mdoc::{
     Error,
 };
 use wallet_common::{
-    generator::Generator,
+    generator::TimeGenerator,
     keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, WithIdentifier},
     utils::random_string,
 };
@@ -462,13 +462,6 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
         attr.0,
         &Value::Text(attr.1.to_string()),
     );
-}
-
-struct TimeGenerator;
-impl Generator<DateTime<Utc>> for TimeGenerator {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc::now()
-    }
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,

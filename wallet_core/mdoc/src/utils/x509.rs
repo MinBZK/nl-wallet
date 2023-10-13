@@ -271,11 +271,10 @@ impl CertificateUsage {
 
 #[cfg(test)]
 mod test {
-    use chrono::{DateTime, Utc};
     use p256::pkcs8::ObjectIdentifier;
     use webpki::TrustAnchor;
 
-    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
 
     use super::{Certificate, CertificateUsage};
 
@@ -283,13 +282,6 @@ mod test {
     fn mdoc_eku_encoding_works() {
         CertificateUsage::Mdl.to_eku();
         CertificateUsage::ReaderAuth.to_eku();
-    }
-
-    struct TimeGenerator;
-    impl Generator<DateTime<Utc>> for TimeGenerator {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc::now()
-        }
     }
 
     #[test]
