@@ -15,6 +15,7 @@ pub struct Settings {
     pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
+    pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
     #[serde_as(as = "DurationMilliSeconds<i64>")]
@@ -40,6 +41,12 @@ pub struct PinPolicySettings {
     pub rounds: u8,
     pub attempts_per_round: u8,
     pub timeouts_in_ms: Vec<u32>,
+}
+
+#[derive(Deserialize)]
+pub struct Hsm {
+    pub library_path: PathBuf,
+    pub user_pin: String,
 }
 
 impl Settings {

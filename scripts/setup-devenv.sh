@@ -8,6 +8,7 @@
 # - pid_issuer
 # - wallet_provider
 # - wallet
+# - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
 #
@@ -18,6 +19,7 @@
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
 # - docker: with compose v2 extension, to run the digid-connector
+# - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -43,14 +45,34 @@ set -u # warn against undefined variables
 set -o pipefail
 # set -x # echo statements before executing, useful while debugging
 
-########################################################################
-# Configuration
-########################################################################
-
 SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
 export SCRIPTS_DIR
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 export BASE_DIR
+
+source "${SCRIPTS_DIR}/utils.sh"
+
+########################################################################
+# Check prerequisites
+
+expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
+expect_command openssl "Missing binary 'openssl', please install OpenSSL"
+expect_command jq "Missing binary 'jq', please install"
+expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
+expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
+check_openssl
+
+if is_macos
+then
+    expect_command gsed "Missing binary 'gsed', please install gnu-sed"
+    GNUSED="gsed"
+else
+    GNUSED="sed"
+fi
+
+########################################################################
+# Configuration
+########################################################################
 
 source "${SCRIPTS_DIR}"/configuration.sh
 
@@ -63,151 +85,15 @@ then
 # export DB_HOST=${DB_HOST}
 # export DB_USERNAME=${DB_USERNAME}
 # export DB_PASSWORD=${DB_PASSWORD}
-# export DB_NAME=${DB_NAME}" \
+# export DB_NAME=${DB_NAME}
+# export HSM_LIBRARY_PATH=${HSM_LIBRARY_PATH}
+# export HSM_SO_PIN=${HSM_SO_PIN}
+# export HSM_USER_PIN=${HSM_USER_PIN}
+# export HSM_TOKEN_DIR=${HSM_TOKEN_DIR}" \
     > "${SCRIPTS_DIR}/.env"
     echo -e "${INFO}Your customizations are saved in ${CYAN}${SCRIPTS_DIR}/.env${NC}."
     echo -e "${INFO}Edit this file to reflect your environment, and un-comment the relevant variables.${NC}"
     echo -e "${INFO}Note that variables in this file can no longer be overridden by the command line.${NC}"
-fi
-
-########################################################################
-# Functions
-########################################################################
-
-# Check whether COMMAND exists, and if not echo an error MESSAGE, and exit
-#
-# $1 - COMMAND: Name of the shell command
-# $2 - MESSAGE: Error message to show when COMMAND does not exist
-function expect_command {
-    if ! command -v "$1" > /dev/null
-    then
-        echo -e "${RED}ERROR${NC}: $2"
-        exit 1
-    fi
-}
-
-# Execute envsubst on TEMPLATE and write the result to TARGET
-#
-# $1 - TEMPLATE: Template file
-# $2 - TARGET: Target file
-function render_template {
-    echo -e "Generating ${CYAN}$2${NC} from template ${CYAN}$1${NC}"
-    envsubst < "$1" > "$2"
-}
-
-# Return the body of a pem file.
-# NOTE: This function will only work reliably on PEM files that contain a single object.
-#
-# $1 FILENAME of pem file
-function get_pem_body {
-    grep -v "\-\-\-\-\-" < "$1" | tr -d "\n"
-}
-
-# Generate a key and certificate to use for local TLS.
-# The generated certificate will have the following SAN names:
-#
-# [alt_names]
-# IP.1    = 10.0.2.2 # special IP address for android emulator
-# DNS.1   = localhost
-#
-# The certificate will be signed by the cacert of the digid-connector.
-#
-# $1 - TARGET: Target directory
-# $2 - NAME: Key name, used as file name without extension
-function generate_ssl_key_pair_with_san {
-    echo -e "${INFO}Generating SSL private key and CSR${NC}"
-    openssl req \
-            -newkey rsa:2048 \
-            -subj "/C=US/CN=localhost" \
-            -nodes \
-            -sha256 \
-            -keyout "$1/$2.key" \
-            -out "$1/$2.csr" \
-            -config "${DEVENV}/openssl-san.cfg" 2>/dev/null
-    echo -e "${INFO}Generating SSL CERT from CSR${NC}"
-    openssl x509 \
-            -req \
-            -sha256 \
-            -CAcreateserial \
-            -in "$1/$2.csr" \
-            -days 500 \
-            -CA "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
-            -CAkey "${DIGID_CONNECTOR_PATH}/secrets/cacert.key" \
-            -out "$1/$2.crt" \
-            -extensions req_ext \
-            -extfile "${DEVENV}/openssl-san.cfg" 2>/dev/null
-    echo -e "${INFO}Exporting SSL public key${NC}"
-    openssl rsa \
-            -in "$1/$2.key" \
-            -pubout > "$1/$2.pub"
-}
-
-# Generate a private EC key and return the PEM body
-#
-# $1 name of the key
-function generate_wp_private_key {
-    echo -e "${INFO}Generating EC private key${NC}"
-    openssl ecparam \
-            -genkey \
-            -name prime256v1 \
-            -noout \
-            -out "${TARGET_DIR}/wallet_provider/$1.ec.key" > /dev/null
-    echo -e "${INFO}Generating private key from EC private key${NC}"
-    openssl pkcs8 \
-            -topk8 \
-            -nocrypt \
-            -in "${TARGET_DIR}/wallet_provider/$1.ec.key" \
-            -out "${TARGET_DIR}/wallet_provider/$1.pem" > /dev/null
-}
-
-# Generate an EC root CA for the pid_issuer
-function generate_pid_issuer_root_ca {
-    echo -e "${INFO}Generating EC root CA${NC}"
-    openssl req -x509 \
-            -nodes \
-            -newkey ec \
-            -pkeyopt ec_paramgen_curve:prime256v1 \
-            -keyout "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
-            -out "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
-            -days 365 \
-            -addext keyUsage=keyCertSign,cRLSign \
-            -subj '/CN=ca.example.com'
-}
-
-# Generate an EC key pair for the pid_issuer
-function generate_pid_issuer_key_pair {
-    echo -e "${INFO}Generating EC issuer private key and CSR${NC}"
-    openssl req -new \
-            -nodes \
-            -newkey ec \
-            -pkeyopt ec_paramgen_curve:prime256v1 \
-            -keyout "${TARGET_DIR}/pid_issuer/issuer_key.pem" \
-            -out "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
-            -subj "/CN=pid.example.com"
-    echo -e "${INFO}Generate EC certificate from CSR using EC root CA${NC}"
-    openssl x509 -req \
-            -extfile <(printf "keyUsage=digitalSignature\nextendedKeyUsage=1.0.18013.5.1.2\nbasicConstraints=CA:FALSE") \
-            -in "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
-            -days 500 \
-            -CA "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
-            -CAkey "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
-            -out "${TARGET_DIR}/pid_issuer/issuer_crt.pem"
-}
-
-########################################################################
-# Check prerequisites
-
-expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
-expect_command openssl "Missing binary 'openssl', please install OpenSSL"
-expect_command jq "Missing binary 'jq', please install"
-expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
-
-if [ "$(uname -s)" == "Darwin" ]
-then
-    expect_command gsed "Missing binary 'gsed', please install gnu-sed"
-    GNUSED="gsed"
-else
-    GNUSED="sed"
 fi
 
 ########################################################################
@@ -294,6 +180,22 @@ WP_CERTIFICATE_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.ce
 export WP_CERTIFICATE_PUBLIC_KEY
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.instruction_result_verifying_key')
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
+
+########################################################################
+# Configure HSM
+
+echo
+echo -e "${SECTION}Configure HSM${NC}"
+
+mkdir -p "${HOME}/.config/softhsm2"
+if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+  mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
+fi
+
+render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
+
+softhsm2-util --delete-token --token test_token --force > /dev/null || true
+softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${HSM_USER_PIN}"
 
 ########################################################################
 # Configure wallet
