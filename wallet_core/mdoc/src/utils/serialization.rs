@@ -267,8 +267,6 @@ impl Serialize for Handover {
     }
 }
 
-// In production code, this struct is never deserialized.
-#[cfg(feature = "examples")]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         use x509_parser::nom::AsBytes;
