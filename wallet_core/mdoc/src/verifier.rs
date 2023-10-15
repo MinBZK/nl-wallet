@@ -1,7 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
 use chrono::{DateTime, Local, Utc};
-use dashmap::DashMap;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
@@ -17,7 +16,7 @@ use wallet_common::{
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    server_keys::PrivateKey,
+    server_keys::{KeyRing, PrivateKey},
     server_state::{SessionState, SessionStore, SessionToken},
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -166,10 +165,10 @@ pub fn new_session(
     base_url: Url,
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
-    certificates: &DashMap<String, PrivateKey>,
+    keys: &impl KeyRing,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
 ) -> Result<(SessionToken, ReaderEngagement)> {
-    if !certificates.contains_key(&usecase_id) {
+    if !keys.contains_key(&usecase_id) {
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
     }
 
@@ -189,7 +188,7 @@ pub fn new_session(
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    certificates: &DashMap<String, PrivateKey>,
+    keys: &impl KeyRing,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
@@ -206,9 +205,7 @@ pub async fn process_message(
                     last_active: state.last_active,
                 },
             };
-            let (response, session) = session
-                .process_device_engagement(cbor_deserialize(msg)?, certificates)
-                .await;
+            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?, keys).await;
             match session {
                 Ok(next) => Ok((response, next.state.into_enum())),
                 Err(next) => Ok((response, next.state.into_enum())),
@@ -295,15 +292,12 @@ impl Session<Created> {
     async fn process_device_engagement(
         self,
         device_engagement: DeviceEngagement,
-        certificates: &DashMap<String, PrivateKey>,
+        keys: &impl KeyRing,
     ) -> (
         SessionData,
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
-        let (response, next) = match self
-            .process_device_engagement_inner(&device_engagement, certificates)
-            .await
-        {
+        let (response, next) = match self.process_device_engagement_inner(&device_engagement, keys).await {
             Ok((response, items_requests, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
                 Ok(self.transition_wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
@@ -318,7 +312,7 @@ impl Session<Created> {
     async fn process_device_engagement_inner(
         &self,
         device_engagement: &DeviceEngagement,
-        certificates: &DashMap<String, PrivateKey>,
+        keys: &impl KeyRing,
     ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
         // let url = ??? TODO
@@ -340,11 +334,11 @@ impl Session<Created> {
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
         let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement);
 
-        let cert_pair = certificates
-            .get(&self.state().usecase_id)
+        let cert_pair = keys
+            .private_key(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
-        let device_request = self.new_device_request(&session_transcript, &cert_pair).await?;
+        let device_request = self.new_device_request(&session_transcript, cert_pair).await?;
 
         // Compute the AES keys with which we and the device encrypt responses
         // TODO remove unwrap() and return an error if the device passes no key
@@ -694,11 +688,10 @@ mod tests {
     use std::ops::Add;
 
     use chrono::{Duration, Utc};
-    use dashmap::DashMap;
     use indexmap::IndexMap;
 
     use crate::{
-        server_keys::PrivateKey,
+        server_keys::{PrivateKey, SingleKeyRing},
         server_state::MemorySessionStore,
         utils::{
             crypto::{SessionKey, SessionKeyUser},
@@ -777,7 +770,7 @@ mod tests {
         let trust_anchors = &[(&ca).try_into().unwrap()];
         let (rp_cert, rp_privkey) =
             Certificate::new(&ca, &ca_privkey, RP_CERT_CN, CertificateUsage::ReaderAuth).unwrap();
-        let cert_store = DashMap::from_iter([(DISCLOSURE_USECASE.to_string(), PrivateKey::new(rp_privkey, rp_cert))]);
+        let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
         let session_store = MemorySessionStore::new();
 
         // Start session
@@ -786,7 +779,7 @@ mod tests {
             url,
             new_disclosure_request(),
             DISCLOSURE_USECASE.to_string(),
-            &cert_store,
+            &keys,
             &session_store,
         )
         .unwrap();
@@ -798,7 +791,7 @@ mod tests {
 
         // send first device protocol message
         let encrypted_device_request =
-            process_message(&msg, session_token.clone(), &cert_store, &session_store, trust_anchors)
+            process_message(&msg, session_token.clone(), &keys, &session_store, trust_anchors)
                 .await
                 .unwrap();
 
@@ -822,7 +815,7 @@ mod tests {
         let ended_session_response = process_message(
             &end_session_message,
             session_token,
-            &cert_store,
+            &keys,
             &session_store,
             trust_anchors,
         )
