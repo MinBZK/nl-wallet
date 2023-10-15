@@ -183,7 +183,7 @@ pub fn new_session(
 ///
 /// - `msg` is the received protocol message.
 /// - `token` is the session token as parsed from the URL.
-/// - `sessions` and `certtificates` are as in [`new_session()`].
+/// - `sessions` and `certificates` are as in [`new_session()`].
 /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
 ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
 pub async fn process_message(
