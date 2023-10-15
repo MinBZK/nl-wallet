@@ -19,6 +19,7 @@ use nl_wallet_mdoc::{
     iso::*,
     issuer::*,
     mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
+    server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
         keys::KeyFactory,
@@ -339,7 +340,7 @@ struct MockIssuanceKeyring {
     issuance_key: PrivateKey,
 }
 impl KeyRing for MockIssuanceKeyring {
-    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+    fn private_key(&self, _: &str) -> Option<&PrivateKey> {
         Some(&self.issuance_key)
     }
 }

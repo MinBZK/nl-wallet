@@ -17,7 +17,8 @@ use tracing::{debug, error, warn};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    issuer::{self, IssuanceData, PrivateKey, SingleKeyRing},
+    issuer::{self, IssuanceData},
+    server_keys::{PrivateKey, SingleKeyRing},
     server_state::MemorySessionStore,
     ServiceEngagement,
 };

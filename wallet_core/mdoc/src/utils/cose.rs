@@ -16,11 +16,12 @@ use webpki::TrustAnchor;
 use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
+    server_keys::KeysError,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, CborError},
     },
-    Error, Result,
+    Result,
 };
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
@@ -284,7 +285,7 @@ pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
     let signatures = key_factory
         .sign_with_new_keys(sig_data, number_of_keys)
         .await
-        .map_err(|err| Error::KeyGeneration(Box::new(err)))?;
+        .map_err(|err| KeysError::KeyGeneration(Box::new(err)))?;
 
     let coses = signatures
         .into_iter()

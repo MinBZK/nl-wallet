@@ -2,7 +2,6 @@
 //! See [`Server::new_session()`], which takes the mdocs to be issued and returns a [`ServiceEngagement`] to present to
 //! the holder.
 
-use async_trait::async_trait;
 use core::panic;
 use std::{future::Future, sync::Arc, time::Duration};
 
@@ -10,19 +9,12 @@ use chrono::{Local, Utc};
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use futures::future::try_join_all;
-use p256::{
-    ecdsa::{Signature, SigningKey},
-    pkcs8::DecodePrivateKey,
-};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use tokio::task::JoinHandle;
 use url::Url;
 
-use wallet_common::{
-    keys::{EcdsaKey, SecureEcdsaKey},
-    utils::random_bytes,
-};
+use wallet_common::utils::random_bytes;
 
 use crate::{
     basic_sa_ext::{
@@ -32,63 +24,14 @@ use crate::{
     },
     iso::*,
     issuer_shared::IssuanceError,
+    server_keys::KeyRing,
     server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
-        x509::Certificate,
     },
     Error, Result,
 };
-
-pub struct PrivateKey {
-    private_key: SigningKey,
-    cert_bts: Certificate,
-}
-
-impl PrivateKey {
-    pub fn new(private_key: SigningKey, cert_bts: Certificate) -> PrivateKey {
-        PrivateKey { private_key, cert_bts }
-    }
-
-    pub fn from_der(private_key: &[u8], cert: &[u8]) -> Result<PrivateKey> {
-        let key = Self::new(
-            SigningKey::from_pkcs8_der(private_key).map_err(IssuanceError::DerPrivateKey)?,
-            Certificate::from(cert),
-        );
-        Ok(key)
-    }
-}
-
-#[async_trait]
-impl EcdsaKey for PrivateKey {
-    type Error = p256::ecdsa::Error;
-
-    async fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
-        Ok(*self.private_key.verifying_key())
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
-        p256::ecdsa::signature::Signer::try_sign(&self.private_key, msg)
-    }
-}
-impl SecureEcdsaKey for PrivateKey {}
-
-pub trait KeyRing {
-    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey>;
-    fn contains_key(&self, doctype: &DocType) -> bool {
-        self.private_key(doctype).is_some()
-    }
-}
-
-/// An implementation of [`KeyRing`] containing a single key.
-pub struct SingleKeyRing(pub PrivateKey);
-
-impl KeyRing for SingleKeyRing {
-    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
-        Some(&self.0)
-    }
-}
 
 #[derive(Debug, Clone)]
 enum IssuanceStatus {
@@ -467,15 +410,15 @@ mod tests {
 
     use crate::{
         basic_sa_ext::RequestKeyGenerationMessage,
+        server_keys::PrivateKey,
         server_state::{MemorySessionStore, SessionStore},
-        DocType,
     };
 
-    use super::{IssuanceData, KeyRing, PrivateKey, SessionState};
+    use super::{IssuanceData, KeyRing, SessionState};
 
     struct EmptyKeyRing;
     impl KeyRing for EmptyKeyRing {
-        fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+        fn private_key(&self, _: &str) -> Option<&PrivateKey> {
             None
         }
     }

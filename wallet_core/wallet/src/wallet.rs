@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use futures::future::TryFutureExt;
+use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
 use tokio::sync::RwLock;
 use tracing::{info, instrument, warn};
@@ -548,7 +549,7 @@ where
             .map_err(|error| {
                 match error {
                     // We knowingly call unwrap() on the downcast to [RemoteEcdsaKeyError] here because we know that is the error type of the [RemoteEcdsaKeyFactory] we provide above
-                    PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeyGeneration(error)) => {
+                    PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeysError(KeysError::KeyGeneration(error))) => {
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),

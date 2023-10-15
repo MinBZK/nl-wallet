@@ -4,7 +4,7 @@ use chrono::{DateTime, Local, Utc};
 use dashmap::DashMap;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, SecretKey};
+use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
@@ -17,12 +17,13 @@ use wallet_common::{
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
+    server_keys::PrivateKey,
     server_state::{SessionState, SessionStore, SessionToken},
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
-        x509::{Certificate, CertificateUsage},
+        x509::CertificateUsage,
     },
     Error, Result, SessionData,
 };
@@ -165,7 +166,7 @@ pub fn new_session(
     base_url: Url,
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
-    certificates: &DashMap<String, (Certificate, SigningKey)>,
+    certificates: &DashMap<String, PrivateKey>,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
 ) -> Result<(SessionToken, ReaderEngagement)> {
     if !certificates.contains_key(&usecase_id) {
@@ -188,7 +189,7 @@ pub fn new_session(
 pub async fn process_message(
     msg: &[u8],
     token: SessionToken,
-    certificates: &DashMap<String, (Certificate, SigningKey)>,
+    certificates: &DashMap<String, PrivateKey>,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
     trust_anchors: &[TrustAnchor<'_>],
 ) -> Result<SessionData> {
@@ -294,7 +295,7 @@ impl Session<Created> {
     async fn process_device_engagement(
         self,
         device_engagement: DeviceEngagement,
-        certificates: &DashMap<String, (Certificate, SigningKey)>,
+        certificates: &DashMap<String, PrivateKey>,
     ) -> (
         SessionData,
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
@@ -317,7 +318,7 @@ impl Session<Created> {
     async fn process_device_engagement_inner(
         &self,
         device_engagement: &DeviceEngagement,
-        certificates: &DashMap<String, (Certificate, SigningKey)>,
+        certificates: &DashMap<String, PrivateKey>,
     ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
         // Check that the device has sent the expected OriginInfo
         // let url = ??? TODO
@@ -343,9 +344,7 @@ impl Session<Created> {
             .get(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
-        let device_request = self
-            .new_device_request(&session_transcript, &cert_pair.0, &cert_pair.1)
-            .await?;
+        let device_request = self.new_device_request(&session_transcript, &cert_pair).await?;
 
         // Compute the AES keys with which we and the device encrypt responses
         // TODO remove unwrap() and return an error if the device passes no key
@@ -392,8 +391,7 @@ impl Session<Created> {
     async fn new_device_request(
         &self,
         session_transcript: &SessionTranscript,
-        reader_cert: &Certificate,
-        reader_cert_privkey: &SigningKey,
+        private_key: &PrivateKey,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.iter().map(|items_request| async {
             let reader_auth = ReaderAuthenticationKeyed {
@@ -403,8 +401,8 @@ impl Session<Created> {
             };
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
-                cose::new_certificate_header(reader_cert),
-                reader_cert_privkey,
+                cose::new_certificate_header(&private_key.cert_bts),
+                private_key,
                 false,
             )
             .await?;
@@ -700,6 +698,7 @@ mod tests {
     use indexmap::IndexMap;
 
     use crate::{
+        server_keys::PrivateKey,
         server_state::MemorySessionStore,
         utils::{
             crypto::{SessionKey, SessionKeyUser},
@@ -778,7 +777,7 @@ mod tests {
         let trust_anchors = &[(&ca).try_into().unwrap()];
         let (rp_cert, rp_privkey) =
             Certificate::new(&ca, &ca_privkey, RP_CERT_CN, CertificateUsage::ReaderAuth).unwrap();
-        let cert_store = DashMap::from_iter([(DISCLOSURE_USECASE.to_string(), (rp_cert, rp_privkey))]);
+        let cert_store = DashMap::from_iter([(DISCLOSURE_USECASE.to_string(), PrivateKey::new(rp_privkey, rp_cert))]);
         let session_store = MemorySessionStore::new();
 
         // Start session
