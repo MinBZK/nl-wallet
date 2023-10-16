@@ -148,7 +148,7 @@ the [installation guide](https://www.rust-lang.org/tools/install). After install
 to add the following targets:
 
 - For iOS: `rustup target add aarch64-apple-ios x86_64-apple-ios`
-- For iOS simulator: `rustup target add aarch64-apple-ios-sim x86_64-apple-ios-sim`
+- For iOS simulator: `rustup target add aarch64-apple-ios-sim`
 - For Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
 #### Android
