@@ -34,13 +34,7 @@ impl AppDependencies {
         )
         .await?;
 
-        let db = Db::new(
-            &settings.database.host,
-            &settings.database.name,
-            settings.database.username.as_deref(),
-            settings.database.password.as_deref(),
-        )
-        .await?;
+        let db = Db::new(settings.database.connection_string()).await?;
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,

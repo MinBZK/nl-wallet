@@ -1,8 +1,0 @@
-[package]
-name = "wallet_provider_migration"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-
-[dependencies]
-sea-orm-migration = { workspace = true }

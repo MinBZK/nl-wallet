@@ -24,6 +24,7 @@ tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
+wallet_provider_database_settings = { path = "../database_settings" }
 wallet_provider_domain = { path = "../domain" }
 wallet_common = { path = "../../wallet_common" }
 

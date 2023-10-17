@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y musl musl-tools musl-dev && \
     update-ca-certificates && \
     rustup target add x86_64-unknown-linux-musl
 COPY . .
-RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider" --bin wallet_provider_migrations --features wallet_provider_migrations
+RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider_migrations" --bin wallet_provider_migrations
 
 # Bundle Stage
 FROM scratch
