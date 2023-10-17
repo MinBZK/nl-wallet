@@ -32,7 +32,7 @@ use wallet::{
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
-use wallet_provider_persistence::{entity::wallet_user, postgres};
+use wallet_provider_persistence::entity::wallet_user;
 
 fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, EcdsaDecodingKey) {
     (
@@ -50,14 +50,9 @@ fn local_pid_base_url(port: u16) -> Url {
 }
 
 async fn database_connection(settings: &Settings) -> DatabaseConnection {
-    Database::connect(postgres::connection_string(
-        &settings.database.host,
-        &settings.database.name,
-        settings.database.username.as_deref(),
-        settings.database.password.as_deref(),
-    ))
-    .await
-    .expect("Could not open database connection")
+    Database::connect(settings.database.connection_string())
+        .await
+        .expect("Could not open database connection")
 }
 
 /// Create an instance of [`Wallet`].

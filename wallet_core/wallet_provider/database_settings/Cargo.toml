@@ -1,0 +1,9 @@
+[package]
+name = "wallet_provider_database_settings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+config = { workspace = true, features = ["toml"] }
+serde = { workspace = true, features = ["derive"] }

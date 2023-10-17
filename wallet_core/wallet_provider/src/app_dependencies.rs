@@ -4,20 +4,23 @@ use chrono::{DateTime, Duration, Local};
 use serde::{de::DeserializeOwned, Serialize};
 use tracing::info;
 use uuid::Uuid;
-use wallet_common::account::messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage};
 
-use wallet_common::generator::Generator;
-
-use crate::errors::WalletProviderError;
+use wallet_common::{
+    account::messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage},
+    generator::Generator,
+};
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
-use wallet_provider_service::{account_server::AccountServer, instructions::HandleInstruction, pin_policy::PinPolicy};
+use wallet_provider_service::{
+    account_server::AccountServer, hsm::Hsm, instructions::HandleInstruction, pin_policy::PinPolicy,
+};
 
-use crate::settings::Settings;
+use crate::{errors::WalletProviderError, settings::Settings};
 
 pub struct AppDependencies {
     pub account_server: AccountServer,
     pub pin_policy: PinPolicy,
     pub repositories: Repositories,
+    pub hsm: Hsm,
 }
 
 impl AppDependencies {
@@ -31,13 +34,7 @@ impl AppDependencies {
         )
         .await?;
 
-        let db = Db::new(
-            &settings.database.host,
-            &settings.database.name,
-            settings.database.username.as_deref(),
-            settings.database.password.as_deref(),
-        )
-        .await?;
+        let db = Db::new(settings.database.connection_string()).await?;
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,
@@ -52,10 +49,13 @@ impl AppDependencies {
 
         let repositories = Repositories::new(db);
 
+        let hsm = Hsm::new(settings.hsm.library_path, settings.hsm.user_pin)?;
+
         let dependencies = AppDependencies {
             account_server,
             repositories,
             pin_policy,
+            hsm,
         };
 
         Ok(dependencies)
@@ -71,7 +71,7 @@ impl AppDependencies {
     {
         let result = self
             .account_server
-            .handle_instruction(instruction, self, &self.repositories, &self.pin_policy, self)
+            .handle_instruction(instruction, self, &self.repositories, &self.pin_policy, self, &self.hsm)
             .await?;
 
         info!("Replying with the instruction result");

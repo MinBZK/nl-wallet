@@ -13,8 +13,9 @@ members = [
     "wallet/migration",
     "wallet_common",
     "wallet_provider",
+    "wallet_provider/database_settings",
     "wallet_provider/domain",
-    "wallet_provider/migration",
+    "wallet_provider/migrations",
     "wallet_provider/persistence",
     "wallet_provider/service",
 ]
@@ -65,6 +66,7 @@ oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 proc-macro2 = { version = "1.0.66" }
 quote = { version = "1.0.26" }
+r2d2-cryptoki = { version = "0.2.1" }
 rand = { version = "0.8.5" }
 rand_core = { version = "0.6.4" }
 rcgen = { version = "0.11.3", default-features = false }

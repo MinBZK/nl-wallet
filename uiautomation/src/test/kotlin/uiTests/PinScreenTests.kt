@@ -49,7 +49,7 @@ class PinScreenTests : TestBase() {
     }
 
     @RetryingTest(value = 3, name = "{displayName} - #{index}")
-    @DisplayName("UC 2.1 - Verify easy pin error message")
+    @DisplayName("PVW-1215 - User chooses PIN [2.1] - Verify easy pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyEasyPinErrorMessage() {
         assertTrue(
@@ -85,7 +85,7 @@ class PinScreenTests : TestBase() {
     }
 
     @RetryingTest(value = 3, name = "{displayName} - #{index}")
-    @DisplayName("UC 2.1 - Verify wrong pin error message")
+    @DisplayName("PVW-1215 - User chooses PIN [2.1] - Verify wrong pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyWrongPin() {
         assertTrue(
@@ -129,7 +129,7 @@ class PinScreenTests : TestBase() {
     }
 
     @RetryingTest(value = 3, name = "{displayName} - #{index}")
-    @DisplayName("UC 2.1 - Verify correct pin error message")
+    @DisplayName("PVW-1216 - User confirms PIN [2.1] - Verify correct pin error message")
     @Tags(Tag("smoke"), Tag("android"), Tag("ios"))
     fun verifyCorrectPin() {
         assertTrue(

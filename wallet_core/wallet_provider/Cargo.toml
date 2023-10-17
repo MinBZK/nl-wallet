@@ -7,12 +7,7 @@ rust-version.workspace = true
 [[bin]]
 name = "wallet_provider"
 
-[[bin]]
-name = "wallet_provider_migrations"
-required-features = ["wallet_provider_migrations"]
-
 [features]
-wallet_provider_migrations = ["dep:sea-orm-migration"]
 db_test = []
 
 [dependencies]
@@ -31,7 +26,6 @@ http = { workspace = true }
 mime = { workspace = true }
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
-sea-orm-migration = { workspace = true, features = ["cli"], optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true, features = ["chrono_0_4"] }
@@ -49,12 +43,8 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+wallet_provider_database_settings = { path = "database_settings" }
 wallet_provider_domain = { path = "domain" }
-wallet_provider_migration = { path = "migration" }
 wallet_provider_persistence = { path = "persistence" }
 wallet_provider_service = { path = "service" }
 wallet_common = { path = "../wallet_common" }
-
-[dev-dependencies]
-cryptoki = { workspace = true }
-sec1 = { workspace = true }

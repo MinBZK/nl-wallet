@@ -36,7 +36,7 @@ variables:
 .default-sonar:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
+    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
 
 .default-branch:
   rules:
@@ -100,11 +100,11 @@ test-rust:
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     # Run tests, generate code coverage reports
     - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
-    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path coverage.xml)
+    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
   artifacts:
     reports:
       coverage_report:
-        path: wallet_core/coverage.xml
+        path: wallet_core/unit-coverage.xml
         coverage_format: cobertura
     paths:
       - wallet_core/lcov.info
@@ -120,16 +120,21 @@ integration-test-rust:
     POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
   services:
-    - name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
+    - name: "$HARBOR_REGISTRY/docker-hub-proxy/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
       alias: postgres
   before_script:
     - set -euxo pipefail
     - cd wallet_core
     - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
   script:
-    - cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- up
+    - cargo run --bin wallet_provider_migrations -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
+    - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
+    reports:
+      coverage_report:
+        path: wallet_core/integration-coverage.xml
+        coverage_format: cobertura
     paths:
       - wallet_core/lcov_integration.info
 
@@ -321,7 +326,7 @@ build-wp-migrations-image:
   script:
     - /kaniko/executor
       --context wallet_core
-      --dockerfile wallet_core/wallet_provider/db_migrations.Dockerfile
+      --dockerfile wallet_core/wallet_provider/migrations/Dockerfile
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider-migrations:$CI_COMMIT_SHORT_SHA
