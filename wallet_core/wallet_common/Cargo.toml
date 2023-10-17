@@ -26,6 +26,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
 
 [dev-dependencies]
 wallet_common = { path = ".", features = ["software-keys", "integration-test"] }

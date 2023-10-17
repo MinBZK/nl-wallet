@@ -115,9 +115,10 @@ impl ConvertibleError for InstructionError {
             InstructionError::AccountBlocked => ErrorType::AccountBlocked,
             InstructionError::Validation(_) => ErrorType::InstructionValidation,
             InstructionError::KeyNotFound(data) => ErrorType::KeyNotFound(data.to_string()),
-            InstructionError::Signing(_) | InstructionError::Storage(_) | InstructionError::WalletCertificate(_) => {
-                ErrorType::Unexpected
-            }
+            InstructionError::Signing(_)
+            | InstructionError::Storage(_)
+            | InstructionError::WalletCertificate(_)
+            | InstructionError::HsmError(_) => ErrorType::Unexpected,
         }
     }
 }

@@ -1,8 +1,7 @@
+use std::{collections::HashMap, sync::Arc};
+
 use async_trait::async_trait;
-use p256::ecdsa::{Signature, SigningKey};
-use rand::rngs::OsRng;
 use serde::Serialize;
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use wallet_common::{
@@ -17,7 +16,7 @@ use wallet_provider_domain::{
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
 
-use crate::account_server::InstructionError;
+use crate::{account_server::InstructionError, hsm::Pkcs11Client};
 
 #[async_trait]
 pub trait HandleInstruction {
@@ -28,6 +27,7 @@ pub trait HandleInstruction {
         wallet_user: &WalletUser,
         uuid_generator: &(impl Generator<Uuid> + Sync),
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        pkcs11_client: &(impl Pkcs11Client + Sync),
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable + Send + Sync;
@@ -42,6 +42,7 @@ impl HandleInstruction for CheckPin {
         _wallet_user: &WalletUser,
         _uuid_generator: &(impl Generator<Uuid> + Sync),
         _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        _pkcs11_client: &(impl Pkcs11Client + Sync),
     ) -> Result<(), InstructionError>
     where
         T: Committable + Send + Sync,
@@ -57,32 +58,21 @@ impl HandleInstruction for GenerateKey {
     async fn handle<T>(
         &self,
         wallet_user: &WalletUser,
-        uuid_generator: &(impl Generator<Uuid> + Sync),
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        _uuid_generator: &(impl Generator<Uuid> + Sync),
+        _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        pkcs11_client: &(impl Pkcs11Client + Sync),
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable + Send + Sync,
     {
-        let tx = repositories.begin_transaction().await?;
-
-        let keys: Vec<(Uuid, String, SigningKey)> = self
-            .identifiers
-            .iter()
-            .map(|identifier| {
-                (
-                    uuid_generator.generate(),
-                    identifier.clone(),
-                    SigningKey::random(&mut OsRng),
-                )
-            })
-            .collect();
-
-        repositories.save_keys(&tx, wallet_user.id, &keys).await?;
-        tx.commit().await?;
+        let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
+        let keys = pkcs11_client
+            .generate_keys(&wallet_user.wallet_id, &identifiers)
+            .await?;
 
         let public_keys = keys
             .into_iter()
-            .map(|(_id, identifier, key)| (identifier, DerVerifyingKey::from(*key.verifying_key())))
+            .map(|(identifier, key)| (identifier, DerVerifyingKey::from(key)))
             .collect();
 
         Ok(GenerateKeyResult { public_keys })
@@ -97,38 +87,33 @@ impl HandleInstruction for Sign {
         &self,
         wallet_user: &WalletUser,
         _uuid_generator: &(impl Generator<Uuid> + Sync),
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        pkcs11_client: &(impl Pkcs11Client + Sync),
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable + Send + Sync,
     {
         let (msg, identifiers) = &self.msg_with_identifiers;
-
-        let tx = repositories.begin_transaction().await?;
-        let found_keys = repositories
-            .find_keys_by_identifiers(&tx, wallet_user.id, identifiers)
+        let data = Arc::new(msg.0.clone());
+        let identifiers: Vec<&str> = identifiers.iter().map(|i| i.as_str()).collect();
+        let identifiers_and_signatures = pkcs11_client
+            .sign_multiple(&wallet_user.wallet_id, &identifiers, data)
             .await?;
-        tx.commit().await?;
 
-        let signatures: HashMap<String, DerSignature> = found_keys
+        let signatures_by_identifier: HashMap<String, DerSignature> = identifiers_and_signatures
             .into_iter()
-            .map(|(identifier, key)| {
-                let signature: Signature = p256::ecdsa::signature::Signer::sign(&key, &msg.0);
-                (identifier, signature.into())
-            })
+            .map(|(identifier, signature)| (identifier, signature.into()))
             .collect();
 
         Ok(SignResult {
-            signatures_by_identifier: signatures,
+            signatures_by_identifier,
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use p256::ecdsa::{signature::Verifier, SigningKey};
-    use rand::rngs::OsRng;
-    use std::collections::HashMap;
+    use p256::ecdsa::signature::Verifier;
 
     use wallet_common::{
         account::messages::instructions::{CheckPin, GenerateKey, Sign},
@@ -137,7 +122,10 @@ mod tests {
     use wallet_provider_domain::{model::wallet_user, repository::MockTransaction, FixedUuidGenerator};
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::instructions::HandleInstruction;
+    use crate::{
+        hsm::{mock::MockPkcs11Client, Pkcs11Client},
+        instructions::HandleInstruction,
+    };
 
     #[tokio::test]
     async fn should_handle_checkpin() {
@@ -149,6 +137,7 @@ mod tests {
                 &wallet_user,
                 &FixedUuidGenerator,
                 &MockTransactionalWalletUserRepository::new(),
+                &MockPkcs11Client::default(),
             )
             .await
             .unwrap();
@@ -169,7 +158,12 @@ mod tests {
         wallet_user_repo.expect_save_keys().returning(|_, _, _| Ok(()));
 
         let result = instruction
-            .handle(&wallet_user, &FixedUuidGenerator, &wallet_user_repo)
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &wallet_user_repo,
+                &MockPkcs11Client::default(),
+            )
             .await
             .unwrap();
 
@@ -185,31 +179,28 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
 
-        let signing_key = SigningKey::random(&mut OsRng);
-        let returned_signing_key = signing_key.clone();
-
         let instruction = Sign {
             msg_with_identifiers: (random_bytes(32).into(), vec!["key1".to_string()]),
         };
 
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_keys_by_identifiers()
-            .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
-            .return_once(move |_, _, _| Ok(HashMap::from([("key1".to_string(), returned_signing_key)])));
+        let pkcs11_client = MockPkcs11Client::default();
+        pkcs11_client
+            .generate_key(&wallet_user.wallet_id, "key1")
+            .await
+            .unwrap();
+
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
         let result = instruction
-            .handle(&wallet_user, &FixedUuidGenerator, &wallet_user_repo)
+            .handle(&wallet_user, &FixedUuidGenerator, &wallet_user_repo, &pkcs11_client)
             .await
             .unwrap();
 
         result
             .signatures_by_identifier
             .iter()
-            .for_each(|(_identifier, signature)| {
+            .for_each(|(identifier, signature)| {
+                let signing_key = pkcs11_client.get_key(&wallet_user.wallet_id, identifier).unwrap();
                 signing_key
                     .verifying_key()
                     .verify(&instruction.msg_with_identifiers.0 .0, &signature.0)

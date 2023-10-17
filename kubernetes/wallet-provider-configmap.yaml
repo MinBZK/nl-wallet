@@ -3,6 +3,7 @@ data:
   TZ: "Europe/Amsterdam"
   RUST_LOG: "debug,hyper=warn"
   WALLET_PROVIDER_STRUCTURED_LOGGING: "true"
+  CS_PKCS11_R3_CFG: "/cs_pkcs11_R3.cfg"
 kind: ConfigMap
 metadata:
   name: wallet-provider-config

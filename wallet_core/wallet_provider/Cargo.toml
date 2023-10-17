@@ -54,7 +54,3 @@ wallet_provider_migration = { path = "migration" }
 wallet_provider_persistence = { path = "persistence" }
 wallet_provider_service = { path = "service" }
 wallet_common = { path = "../wallet_common" }
-
-[dev-dependencies]
-cryptoki = { workspace = true }
-sec1 = { workspace = true }
