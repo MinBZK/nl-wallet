@@ -35,6 +35,7 @@ use super::{Wallet, WalletInitError};
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
     pub certificate_signing_key: SigningKey,
+    pub instruction_result_signing_key: SigningKey,
 }
 
 /// This contains key material that is used to issue mdocs.
@@ -55,6 +56,7 @@ pub type WalletWithMocks = Wallet<
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountServerKeys {
     certificate_signing_key: SigningKey::random(&mut OsRng),
+    instruction_result_signing_key: SigningKey::random(&mut OsRng),
 });
 
 /// The issuer key material, generated once for testing.
@@ -166,6 +168,8 @@ impl Default for WalletWithMocks {
         let config = {
             let mut config = Configuration::default();
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
+            config.account_server.instruction_result_public_key =
+                (*keys.instruction_result_signing_key.verifying_key()).into();
             config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
 
             config
