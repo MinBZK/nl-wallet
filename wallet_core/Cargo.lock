@@ -3926,6 +3926,7 @@ dependencies = [
  "wallet",
  "wallet_common",
  "wallet_provider",
+ "wallet_provider_database_settings",
  "wallet_provider_persistence",
 ]
 
@@ -4591,7 +4592,6 @@ dependencies = [
  "mime",
  "once_cell",
  "p256",
- "sea-orm-migration",
  "serde",
  "serde_json",
  "serde_with",
@@ -4601,10 +4601,18 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
- "wallet_provider_migration",
  "wallet_provider_persistence",
  "wallet_provider_service",
+]
+
+[[package]]
+name = "wallet_provider_database_settings"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "serde",
 ]
 
 [[package]]
@@ -4621,10 +4629,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "wallet_provider_migration"
+name = "wallet_provider_migrations"
 version = "0.1.0"
 dependencies = [
  "sea-orm-migration",
+ "tokio",
+ "wallet_provider_database_settings",
 ]
 
 [[package]]
@@ -4642,6 +4652,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
 
@@ -4671,6 +4682,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",

@@ -1,5 +1,3 @@
-use std::env;
-
 use chrono::{DateTime, Local};
 use ctor::ctor;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
@@ -10,6 +8,7 @@ use sea_orm::{
 use uuid::Uuid;
 
 use wallet_common::utils::random_bytes;
+use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
     model::wallet_user::{InstructionChallenge, WalletUserCreate},
     repository::PersistenceError,
@@ -32,13 +31,8 @@ fn init_logging() {
 }
 
 pub async fn db_from_env() -> Result<Db, PersistenceError> {
-    Db::new(
-        &env::var("WALLET_PROVIDER_DATABASE__HOST").unwrap_or("localhost".to_string()),
-        &env::var("WALLET_PROVIDER_DATABASE__NAME").unwrap_or("wallet_provider".to_string()),
-        Some(&env::var("WALLET_PROVIDER_DATABASE__USERNAME").unwrap_or("postgres".to_string())),
-        Some(&env::var("WALLET_PROVIDER_DATABASE__PASSWORD").unwrap_or("postgres".to_string())),
-    )
-    .await
+    let settings = Settings::new().unwrap();
+    Db::new(settings.database.connection_string()).await
 }
 
 pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)

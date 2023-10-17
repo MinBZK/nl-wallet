@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_with::{serde_as, DurationMilliSeconds};
 
 use wallet_common::account::serialization::{Base64Bytes, DerSigningKey};
+use wallet_provider_database_settings::{Database, DatabaseDefaults};
 
 #[serde_as]
 #[derive(Deserialize)]
@@ -20,14 +21,6 @@ pub struct Settings {
     pub structured_logging: bool,
     #[serde_as(as = "DurationMilliSeconds<i64>")]
     pub instruction_challenge_timeout_in_ms: Duration,
-}
-
-#[derive(Deserialize)]
-pub struct Database {
-    pub host: String,
-    pub name: String,
-    pub username: Option<String>,
-    pub password: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -56,10 +49,7 @@ impl Settings {
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
         Config::builder()
-            .set_default("database.host", "localhost")?
-            .set_default("database.username", "postgres")?
-            .set_default("database.password", "postgres")?
-            .set_default("database.name", "wallet_provider")?
+            .database_defaults()?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
             .set_default("pin_policy.rounds", 4)?

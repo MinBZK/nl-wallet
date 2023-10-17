@@ -1,7 +1,7 @@
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
-use std::env;
 use uuid::Uuid;
+
 use wallet_common::{
     account::messages::{
         auth::{Registration, WalletCertificate, WalletCertificateClaims},
@@ -9,12 +9,12 @@ use wallet_common::{
     },
     generator::Generator,
 };
+use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
     model::wallet_user::WalletUserQueryResult,
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
     EpochGenerator,
 };
-
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::account_server::{mock, AccountServer};
 
@@ -33,13 +33,8 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
             .finish(),
     );
 
-    Db::new(
-        &env::var("WALLET_PROVIDER_DATABASE__HOST").unwrap_or("localhost".to_string()),
-        &env::var("WALLET_PROVIDER_DATABASE__NAME").unwrap_or("wallet_provider".to_string()),
-        Some(&env::var("WALLET_PROVIDER_DATABASE__USERNAME").unwrap_or("postgres".to_string())),
-        Some(&env::var("WALLET_PROVIDER_DATABASE__PASSWORD").unwrap_or("postgres".to_string())),
-    )
-    .await
+    let settings = Settings::new().unwrap();
+    Db::new(settings.database.connection_string()).await
 }
 
 async fn do_registration(

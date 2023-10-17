@@ -1,4 +1,8 @@
-pub use sea_orm_migration::prelude::*;
+use std::error::Error;
+
+use sea_orm_migration::prelude::*;
+
+use wallet_provider_database_settings::Settings;
 
 mod m20230616_000001_create_wallet_user_table;
 mod m20230908_000001_create_wallet_user_key_table;
@@ -14,4 +18,14 @@ impl MigratorTrait for Migrator {
             Box::new(m20230926_000001_create_wallet_user_challenge_instruction::Migration),
         ]
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let settings = Settings::new()?;
+
+    std::env::set_var("DATABASE_URL", settings.database.connection_string());
+    cli::run_cli(Migrator).await;
+
+    Ok(())
 }
