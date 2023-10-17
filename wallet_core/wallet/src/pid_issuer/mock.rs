@@ -9,7 +9,11 @@ use url::Url;
 use super::{PidIssuerClient, PidIssuerError};
 
 #[derive(Default)]
-pub struct MockPidIssuerClient {}
+pub struct MockPidIssuerClient {
+    pub unsigned_mdocs: Vec<UnsignedMdoc>,
+    pub mdoc_copies: Vec<MdocCopies>,
+    pub next_error: Option<PidIssuerError>,
+}
 
 #[async_trait]
 impl PidIssuerClient for MockPidIssuerClient {
@@ -18,7 +22,10 @@ impl PidIssuerClient for MockPidIssuerClient {
         _base_url: &Url,
         _access_token: &str,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
-        Ok(Default::default())
+        match self.next_error.take() {
+            None => Ok(self.unsigned_mdocs.clone()),
+            Some(error) => Err(error),
+        }
     }
 
     async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
@@ -26,10 +33,16 @@ impl PidIssuerClient for MockPidIssuerClient {
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
         _key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
-        Ok(Default::default())
+        match self.next_error.take() {
+            None => Ok(self.mdoc_copies.clone()),
+            Some(error) => Err(error),
+        }
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
-        Ok(())
+        match self.next_error.take() {
+            None => Ok(()),
+            Some(error) => Err(error),
+        }
     }
 }
