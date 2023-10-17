@@ -40,6 +40,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: wallet-provider-config
+          volumeMounts:
+            - name: pkcs11-config-volume
+              mountPath: /cs_pkcs11_R3.cfg
+              subPath: cs_pkcs11_R3.cfg
           env:
             - name: WALLET_PROVIDER_CERTIFICATE_PRIVATE_KEY
               valueFrom:
@@ -62,11 +66,22 @@ spec:
               value: db-cluster-rw
             - name: WALLET_PROVIDER_DATABASE__USERNAME
               valueFrom:
-                  secretKeyRef:
-                      name: db-cluster-app
-                      key: username
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: username
             - name: WALLET_PROVIDER_DATABASE__PASSWORD
               valueFrom:
-                  secretKeyRef:
-                      name: db-cluster-app
-                      key: password
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: password
+            - name: WALLET_PROVIDER_HSM__USER_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-provider-hsm
+                  key: user_pin
+            - name: CS_PKCS11_R3_CFG
+              value: "/cs_pkcs11_R3.cfg"
+      volumes:
+        - name: pkcs11-config-volume
+          configMap:
+            name: nl-wallet-provider-pkcs11

@@ -4,12 +4,12 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, WithIdentifier};
-
-use crate::{
-    bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge},
+use wallet_common::{
+    keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, WithIdentifier},
     spawn,
 };
+
+use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
 
@@ -47,8 +47,7 @@ impl EcdsaKey for HardwareEcdsaKey {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
 
-        let signature_bytes =
-            spawn::blocking::<_, Self::Error, _>(|| get_signing_key_bridge().sign(identifier, payload)).await?;
+        let signature_bytes = spawn::blocking(|| get_signing_key_bridge().sign(identifier, payload)).await?;
 
         // decode the DER encoded signature
         Ok(Signature::from_der(&signature_bytes)?)
@@ -100,12 +99,14 @@ impl SecureEncryptionKey for HardwareEncryptionKey {
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
-        spawn::blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await
+        let encrypted = spawn::blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await?;
+        Ok(encrypted)
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
         let identifier = self.identifier.to_owned();
         let payload = msg.to_vec();
-        spawn::blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await
+        let decrypted = spawn::blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await?;
+        Ok(decrypted)
     }
 }

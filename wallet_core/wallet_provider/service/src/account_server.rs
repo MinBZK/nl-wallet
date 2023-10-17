@@ -31,7 +31,10 @@ use wallet_provider_domain::{
     wallet_provider_signing_key::WalletProviderEcdsaKey,
 };
 
-use crate::instructions::HandleInstruction;
+use crate::{
+    hsm::{HsmError, Pkcs11Client},
+    instructions::HandleInstruction,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountServerInitError {
@@ -116,6 +119,8 @@ pub enum InstructionError {
     Storage(#[from] PersistenceError),
     #[error("key not found: {0}")]
     KeyNotFound(String),
+    #[error("hsm error: {0}")]
+    HsmError(#[from] HsmError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -284,6 +289,7 @@ impl AccountServer {
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
         pin_policy: &impl PinPolicyEvaluator,
         time_generator: &impl Generator<DateTime<Local>>,
+        pkcs11_client: &(impl Pkcs11Client + Sync),
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         T: Committable + Send + Sync,
@@ -344,7 +350,7 @@ impl AccountServer {
 
                 let instruction_result = payload
                     .payload
-                    .handle(&wallet_user, uuid_generator, repositories)
+                    .handle(&wallet_user, uuid_generator, repositories, pkcs11_client)
                     .await?;
                 self.sign_instruction_result(instruction_result).await
             }
@@ -607,12 +613,13 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use async_trait::async_trait;
     use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
-    use std::collections::HashMap;
     use uuid::uuid;
 
     use wallet_common::account::{
@@ -625,6 +632,8 @@ mod tests {
         EpochGenerator, FixedUuidGenerator,
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
+
+    use crate::hsm::mock::MockPkcs11Client;
 
     use super::*;
 
@@ -848,6 +857,7 @@ mod tests {
                     },
                     &FailingPinPolicy,
                     &EpochGenerator,
+                    &MockPkcs11Client::default(),
                 )
                 .await
                 .expect_err("sequence number mismatch error should result in IncorrectPin error"),
@@ -871,6 +881,7 @@ mod tests {
                 },
                 &TimeoutPinPolicy,
                 &EpochGenerator,
+                &MockPkcs11Client::default(),
             )
             .await
             .expect("should return instruction result");

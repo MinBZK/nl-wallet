@@ -36,7 +36,7 @@ variables:
 .default-sonar:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
+    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
 
 .default-branch:
   rules:
@@ -120,7 +120,7 @@ integration-test-rust:
     POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
   services:
-    - name: "$HARBOR_REGISTRY/$DOCKER_HUB_PROXY/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
+    - name: "$HARBOR_REGISTRY/docker-hub-proxy/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
       alias: postgres
   before_script:
     - set -euxo pipefail
