@@ -100,11 +100,11 @@ test-rust:
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     # Run tests, generate code coverage reports
     - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
-    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path coverage.xml)
+    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
   artifacts:
     reports:
       coverage_report:
-        path: wallet_core/coverage.xml
+        path: wallet_core/unit-coverage.xml
         coverage_format: cobertura
     paths:
       - wallet_core/lcov.info
@@ -129,7 +129,12 @@ integration-test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
+    - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
+    reports:
+      coverage_report:
+        path: wallet_core/integration-coverage.xml
+        coverage_format: cobertura
     paths:
       - wallet_core/lcov_integration.info
 
