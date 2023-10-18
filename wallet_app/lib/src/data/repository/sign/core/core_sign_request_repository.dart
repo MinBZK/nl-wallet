@@ -1,8 +1,8 @@
 import '../../../../domain/model/sign_request.dart';
 import '../sign_request_repository.dart';
 
-class SignRequestRepositoryImpl implements SignRequestRepository {
-  SignRequestRepositoryImpl();
+class CoreSignRequestRepository implements SignRequestRepository {
+  CoreSignRequestRepository();
 
   @override
   Future<SignRequest> getRequest(String sessionId) {

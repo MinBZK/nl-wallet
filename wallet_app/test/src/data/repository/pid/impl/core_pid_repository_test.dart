@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
-import 'package:wallet/src/data/repository/pid/impl/pid_repository_impl.dart';
+import 'package:wallet/src/data/repository/pid/core/core_pid_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/data/store/impl/active_localization_delegate.dart';
@@ -29,7 +29,7 @@ void main() {
     core = Mocks.create();
     localeProvider = ActiveLocalizationDelegate(); // Defaults to 'en'
     //FIXME: Mock mappers
-    pidRepository = PidRepositoryImpl(
+    pidRepository = CorePidRepository(
         core,
         CoreErrorMapper(),
         CardMapper(

@@ -1,8 +1,8 @@
 import '../../../../domain/model/qr/qr_request.dart';
 import '../qr_repository.dart';
 
-class QrRepositoryImpl implements QrRepository {
-  QrRepositoryImpl();
+class CoreQrRepository implements QrRepository {
+  CoreQrRepository();
 
   @override
   Future<QrRequest> getRequest(String rawValue) {
