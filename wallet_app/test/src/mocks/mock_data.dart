@@ -1,13 +1,13 @@
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/document.dart';
+import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
-import 'package:wallet/src/feature/verification/model/organization.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../verification/model/organization.dart';
 import '../detail/organization_detail_screen.dart';
 import '../widget/organization_row.dart';
 
@@ -109,7 +109,7 @@ class OrganizationApprovePage extends StatelessWidget {
     switch (purpose) {
       case ApprovalPurpose.issuance:
         return context.l10n.organizationApprovePageReceiveFromTitle(organization.name);
-      case ApprovalPurpose.verification:
+      case ApprovalPurpose.disclosure:
         return context.l10n.organizationApprovePageShareWithTitle(organization.name);
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageSignWithTitle(organization.name);
@@ -143,7 +143,7 @@ class OrganizationApprovePage extends StatelessWidget {
     switch (purpose) {
       case ApprovalPurpose.issuance:
         return context.l10n.organizationApprovePageApproveCta;
-      case ApprovalPurpose.verification:
+      case ApprovalPurpose.disclosure:
         return context.l10n.organizationApprovePageShareWithApproveCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageApproveCta;
@@ -154,7 +154,7 @@ class OrganizationApprovePage extends StatelessWidget {
     switch (purpose) {
       case ApprovalPurpose.issuance:
         return context.l10n.organizationApprovePageDenyCta;
-      case ApprovalPurpose.verification:
+      case ApprovalPurpose.disclosure:
         return context.l10n.organizationApprovePageShareWithDenyCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageDenyCta;
@@ -162,4 +162,4 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 }
 
-enum ApprovalPurpose { issuance, verification, sign }
+enum ApprovalPurpose { issuance, disclosure, sign }
