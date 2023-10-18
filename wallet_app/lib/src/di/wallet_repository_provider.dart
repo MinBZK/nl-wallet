@@ -11,6 +11,9 @@ import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/configuration/configuration_repository.dart';
 import '../data/repository/configuration/core/core_configuration_repository.dart';
 import '../data/repository/configuration/mock/mock_configuration_repository.dart';
+import '../data/repository/disclosure/core/core_disclosure_request_repository.dart';
+import '../data/repository/disclosure/disclosure_request_repository.dart';
+import '../data/repository/disclosure/mock/mock_disclosure_request_repository.dart';
 import '../data/repository/issuance/core/core_issuance_response_repository.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
@@ -27,9 +30,6 @@ import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/sign/core/core_sign_request_repository.dart';
 import '../data/repository/sign/mock/mock_sign_request_repository.dart';
 import '../data/repository/sign/sign_request_repository.dart';
-import '../data/repository/verification/core/core_verification_request_repository.dart';
-import '../data/repository/verification/mock/mock_verification_request_repository.dart';
-import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
@@ -61,9 +61,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<TimelineAttributeRepository>(
           create: (context) => TimelineAttributeRepositoryImpl(context.read()),
         ),
-        RepositoryProvider<VerificationRequestRepository>(
+        RepositoryProvider<DisclosureRequestRepository>(
           create: (context) =>
-              provideMocks ? MockVerificationRequestRepository(context.read()) : CoreVerificationRequestRepository(),
+              provideMocks ? MockDisclosureRequestRepository(context.read()) : CoreDisclosureRequestRepository(),
         ),
         RepositoryProvider<ConfigurationRepository>(
           create: (context) =>

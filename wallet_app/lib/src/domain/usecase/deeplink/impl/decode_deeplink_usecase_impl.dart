@@ -41,12 +41,12 @@ class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
       String destination;
       Object? argument;
       switch (code.type) {
-        case EdiQrType.issue:
+        case EdiQrType.issuance:
           destination = WalletRoutes.issuanceRoute;
           argument = IssuanceScreenArgument(sessionId: code.id).toMap();
           break;
-        case EdiQrType.verify:
-          destination = WalletRoutes.verificationRoute;
+        case EdiQrType.disclosure:
+          destination = WalletRoutes.disclosureRoute;
           argument = code.id;
           break;
         case EdiQrType.sign:

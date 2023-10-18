@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/screen/placeholder_screen.dart';
+import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import 'bloc/sign_bloc.dart';
 import 'page/check_agreement_page.dart';
@@ -74,8 +74,8 @@ class SignScreen extends StatelessWidget {
     );
   }
 
-  /// The close button stops/closes the verification flow.
-  /// It is only visible in the semantics tree when the verification flow is in progress.
+  /// The close button stops/closes the sign flow.
+  /// It is only visible in the semantics tree when the sign flow is in progress.
   Widget _buildCloseButton(BuildContext context) {
     final closeButton = CloseButton(onPressed: () => _stopSigning(context));
     return BlocBuilder<SignBloc, SignState>(

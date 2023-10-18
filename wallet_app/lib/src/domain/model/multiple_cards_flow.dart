@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../feature/verification/model/organization.dart';
 import 'issuance_response.dart';
+import 'organization.dart';
 import 'wallet_card.dart';
 
 class MultipleCardsFlow extends Equatable {

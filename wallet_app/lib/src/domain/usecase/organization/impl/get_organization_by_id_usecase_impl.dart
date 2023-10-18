@@ -1,5 +1,4 @@
 import '../../../../data/repository/organization/organization_repository.dart';
-import '../../../../feature/verification/model/organization.dart';
 import '../get_organization_by_id_usecase.dart';
 
 class GetOrganizationByIdUseCaseImpl implements GetOrganizationByIdUseCase {
