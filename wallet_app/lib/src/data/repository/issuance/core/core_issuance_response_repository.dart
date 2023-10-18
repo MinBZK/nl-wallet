@@ -1,8 +1,8 @@
 import '../../../../domain/model/issuance_response.dart';
 import '../issuance_response_repository.dart';
 
-class IssuanceResponseRepositoryImpl extends IssuanceResponseRepository {
-  IssuanceResponseRepositoryImpl();
+class CoreIssuanceResponseRepository extends IssuanceResponseRepository {
+  CoreIssuanceResponseRepository();
 
   @override
   Future<IssuanceResponse> read(String issuanceRequestId) {

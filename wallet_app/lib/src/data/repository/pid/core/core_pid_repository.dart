@@ -14,14 +14,14 @@ import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../../store/active_locale_provider.dart';
 import '../pid_repository.dart';
 
-class PidRepositoryImpl extends PidRepository {
+class CorePidRepository extends PidRepository {
   final StreamController<PidIssuanceStatus> _pidIssuanceStatusController = BehaviorSubject();
   final TypedWalletCore _walletCore;
   final Mapper<String, CoreError> _coreErrorMapper;
   final LocaleMapper<Card, WalletCard> _cardMapper;
   final ActiveLocaleProvider _localeProvider;
 
-  PidRepositoryImpl(
+  CorePidRepository(
     this._walletCore,
     this._coreErrorMapper,
     this._cardMapper,
