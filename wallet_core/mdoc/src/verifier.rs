@@ -786,7 +786,7 @@ mod tests {
         // Start session
         let url = "https://example.com".parse().unwrap();
         let (session_token, reader_engagement) = new_session(
-            url,
+            &url,
             new_disclosure_request(),
             DISCLOSURE_USECASE.to_string(),
             &keys,
