@@ -270,7 +270,7 @@ mod tests {
         assert!(wallet.storage.get_mut().data.is_empty());
     }
 
-    // TODO: Check HardwarePublicKey and Signing errors by mocking `PlatformEcdsaKey`.
+    // TODO: Test HardwarePublicKey and Signing errors by mocking `PlatformEcdsaKey`.
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request() {
@@ -307,7 +307,7 @@ mod tests {
             .return_once(|_| Ok(utils::random_bytes(32)));
 
         // Have the account server sign the wallet certificate with
-        // a keyto which the certificate public key does not belong.
+        // a key to which the certificate public key does not belong.
         let other_key = SigningKey::random(&mut OsRng);
         let cert = Jwt::sign(&wallet.valid_certificate_claims().await, &other_key)
             .await
