@@ -162,7 +162,7 @@ impl SessionState<Done> {
 /// - `certificates` contains for each usecase a certificate and corresponding private key for use in RP authentication.
 /// - `sessions` contains all currently active sessions, managed by this function and by [`process_message()`].
 pub fn new_session(
-    base_url: Url,
+    base_url: &Url,
     items_requests: Vec<ItemsRequest>,
     usecase_id: String,
     keys: &impl KeyRing,
@@ -267,7 +267,7 @@ impl Session<Created> {
     fn new(
         items_requests: Vec<ItemsRequest>,
         usecase_id: String,
-        base_url: Url,
+        base_url: &Url,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
         let session_token = SessionToken::new();
         let url = base_url.join(&session_token.0).unwrap();
