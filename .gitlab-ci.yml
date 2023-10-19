@@ -128,8 +128,10 @@ integration-test-rust:
     - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
     - echo "${WALLET_PROVIDER_CERTIFICATE_SIGNING_KEY}" > certificate_signing_key.pem
     - echo "${WALLET_PROVIDER_INSTRUCTION_RESULT_SIGNING_KEY}" > instruction_result_signing_key.pem
-    - softhsm2-util --import certificate_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "$(echo "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-    - softhsm2-util --import instruction_result_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "$(echo "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
+    # id is hex value of "certificate_signing"
+    - softhsm2-util --import certificate_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "63657274696669636174655f7369676e696e670a" --label "certificate_signing_key" --token "test_token"
+    # id is hex value of "instruction_result_signing"
+    - softhsm2-util --import instruction_result_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
   script:
     - cargo run --bin wallet_provider_migrations -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info

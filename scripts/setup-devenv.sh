@@ -190,8 +190,10 @@ render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/sof
 
 softhsm2-util --delete-token --token test_token --force > /dev/null || true
 softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
+# id = echo "certificate_signing" | xxd -p
+softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "63657274696669636174655f7369676e696e670a" --label "certificate_signing_key" --token "test_token"
+# id = echo "instruction_result_signing" | xxd -p
+softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
 
 ########################################################################
 # Configure wallet
