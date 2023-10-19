@@ -212,16 +212,16 @@ void main() {
       expect(find.text('/sign'), findsOneWidget);
     });
 
-    testWidgets('verification navigation is performed', (tester) async {
+    testWidgets('disclosure navigation is performed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen().withState<QrScanBloc, QrScanState>(
           MockQrScanBloc(),
-          QrScanSuccess(QrVerificationRequest('id')),
+          QrScanSuccess(QrDisclosureRequest('id')),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('/verification'), findsOneWidget);
+      expect(find.text('/disclosure'), findsOneWidget);
     });
   });
 }

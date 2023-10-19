@@ -2,18 +2,18 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../verification/model/organization.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
 

@@ -16,4 +16,10 @@ class EdiQrCode {
   Map<String, dynamic> toJson() => _$EdiQrCodeToJson(this);
 }
 
-enum EdiQrType { issue, verify, sign }
+enum EdiQrType {
+  @JsonValue('issue') // Map old value 'issue' to 'issuance' type; for backwards QR code compatibility.
+  issuance,
+  @JsonValue('verify') // Map old value 'verify' to 'disclosure' type; for backwards QR code compatibility.
+  disclosure,
+  sign,
+}

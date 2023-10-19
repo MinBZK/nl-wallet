@@ -17,7 +17,7 @@ Map<String, dynamic> _$EdiQrCodeToJson(EdiQrCode instance) => <String, dynamic>{
     };
 
 const _$EdiQrTypeEnumMap = {
-  EdiQrType.issue: 'issue',
-  EdiQrType.verify: 'verify',
+  EdiQrType.issuance: 'issue',
+  EdiQrType.disclosure: 'verify',
   EdiQrType.sign: 'sign',
 };

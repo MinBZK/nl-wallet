@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../feature/verification/model/organization.dart';
+import '../usecase/card/log_card_interaction_usecase.dart';
 import 'attribute/requested_attribute.dart';
 import 'document.dart';
 import 'policy/policy.dart';

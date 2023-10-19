@@ -2,7 +2,7 @@
 
  Pin validation is comprised of two steps, first of the [local](#31-local-pin-validation) pin validation (when configuring the wallet) to prevent users from selecting a trivial pin. Secondly the [remote](#32-remote-pin-validation) pin validation, where the user provided pin is compared with the previously registerd pin by the `wallet_provider`.
 
-## 3.1 Local pin validation
+## Local pin validation
 
 This diagram illustrates the local validation that happens when the user configures a new pin, to make sure the user does not select a trivial pin like `000000`.
 
@@ -30,7 +30,7 @@ sequenceDiagram
     deactivate user
 ```
 
-## 3.2 Remote pin validation
+## Remote pin validation
 
 This diagram illustrates the remote validation, this occurs when the user has already configured her wallet and is e.g. trying to log in to the app.
 
