@@ -270,7 +270,7 @@ impl Session<Created> {
         base_url: &Url,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
         let session_token = SessionToken::new();
-        let url = base_url.join(&session_token.0).unwrap();
+        let url = base_url.join(&session_token.0).unwrap(); // token is alphanumeric so this will always succeed
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
