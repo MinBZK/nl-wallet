@@ -262,7 +262,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         offset: const Offset(0, indicatorPadding),
         child: Semantics(
           container: true,
-          label: context.l10n.introductionWCAGCurrentPageAnnouncement(step, _kNrOfPages - 1),
+          label: context.l10n.introductionWCAGCurrentPageAnnouncement(step, _kNrOfPages),
           child: const SizedBox(
             height: 22,
             width: indicatorWidth,

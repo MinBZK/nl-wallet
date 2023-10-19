@@ -35,18 +35,20 @@ class IntroductionPrivacyScreen extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
             sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.l10n.introductionPrivacyScreenHeadline,
-                    style: context.textTheme.displayMedium,
-                    textAlign: TextAlign.start,
-                  ),
-                  BulletList(
-                    items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
-                  ),
-                ],
+              child: MergeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.introductionPrivacyScreenHeadline,
+                      style: context.textTheme.displayMedium,
+                      textAlign: TextAlign.start,
+                    ),
+                    BulletList(
+                      items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

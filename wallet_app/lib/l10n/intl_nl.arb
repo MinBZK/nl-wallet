@@ -126,6 +126,15 @@
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
     "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
     "cardOverviewScreenTitle": "Mijn kaarten",
+    "cardTitleSemanticsLabel": "Kaart: {cardTitle}",
+    "@cardTitleSemanticsLabel": {
+        "placeholders": {
+            "cardTitle": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
     "cardValueFalse": "Niet waar",
     "cardValueGenderFemale": "Vrouw",
     "cardValueGenderMale": "Man",

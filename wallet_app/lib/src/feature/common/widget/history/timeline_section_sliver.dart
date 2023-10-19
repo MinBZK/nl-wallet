@@ -32,10 +32,13 @@ class TimelineSectionSliver extends StatelessWidget {
           delegate: SliverChildBuilderDelegate(
             (context, i) {
               final TimelineAttribute attribute = section.attributes[i];
-              return TimelineAttributeRow(
-                attribute: attribute,
-                onPressed: () => onRowPressed(attribute.id),
-                showOperationTitle: showOperationTitle,
+              return Semantics(
+                button: true,
+                child: TimelineAttributeRow(
+                  attribute: attribute,
+                  onPressed: () => onRowPressed(attribute.id),
+                  showOperationTitle: showOperationTitle,
+                ),
               );
             },
             childCount: section.attributes.length,
