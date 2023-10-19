@@ -121,36 +121,37 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context, Organization organization) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            OrganizationLogo(image: AssetImage(organization.logoUrl), size: 40),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                organization.name,
-                textAlign: TextAlign.start,
-                style: context.textTheme.displayMedium,
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              ExcludeSemantics(
+                child: OrganizationLogo(image: AssetImage(organization.logoUrl), size: 40),
               ),
-            )
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          organization.description,
-          style: context.textTheme.bodyLarge,
-        ),
-      ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  organization.name,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.displayMedium,
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            organization.description,
+            style: context.textTheme.bodyLarge,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPolicySection(
-    BuildContext context,
-    OrganizationDetailSuccess state,
-  ) {
+  Widget _buildPolicySection(BuildContext context, OrganizationDetailSuccess state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -163,17 +164,20 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.policy_outlined),
-          text: InkWell(
-            onTap: () => PlaceholderScreen.show(context),
-            child: Text.rich(
-              TextSpan(
-                text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
-                children: [
-                  TextSpan(
-                    text: context.l10n.organizationDetailScreenPrivacyPolicy,
-                    style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-                  )
-                ],
+          text: Semantics(
+            button: true,
+            child: InkWell(
+              onTap: () => PlaceholderScreen.show(context),
+              child: Text.rich(
+                TextSpan(
+                  text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
+                  children: [
+                    TextSpan(
+                      text: context.l10n.organizationDetailScreenPrivacyPolicy,
+                      style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+                    )
+                  ],
+                ),
               ),
             ),
           ),
@@ -223,12 +227,15 @@ class OrganizationDetailScreen extends StatelessWidget {
         if (organization.webUrl != null)
           IconRow(
             icon: const Icon(Icons.language_outlined),
-            text: InkWell(
-              onTap: () => PlaceholderScreen.show(context),
-              child: Text.rich(TextSpan(
-                text: organization.webUrl!,
-                style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-              )),
+            text: Semantics(
+              link: true,
+              child: InkWell(
+                onTap: () => PlaceholderScreen.show(context),
+                child: Text.rich(TextSpan(
+                  text: organization.webUrl!,
+                  style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
+                )),
+              ),
             ),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),

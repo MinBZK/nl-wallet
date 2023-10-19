@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
@@ -32,6 +33,11 @@ class IntroductionExpectationsScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final expectationSteps = [
+      context.l10n.introductionExpectationsScreenStep1,
+      context.l10n.introductionExpectationsScreenStep2,
+      context.l10n.introductionExpectationsScreenStep3,
+    ];
     return Scrollbar(
       child: CustomScrollView(
         slivers: <Widget>[
@@ -45,36 +51,15 @@ class IntroductionExpectationsScreen extends StatelessWidget {
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: _buildExpectationStep(
-                context,
-                1,
-                context.l10n.introductionExpectationsScreenStep1,
+          // Loop expectation steps
+          ...expectationSteps.mapIndexed((i, step) {
+            return SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              sliver: SliverToBoxAdapter(
+                child: _buildExpectationStep(context, i + 1, step),
               ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: _buildExpectationStep(
-                context,
-                2,
-                context.l10n.introductionExpectationsScreenStep2,
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: _buildExpectationStep(
-                context,
-                3,
-                context.l10n.introductionExpectationsScreenStep3,
-              ),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );
@@ -87,20 +72,22 @@ class IntroductionExpectationsScreen extends StatelessWidget {
         color: context.colorScheme.background,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Text(
-            '$step.',
-            style: context.textTheme.displaySmall,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              description,
-              style: context.textTheme.bodyLarge,
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            Text(
+              '$step.',
+              style: context.textTheme.displaySmall,
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                description,
+                style: context.textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

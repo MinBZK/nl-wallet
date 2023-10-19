@@ -126,6 +126,15 @@
     "cardHistoryTimelineSigningSuccess": "Signed",
     "cardOverviewScreenAddCardCta": "Add data",
     "cardOverviewScreenTitle": "My cards",
+    "cardTitleSemanticsLabel": "Card: {cardTitle}",
+    "@cardTitleSemanticsLabel": {
+        "placeholders": {
+            "cardTitle": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
     "cardValueFalse": "False",
     "cardValueGenderFemale": "Female",
     "cardValueGenderMale": "Male",

@@ -167,7 +167,7 @@ class HistoryDetailScreen extends StatelessWidget {
         );
       }
 
-      // Incorrect button
+      // Report issue button
       slivers.add(const SliverDivider());
       slivers.add(
         SliverToBoxAdapter(

@@ -17,7 +17,7 @@ class BulletList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: items.map<Widget>((point) {
+        children: items.map((point) {
           return IconRow(
             padding: const EdgeInsets.symmetric(vertical: 4),
             icon: SizedBox(

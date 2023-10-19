@@ -148,7 +148,11 @@ class WalletCardItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.textTheme.displaySmall),
+                Text(
+                  title,
+                  style: context.textTheme.displaySmall,
+                  semanticsLabel: context.l10n.cardTitleSemanticsLabel(title),
+                ),
                 const SizedBox(height: 4),
                 Text(subtitle1 ?? '', style: context.textTheme.bodyLarge),
                 const SizedBox(height: 4),

@@ -75,7 +75,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     }
 
     return InfoRow(
-      leading: const Icon(Icons.policy_outlined),
+      icon: Icons.policy_outlined,
       title: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
       subtitle: Text(subtitle),
       onTap: () => PolicyScreen.show(
@@ -89,21 +89,23 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.disclosureConfirmDataAttributesShareWithTitle(flow.organization.name),
-            style: context.textTheme.bodySmall,
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
-            style: context.textTheme.displayMedium,
-            textAlign: TextAlign.start,
-          ),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.l10n.disclosureConfirmDataAttributesShareWithTitle(flow.organization.name),
+              style: context.textTheme.bodySmall,
+              textAlign: TextAlign.start,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
+              style: context.textTheme.displayMedium,
+              textAlign: TextAlign.start,
+            ),
+          ],
+        ),
       ),
     );
   }
