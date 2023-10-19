@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use futures::future::TryFutureExt;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
@@ -10,7 +8,7 @@ use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
     instruction::{InstructionClient, InstructionError},
-    storage::{Storage, StorageError},
+    storage::Storage,
 };
 
 use super::Wallet;
@@ -19,10 +17,8 @@ use super::Wallet;
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     NotRegistered,
-    #[error("could not retrieve registration from database: {0}")]
-    Database(#[from] StorageError),
-    #[error("could not get hardware public key: {0}")]
-    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    #[error("wallet is not locked")]
+    NotLocked,
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
 }
@@ -58,11 +54,16 @@ impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
     {
         info!("Validating pin");
 
-        info!("Checking if already registered");
+        info!("Checking if registered");
         let registration_data = self
             .registration
             .as_ref()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
+
+        info!("Checking if locked");
+        if !self.lock.is_locked() {
+            return Err(WalletUnlockError::NotLocked);
+        }
 
         let config = self.config_repository.config();
 
@@ -97,21 +98,32 @@ mod tests {
         sync::{Arc, Mutex},
     };
 
+    use assert_matches::assert_matches;
+    use http::StatusCode;
     use mockall::predicate::*;
 
+    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use wallet_common::{
         account::{
             jwt::Jwt,
-            messages::instructions::{CheckPin, Instruction, InstructionResultClaims},
+            messages::{
+                errors::{ErrorData, ErrorType, IncorrectPinData, PinTimeoutData},
+                instructions::{CheckPin, Instruction, InstructionResultClaims},
+            },
             signed::SequenceNumberComparison,
         },
         keys::EcdsaKey,
         utils,
     };
 
-    use crate::{config::ConfigurationRepository, pin::key::PinKey};
+    use crate::{account_provider::AccountProviderResponseError, config::ConfigurationRepository, pin::key::PinKey};
 
-    use super::super::tests::{WalletWithMocks, ACCOUNT_SERVER_KEYS};
+    use super::{
+        super::tests::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
+        *,
+    };
+
+    const PIN: &str = "051097";
 
     // Tests both setting and clearing the lock callback.
     #[tokio::test]
@@ -166,8 +178,7 @@ mod tests {
         let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
         let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
 
-        let pin = "051097";
-        let pin_key = PinKey::new(pin, &wallet.registration.as_ref().unwrap().pin_salt.0);
+        let pin_key = PinKey::new(PIN, &wallet.registration.as_ref().unwrap().pin_salt.0);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -203,7 +214,7 @@ mod tests {
             });
 
         // Unlock the `Wallet` with the PIN.
-        wallet.unlock(pin.to_string()).await.expect("Could not unlock wallet");
+        wallet.unlock(PIN.to_string()).await.expect("Could not unlock wallet");
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&is_locked_vec), 2);
@@ -226,5 +237,231 @@ mod tests {
 
         // Test that the callback was not called.
         assert_eq!(is_locked_vec.lock().unwrap().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_not_registered() {
+        // Prepare an unregistered wallet
+        let mut wallet = WalletWithMocks::default();
+
+        // Unlocking an unregistered `Wallet` should result in an error.
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(error, WalletUnlockError::NotRegistered);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_not_locked() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Unlocking an already unlocked `Wallet` should result in an error.
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(error, WalletUnlockError::NotLocked);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_server_challenge_404() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        // A 404 response from the account server when requesting the instruction
+        // challenge for unlocking should result in an `InstructionError::ServerError`.
+        wallet
+            .account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()));
+
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(error, WalletUnlockError::Instruction(InstructionError::ServerError(_)));
+    }
+
+    // Helper function for producing unlock errors based
+    // on account server instruction responses.
+    async fn test_wallet_unlock_error_instruction_response(
+        response_error: AccountProviderResponseError,
+    ) -> WalletUnlockError {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        wallet
+            .account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(utils::random_bytes(32)));
+
+        wallet
+            .account_provider_client
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<CheckPin>| Err(response_error.into()));
+
+        wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error")
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_incorrect_pin() {
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
+            StatusCode::FORBIDDEN,
+            ErrorData {
+                typ: ErrorType::IncorrectPin(IncorrectPinData {
+                    attempts_left: 2,
+                    is_final_attempt: false,
+                }),
+                title: "incorrect pin".to_string(),
+            },
+        ))
+        .await;
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::IncorrectPin {
+                leftover_attempts: 2,
+                is_final_attempt: false
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_timeout() {
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
+            StatusCode::FORBIDDEN,
+            ErrorData {
+                typ: ErrorType::PinTimeout(PinTimeoutData { time_left_in_ms: 5000 }),
+                title: "pin timeout".to_string(),
+            },
+        ))
+        .await;
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: 5000 })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_blocked() {
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
+            StatusCode::UNAUTHORIZED,
+            ErrorData {
+                typ: ErrorType::AccountBlocked,
+                title: "blocked".to_string(),
+            },
+        ))
+        .await;
+
+        assert_matches!(error, WalletUnlockError::Instruction(InstructionError::Blocked));
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_validation() {
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
+            StatusCode::FORBIDDEN,
+            ErrorData {
+                typ: ErrorType::InstructionValidation,
+                title: "instruction validation".to_string(),
+            },
+        ))
+        .await;
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::InstructionValidation)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_server_unexpected() {
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorData {
+                typ: ErrorType::Unexpected,
+                title: "unexpected error".to_string(),
+            },
+        ))
+        .await;
+
+        assert_matches!(error, WalletUnlockError::Instruction(InstructionError::ServerError(_)));
+    }
+
+    // TODO: Test InstructionError::Signing errors by mocking `PlatformEcdsaKey`.
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_result_validation() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        wallet
+            .account_provider_client
+            .expect_instruction_challenge()
+            .return_once(|_, _| Ok(utils::random_bytes(32)));
+
+        // Have the account server sign the instruction result with a key
+        // to which the instruction result public key does not belong.
+        let result_claims = InstructionResultClaims {
+            result: (),
+            iss: "wallet_unit_test".to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        };
+        let other_key = SigningKey::random(&mut OsRng);
+        let result = Jwt::sign(&result_claims, &other_key).await.unwrap();
+
+        wallet
+            .account_provider_client
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<CheckPin>| Ok(result));
+
+        // Unlocking the wallet should now result in a
+        // `InstructionError::InstructionResultValidation` error.
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::InstructionResultValidation(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_store() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        // Have the database return an error when fetching the sequence number.
+        wallet.storage.get_mut().has_query_error = true;
+
+        // Unlocking the wallet should now result in an
+        // `InstructionError::StoreInstructionSequenceNumber` error.
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(
+            error,
+            WalletUnlockError::Instruction(InstructionError::StoreInstructionSequenceNumber(_))
+        );
     }
 }
