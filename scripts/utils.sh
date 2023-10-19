@@ -112,6 +112,9 @@ function generate_wp_private_key {
             -noout \
             -out "${TARGET_DIR}/wallet_provider/$1.ec.key" > /dev/null
     echo -e "${INFO}Generating private key from EC private key${NC}"
+    openssl ec -in "${TARGET_DIR}/wallet_provider/$1.ec.key" -pubout -out "${TARGET_DIR}/wallet_provider/$1.pub.pem"
+    openssl pkey -in "${TARGET_DIR}/wallet_provider/$1.pub.pem" -pubin -outform der -out "${TARGET_DIR}/wallet_provider/$1.pub.der"
+
     openssl pkcs8 \
             -topk8 \
             -nocrypt \

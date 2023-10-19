@@ -5,7 +5,6 @@ use cryptoki::{
     context::{CInitializeArgs, Pkcs11},
     mechanism::Mechanism,
     object::{Attribute, AttributeType, ObjectHandle},
-    session::Session,
     types::AuthPin,
 };
 use der::{asn1::OctetString, Decode, Encode};
@@ -19,6 +18,7 @@ use r2d2_cryptoki::{Pool, SessionManager, SessionType};
 use sec1::EcParameters;
 
 use wallet_common::{spawn, utils::sha256};
+use wallet_provider_domain::model::wallet_user::WalletId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {
@@ -46,30 +46,36 @@ pub enum HsmError {
 
 type Result<T> = std::result::Result<T, HsmError>;
 
-#[async_trait]
-pub trait Pkcs11Client {
-    async fn generate_key(&self, key_prefix: &str, identifier: &str) -> Result<VerifyingKey>;
+pub(crate) struct PrivateKeyHandle(ObjectHandle);
+pub(crate) struct PublicKeyHandle(ObjectHandle);
 
-    async fn generate_keys(&self, key_prefix: &str, identifiers: &[&str]) -> Result<Vec<(String, VerifyingKey)>> {
+enum HandleType {
+    Public,
+    Private,
+}
+
+#[async_trait]
+pub trait WalletUserHsm {
+    async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey>;
+
+    async fn generate_keys(&self, wallet_id: &WalletId, identifiers: &[&str]) -> Result<Vec<(String, VerifyingKey)>> {
         future::try_join_all(identifiers.iter().map(|identifier| async move {
-            let result = self.generate_key(key_prefix, identifier).await;
+            let result = self.generate_key(wallet_id, identifier).await;
             result.map(|pub_key| (String::from(*identifier), pub_key))
         }))
         .await
     }
 
-    async fn delete_key(&self, key_prefix: &str, identifier: &str) -> Result<()>;
-
-    async fn sign(&self, key_prefix: &str, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature>;
+    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature>;
 
     async fn sign_multiple(
         &self,
-        key_prefix: &str,
+        wallet_id: &WalletId,
         identifiers: &[&str],
         data: Arc<Vec<u8>>,
     ) -> Result<Vec<(String, Signature)>> {
         future::try_join_all(identifiers.iter().map(|identifier| async {
-            self.sign(key_prefix, identifier, Arc::clone(&data))
+            self.sign(wallet_id, identifier, Arc::clone(&data))
                 .await
                 .map(|signature| (String::from(*identifier), signature))
         }))
@@ -77,11 +83,29 @@ pub trait Pkcs11Client {
     }
 }
 
-pub struct Hsm {
+#[async_trait]
+pub trait Hsm {
+    async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey>;
+    async fn delete_key(&self, identifier: &str) -> Result<()>;
+    async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature>;
+}
+
+#[async_trait]
+pub(crate) trait Pkcs11Client {
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
+    async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
+    async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
+    async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey>;
+    async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()>;
+    async fn sign(&self, private_key_handle: PrivateKeyHandle, data: Arc<Vec<u8>>) -> Result<Signature>;
+}
+
+#[derive(Clone)]
+pub struct Pkcs11Hsm {
     pool: Pool,
 }
 
-impl Hsm {
+impl Pkcs11Hsm {
     pub fn new(library_path: PathBuf, user_pin: String) -> Result<Self> {
         let pkcs11_client = Pkcs11::new(library_path)?;
         pkcs11_client.initialize(CInitializeArgs::OsThreads)?;
@@ -97,25 +121,69 @@ impl Hsm {
         Ok(Self { pool })
     }
 
-    fn find_key_by_id(session: &Session, id: &str) -> Result<ObjectHandle> {
-        let object_handles = session.find_objects(&[Attribute::Token(true), Attribute::Id(id.into())])?;
-        let object_handle = object_handles
-            .first()
-            .cloned()
-            .ok_or(HsmError::KeyNotFound(String::from(id)))?;
-        Ok(object_handle)
-    }
-
     fn key_identifier(prefix: &str, identifier: &str) -> String {
         format!("{prefix}_{identifier}")
+    }
+
+    async fn get_key_handle(&self, identifier: &str, handle_type: HandleType) -> Result<ObjectHandle> {
+        let pool = self.pool.clone();
+        let identifier = String::from(identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let object_handles = session.find_objects(&[
+                Attribute::Private(matches!(handle_type, HandleType::Private)),
+                Attribute::Label(identifier.clone().into()),
+            ])?;
+            let object_handle = object_handles
+                .first()
+                .cloned()
+                .ok_or(HsmError::KeyNotFound(identifier))?;
+            Ok(object_handle)
+        })
+        .await
     }
 }
 
 #[async_trait]
-impl Pkcs11Client for Hsm {
-    async fn generate_key(&self, key_prefix: &str, identifier: &str) -> Result<VerifyingKey> {
+impl WalletUserHsm for Pkcs11Hsm {
+    async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
+        let key_identifier = Pkcs11Hsm::key_identifier(wallet_id, identifier);
+        let (public_handle, _) = self.generate_signing_key_pair(&key_identifier).await?;
+        Pkcs11Client::get_verifying_key(self, public_handle).await
+    }
+
+    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+        let key_identifier = Pkcs11Hsm::key_identifier(wallet_id, identifier);
+        let handle = self.get_private_key_handle(&key_identifier).await?;
+        Pkcs11Client::sign(self, handle, data).await
+    }
+}
+
+#[async_trait]
+impl Hsm for Pkcs11Hsm {
+    async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
+        let handle = self.get_public_key_handle(identifier).await?;
+        Pkcs11Client::get_verifying_key(self, handle).await
+    }
+
+    async fn delete_key(&self, identifier: &str) -> Result<()> {
+        let handle = self.get_private_key_handle(identifier).await?;
+        Pkcs11Client::delete_key(self, handle).await?;
+        Ok(())
+    }
+
+    async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+        let handle = self.get_private_key_handle(identifier).await?;
+        Pkcs11Client::sign(self, handle, data).await
+    }
+}
+
+#[async_trait]
+impl Pkcs11Client for Pkcs11Hsm {
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)> {
         let pool = self.pool.clone();
-        let key_identifier = Hsm::key_identifier(key_prefix, identifier);
+        let identifier = String::from(identifier);
 
         spawn::blocking(move || {
             let session = pool.get()?;
@@ -131,14 +199,36 @@ impl Pkcs11Client for Hsm {
                 Attribute::Extractable(false),
                 Attribute::Derive(false),
                 Attribute::Sign(true),
-                Attribute::Id(key_identifier.clone().into()),
+                Attribute::Label(identifier.into()),
             ];
 
-            let (public_key_handle, _) =
+            let (public_handle, private_handle) =
                 session.generate_key_pair(&Mechanism::EccKeyPairGen, pub_key_template, priv_key_template)?;
 
+            Ok((PublicKeyHandle(public_handle), PrivateKeyHandle(private_handle)))
+        })
+        .await
+    }
+
+    async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle> {
+        self.get_key_handle(identifier, HandleType::Private)
+            .await
+            .map(PrivateKeyHandle)
+    }
+
+    async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle> {
+        self.get_key_handle(identifier, HandleType::Public)
+            .await
+            .map(PublicKeyHandle)
+    }
+
+    async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey> {
+        let pool = self.pool.clone();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
             let attr = session
-                .get_attributes(public_key_handle, &[AttributeType::EcPoint])?
+                .get_attributes(public_key_handle.0, &[AttributeType::EcPoint])?
                 .first()
                 .cloned()
                 .ok_or(HsmError::AttributeNotFound(AttributeType::EcPoint.to_string()))?;
@@ -149,41 +239,29 @@ impl Pkcs11Client for Hsm {
                     let public_key = VerifyingKey::from_sec1_bytes(octet_string.as_bytes())?;
                     Ok(public_key)
                 }
-                _ => Err(HsmError::KeyNotFound(key_identifier)),
+                _ => Err(HsmError::AttributeNotFound(AttributeType::EcPoint.to_string())),
             }
         })
         .await
     }
 
-    async fn delete_key(&self, key_prefix: &str, identifier: &str) -> Result<()> {
+    async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()> {
         let pool = self.pool.clone();
-        let key_identifier = Hsm::key_identifier(key_prefix, identifier);
 
         spawn::blocking(move || {
             let session = pool.get()?;
-            let key_handle = Hsm::find_key_by_id(&session, &key_identifier)?;
-            session.destroy_object(key_handle)?;
+            session.destroy_object(private_key_handle.0)?;
             Ok(())
         })
         .await
     }
 
-    async fn sign(&self, key_prefix: &str, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+    async fn sign(&self, private_key_handle: PrivateKeyHandle, data: Arc<Vec<u8>>) -> Result<Signature> {
         let pool = self.pool.clone();
-        let key_identifier = Hsm::key_identifier(key_prefix, identifier);
 
         spawn::blocking(move || {
             let session = pool.get()?;
-
-            let object_handles =
-                session.find_objects(&[Attribute::Token(true), Attribute::Id(key_identifier.clone().into())])?;
-
-            let private_key_handle = object_handles
-                .first()
-                .cloned()
-                .ok_or(HsmError::KeyNotFound(key_identifier))?;
-
-            let signature = session.sign(&Mechanism::Ecdsa, private_key_handle, &sha256(data.as_ref()))?;
+            let signature = session.sign(&Mechanism::Ecdsa, private_key_handle.0, &sha256(data.as_ref()))?;
             Ok(Signature::from_slice(&signature)?)
         })
         .await
@@ -198,14 +276,15 @@ pub mod mock {
     use dashmap::DashMap;
     use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
     use rand::rngs::OsRng;
+    use wallet_provider_domain::model::wallet_user::WalletId;
 
-    use crate::hsm::{Hsm, Pkcs11Client, Result};
+    use crate::hsm::{Hsm, Pkcs11Hsm, Result, WalletUserHsm};
 
     pub struct MockPkcs11Client(DashMap<String, SigningKey>);
 
     impl MockPkcs11Client {
         pub fn get_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey> {
-            let entry = self.0.get(&Hsm::key_identifier(key_prefix, identifier)).unwrap();
+            let entry = self.0.get(&Pkcs11Hsm::key_identifier(key_prefix, identifier)).unwrap();
             let key = entry.value().clone();
             Ok(key)
         }
@@ -218,21 +297,35 @@ pub mod mock {
     }
 
     #[async_trait]
-    impl Pkcs11Client for MockPkcs11Client {
-        async fn generate_key(&self, key_prefix: &str, identifier: &str) -> Result<VerifyingKey> {
+    impl WalletUserHsm for MockPkcs11Client {
+        async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
             let key = SigningKey::random(&mut OsRng);
             let verifying_key = *key.verifying_key();
-            self.0.insert(Hsm::key_identifier(key_prefix, identifier), key);
+            self.0.insert(Pkcs11Hsm::key_identifier(wallet_id, identifier), key);
             Ok(verifying_key)
         }
 
-        async fn delete_key(&self, key_prefix: &str, identifier: &str) -> Result<()> {
-            self.0.remove(&Hsm::key_identifier(key_prefix, identifier));
+        async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+            Hsm::sign(self, &Pkcs11Hsm::key_identifier(wallet_id, identifier), data).await
+        }
+    }
+
+    #[async_trait]
+    impl Hsm for MockPkcs11Client {
+        async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
+            let entry = self.0.get(identifier).unwrap();
+            let key = entry.value();
+            let verifying_key = key.verifying_key();
+            Ok(*verifying_key)
+        }
+
+        async fn delete_key(&self, identifier: &str) -> Result<()> {
+            self.0.remove(identifier).unwrap();
             Ok(())
         }
 
-        async fn sign(&self, key_prefix: &str, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
-            let entry = self.0.get(&Hsm::key_identifier(key_prefix, identifier)).unwrap();
+        async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+            let entry = self.0.get(identifier).unwrap();
             let key = entry.value();
             let signature = Signer::sign(key, data.as_ref());
             Ok(signature)

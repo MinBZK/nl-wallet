@@ -5,14 +5,14 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationMilliSeconds};
 
-use wallet_common::account::serialization::{Base64Bytes, DerSigningKey};
+use wallet_common::account::serialization::Base64Bytes;
 use wallet_provider_database_settings::{Database, DatabaseDefaults};
 
 #[serde_as]
 #[derive(Deserialize)]
 pub struct Settings {
-    pub certificate_private_key: DerSigningKey,
-    pub instruction_result_private_key: DerSigningKey,
+    pub certificate_signing_key_identifier: String,
+    pub instruction_result_signing_key_identifier: String,
     pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
@@ -50,6 +50,11 @@ impl Settings {
 
         Config::builder()
             .database_defaults()?
+            .set_default("certificate_signing_key_identifier", "certificate_signing_key")?
+            .set_default(
+                "instruction_result_signing_key_identifier",
+                "instruction_result_signing_key",
+            )?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
             .set_default("pin_policy.rounds", 4)?
