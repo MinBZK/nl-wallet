@@ -159,7 +159,7 @@ impl SessionState<Done> {
 ///   returned to the wallet.
 /// - `items_requests` contains the attributes to be requested.
 /// - `usecase_id` should point to an existing item in the `certificates` parameter.
-/// - `certificates` contains for each usecase a certificate and corresponding private key for use in RP authentication.
+/// - `keys` contains for each usecase a certificate and corresponding private key for use in RP authentication.
 /// - `sessions` contains all currently active sessions, managed by this function and by [`process_message()`].
 pub fn new_session(
     base_url: &Url,
@@ -182,7 +182,7 @@ pub fn new_session(
 ///
 /// - `msg` is the received protocol message.
 /// - `token` is the session token as parsed from the URL.
-/// - `sessions` and `certificates` are as in [`new_session()`].
+/// - `keys` and `sessions` are as in [`new_session()`].
 /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
 ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
 pub async fn process_message(
