@@ -243,6 +243,8 @@ async fn test_unlock_ok() {
     wallet.unlock("112234".to_string()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
 
+    wallet.lock();
+
     // Test multiple instructions
     wallet.unlock("112234".to_string()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
