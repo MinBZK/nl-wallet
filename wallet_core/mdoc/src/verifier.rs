@@ -49,7 +49,7 @@ pub enum VerificationError {
     MissingDigestID(DigestID),
     #[error("attribute verification failed: did not hash to the value in the MSO")]
     AttributeVerificationFailed,
-    #[error("DeviceAuth::DeviceMac found but no ephemeral reader key specified")]
+    #[error("missing ephemeral key")]
     EphemeralKeyMissing,
     #[error("validity error: {0}")]
     Validity(#[from] ValidityError),
@@ -341,8 +341,12 @@ impl Session<Created> {
         let device_request = self.new_device_request(&session_transcript, cert_pair).await?;
 
         // Compute the AES keys with which we and the device encrypt responses
-        // TODO remove unwrap() and return an error if the device passes no key
-        let their_pubkey = device_engagement.0.security.as_ref().unwrap().try_into()?;
+        let their_pubkey = device_engagement
+            .0
+            .security
+            .as_ref()
+            .ok_or(VerificationError::EphemeralKeyMissing)?
+            .try_into()?;
         let our_key = SessionKey::new(
             &self.state().ephemeral_privkey.0,
             &their_pubkey,
