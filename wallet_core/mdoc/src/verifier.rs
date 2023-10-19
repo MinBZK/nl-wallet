@@ -103,7 +103,7 @@ pub struct Done {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
-    Failed, // TODO add error details
+    Failed { error: String },
     Cancelled,
 }
 
@@ -234,9 +234,11 @@ pub async fn process_message(
 
 // Transitioning functions and helpers valid for any state
 impl<T: DisclosureState> Session<T> {
-    fn transition_fail(self) -> Session<Done> {
+    fn transition_fail(self, error: Error) -> Session<Done> {
         self.transition(Done {
-            session_result: SessionResult::Failed,
+            session_result: SessionResult::Failed {
+                error: error.to_string(),
+            },
         })
     }
 
@@ -302,7 +304,7 @@ impl Session<Created> {
                 response,
                 Ok(self.transition_wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
             ),
-            Err(_) => (SessionData::new_decoding_error(), Err(self.transition_fail())),
+            Err(e) => (SessionData::new_decoding_error(), Err(self.transition_fail(e))),
         };
 
         (response, next)
@@ -435,7 +437,7 @@ impl Session<WaitingForResponse> {
 
         let (response, next) = match self.process_response_inner(&session_data, trust_anchors) {
             Ok((response, disclosed_attributes)) => (response, self.transition_finish(disclosed_attributes)),
-            Err(_) => (SessionData::new_decoding_error(), self.transition_fail()),
+            Err(e) => (SessionData::new_decoding_error(), self.transition_fail(e)),
         };
 
         (response, next)
@@ -496,8 +498,12 @@ impl ReaderEngagement {
 impl From<SessionStatus> for SessionResult {
     fn from(status: SessionStatus) -> Self {
         match status {
-            SessionStatus::EncryptionError => SessionResult::Failed,
-            SessionStatus::DecodingError => SessionResult::Failed,
+            SessionStatus::EncryptionError => SessionResult::Failed {
+                error: "client encryption error".to_string(),
+            },
+            SessionStatus::DecodingError => SessionResult::Failed {
+                error: "client decoding error".to_string(),
+            },
             SessionStatus::Termination => SessionResult::Cancelled,
         }
     }
