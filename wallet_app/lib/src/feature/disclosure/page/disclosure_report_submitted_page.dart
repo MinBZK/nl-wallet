@@ -16,9 +16,9 @@ class DisclosureReportSubmittedPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.gpp_maybe_outlined,
       iconColor: context.theme.primaryColorDark,
-      title: context.l10n.verificationReportSubmittedPageTitle,
-      description: context.l10n.verificationReportSubmittedPageSubtitle,
-      closeButtonCta: context.l10n.verificationReportSubmittedPageCloseCta,
+      title: context.l10n.disclosureReportSubmittedPageTitle,
+      description: context.l10n.disclosureReportSubmittedPageSubtitle,
+      closeButtonCta: context.l10n.disclosureReportSubmittedPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }

@@ -16,9 +16,9 @@ class DisclosureGenericErrorPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.not_interested,
       iconColor: context.theme.primaryColorDark,
-      title: context.l10n.verificationGenericErrorPageTitle,
-      description: context.l10n.verificationGenericErrorPageDescription,
-      closeButtonCta: context.l10n.verificationGenericErrorPageCloseCta,
+      title: context.l10n.disclosureGenericErrorPageTitle,
+      description: context.l10n.disclosureGenericErrorPageDescription,
+      closeButtonCta: context.l10n.disclosureGenericErrorPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }
