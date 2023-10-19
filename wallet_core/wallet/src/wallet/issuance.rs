@@ -18,7 +18,7 @@ use super::Wallet;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
-    #[error("wallet is not locked")]
+    #[error("wallet is locked")]
     Locked,
     #[error("wallet is not registered")]
     NotRegistered,
