@@ -1,8 +1,8 @@
 # Wallet personalisation
 
-This document describes the steps of personalising the wallet. This includes login in with [DigiD](#41-personalisation-digid-login) and retrieving the [attestations](#42-pid-issuance).
+This document describes the steps of personalising the wallet. This includes login in with [DigiD](#41-personalisation-digid-login) and retrieving the [attestations](#pid-issuance).
 
-## 4.1 Personalisation (DigiD Login)
+## Personalisation (DigiD Login)
 
 During personalisation the user will login with 'DigiD Hoog' to validate its identity. This diagram describes the login flow that leads to the PID.
 
@@ -71,7 +71,7 @@ sequenceDiagram
     deactivate wallet_core
 ```
 
-## 4.2 PID issuance
+## PID issuance
 
 High level overview of PID issuance using mdoc.
 
