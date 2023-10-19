@@ -191,7 +191,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             let mut oid = vec![];
             EcParameters::NamedCurve(NistP256::OID).encode_to_vec(&mut oid)?;
 
-            let pub_key_template = &[Attribute::EcParams(oid)];
+            let pub_key_template = &[Attribute::EcParams(oid), Attribute::Label(identifier.clone().into())];
             let priv_key_template = &[
                 Attribute::Token(true),
                 Attribute::Private(true),
@@ -276,6 +276,7 @@ pub mod mock {
     use dashmap::DashMap;
     use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
     use rand::rngs::OsRng;
+
     use wallet_provider_domain::model::wallet_user::WalletId;
 
     use crate::hsm::{Hsm, Pkcs11Hsm, Result, WalletUserHsm};
