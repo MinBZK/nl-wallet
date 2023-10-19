@@ -37,7 +37,7 @@ pub enum PidIssuanceError {
     #[error("could not interpret mdoc attributes: {0}")]
     Document(#[from] DocumentMdocError),
     #[error("could not access mdocs database: {0}")]
-    Database(#[from] StorageError),
+    Storage(#[from] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
 }
@@ -233,17 +233,20 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
     use serial_test::serial;
     use url::Url;
 
-    use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, issuer_shared::IssuanceError, Tdate};
+    use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::HolderError, issuer_shared::IssuanceError, Tdate};
 
     use crate::{
         digid::{MockDigidSession, OpenIdError},
-        document, DocumentPersistence,
+        document::{self, DocumentPersistence},
+        wallet::tests,
     };
 
     use super::{super::tests::WalletWithMocks, *};
@@ -627,5 +630,153 @@ mod tests {
         assert_matches!(error, PidIssuanceError::PidIssuer(_));
     }
 
-    // TODO: Add tests for `accept_pid_issuance()`.
+    const PIN: &str = "051097";
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
+        // so we can write to it from the closure.
+        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(2)));
+        let callback_documents = Arc::clone(&documents);
+
+        // Set the documents callback on the `Wallet`, which should
+        // immediately be called with an empty `Vec`.
+        wallet
+            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .await
+            .expect("Could not set documents callback");
+
+        // Have the `PidIssuerClient` accept the PID with a single
+        // instance of `MdocCopies`, which contains a single valid `Mdoc`.
+        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
+
+        // Accept the PID issuance with the PIN.
+        wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect("Could not accept PID issuance");
+
+        // Test which `Document` instances we have received through the callback.
+        let documents = documents.lock().unwrap();
+
+        // The first entry should be empty, because there are no mdocs in the database.
+        assert_eq!(documents.len(), 2);
+        assert!(documents[0].is_empty());
+
+        // The second entry should contain a single document with the PID.
+        assert_eq!(documents[1].len(), 1);
+        let document = &documents[1][0];
+        assert_matches!(document.persistence, DocumentPersistence::Stored(_));
+        assert_eq!(document.doc_type, "com.example.pid");
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_locked() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        // Accepting PID issuance on a locked wallet should result in an error.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::Locked);
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_unregistered() {
+        // Prepare an unregistered wallet.
+        let mut wallet = WalletWithMocks::default();
+
+        // Accepting PID issuance on an unregistered wallet should result in an error.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::NotRegistered);
+    }
+
+    async fn test_accept_pid_issuance_error_remote_key(key_error: RemoteEcdsaKeyError) -> PidIssuanceError {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Have the `PidIssuerClient` return a particular `RemoteEcdsaKeyError`.
+        wallet.pid_issuer.next_error =
+            PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeyGeneration(Box::new(key_error))).into();
+
+        // Accepting PID issuance should result in an error.
+        wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error")
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_instruction() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(InstructionError::Blocked)).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::Instruction(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_signature() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default())).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::Signature(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_key_not_found() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string())).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::KeyNotFound(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_pid_issuer() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Have the `PidIssuerClient` return an error.
+        wallet.pid_issuer.next_error =
+            PidIssuerError::MdocError(nl_wallet_mdoc::Error::from(HolderError::MissingIssuanceSessionState)).into();
+
+        // Accepting PID issuance should result in an error.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::PidIssuer(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_storage() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Have the database return an error on query.
+        wallet.storage.get_mut().has_query_error = true;
+
+        // Accepting PID issuance should result in an error.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::Storage(_));
+    }
 }
