@@ -74,6 +74,8 @@ sequenceDiagram
     RP_webserver-->>-RP_website: user is authenticated
 ```
 
+N.B. How the wallet determines or obtains the URL to return to in step 26 is yet to be determined.
+
 ## Issuance
 
 Attribute issuance is to a large extent very similar to disclosure. Calling the rightmost three agents `issuer_website`, `issuer_webserver` and `issuer_server` respectively, issuance differs from disclosure in the following ways. 
