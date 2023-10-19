@@ -10,6 +10,7 @@ use super::{PidIssuerClient, PidIssuerError};
 
 #[derive(Default)]
 pub struct MockPidIssuerClient {
+    pub has_session: bool,
     pub unsigned_mdocs: Vec<UnsignedMdoc>,
     pub mdoc_copies: Vec<MdocCopies>,
     pub next_error: Option<PidIssuerError>,
@@ -17,6 +18,10 @@ pub struct MockPidIssuerClient {
 
 #[async_trait]
 impl PidIssuerClient for MockPidIssuerClient {
+    fn has_session(&self) -> bool {
+        self.has_session
+    }
+
     async fn start_retrieve_pid(
         &mut self,
         _base_url: &Url,

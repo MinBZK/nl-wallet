@@ -48,6 +48,10 @@ impl Default for HttpPidIssuerClient {
 
 #[async_trait]
 impl PidIssuerClient for HttpPidIssuerClient {
+    fn has_session(&self) -> bool {
+        self.mdoc_wallet.has_issuance_session()
+    }
+
     async fn start_retrieve_pid(
         &mut self,
         base_url: &Url,
