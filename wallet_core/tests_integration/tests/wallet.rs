@@ -9,7 +9,7 @@ use assert_matches::assert_matches;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use serial_test::serial;
-use tokio::{sync::Mutex, time::sleep};
+use tokio::time::sleep;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 use url::Url;
 
@@ -487,8 +487,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     let client = CborHttpClient(reqwest::Client::new());
-    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(client)));
-    let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
+    let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(client));
 
     let mut wallet = create_test_wallet(
         local_base_url(port),
