@@ -19,11 +19,11 @@ class DisclosureSuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return FlowTerminalPage(
       icon: Icons.check,
-      title: context.l10n.verificationSuccessPageTitle,
-      description: context.l10n.verificationSuccessPageDescription(verifierShortName),
-      closeButtonCta: context.l10n.verificationSuccessPageCloseCta,
+      title: context.l10n.disclosureSuccessPageTitle,
+      description: context.l10n.disclosureSuccessPageDescription(verifierShortName),
+      closeButtonCta: context.l10n.disclosureSuccessPageCloseCta,
       onClosePressed: onClosePressed,
-      tertiaryButtonCta: context.l10n.verificationSuccessPageShowHistoryCta,
+      tertiaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
       onTertiaryButtonPressed: onHistoryPressed,
     );
   }

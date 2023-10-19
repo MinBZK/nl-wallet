@@ -38,7 +38,7 @@ class DisclosureScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'disclosure_scaffold',
       appBar: AppBar(
-        title: Text(context.l10n.verificationScreenTitle),
+        title: Text(context.l10n.disclosureScreenTitle),
         leading: _buildBackButton(context),
         actions: [_buildCloseButton(context)],
       ),

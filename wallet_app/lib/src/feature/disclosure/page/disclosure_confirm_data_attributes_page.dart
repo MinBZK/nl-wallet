@@ -40,7 +40,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           SliverToBoxAdapter(
             child: InfoRow(
               icon: Icons.remove_red_eye_outlined,
-              title: Text(context.l10n.verificationConfirmDataAttributesCheckAttributesCta),
+              title: Text(context.l10n.disclosureConfirmDataAttributesCheckAttributesCta),
               onTap: () => CheckAttributesScreen.show(
                 context,
                 flow.availableAttributes,
@@ -69,15 +69,14 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     final storageDurationInMonths = flow.policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
     final String subtitle;
     if (flow.policy.dataIsShared) {
-      subtitle =
-          context.l10n.verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
+      subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
     } else {
-      subtitle = context.l10n.verificationConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
+      subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
     }
 
     return InfoRow(
       leading: const Icon(Icons.policy_outlined),
-      title: Text(context.l10n.verificationConfirmDataAttributesCheckConditionsCta),
+      title: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
       subtitle: Text(subtitle),
       onTap: () => PolicyScreen.show(
         context,
@@ -94,13 +93,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            context.l10n.verificationConfirmDataAttributesShareWithTitle(flow.organization.name),
+            context.l10n.disclosureConfirmDataAttributesShareWithTitle(flow.organization.name),
             style: context.textTheme.bodySmall,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            context.l10n.verificationConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
+            context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
             style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
@@ -130,7 +129,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            context.l10n.verificationConfirmDataAttributesDisclaimer,
+            context.l10n.disclosureConfirmDataAttributesDisclaimer,
             style: context.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
           ),
         ),
@@ -138,10 +137,10 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: ConfirmButtons(
             onAcceptPressed: onAcceptPressed,
-            acceptText: context.l10n.verificationConfirmDataAttributesPageApproveCta,
+            acceptText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
             onDeclinePressed: onDeclinePressed,
             acceptIcon: Icons.arrow_forward,
-            declineText: context.l10n.verificationConfirmDataAttributesPageDenyCta,
+            declineText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
           ),
         ),
       ],

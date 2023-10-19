@@ -47,13 +47,13 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            context.l10n.verificationMissingAttributesPageTitle,
+            context.l10n.disclosureMissingAttributesPageTitle,
             style: context.textTheme.displayMedium,
             textAlign: TextAlign.start,
           ),
           const SizedBox(height: 8),
           Text(
-            context.l10n.verificationMissingAttributesPageDescription(flow.organization.name),
+            context.l10n.disclosureMissingAttributesPageDescription(flow.organization.name),
             style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
@@ -79,7 +79,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
         onPressed: () => PlaceholderScreen.show(context),
         child: Padding(
           padding: const EdgeInsets.only(left: 10),
-          child: Text(context.l10n.verificationMissingAttributesPageHowToProceedCta),
+          child: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
         ),
       ),
     );
@@ -92,7 +92,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ElevatedButton(
           onPressed: onDecline,
-          child: Text(context.l10n.verificationMissingAttributesPageCloseCta),
+          child: Text(context.l10n.disclosureMissingAttributesPageCloseCta),
         ),
       ),
     );

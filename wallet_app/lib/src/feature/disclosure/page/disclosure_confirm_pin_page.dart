@@ -28,11 +28,11 @@ class DisclosureConfirmPinPage extends StatelessWidget {
           final hasError = attempts != null;
           final String title, description;
           if (!hasError) {
-            title = context.l10n.verificationConfirmPinPageTitle;
-            description = context.l10n.verificationConfirmPinPageDescription;
+            title = context.l10n.disclosureConfirmPinPageTitle;
+            description = context.l10n.disclosureConfirmPinPageDescription;
           } else {
-            title = context.l10n.verificationConfirmPinPageErrorTitle;
-            description = context.l10n.verificationConfirmPinPageErrorDescription(attempts);
+            title = context.l10n.disclosureConfirmPinPageErrorTitle;
+            description = context.l10n.disclosureConfirmPinPageErrorDescription(attempts);
           }
           return PinHeader(
             hasError: hasError,
