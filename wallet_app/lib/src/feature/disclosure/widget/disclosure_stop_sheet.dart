@@ -24,10 +24,10 @@ class DisclosureStopSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConfirmActionSheet(
-      title: context.l10n.verificationStopSheetTitle,
-      description: context.l10n.verificationStopSheetDescription(organizationName).addSpaceSuffix,
-      cancelButtonText: context.l10n.verificationStopSheetNegativeCta,
-      confirmButtonText: context.l10n.verificationStopSheetPositiveCta,
+      title: context.l10n.disclosureStopSheetTitle,
+      description: context.l10n.disclosureStopSheetDescription(organizationName).addSpaceSuffix,
+      cancelButtonText: context.l10n.disclosureStopSheetNegativeCta,
+      confirmButtonText: context.l10n.disclosureStopSheetPositiveCta,
       confirmButtonColor: context.colorScheme.error,
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
@@ -37,7 +37,7 @@ class DisclosureStopSheet extends StatelessWidget {
           : LinkButton(
               onPressed: onReportIssuePressed,
               customPadding: const EdgeInsets.all(16),
-              child: Text(context.l10n.verificationStopSheetReportIssueCta),
+              child: Text(context.l10n.disclosureStopSheetReportIssueCta),
             ),
     );
   }

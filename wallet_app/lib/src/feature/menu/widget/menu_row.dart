@@ -18,27 +18,30 @@ class MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: _kMinHeight),
-      child: InkWell(
-        onTap: onTap,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildLeading(context),
-            Expanded(
-              child: Text(
-                label,
-                style: context.textTheme.titleMedium,
+    return Semantics(
+      button: true,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _kMinHeight),
+        child: InkWell(
+          onTap: onTap,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildLeading(context),
+              Expanded(
+                child: Text(
+                  label,
+                  style: context.textTheme.titleMedium,
+                ),
               ),
-            ),
-            const SizedBox(
-              width: _kMinHeight,
-              child: Center(
-                child: Icon(Icons.chevron_right),
+              const SizedBox(
+                width: _kMinHeight,
+                child: Center(
+                  child: Icon(Icons.chevron_right),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

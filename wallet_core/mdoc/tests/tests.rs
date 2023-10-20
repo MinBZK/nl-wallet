@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
-    mock::{generate_issuance_key_and_ca, mdoc_from_example_device_response, IsoCertTimeGenerator},
+    mock::{self, IsoCertTimeGenerator},
     utils::{
         keys::KeyFactory,
         mdocs_map::MdocsMap,
@@ -156,7 +156,7 @@ async fn do_and_verify_iso_example_disclosure() {
 
     // Construct the mdoc from the example device response in the standard
     let trust_anchors = Examples::iaca_trust_anchors();
-    let mdoc = mdoc_from_example_device_response(trust_anchors);
+    let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
 
     // Do the disclosure and verify it
     let wallet = Wallet::new(DummyHttpClient);
@@ -205,7 +205,7 @@ async fn iso_examples_custom_disclosure() {
     println!("My Request: {:#?}", DebugCollapseBts(&request));
 
     let trust_anchors = Examples::iaca_trust_anchors();
-    let mdoc = mdoc_from_example_device_response(trust_anchors);
+    let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
 
     let storage = MdocsMap::try_from([mdoc]).unwrap();
     let wallet = Wallet::new(DummyHttpClient);
@@ -354,7 +354,7 @@ impl KeyRing for MockIssuanceKeyring {
 }
 
 fn setup_issuance_test() -> (MockWallet, Arc<MockServer>, Certificate) {
-    let (issuance_key, ca) = generate_issuance_key_and_ca().unwrap();
+    let (issuance_key, ca) = mock::generate_issuance_key_and_ca().unwrap();
 
     // Setup issuer
     let issuance_server = Arc::new(MockServer::new(

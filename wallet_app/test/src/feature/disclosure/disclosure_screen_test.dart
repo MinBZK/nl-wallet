@@ -227,7 +227,7 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.verificationScreenShowHistoryCta), findsOneWidget);
+      expect(find.text(l10n.disclosureScreenShowHistoryCta), findsOneWidget);
     });
   });
 }

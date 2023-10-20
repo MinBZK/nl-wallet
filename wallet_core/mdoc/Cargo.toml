@@ -26,8 +26,9 @@ ring = { workspace = true }
 rustls-webpki = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
+serde_json = { workspace = true }
 serde_repr = { workspace = true }
-serde_with = { workspace = true }
+serde_with = { workspace = true, features = ["chrono"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }

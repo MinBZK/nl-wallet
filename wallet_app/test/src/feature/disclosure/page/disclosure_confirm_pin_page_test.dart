@@ -53,8 +53,8 @@ void main() {
       );
 
       // Setup finders
-      final titleFinder = find.text(l10n.verificationConfirmPinPageTitle);
-      final descriptionFinder = find.text(l10n.verificationConfirmPinPageDescription);
+      final titleFinder = find.text(l10n.disclosureConfirmPinPageTitle);
+      final descriptionFinder = find.text(l10n.disclosureConfirmPinPageDescription);
 
       // Verify all expected widgets show up once
       expect(titleFinder, findsOneWidget);

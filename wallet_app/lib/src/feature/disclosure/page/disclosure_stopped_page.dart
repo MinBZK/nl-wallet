@@ -16,9 +16,9 @@ class DisclosureStoppedPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.not_interested,
       iconColor: context.theme.primaryColorDark,
-      title: context.l10n.verificationStoppedPageTitle,
-      description: context.l10n.verificationStoppedPageDescription,
-      closeButtonCta: context.l10n.verificationStoppedPageCloseCta,
+      title: context.l10n.disclosureStoppedPageTitle,
+      description: context.l10n.disclosureStoppedPageDescription,
+      closeButtonCta: context.l10n.disclosureStoppedPageCloseCta,
       onClosePressed: onClosePressed,
     );
   }
