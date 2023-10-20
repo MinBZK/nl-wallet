@@ -1,10 +1,15 @@
 use std::fmt::Debug;
 
 use base64::prelude::*;
-use url::Url;
+use once_cell::sync::Lazy;
+use url::{ParseError, Url};
 
 use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
 use wallet_common::account::jwt::EcdsaDecodingKey;
+
+// This should always equal the deep/universal link configured for the app.
+static UNIVERSAL_LINK_BASE: Lazy<Url> =
+    Lazy::new(|| Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/").unwrap());
 
 // Each of these values can be overridden from environment variables at compile time
 // when the `env_config` feature is enabled. Additionally, environment variables can
@@ -22,7 +27,6 @@ const TRUST_ANCHOR_CERTS: &str = "MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+f
                                   HwYDVR0jBBgwFoAUSjuvOcpIpcOrbq8sMjgMsk9IYyQwDwYDVR0TAQH/BAUwAwEB/zALBgNVHQ8EBAMC\
                                   AQYwCgYIKoZIzj0EAwIDSAAwRQIgL1Gc3qKGIyiAyiL4WbeR1r22KbwoTfMk11kq6xWBpDACIQDfyPw+\
                                   qs2nh8R8WEFQzk+zJlz/4DNMXoT7M9cjFwg+Xg==";
-const WALLET_REDIRECT_URI: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication";
 
 macro_rules! config_default {
     ($name:ident) => {
@@ -66,7 +70,7 @@ pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
     pub digid_client_id: String,
-    pub digid_redirect_uri: Url,
+    pub digid_redirect_path: String,
 }
 
 impl Configuration {
@@ -97,7 +101,7 @@ impl Default for Configuration {
                 pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
                 digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
                 digid_client_id: config_default!(DIGID_CLIENT_ID).to_string(),
-                digid_redirect_uri: Url::parse(config_default!(WALLET_REDIRECT_URI)).unwrap(),
+                digid_redirect_path: "authentication".to_string(),
             },
             mdoc_trust_anchors: config_default!(TRUST_ANCHOR_CERTS)
                 .split('|')
@@ -119,5 +123,11 @@ impl Debug for AccountServerConfiguration {
         f.debug_struct("AccountServerConfiguration")
             .field("base_url", &self.base_url)
             .finish_non_exhaustive()
+    }
+}
+
+impl PidIssuanceConfiguration {
+    pub fn digid_redirect_uri(&self) -> Result<Url, ParseError> {
+        UNIVERSAL_LINK_BASE.join(&self.digid_redirect_path)
     }
 }

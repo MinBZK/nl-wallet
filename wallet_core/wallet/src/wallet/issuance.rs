@@ -68,11 +68,13 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
+        // Assume that redirect URI creation is checked when updating the `Configuration`.
+        let digid_redirect_uri = pid_issuance_config.digid_redirect_uri().unwrap();
 
         let session = D::start(
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
-            pid_issuance_config.digid_redirect_uri.clone(),
+            digid_redirect_uri,
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;
