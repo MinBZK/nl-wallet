@@ -63,6 +63,8 @@ pub enum VerificationError {
     UnknownCertificate(String),
     #[error("unknown session ID: {0}")]
     UnknownSessionId(SessionToken),
+    #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
+    NoItemsRequests,
 }
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
@@ -170,6 +172,10 @@ pub fn new_session(
 ) -> Result<(SessionToken, ReaderEngagement)> {
     if !keys.contains_key(&usecase_id) {
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
+    }
+
+    if items_requests.is_empty() {
+        return Err(VerificationError::NoItemsRequests.into());
     }
 
     let (session_token, reader_engagement, session_state) =
