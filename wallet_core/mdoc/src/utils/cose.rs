@@ -387,7 +387,7 @@ mod tests {
     use crate::{
         utils::{
             cose::CoseError,
-            x509::{Certificate, CertificateUsage},
+            x509::{Certificate, CertificateType, CertificateUsage},
         },
         Error,
     };
@@ -480,7 +480,7 @@ mod tests {
     async fn cose_with_certificate() {
         let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
         let (cert, cert_privkey) =
-            Certificate::new(&ca, &ca_privkey, "cert.example.com", CertificateUsage::Mdl).unwrap();
+            Certificate::new(&ca, &ca_privkey, "cert.example.com", CertificateType::Mdl).unwrap();
 
         let payload = ToyMessage::default();
         let header = HeaderBuilder::new()
