@@ -5,4 +5,4 @@ edition = "2021"
 rust-version = "1.73"
 
 [dependencies]
-flutter_rust_bridge_codegen = { version = "1.78.0" }
+flutter_rust_bridge_codegen = "1.78.0"
