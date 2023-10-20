@@ -11,7 +11,7 @@ name = "wallet_provider"
 db_test = []
 
 [dependencies]
-async-trait = { workspace = true }
+async-trait.workspace = true
 axum = { workspace = true, features = [
     "http1",
     "json",
@@ -19,15 +19,15 @@ axum = { workspace = true, features = [
     "tower-log",
     "tracing",
 ] }
-base64 = { workspace = true }
+base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-http = { workspace = true }
-mime = { workspace = true }
+http.workspace = true
+mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono_0_4"] }
 tokio = { workspace = true, features = [
     "rt-multi-thread",
@@ -35,7 +35,7 @@ tokio = { workspace = true, features = [
     "macros",
 ] }
 tower-http = { workspace = true, features = ["trace"] }
-tracing = { workspace = true }
+tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "parking_lot",
@@ -43,8 +43,8 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
-wallet_provider_database_settings = { path = "database_settings" }
-wallet_provider_domain = { path = "domain" }
-wallet_provider_persistence = { path = "persistence" }
-wallet_provider_service = { path = "service" }
-wallet_common = { path = "../wallet_common" }
+wallet_common.path = "../wallet_common"
+wallet_provider_database_settings.path = "database_settings"
+wallet_provider_domain.path = "domain"
+wallet_provider_persistence.path = "persistence"
+wallet_provider_service.path = "service"
