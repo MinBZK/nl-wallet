@@ -322,22 +322,7 @@ impl Session<Created> {
         device_engagement: &DeviceEngagement,
         keys: &impl KeyRing,
     ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
-        // Check that the device has sent the expected OriginInfo
-        // let url = ??? TODO
-        // if device_engagement.0.origin_infos
-        //     != vec![
-        //         OriginInfo {
-        //             cat: OriginInfoDirection::Received,
-        //             typ: OriginInfoType::Website(url),
-        //         },
-        //         OriginInfo {
-        //             cat: OriginInfoDirection::Delivered,
-        //             typ: OriginInfoType::MessageData,
-        //         },
-        //     ]
-        // {
-        //     return Err(VerificationError::IncorrectOriginInfo.into());
-        // }
+        Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
         let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement);
@@ -377,6 +362,33 @@ impl Session<Created> {
             self.state().ephemeral_privkey.clone().0,
             session_transcript,
         ))
+    }
+
+    fn verify_origin_infos(origin_infos: &[OriginInfo]) -> Result<()> {
+        if origin_infos.len() != 2 {
+            return Err(VerificationError::IncorrectOriginInfo.into());
+        }
+
+        // We ignore the referrer URL contained in OriginInfoType::Website for now, since it is not always
+        // possible for the wallet to reliably determine the referrer URL, so we can't enforce it here to be equal
+        // to something.
+        // TODO: implement this once we have decided on a sensible thing to do with this.
+        if origin_infos[0].cat != OriginInfoDirection::Received
+            || !matches!(origin_infos[0].typ, OriginInfoType::Website(_))
+        {
+            return Err(VerificationError::IncorrectOriginInfo.into());
+        }
+
+        if origin_infos[1]
+            != (OriginInfo {
+                cat: OriginInfoDirection::Delivered,
+                typ: OriginInfoType::MessageData,
+            })
+        {
+            return Err(VerificationError::IncorrectOriginInfo.into());
+        }
+
+        Ok(())
     }
 
     fn transition_wait_for_response(
