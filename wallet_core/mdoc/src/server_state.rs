@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::Arc, time::Duration};
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
@@ -10,7 +10,7 @@ use wallet_common::utils::random_string;
 pub struct SessionState<T> {
     pub session_data: T,
     pub token: SessionToken,
-    pub last_active: DateTime<Local>,
+    pub last_active: DateTime<Utc>,
 }
 
 pub trait SessionStore {
@@ -52,7 +52,7 @@ impl<T> SessionState<T> {
         SessionState {
             session_data: data,
             token,
-            last_active: Local::now(),
+            last_active: Utc::now(),
         }
     }
 }
@@ -75,7 +75,7 @@ impl<T: Clone> SessionStore for MemorySessionStore<T> {
     }
 
     fn cleanup(&self) {
-        let now = Local::now();
+        let now = Utc::now();
         let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
         self.sessions.retain(|_, session| now - session.last_active < cutoff);
     }

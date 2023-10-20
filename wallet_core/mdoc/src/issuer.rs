@@ -5,7 +5,7 @@
 use core::panic;
 use std::{future::Future, sync::Arc, time::Duration};
 
-use chrono::{Local, Utc};
+use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 use futures::future::try_join_all;
@@ -270,7 +270,7 @@ where
 {
     fn update_state(&mut self, new_state: IssuanceStatus) {
         self.session_data.session_data.state.update(new_state);
-        self.session_data.last_active = Local::now();
+        self.session_data.last_active = Utc::now();
         self.updated = true;
     }
 
@@ -452,7 +452,7 @@ mod tests {
 
         // insert a stale session
         let mut session_data = dummy_session_data();
-        session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+        session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
         server.sessions.write(&session_data);
         assert_eq!(server.sessions.sessions.len(), 2);
 
@@ -480,7 +480,7 @@ mod tests {
 
             // insert a stale session
             let mut session_data = dummy_session_data();
-            session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+            session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
             server.sessions.write(&session_data);
             assert_eq!(server.sessions.sessions.len(), 1);
 

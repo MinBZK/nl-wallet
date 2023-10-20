@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
@@ -260,7 +260,7 @@ impl<T: DisclosureState> Session<T> {
             state: SessionState::<NewT> {
                 session_data: new_state,
                 token: self.state.token,
-                last_active: Local::now(),
+                last_active: Utc::now(),
             },
         }
     }
