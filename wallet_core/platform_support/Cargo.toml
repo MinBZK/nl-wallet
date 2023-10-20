@@ -17,20 +17,21 @@ integration-test = [
 hardware-integration-test = ["integration-test", "dep:jni"]
 
 [dependencies]
-async-trait = { workspace = true }
-jni = { workspace = true, optional = true }
-once_cell = { workspace = true }
+async-trait.workspace = true
+once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
-thiserror = { workspace = true }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
-uniffi = { workspace = true }
+uniffi.workspace = true
 
-wallet_common = { path = "../wallet_common" }
+jni = { workspace = true, optional = true }
+
+wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
-platform_support = { path = ".", features = ["software", "integration-test"] }
-
 tokio = { workspace = true, features = ["macros"] }
+
+platform_support = { path = ".", features = ["software", "integration-test"] }
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build"] }
