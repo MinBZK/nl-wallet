@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use base64::prelude::*;
 use once_cell::sync::Lazy;
@@ -45,6 +45,7 @@ pub struct Configuration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
+    pub disclosure: DisclosureConfiguration,
     pub mdoc_trust_anchors: Vec<OwnedTrustAnchor>,
 }
 
@@ -71,6 +72,11 @@ pub struct PidIssuanceConfiguration {
     pub digid_url: Url,
     pub digid_client_id: String,
     pub digid_redirect_path: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DisclosureConfiguration {
+    pub redirect_path: String,
 }
 
 impl Configuration {
@@ -103,6 +109,9 @@ impl Default for Configuration {
                 digid_client_id: config_default!(DIGID_CLIENT_ID).to_string(),
                 digid_redirect_path: "authentication".to_string(),
             },
+            disclosure: DisclosureConfiguration {
+                redirect_path: "disclosure".to_string(),
+            },
             mdoc_trust_anchors: config_default!(TRUST_ANCHOR_CERTS)
                 .split('|')
                 .map(|anchor| {
@@ -129,5 +138,18 @@ impl Debug for AccountServerConfiguration {
 impl PidIssuanceConfiguration {
     pub fn digid_redirect_uri(&self) -> Result<Url, ParseError> {
         UNIVERSAL_LINK_BASE.join(&self.digid_redirect_path)
+    }
+}
+
+impl DisclosureConfiguration {
+    pub fn redirect_uri(&self) -> Result<Url, ParseError> {
+        // Add a trailing slash to the redirect path, if needed.
+        let path = &self.redirect_path;
+        let path: Cow<'_, _> = match path.ends_with('/') {
+            true => path.into(),
+            false => format!("{}/", path).into(),
+        };
+
+        UNIVERSAL_LINK_BASE.join(path.as_ref())
     }
 }
