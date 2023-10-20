@@ -25,7 +25,7 @@ use wallet::{
     errors::{InstructionError, WalletUnlockError},
     mock::{MockDigidSession, MockPidIssuerClient, MockStorage},
     wallet_deps::{
-        AccountProviderClient, ConfigurationRepository, DigidSession, HttpAccountProviderClient, HttpPidIssuerClient,
+        AccountProviderClient, ConfigurationRepository, HttpAccountProviderClient, HttpPidIssuerClient,
         LocalConfigurationRepository, PidIssuerClient, Storage,
     },
     AttributeValue, Configuration, Document, Wallet,
@@ -157,11 +157,9 @@ where
 async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
 where
     C: ConfigurationRepository,
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
-    D: DigidSession,
-    P: PidIssuerClient,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
