@@ -23,7 +23,7 @@ use nl_wallet_mdoc::{
         keys::KeyFactory,
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
-        x509::{Certificate, CertificateUsage},
+        x509::{Certificate, CertificateType, CertificateUsage},
     },
     verifier::DisclosedAttributes,
     Error,
@@ -359,7 +359,7 @@ fn setup_issuance_test() -> (MockWallet, Arc<MockServer>, Certificate) {
     // Issuer CA certificate and normal certificate
     let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
     let (issuer_cert, issuer_privkey) =
-        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
+        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl).unwrap();
     let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
 
     // Setup issuer
