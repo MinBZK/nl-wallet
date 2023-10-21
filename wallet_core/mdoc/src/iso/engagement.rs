@@ -20,6 +20,7 @@ use crate::{
         cose::CoseKey,
         serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
     },
+    verifier::SessionType,
 };
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
@@ -56,10 +57,17 @@ pub struct SessionTranscriptKeyed {
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
 
 impl SessionTranscript {
-    pub fn new(reader_engagement: &ReaderEngagement, device_engagement: &DeviceEngagement) -> Self {
+    pub fn new(
+        session_type: SessionType,
+        reader_engagement: &ReaderEngagement,
+        device_engagement: &DeviceEngagement,
+    ) -> Self {
         SessionTranscriptKeyed {
             device_engagement_bytes: device_engagement.clone().into(),
-            handover: Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+            handover: match session_type {
+                SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+                SessionType::CrossDevice => Handover::QRHandover,
+            },
             ereader_key_bytes: reader_engagement
                 .0
                 .security
