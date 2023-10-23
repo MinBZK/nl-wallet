@@ -6,7 +6,10 @@ use tracing::info;
 use uuid::Uuid;
 
 use wallet_common::{
-    account::messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage},
+    account::{
+        messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage},
+        serialization::DerVerifyingKey,
+    },
     generator::Generator,
     keys::EcdsaKey,
 };
@@ -43,11 +46,23 @@ impl AppDependencies {
             hsm.clone(),
         ));
 
+        let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
+        let instruction_result_signing_pubkey = instruction_result_signing_key.verifying_key().await?;
+
+        info!(
+            "Certificate signing public key: {}",
+            DerVerifyingKey::from(certificate_signing_pubkey)
+        );
+        info!(
+            "Instruction result signing public key: {}",
+            DerVerifyingKey::from(instruction_result_signing_pubkey)
+        );
+
         let account_server = AccountServer::new(
             settings.pin_hash_salt.0,
             settings.instruction_challenge_timeout_in_ms,
             "account_server".into(),
-            certificate_signing_key.verifying_key().await?.into(),
+            certificate_signing_pubkey.into(),
         )
         .await?;
 

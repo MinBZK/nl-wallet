@@ -160,13 +160,13 @@ echo -e "${SECTION}Configure wallet_provider${NC}"
 generate_wp_private_key certificate_signing
 WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
 export WP_CERTIFICATE_SIGNING_KEY_PATH
-WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" base64)
+WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" base64 | tr -d '\n')
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_private_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" base64)
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" base64 | tr -d '\n')
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
