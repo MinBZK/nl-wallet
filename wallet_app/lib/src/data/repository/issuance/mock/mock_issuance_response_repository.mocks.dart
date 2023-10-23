@@ -164,7 +164,7 @@ const _kMockPidDataAttributes = [
   ),
   DataAttribute(
     valueType: AttributeValueType.text,
-    label: 'Geboortenaam',
+    label: 'Naam bij geboorte',
     value: 'Molenaar',
     key: 'mock.birthName',
     sourceCardId: _kPidId,
