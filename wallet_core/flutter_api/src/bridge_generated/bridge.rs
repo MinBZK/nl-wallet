@@ -200,7 +200,7 @@ fn wire_cancel_pid_issuance_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| Result::<_, ()>::Ok(cancel_pid_issuance()),
+        move || move |task_callback| cancel_pid_issuance(),
     )
 }
 fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {

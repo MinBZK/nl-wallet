@@ -9,7 +9,7 @@ use assert_matches::assert_matches;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use serial_test::serial;
-use tokio::{sync::Mutex, time::sleep};
+use tokio::time::sleep;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter, FmtSubscriber};
 use url::Url;
 
@@ -24,9 +24,11 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     errors::{InstructionError, WalletUnlockError},
     mock::{MockDigidSession, MockPidIssuerClient, MockStorage},
-    wallet_deps::{HttpAccountProviderClient, HttpPidIssuerClient, LocalConfigurationRepository},
-    AccountProviderClient, AttributeValue, Configuration, ConfigurationRepository, DigidSession, Document,
-    PidIssuerClient, Storage, Wallet,
+    wallet_deps::{
+        AccountProviderClient, ConfigurationRepository, HttpAccountProviderClient, HttpPidIssuerClient,
+        LocalConfigurationRepository, PidIssuerClient, Storage,
+    },
+    AttributeValue, Configuration, Document, Wallet,
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
@@ -162,11 +164,9 @@ where
 async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
 where
     C: ConfigurationRepository,
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
-    D: DigidSession,
-    P: PidIssuerClient,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
@@ -249,6 +249,8 @@ async fn test_unlock_ok() {
 
     wallet.unlock("112234".to_string()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
+
+    wallet.lock();
 
     // Test multiple instructions
     wallet.unlock("112234".to_string()).await.expect("Should unlock wallet");
@@ -493,8 +495,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     let client = CborHttpClient(reqwest::Client::new());
-    let mdoc_wallet = Arc::new(Mutex::new(MdocWallet::new(client)));
-    let pid_issuer_client = HttpPidIssuerClient::new(Arc::clone(&mdoc_wallet));
+    let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(client));
 
     let mut wallet = create_test_wallet(
         local_base_url(port),

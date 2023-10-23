@@ -34,7 +34,7 @@ use crate::{
     iso::*,
     issuer_shared::{IssuanceError, SessionToken},
     utils::{
-        cose::{MdocCose, COSE_X5CHAIN_HEADER_LABEL},
+        cose::{ClonePayload, CoseKey, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
         x509::Certificate,
     },
@@ -390,7 +390,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     }
 
     async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        let issuance_result = self.issue(&device_response).await;
+        let issuance_result = self.issue(device_response).await;
         match issuance_result {
             Ok(_) => self.update_state(Done),
             Err(_) => self.update_state(Failed),
@@ -409,55 +409,28 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         Ok(response)
     }
 
-    async fn issue_cred(&self, unsigned_mdoc: &UnsignedMdoc, response: &Response) -> Result<SparseIssuerSigned> {
-        let attrs = unsigned_mdoc
-            .attributes
-            .clone()
-            .into_iter()
-            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
-            .collect::<Result<IssuerNameSpaces>>()?;
-
-        let now = Utc::now();
-        let validity = ValidityInfo {
-            signed: now.into(),
-            valid_from: unsigned_mdoc.valid_from.clone(),
-            valid_until: unsigned_mdoc.valid_until.clone(),
-            expected_update: None,
-        };
-        let mso = MobileSecurityObject {
-            version: MobileSecurityObjectVersion::V1_0,
-            digest_algorithm: DigestAlgorithm::SHA256,
-            doc_type: unsigned_mdoc.doc_type.clone(),
-            value_digests: (&attrs).try_into()?,
-            device_key_info: response.public_key.clone().into(),
-            validity_info: validity.clone(),
-        };
-
+    async fn issue_cred(&self, unsigned_mdoc: UnsignedMdoc, response: Response) -> Result<SparseIssuerSigned> {
         // Presence of the key in the keyring has already been checked by new_session().
-        let key = self.keys.private_key(&unsigned_mdoc.doc_type).unwrap();
+        let private_key = self.keys.private_key(&unsigned_mdoc.doc_type).unwrap();
 
-        let headers = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.cert_bts.as_bytes().to_vec()),
-            )
-            .build();
-        let cose: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso.into(), headers, key, false).await?;
+        let (signed, mso) = IssuerSigned::sign(unsigned_mdoc, response.public_key, private_key).await?;
 
-        let signed = SparseIssuerSigned {
-            randoms: attrs
+        let sparse = SparseIssuerSigned {
+            randoms: signed
+                .name_spaces
+                .unwrap_or_default()
                 .into_iter()
                 .map(|(namespace, attrs)| (namespace, Self::attr_randoms(attrs)))
                 .collect(),
             sparse_issuer_auth: SparseIssuerAuth {
-                version: MobileSecurityObjectVersion::V1_0,
-                digest_algorithm: DigestAlgorithm::SHA256,
-                validity_info: validity,
-                issuer_auth: cose,
+                version: mso.version,
+                digest_algorithm: mso.digest_algorithm,
+                validity_info: mso.validity_info,
+                issuer_auth: signed.issuer_auth.clone_without_payload(),
             },
         };
-        Ok(signed)
+
+        Ok(sparse)
     }
 
     fn attr_randoms(attrs: Attributes) -> Vec<ByteBuf> {
@@ -466,27 +439,27 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
 
     async fn issue_creds(
         &self,
-        doctype_responses: &MdocResponses,
+        doctype_responses: MdocResponses,
         unsigned: &UnsignedMdoc,
     ) -> Result<Vec<SparseIssuerSigned>> {
         let issue_creds = try_join_all(
             doctype_responses
                 .responses
-                .iter()
-                .map(|response| self.issue_cred(unsigned, response)),
+                .into_iter()
+                .map(|response| self.issue_cred(unsigned.clone(), response)),
         )
         .await?;
 
         Ok(issue_creds)
     }
 
-    pub async fn issue(&self, device_response: &KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
+    pub async fn issue(&self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         device_response.verify(&self.session_data.request)?;
 
         let mut docs = vec![];
         for (responses, unsigned) in device_response
             .mdoc_responses
-            .iter()
+            .into_iter()
             .zip(&self.session_data.request.unsigned_mdocs)
         {
             docs.push(MobileeIDDocuments {
@@ -500,6 +473,55 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
             mobile_eid_documents: docs,
         };
         Ok(response)
+    }
+}
+
+impl IssuerSigned {
+    pub async fn sign(
+        unsigned_mdoc: UnsignedMdoc,
+        device_public_key: CoseKey,
+        key: &PrivateKey,
+    ) -> Result<(Self, MobileSecurityObject)> {
+        let now = Utc::now();
+        let validity = ValidityInfo {
+            signed: now.into(),
+            valid_from: unsigned_mdoc.valid_from,
+            valid_until: unsigned_mdoc.valid_until,
+            expected_update: None,
+        };
+
+        let doc_type = unsigned_mdoc.doc_type;
+        let attrs = unsigned_mdoc
+            .attributes
+            .into_iter()
+            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
+            .collect::<Result<IssuerNameSpaces>>()?;
+
+        let mso = MobileSecurityObject {
+            version: MobileSecurityObjectVersion::V1_0,
+            digest_algorithm: DigestAlgorithm::SHA256,
+            doc_type,
+            value_digests: (&attrs).try_into()?,
+            device_key_info: device_public_key.into(),
+            validity_info: validity,
+        };
+
+        let headers = HeaderBuilder::new()
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Bytes(key.cert_bts.as_bytes().to_vec()),
+            )
+            .build();
+        let mso_tagged = mso.into();
+        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            MdocCose::sign(&mso_tagged, headers, key, true).await?;
+
+        let issuer_signed = IssuerSigned {
+            name_spaces: attrs.into(),
+            issuer_auth,
+        };
+
+        Ok((issuer_signed, mso_tagged.0))
     }
 }
 

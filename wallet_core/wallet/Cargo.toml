@@ -50,6 +50,7 @@ wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true
+jsonwebtoken.workspace = true
 mockall.workspace = true
 rstest.workspace = true
 serial_test.workspace = true

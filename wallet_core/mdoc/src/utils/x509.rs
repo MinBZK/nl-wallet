@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::{
@@ -12,7 +14,6 @@ use rcgen::{
     BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, RcgenError,
 };
 use serde_bytes::ByteBuf;
-use std::borrow::Cow;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
     der_parser::Oid,
@@ -357,12 +358,12 @@ impl From<&CertificateType> for CertificateUsage {
 
 #[cfg(test)]
 mod test {
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::Duration;
     use p256::pkcs8::ObjectIdentifier;
     use url::Url;
     use webpki::TrustAnchor;
 
-    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
 
     use crate::utils::{reader_auth::*, x509::CertificateType};
 
@@ -372,13 +373,6 @@ mod test {
     fn mdoc_eku_encoding_works() {
         CertificateUsage::Mdl.to_eku();
         CertificateUsage::ReaderAuth.to_eku();
-    }
-
-    struct TimeGenerator;
-    impl Generator<DateTime<Utc>> for TimeGenerator {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc::now()
-        }
     }
 
     #[test]

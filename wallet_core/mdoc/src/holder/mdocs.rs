@@ -77,7 +77,7 @@ pub struct Mdoc {
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
     pub fn new<K: MdocEcdsaKey>(
-        private_key: String,
+        private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -85,7 +85,7 @@ impl Mdoc {
         let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
         let mdoc = Mdoc {
             doc_type: mso.doc_type,
-            private_key_id: private_key,
+            private_key_id,
             issuer_signed,
             key_type: K::KEY_TYPE,
         };
