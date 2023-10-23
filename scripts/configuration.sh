@@ -2,8 +2,9 @@
 
 source "${SCRIPTS_DIR}/utils.sh"
 
-WP_DIR="${BASE_DIR}/wallet_core/wallet_provider"
-PID_ISSUER_DIR="${BASE_DIR}/wallet_core/pid_issuer"
+WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
+WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
+PID_ISSUER_DIR="${WALLET_CORE_DIR}/pid_issuer"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
