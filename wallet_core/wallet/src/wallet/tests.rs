@@ -1,5 +1,11 @@
+use std::sync::Mutex;
+
+use async_trait::async_trait;
 use once_cell::sync::Lazy;
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+use p256::{
+    ecdsa::{Signature, SigningKey, VerifyingKey},
+    elliptic_curve::rand_core::OsRng,
+};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
@@ -9,13 +15,14 @@ use nl_wallet_mdoc::{
     utils::x509::OwnedTrustAnchor,
     IssuerSigned,
 };
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::{
         jwt::Jwt,
         messages::auth::{WalletCertificate, WalletCertificateClaims},
     },
     generator::TimeGenerator,
-    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
+    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     utils,
 };
 
@@ -44,10 +51,20 @@ pub struct IssuerKey {
     pub trust_anchor: OwnedTrustAnchor,
 }
 
+/// This is used as a mock for `PlatformEcdsaKey`, so we can introduce failure conditions.
+#[derive(Debug)]
+
+pub struct FallibleSoftwareEcdsaKey {
+    key: SoftwareEcdsaKey,
+    pub next_public_key_error: Mutex<Option<<SoftwareEcdsaKey as EcdsaKey>::Error>>,
+    pub next_private_key_error: Mutex<Option<<SoftwareEcdsaKey as EcdsaKey>::Error>>,
+}
+
+/// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
     LocalConfigurationRepository,
     MockStorage,
-    SoftwareEcdsaKey,
+    FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
     MockDigidSession,
     MockPidIssuerClient,
@@ -96,6 +113,57 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: Str
     .unwrap()
 }
 
+// Implement traits for `FallibleSoftwareEcdsaKey` so all calls can be forwarded to `SoftwareEcdsaKey`.
+impl From<SoftwareEcdsaKey> for FallibleSoftwareEcdsaKey {
+    fn from(value: SoftwareEcdsaKey) -> Self {
+        FallibleSoftwareEcdsaKey {
+            key: value,
+            next_public_key_error: Mutex::new(None),
+            next_private_key_error: Mutex::new(None),
+        }
+    }
+}
+
+impl PlatformEcdsaKey for FallibleSoftwareEcdsaKey {}
+
+impl ConstructibleWithIdentifier for FallibleSoftwareEcdsaKey {
+    fn new(identifier: &str) -> Self {
+        SoftwareEcdsaKey::new(identifier).into()
+    }
+}
+
+impl WithIdentifier for FallibleSoftwareEcdsaKey {
+    fn identifier(&self) -> &str {
+        self.key.identifier()
+    }
+}
+
+impl SecureEcdsaKey for FallibleSoftwareEcdsaKey {}
+
+#[async_trait]
+impl EcdsaKey for FallibleSoftwareEcdsaKey {
+    type Error = <SoftwareEcdsaKey as EcdsaKey>::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        let next_error = self.next_public_key_error.lock().unwrap().take();
+
+        match next_error {
+            None => self.key.verifying_key().await,
+            Some(error) => Err(error),
+        }
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        let next_error = self.next_private_key_error.lock().unwrap().take();
+
+        match next_error {
+            None => self.key.try_sign(msg).await,
+            Some(error) => Err(error),
+        }
+    }
+}
+
+// Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
 impl WalletWithMocks {
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
     pub async fn registered() -> Self {

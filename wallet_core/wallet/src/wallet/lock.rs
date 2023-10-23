@@ -400,7 +400,28 @@ mod tests {
         assert_matches!(error, WalletUnlockError::Instruction(InstructionError::ServerError(_)));
     }
 
-    // TODO: Test InstructionError::Signing errors by mocking `PlatformEcdsaKey`.
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_signing() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        // Have the hardware key signing fail.
+        wallet
+            .hw_privkey
+            .next_private_key_error
+            .lock()
+            .unwrap()
+            .replace(p256::ecdsa::Error::new());
+
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
+
+        assert_matches!(error, WalletUnlockError::Instruction(InstructionError::Signing(_)));
+    }
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {

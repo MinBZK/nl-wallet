@@ -152,6 +152,8 @@ mod tests {
 
     use super::{super::tests::WalletWithMocks, *};
 
+    const PIN: &str = "051097";
+
     #[tokio::test]
     async fn test_wallet_register_success() {
         // Prepare an unregistered wallet.
@@ -202,7 +204,7 @@ mod tests {
 
         // Register the wallet with a valid PIN.
         wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect("Could not register wallet");
 
@@ -227,7 +229,7 @@ mod tests {
         let mut wallet = WalletWithMocks::registered().await;
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -261,7 +263,7 @@ mod tests {
             .return_once(|_| Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()));
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -270,7 +272,59 @@ mod tests {
         assert!(wallet.storage.get_mut().data.is_empty());
     }
 
-    // TODO: Test HardwarePublicKey and Signing errors by mocking `PlatformEcdsaKey`.
+    #[tokio::test]
+    async fn test_wallet_register_error_hardware_public_key() {
+        let mut wallet = WalletWithMocks::default();
+
+        wallet
+            .account_provider_client
+            .expect_registration_challenge()
+            .return_once(|_| Ok(utils::random_bytes(32)));
+
+        // Have the hardware public key fetching fail.
+        wallet
+            .hw_privkey
+            .next_public_key_error
+            .lock()
+            .unwrap()
+            .replace(p256::ecdsa::Error::new());
+
+        let error = wallet
+            .register(PIN.to_string())
+            .await
+            .expect_err("Wallet registration should have resulted in error");
+
+        assert_matches!(error, WalletRegistrationError::HardwarePublicKey(_));
+        assert!(!wallet.has_registration());
+        assert!(wallet.storage.get_mut().data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_register_error_signing() {
+        let mut wallet = WalletWithMocks::default();
+
+        wallet
+            .account_provider_client
+            .expect_registration_challenge()
+            .return_once(|_| Ok(utils::random_bytes(32)));
+
+        // Have the hardware key signing fail.
+        wallet
+            .hw_privkey
+            .next_private_key_error
+            .lock()
+            .unwrap()
+            .replace(p256::ecdsa::Error::new());
+
+        let error = wallet
+            .register(PIN.to_string())
+            .await
+            .expect_err("Wallet registration should have resulted in error");
+
+        assert_matches!(error, WalletRegistrationError::Signing(_));
+        assert!(!wallet.has_registration());
+        assert!(wallet.storage.get_mut().data.is_empty());
+    }
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request() {
@@ -288,7 +342,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -319,7 +373,7 @@ mod tests {
             .return_once(|_, _| Ok(cert));
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -352,7 +406,7 @@ mod tests {
             .return_once(|_, _| Ok(cert));
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -382,7 +436,7 @@ mod tests {
         wallet.storage.get_mut().has_query_error = true;
 
         let error = wallet
-            .register("051097".to_string())
+            .register(PIN.to_string())
             .await
             .expect_err("Wallet registration should have resulted in error");
 
