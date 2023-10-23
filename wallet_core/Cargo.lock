@@ -4530,6 +4530,7 @@ dependencies = [
  "futures",
  "http",
  "indexmap 2.0.2",
+ "jsonwebtoken",
  "libsqlite3-sys",
  "migration",
  "mime",

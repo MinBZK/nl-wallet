@@ -8,8 +8,8 @@ use url::Url;
 
 use wallet::{
     mock::{MockAccountProviderClient, MockStorage},
-    wallet_deps::{HttpDigidSession, HttpPidIssuerClient, LocalConfigurationRepository},
-    Configuration, DigidSession, Wallet,
+    wallet_deps::{DigidSession, HttpDigidSession, HttpPidIssuerClient, LocalConfigurationRepository},
+    Configuration, Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 

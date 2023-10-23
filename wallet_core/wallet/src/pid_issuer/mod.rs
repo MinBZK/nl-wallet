@@ -29,6 +29,8 @@ pub enum PidIssuerError {
 
 #[async_trait]
 pub trait PidIssuerClient {
+    fn has_session(&self) -> bool;
+
     async fn start_retrieve_pid(
         &mut self,
         base_url: &Url,

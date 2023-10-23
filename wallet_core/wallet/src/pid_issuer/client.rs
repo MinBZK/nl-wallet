@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::{header, HeaderMap, HeaderValue};
-use tokio::sync::Mutex;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -17,15 +14,13 @@ use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::{PidIssuerClient, PidIssuerError};
 
-// TODO: The `mdoc_wallet` field uses `Arc<>` just for testing now.
-//       This should be removed as soon as actual storage is implemented.
 pub struct HttpPidIssuerClient {
     http_client: reqwest::Client,
-    mdoc_wallet: Arc<Mutex<MdocWallet>>,
+    mdoc_wallet: MdocWallet,
 }
 
 impl HttpPidIssuerClient {
-    pub fn new(mdoc_wallet: Arc<Mutex<MdocWallet>>) -> Self {
+    pub fn new(mdoc_wallet: MdocWallet) -> Self {
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
@@ -47,12 +42,16 @@ impl Default for HttpPidIssuerClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        Self::new(Arc::new(Mutex::new(MdocWallet::new(CborHttpClient(http_client)))))
+        Self::new(MdocWallet::new(CborHttpClient(http_client)))
     }
 }
 
 #[async_trait]
 impl PidIssuerClient for HttpPidIssuerClient {
+    fn has_session(&self) -> bool {
+        self.mdoc_wallet.has_issuance_session()
+    }
+
     async fn start_retrieve_pid(
         &mut self,
         base_url: &Url,
@@ -89,8 +88,7 @@ impl PidIssuerClient for HttpPidIssuerClient {
             .json::<ServiceEngagement>()
             .await?;
 
-        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
-        let unsigned_mdocs = mdoc_wallet.start_issuance(service_engagement).await?;
+        let unsigned_mdocs = self.mdoc_wallet.start_issuance(service_engagement).await?;
 
         Ok(unsigned_mdocs.to_vec())
     }
@@ -100,17 +98,16 @@ impl PidIssuerClient for HttpPidIssuerClient {
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
-        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
-
-        let mdocs = mdoc_wallet.finish_issuance(mdoc_trust_anchors, key_factory).await?;
+        let mdocs = self
+            .mdoc_wallet
+            .finish_issuance(mdoc_trust_anchors, key_factory)
+            .await?;
 
         Ok(mdocs)
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
-        let mut mdoc_wallet = self.mdoc_wallet.lock().await;
-
-        mdoc_wallet.stop_issuance().await?;
+        self.mdoc_wallet.stop_issuance().await?;
 
         Ok(())
     }

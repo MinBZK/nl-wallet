@@ -21,5 +21,6 @@ Map<String, dynamic> _$FlutterApiErrorToJson(FlutterApiError instance) => <Strin
 const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.generic: 'Generic',
   FlutterApiErrorType.networking: 'Networking',
+  FlutterApiErrorType.walletState: 'WalletState',
   FlutterApiErrorType.redirectUri: 'RedirectUri',
 };

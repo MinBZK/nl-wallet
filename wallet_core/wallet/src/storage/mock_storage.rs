@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use sea_orm::DbErr;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
@@ -19,6 +20,7 @@ pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
+    pub has_query_error: bool,
 }
 
 impl MockStorage {
@@ -31,7 +33,20 @@ impl MockStorage {
 
         let mdocs = MdocsMap::new();
 
-        MockStorage { state, data, mdocs }
+        MockStorage {
+            state,
+            data,
+            mdocs,
+            has_query_error: false,
+        }
+    }
+
+    fn check_query_error(&self) -> StorageResult<()> {
+        if self.has_query_error {
+            return Err(DbErr::Custom("Mock error".to_string()).into());
+        }
+
+        Ok(())
     }
 }
 
@@ -60,12 +75,16 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {
+        self.check_query_error()?;
+
         let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s).unwrap());
 
         Ok(data)
     }
 
     async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+        self.check_query_error()?;
+
         if self.data.contains_key(D::KEY) {
             panic!("Registration already present");
         }
@@ -76,6 +95,8 @@ impl Storage for MockStorage {
     }
 
     async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+        self.check_query_error()?;
+
         if !self.data.contains_key(D::KEY) {
             panic!("Registration not present");
         }
@@ -86,12 +107,16 @@ impl Storage for MockStorage {
     }
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+        self.check_query_error()?;
+
         self.mdocs.add(mdocs.into_iter().flatten()).unwrap();
 
         Ok(())
     }
 
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+        self.check_query_error()?;
+
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
         let mdocs = self
             .mdocs
