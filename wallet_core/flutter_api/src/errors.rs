@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, WalletInitError,
-    WalletRegistrationError, WalletUnlockError,
+    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, UriIdentificationError,
+    WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -68,6 +68,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .map(Self::from)
             .or_else(|e| e.downcast::<WalletRegistrationError>().map(Self::from))
             .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
+            .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
     }
 }
@@ -109,6 +110,8 @@ impl FlutterApiErrorFields for WalletUnlockError {
         }
     }
 }
+
+impl FlutterApiErrorFields for UriIdentificationError {}
 
 impl FlutterApiErrorFields for PidIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
