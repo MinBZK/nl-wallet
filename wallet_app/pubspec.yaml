@@ -13,7 +13,7 @@ dependencies:
   after_layout: ^1.2.0
   app_links: ^3.4.5
   collection: ^1.17.2
-  connectivity_plus: ^4.0.2
+  connectivity_plus: ^5.0.1
   device_info_plus: ^9.0.3
   equatable: ^2.0.5
   ffi: ^2.1.0
