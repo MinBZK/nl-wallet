@@ -87,6 +87,14 @@ class MockDisclosureRequestRepository implements DisclosureRequestRepository {
           requestPurpose: 'Account aanmaken',
           interactionPolicy: _kMonkeyBikePolicy,
         );
+      case _kPharmacy:
+        return DisclosureRequest(
+          id: _kPharmacy,
+          organization: (await _organizationDataSource.read(kPharmacyId))!,
+          requestedAttributes: _kPharmacyRequestedAttributes,
+          requestPurpose: 'Herhaalrecept',
+          interactionPolicy: _kMockFirstAidPolicy,
+        );
     }
     throw UnimplementedError('No mock usecase for id: $requestId');
   }
