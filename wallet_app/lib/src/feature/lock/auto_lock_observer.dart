@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -39,13 +41,23 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+
     _setupNoInteractionListener();
+    _setupSemanticActionListener();
+
+    WidgetsBinding.instance.addObserver(this);
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       _lockWallet();
     } else {
       _resetIdleTimeout();
     }
+  }
+
+  void _setupSemanticActionListener() {
+    PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent event) {
+      if (event.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
+      WidgetsBinding.instance.performSemanticsAction(event);
+    };
   }
 
   void _setupNoInteractionListener() {
