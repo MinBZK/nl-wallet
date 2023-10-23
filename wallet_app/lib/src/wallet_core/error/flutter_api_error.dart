@@ -23,6 +23,8 @@ enum FlutterApiErrorType {
   generic,
   @JsonValue('Networking')
   networking,
+  @JsonValue('WalletState')
+  walletState,
   @JsonValue('RedirectUri')
   redirectUri,
 }

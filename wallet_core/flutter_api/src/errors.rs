@@ -24,6 +24,7 @@ pub struct FlutterApiError {
 enum FlutterApiErrorType {
     Generic,
     Networking,
+    WalletState,
     RedirectUri,
 }
 
@@ -95,6 +96,7 @@ impl FlutterApiErrorFields for WalletInitError {}
 impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
@@ -105,8 +107,8 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            WalletUnlockError::NotRegistered | WalletUnlockError::NotLocked => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
-            _ => FlutterApiErrorType::Generic,
         }
     }
 }
@@ -134,6 +136,9 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
 
         match self {
+            PidIssuanceError::Locked | PidIssuanceError::NotRegistered | PidIssuanceError::SessionState => {
+                FlutterApiErrorType::WalletState
+            }
             PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
                 error: _,
                 error_description: _,
