@@ -9,6 +9,7 @@ const _kParkingPermit = 'PARKING_PERMIT';
 const _kOpenBankAccount = 'OPEN_BANK_ACCOUNT';
 const _kProvideContractDetails = 'PROVIDE_CONTRACT_DETAILS';
 const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
+const _kPharmacy = 'PHARMACY';
 
 // region RequestedAttributes
 
@@ -119,6 +120,20 @@ const _kFirstAidRequestedAttributes = [
   RequestedAttribute(
     label: 'Verloopdatum',
     key: 'mock.healthInsuranceExpiryDate',
+    valueType: AttributeValueType.text,
+  ),
+];
+
+const _kPharmacyRequestedAttributes = [
+  ..._kFirstAndLastNameRequest,
+  RequestedAttribute(
+    label: 'Huisnummer',
+    key: 'mock.houseNumber',
+    valueType: AttributeValueType.text,
+  ),
+  RequestedAttribute(
+    label: 'Postcode',
+    key: 'mock.postalCode',
     valueType: AttributeValueType.text,
   ),
 ];
@@ -263,9 +278,9 @@ const _kMockCarRentalPolicy = Policy(
 );
 
 const _kMockFirstAidPolicy = Policy(
-  storageDuration: Duration(days: 90),
+  storageDuration: Duration(days: 365),
   dataPurpose: 'Zorgverlening',
-  dataIsShared: false,
+  dataIsShared: true,
   dataIsSignature: false,
   dataContainsSingleViewProfilePhoto: false,
   deletionCanBeRequested: true,

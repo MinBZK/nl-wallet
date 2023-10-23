@@ -15,6 +15,7 @@ const _kOrganizations = [
   _kMunicipalityDelftOrganization,
   _kBankOrganization,
   _kMonkeyBikeOrganization,
+  _kPharmacyOrganization,
 ];
 
 const kRvigId = 'rvig';
@@ -31,6 +32,7 @@ const kFirstAidId = 'first_aid';
 const kMunicipalityTheHagueId = 'municipality_the_hague';
 const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
+const kPharmacyId = 'pharmacy';
 
 const _kRvigOrganization = Organization(
   id: kRvigId,
@@ -180,4 +182,16 @@ const _kMonkeyBikeOrganization = Organization(
   location: 'Groningen, Land',
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   //companyInfo: 'KVK: 3945-2932',
+);
+
+const _kPharmacyOrganization = Organization(
+  id: kPharmacyId,
+  name: 'De Noord Apotheek',
+  shortName: 'Apotheek',
+  category: 'Apotheek',
+  description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.',
+  logoUrl: WalletAssets.logo_zorgverzekeraar_z,
+  department: 'KVK: 1234-1234',
+  location: 'Den Haag, Nederland',
+  webUrl: 'https://denoordapotheek.nl',
 );
