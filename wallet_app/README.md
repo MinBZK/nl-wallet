@@ -129,6 +129,7 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | Open Bank Account         | {"id":"OPEN_BANK_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
 | Provide Contract Details  | {"id":"PROVIDE_CONTRACT_DETAILS","type":"verify"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PROVIDE_CONTRACT_DETAILS%22%2C%22type%22%3A%22verify%22%7D |
 | Create MonkeyBike Account | {"id":"CREATE_MB_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22CREATE_MB_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
+| Pharmacy                  | {"id":"PHARMACY","type":"verify"}                 | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PHARMACY%22%2C%22type%22%3A%22verify%22%7D                 |
 
 ### Sign Scenarios
 
