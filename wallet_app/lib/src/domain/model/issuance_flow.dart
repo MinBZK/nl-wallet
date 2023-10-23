@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-import '../../feature/verification/model/organization.dart';
 import 'attribute/attribute.dart';
 import 'attribute/data_attribute.dart';
 import 'attribute/requested_attribute.dart';
+import 'organization.dart';
 import 'policy/policy.dart';
 import 'wallet_card.dart';
 

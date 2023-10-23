@@ -9,17 +9,20 @@ class ShowDetailsCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(context.l10n.showDetailsCta, style: context.textTheme.labelLarge),
-        const SizedBox(width: 8),
-        Icon(
-          Icons.arrow_forward,
-          color: context.textTheme.labelLarge?.color,
-          size: 16 * MediaQuery.of(context).textScaleFactor,
-        ),
-      ],
+    return Semantics(
+      button: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(context.l10n.showDetailsCta, style: context.textTheme.labelLarge),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward,
+            color: context.textTheme.labelLarge?.color,
+            size: 16 * MediaQuery.of(context).textScaleFactor,
+          ),
+        ],
+      ),
     );
   }
 }

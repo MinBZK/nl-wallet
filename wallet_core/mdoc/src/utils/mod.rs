@@ -1,5 +1,6 @@
 pub mod cose;
 pub mod keys;
+pub mod reader_auth;
 pub mod serialization;
 pub mod x509;
 

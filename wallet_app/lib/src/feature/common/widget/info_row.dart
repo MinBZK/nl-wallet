@@ -24,44 +24,47 @@ class InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            leading ??
-                Icon(
-                  icon,
-                  color: context.colorScheme.primary,
+    return Semantics(
+      button: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              leading ??
+                  Icon(
+                    icon,
+                    color: context.colorScheme.primary,
+                  ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title != null)
+                      DefaultTextStyle(
+                        style: context.textTheme.titleMedium!,
+                        child: title!,
+                      ),
+                    if (subtitle != null)
+                      DefaultTextStyle(
+                        style: context.textTheme.bodyMedium!,
+                        child: subtitle!,
+                      ),
+                  ],
                 ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (title != null)
-                    DefaultTextStyle(
-                      style: context.textTheme.titleMedium!,
-                      child: title!,
-                    ),
-                  if (subtitle != null)
-                    DefaultTextStyle(
-                      style: context.textTheme.bodyMedium!,
-                      child: subtitle!,
-                    ),
-                ],
               ),
-            ),
-            const SizedBox(width: 16),
-            if (onTap != null)
-              Icon(
-                Icons.chevron_right,
-                color: context.theme.primaryColorDark,
-              ),
-          ],
+              const SizedBox(width: 16),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: context.theme.primaryColorDark,
+                ),
+            ],
+          ),
         ),
       ),
     );

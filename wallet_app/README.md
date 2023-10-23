@@ -107,7 +107,7 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 
 ### Issuance Scenarios
 
-| Issue Scenario           | Content                                         | Deeplink                                                                                                    |
+| Scenario                 | Content                                         | Deeplink                                                                                                    |
 |--------------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | Driving License          | {"id":"DRIVING_LICENSE","type":"issue"}         | walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D         |
 | Extended Driving License | {"id":"DRIVING_LICENSE_RENEWED","type":"issue"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE_RENEWED%22%2C%22type%22%3A%22issue%22%7D |
@@ -116,9 +116,9 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | VOG                      | {"id":"VOG","type":"issue"}                     | walletdebuginteraction://deeplink#%7B%22id%22%3A%22VOG%22%2C%22type%22%3A%22issue%22%7D                     |
 | Multiple Diplomas        | {"id":"MULTI_DIPLOMA","type":"issue"}           | walletdebuginteraction://deeplink#%7B%22id%22%3A%22MULTI_DIPLOMA%22%2C%22type%22%3A%22issue%22%7D           |
 
-### Verification Scenarios
+### Disclosure Scenarios
 
-| Verification Scenario     | Content                                           | Deeplink                                                                                                      |
+| Scenario                  | Content                                           | Deeplink                                                                                                      |
 |---------------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | Job Application           | {"id":"JOB_APPLICATION","type":"verify"}          | walletdebuginteraction://deeplink#%7B%22id%22%3A%22JOB_APPLICATION%22%2C%22type%22%3A%22verify%22%7D          |
 | Bar                       | {"id":"BAR","type":"verify"}                      | walletdebuginteraction://deeplink#%7B%22id%22%3A%22BAR%22%2C%22type%22%3A%22verify%22%7D                      |
@@ -129,16 +129,17 @@ Note that the deeplinks only work on debug builds. For (mock) production builds 
 | Open Bank Account         | {"id":"OPEN_BANK_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
 | Provide Contract Details  | {"id":"PROVIDE_CONTRACT_DETAILS","type":"verify"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PROVIDE_CONTRACT_DETAILS%22%2C%22type%22%3A%22verify%22%7D |
 | Create MonkeyBike Account | {"id":"CREATE_MB_ACCOUNT","type":"verify"}        | walletdebuginteraction://deeplink#%7B%22id%22%3A%22CREATE_MB_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D        |
+| Pharmacy                  | {"id":"PHARMACY","type":"verify"}                 | walletdebuginteraction://deeplink#%7B%22id%22%3A%22PHARMACY%22%2C%22type%22%3A%22verify%22%7D                 |
 
 ### Sign Scenarios
 
-| Sign Scenario    | Content                                 | Deeplink                                                                                            |
+| Scenario         | Content                                 | Deeplink                                                                                            |
 |------------------|-----------------------------------------|-----------------------------------------------------------------------------------------------------|
 | Rental Agreement | {"id":"RENTAL_AGREEMENT","type":"sign"} | walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D |
 
 ### E2E Test Scenarios
 
-| E2E Test Scenario    | Deep dive link                         | Explanation                                                                                                           |
+| Scenario             | Deep dive link                         | Explanation                                                                                                           |
 |----------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | Skip (setup) to home | walletdebuginteraction://deepdive#home | Use on clean app startup; to setup wallet with mock data and jump straight to the home (a.k.a. cards overview) screen |
 

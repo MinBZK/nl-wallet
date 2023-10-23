@@ -1,8 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../feature/verification/model/organization.dart';
 import '../attribute/data_attribute.dart';
-import 'package:collection/collection.dart';
+import '../organization.dart';
 
 abstract class TimelineAttribute extends Equatable {
   final TimelineType type;

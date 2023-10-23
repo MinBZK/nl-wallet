@@ -181,10 +181,10 @@ class QrScanTab extends StatelessWidget {
 
   void _handleScanSuccess(BuildContext context, QrScanSuccess state) {
     switch (state.request.type) {
-      case QrRequestType.verification:
+      case QrRequestType.disclosure:
         Navigator.restorablePushNamed(
           context,
-          WalletRoutes.verificationRoute,
+          WalletRoutes.disclosureRoute,
           arguments: state.request.sessionId,
         );
         break;

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-09-26T15:11:28+02:00",
+    "@@last_modified": "2023-10-19T09:09:41+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -126,6 +126,15 @@
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
     "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
     "cardOverviewScreenTitle": "Mijn kaarten",
+    "cardTitleSemanticsLabel": "Kaart: {cardTitle}",
+    "@cardTitleSemanticsLabel": {
+        "placeholders": {
+            "cardTitle": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
     "cardValueFalse": "Niet waar",
     "cardValueGenderFemale": "Vrouw",
     "cardValueGenderMale": "Man",
@@ -193,6 +202,192 @@
     "digidHelpScreenNoDigidDescription": "Woon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "digidHelpScreenNoDigidTitle": "Heb je nog geen DigiD?",
     "digidHelpScreenTitle": "Hulp nodig met DigiD?",
+    "disclosureConfirmDataAttributesCheckAttributesCta": "Bekijk jouw gegevens",
+    "disclosureConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
+    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is",
+    "disclosureConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
+    "disclosureConfirmDataAttributesPageApproveCta": "Delen",
+    "disclosureConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "disclosureConfirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+    "disclosureConfirmDataAttributesPageDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+    "@disclosureConfirmDataAttributesPageDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
+    "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
+    "disclosureConfirmDataAttributesPageDenyCta": "Nee",
+    "disclosureConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
+    "disclosureConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Wil je dit gegeven delen?} other {Wil je deze {count} gegevens delen?}}",
+    "@disclosureConfirmDataAttributesPageShareDataTitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesShareWithTitle": "Delen met {organization}",
+    "@disclosureConfirmDataAttributesShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
+    "disclosureConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
+    "@disclosureConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmPinPageErrorTitle": "Ongeldige toegangscode",
+    "disclosureConfirmPinPageTitle": "Vul je toegangscode in",
+    "disclosureGenericErrorPageCloseCta": "Sluiten",
+    "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "disclosureGenericErrorPageTitle": "Er ging iets mis",
+    "disclosureMissingAttributesPageCloseCta": "Aanvraag sluiten",
+    "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
+    "@disclosureMissingAttributesPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureMissingAttributesPageHowToProceedCta": "Wat kan ik doen?",
+    "disclosureMissingAttributesPageTitle": "Je mist gegevens",
+    "disclosureReportSubmittedPageCloseCta": "Sluiten",
+    "disclosureReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd. Deze partij wordt zo snel mogelijk gecontroleerd.\n\nDeel nooit je gegevens met een partij die je niet vertrouwt.",
+    "disclosureReportSubmittedPageTitle": "Bedankt voor je feedback",
+    "disclosureScreenAboutHeader": "Over {organization}",
+    "@disclosureScreenAboutHeader": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenAllTermsCta": "Alle voorwaarden",
+    "disclosureScreenApproveAttributesCta": "Ja, verder",
+    "disclosureScreenApproveOrganizationCta": "Ja, verder",
+    "disclosureScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
+    "@disclosureScreenCancelSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenCancelSheetNegativeCta": "Nee",
+    "disclosureScreenCancelSheetPositiveCta": "Ja, stoppen",
+    "disclosureScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
+    "disclosureScreenCloseCta": "Sluiten",
+    "disclosureScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "disclosureScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+    "disclosureScreenDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+    "@disclosureScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureScreenDataWillBeShared": "Gegevens worden gedeeld",
+    "disclosureScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
+    "disclosureScreenDeclinedDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "disclosureScreenDeclinedTitle": "Delen gestopt",
+    "disclosureScreenDenyAttributesCta": "Nee",
+    "disclosureScreenDenyOrganizationCta": "Nee",
+    "disclosureScreenGenericError": "Verificatie mislukt",
+    "disclosureScreenGenericErrorCta": "Sluiten",
+    "disclosureScreenGiveFeedbackCta": "Geef feedback",
+    "disclosureScreenHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
+    "disclosureScreenIncorrectCta": "Klopt er iets niet?",
+    "disclosureScreenPurposeTitle": "Doel",
+    "disclosureScreenShareDataTitle": "Wil je deze gegevens delen?",
+    "disclosureScreenShareWithTitle": "Wil je gegevens delen met {organization}?",
+    "@disclosureScreenShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenShowHistoryCta": "Geschiedenis",
+    "disclosureScreenSuccessTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
+    "@disclosureScreenSuccessTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenTitle": "Gegevens delen",
+    "disclosureScreenUsageTitle": "Gebruik",
+    "disclosureStopSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
+    "@disclosureStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureStopSheetNegativeCta": "Nee",
+    "disclosureStopSheetPositiveCta": "Ja, stoppen",
+    "disclosureStopSheetReportIssueCta": "Een probleem melden",
+    "disclosureStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
+    "disclosureStoppedPageCloseCta": "Sluiten",
+    "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "disclosureStoppedPageFeedbackCta": "Geef feedback",
+    "disclosureStoppedPageTitle": "Gestopt",
+    "disclosureSuccessPageCloseCta": "Sluiten",
+    "disclosureSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
+    "@disclosureSuccessPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureSuccessPageHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
+    "disclosureSuccessPageShowHistoryCta": "Geschiedenis",
+    "disclosureSuccessPageTitle": "Gelukt!",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
@@ -844,192 +1039,6 @@
     "signSuccessPageHistoryCta": "Geschiedenis",
     "signSuccessPageTitle": "Gelukt!",
     "timelineScrollViewBackCta": "Terug",
-    "verificationConfirmDataAttributesCheckAttributesCta": "Bekijk jouw gegevens",
-    "verificationConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
-    "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
-    "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
-    "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is",
-    "verificationConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
-    "verificationConfirmDataAttributesPageApproveCta": "Delen",
-    "verificationConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-    "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-    "@verificationConfirmDataAttributesPageDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesPageDataWillBeShared": "Gegevens worden gedeeld",
-    "verificationConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
-    "verificationConfirmDataAttributesPageDenyCta": "Nee",
-    "verificationConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-    "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Wil je dit gegeven delen?} other {Wil je deze {count} gegevens delen?}}",
-    "@verificationConfirmDataAttributesPageShareDataTitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesShareWithTitle": "Delen met {organization}",
-    "@verificationConfirmDataAttributesShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
-    "verificationConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
-    "@verificationConfirmPinPageErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmPinPageErrorTitle": "Ongeldige toegangscode",
-    "verificationConfirmPinPageTitle": "Vul je toegangscode in",
-    "verificationGenericErrorPageCloseCta": "Sluiten",
-    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
-    "verificationGenericErrorPageTitle": "Er ging iets mis",
-    "verificationMissingAttributesPageCloseCta": "Aanvraag sluiten",
-    "verificationMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
-    "@verificationMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationMissingAttributesPageHowToProceedCta": "Wat kan ik doen?",
-    "verificationMissingAttributesPageTitle": "Je mist gegevens",
-    "verificationReportSubmittedPageCloseCta": "Sluiten",
-    "verificationReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd. Deze partij wordt zo snel mogelijk gecontroleerd.\n\nDeel nooit je gegevens met een partij die je niet vertrouwt.",
-    "verificationReportSubmittedPageTitle": "Bedankt voor je feedback",
-    "verificationScreenAboutHeader": "Over {organization}",
-    "@verificationScreenAboutHeader": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenAllTermsCta": "Alle voorwaarden",
-    "verificationScreenApproveAttributesCta": "Ja, verder",
-    "verificationScreenApproveOrganizationCta": "Ja, verder",
-    "verificationScreenCancelSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}. ",
-    "@verificationScreenCancelSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenCancelSheetNegativeCta": "Nee",
-    "verificationScreenCancelSheetPositiveCta": "Ja, stoppen",
-    "verificationScreenCancelSheetTitle": "Weet je zeker dat je wil stoppen?",
-    "verificationScreenCloseCta": "Sluiten",
-    "verificationScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "verificationScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-    "verificationScreenDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-    "@verificationScreenDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "verificationScreenDataWillBeShared": "Gegevens worden gedeeld",
-    "verificationScreenDataWillNotBeShared": "Gegevens worden niet gedeeld",
-    "verificationScreenDeclinedDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
-    "verificationScreenDeclinedTitle": "Delen gestopt",
-    "verificationScreenDenyAttributesCta": "Nee",
-    "verificationScreenDenyOrganizationCta": "Nee",
-    "verificationScreenGenericError": "Verificatie mislukt",
-    "verificationScreenGenericErrorCta": "Sluiten",
-    "verificationScreenGiveFeedbackCta": "Geef feedback",
-    "verificationScreenHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
-    "verificationScreenIncorrectCta": "Klopt er iets niet?",
-    "verificationScreenPurposeTitle": "Doel",
-    "verificationScreenShareDataTitle": "Wil je deze gegevens delen?",
-    "verificationScreenShareWithTitle": "Wil je gegevens delen met {organization}?",
-    "@verificationScreenShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenShowHistoryCta": "Geschiedenis",
-    "verificationScreenSuccessTitle": "Gelukt! Je gegevens zijn gedeeld met {organization}",
-    "@verificationScreenSuccessTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenTitle": "Gegevens delen",
-    "verificationScreenUsageTitle": "Gebruik",
-    "verificationStopSheetDescription": "Als je stopt worden er geen gegevens gedeeld met {organization}.",
-    "@verificationStopSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationStopSheetNegativeCta": "Nee",
-    "verificationStopSheetPositiveCta": "Ja, stoppen",
-    "verificationStopSheetReportIssueCta": "Een probleem melden",
-    "verificationStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
-    "verificationStoppedPageCloseCta": "Sluiten",
-    "verificationStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
-    "verificationStoppedPageFeedbackCta": "Geef feedback",
-    "verificationStoppedPageTitle": "Gestopt",
-    "verificationSuccessPageCloseCta": "Sluiten",
-    "verificationSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
-    "@verificationSuccessPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationSuccessPageHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
-    "verificationSuccessPageShowHistoryCta": "Geschiedenis",
-    "verificationSuccessPageTitle": "Gelukt!",
     "verifierPolicyScreenBackCta": "Terug",
     "verifierPolicyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "verifierPolicyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",

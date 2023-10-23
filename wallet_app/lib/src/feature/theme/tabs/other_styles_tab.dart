@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/requested_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
+import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -32,8 +33,7 @@ import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_logo.dart';
-import '../../verification/model/organization.dart';
-import '../../verification/widget/card_attribute_row.dart';
+import '../../disclosure/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
 
 const _kSampleCardFront = CardFront(

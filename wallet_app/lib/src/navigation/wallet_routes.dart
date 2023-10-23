@@ -17,6 +17,8 @@ import '../feature/card/overview/bloc/card_overview_bloc.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/disclosure/bloc/disclosure_bloc.dart';
+import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
 import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
@@ -50,8 +52,6 @@ import '../feature/sign/sign_screen.dart';
 import '../feature/splash/bloc/splash_bloc.dart';
 import '../feature/splash/splash_screen.dart';
 import '../feature/theme/theme_screen.dart';
-import '../feature/verification/bloc/verification_bloc.dart';
-import '../feature/verification/verification_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 import 'secured_page_route.dart';
@@ -96,7 +96,7 @@ class WalletRoutes {
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
   static const themeRoute = '/theme';
-  static const verificationRoute = '/verification';
+  static const disclosureRoute = '/disclosure';
   static const issuanceRoute = '/issuance';
   static const signRoute = '/sign';
   static const policyRoute = '/policy';
@@ -117,7 +117,7 @@ class WalletRoutes {
 
   static SecuredPageTransition _resolvePageTransition(RouteSettings settings) {
     switch (settings.name) {
-      case WalletRoutes.verificationRoute:
+      case WalletRoutes.disclosureRoute:
       case WalletRoutes.issuanceRoute:
       case WalletRoutes.signRoute:
         return SecuredPageTransition.slideInFromBottom;
@@ -156,8 +156,8 @@ class WalletRoutes {
         return _createCardHistoryScreenBuilder(settings);
       case WalletRoutes.themeRoute:
         return _createThemeScreenBuilder;
-      case WalletRoutes.verificationRoute:
-        return _createVerificationScreenBuilder(settings);
+      case WalletRoutes.disclosureRoute:
+        return _createDisclosureScreenBuilder(settings);
       case WalletRoutes.policyRoute:
         return _createPolicyScreenBuilder(settings);
       case WalletRoutes.issuanceRoute:
@@ -273,15 +273,15 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
 
 Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
-WidgetBuilder _createVerificationScreenBuilder(RouteSettings settings) {
-  String sessionId = VerificationScreen.getArguments(settings);
+WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
+  String sessionId = DisclosureScreen.getArguments(settings);
   return (context) {
-    return BlocProvider<VerificationBloc>(
+    return BlocProvider<DisclosureBloc>(
       create: (BuildContext context) {
-        return VerificationBloc(context.read(), context.read(), context.read(), context.read())
-          ..add(VerificationLoadRequested(sessionId));
+        return DisclosureBloc(context.read(), context.read(), context.read(), context.read())
+          ..add(DisclosureLoadRequested(sessionId));
       },
-      child: const VerificationScreen(),
+      child: const DisclosureScreen(),
     );
   };
 }

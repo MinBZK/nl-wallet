@@ -16,6 +16,7 @@ import 'package:wallet/src/data/repository/organization/organization_repository.
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i9;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i12;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i22;
+import 'package:wallet/src/domain/model/organization.dart' as _i16;
 import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart' as _i11;
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart' as _i18;
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart' as _i19;
@@ -33,7 +34,6 @@ import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dar
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i26;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i28;
-import 'package:wallet/src/feature/verification/model/organization.dart' as _i16;
 import 'package:wallet/src/util/mapper/locale_mapper.dart' as _i6;
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart' as _i20;
 
