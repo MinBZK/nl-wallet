@@ -1,18 +1,16 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
+use std::fmt::Debug;
+
 use aes_gcm::{
     aead::{Aead, Nonce},
     Aes256Gcm, Key, KeyInit,
 };
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
-use p256::{
-    ecdh::{self, EphemeralSecret},
-    ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint, PublicKey,
-};
+use p256::{ecdh, ecdsa::VerifyingKey, EncodedPoint, PublicKey, SecretKey};
 use ring::hmac;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
@@ -23,7 +21,7 @@ use crate::{
         cose::CoseKey,
         serialization::{cbor_serialize, CborError, TaggedBytes},
     },
-    Error, Result, SessionData, SessionTranscript,
+    CipherSuiteIdentifier, Error, Result, Security, SecurityKeyed, SessionData, SessionTranscript,
 };
 
 use super::serialization::cbor_deserialize;
@@ -57,14 +55,8 @@ pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborEr
 }
 
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
-pub fn dh_hmac_key(
-    privkey: &SigningKey,
-    pubkey: &VerifyingKey,
-    salt: &[u8],
-    info: &str,
-    len: usize,
-) -> Result<hmac::Key> {
-    let dh = ecdh::diffie_hellman(privkey.as_nonzero_scalar(), pubkey.as_affine());
+pub fn dh_hmac_key(privkey: &SecretKey, pubkey: &PublicKey, salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
+    let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
     hmac_key(dh.raw_secret_bytes().as_ref(), salt, info, len)
 }
 
@@ -125,14 +117,46 @@ impl TryFrom<&CoseKey> for VerifyingKey {
     }
 }
 
+impl TryFrom<&PublicKey> for Security {
+    type Error = Error;
+
+    fn try_from(value: &PublicKey) -> Result<Self> {
+        let cose_key: CoseKey = (&VerifyingKey::from(value)).try_into()?;
+        let security = SecurityKeyed {
+            cipher_suite_identifier: CipherSuiteIdentifier::P256,
+            e_sender_key_bytes: cose_key.into(),
+        }
+        .into();
+        Ok(security)
+    }
+}
+
+impl TryFrom<&Security> for PublicKey {
+    type Error = Error;
+
+    fn try_from(value: &Security) -> Result<Self> {
+        let key: VerifyingKey = (&value.0.e_sender_key_bytes.0).try_into()?;
+        Ok(key.into())
+    }
+}
+
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SessionKey {
-    key: Vec<u8>,
+    key: ByteBuf,
     user: SessionKeyUser,
 }
 
+impl Debug for SessionKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionKey")
+            .field("user", &self.user)
+            .finish_non_exhaustive()
+    }
+}
+
 /// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionKeyUser {
     Reader,
     Device,
@@ -142,19 +166,22 @@ impl SessionKey {
     /// Return a new [`SessionKey`] derived using Diffie-Hellman and a Key Derivation Function (KDF),
     /// as specified by the standard.
     pub fn new(
-        privkey: &EphemeralSecret,
+        privkey: &SecretKey,
         pubkey: &PublicKey,
         session_transcript: &SessionTranscript,
         user: SessionKeyUser,
     ) -> Result<Self> {
-        let dh = privkey.diffie_hellman(pubkey);
+        let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
         let salt = sha256(&cbor_serialize(&TaggedBytes(session_transcript))?);
         let user_str = match user {
             SessionKeyUser::Reader => "SKReader",
             SessionKeyUser::Device => "SKDevice",
         };
         let key = hkdf(dh.raw_secret_bytes(), &salt, user_str, 32).map_err(|_| CryptoError::Hkdf)?;
-        let key = SessionKey { key, user };
+        let key = SessionKey {
+            key: ByteBuf::from(key),
+            user,
+        };
         Ok(key)
     }
 }
@@ -210,8 +237,8 @@ impl SessionData {
 
 #[cfg(test)]
 mod test {
-    use aes_gcm::aead::OsRng;
-    use p256::ecdh::EphemeralSecret;
+    use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
+
     use serde::{Deserialize, Serialize};
 
     use crate::{examples::Example, DeviceAuthenticationBytes, SessionData};
@@ -236,8 +263,8 @@ mod test {
     fn session_data_encryption() {
         let plaintext = ToyMessage::default();
 
-        let device_privkey = EphemeralSecret::random(&mut OsRng);
-        let reader_pubkey = EphemeralSecret::random(&mut OsRng).public_key();
+        let device_privkey = SecretKey::random(&mut OsRng);
+        let reader_pubkey = SecretKey::random(&mut OsRng).public_key();
 
         let key = SessionKey::new(
             &device_privkey,

@@ -7,8 +7,12 @@ pub mod holder;
 pub mod issuer;
 pub mod verifier;
 
-// Data types shared between agents
+// Issuer data types shared between agents
 pub mod issuer_shared;
+
+// Data types shared between servers
+pub mod server_keys;
+pub mod server_state;
 
 /// General code used throughout the crate.
 pub mod utils;

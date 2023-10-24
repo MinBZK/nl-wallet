@@ -10,8 +10,8 @@ use p256::{
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     holder::{Mdoc, TrustAnchor},
-    issuer::PrivateKey,
     mock as mdoc_mock,
+    server_keys::PrivateKey,
     utils::x509::OwnedTrustAnchor,
     IssuerSigned,
 };
