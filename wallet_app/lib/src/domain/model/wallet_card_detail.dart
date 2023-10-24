@@ -1,4 +1,4 @@
-import '../../feature/verification/model/organization.dart';
+import 'organization.dart';
 import 'timeline/interaction_timeline_attribute.dart';
 import 'timeline/operation_timeline_attribute.dart';
 import 'wallet_card.dart';

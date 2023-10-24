@@ -2,23 +2,19 @@ use std::time::Duration;
 
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use tracing::log::LevelFilter;
+use wallet_provider_database_settings::ConnectionString;
 
 use wallet_provider_domain::repository::PersistenceError;
 
-use crate::{postgres::connection_string, PersistenceConnection};
+use crate::PersistenceConnection;
 
 const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct Db(DatabaseConnection);
 
 impl Db {
-    pub async fn new(
-        host: &str,
-        db_name: &str,
-        username: Option<&str>,
-        password: Option<&str>,
-    ) -> Result<Db, PersistenceError> {
-        let mut connection_options = ConnectOptions::new(connection_string(host, db_name, username, password));
+    pub async fn new(connection_string: ConnectionString) -> Result<Db, PersistenceError> {
+        let mut connection_options = ConnectOptions::new(connection_string);
         connection_options
             .connect_timeout(DB_CONNECT_TIMEOUT)
             .sqlx_logging(true)

@@ -1,0 +1,20 @@
+[package]
+name = "wallet_provider_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sea-orm-migration = { workspace = true, features = [
+    "cli",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-uuid", ] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "parking_lot",
+    "macros",
+] }
+
+wallet_provider_database_settings = { path = "../database_settings" }

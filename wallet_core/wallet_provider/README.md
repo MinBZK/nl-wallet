@@ -16,7 +16,7 @@ create extension if not exists "uuid-ossp" with schema public;
 For running the database migrations:
 
 ```bash
-cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- fresh
+cargo run --bin wallet_provider_migrations -- fresh
 ```
 
 This command drops all tables and runs all migrations.

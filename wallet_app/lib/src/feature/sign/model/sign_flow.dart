@@ -4,9 +4,9 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/requested_attribute.dart';
 import '../../../domain/model/document.dart';
+import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/trust_provider.dart';
-import '../../verification/model/organization.dart';
 
 class SignFlow extends Equatable {
   final String id;

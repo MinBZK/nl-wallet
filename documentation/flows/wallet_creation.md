@@ -2,7 +2,7 @@
 
 The diagram below illustrates the Wallet creation process. Including certificate generation and registration with the `wallet_provider`.
 
-## 2.1 Create wallet (app)
+## Create wallet (app)
 
 ```mermaid
 sequenceDiagram
@@ -63,7 +63,7 @@ sequenceDiagram
     deactivate user
 ```
 
-## 2.2 Create wallet (server)
+## Create wallet (server)
 
 High level overview of what happens inside the `wallet_provider`.
 

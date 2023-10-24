@@ -45,15 +45,14 @@ class HistoryOverviewScreen extends StatelessWidget {
 
   Widget _buildTimeline(BuildContext context, HistoryOverviewLoadSuccess state) {
     final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
-
-    List<Widget> slivers = [
-      ...sections.map(
-        (section) => TimelineSectionSliver(
-          section: section,
-          onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
-        ),
-      ),
-    ];
+    final List<Widget> slivers = sections
+        .map(
+          (section) => TimelineSectionSliver(
+            section: section,
+            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
+          ),
+        )
+        .toList();
 
     return Column(
       children: [

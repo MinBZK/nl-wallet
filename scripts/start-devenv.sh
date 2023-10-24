@@ -234,7 +234,9 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
-        cargo run --bin wallet_provider_migrations --features wallet_provider_migrations -- fresh
+        pushd ${WALLET_CORE_DIR}
+        cargo run --bin wallet_provider_migrations -- fresh
+        popd
         echo -e "${INFO}Start wallet_provider${NC}"
         RUST_LOG=debug cargo run --bin wallet_provider > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 

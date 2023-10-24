@@ -10,28 +10,30 @@ software-keys = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
 integration-test = []
 
 [dependencies]
-aes-gcm = { workspace = true, optional = true, features = ["std"] }
-async-trait = { workspace = true }
-base64 = { workspace = true }
+async-trait.workspace = true
+base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-futures = { workspace = true }
-http = { workspace = true }
-jsonwebtoken = { workspace = true }
-once_cell = { workspace = true, optional = true }
+futures.workspace = true
+http.workspace = true
+jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
-rand = { workspace = true }
-rand_core = { workspace = true, optional = true }
-ring = { workspace = true }
+rand.workspace = true
+ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
-sha2 = { workspace = true }
-thiserror = { workspace = true }
+sha2.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt"] }
+
+aes-gcm = { workspace = true, optional = true, features = ["std"] }
+once_cell = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
 
 [dev-dependencies]
-wallet_common = { path = ".", features = ["software-keys", "integration-test"] }
-
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "macros",
     "parking_lot",
 ] }
+
+wallet_common = { path = ".", features = ["software-keys", "integration-test"] }

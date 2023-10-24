@@ -13,7 +13,6 @@ import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../../../domain/usecase/issuance/get_issuance_response_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../../../util/extension/set_extension.dart';
-import '../../verification/model/organization.dart';
 
 part 'issuance_event.dart';
 part 'issuance_state.dart';

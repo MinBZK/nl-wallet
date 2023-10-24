@@ -5,7 +5,7 @@ import '../widget/button/link_button.dart';
 import '../widget/button/text_icon_button.dart';
 import '../widget/status_icon.dart';
 
-/// Base widget for the terminal (ending) page of the issuance/verification flow.
+/// Base widget for the terminal (ending) page of the issuance/disclosure flow.
 class FlowTerminalPage extends StatelessWidget {
   final IconData icon;
   final Color? iconColor;

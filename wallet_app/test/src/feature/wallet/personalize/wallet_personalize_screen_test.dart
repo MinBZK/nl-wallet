@@ -50,7 +50,7 @@ void main() {
     ),
     DataAttribute(
       valueType: AttributeValueType.text,
-      label: 'Geboortenaam',
+      label: 'Naam bij geboorte',
       value: 'John',
       key: 'mock.birthName',
       sourceCardId: kPidId,

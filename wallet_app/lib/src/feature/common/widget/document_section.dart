@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/document.dart';
+import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../verification/model/organization.dart';
 import '../screen/placeholder_screen.dart';
 import 'button/link_button.dart';
 

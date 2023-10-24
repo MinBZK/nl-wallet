@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
 
-import '../../../feature/verification/model/organization.dart';
 import '../../../wallet_assets.dart';
 import '../organization_datasource.dart';
 

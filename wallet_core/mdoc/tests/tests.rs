@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
-    mock::{mdoc_from_example_device_response, IsoCertTimeGenerator},
+    mock::{self, IsoCertTimeGenerator},
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
@@ -31,7 +31,7 @@ use nl_wallet_mdoc::{
     Error,
 };
 use wallet_common::{
-    generator::Generator,
+    generator::TimeGenerator,
     keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, WithIdentifier},
     utils::random_string,
 };
@@ -158,7 +158,7 @@ async fn do_and_verify_iso_example_disclosure() {
 
     // Construct the mdoc from the example device response in the standard
     let trust_anchors = Examples::iaca_trust_anchors();
-    let mdoc = mdoc_from_example_device_response(trust_anchors);
+    let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
 
     // Do the disclosure and verify it
     let wallet = Wallet::new(DummyHttpClient);
@@ -204,7 +204,8 @@ async fn iso_examples_custom_disclosure() {
     println!("My Request: {:#?}", DebugCollapseBts(&request));
 
     let trust_anchors = Examples::iaca_trust_anchors();
-    let mdoc = mdoc_from_example_device_response(trust_anchors);
+    let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+
     let storage = MdocsMap::try_from([mdoc]).unwrap();
     let wallet = Wallet::new(DummyHttpClient);
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
@@ -274,8 +275,6 @@ fn iso_examples_consistency() {
     );
 }
 
-const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
-const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
 const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
@@ -346,11 +345,7 @@ impl KeyRing for MockIssuanceKeyring {
 }
 
 fn setup_issuance_test() -> (MockWallet, Arc<MockServer>, Certificate) {
-    // Issuer CA certificate and normal certificate
-    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN).unwrap();
-    let (issuer_cert, issuer_privkey) =
-        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateUsage::Mdl).unwrap();
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
+    let (issuance_key, ca) = mock::generate_issuance_key_and_ca().unwrap();
 
     // Setup issuer
     let issuance_server = Arc::new(MockServer::new(
@@ -457,13 +452,6 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
         attr.0,
         &Value::Text(attr.1.to_string()),
     );
-}
-
-struct TimeGenerator;
-impl Generator<DateTime<Utc>> for TimeGenerator {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc::now()
-    }
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,

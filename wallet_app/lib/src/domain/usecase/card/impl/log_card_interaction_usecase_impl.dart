@@ -1,5 +1,4 @@
 import '../../../../data/repository/card/timeline_attribute_repository.dart';
-import '../../../../feature/verification/model/organization.dart';
 import '../../../model/attribute/data_attribute.dart';
 import '../../../model/policy/policy.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';

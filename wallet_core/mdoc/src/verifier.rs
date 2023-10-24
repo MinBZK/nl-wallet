@@ -724,7 +724,7 @@ mod tests {
         utils::{
             crypto::{SessionKey, SessionKeyUser},
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateUsage},
+            x509::{Certificate, CertificateType},
         },
         verifier::{
             new_session, process_message, ValidityError,
@@ -796,8 +796,13 @@ mod tests {
         // Initialize server state
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
         let trust_anchors = &[(&ca).try_into().unwrap()];
-        let (rp_cert, rp_privkey) =
-            Certificate::new(&ca, &ca_privkey, RP_CERT_CN, CertificateUsage::ReaderAuth).unwrap();
+        let (rp_cert, rp_privkey) = Certificate::new(
+            &ca,
+            &ca_privkey,
+            RP_CERT_CN,
+            CertificateType::ReaderAuth(Default::default()),
+        )
+        .unwrap();
         let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
         let session_store = MemorySessionStore::new();
 

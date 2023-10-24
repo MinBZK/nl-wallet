@@ -4,8 +4,6 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 db_test = []
 live_test = []
@@ -13,8 +11,8 @@ live_test = []
 [dependencies]
 
 [dev-dependencies]
-assert_matches = { workspace = true }
-base64 = { workspace = true }
+assert_matches.workspace = true
+base64.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
@@ -23,11 +21,11 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
     "debug-print",
 ] }
-serial_test = { workspace = true }
+serial_test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-url = { workspace = true }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
 pid_issuer = { path = "../pid_issuer", features = ["mock"] }
@@ -38,5 +36,6 @@ wallet = { path = "../wallet", features = [
     "env_config",
 ] }
 wallet_common = { path = "../wallet_common", features = ["software-keys"] }
-wallet_provider = { path = "../wallet_provider" }
+wallet_provider.path = "../wallet_provider"
+wallet_provider_database_settings = { path = "../wallet_provider/database_settings" }
 wallet_provider_persistence = { path = "../wallet_provider/persistence" }

@@ -209,7 +209,7 @@ impl TryFrom<Integer> for GenderAttributeValue {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use std::{collections::HashMap, mem};
 
     use assert_matches::assert_matches;
@@ -220,7 +220,7 @@ mod tests {
     use super::{super::PID_DOCTYPE, *};
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
-    fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
+    pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: PID_DOCTYPE.to_string(),
             copy_count: 1,
@@ -255,7 +255,7 @@ mod tests {
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
-    fn create_full_unsigned_pid_mdoc() -> UnsignedMdoc {
+    pub fn create_full_unsigned_pid_mdoc() -> UnsignedMdoc {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![

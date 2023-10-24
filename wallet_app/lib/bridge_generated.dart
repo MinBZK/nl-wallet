@@ -488,7 +488,7 @@ class WalletCoreImpl implements WalletCore {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_cancel_pid_issuance(port_),
       parseSuccessData: _wire2api_unit,
-      parseErrorData: null,
+      parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kCancelPidIssuanceConstMeta,
       argValues: [],
       hint: hint,

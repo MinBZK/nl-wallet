@@ -9,9 +9,8 @@ mock = ["mockall"]
 db_test = []
 
 [dependencies]
-async-trait = { workspace = true }
+async-trait.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-mockall = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -21,14 +20,17 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 tokio = { workspace = true, features = ["parking_lot", "rt"] }
-tracing = { workspace = true }
-uuid = { workspace = true }
+tracing.workspace = true
+uuid.workspace = true
 
-wallet_provider_domain = { path = "../domain" }
-wallet_common = { path = "../../wallet_common" }
+mockall = { workspace = true, optional = true }
+
+wallet_provider_database_settings.path = "../database_settings"
+wallet_provider_domain.path = "../domain"
+wallet_common.path = "../../wallet_common"
 
 [dev-dependencies]
-ctor = { workspace = true }
+ctor.workspace = true
 sea-orm = { workspace = true, features = [
     "debug-print",
     "runtime-tokio-rustls",

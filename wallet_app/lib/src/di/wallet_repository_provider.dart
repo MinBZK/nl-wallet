@@ -11,25 +11,25 @@ import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/configuration/configuration_repository.dart';
 import '../data/repository/configuration/core/core_configuration_repository.dart';
 import '../data/repository/configuration/mock/mock_configuration_repository.dart';
-import '../data/repository/issuance/impl/issuance_response_repository_impl.dart';
+import '../data/repository/disclosure/core/core_disclosure_request_repository.dart';
+import '../data/repository/disclosure/disclosure_request_repository.dart';
+import '../data/repository/disclosure/mock/mock_disclosure_request_repository.dart';
+import '../data/repository/issuance/core/core_issuance_response_repository.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
 import '../data/repository/organization/impl/organization_repository_impl.dart';
 import '../data/repository/organization/organization_repository.dart';
-import '../data/repository/pid/impl/pid_repository_impl.dart';
+import '../data/repository/pid/core/core_pid_repository.dart';
 import '../data/repository/pid/mock/mock_pid_repository.dart';
 import '../data/repository/pid/pid_repository.dart';
-import '../data/repository/qr/impl/qr_repository_impl.dart';
+import '../data/repository/qr/core/core_qr_repository.dart';
 import '../data/repository/qr/mock/mock_qr_repository.dart';
 import '../data/repository/qr/qr_repository.dart';
-import '../data/repository/sign/impl/sign_request_repository_impl.dart';
+import '../data/repository/sign/core/core_sign_request_repository.dart';
 import '../data/repository/sign/mock/mock_sign_request_repository.dart';
 import '../data/repository/sign/sign_request_repository.dart';
-import '../data/repository/verification/impl/verification_request_repository_impl.dart';
-import '../data/repository/verification/mock/mock_verification_request_repository.dart';
-import '../data/repository/verification/verification_request_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
@@ -61,23 +61,23 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<TimelineAttributeRepository>(
           create: (context) => TimelineAttributeRepositoryImpl(context.read()),
         ),
-        RepositoryProvider<VerificationRequestRepository>(
+        RepositoryProvider<DisclosureRequestRepository>(
           create: (context) =>
-              provideMocks ? MockVerificationRequestRepository(context.read()) : VerificationRequestRepositoryImpl(),
+              provideMocks ? MockDisclosureRequestRepository(context.read()) : CoreDisclosureRequestRepository(),
         ),
         RepositoryProvider<ConfigurationRepository>(
           create: (context) =>
               provideMocks ? MockConfigurationRepository() : CoreConfigurationRepository(context.read()),
         ),
         RepositoryProvider<QrRepository>(
-          create: (context) => provideMocks ? MockQrRepository() : QrRepositoryImpl(),
+          create: (context) => provideMocks ? MockQrRepository() : CoreQrRepository(),
         ),
         RepositoryProvider<IssuanceResponseRepository>(
           create: (context) =>
-              provideMocks ? MockIssuanceResponseRepository(context.read()) : IssuanceResponseRepositoryImpl(),
+              provideMocks ? MockIssuanceResponseRepository(context.read()) : CoreIssuanceResponseRepository(),
         ),
         RepositoryProvider<SignRequestRepository>(
-          create: (context) => provideMocks ? MockSignRequestRepository(context.read()) : SignRequestRepositoryImpl(),
+          create: (context) => provideMocks ? MockSignRequestRepository(context.read()) : CoreSignRequestRepository(),
         ),
         RepositoryProvider<LanguageRepository>(
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
@@ -85,7 +85,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<PidRepository>(
           create: (context) => provideMocks
               ? MockPidRepository()
-              : PidRepositoryImpl(context.read(), context.read(), context.read(), context.read()),
+              : CorePidRepository(context.read(), context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

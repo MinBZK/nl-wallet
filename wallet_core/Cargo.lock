@@ -2146,6 +2146,7 @@ dependencies = [
  "rustls-webpki",
  "serde",
  "serde_bytes",
+ "serde_json",
  "serde_repr",
  "serde_with",
  "thiserror",
@@ -2691,6 +2692,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "r2d2"
+version = "0.8.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51de85fb3fb6524929c8a2eb85e6b6d363de4e8c48f9e2c2eac4944abc181c93"
+dependencies = [
+ "log",
+ "parking_lot",
+ "scheduled-thread-pool",
+]
+
+[[package]]
+name = "r2d2-cryptoki"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ba67a24e4a46d9eef8753b662d9b2da163c1a37f6edfd3f5239747569ab9240"
+dependencies = [
+ "cryptoki",
+ "r2d2",
+]
+
+[[package]]
 name = "rand"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3055,6 +3077,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "scheduled-thread-pool"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cbc66816425a074528352f5789333ecff06ca41b36b0b0efdfbb29edc391a19"
+dependencies = [
+ "parking_lot",
 ]
 
 [[package]]
@@ -3896,6 +3927,7 @@ dependencies = [
  "wallet",
  "wallet_common",
  "wallet_provider",
+ "wallet_provider_database_settings",
  "wallet_provider_persistence",
 ]
 
@@ -4498,6 +4530,7 @@ dependencies = [
  "futures",
  "http",
  "indexmap 2.0.2",
+ "jsonwebtoken",
  "libsqlite3-sys",
  "migration",
  "mime",
@@ -4557,13 +4590,10 @@ dependencies = [
  "base64 0.21.4",
  "chrono",
  "config",
- "cryptoki",
  "http",
  "mime",
  "once_cell",
  "p256",
- "sea-orm-migration",
- "sec1",
  "serde",
  "serde_json",
  "serde_with",
@@ -4573,10 +4603,18 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
- "wallet_provider_migration",
  "wallet_provider_persistence",
  "wallet_provider_service",
+]
+
+[[package]]
+name = "wallet_provider_database_settings"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "serde",
 ]
 
 [[package]]
@@ -4593,10 +4631,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "wallet_provider_migration"
+name = "wallet_provider_migrations"
 version = "0.1.0"
 dependencies = [
  "sea-orm-migration",
+ "tokio",
+ "wallet_provider_database_settings",
 ]
 
 [[package]]
@@ -4614,6 +4654,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
 
@@ -4624,12 +4665,16 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "chrono",
+ "cryptoki",
+ "dashmap",
  "der",
  "futures",
  "jsonwebtoken",
  "p256",
+ "r2d2-cryptoki",
  "rand 0.8.5",
  "rstest",
+ "sec1",
  "serde",
  "serde_json",
  "sha2",
@@ -4639,6 +4684,7 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "wallet_common",
+ "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",

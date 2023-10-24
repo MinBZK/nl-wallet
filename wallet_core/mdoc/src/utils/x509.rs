@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::{
@@ -15,12 +17,15 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
+    der_parser::Oid,
     nom::{self, AsBytes},
     pem,
-    prelude::{FromDer, PEMError, X509Certificate, X509Error},
+    prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
 use wallet_common::generator::Generator;
+
+use super::reader_auth::ReaderRegistration;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateError {
@@ -44,6 +49,12 @@ pub enum CertificateError {
     Pem(#[from] nom::Err<PEMError>),
     #[error("unexpected PEM header: found {found}, expected {expected}")]
     UnexpectedPemHeader { found: String, expected: String },
+    #[error("DER coding error: {0}")]
+    DerEncodingError(#[from] p256::pkcs8::der::Error),
+    #[error("JSON coding error: {0}")]
+    JsonEncodingError(#[from] serde_json::Error),
+    #[error("X509 coding error: {0}")]
+    X509Error(#[from] X509Error),
 }
 
 const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
@@ -198,12 +209,12 @@ impl Certificate {
         ca: &Certificate,
         ca_privkey: &SigningKey,
         common_name: &str,
-        usage: CertificateUsage,
+        certificate_type: CertificateType,
     ) -> Result<(Certificate, SigningKey), CertificateError> {
         let mut cert_params = CertificateParams::new(vec![]);
         cert_params.is_ca = IsCa::NoCa;
         cert_params.distinguished_name.push(DnType::CommonName, common_name);
-        cert_params.custom_extensions.push(usage.to_custom_ext());
+        cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
         let cert_unsigned = RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;
 
         let ca_keypair = rcgen::KeyPair::from_der(
@@ -245,16 +256,47 @@ impl Certificate {
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
 }
 
+/// OID 1.0.18013.5.1.2
+pub const EXTENDED_KEY_USAGE_MDL: &[u8] = &[40, 129, 140, 93, 5, 1, 2];
+/// OID 1.0.18013.5.1.6
+pub const EXTENDED_KEY_USAGE_READER_AUTH: &[u8] = &[40, 129, 140, 93, 5, 1, 6];
+
+pub const EKU_MDL_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_MDL);
+pub const EKU_READER_AUTH_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_READER_AUTH);
+
+const fn oid_from_bytes(bytes: &'static [u8]) -> Oid {
+    Oid::new(Cow::Borrowed(bytes))
+}
+
 impl CertificateUsage {
+    pub fn from_certificate(cert: &Certificate) -> Result<Option<Self>, CertificateError> {
+        let usage = cert
+            .to_x509()?
+            .extended_key_usage()?
+            .and_then(|eku| Self::from_key_usage(eku.value));
+        Ok(usage)
+    }
+
+    fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Option<Self> {
+        if ext_key_usage.other.contains(&EKU_MDL_OID) {
+            Some(Self::Mdl)
+        } else if ext_key_usage.other.contains(&EKU_READER_AUTH_OID) {
+            Some(Self::ReaderAuth)
+        } else {
+            None
+        }
+    }
+
     fn to_eku(&self) -> &'static [u8] {
         match self {
-            CertificateUsage::Mdl => &[40, 129, 140, 93, 5, 1, 2], // OID 1.0.18013.5.1.2
-            CertificateUsage::ReaderAuth => &[40, 129, 140, 93, 5, 1, 6], // OID 1.0.18013.5.1.6
+            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
+            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
         }
     }
 
@@ -271,13 +313,61 @@ impl CertificateUsage {
     }
 }
 
+/// Acts as configuration for the [Certificate::new] function.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CertificateType {
+    Mdl,
+    ReaderAuth(Box<ReaderRegistration>),
+}
+
+impl CertificateType {
+    pub fn from_certificate(cert: &Certificate) -> Result<Option<Self>, CertificateError> {
+        let usage = CertificateUsage::from_certificate(cert)?;
+        let result = match usage {
+            Some(CertificateUsage::Mdl) => Some(CertificateType::Mdl),
+            Some(CertificateUsage::ReaderAuth) => {
+                let registration: Option<ReaderRegistration> = ReaderRegistration::from_certificate(cert)?;
+                registration.map(|r| Self::ReaderAuth(Box::new(r)))
+            }
+            None => None,
+        };
+        Ok(result)
+    }
+
+    fn to_custom_exts(&self) -> Result<Vec<CustomExtension>, CertificateError> {
+        let usage: CertificateUsage = self.into();
+        let mut extensions = vec![usage.to_custom_ext()];
+
+        if let Self::ReaderAuth(auth) = self {
+            let registration: &ReaderRegistration = auth;
+            let ext_reader_auth = registration.to_custom_ext()?;
+            extensions.push(ext_reader_auth);
+        }
+
+        Ok(extensions)
+    }
+}
+
+impl From<&CertificateType> for CertificateUsage {
+    fn from(source: &CertificateType) -> Self {
+        use CertificateType::*;
+        match source {
+            Mdl => Self::Mdl,
+            ReaderAuth(_) => Self::ReaderAuth,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use chrono::{DateTime, Utc};
+    use chrono::Duration;
     use p256::pkcs8::ObjectIdentifier;
+    use url::Url;
     use webpki::TrustAnchor;
 
-    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
+
+    use crate::utils::{reader_auth::*, x509::CertificateType};
 
     use super::{Certificate, CertificateUsage};
 
@@ -287,22 +377,32 @@ mod test {
         CertificateUsage::ReaderAuth.to_eku();
     }
 
-    struct TimeGenerator;
-    impl Generator<DateTime<Utc>> for TimeGenerator {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc::now()
-        }
-    }
-
     #[test]
     fn generate_and_verify_cert() {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", CertificateUsage::Mdl).unwrap();
+        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", CertificateType::Mdl).unwrap();
 
         cert.verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
+    }
+
+    #[test]
+    fn generate_and_verify_cert_reader_auth() {
+        let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
+        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
+
+        let reader_auth = CertificateType::ReaderAuth(Box::new(get_my_reader_auth()));
+
+        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
+
+        cert.verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
+            .unwrap();
+
+        // Verify whether the parsed CertificateType equals the original ReaderAuth usage
+        let cert_usage = CertificateType::from_certificate(&cert).unwrap().unwrap();
+        assert_eq!(cert_usage, reader_auth);
     }
 
     #[test]
@@ -310,5 +410,35 @@ mod test {
         let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
         let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
         assert_eq!(mdl_kp, CertificateUsage::Mdl.to_eku());
+    }
+
+    // Test fixture
+    fn get_my_reader_auth() -> ReaderRegistration {
+        let my_organization = Organization {
+            display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
+            legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
+            description: vec![
+                ("nl", "Beschrijving van Mijn Organisatie"),
+                ("en", "Description of My Organization"),
+            ]
+            .into(),
+            city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+            country: Some("nl".to_owned()),
+            web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
+            privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
+            logo: None,
+        };
+        ReaderRegistration {
+            id: "some-service-id".to_owned(),
+            name: vec![("nl", "Naam van mijn dienst"), ("en", "My Service Name")].into(),
+            purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
+            retention_policy: RetentionPolicy {
+                intent_to_retain: true,
+                max_duration: Some(Duration::minutes(525600)),
+            },
+            sharing_policy: SharingPolicy { intent_to_share: true },
+            deletion_policy: DeletionPolicy { deleteable: true },
+            organization: my_organization,
+        }
     }
 }

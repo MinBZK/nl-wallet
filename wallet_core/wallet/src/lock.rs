@@ -45,10 +45,11 @@ impl WalletLock {
         self.call_update_callback();
     }
 
-    pub fn set_lock_callback<F>(&mut self, callback: F)
+    pub fn set_lock_callback<F>(&mut self, mut callback: F)
     where
         F: FnMut(bool) + Send + Sync + 'static,
     {
+        callback(self.is_locked);
         self.update_callback.replace(Box::new(callback));
     }
 
@@ -90,9 +91,12 @@ mod tests {
         let callback_is_locked_clone = Arc::clone(&callback_is_locked);
         lock.set_lock_callback(move |is_locked| *callback_is_locked_clone.lock().unwrap() = Some(is_locked));
 
+        assert!(lock.is_locked());
+        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+
         lock.lock();
         assert!(lock.is_locked());
-        assert!(callback_is_locked.lock().unwrap().as_ref().is_none());
+        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
 
         lock.unlock();
         assert!(!lock.is_locked());

@@ -133,8 +133,8 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  /// The close button stops/closes the verification flow.
-  /// It is only visible in the semantics tree when the verification flow is in progress.
+  /// The close button stops/closes the issuance flow.
+  /// It is only visible in the semantics tree when the issuance flow is in progress.
   Widget _buildCloseButton(BuildContext context) {
     final closeButton = CloseButton(onPressed: () => _stopIssuance(context));
     return BlocBuilder<IssuanceBloc, IssuanceState>(

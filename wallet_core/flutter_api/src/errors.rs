@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, WalletInitError,
-    WalletRegistrationError, WalletUnlockError,
+    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, UriIdentificationError,
+    WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -24,6 +24,7 @@ pub struct FlutterApiError {
 enum FlutterApiErrorType {
     Generic,
     Networking,
+    WalletState,
     RedirectUri,
 }
 
@@ -68,6 +69,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .map(Self::from)
             .or_else(|e| e.downcast::<WalletRegistrationError>().map(Self::from))
             .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
+            .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
     }
 }
@@ -94,6 +96,7 @@ impl FlutterApiErrorFields for WalletInitError {}
 impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
@@ -104,11 +107,13 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            WalletUnlockError::NotRegistered | WalletUnlockError::NotLocked => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
-            _ => FlutterApiErrorType::Generic,
         }
     }
 }
+
+impl FlutterApiErrorFields for UriIdentificationError {}
 
 impl FlutterApiErrorFields for PidIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
@@ -131,6 +136,9 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
 
         match self {
+            PidIssuanceError::Locked | PidIssuanceError::NotRegistered | PidIssuanceError::SessionState => {
+                FlutterApiErrorType::WalletState
+            }
             PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
                 error: _,
                 error_description: _,

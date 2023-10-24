@@ -33,6 +33,10 @@ import '../domain/usecase/deeplink/check_is_deepdive_uri_usecase.dart';
 import '../domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import '../domain/usecase/deeplink/impl/check_is_deepdive_uri_usecase_impl.dart';
 import '../domain/usecase/deeplink/impl/decode_deeplink_usecase_impl.dart';
+import '../domain/usecase/disclosure/get_disclosure_policy_usecase.dart';
+import '../domain/usecase/disclosure/get_disclosure_request_usecase.dart';
+import '../domain/usecase/disclosure/impl/get_disclosure_policy_usecase_impl.dart';
+import '../domain/usecase/disclosure/impl/get_disclosure_request_usecase_impl.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
@@ -74,10 +78,6 @@ import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/qr/impl/decode_qr_usecase_impl.dart';
 import '../domain/usecase/sign/get_sign_request_usecase.dart';
 import '../domain/usecase/sign/impl/get_sign_request_usecase_impl.dart';
-import '../domain/usecase/verification/get_verification_request_usecase.dart';
-import '../domain/usecase/verification/get_verifier_policy_usecase.dart';
-import '../domain/usecase/verification/impl/get_verification_request_usecase_impl.dart';
-import '../domain/usecase/verification/impl/get_verifier_policy_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
@@ -125,8 +125,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<ConfirmTransactionUseCase>(
           create: (context) => ConfirmTransactionUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetVerificationRequestUseCase>(
-          create: (context) => GetVerificationRequestUseCaseImpl(context.read()),
+        RepositoryProvider<GetDisclosureRequestUseCase>(
+          create: (context) => GetDisclosureRequestUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
           create: (context) => GetRequestedAttributesFromWalletUseCaseImpl(context.read()),
@@ -137,8 +137,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<LogCardSigningUseCase>(
           create: (context) => LogCardSigningUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetVerifierPolicyUseCase>(
-          create: (context) => GetVerifierPolicyUseCaseImpl(context.read()),
+        RepositoryProvider<GetDisclosurePolicyUseCase>(
+          create: (context) => GetDisclosurePolicyUseCaseImpl(context.read()),
         ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCaseImpl(context.read()),

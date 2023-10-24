@@ -1,10 +1,10 @@
 # App Startup
 
-When the app is (cold) started the `wallet_core` is notified and given a multiple bridges so that it can call into the native iOS & Android world on its own merit. This process is documented in [initialization](#11-initialization).
+When the app is (cold) started the `wallet_core` is notified and given a multiple bridges so that it can call into the native iOS & Android world on its own merit. This process is documented in [initialization](#initialization).
 
-Next to the main initialization of `wallet_core` we also setup two callbacks so that the `wallet_core` can notify the `wallet_app` of changes in its [configuration](#13-configuration) and [wallet lock](#14-wallet-lock) state.
+Next to the main initialization of `wallet_core` we also setup two callbacks so that the `wallet_core` can notify the `wallet_app` of changes in its [configuration](#configuration) and [wallet lock](#wallet-lock) state.
 
-## 1.1 Initialization
+## Initialization
 
 This diagram captures the communication between the different app layers which occurs when the app is started.
 
@@ -47,7 +47,7 @@ sequenceDiagram
 
 While the callback setup doesn't strictly (all) happen during the app startup (i.e. the streams are configured but the reference isn't passed on to `wallet_core` until the stream has an observer), it is relevant here because it is initiated at app startup and these callbacks have to be cleared when they become stale (i.e. `isInitialized()` returned `true` during the [initialization](#11-initialization)).
 
-### 1.3 Configuration
+### Configuration
 
 This stream provides app configuration data to the wallet_app (e.g. background lock timeout duration). And can be updated throughout the complete lifecycle of the app.
 
@@ -70,7 +70,7 @@ sequenceDiagram
     deactivate user
 ```
 
-### 1.4 Wallet lock
+### Wallet lock
 
 This stream provides information on the current wallet lock state (i.e. if the user is logged in and can view her attestations)
 

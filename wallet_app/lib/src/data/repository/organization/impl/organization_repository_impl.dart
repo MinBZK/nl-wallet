@@ -1,4 +1,3 @@
-import '../../../../feature/verification/model/organization.dart';
 import '../../../source/organization_datasource.dart';
 import '../organization_repository.dart';
 

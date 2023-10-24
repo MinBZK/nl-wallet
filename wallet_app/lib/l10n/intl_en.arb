@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-09-26T15:11:28+02:00",
+    "@@last_modified": "2023-10-23T09:19:02+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -126,6 +126,15 @@
     "cardHistoryTimelineSigningSuccess": "Signed",
     "cardOverviewScreenAddCardCta": "Add data",
     "cardOverviewScreenTitle": "My cards",
+    "cardTitleSemanticsLabel": "Card: {cardTitle}",
+    "@cardTitleSemanticsLabel": {
+        "placeholders": {
+            "cardTitle": {
+                "example": "Personal data",
+                "type": "String"
+            }
+        }
+    },
     "cardValueFalse": "False",
     "cardValueGenderFemale": "Female",
     "cardValueGenderMale": "Male",
@@ -193,6 +202,192 @@
     "digidHelpScreenNoDigidDescription": "Do you live in The Netherlands and do you have a dutch passport or identitycard? Then you can request DigiD.",
     "digidHelpScreenNoDigidTitle": "Don't have DigiD yet?",
     "digidHelpScreenTitle": "Need help with DigiD?",
+    "disclosureConfirmDataAttributesCheckAttributesCta": "View your data",
+    "disclosureConfirmDataAttributesCheckConditionsCta": "Read the conditions",
+    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
+    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
+    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible",
+    "disclosureConfirmDataAttributesPageAllTermsCta": "All terms",
+    "disclosureConfirmDataAttributesPageApproveCta": "Share",
+    "disclosureConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
+    "disclosureConfirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
+    "disclosureConfirmDataAttributesPageDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@disclosureConfirmDataAttributesPageDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageDataWillBeShared": "Information will be shared",
+    "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
+    "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
+    "disclosureConfirmDataAttributesPageIncorrectCta": "Is something not right?",
+    "disclosureConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Do you want to share this attribute?} other {Do you want to share these {count} attributes?}}",
+    "@disclosureConfirmDataAttributesPageShareDataTitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesShareWithTitle": "Share with {organization}",
+    "@disclosureConfirmDataAttributesShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureConfirmPinPageDescription": "By entering your pin you agree to share your information.",
+    "disclosureConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@disclosureConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmPinPageErrorTitle": "Invalid code",
+    "disclosureConfirmPinPageTitle": "Enter your pin",
+    "disclosureGenericErrorPageCloseCta": "Sluiten",
+    "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
+    "disclosureGenericErrorPageTitle": "Er ging iets mis",
+    "disclosureMissingAttributesPageCloseCta": "Close request",
+    "disclosureMissingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
+    "@disclosureMissingAttributesPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureMissingAttributesPageHowToProceedCta": "What can I do?",
+    "disclosureMissingAttributesPageTitle": "You're missing information",
+    "disclosureReportSubmittedPageCloseCta": "Close",
+    "disclosureReportSubmittedPageSubtitle": "Your report has been sent anonymously. The organization will be checked as soon as possible.\n\nNever share any data with organizations you do not trust.",
+    "disclosureReportSubmittedPageTitle": "Thanks for your feedback",
+    "disclosureScreenAboutHeader": "About {organization}",
+    "@disclosureScreenAboutHeader": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenAllTermsCta": "All terms",
+    "disclosureScreenApproveAttributesCta": "Yes, next",
+    "disclosureScreenApproveOrganizationCta": "Yes, next",
+    "disclosureScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
+    "@disclosureScreenCancelSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenCancelSheetNegativeCta": "No",
+    "disclosureScreenCancelSheetPositiveCta": "Yes, stop",
+    "disclosureScreenCancelSheetTitle": "Are you sure you want to stop sharing",
+    "disclosureScreenCloseCta": "Close",
+    "disclosureScreenDataCanBeDeleted": "You can request data deletion",
+    "disclosureScreenDataCanNotBeDeleted": "You can not request data deletion",
+    "disclosureScreenDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
+    "@disclosureScreenDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureScreenDataWillBeShared": "Information will be shared",
+    "disclosureScreenDataWillNotBeShared": "Information will not be shared",
+    "disclosureScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
+    "disclosureScreenDeclinedTitle": "Stopped sharing data",
+    "disclosureScreenDenyAttributesCta": "No, decline",
+    "disclosureScreenDenyOrganizationCta": "No, decline",
+    "disclosureScreenGenericError": "Verification failed",
+    "disclosureScreenGenericErrorCta": "Exit",
+    "disclosureScreenGiveFeedbackCta": "Give Feedback",
+    "disclosureScreenHistoryDescription": "You can find the details in your history",
+    "disclosureScreenIncorrectCta": "Is something not right?",
+    "disclosureScreenPurposeTitle": "Purpose",
+    "disclosureScreenShareDataTitle": "Do you want to share this information?",
+    "disclosureScreenShareWithTitle": "Share data with {organization}?",
+    "@disclosureScreenShareWithTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenShowHistoryCta": "History",
+    "disclosureScreenSuccessTitle": "Success! Your information is shared with {organization}",
+    "@disclosureScreenSuccessTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureScreenTitle": "Share data",
+    "disclosureScreenUsageTitle": "Usage",
+    "disclosureStopSheetDescription": "If you stop, no data will be shared with {organization}.",
+    "@disclosureStopSheetDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureStopSheetNegativeCta": "No",
+    "disclosureStopSheetPositiveCta": "Yes, stop",
+    "disclosureStopSheetReportIssueCta": "Report a problem",
+    "disclosureStopSheetTitle": "Are you sure you want to stop?",
+    "disclosureStoppedPageCloseCta": "Close",
+    "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared.",
+    "disclosureStoppedPageFeedbackCta": "Give Feedback",
+    "disclosureStoppedPageTitle": "Stopped",
+    "disclosureSuccessPageCloseCta": "Close",
+    "disclosureSuccessPageDescription": " Your information is shared with {organization}.",
+    "@disclosureSuccessPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureSuccessPageHistoryDescription": "You can find the details in your history",
+    "disclosureSuccessPageShowHistoryCta": "History",
+    "disclosureSuccessPageTitle": "Success!",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
     "errorScreenGenericDescription": "It didn't work. Would you like to try again?",
@@ -658,6 +853,19 @@
     "pinBlockedScreenHeadline": "Your app has been blocked",
     "pinBlockedScreenResetWalletCta": "Reset wallet",
     "pinBlockedScreenTitle": "App blocked",
+    "pinFieldSemanticsLabel": "Access code field, {enteredDigits} of {totalDigits} entered, secured text field.",
+    "@pinFieldSemanticsLabel": {
+        "placeholders": {
+            "enteredDigits": {
+                "example": "3",
+                "type": "int"
+            },
+            "totalDigits": {
+                "example": "6",
+                "type": "int"
+            }
+        }
+    },
     "pinKeyboardWCAGBackspaceLabel": "backspace",
     "pinKeyboardWCAGDigitKeyTapHint": "select",
     "pinScreenAboutAppTooltip": "About the app",
@@ -738,6 +946,7 @@
     "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",
     "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
+    "qrScanTabCameraScanningQrScanningAnnouncement": "Point your camera at a QR code",
     "qrScanTabContinueCta": "Scan another QR-code",
     "qrScanTabErrorRetryCta": "Retry",
     "qrScanTabFlashDisableCtaTooltip": "Turn flashlight off",
@@ -844,192 +1053,6 @@
     "signSuccessPageHistoryCta": "History",
     "signSuccessPageTitle": "Success!",
     "timelineScrollViewBackCta": "Back",
-    "verificationConfirmDataAttributesCheckAttributesCta": "View your data",
-    "verificationConfirmDataAttributesCheckConditionsCta": "Read the conditions",
-    "verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
-    "@verificationConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
-    "@verificationConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible",
-    "verificationConfirmDataAttributesPageAllTermsCta": "All terms",
-    "verificationConfirmDataAttributesPageApproveCta": "Share",
-    "verificationConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
-    "verificationConfirmDataAttributesPageDataCanNotBeDeleted": "You can not request data deletion",
-    "verificationConfirmDataAttributesPageDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
-    "@verificationConfirmDataAttributesPageDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesPageDataWillBeShared": "Information will be shared",
-    "verificationConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
-    "verificationConfirmDataAttributesPageDenyCta": "No, decline",
-    "verificationConfirmDataAttributesPageIncorrectCta": "Is something not right?",
-    "verificationConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Do you want to share this attribute?} other {Do you want to share these {count} attributes?}}",
-    "@verificationConfirmDataAttributesPageShareDataTitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmDataAttributesShareWithTitle": "Share with {organization}",
-    "@verificationConfirmDataAttributesShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationConfirmPinPageDescription": "By entering your pin you agree to share your information.",
-    "verificationConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
-    "@verificationConfirmPinPageErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "verificationConfirmPinPageErrorTitle": "Invalid code",
-    "verificationConfirmPinPageTitle": "Enter your pin",
-    "verificationGenericErrorPageCloseCta": "Sluiten",
-    "verificationGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
-    "verificationGenericErrorPageTitle": "Er ging iets mis",
-    "verificationMissingAttributesPageCloseCta": "Close request",
-    "verificationMissingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
-    "@verificationMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationMissingAttributesPageHowToProceedCta": "What can I do?",
-    "verificationMissingAttributesPageTitle": "You're missing information",
-    "verificationReportSubmittedPageCloseCta": "Close",
-    "verificationReportSubmittedPageSubtitle": "Your report has been sent anonymously. The organization will be checked as soon as possible.\n\nNever share any data with organizations you do not trust.",
-    "verificationReportSubmittedPageTitle": "Thanks for your feedback",
-    "verificationScreenAboutHeader": "About {organization}",
-    "@verificationScreenAboutHeader": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenAllTermsCta": "All terms",
-    "verificationScreenApproveAttributesCta": "Yes, next",
-    "verificationScreenApproveOrganizationCta": "Yes, next",
-    "verificationScreenCancelSheetDescription": "If you stop, you will not be sharing any data with {organization}.",
-    "@verificationScreenCancelSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenCancelSheetNegativeCta": "No",
-    "verificationScreenCancelSheetPositiveCta": "Yes, stop",
-    "verificationScreenCancelSheetTitle": "Are you sure you want to stop sharing",
-    "verificationScreenCloseCta": "Close",
-    "verificationScreenDataCanBeDeleted": "You can request data deletion",
-    "verificationScreenDataCanNotBeDeleted": "You can not request data deletion",
-    "verificationScreenDataRetentionDuration": "{days, plural, one {Data is stored for {days} day} other {Data is stored for {days} days}}",
-    "@verificationScreenDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "verificationScreenDataWillBeShared": "Information will be shared",
-    "verificationScreenDataWillNotBeShared": "Information will not be shared",
-    "verificationScreenDeclinedDescription": "Your data was not shared. You can always try and share your data later.",
-    "verificationScreenDeclinedTitle": "Stopped sharing data",
-    "verificationScreenDenyAttributesCta": "No, decline",
-    "verificationScreenDenyOrganizationCta": "No, decline",
-    "verificationScreenGenericError": "Verification failed",
-    "verificationScreenGenericErrorCta": "Exit",
-    "verificationScreenGiveFeedbackCta": "Give Feedback",
-    "verificationScreenHistoryDescription": "You can find the details in your history",
-    "verificationScreenIncorrectCta": "Is something not right?",
-    "verificationScreenPurposeTitle": "Purpose",
-    "verificationScreenShareDataTitle": "Do you want to share this information?",
-    "verificationScreenShareWithTitle": "Share data with {organization}?",
-    "@verificationScreenShareWithTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenShowHistoryCta": "History",
-    "verificationScreenSuccessTitle": "Success! Your information is shared with {organization}",
-    "@verificationScreenSuccessTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationScreenTitle": "Share data",
-    "verificationScreenUsageTitle": "Usage",
-    "verificationStopSheetDescription": "If you stop, no data will be shared with {organization}.",
-    "@verificationStopSheetDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationStopSheetNegativeCta": "No",
-    "verificationStopSheetPositiveCta": "Yes, stop",
-    "verificationStopSheetReportIssueCta": "Report a problem",
-    "verificationStopSheetTitle": "Are you sure you want to stop?",
-    "verificationStoppedPageCloseCta": "Close",
-    "verificationStoppedPageDescription": "Because you have stopped, no data has been shared.",
-    "verificationStoppedPageFeedbackCta": "Give Feedback",
-    "verificationStoppedPageTitle": "Stopped",
-    "verificationSuccessPageCloseCta": "Close",
-    "verificationSuccessPageDescription": " Your information is shared with {organization}.",
-    "@verificationSuccessPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "verificationSuccessPageHistoryDescription": "You can find the details in your history",
-    "verificationSuccessPageShowHistoryCta": "History",
-    "verificationSuccessPageTitle": "Success!",
     "verifierPolicyScreenBackCta": "Back",
     "verifierPolicyScreenDataCanBeDeleted": "You can request data deletion",
     "verifierPolicyScreenDataCanNotBeDeleted": "You can not request data deletion",
