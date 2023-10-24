@@ -16,11 +16,12 @@ use webpki::TrustAnchor;
 use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
+    server_keys::KeysError,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, CborError},
     },
-    Error, Result,
+    Result,
 };
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
@@ -152,6 +153,12 @@ impl<C, T> From<C> for MdocCose<C, T> {
 
 /// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
+
+pub fn new_certificate_header(cert: &Certificate) -> Header {
+    HeaderBuilder::new()
+        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_bytes().to_vec()))
+        .build()
+}
 
 impl<T> MdocCose<CoseSign1, T> {
     pub async fn sign(
@@ -286,7 +293,7 @@ pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
     let signatures = key_factory
         .sign_with_new_keys(sig_data, number_of_keys)
         .await
-        .map_err(|err| Error::KeyGeneration(Box::new(err)))?;
+        .map_err(|err| KeysError::KeyGeneration(Box::new(err)))?;
 
     let coses = signatures
         .into_iter()
@@ -385,7 +392,6 @@ impl coset::AsCborValue for CoseKey {
 
 #[cfg(test)]
 mod tests {
-    use ciborium::Value;
     use coset::{Header, HeaderBuilder, Label};
     use p256::ecdsa::{signature::rand_core::OsRng, SigningKey};
     use serde::{Deserialize, Serialize};
@@ -394,13 +400,13 @@ mod tests {
 
     use crate::{
         utils::{
-            cose::CoseError,
+            cose::{self, CoseError},
             x509::{Certificate, CertificateType, CertificateUsage},
         },
         Error,
     };
 
-    use super::{ClonePayload, MdocCose, COSE_X5CHAIN_HEADER_LABEL};
+    use super::{ClonePayload, MdocCose};
 
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     struct ToyMessage {
@@ -491,9 +497,7 @@ mod tests {
             Certificate::new(&ca, &ca_privkey, "cert.example.com", CertificateType::Mdl).unwrap();
 
         let payload = ToyMessage::default();
-        let header = HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_bytes().to_vec()))
-            .build();
+        let header = cose::new_certificate_header(&cert);
         let cose = MdocCose::sign(&payload, header, &cert_privkey, true).await.unwrap();
 
         // Certificate should be present in the unprotected headers

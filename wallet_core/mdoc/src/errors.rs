@@ -1,6 +1,7 @@
 use crate::{
     holder::HolderError,
     issuer_shared::IssuanceError,
+    server_keys::KeysError,
     utils::{cose::CoseError, crypto::CryptoError, serialization::CborError},
     verifier::VerificationError,
 };
@@ -21,6 +22,6 @@ pub enum Error {
     Issuance(#[from] IssuanceError),
     #[error("verification error: {0}")]
     Verification(#[from] VerificationError),
-    #[error("key generation error: {0}")]
-    KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("keys error: {0}")]
+    KeysError(#[from] KeysError),
 }

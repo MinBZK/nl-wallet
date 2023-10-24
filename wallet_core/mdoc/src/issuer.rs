@@ -2,28 +2,19 @@
 //! See [`Server::new_session()`], which takes the mdocs to be issued and returns a [`ServiceEngagement`] to present to
 //! the holder.
 
-use async_trait::async_trait;
 use core::panic;
 use std::{future::Future, sync::Arc, time::Duration};
 
-use chrono::{DateTime, Local, Utc};
+use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
-use dashmap::DashMap;
 use futures::future::try_join_all;
-use p256::{
-    ecdsa::{Signature, SigningKey},
-    pkcs8::DecodePrivateKey,
-};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use tokio::{task::JoinHandle, time};
+use tokio::task::JoinHandle;
 use url::Url;
 
-use wallet_common::{
-    keys::{EcdsaKey, SecureEcdsaKey},
-    utils::random_bytes,
-};
+use wallet_common::utils::random_bytes;
 
 use crate::{
     basic_sa_ext::{
@@ -32,66 +23,18 @@ use crate::{
         KEY_GEN_RESP_MSG_TYPE, START_ISSUING_MSG_TYPE,
     },
     iso::*,
-    issuer_shared::{IssuanceError, SessionToken},
+    issuer_shared::IssuanceError,
+    server_keys::{KeyRing, PrivateKey},
+    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{ClonePayload, CoseKey, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
         serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
-        x509::Certificate,
     },
     Error, Result,
 };
 
-pub struct PrivateKey {
-    private_key: SigningKey,
-    cert_bts: Certificate,
-}
-
-impl PrivateKey {
-    pub fn new(private_key: SigningKey, cert_bts: Certificate) -> PrivateKey {
-        PrivateKey { private_key, cert_bts }
-    }
-
-    pub fn from_der(private_key: &[u8], cert: &[u8]) -> Result<PrivateKey> {
-        let key = Self::new(
-            SigningKey::from_pkcs8_der(private_key).map_err(IssuanceError::DerPrivateKey)?,
-            Certificate::from(cert),
-        );
-        Ok(key)
-    }
-}
-
-#[async_trait]
-impl EcdsaKey for PrivateKey {
-    type Error = p256::ecdsa::Error;
-
-    async fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
-        Ok(*self.private_key.verifying_key())
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
-        p256::ecdsa::signature::Signer::try_sign(&self.private_key, msg)
-    }
-}
-impl SecureEcdsaKey for PrivateKey {}
-
-pub trait KeyRing {
-    fn private_key(&self, doctype: &DocType) -> Option<&PrivateKey>;
-    fn contains_key(&self, doctype: &DocType) -> bool {
-        self.private_key(doctype).is_some()
-    }
-}
-
-/// An implementation of [`KeyRing`] containing a single key.
-pub struct SingleKeyRing(pub PrivateKey);
-
-impl KeyRing for SingleKeyRing {
-    fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
-        Some(&self.0)
-    }
-}
-
 #[derive(Debug, Clone)]
-enum SessionState {
+enum IssuanceStatus {
     Created,
     Started,
     WaitingForResponse,
@@ -100,10 +43,10 @@ enum SessionState {
     Cancelled,
 }
 
-use SessionState::*;
+use IssuanceStatus::*;
 
-impl SessionState {
-    fn update(&mut self, new_state: SessionState) {
+impl IssuanceStatus {
+    fn update(&mut self, new_state: IssuanceStatus) {
         match self {
             Created => assert!(matches!(new_state, Started | Failed | Cancelled)),
             Started => assert!(matches!(new_state, WaitingForResponse | Failed | Cancelled)),
@@ -113,52 +56,6 @@ impl SessionState {
             Cancelled => panic!("can't update final state"),
         }
         *self = new_state;
-    }
-}
-
-pub trait SessionStore {
-    fn get(&self, id: &SessionToken) -> Result<SessionData>;
-    fn write(&self, session: &SessionData);
-    fn cleanup(&self);
-}
-
-#[derive(Debug, Default)]
-pub struct MemorySessionStore {
-    sessions: DashMap<SessionToken, SessionData>,
-}
-
-impl MemorySessionStore {
-    pub fn new() -> Self {
-        Self {
-            sessions: DashMap::new(),
-        }
-    }
-}
-
-/// After this amount of inactivity, a session should be cleaned up.
-const SESSION_EXPIRY_MINUTES: u64 = 5;
-
-/// The cleanup task that removes stale sessions runs every so often.
-const CLEANUP_INTERVAL_SECONDS: u64 = 10;
-
-impl SessionStore for MemorySessionStore {
-    fn get(&self, token: &SessionToken) -> Result<SessionData> {
-        let data = self
-            .sessions
-            .get(token)
-            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?
-            .clone();
-        Ok(data)
-    }
-
-    fn write(&self, session: &SessionData) {
-        self.sessions.insert(session.token.clone(), session.clone());
-    }
-
-    fn cleanup(&self) {
-        let now = Local::now();
-        let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
-        self.sessions.retain(|_, session| now - session.last_active < cutoff);
     }
 }
 
@@ -176,30 +73,21 @@ impl<K, S> Drop for Server<K, S> {
     }
 }
 
-impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
+impl<K, S> Server<K, S>
+where
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
     /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
         let sessions = Arc::new(session_store);
         Server {
-            cleanup_task: Self::start_cleanup_task(
-                Arc::clone(&sessions),
-                Duration::from_secs(CLEANUP_INTERVAL_SECONDS),
-            ),
+            cleanup_task: S::start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
             url,
             keys,
             sessions,
         }
-    }
-
-    fn start_cleanup_task(sessions: Arc<S>, interval: Duration) -> JoinHandle<()> {
-        let mut interval = time::interval(interval);
-        tokio::spawn(async move {
-            loop {
-                interval.tick().await;
-                sessions.cleanup();
-            }
-        })
     }
 
     /// Start a new issuance session for the specified (unsigned) mdocs. Returns the [`ServiceEngagement`] to be
@@ -216,8 +104,10 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
             unsigned_mdocs: docs,
         };
 
-        self.sessions
-            .write(&SessionData::new(token.clone(), session_id, request));
+        self.sessions.write(&SessionState::new(
+            token.clone(),
+            IssuanceData::new(request, session_id),
+        ));
 
         let url = self.url.join(&token.0).unwrap(); // token is alphanumeric so this will always succeed
         Ok(ServiceEngagement {
@@ -239,7 +129,10 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
     pub async fn process_message(&self, token: SessionToken, msg: &[u8]) -> Result<Vec<u8>> {
         let (msg_type, session_id) = Self::inspect_message(msg)?;
 
-        let mut session_data = self.sessions.get(&token)?;
+        let mut session_data = self
+            .sessions
+            .get(&token)
+            .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?;
         let session = Session {
             sessions: self.sessions.as_ref(),
             session_data: &mut session_data,
@@ -251,7 +144,7 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
         if msg_type != START_PROVISIONING_MSG_TYPE {
             Self::expect_session_id(
                 &session_id.ok_or(Error::from(IssuanceError::MissingSessionId))?,
-                &session.session_data.id,
+                &session.session_data.session_data.id,
             )?;
         }
 
@@ -261,7 +154,7 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
         }
 
         // Process the holder's message according to the current session state.
-        match session.session_data.state {
+        match session.session_data.session_data.state {
             Created => {
                 Self::expect_message_type(&msg_type, START_PROVISIONING_MSG_TYPE)?;
                 Self::handle_cbor(Session::process_start, session, msg).await
@@ -332,14 +225,20 @@ impl<K: KeyRing, S: SessionStore + Send + Sync + 'static> Server<K, S> {
 }
 
 #[derive(Debug)]
-struct Session<'a, K, S: SessionStore> {
+struct Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
     sessions: &'a S,
-    session_data: &'a mut SessionData,
+    session_data: &'a mut SessionState<IssuanceData>,
     keys: &'a K,
     updated: bool,
 }
 
-impl<'a, K, S: SessionStore> Drop for Session<'a, K, S> {
+impl<'a, K, S> Drop for Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
     fn drop(&mut self) {
         if self.updated {
             self.sessions.write(self.session_data);
@@ -348,45 +247,44 @@ impl<'a, K, S: SessionStore> Drop for Session<'a, K, S> {
 }
 
 #[derive(Debug, Clone)]
-pub struct SessionData {
+pub struct IssuanceData {
     request: RequestKeyGenerationMessage,
-    state: SessionState,
     id: SessionId,
-    token: SessionToken,
-    last_active: DateTime<Local>,
+    state: IssuanceStatus,
 }
 
-impl SessionData {
-    fn new(token: SessionToken, id: SessionId, request: RequestKeyGenerationMessage) -> SessionData {
-        SessionData {
-            token,
+impl IssuanceData {
+    fn new(request: RequestKeyGenerationMessage, id: SessionId) -> Self {
+        Self {
             request,
             id,
             state: Created,
-            last_active: Local::now(),
         }
     }
 }
 
 // The `process_` methods process specific issuance protocol messages from the holder.
-impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
-    fn update_state(&mut self, new_state: SessionState) {
-        self.session_data.state.update(new_state);
-        self.session_data.last_active = Local::now();
+impl<'a, K: KeyRing, S> Session<'a, K, S>
+where
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
+    fn update_state(&mut self, new_state: IssuanceStatus) {
+        self.session_data.session_data.state.update(new_state);
+        self.session_data.last_active = Utc::now();
         self.updated = true;
     }
 
     async fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
         self.update_state(Started);
         let response = ReadyToProvisionMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
         };
         Ok(response)
     }
 
     async fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
         self.update_state(WaitingForResponse);
-        Ok(self.session_data.request.clone())
+        Ok(self.session_data.session_data.request.clone())
     }
 
     async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
@@ -401,7 +299,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     async fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
         self.update_state(Cancelled);
         let response = EndSessionMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
             reason: "success".to_string(),
             delay: None,
             sed: None,
@@ -454,13 +352,13 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
     }
 
     pub async fn issue(&self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
-        device_response.verify(&self.session_data.request)?;
+        device_response.verify(&self.session_data.session_data.request)?;
 
         let mut docs = vec![];
         for (responses, unsigned) in device_response
             .mdoc_responses
             .into_iter()
-            .zip(&self.session_data.request.unsigned_mdocs)
+            .zip(&self.session_data.session_data.request.unsigned_mdocs)
         {
             docs.push(MobileeIDDocuments {
                 doc_type: unsigned.doc_type.clone(),
@@ -469,7 +367,7 @@ impl<'a, K: KeyRing, S: SessionStore> Session<'a, K, S> {
         }
 
         let response = DataToIssueMessage {
-            e_session_id: self.session_data.request.e_session_id.clone(),
+            e_session_id: self.session_data.session_data.request.e_session_id.clone(),
             mobile_eid_documents: docs,
         };
         Ok(response)
@@ -532,18 +430,22 @@ mod tests {
     use serde_bytes::ByteBuf;
     use wallet_common::utils::random_string;
 
-    use crate::{basic_sa_ext::RequestKeyGenerationMessage, DocType};
+    use crate::{
+        basic_sa_ext::RequestKeyGenerationMessage,
+        server_keys::PrivateKey,
+        server_state::{MemorySessionStore, SessionStore},
+    };
 
-    use super::{KeyRing, MemorySessionStore, PrivateKey, SessionData, SessionStore};
+    use super::{IssuanceData, KeyRing, SessionState};
 
     struct EmptyKeyRing;
     impl KeyRing for EmptyKeyRing {
-        fn private_key(&self, _: &DocType) -> Option<&PrivateKey> {
+        fn private_key(&self, _: &str) -> Option<&PrivateKey> {
             None
         }
     }
 
-    type Server = super::Server<EmptyKeyRing, MemorySessionStore>;
+    type Server = super::Server<EmptyKeyRing, MemorySessionStore<IssuanceData>>;
 
     const CLEANUP_INTERVAL: Duration = Duration::from_millis(50);
 
@@ -552,7 +454,10 @@ mod tests {
         // Construct a `Server`, but not using Server::new() so we can control our own cleanup task
         let sessions = Arc::new(MemorySessionStore::new());
         let server = Server {
-            cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+            cleanup_task: MemorySessionStore::<IssuanceData>::start_cleanup_task(
+                Arc::clone(&sessions),
+                CLEANUP_INTERVAL,
+            ),
             url: "https://example.com".parse().unwrap(),
             keys: EmptyKeyRing,
             sessions,
@@ -569,7 +474,7 @@ mod tests {
 
         // insert a stale session
         let mut session_data = dummy_session_data();
-        session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+        session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
         server.sessions.write(&session_data);
         assert_eq!(server.sessions.sessions.len(), 2);
 
@@ -586,7 +491,10 @@ mod tests {
             // Construct a `Server`, but not using Server::new() so we can keep our sessions reference
             // and control our own cleanup task.
             let server = Server {
-                cleanup_task: Server::start_cleanup_task(Arc::clone(&sessions), CLEANUP_INTERVAL),
+                cleanup_task: MemorySessionStore::<IssuanceData>::start_cleanup_task(
+                    Arc::clone(&sessions),
+                    CLEANUP_INTERVAL,
+                ),
                 url: "https://example.com".parse().unwrap(),
                 keys: EmptyKeyRing,
                 sessions: Arc::clone(&sessions),
@@ -594,7 +502,7 @@ mod tests {
 
             // insert a stale session
             let mut session_data = dummy_session_data();
-            session_data.last_active = chrono::Local::now() - chrono::Duration::hours(1);
+            session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
             server.sessions.write(&session_data);
             assert_eq!(server.sessions.sessions.len(), 1);
 
@@ -606,15 +514,17 @@ mod tests {
         assert_eq!(sessions.sessions.len(), 1)
     }
 
-    fn dummy_session_data() -> SessionData {
-        SessionData::new(
+    fn dummy_session_data() -> SessionState<IssuanceData> {
+        SessionState::new(
             random_string(32).into(),
-            "123".to_string().as_bytes().to_vec().into(),
-            RequestKeyGenerationMessage {
-                e_session_id: "123".to_string().as_bytes().to_vec().into(),
-                challenge: ByteBuf::from(vec![]),
-                unsigned_mdocs: vec![],
-            },
+            IssuanceData::new(
+                RequestKeyGenerationMessage {
+                    e_session_id: "123".to_string().as_bytes().to_vec().into(),
+                    challenge: ByteBuf::from(vec![]),
+                    unsigned_mdocs: vec![],
+                },
+                "123".to_string().as_bytes().to_vec().into(),
+            ),
         )
     }
 }

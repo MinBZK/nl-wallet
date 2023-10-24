@@ -111,10 +111,26 @@ pub struct SessionData {
 }
 
 /// Status codes sent along with encrypted mdoc disclosure protocol messages in [`StatusCode`].
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SessionStatus {
     EncryptionError = 10,
     DecodingError = 11,
     Termination = 20,
+}
+
+impl SessionData {
+    pub fn new_decoding_error() -> Self {
+        SessionData {
+            data: None,
+            status: Some(SessionStatus::DecodingError),
+        }
+    }
+
+    pub fn new_termination() -> Self {
+        SessionData {
+            data: None,
+            status: Some(SessionStatus::Termination),
+        }
+    }
 }

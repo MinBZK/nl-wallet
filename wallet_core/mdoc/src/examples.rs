@@ -5,7 +5,7 @@ use anyhow::{bail, Context, Result};
 use hex_literal::hex;
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint,
+    EncodedPoint, SecretKey,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
@@ -82,13 +82,14 @@ impl Examples {
     }
 
     /// Reader ephemeral private key, for deriving MAC key
-    pub fn ephemeral_reader_key() -> SigningKey {
+    pub fn ephemeral_reader_key() -> SecretKey {
         ecdsa_keypair(
             "60e3392385041f51403051f2415531cb56dd3f999c71687013aac6768bc8187e",
             "e58deb8fdbe907f7dd5368245551a34796f7d2215c440c339bb0f7b67beccdfa",
             "de3b4b9e5f72dd9b58406ae3091434da48a6f9fd010d88fcb0958e2cebec947c",
         )
         .expect("ECDSA key parsing failed")
+        .into()
     }
 
     /// Device private key corresponding to the public key in the MSO

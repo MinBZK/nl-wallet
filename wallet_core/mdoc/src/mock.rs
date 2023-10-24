@@ -6,7 +6,7 @@ use wallet_common::{generator::Generator, keys::software::SoftwareEcdsaKey};
 use crate::{
     examples::{Example, Examples},
     holder::Mdoc,
-    issuer::PrivateKey,
+    server_keys::PrivateKey,
     utils::x509::{Certificate, CertificateError, CertificateType},
     DeviceResponse,
 };

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-10-19T09:09:41+02:00",
+    "@@last_modified": "2023-10-23T09:19:02+02:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -853,6 +853,19 @@
     "pinBlockedScreenHeadline": "Your app has been blocked",
     "pinBlockedScreenResetWalletCta": "Reset wallet",
     "pinBlockedScreenTitle": "App blocked",
+    "pinFieldSemanticsLabel": "Access code field, {enteredDigits} of {totalDigits} entered, secured text field.",
+    "@pinFieldSemanticsLabel": {
+        "placeholders": {
+            "enteredDigits": {
+                "example": "3",
+                "type": "int"
+            },
+            "totalDigits": {
+                "example": "6",
+                "type": "int"
+            }
+        }
+    },
     "pinKeyboardWCAGBackspaceLabel": "backspace",
     "pinKeyboardWCAGDigitKeyTapHint": "select",
     "pinScreenAboutAppTooltip": "About the app",
@@ -933,6 +946,7 @@
     "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",
     "qrMyCodeTabHowToSheetTitle": "How does my QR-code work?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR code scanned",
+    "qrScanTabCameraScanningQrScanningAnnouncement": "Point your camera at a QR code",
     "qrScanTabContinueCta": "Scan another QR-code",
     "qrScanTabErrorRetryCta": "Retry",
     "qrScanTabFlashDisableCtaTooltip": "Turn flashlight off",

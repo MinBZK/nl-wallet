@@ -45,9 +45,7 @@ pub struct DeviceAuthenticationKeyed {
     pub device_name_spaces_bytes: DeviceNameSpacesBytes,
 }
 
-// In production code, this struct is never deserialized.
-#[cfg_attr(feature = "examples", derive(Deserialize))]
-#[derive(Serialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: DeviceEngagementBytes,
     pub ereader_key_bytes: ESenderKeyBytes,
@@ -56,6 +54,24 @@ pub struct SessionTranscriptKeyed {
 
 /// Transcript of the session so far. Used in [`DeviceAuthentication`].
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
+
+impl SessionTranscript {
+    pub fn new(reader_engagement: &ReaderEngagement, device_engagement: &DeviceEngagement) -> Self {
+        SessionTranscriptKeyed {
+            device_engagement_bytes: device_engagement.clone().into(),
+            handover: Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+            ereader_key_bytes: reader_engagement
+                .0
+                .security
+                .as_ref()
+                .unwrap()
+                .0
+                .e_sender_key_bytes
+                .clone(),
+        }
+        .into()
+    }
+}
 
 pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 
@@ -96,21 +112,21 @@ pub enum EngagementVersion {
 
 /// Describes the kind and direction of the previously received protocol message.
 /// Part of the [`DeviceAuthenticationBytes`] which are signed with the mdoc private key during disclosure.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct OriginInfo {
     pub cat: OriginInfoDirection,
     #[serde(flatten)]
     pub typ: OriginInfoType,
 }
 
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OriginInfoDirection {
     Delivered = 0,
     Received = 1,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OriginInfoType {
     Website(Url),
     OnDeviceQRCode,
@@ -141,7 +157,6 @@ pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 /// Describes an available connection method.
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
-    #[serde(rename = "type")]
     pub typ: ConnectionMethodType,
     pub version: ConnectionMethodVersion,
     pub connection_options: CborSeq<RestApiOptionsKeyed>,
@@ -161,7 +176,7 @@ pub enum ConnectionMethodVersion {
 
 #[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
 pub struct RestApiOptionsKeyed {
-    uri: Url,
+    pub uri: Url,
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;

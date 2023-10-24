@@ -5,7 +5,8 @@ use base64::{
 };
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
-    pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePublicKey},
+    pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey},
+    SecretKey,
 };
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
@@ -32,6 +33,14 @@ impl TryFrom<Base64Bytes> for SigningKey {
 
     fn try_from(value: Base64Bytes) -> Result<Self, Self::Error> {
         Ok(SigningKey::from_pkcs8_der(&value.0)?)
+    }
+}
+
+impl TryFrom<&SigningKey> for Base64Bytes {
+    type Error = Error;
+
+    fn try_from(value: &SigningKey) -> Result<Self, Self::Error> {
+        Ok(value.to_pkcs8_der()?.as_bytes().to_vec().into())
     }
 }
 
@@ -70,7 +79,35 @@ impl<'de> Deserialize<'de> for DerSignature {
     }
 }
 
-/// ECDSA private key that deserializes from base64-encoded DER.
+/// ECDSA secret key that deserializes from base64-encoded DER.
+#[derive(Debug, Clone)]
+pub struct DerSecretKey(pub SecretKey);
+
+impl From<SecretKey> for DerSecretKey {
+    fn from(value: SecretKey) -> Self {
+        DerSecretKey(value)
+    }
+}
+
+// Reuse (de)serializer from DerSigningKey
+impl<'de> Deserialize<'de> for DerSecretKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        DerSigningKey::deserialize(deserializer).map(|x| DerSecretKey(x.0.into()))
+    }
+}
+impl Serialize for DerSecretKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        DerSigningKey(self.0.clone().into()).serialize(serializer)
+    }
+}
+
+/// ECDSA signing key that deserializes from base64-encoded DER.
 #[derive(Debug, Clone)]
 pub struct DerSigningKey(pub SigningKey);
 
@@ -99,6 +136,17 @@ impl<'de> Deserialize<'de> for DerSigningKey {
             .try_into()
             .map_err(de::Error::custom)?;
         Ok(key.into())
+    }
+}
+
+impl Serialize for DerSigningKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Base64Bytes::try_from(&self.0)
+            .map_err(ser::Error::custom)?
+            .serialize(serializer)
     }
 }
 

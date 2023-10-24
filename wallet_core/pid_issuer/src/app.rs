@@ -17,7 +17,9 @@ use tracing::{debug, error, warn};
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    issuer::{self, MemorySessionStore, PrivateKey, SingleKeyRing},
+    issuer::{self, IssuanceData},
+    server_keys::{PrivateKey, SingleKeyRing},
+    server_state::MemorySessionStore,
     ServiceEngagement,
 };
 
@@ -56,7 +58,7 @@ pub trait BsnLookup {
 struct ApplicationState<A, B> {
     attributes_lookup: A,
     openid_client: B,
-    issuer: issuer::Server<SingleKeyRing, MemorySessionStore>,
+    issuer: issuer::Server<SingleKeyRing, MemorySessionStore<IssuanceData>>,
 }
 
 pub async fn create_router<A, B>(settings: Settings, attributes_lookup: A, openid_client: B) -> anyhow::Result<Router>

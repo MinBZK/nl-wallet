@@ -39,8 +39,13 @@ class QrScanTab extends StatelessWidget {
         children: [
           BlocListener<QrScanBloc, QrScanState>(
             listener: (context, state) {
-              if (state is QrScanSuccess) {
-                SemanticsService.announce(context.l10n.qrScanTabCameraScanningQrScannedAnnouncement, TextDirection.ltr);
+              final String? announcement = switch (state) {
+                QrScanScanning() => context.l10n.qrScanTabCameraScanningQrScanningAnnouncement,
+                QrScanSuccess() => context.l10n.qrScanTabCameraScanningQrScanningAnnouncement,
+                _ => null,
+              };
+              if (announcement != null) {
+                SemanticsService.announce(announcement, TextDirection.ltr);
               }
             },
             child: BlocBuilder<QrScanBloc, QrScanState>(

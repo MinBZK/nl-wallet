@@ -139,7 +139,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 5ef33d0d295a89d9d16bb81b0e3b0d5f70d6c875
-  connectivity_plus: 07c49e96d7fc92bc9920617b83238c4d178b446a
+  connectivity_plus: bf0076dd84a130856aa636df1c71ccaff908fa1d
   device_info_plus: 7545d84d8d1b896cb16a4ff98c19f07ec4b298ea
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   GoogleDataTransport: f0308f5905a745f94fb91fea9c6cbaf3831cb1bd

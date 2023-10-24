@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-10-19T09:09:41+02:00",
+    "@@last_modified": "2023-10-23T09:19:02+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -853,6 +853,19 @@
     "pinBlockedScreenHeadline": "Je app is geblokkeerd",
     "pinBlockedScreenResetWalletCta": "Wallet wissen",
     "pinBlockedScreenTitle": "Geblokkeerd",
+    "pinFieldSemanticsLabel": "Toegangscode veld, {enteredDigits} van {totalDigits} ingevoerd, beveiligd tekstveld",
+    "@pinFieldSemanticsLabel": {
+        "placeholders": {
+            "enteredDigits": {
+                "example": "3",
+                "type": "int"
+            },
+            "totalDigits": {
+                "example": "6",
+                "type": "int"
+            }
+        }
+    },
     "pinKeyboardWCAGBackspaceLabel": "backspace",
     "pinKeyboardWCAGDigitKeyTapHint": "invoer",
     "pinScreenAboutAppTooltip": "Over de app",
@@ -933,6 +946,7 @@
     "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrMyCodeTabHowToSheetTitle": "Hoe werkt mijn QR-code?",
     "qrScanTabCameraScanningQrScannedAnnouncement": "QR-code gescand",
+    "qrScanTabCameraScanningQrScanningAnnouncement": "Richt je camera op een QR-code",
     "qrScanTabContinueCta": "Nog een QR scannen",
     "qrScanTabErrorRetryCta": "Probeer opnieuw",
     "qrScanTabFlashDisableCtaTooltip": "Zet zaklamp uit",
