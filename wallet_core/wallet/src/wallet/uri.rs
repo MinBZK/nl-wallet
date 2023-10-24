@@ -19,13 +19,13 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     C: ConfigurationRepository,
     D: DigidSession,
 {
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
-        info!("Idetifying type of URI: {}", uri_str);
+        info!("Identifying type of URI: {}", uri_str);
 
         let uri = Url::parse(uri_str)?;
 
@@ -39,9 +39,9 @@ where
         }
 
         // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let disclosure_redirect_uri = self.config_repository.config().disclosure.redirect_uri().unwrap();
+        let disclosure_redirect_uri_base = self.config_repository.config().disclosure.uri_base().unwrap();
 
-        if uri.as_str().starts_with(disclosure_redirect_uri.as_str()) {
+        if uri.as_str().starts_with(disclosure_redirect_uri_base.as_str()) {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -65,14 +65,15 @@ mod tests {
         // Set up some URLs to work with.
         let example_uri = "https://example.com";
         let digid_uri = "redirect://here";
-        let disclosure_uri = wallet
-            .config_repository
-            .config()
-            .disclosure
-            .redirect_uri()
-            .unwrap()
-            .join("abcd")
-            .unwrap();
+
+        let mut disclosure_uri_base = wallet.config_repository.config().disclosure.uri_base().unwrap();
+
+        // Add a trailing slash to the base path, if needed.
+        if !disclosure_uri_base.path().ends_with('/') {
+            disclosure_uri_base.path_segments_mut().unwrap().push("/");
+        }
+
+        let disclosure_uri = disclosure_uri_base.join("abcd").unwrap();
 
         // The example URI should not be recognised.
         assert_matches!(

@@ -40,7 +40,7 @@ impl Wallet {
     }
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     S: Storage,
     K: PlatformEcdsaKey,
@@ -59,6 +59,7 @@ where
             account_provider_client,
             digid_session: None,
             pid_issuer,
+            disclosure_session: None,
             lock: WalletLock::new(true),
             registration,
             config_callback: None,

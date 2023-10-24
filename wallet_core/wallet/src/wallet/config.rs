@@ -4,7 +4,7 @@ use super::Wallet;
 
 pub type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     C: ConfigurationRepository,
 {

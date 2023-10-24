@@ -23,7 +23,7 @@ pub enum WalletUnlockError {
     Instruction(#[from] InstructionError),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }

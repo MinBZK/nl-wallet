@@ -1,4 +1,5 @@
 mod config;
+mod disclosure;
 mod documents;
 mod init;
 mod issuance;
@@ -17,12 +18,14 @@ use crate::{
     account_provider::HttpAccountProviderClient,
     config::LocalConfigurationRepository,
     digid::HttpDigidSession,
+    disclosure::HttpDisclosureSession,
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData},
 };
 
 pub use self::{
+    disclosure::DisclosureError,
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::WalletUnlockError,
@@ -39,6 +42,7 @@ pub struct Wallet<
     A = HttpAccountProviderClient,
     D = HttpDigidSession,
     P = HttpPidIssuerClient,
+    R = HttpDisclosureSession,
 > {
     config_repository: C,
     storage: RwLock<S>,
@@ -46,6 +50,7 @@ pub struct Wallet<
     account_provider_client: A,
     digid_session: Option<D>,
     pid_issuer: P,
+    disclosure_session: Option<R>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,

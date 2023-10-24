@@ -39,7 +39,7 @@ pub enum WalletRegistrationError {
     StoreCertificate(#[from] StorageError),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R> {
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
     }

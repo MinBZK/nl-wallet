@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 use serde::Serialize;
 
 use wallet::errors::{
-    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, UriIdentificationError,
-    WalletInitError, WalletRegistrationError, WalletUnlockError,
+    openid, reqwest, AccountProviderError, DigidError, DisclosureError, InstructionError, PidIssuanceError,
+    UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -71,6 +71,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
             .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
+            .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
     }
 }
 
@@ -136,7 +137,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
 
         match self {
-            PidIssuanceError::Locked | PidIssuanceError::NotRegistered | PidIssuanceError::SessionState => {
+            PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
             PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
@@ -157,6 +158,17 @@ impl FlutterApiErrorFields for PidIssuanceError {
                 .collect::<serde_json::Value>()
                 .into(),
             _ => None,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for DisclosureError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
+                FlutterApiErrorType::WalletState
+            }
+            _ => FlutterApiErrorType::Generic,
         }
     }
 }

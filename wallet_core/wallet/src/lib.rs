@@ -1,6 +1,7 @@
 mod account_provider;
 mod config;
 mod digid;
+mod disclosure;
 mod document;
 mod instruction;
 mod lock;
@@ -29,6 +30,7 @@ pub mod wallet_deps {
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{ConfigurationRepository, LocalConfigurationRepository},
         digid::{DigidSession, HttpDigidSession},
+        disclosure::{DisclosureSession, HttpDisclosureSession},
         pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
         storage::Storage,
     };

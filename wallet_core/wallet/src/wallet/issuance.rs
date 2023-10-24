@@ -18,14 +18,14 @@ use super::Wallet;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
-    #[error("wallet is locked")]
-    Locked,
     #[error("wallet is not registered")]
     NotRegistered,
+    #[error("wallet is locked")]
+    Locked,
+    #[error("issuance session is not in the correct state")]
+    SessionState,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
-    #[error("no PID issuance session or session is not in the correct state")]
-    SessionState,
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
@@ -42,7 +42,7 @@ pub enum PidIssuanceError {
     KeyNotFound(String),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     C: ConfigurationRepository,
     D: DigidSession,

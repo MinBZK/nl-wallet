@@ -15,7 +15,7 @@ pub enum SetDocumentsCallbackError {
 
 pub type DocumentsCallback = Box<dyn FnMut(Vec<Document>) + Send + Sync>;
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     S: Storage,
 {
