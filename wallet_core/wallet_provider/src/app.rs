@@ -48,7 +48,11 @@ pub fn router(dependencies: Arc<AppDependencies>) -> Router {
 async fn enroll(State(state): State<Arc<AppDependencies>>) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received enroll request, creating registration challenge");
 
-    let challenge = state.account_server.registration_challenge().await?;
+    let challenge = state
+        .account_server
+        .registration_challenge(&state.certificate_signing_key)
+        .await?;
+
     let body = Challenge {
         challenge: challenge.into(),
     };
@@ -66,7 +70,12 @@ async fn create_wallet(
 
     let cert = state
         .account_server
-        .register(state.as_ref(), &state.repositories, payload)
+        .register(
+            &state.certificate_signing_key,
+            state.as_ref(),
+            &state.repositories,
+            payload,
+        )
         .await?;
 
     let body = Certificate { certificate: cert };

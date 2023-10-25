@@ -157,29 +157,23 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/te
 echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
 
-generate_wp_private_key certificate
-WP_CERTIFICATE_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/certificate.pem")
-export WP_CERTIFICATE_KEY
+generate_wp_private_key certificate_signing
+WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
+export WP_CERTIFICATE_SIGNING_KEY_PATH
+WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" base64 | tr -d '\n')
+export WP_CERTIFICATE_PUBLIC_KEY
 
-generate_wp_private_key instruction_result
-WP_INSTRUCTION_RESULT_KEY=$(get_pem_body "${TARGET_DIR}/wallet_provider/instruction_result.pem")
-export WP_INSTRUCTION_RESULT_KEY
+generate_wp_private_key instruction_result_signing
+WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
+export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" base64 | tr -d '\n')
+export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
 export WP_PIN_HASH_SALT
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
-
-# Get wallet_provider verifying keys
-cd "$BASE_DIR/wallet_core/wallet_provider"
-echo -e "${INFO}Exporting wallet_provider verifying keys${NC}"
-WALLET_PROVIDER_CONFIGURATION=$(cargo run --bin wallet_provider_configuration)
-
-WP_CERTIFICATE_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.certificate_verifying_key')
-export WP_CERTIFICATE_PUBLIC_KEY
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "${WALLET_PROVIDER_CONFIGURATION}" | jq -r '.instruction_result_verifying_key')
-export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 ########################################################################
 # Configure HSM
@@ -195,7 +189,11 @@ fi
 render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
 
 softhsm2-util --delete-token --token test_token --force > /dev/null || true
-softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${HSM_USER_PIN}"
+softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
+# id = echo "certificate_signing" | xxd -p
+softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "63657274696669636174655f7369676e696e670a" --label "certificate_signing_key" --token "test_token"
+# id = echo "instruction_result_signing" | xxd -p
+softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
 
 ########################################################################
 # Configure wallet

@@ -16,7 +16,7 @@ use wallet_provider_domain::{
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
 
-use crate::{account_server::InstructionError, hsm::Pkcs11Client};
+use crate::{account_server::InstructionError, hsm::WalletUserHsm};
 
 #[async_trait]
 pub trait HandleInstruction {
@@ -27,7 +27,7 @@ pub trait HandleInstruction {
         wallet_user: &WalletUser,
         uuid_generator: &(impl Generator<Uuid> + Sync),
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-        pkcs11_client: &(impl Pkcs11Client + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm + Sync),
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable + Send + Sync;
@@ -42,7 +42,7 @@ impl HandleInstruction for CheckPin {
         _wallet_user: &WalletUser,
         _uuid_generator: &(impl Generator<Uuid> + Sync),
         _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-        _pkcs11_client: &(impl Pkcs11Client + Sync),
+        _wallet_user_hsm: &(impl WalletUserHsm + Sync),
     ) -> Result<(), InstructionError>
     where
         T: Committable + Send + Sync,
@@ -60,13 +60,13 @@ impl HandleInstruction for GenerateKey {
         wallet_user: &WalletUser,
         _uuid_generator: &(impl Generator<Uuid> + Sync),
         _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-        pkcs11_client: &(impl Pkcs11Client + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm + Sync),
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable + Send + Sync,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
-        let keys = pkcs11_client
+        let keys = wallet_user_hsm
             .generate_keys(&wallet_user.wallet_id, &identifiers)
             .await?;
 
@@ -88,7 +88,7 @@ impl HandleInstruction for Sign {
         wallet_user: &WalletUser,
         _uuid_generator: &(impl Generator<Uuid> + Sync),
         _repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
-        pkcs11_client: &(impl Pkcs11Client + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm + Sync),
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable + Send + Sync,
@@ -96,7 +96,7 @@ impl HandleInstruction for Sign {
         let (msg, identifiers) = &self.msg_with_identifiers;
         let data = Arc::new(msg.0.clone());
         let identifiers: Vec<&str> = identifiers.iter().map(|i| i.as_str()).collect();
-        let identifiers_and_signatures = pkcs11_client
+        let identifiers_and_signatures = wallet_user_hsm
             .sign_multiple(&wallet_user.wallet_id, &identifiers, data)
             .await?;
 
@@ -123,7 +123,7 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
     use crate::{
-        hsm::{mock::MockPkcs11Client, Pkcs11Client},
+        hsm::{mock::MockPkcs11Client, WalletUserHsm},
         instructions::HandleInstruction,
     };
 

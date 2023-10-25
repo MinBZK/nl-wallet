@@ -5,10 +5,12 @@ use uuid::Uuid;
 
 use wallet_common::account::serialization::DerVerifyingKey;
 
+pub type WalletId = String;
+
 #[derive(Serialize, Debug)]
 pub struct WalletUser {
     pub id: Uuid,
-    pub wallet_id: String,
+    pub wallet_id: WalletId,
     pub hw_pubkey: DerVerifyingKey,
     pub pin_pubkey: DerVerifyingKey,
     pub unsuccessful_pin_entries: u8,

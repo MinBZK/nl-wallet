@@ -13,7 +13,9 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(socket)?;
     debug!("listening on {}", socket);
 
-    let app = app::router(Arc::new(AppDependencies::new_from_settings(settings).await?));
+    let dependencies = Arc::new(AppDependencies::new_from_settings(settings).await?);
+
+    let app = app::router(dependencies);
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
 
     Ok(())

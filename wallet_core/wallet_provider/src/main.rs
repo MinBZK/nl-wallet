@@ -1,9 +1,8 @@
 use std::error::Error;
 
-use tracing::{info, level_filters::LevelFilter};
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider::{server, settings::Settings};
 
 #[tokio::main]
@@ -20,15 +19,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else {
         builder.init()
     }
-
-    info!(
-        "Account server public key: {}",
-        DerVerifyingKey::from(&settings.certificate_private_key)
-    );
-    info!(
-        "Instruction signing public key: {}",
-        DerVerifyingKey::from(&settings.instruction_result_private_key)
-    );
 
     server::serve(settings).await?;
 

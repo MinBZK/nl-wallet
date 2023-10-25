@@ -22,6 +22,7 @@ spec:
         egress-frontoffice-policy: allow
         ingress-controller-frontoffice-policy: allow
         db-in-zeer-vertrouwd: allow
+        hsm-in-zeer-vertrouwd: allow
     spec:
       imagePullSecrets:
         - name: harbor-puller
@@ -84,4 +85,4 @@ spec:
       volumes:
         - name: pkcs11-config-volume
           configMap:
-            name: nl-wallet-provider-pkcs11
+            name: nl-wallet-hsm-pkcs11
