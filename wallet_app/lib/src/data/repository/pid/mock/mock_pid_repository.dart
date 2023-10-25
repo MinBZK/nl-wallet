@@ -1,6 +1,7 @@
 import 'package:fimber/fimber.dart';
 
 import '../../../../../bridge_generated.dart';
+import '../../../../domain/model/attribute/data_attribute.dart';
 import '../pid_repository.dart';
 
 class MockPidRepository extends PidRepository {
@@ -11,16 +12,13 @@ class MockPidRepository extends PidRepository {
   Future<void> cancelPidIssuance() async => Fimber.d('Canceled PidIssuance');
 
   @override
-  void notifyPidIssuanceStateUpdate(PidIssuanceEvent? event) {
-    Fimber.d('Received PidIssuance update: $event');
-  }
-
-  @override
-  Stream<PidIssuanceStatus> observePidIssuanceStatus() => const Stream.empty();
-
-  @override
   Future<WalletInstructionResult> acceptOfferedPid(String pin) => throw UnimplementedError();
 
   @override
   Future<void> rejectOfferedPid() async => Fimber.d('Pid declined');
+
+  @override
+  Stream<List<DataAttribute>> continuePidIssuance(Uri uri) {
+    throw UnimplementedError('This method should not be called on mock builds');
+  }
 }

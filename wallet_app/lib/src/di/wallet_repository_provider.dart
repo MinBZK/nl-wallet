@@ -11,7 +11,9 @@ import '../data/repository/card/wallet_card_repository.dart';
 import '../data/repository/configuration/configuration_repository.dart';
 import '../data/repository/configuration/core/core_configuration_repository.dart';
 import '../data/repository/configuration/mock/mock_configuration_repository.dart';
+import '../data/repository/disclosure/core/core_disclosure_repository.dart';
 import '../data/repository/disclosure/core/core_disclosure_request_repository.dart';
+import '../data/repository/disclosure/disclosure_repository.dart';
 import '../data/repository/disclosure/disclosure_request_repository.dart';
 import '../data/repository/disclosure/mock/mock_disclosure_request_repository.dart';
 import '../data/repository/issuance/core/core_issuance_response_repository.dart';
@@ -65,6 +67,12 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) =>
               provideMocks ? MockDisclosureRequestRepository(context.read()) : CoreDisclosureRequestRepository(),
         ),
+        RepositoryProvider<DisclosureRepository>(
+          create: (context) => provideMocks
+              ? throw UnimplementedError('No MockDisclosureRepository')
+              : CoreDisclosureRepository(
+                  context.read(), context.read(), context.read(), context.read(), context.read()),
+        ),
         RepositoryProvider<ConfigurationRepository>(
           create: (context) =>
               provideMocks ? MockConfigurationRepository() : CoreConfigurationRepository(context.read()),
@@ -83,9 +91,8 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
         ),
         RepositoryProvider<PidRepository>(
-          create: (context) => provideMocks
-              ? MockPidRepository()
-              : CorePidRepository(context.read(), context.read(), context.read(), context.read()),
+          create: (context) =>
+              provideMocks ? MockPidRepository() : CorePidRepository(context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

@@ -66,6 +66,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kRegisterConstMeta;
 
+  Future<IdentifyUriResult> identifyUri({required String uri, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kIdentifyUriConstMeta;
+
   Future<String> createPidIssuanceRedirectUri({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta;
@@ -74,9 +78,9 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta;
 
-  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint});
+  Future<List<Card>> continuePidIssuance({required String uri, dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta;
+  FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta;
 
   Future<WalletInstructionResult> acceptPidIssuance({required String pin, dynamic hint});
 
@@ -85,6 +89,18 @@ abstract class WalletCore {
   Future<void> rejectPidIssuance({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta;
+
+  Future<DisclosureResult> startDisclosure({required String uri, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta;
+
+  Future<void> cancelDisclosure({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta;
+
+  Future<WalletInstructionResult> acceptDisclosure({required String pin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta;
 
   Future<void> resetWallet({dynamic hint});
 
@@ -140,19 +156,15 @@ class CardValue with _$CardValue {
 }
 
 @freezed
-class DisclosureEvent with _$DisclosureEvent {
-  const factory DisclosureEvent.fetchingRequest() = DisclosureEvent_FetchingRequest;
-  const factory DisclosureEvent.request({
+class DisclosureResult with _$DisclosureResult {
+  const factory DisclosureResult.request({
     required RelyingParty relyingParty,
     required List<RequestedCard> requestedCards,
-  }) = DisclosureEvent_Request;
-  const factory DisclosureEvent.requestAttributesMissing({
+  }) = DisclosureResult_Request;
+  const factory DisclosureResult.requestAttributesMissing({
     required RelyingParty relyingParty,
     required List<MissingAttribute> missingAttributes,
-  }) = DisclosureEvent_RequestAttributesMissing;
-  const factory DisclosureEvent.error({
-    required String data,
-  }) = DisclosureEvent_Error;
+  }) = DisclosureResult_RequestAttributesMissing;
 }
 
 class FlutterConfiguration {
@@ -170,6 +182,11 @@ enum GenderCardValue {
   Male,
   Female,
   NotApplicable,
+}
+
+enum IdentifyUriResult {
+  PidIssuance,
+  Disclosure,
 }
 
 class LocalizedString {
@@ -190,33 +207,11 @@ class MissingAttribute {
   });
 }
 
-@freezed
-class PidIssuanceEvent with _$PidIssuanceEvent {
-  const factory PidIssuanceEvent.authenticating() = PidIssuanceEvent_Authenticating;
-  const factory PidIssuanceEvent.success({
-    required List<Card> previewCards,
-  }) = PidIssuanceEvent_Success;
-  const factory PidIssuanceEvent.error({
-    required String data,
-  }) = PidIssuanceEvent_Error;
-}
-
 enum PinValidationResult {
   Ok,
   TooFewUniqueDigits,
   SequentialDigits,
   OtherIssue,
-}
-
-@freezed
-class ProcessUriEvent with _$ProcessUriEvent {
-  const factory ProcessUriEvent.pidIssuance({
-    required PidIssuanceEvent event,
-  }) = ProcessUriEvent_PidIssuance;
-  const factory ProcessUriEvent.disclosure({
-    required DisclosureEvent event,
-  }) = ProcessUriEvent_Disclosure;
-  const factory ProcessUriEvent.unknownUri() = ProcessUriEvent_UnknownUri;
 }
 
 class RelyingParty {
@@ -468,6 +463,23 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
+  Future<IdentifyUriResult> identifyUri({required String uri, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(uri);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_identify_uri(port_, arg0),
+      parseSuccessData: _wire2api_identify_uri_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kIdentifyUriConstMeta,
+      argValues: [uri],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kIdentifyUriConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "identify_uri",
+        argNames: ["uri"],
+      );
+
   Future<String> createPidIssuanceRedirectUri({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_create_pid_issuance_redirect_uri(port_),
@@ -500,20 +512,20 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Stream<ProcessUriEvent> processUri({required String uri, dynamic hint}) {
+  Future<List<Card>> continuePidIssuance({required String uri, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
-    return _platform.executeStream(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_process_uri(port_, arg0),
-      parseSuccessData: _wire2api_process_uri_event,
-      parseErrorData: null,
-      constMeta: kProcessUriConstMeta,
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_continue_pid_issuance(port_, arg0),
+      parseSuccessData: _wire2api_list_card,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kContinuePidIssuanceConstMeta,
       argValues: [uri],
       hint: hint,
     ));
   }
 
-  FlutterRustBridgeTaskConstMeta get kProcessUriConstMeta => const FlutterRustBridgeTaskConstMeta(
-        debugName: "process_uri",
+  FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "continue_pid_issuance",
         argNames: ["uri"],
       );
 
@@ -550,6 +562,56 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
+  Future<DisclosureResult> startDisclosure({required String uri, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(uri);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_start_disclosure(port_, arg0),
+      parseSuccessData: _wire2api_disclosure_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kStartDisclosureConstMeta,
+      argValues: [uri],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "start_disclosure",
+        argNames: ["uri"],
+      );
+
+  Future<void> cancelDisclosure({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_cancel_disclosure(port_),
+      parseSuccessData: _wire2api_unit,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kCancelDisclosureConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "cancel_disclosure",
+        argNames: [],
+      );
+
+  Future<WalletInstructionResult> acceptDisclosure({required String pin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(pin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_accept_disclosure(port_, arg0),
+      parseSuccessData: _wire2api_wallet_instruction_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kAcceptDisclosureConstMeta,
+      argValues: [pin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "accept_disclosure",
+        argNames: ["pin"],
+      );
+
   Future<void> resetWallet({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_reset_wallet(port_),
@@ -581,14 +643,6 @@ class WalletCoreImpl implements WalletCore {
 
   bool _wire2api_bool(dynamic raw) {
     return raw as bool;
-  }
-
-  DisclosureEvent _wire2api_box_autoadd_disclosure_event(dynamic raw) {
-    return _wire2api_disclosure_event(raw);
-  }
-
-  PidIssuanceEvent _wire2api_box_autoadd_pid_issuance_event(dynamic raw) {
-    return _wire2api_pid_issuance_event(raw);
   }
 
   RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
@@ -651,23 +705,17 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
-  DisclosureEvent _wire2api_disclosure_event(dynamic raw) {
+  DisclosureResult _wire2api_disclosure_result(dynamic raw) {
     switch (raw[0]) {
       case 0:
-        return DisclosureEvent_FetchingRequest();
-      case 1:
-        return DisclosureEvent_Request(
+        return DisclosureResult_Request(
           relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
           requestedCards: _wire2api_list_requested_card(raw[2]),
         );
-      case 2:
-        return DisclosureEvent_RequestAttributesMissing(
+      case 1:
+        return DisclosureResult_RequestAttributesMissing(
           relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
           missingAttributes: _wire2api_list_missing_attribute(raw[2]),
-        );
-      case 3:
-        return DisclosureEvent_Error(
-          data: _wire2api_String(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -689,6 +737,10 @@ class WalletCoreImpl implements WalletCore {
 
   int _wire2api_i32(dynamic raw) {
     return raw as int;
+  }
+
+  IdentifyUriResult _wire2api_identify_uri_result(dynamic raw) {
+    return IdentifyUriResult.values[raw as int];
   }
 
   List<Card> _wire2api_list_card(dynamic raw) {
@@ -728,42 +780,8 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
-  PidIssuanceEvent _wire2api_pid_issuance_event(dynamic raw) {
-    switch (raw[0]) {
-      case 0:
-        return PidIssuanceEvent_Authenticating();
-      case 1:
-        return PidIssuanceEvent_Success(
-          previewCards: _wire2api_list_card(raw[1]),
-        );
-      case 2:
-        return PidIssuanceEvent_Error(
-          data: _wire2api_String(raw[1]),
-        );
-      default:
-        throw Exception("unreachable");
-    }
-  }
-
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
     return PinValidationResult.values[raw as int];
-  }
-
-  ProcessUriEvent _wire2api_process_uri_event(dynamic raw) {
-    switch (raw[0]) {
-      case 0:
-        return ProcessUriEvent_PidIssuance(
-          event: _wire2api_box_autoadd_pid_issuance_event(raw[1]),
-        );
-      case 1:
-        return ProcessUriEvent_Disclosure(
-          event: _wire2api_box_autoadd_disclosure_event(raw[1]),
-        );
-      case 2:
-        return ProcessUriEvent_UnknownUri();
-      default:
-        throw Exception("unreachable");
-    }
   }
 
   RelyingParty _wire2api_relying_party(dynamic raw) {
@@ -1093,6 +1111,20 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_register');
   late final _wire_register = _wire_registerPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
+  void wire_identify_uri(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> uri,
+  ) {
+    return _wire_identify_uri(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire_identify_uriPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_identify_uri');
+  late final _wire_identify_uri = _wire_identify_uriPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
   void wire_create_pid_issuance_redirect_uri(
     int port_,
   ) {
@@ -1118,19 +1150,21 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_cancel_pid_issuance');
   late final _wire_cancel_pid_issuance = _wire_cancel_pid_issuancePtr.asFunction<void Function(int)>();
 
-  void wire_process_uri(
+  void wire_continue_pid_issuance(
     int port_,
     ffi.Pointer<wire_uint_8_list> uri,
   ) {
-    return _wire_process_uri(
+    return _wire_continue_pid_issuance(
       port_,
       uri,
     );
   }
 
-  late final _wire_process_uriPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_process_uri');
-  late final _wire_process_uri = _wire_process_uriPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+  late final _wire_continue_pid_issuancePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>(
+          'wire_continue_pid_issuance');
+  late final _wire_continue_pid_issuance =
+      _wire_continue_pid_issuancePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   void wire_accept_pid_issuance(
     int port_,
@@ -1159,6 +1193,49 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_reject_pid_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reject_pid_issuance');
   late final _wire_reject_pid_issuance = _wire_reject_pid_issuancePtr.asFunction<void Function(int)>();
+
+  void wire_start_disclosure(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> uri,
+  ) {
+    return _wire_start_disclosure(
+      port_,
+      uri,
+    );
+  }
+
+  late final _wire_start_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_start_disclosure');
+  late final _wire_start_disclosure =
+      _wire_start_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_cancel_disclosure(
+    int port_,
+  ) {
+    return _wire_cancel_disclosure(
+      port_,
+    );
+  }
+
+  late final _wire_cancel_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_cancel_disclosure');
+  late final _wire_cancel_disclosure = _wire_cancel_disclosurePtr.asFunction<void Function(int)>();
+
+  void wire_accept_disclosure(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> pin,
+  ) {
+    return _wire_accept_disclosure(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire_accept_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>(
+          'wire_accept_disclosure');
+  late final _wire_accept_disclosure =
+      _wire_accept_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   void wire_reset_wallet(
     int port_,

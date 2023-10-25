@@ -3,4 +3,4 @@ pub mod config;
 pub mod disclosure;
 pub mod instruction;
 pub mod pin;
-pub mod process_uri_event;
+pub mod uri;

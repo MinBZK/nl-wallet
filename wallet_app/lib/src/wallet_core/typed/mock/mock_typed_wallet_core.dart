@@ -46,8 +46,8 @@ class MockTypedWalletCore extends TypedWalletCore {
   }
 
   @override
-  Stream<ProcessUriEvent> processUri(Uri uri) {
-    // TODO: implement processUri
+  Future<IdentifyUriResult> identifyUri(String uri) {
+    // TODO: implement identifyUri
     throw UnimplementedError();
   }
 
@@ -84,6 +84,30 @@ class MockTypedWalletCore extends TypedWalletCore {
   @override
   Future<void> resetWallet() {
     // TODO: implement resetWallet
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Card>> continuePidIssuance(Uri uri) {
+    // TODO: implement startPidIssuance
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<DisclosureResult> startDisclosure(Uri uri) {
+    // TODO: implement startDisclosure
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> cancelDisclosure() {
+    // TODO: implement cancelDisclosure
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<WalletInstructionResult> acceptDisclosure(String pin) {
+    // TODO: implement acceptDisclosure
     throw UnimplementedError();
   }
 }

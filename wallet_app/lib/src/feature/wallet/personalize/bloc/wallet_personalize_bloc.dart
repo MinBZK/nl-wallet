@@ -9,8 +9,8 @@ import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
-import '../../../../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../../../../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_core/error/core_error.dart';
@@ -23,17 +23,18 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
   final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
   final RejectOfferedPidUseCase rejectOfferedPidUseCase;
-  final ObservePidIssuanceStatusUseCase observePidIssuanceStatusUseCase;
+  final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
 
   StreamSubscription? _pidIssuanceStatusSubscription;
 
   WalletPersonalizeBloc(
+    Uri? pidIssuanceUri,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
     this.rejectOfferedPidUseCase,
-    this.observePidIssuanceStatusUseCase,
-  ) : super(const WalletPersonalizeInitial()) {
+    this.continuePidIssuanceUseCase,
+  ) : super(pidIssuanceUri == null ? const WalletPersonalizeInitial() : const WalletPersonalizeAuthenticating()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeLoginWithDigidFailed>(_onLoginWithDigidFailed);
@@ -44,24 +45,31 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
 
-    _pidIssuanceStatusSubscription = observePidIssuanceStatusUseCase.invoke().listen(_handlePidIssuanceStatusUpdate);
+    if (pidIssuanceUri != null) {
+      _pidIssuanceStatusSubscription =
+          continuePidIssuanceUseCase.invoke(pidIssuanceUri).listen(_handlePidIssuanceStatusUpdate);
+    }
   }
 
   void _handlePidIssuanceStatusUpdate(PidIssuanceStatus event) {
-    if (state is WalletPersonalizeDigidFailure) return; // Don't navigate when user cancelled.
     switch (event) {
-      case PidIssuanceIdle():
-        break;
       case PidIssuanceAuthenticating():
         add(WalletPersonalizeAuthInProgress());
         break;
       case PidIssuanceSuccess():
-        add(WalletPersonalizeLoginWithDigidSucceeded(event.previews));
+        // It's possible that [PidIssuanceSuccess] comes in twice, e.g. when the device language changed, handling this accordingly based on the current state.
+        if (state is WalletPersonalizeAuthenticating || state is WalletPersonalizeCheckData) {
+          add(WalletPersonalizeLoginWithDigidSucceeded(event.previews));
+        } else if (state is WalletPersonalizeConfirmPin) {
+          // Make sure the translations are updated in the edge case where the user changes language on the pin screen and navigates back.
+          add(WalletPersonalizeOfferingAccepted(event.previews));
+        }
         break;
       case PidIssuanceError():
         //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
         final cancelledByUser = event.error == RedirectError.accessDenied;
         add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
+        _pidIssuanceStatusSubscription?.cancel();
         break;
     }
   }

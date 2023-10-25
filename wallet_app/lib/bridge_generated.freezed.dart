@@ -941,205 +941,99 @@ abstract class CardValue_Gender implements CardValue {
 }
 
 /// @nodoc
-mixin _$DisclosureEvent {
+mixin _$DisclosureResult {
+  RelyingParty get relyingParty => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() fetchingRequest,
     required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
     required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
         requestAttributesMissing,
-    required TResult Function(String data) error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? fetchingRequest,
     TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult? Function(String data)? error,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? fetchingRequest,
     TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult Function(String data)? error,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureEvent_FetchingRequest value) fetchingRequest,
-    required TResult Function(DisclosureEvent_Request value) request,
-    required TResult Function(DisclosureEvent_RequestAttributesMissing value) requestAttributesMissing,
-    required TResult Function(DisclosureEvent_Error value) error,
+    required TResult Function(DisclosureResult_Request value) request,
+    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult? Function(DisclosureEvent_Request value)? request,
-    TResult? Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult? Function(DisclosureEvent_Error value)? error,
+    TResult? Function(DisclosureResult_Request value)? request,
+    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult Function(DisclosureEvent_Request value)? request,
-    TResult Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult Function(DisclosureEvent_Error value)? error,
+    TResult Function(DisclosureResult_Request value)? request,
+    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $DisclosureResultCopyWith<DisclosureResult> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $DisclosureEventCopyWith<$Res> {
-  factory $DisclosureEventCopyWith(DisclosureEvent value, $Res Function(DisclosureEvent) then) =
-      _$DisclosureEventCopyWithImpl<$Res, DisclosureEvent>;
+abstract class $DisclosureResultCopyWith<$Res> {
+  factory $DisclosureResultCopyWith(DisclosureResult value, $Res Function(DisclosureResult) then) =
+      _$DisclosureResultCopyWithImpl<$Res, DisclosureResult>;
+  @useResult
+  $Res call({RelyingParty relyingParty});
 }
 
 /// @nodoc
-class _$DisclosureEventCopyWithImpl<$Res, $Val extends DisclosureEvent> implements $DisclosureEventCopyWith<$Res> {
-  _$DisclosureEventCopyWithImpl(this._value, this._then);
+class _$DisclosureResultCopyWithImpl<$Res, $Val extends DisclosureResult> implements $DisclosureResultCopyWith<$Res> {
+  _$DisclosureResultCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? relyingParty = null,
+  }) {
+    return _then(_value.copyWith(
+      relyingParty: null == relyingParty
+          ? _value.relyingParty
+          : relyingParty // ignore: cast_nullable_to_non_nullable
+              as RelyingParty,
+    ) as $Val);
+  }
 }
 
 /// @nodoc
-abstract class _$$DisclosureEvent_FetchingRequestCopyWith<$Res> {
-  factory _$$DisclosureEvent_FetchingRequestCopyWith(
-          _$DisclosureEvent_FetchingRequest value, $Res Function(_$DisclosureEvent_FetchingRequest) then) =
-      __$$DisclosureEvent_FetchingRequestCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$DisclosureEvent_FetchingRequestCopyWithImpl<$Res>
-    extends _$DisclosureEventCopyWithImpl<$Res, _$DisclosureEvent_FetchingRequest>
-    implements _$$DisclosureEvent_FetchingRequestCopyWith<$Res> {
-  __$$DisclosureEvent_FetchingRequestCopyWithImpl(
-      _$DisclosureEvent_FetchingRequest _value, $Res Function(_$DisclosureEvent_FetchingRequest) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$DisclosureEvent_FetchingRequest implements DisclosureEvent_FetchingRequest {
-  const _$DisclosureEvent_FetchingRequest();
-
+abstract class _$$DisclosureResult_RequestCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
+  factory _$$DisclosureResult_RequestCopyWith(
+          _$DisclosureResult_Request value, $Res Function(_$DisclosureResult_Request) then) =
+      __$$DisclosureResult_RequestCopyWithImpl<$Res>;
   @override
-  String toString() {
-    return 'DisclosureEvent.fetchingRequest()';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$DisclosureEvent_FetchingRequest);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() fetchingRequest,
-    required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
-        requestAttributesMissing,
-    required TResult Function(String data) error,
-  }) {
-    return fetchingRequest();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? fetchingRequest,
-    TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult? Function(String data)? error,
-  }) {
-    return fetchingRequest?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? fetchingRequest,
-    TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) {
-    if (fetchingRequest != null) {
-      return fetchingRequest();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureEvent_FetchingRequest value) fetchingRequest,
-    required TResult Function(DisclosureEvent_Request value) request,
-    required TResult Function(DisclosureEvent_RequestAttributesMissing value) requestAttributesMissing,
-    required TResult Function(DisclosureEvent_Error value) error,
-  }) {
-    return fetchingRequest(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult? Function(DisclosureEvent_Request value)? request,
-    TResult? Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult? Function(DisclosureEvent_Error value)? error,
-  }) {
-    return fetchingRequest?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult Function(DisclosureEvent_Request value)? request,
-    TResult Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult Function(DisclosureEvent_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (fetchingRequest != null) {
-      return fetchingRequest(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class DisclosureEvent_FetchingRequest implements DisclosureEvent {
-  const factory DisclosureEvent_FetchingRequest() = _$DisclosureEvent_FetchingRequest;
-}
-
-/// @nodoc
-abstract class _$$DisclosureEvent_RequestCopyWith<$Res> {
-  factory _$$DisclosureEvent_RequestCopyWith(
-          _$DisclosureEvent_Request value, $Res Function(_$DisclosureEvent_Request) then) =
-      __$$DisclosureEvent_RequestCopyWithImpl<$Res>;
   @useResult
   $Res call({RelyingParty relyingParty, List<RequestedCard> requestedCards});
 }
 
 /// @nodoc
-class __$$DisclosureEvent_RequestCopyWithImpl<$Res>
-    extends _$DisclosureEventCopyWithImpl<$Res, _$DisclosureEvent_Request>
-    implements _$$DisclosureEvent_RequestCopyWith<$Res> {
-  __$$DisclosureEvent_RequestCopyWithImpl(
-      _$DisclosureEvent_Request _value, $Res Function(_$DisclosureEvent_Request) _then)
+class __$$DisclosureResult_RequestCopyWithImpl<$Res>
+    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_Request>
+    implements _$$DisclosureResult_RequestCopyWith<$Res> {
+  __$$DisclosureResult_RequestCopyWithImpl(
+      _$DisclosureResult_Request _value, $Res Function(_$DisclosureResult_Request) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1148,7 +1042,7 @@ class __$$DisclosureEvent_RequestCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? requestedCards = null,
   }) {
-    return _then(_$DisclosureEvent_Request(
+    return _then(_$DisclosureResult_Request(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1163,8 +1057,8 @@ class __$$DisclosureEvent_RequestCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureEvent_Request implements DisclosureEvent_Request {
-  const _$DisclosureEvent_Request({required this.relyingParty, required final List<RequestedCard> requestedCards})
+class _$DisclosureResult_Request implements DisclosureResult_Request {
+  const _$DisclosureResult_Request({required this.relyingParty, required final List<RequestedCard> requestedCards})
       : _requestedCards = requestedCards;
 
   @override
@@ -1179,14 +1073,14 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
 
   @override
   String toString() {
-    return 'DisclosureEvent.request(relyingParty: $relyingParty, requestedCards: $requestedCards)';
+    return 'DisclosureResult.request(relyingParty: $relyingParty, requestedCards: $requestedCards)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureEvent_Request &&
+            other is _$DisclosureResult_Request &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards));
   }
@@ -1197,17 +1091,15 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureEvent_RequestCopyWith<_$DisclosureEvent_Request> get copyWith =>
-      __$$DisclosureEvent_RequestCopyWithImpl<_$DisclosureEvent_Request>(this, _$identity);
+  _$$DisclosureResult_RequestCopyWith<_$DisclosureResult_Request> get copyWith =>
+      __$$DisclosureResult_RequestCopyWithImpl<_$DisclosureResult_Request>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() fetchingRequest,
     required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
     required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
         requestAttributesMissing,
-    required TResult Function(String data) error,
   }) {
     return request(relyingParty, requestedCards);
   }
@@ -1215,10 +1107,8 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? fetchingRequest,
     TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult? Function(String data)? error,
   }) {
     return request?.call(relyingParty, requestedCards);
   }
@@ -1226,10 +1116,8 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? fetchingRequest,
     TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult Function(String data)? error,
     required TResult orElse(),
   }) {
     if (request != null) {
@@ -1241,10 +1129,8 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureEvent_FetchingRequest value) fetchingRequest,
-    required TResult Function(DisclosureEvent_Request value) request,
-    required TResult Function(DisclosureEvent_RequestAttributesMissing value) requestAttributesMissing,
-    required TResult Function(DisclosureEvent_Error value) error,
+    required TResult Function(DisclosureResult_Request value) request,
+    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) {
     return request(this);
   }
@@ -1252,10 +1138,8 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult? Function(DisclosureEvent_Request value)? request,
-    TResult? Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult? Function(DisclosureEvent_Error value)? error,
+    TResult? Function(DisclosureResult_Request value)? request,
+    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) {
     return request?.call(this);
   }
@@ -1263,10 +1147,8 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult Function(DisclosureEvent_Request value)? request,
-    TResult Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult Function(DisclosureEvent_Error value)? error,
+    TResult Function(DisclosureResult_Request value)? request,
+    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (request != null) {
@@ -1276,32 +1158,35 @@ class _$DisclosureEvent_Request implements DisclosureEvent_Request {
   }
 }
 
-abstract class DisclosureEvent_Request implements DisclosureEvent {
-  const factory DisclosureEvent_Request(
+abstract class DisclosureResult_Request implements DisclosureResult {
+  const factory DisclosureResult_Request(
       {required final RelyingParty relyingParty,
-      required final List<RequestedCard> requestedCards}) = _$DisclosureEvent_Request;
+      required final List<RequestedCard> requestedCards}) = _$DisclosureResult_Request;
 
+  @override
   RelyingParty get relyingParty;
   List<RequestedCard> get requestedCards;
+  @override
   @JsonKey(ignore: true)
-  _$$DisclosureEvent_RequestCopyWith<_$DisclosureEvent_Request> get copyWith => throw _privateConstructorUsedError;
+  _$$DisclosureResult_RequestCopyWith<_$DisclosureResult_Request> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$DisclosureEvent_RequestAttributesMissingCopyWith<$Res> {
-  factory _$$DisclosureEvent_RequestAttributesMissingCopyWith(_$DisclosureEvent_RequestAttributesMissing value,
-          $Res Function(_$DisclosureEvent_RequestAttributesMissing) then) =
-      __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl<$Res>;
+abstract class _$$DisclosureResult_RequestAttributesMissingCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
+  factory _$$DisclosureResult_RequestAttributesMissingCopyWith(_$DisclosureResult_RequestAttributesMissing value,
+          $Res Function(_$DisclosureResult_RequestAttributesMissing) then) =
+      __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>;
+  @override
   @useResult
   $Res call({RelyingParty relyingParty, List<MissingAttribute> missingAttributes});
 }
 
 /// @nodoc
-class __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl<$Res>
-    extends _$DisclosureEventCopyWithImpl<$Res, _$DisclosureEvent_RequestAttributesMissing>
-    implements _$$DisclosureEvent_RequestAttributesMissingCopyWith<$Res> {
-  __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl(_$DisclosureEvent_RequestAttributesMissing _value,
-      $Res Function(_$DisclosureEvent_RequestAttributesMissing) _then)
+class __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>
+    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestAttributesMissing>
+    implements _$$DisclosureResult_RequestAttributesMissingCopyWith<$Res> {
+  __$$DisclosureResult_RequestAttributesMissingCopyWithImpl(_$DisclosureResult_RequestAttributesMissing _value,
+      $Res Function(_$DisclosureResult_RequestAttributesMissing) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1310,7 +1195,7 @@ class __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? missingAttributes = null,
   }) {
-    return _then(_$DisclosureEvent_RequestAttributesMissing(
+    return _then(_$DisclosureResult_RequestAttributesMissing(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1325,8 +1210,8 @@ class __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_RequestAttributesMissing {
-  const _$DisclosureEvent_RequestAttributesMissing(
+class _$DisclosureResult_RequestAttributesMissing implements DisclosureResult_RequestAttributesMissing {
+  const _$DisclosureResult_RequestAttributesMissing(
       {required this.relyingParty, required final List<MissingAttribute> missingAttributes})
       : _missingAttributes = missingAttributes;
 
@@ -1342,14 +1227,14 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
 
   @override
   String toString() {
-    return 'DisclosureEvent.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes)';
+    return 'DisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureEvent_RequestAttributesMissing &&
+            other is _$DisclosureResult_RequestAttributesMissing &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
   }
@@ -1360,18 +1245,16 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureEvent_RequestAttributesMissingCopyWith<_$DisclosureEvent_RequestAttributesMissing> get copyWith =>
-      __$$DisclosureEvent_RequestAttributesMissingCopyWithImpl<_$DisclosureEvent_RequestAttributesMissing>(
+  _$$DisclosureResult_RequestAttributesMissingCopyWith<_$DisclosureResult_RequestAttributesMissing> get copyWith =>
+      __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<_$DisclosureResult_RequestAttributesMissing>(
           this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() fetchingRequest,
     required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
     required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
         requestAttributesMissing,
-    required TResult Function(String data) error,
   }) {
     return requestAttributesMissing(relyingParty, missingAttributes);
   }
@@ -1379,10 +1262,8 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? fetchingRequest,
     TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult? Function(String data)? error,
   }) {
     return requestAttributesMissing?.call(relyingParty, missingAttributes);
   }
@@ -1390,10 +1271,8 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? fetchingRequest,
     TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
     TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult Function(String data)? error,
     required TResult orElse(),
   }) {
     if (requestAttributesMissing != null) {
@@ -1405,10 +1284,8 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureEvent_FetchingRequest value) fetchingRequest,
-    required TResult Function(DisclosureEvent_Request value) request,
-    required TResult Function(DisclosureEvent_RequestAttributesMissing value) requestAttributesMissing,
-    required TResult Function(DisclosureEvent_Error value) error,
+    required TResult Function(DisclosureResult_Request value) request,
+    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) {
     return requestAttributesMissing(this);
   }
@@ -1416,10 +1293,8 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult? Function(DisclosureEvent_Request value)? request,
-    TResult? Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult? Function(DisclosureEvent_Error value)? error,
+    TResult? Function(DisclosureResult_Request value)? request,
+    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) {
     return requestAttributesMissing?.call(this);
   }
@@ -1427,10 +1302,8 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult Function(DisclosureEvent_Request value)? request,
-    TResult Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult Function(DisclosureEvent_Error value)? error,
+    TResult Function(DisclosureResult_Request value)? request,
+    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (requestAttributesMissing != null) {
@@ -1440,1078 +1313,18 @@ class _$DisclosureEvent_RequestAttributesMissing implements DisclosureEvent_Requ
   }
 }
 
-abstract class DisclosureEvent_RequestAttributesMissing implements DisclosureEvent {
-  const factory DisclosureEvent_RequestAttributesMissing(
+abstract class DisclosureResult_RequestAttributesMissing implements DisclosureResult {
+  const factory DisclosureResult_RequestAttributesMissing(
       {required final RelyingParty relyingParty,
-      required final List<MissingAttribute> missingAttributes}) = _$DisclosureEvent_RequestAttributesMissing;
+      required final List<MissingAttribute> missingAttributes}) = _$DisclosureResult_RequestAttributesMissing;
 
+  @override
   RelyingParty get relyingParty;
   List<MissingAttribute> get missingAttributes;
+  @override
   @JsonKey(ignore: true)
-  _$$DisclosureEvent_RequestAttributesMissingCopyWith<_$DisclosureEvent_RequestAttributesMissing> get copyWith =>
+  _$$DisclosureResult_RequestAttributesMissingCopyWith<_$DisclosureResult_RequestAttributesMissing> get copyWith =>
       throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$DisclosureEvent_ErrorCopyWith<$Res> {
-  factory _$$DisclosureEvent_ErrorCopyWith(_$DisclosureEvent_Error value, $Res Function(_$DisclosureEvent_Error) then) =
-      __$$DisclosureEvent_ErrorCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String data});
-}
-
-/// @nodoc
-class __$$DisclosureEvent_ErrorCopyWithImpl<$Res> extends _$DisclosureEventCopyWithImpl<$Res, _$DisclosureEvent_Error>
-    implements _$$DisclosureEvent_ErrorCopyWith<$Res> {
-  __$$DisclosureEvent_ErrorCopyWithImpl(_$DisclosureEvent_Error _value, $Res Function(_$DisclosureEvent_Error) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? data = null,
-  }) {
-    return _then(_$DisclosureEvent_Error(
-      data: null == data
-          ? _value.data
-          : data // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$DisclosureEvent_Error implements DisclosureEvent_Error {
-  const _$DisclosureEvent_Error({required this.data});
-
-  @override
-  final String data;
-
-  @override
-  String toString() {
-    return 'DisclosureEvent.error(data: $data)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$DisclosureEvent_Error &&
-            (identical(other.data, data) || other.data == data));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, data);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$DisclosureEvent_ErrorCopyWith<_$DisclosureEvent_Error> get copyWith =>
-      __$$DisclosureEvent_ErrorCopyWithImpl<_$DisclosureEvent_Error>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() fetchingRequest,
-    required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
-        requestAttributesMissing,
-    required TResult Function(String data) error,
-  }) {
-    return error(data);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? fetchingRequest,
-    TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult? Function(String data)? error,
-  }) {
-    return error?.call(data);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? fetchingRequest,
-    TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(data);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureEvent_FetchingRequest value) fetchingRequest,
-    required TResult Function(DisclosureEvent_Request value) request,
-    required TResult Function(DisclosureEvent_RequestAttributesMissing value) requestAttributesMissing,
-    required TResult Function(DisclosureEvent_Error value) error,
-  }) {
-    return error(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult? Function(DisclosureEvent_Request value)? request,
-    TResult? Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult? Function(DisclosureEvent_Error value)? error,
-  }) {
-    return error?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureEvent_FetchingRequest value)? fetchingRequest,
-    TResult Function(DisclosureEvent_Request value)? request,
-    TResult Function(DisclosureEvent_RequestAttributesMissing value)? requestAttributesMissing,
-    TResult Function(DisclosureEvent_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class DisclosureEvent_Error implements DisclosureEvent {
-  const factory DisclosureEvent_Error({required final String data}) = _$DisclosureEvent_Error;
-
-  String get data;
-  @JsonKey(ignore: true)
-  _$$DisclosureEvent_ErrorCopyWith<_$DisclosureEvent_Error> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$PidIssuanceEvent {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() authenticating,
-    required TResult Function(List<Card> previewCards) success,
-    required TResult Function(String data) error,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? authenticating,
-    TResult? Function(List<Card> previewCards)? success,
-    TResult? Function(String data)? error,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? authenticating,
-    TResult Function(List<Card> previewCards)? success,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
-    required TResult Function(PidIssuanceEvent_Success value) success,
-    required TResult Function(PidIssuanceEvent_Error value) error,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult? Function(PidIssuanceEvent_Success value)? success,
-    TResult? Function(PidIssuanceEvent_Error value)? error,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult Function(PidIssuanceEvent_Success value)? success,
-    TResult Function(PidIssuanceEvent_Error value)? error,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $PidIssuanceEventCopyWith<$Res> {
-  factory $PidIssuanceEventCopyWith(PidIssuanceEvent value, $Res Function(PidIssuanceEvent) then) =
-      _$PidIssuanceEventCopyWithImpl<$Res, PidIssuanceEvent>;
-}
-
-/// @nodoc
-class _$PidIssuanceEventCopyWithImpl<$Res, $Val extends PidIssuanceEvent> implements $PidIssuanceEventCopyWith<$Res> {
-  _$PidIssuanceEventCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-}
-
-/// @nodoc
-abstract class _$$PidIssuanceEvent_AuthenticatingCopyWith<$Res> {
-  factory _$$PidIssuanceEvent_AuthenticatingCopyWith(
-          _$PidIssuanceEvent_Authenticating value, $Res Function(_$PidIssuanceEvent_Authenticating) then) =
-      __$$PidIssuanceEvent_AuthenticatingCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$PidIssuanceEvent_AuthenticatingCopyWithImpl<$Res>
-    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Authenticating>
-    implements _$$PidIssuanceEvent_AuthenticatingCopyWith<$Res> {
-  __$$PidIssuanceEvent_AuthenticatingCopyWithImpl(
-      _$PidIssuanceEvent_Authenticating _value, $Res Function(_$PidIssuanceEvent_Authenticating) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$PidIssuanceEvent_Authenticating implements PidIssuanceEvent_Authenticating {
-  const _$PidIssuanceEvent_Authenticating();
-
-  @override
-  String toString() {
-    return 'PidIssuanceEvent.authenticating()';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$PidIssuanceEvent_Authenticating);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() authenticating,
-    required TResult Function(List<Card> previewCards) success,
-    required TResult Function(String data) error,
-  }) {
-    return authenticating();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? authenticating,
-    TResult? Function(List<Card> previewCards)? success,
-    TResult? Function(String data)? error,
-  }) {
-    return authenticating?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? authenticating,
-    TResult Function(List<Card> previewCards)? success,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) {
-    if (authenticating != null) {
-      return authenticating();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
-    required TResult Function(PidIssuanceEvent_Success value) success,
-    required TResult Function(PidIssuanceEvent_Error value) error,
-  }) {
-    return authenticating(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult? Function(PidIssuanceEvent_Success value)? success,
-    TResult? Function(PidIssuanceEvent_Error value)? error,
-  }) {
-    return authenticating?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult Function(PidIssuanceEvent_Success value)? success,
-    TResult Function(PidIssuanceEvent_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (authenticating != null) {
-      return authenticating(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class PidIssuanceEvent_Authenticating implements PidIssuanceEvent {
-  const factory PidIssuanceEvent_Authenticating() = _$PidIssuanceEvent_Authenticating;
-}
-
-/// @nodoc
-abstract class _$$PidIssuanceEvent_SuccessCopyWith<$Res> {
-  factory _$$PidIssuanceEvent_SuccessCopyWith(
-          _$PidIssuanceEvent_Success value, $Res Function(_$PidIssuanceEvent_Success) then) =
-      __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>;
-  @useResult
-  $Res call({List<Card> previewCards});
-}
-
-/// @nodoc
-class __$$PidIssuanceEvent_SuccessCopyWithImpl<$Res>
-    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Success>
-    implements _$$PidIssuanceEvent_SuccessCopyWith<$Res> {
-  __$$PidIssuanceEvent_SuccessCopyWithImpl(
-      _$PidIssuanceEvent_Success _value, $Res Function(_$PidIssuanceEvent_Success) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? previewCards = null,
-  }) {
-    return _then(_$PidIssuanceEvent_Success(
-      previewCards: null == previewCards
-          ? _value._previewCards
-          : previewCards // ignore: cast_nullable_to_non_nullable
-              as List<Card>,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$PidIssuanceEvent_Success implements PidIssuanceEvent_Success {
-  const _$PidIssuanceEvent_Success({required final List<Card> previewCards}) : _previewCards = previewCards;
-
-  final List<Card> _previewCards;
-  @override
-  List<Card> get previewCards {
-    if (_previewCards is EqualUnmodifiableListView) return _previewCards;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_previewCards);
-  }
-
-  @override
-  String toString() {
-    return 'PidIssuanceEvent.success(previewCards: $previewCards)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PidIssuanceEvent_Success &&
-            const DeepCollectionEquality().equals(other._previewCards, _previewCards));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(_previewCards));
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PidIssuanceEvent_SuccessCopyWith<_$PidIssuanceEvent_Success> get copyWith =>
-      __$$PidIssuanceEvent_SuccessCopyWithImpl<_$PidIssuanceEvent_Success>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() authenticating,
-    required TResult Function(List<Card> previewCards) success,
-    required TResult Function(String data) error,
-  }) {
-    return success(previewCards);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? authenticating,
-    TResult? Function(List<Card> previewCards)? success,
-    TResult? Function(String data)? error,
-  }) {
-    return success?.call(previewCards);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? authenticating,
-    TResult Function(List<Card> previewCards)? success,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) {
-    if (success != null) {
-      return success(previewCards);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
-    required TResult Function(PidIssuanceEvent_Success value) success,
-    required TResult Function(PidIssuanceEvent_Error value) error,
-  }) {
-    return success(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult? Function(PidIssuanceEvent_Success value)? success,
-    TResult? Function(PidIssuanceEvent_Error value)? error,
-  }) {
-    return success?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult Function(PidIssuanceEvent_Success value)? success,
-    TResult Function(PidIssuanceEvent_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (success != null) {
-      return success(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class PidIssuanceEvent_Success implements PidIssuanceEvent {
-  const factory PidIssuanceEvent_Success({required final List<Card> previewCards}) = _$PidIssuanceEvent_Success;
-
-  List<Card> get previewCards;
-  @JsonKey(ignore: true)
-  _$$PidIssuanceEvent_SuccessCopyWith<_$PidIssuanceEvent_Success> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$PidIssuanceEvent_ErrorCopyWith<$Res> {
-  factory _$$PidIssuanceEvent_ErrorCopyWith(
-          _$PidIssuanceEvent_Error value, $Res Function(_$PidIssuanceEvent_Error) then) =
-      __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String data});
-}
-
-/// @nodoc
-class __$$PidIssuanceEvent_ErrorCopyWithImpl<$Res>
-    extends _$PidIssuanceEventCopyWithImpl<$Res, _$PidIssuanceEvent_Error>
-    implements _$$PidIssuanceEvent_ErrorCopyWith<$Res> {
-  __$$PidIssuanceEvent_ErrorCopyWithImpl(_$PidIssuanceEvent_Error _value, $Res Function(_$PidIssuanceEvent_Error) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? data = null,
-  }) {
-    return _then(_$PidIssuanceEvent_Error(
-      data: null == data
-          ? _value.data
-          : data // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$PidIssuanceEvent_Error implements PidIssuanceEvent_Error {
-  const _$PidIssuanceEvent_Error({required this.data});
-
-  @override
-  final String data;
-
-  @override
-  String toString() {
-    return 'PidIssuanceEvent.error(data: $data)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PidIssuanceEvent_Error &&
-            (identical(other.data, data) || other.data == data));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, data);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PidIssuanceEvent_ErrorCopyWith<_$PidIssuanceEvent_Error> get copyWith =>
-      __$$PidIssuanceEvent_ErrorCopyWithImpl<_$PidIssuanceEvent_Error>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() authenticating,
-    required TResult Function(List<Card> previewCards) success,
-    required TResult Function(String data) error,
-  }) {
-    return error(data);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? authenticating,
-    TResult? Function(List<Card> previewCards)? success,
-    TResult? Function(String data)? error,
-  }) {
-    return error?.call(data);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? authenticating,
-    TResult Function(List<Card> previewCards)? success,
-    TResult Function(String data)? error,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(data);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent_Authenticating value) authenticating,
-    required TResult Function(PidIssuanceEvent_Success value) success,
-    required TResult Function(PidIssuanceEvent_Error value) error,
-  }) {
-    return error(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult? Function(PidIssuanceEvent_Success value)? success,
-    TResult? Function(PidIssuanceEvent_Error value)? error,
-  }) {
-    return error?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent_Authenticating value)? authenticating,
-    TResult Function(PidIssuanceEvent_Success value)? success,
-    TResult Function(PidIssuanceEvent_Error value)? error,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class PidIssuanceEvent_Error implements PidIssuanceEvent {
-  const factory PidIssuanceEvent_Error({required final String data}) = _$PidIssuanceEvent_Error;
-
-  String get data;
-  @JsonKey(ignore: true)
-  _$$PidIssuanceEvent_ErrorCopyWith<_$PidIssuanceEvent_Error> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$ProcessUriEvent {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent event) pidIssuance,
-    required TResult Function(DisclosureEvent event) disclosure,
-    required TResult Function() unknownUri,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent event)? pidIssuance,
-    TResult? Function(DisclosureEvent event)? disclosure,
-    TResult? Function()? unknownUri,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent event)? pidIssuance,
-    TResult Function(DisclosureEvent event)? disclosure,
-    TResult Function()? unknownUri,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
-    required TResult Function(ProcessUriEvent_Disclosure value) disclosure,
-    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult? Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ProcessUriEventCopyWith<$Res> {
-  factory $ProcessUriEventCopyWith(ProcessUriEvent value, $Res Function(ProcessUriEvent) then) =
-      _$ProcessUriEventCopyWithImpl<$Res, ProcessUriEvent>;
-}
-
-/// @nodoc
-class _$ProcessUriEventCopyWithImpl<$Res, $Val extends ProcessUriEvent> implements $ProcessUriEventCopyWith<$Res> {
-  _$ProcessUriEventCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-}
-
-/// @nodoc
-abstract class _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> {
-  factory _$$ProcessUriEvent_PidIssuanceCopyWith(
-          _$ProcessUriEvent_PidIssuance value, $Res Function(_$ProcessUriEvent_PidIssuance) then) =
-      __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>;
-  @useResult
-  $Res call({PidIssuanceEvent event});
-
-  $PidIssuanceEventCopyWith<$Res> get event;
-}
-
-/// @nodoc
-class __$$ProcessUriEvent_PidIssuanceCopyWithImpl<$Res>
-    extends _$ProcessUriEventCopyWithImpl<$Res, _$ProcessUriEvent_PidIssuance>
-    implements _$$ProcessUriEvent_PidIssuanceCopyWith<$Res> {
-  __$$ProcessUriEvent_PidIssuanceCopyWithImpl(
-      _$ProcessUriEvent_PidIssuance _value, $Res Function(_$ProcessUriEvent_PidIssuance) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? event = null,
-  }) {
-    return _then(_$ProcessUriEvent_PidIssuance(
-      event: null == event
-          ? _value.event
-          : event // ignore: cast_nullable_to_non_nullable
-              as PidIssuanceEvent,
-    ));
-  }
-
-  @override
-  @pragma('vm:prefer-inline')
-  $PidIssuanceEventCopyWith<$Res> get event {
-    return $PidIssuanceEventCopyWith<$Res>(_value.event, (value) {
-      return _then(_value.copyWith(event: value));
-    });
-  }
-}
-
-/// @nodoc
-
-class _$ProcessUriEvent_PidIssuance implements ProcessUriEvent_PidIssuance {
-  const _$ProcessUriEvent_PidIssuance({required this.event});
-
-  @override
-  final PidIssuanceEvent event;
-
-  @override
-  String toString() {
-    return 'ProcessUriEvent.pidIssuance(event: $event)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProcessUriEvent_PidIssuance &&
-            (identical(other.event, event) || other.event == event));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, event);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
-      __$$ProcessUriEvent_PidIssuanceCopyWithImpl<_$ProcessUriEvent_PidIssuance>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent event) pidIssuance,
-    required TResult Function(DisclosureEvent event) disclosure,
-    required TResult Function() unknownUri,
-  }) {
-    return pidIssuance(event);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent event)? pidIssuance,
-    TResult? Function(DisclosureEvent event)? disclosure,
-    TResult? Function()? unknownUri,
-  }) {
-    return pidIssuance?.call(event);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent event)? pidIssuance,
-    TResult Function(DisclosureEvent event)? disclosure,
-    TResult Function()? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (pidIssuance != null) {
-      return pidIssuance(event);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
-    required TResult Function(ProcessUriEvent_Disclosure value) disclosure,
-    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
-  }) {
-    return pidIssuance(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult? Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-  }) {
-    return pidIssuance?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (pidIssuance != null) {
-      return pidIssuance(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class ProcessUriEvent_PidIssuance implements ProcessUriEvent {
-  const factory ProcessUriEvent_PidIssuance({required final PidIssuanceEvent event}) = _$ProcessUriEvent_PidIssuance;
-
-  PidIssuanceEvent get event;
-  @JsonKey(ignore: true)
-  _$$ProcessUriEvent_PidIssuanceCopyWith<_$ProcessUriEvent_PidIssuance> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$ProcessUriEvent_DisclosureCopyWith<$Res> {
-  factory _$$ProcessUriEvent_DisclosureCopyWith(
-          _$ProcessUriEvent_Disclosure value, $Res Function(_$ProcessUriEvent_Disclosure) then) =
-      __$$ProcessUriEvent_DisclosureCopyWithImpl<$Res>;
-  @useResult
-  $Res call({DisclosureEvent event});
-
-  $DisclosureEventCopyWith<$Res> get event;
-}
-
-/// @nodoc
-class __$$ProcessUriEvent_DisclosureCopyWithImpl<$Res>
-    extends _$ProcessUriEventCopyWithImpl<$Res, _$ProcessUriEvent_Disclosure>
-    implements _$$ProcessUriEvent_DisclosureCopyWith<$Res> {
-  __$$ProcessUriEvent_DisclosureCopyWithImpl(
-      _$ProcessUriEvent_Disclosure _value, $Res Function(_$ProcessUriEvent_Disclosure) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? event = null,
-  }) {
-    return _then(_$ProcessUriEvent_Disclosure(
-      event: null == event
-          ? _value.event
-          : event // ignore: cast_nullable_to_non_nullable
-              as DisclosureEvent,
-    ));
-  }
-
-  @override
-  @pragma('vm:prefer-inline')
-  $DisclosureEventCopyWith<$Res> get event {
-    return $DisclosureEventCopyWith<$Res>(_value.event, (value) {
-      return _then(_value.copyWith(event: value));
-    });
-  }
-}
-
-/// @nodoc
-
-class _$ProcessUriEvent_Disclosure implements ProcessUriEvent_Disclosure {
-  const _$ProcessUriEvent_Disclosure({required this.event});
-
-  @override
-  final DisclosureEvent event;
-
-  @override
-  String toString() {
-    return 'ProcessUriEvent.disclosure(event: $event)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProcessUriEvent_Disclosure &&
-            (identical(other.event, event) || other.event == event));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, event);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProcessUriEvent_DisclosureCopyWith<_$ProcessUriEvent_Disclosure> get copyWith =>
-      __$$ProcessUriEvent_DisclosureCopyWithImpl<_$ProcessUriEvent_Disclosure>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent event) pidIssuance,
-    required TResult Function(DisclosureEvent event) disclosure,
-    required TResult Function() unknownUri,
-  }) {
-    return disclosure(event);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent event)? pidIssuance,
-    TResult? Function(DisclosureEvent event)? disclosure,
-    TResult? Function()? unknownUri,
-  }) {
-    return disclosure?.call(event);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent event)? pidIssuance,
-    TResult Function(DisclosureEvent event)? disclosure,
-    TResult Function()? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (disclosure != null) {
-      return disclosure(event);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
-    required TResult Function(ProcessUriEvent_Disclosure value) disclosure,
-    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
-  }) {
-    return disclosure(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult? Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-  }) {
-    return disclosure?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (disclosure != null) {
-      return disclosure(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class ProcessUriEvent_Disclosure implements ProcessUriEvent {
-  const factory ProcessUriEvent_Disclosure({required final DisclosureEvent event}) = _$ProcessUriEvent_Disclosure;
-
-  DisclosureEvent get event;
-  @JsonKey(ignore: true)
-  _$$ProcessUriEvent_DisclosureCopyWith<_$ProcessUriEvent_Disclosure> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$ProcessUriEvent_UnknownUriCopyWith<$Res> {
-  factory _$$ProcessUriEvent_UnknownUriCopyWith(
-          _$ProcessUriEvent_UnknownUri value, $Res Function(_$ProcessUriEvent_UnknownUri) then) =
-      __$$ProcessUriEvent_UnknownUriCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$ProcessUriEvent_UnknownUriCopyWithImpl<$Res>
-    extends _$ProcessUriEventCopyWithImpl<$Res, _$ProcessUriEvent_UnknownUri>
-    implements _$$ProcessUriEvent_UnknownUriCopyWith<$Res> {
-  __$$ProcessUriEvent_UnknownUriCopyWithImpl(
-      _$ProcessUriEvent_UnknownUri _value, $Res Function(_$ProcessUriEvent_UnknownUri) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$ProcessUriEvent_UnknownUri implements ProcessUriEvent_UnknownUri {
-  const _$ProcessUriEvent_UnknownUri();
-
-  @override
-  String toString() {
-    return 'ProcessUriEvent.unknownUri()';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$ProcessUriEvent_UnknownUri);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(PidIssuanceEvent event) pidIssuance,
-    required TResult Function(DisclosureEvent event) disclosure,
-    required TResult Function() unknownUri,
-  }) {
-    return unknownUri();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(PidIssuanceEvent event)? pidIssuance,
-    TResult? Function(DisclosureEvent event)? disclosure,
-    TResult? Function()? unknownUri,
-  }) {
-    return unknownUri?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(PidIssuanceEvent event)? pidIssuance,
-    TResult Function(DisclosureEvent event)? disclosure,
-    TResult Function()? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (unknownUri != null) {
-      return unknownUri();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(ProcessUriEvent_PidIssuance value) pidIssuance,
-    required TResult Function(ProcessUriEvent_Disclosure value) disclosure,
-    required TResult Function(ProcessUriEvent_UnknownUri value) unknownUri,
-  }) {
-    return unknownUri(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult? Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult? Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-  }) {
-    return unknownUri?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(ProcessUriEvent_PidIssuance value)? pidIssuance,
-    TResult Function(ProcessUriEvent_Disclosure value)? disclosure,
-    TResult Function(ProcessUriEvent_UnknownUri value)? unknownUri,
-    required TResult orElse(),
-  }) {
-    if (unknownUri != null) {
-      return unknownUri(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class ProcessUriEvent_UnknownUri implements ProcessUriEvent {
-  const factory ProcessUriEvent_UnknownUri() = _$ProcessUriEvent_UnknownUri;
 }
 
 /// @nodoc
