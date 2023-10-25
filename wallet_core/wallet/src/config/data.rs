@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use base64::prelude::*;
+use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use url::Url;
 
 use nl_wallet_mdoc::{holder::TrustAnchor, utils::x509::OwnedTrustAnchor};
@@ -84,19 +85,23 @@ impl Default for Configuration {
             },
             account_server: AccountServerConfiguration {
                 base_url: Url::parse(config_default!(BASE_URL)).unwrap(),
-                certificate_public_key: EcdsaDecodingKey::from_sec1(
+                certificate_public_key: VerifyingKey::from_public_key_der(
                     &BASE64_STANDARD.decode(config_default!(CERTIFICATE_PUBLIC_KEY)).unwrap(),
-                ),
-                instruction_result_public_key: EcdsaDecodingKey::from_sec1(
+                )
+                .unwrap()
+                .into(),
+                instruction_result_public_key: VerifyingKey::from_public_key_der(
                     &BASE64_STANDARD
                         .decode(config_default!(INSTRUCTION_RESULT_PUBLIC_KEY))
                         .unwrap(),
-                ),
+                )
+                .unwrap()
+                .into(),
             },
             pid_issuance: PidIssuanceConfiguration {
                 pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
                 digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
-                digid_client_id: config_default!(DIGID_CLIENT_ID).to_string(),
+                digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
                 digid_redirect_uri: Url::parse(config_default!(WALLET_REDIRECT_URI)).unwrap(),
             },
             mdoc_trust_anchors: config_default!(TRUST_ANCHOR_CERTS)
