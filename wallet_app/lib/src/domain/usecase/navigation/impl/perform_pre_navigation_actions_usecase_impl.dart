@@ -1,3 +1,4 @@
+import '../../../../navigation/secured_page_route.dart';
 import '../../wallet/setup_mocked_wallet_usecase.dart';
 import '../perform_pre_navigation_actions_usecase.dart';
 
@@ -13,6 +14,8 @@ class PerformPreNavigationActionsUseCaseImpl implements PerformPreNavigationActi
         case PreNavigationAction.setupMockedWallet:
           await _setupMockedWalletUseCase.invoke();
           break;
+        case PreNavigationAction.disableUpcomingPageTransition:
+          SecuredPageRoute.overrideDurationOfNextTransition(Duration.zero);
       }
     }
   }

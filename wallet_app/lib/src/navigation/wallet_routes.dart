@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../environment.dart';
 import '../data/service/deeplink_service.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -17,7 +18,9 @@ import '../feature/card/overview/bloc/card_overview_bloc.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/disclosure/bloc/core_disclosure_bloc.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
+import '../feature/disclosure/bloc/mock_disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
 import '../feature/history/detail/bloc/history_detail_bloc.dart';
@@ -54,6 +57,7 @@ import '../feature/splash/splash_screen.dart';
 import '../feature/theme/theme_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
+import '../util/cast_util.dart';
 import 'secured_page_route.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
@@ -165,7 +169,7 @@ class WalletRoutes {
       case WalletRoutes.signRoute:
         return _createSignScreenBuilder(settings);
       case WalletRoutes.walletPersonalizeRoute:
-        return _createWalletPersonalizeScreenBuilder;
+        return _createWalletPersonalizeScreenBuilder(settings);
       case WalletRoutes.walletHistoryRoute:
         return _createHistoryOverviewScreenBuilder;
       case WalletRoutes.historyDetailRoute:
@@ -274,16 +278,30 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
 Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
 WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
-  String sessionId = DisclosureScreen.getArguments(settings);
-  return (context) {
-    return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) {
-        return DisclosureBloc(context.read(), context.read(), context.read(), context.read())
-          ..add(DisclosureLoadRequested(sessionId));
-      },
-      child: const DisclosureScreen(),
-    );
-  };
+  if (Environment.mockRepositories) {
+    String sessionId = DisclosureScreen.getArguments(settings);
+    return (context) {
+      return BlocProvider<DisclosureBloc>(
+        create: (BuildContext context) {
+          return MockDisclosureBloc(context.read(), context.read(), context.read(), context.read())
+            ..add(DisclosureLoadRequested(sessionId));
+        },
+        child: const DisclosureScreen(),
+      );
+    };
+  } else {
+    Uri disclosureUri = settings.arguments as Uri;
+    return (context) {
+      return BlocProvider<DisclosureBloc>(
+        create: (BuildContext context) => CoreDisclosureBloc(
+          disclosureUri,
+          context.read(),
+          context.read(),
+        ),
+        child: const DisclosureScreen(),
+      );
+    };
+  }
 }
 
 WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
@@ -318,17 +336,22 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
   };
 }
 
-Widget _createWalletPersonalizeScreenBuilder(BuildContext context) {
-  return BlocProvider<WalletPersonalizeBloc>(
-    create: (BuildContext context) => WalletPersonalizeBloc(
-      context.read(),
-      context.read(),
-      context.read(),
-      context.read(),
-      context.read(),
-    ),
-    child: const WalletPersonalizeScreen(),
-  );
+WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
+  return (context) {
+    Uri? argument = tryCast<Uri>(settings.arguments);
+
+    return BlocProvider<WalletPersonalizeBloc>(
+      create: (BuildContext context) => WalletPersonalizeBloc(
+        argument,
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+      ),
+      child: const WalletPersonalizeScreen(),
+    );
+  };
 }
 
 Widget _createHistoryOverviewScreenBuilder(BuildContext context) {

@@ -1,4 +1,11 @@
-class NavigationRequest {
+import '../../../navigation/wallet_routes.dart';
+import 'navigation_prerequisite.dart';
+import 'pre_navigation_action.dart';
+
+export 'navigation_prerequisite.dart';
+export 'pre_navigation_action.dart';
+
+sealed class NavigationRequest {
   /// The destination route to navigate to
   final String destination;
 
@@ -24,8 +31,44 @@ class NavigationRequest {
   }
 }
 
-// The requirements that need to be fulfilled before the wallet can navigate
-enum NavigationPrerequisite { walletUnlocked, walletInitialized, pidInitialized }
+class GenericNavigationRequest extends NavigationRequest {
+  GenericNavigationRequest(
+    String destination, {
+    Object? argument,
+    List<NavigationPrerequisite> navigatePrerequisites = const [],
+    List<PreNavigationAction> preNavigationActions = const [],
+  }) : super(
+          destination,
+          argument: argument,
+          navigatePrerequisites: navigatePrerequisites,
+          preNavigationActions: preNavigationActions,
+        );
+}
 
-// The action that needs to be performed before navigating
-enum PreNavigationAction { setupMockedWallet }
+class PidIssuanceNavigationRequest extends NavigationRequest {
+  PidIssuanceNavigationRequest(Uri uri)
+      : super(
+          WalletRoutes.walletPersonalizeRoute,
+          argument: uri,
+          navigatePrerequisites: [
+            NavigationPrerequisite.walletUnlocked,
+            NavigationPrerequisite.walletInitialized,
+          ],
+          preNavigationActions: [
+            PreNavigationAction.disableUpcomingPageTransition,
+          ],
+        );
+}
+
+class DisclosureNavigationRequest extends NavigationRequest {
+  DisclosureNavigationRequest(Uri uri)
+      : super(
+          WalletRoutes.disclosureRoute,
+          argument: uri,
+          navigatePrerequisites: [
+            NavigationPrerequisite.walletUnlocked,
+            NavigationPrerequisite.walletInitialized,
+            NavigationPrerequisite.pidInitialized,
+          ],
+        );
+}

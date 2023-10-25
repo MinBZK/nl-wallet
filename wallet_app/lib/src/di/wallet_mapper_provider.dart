@@ -1,18 +1,23 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/repository/organization/organization_repository.dart';
 import '../domain/model/attribute/data_attribute.dart';
+import '../domain/model/attribute/requested_attribute.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_label_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
+import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
 import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
+import '../util/mapper/card/requested_card_mapper.dart';
 import '../util/mapper/locale_mapper.dart';
 import '../util/mapper/mapper.dart';
+import '../util/mapper/organization/relying_party_mapper.dart';
 import '../util/mapper/pid/core_pid_attribute_mapper.dart';
 import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
 import '../util/mapper/pid/pid_attribute_mapper.dart';
@@ -46,6 +51,9 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<LocaleMapper<CardAttribute, DataAttribute>>(
           create: (context) => CardAttributeMapper(context.read(), context.read()),
         ),
+        RepositoryProvider<LocaleMapper<MissingAttribute, RequestedAttribute>>(
+          create: (context) => MissingAttributeMapper(context.read()),
+        ),
 
         /// Card mappers
         RepositoryProvider<LocaleMapper<Card, String>>(
@@ -56,6 +64,14 @@ class WalletMapperProvider extends StatelessWidget {
         ),
         RepositoryProvider<LocaleMapper<Card, WalletCard>>(
           create: (context) => CardMapper(context.read(), context.read()),
+        ),
+        RepositoryProvider<LocaleMapper<RequestedCard, WalletCard>>(
+          create: (context) => RequestedCardMapper(context.read(), context.read()),
+        ),
+
+        /// Organization / Relying party mappers
+        RepositoryProvider<Mapper<RelyingParty, Organization>>(
+          create: (context) => RelyingPartyMapper(),
         ),
 
         /// Pid mappers

@@ -1,5 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
+import '../../../data/repository/organization/organization_repository.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/duration_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
@@ -7,7 +12,6 @@ import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../policy/policy_screen.dart';
-import '../model/disclosure_flow.dart';
 import '../widget/card_attribute_row.dart';
 
 const _kStorageDurationInMonthsFallback = 3;
@@ -16,13 +20,20 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
   final VoidCallback? onReportIssuePressed;
-  final DisclosureFlow flow;
+
+  final Organization relyingParty;
+  final Map<WalletCard, List<DataAttribute>> availableAttributes;
+  final Policy policy;
+
+  int get totalNrOfAttributes => availableAttributes.values.map((attributes) => attributes.length).sum;
 
   const DisclosureConfirmDataAttributesPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     this.onReportIssuePressed,
-    required this.flow,
+    required this.relyingParty,
+    required this.availableAttributes,
+    required this.policy,
     Key? key,
   }) : super(key: key);
 
@@ -43,7 +54,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               title: Text(context.l10n.disclosureConfirmDataAttributesCheckAttributesCta),
               onTap: () => CheckAttributesScreen.show(
                 context,
-                flow.availableAttributes,
+                availableAttributes,
                 onDataIncorrectPressed: () {
                   Navigator.pop(context);
                   onReportIssuePressed?.call();
@@ -66,9 +77,9 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
 
   Widget _buildConditionsRow(BuildContext context) {
     // currently defaults to 3 months for mocks with undefined storageDuration
-    final storageDurationInMonths = flow.policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
+    final storageDurationInMonths = policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
     final String subtitle;
-    if (flow.policy.dataIsShared) {
+    if (policy.dataIsShared) {
       subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
     } else {
       subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
@@ -80,7 +91,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       subtitle: Text(subtitle),
       onTap: () => PolicyScreen.show(
         context,
-        flow.policy,
+        policy,
         onReportIssuePressed: onReportIssuePressed,
       ),
     );
@@ -94,13 +105,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              context.l10n.disclosureConfirmDataAttributesShareWithTitle(flow.organization.name),
+              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.name),
               style: context.textTheme.bodySmall,
               textAlign: TextAlign.start,
             ),
             const SizedBox(height: 8),
             Text(
-              context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(flow.resolvedAttributes.length),
+              context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(totalNrOfAttributes),
               style: context.textTheme.displayMedium,
               textAlign: TextAlign.start,
             ),
@@ -111,13 +122,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
-    final entries = flow.availableAttributes.entries.toList();
+    final entries = availableAttributes.entries.toList();
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: CardAttributeRow(entry: entries[index]),
       ),
-      childCount: flow.availableAttributes.length,
+      childCount: availableAttributes.length,
     );
   }
 

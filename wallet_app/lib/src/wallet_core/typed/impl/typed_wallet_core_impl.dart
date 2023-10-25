@@ -120,6 +120,9 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   @override
+  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+
+  @override
   Future<String> createPidIssuanceRedirectUri() async {
     try {
       return await _walletCore.createPidIssuanceRedirectUri();
@@ -129,9 +132,9 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Stream<ProcessUriEvent> processUri(Uri uri) {
+  Future<IdentifyUriResult> identifyUri(String uri) async {
     try {
-      return _walletCore.processUri(uri: uri.toString());
+      return await _walletCore.identifyUri(uri: uri);
     } catch (ex) {
       throw _handleCoreException(ex);
     }
@@ -147,7 +150,13 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+  Future<List<Card>> continuePidIssuance(Uri uri) async {
+    try {
+      return await _walletCore.continuePidIssuance(uri: uri.toString());
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
 
   @override
   Future<WalletInstructionResult> acceptOfferedPid(String pin) async {
@@ -162,6 +171,33 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<void> rejectOfferedPid() async {
     try {
       return await _walletCore.rejectPidIssuance();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
+  Future<DisclosureResult> startDisclosure(Uri uri) async {
+    try {
+      return await _walletCore.startDisclosure(uri: uri.toString());
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
+  Future<void> cancelDisclosure() async {
+    try {
+      return await _walletCore.cancelDisclosure();
+    } catch (ex) {
+      throw _handleCoreException(ex);
+    }
+  }
+
+  @override
+  Future<WalletInstructionResult> acceptDisclosure(String pin) async {
+    try {
+      return await _walletCore.acceptDisclosure(pin: pin);
     } catch (ex) {
       throw _handleCoreException(ex);
     }
@@ -184,9 +220,19 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   /// the original exception.
   Object _handleCoreException(Object ex) {
     try {
-      final ffiException = ex as FfiException;
-      if (ffiException.code != 'RESULT_ERROR') return ex;
-      return _errorMapper.map(ffiException.message);
+      var coreErrorJson = '';
+      if (ex is FrbAnyhowException) {
+        Fimber.e('FrbAnyhowException contents: ${ex.anyhow}');
+        coreErrorJson = ex.anyhow;
+      } else if (ex is FfiException) {
+        Fimber.e('FfiException contents. Code: ${ex.code}, Message: ${ex.message}');
+        if (ex.code != 'RESULT_ERROR') return ex;
+        coreErrorJson = ex.message;
+      } else if (ex is String) {
+        Fimber.e('String type exception. Contents: $ex');
+        coreErrorJson = ex;
+      }
+      return _errorMapper.map(coreErrorJson);
     } catch (mapException) {
       Fimber.e('Failed to map exception to CoreError, returning original exception', ex: mapException);
       return ex;

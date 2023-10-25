@@ -52,15 +52,23 @@ void wire_has_registration(int64_t port_);
 
 void wire_register(int64_t port_, struct wire_uint_8_list *pin);
 
+void wire_identify_uri(int64_t port_, struct wire_uint_8_list *uri);
+
 void wire_create_pid_issuance_redirect_uri(int64_t port_);
 
 void wire_cancel_pid_issuance(int64_t port_);
 
-void wire_process_uri(int64_t port_, struct wire_uint_8_list *uri);
+void wire_continue_pid_issuance(int64_t port_, struct wire_uint_8_list *uri);
 
 void wire_accept_pid_issuance(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_reject_pid_issuance(int64_t port_);
+
+void wire_start_disclosure(int64_t port_, struct wire_uint_8_list *uri);
+
+void wire_cancel_disclosure(int64_t port_);
+
+void wire_accept_disclosure(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_reset_wallet(int64_t port_);
 
@@ -83,11 +91,15 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_lock_wallet);
     dummy_var ^= ((int64_t) (void*) wire_has_registration);
     dummy_var ^= ((int64_t) (void*) wire_register);
+    dummy_var ^= ((int64_t) (void*) wire_identify_uri);
     dummy_var ^= ((int64_t) (void*) wire_create_pid_issuance_redirect_uri);
     dummy_var ^= ((int64_t) (void*) wire_cancel_pid_issuance);
-    dummy_var ^= ((int64_t) (void*) wire_process_uri);
+    dummy_var ^= ((int64_t) (void*) wire_continue_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_accept_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_reject_pid_issuance);
+    dummy_var ^= ((int64_t) (void*) wire_start_disclosure);
+    dummy_var ^= ((int64_t) (void*) wire_cancel_disclosure);
+    dummy_var ^= ((int64_t) (void*) wire_accept_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_reset_wallet);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
     dummy_var ^= ((int64_t) (void*) free_WireSyncReturn);

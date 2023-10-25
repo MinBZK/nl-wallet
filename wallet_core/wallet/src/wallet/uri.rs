@@ -24,7 +24,7 @@ where
     D: DigidSession,
 {
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
-        info!("Idetifying type of URI: {}", uri_str);
+        info!("Identifying type of URI: {}", uri_str);
 
         let uri = Url::parse(uri_str)?;
 

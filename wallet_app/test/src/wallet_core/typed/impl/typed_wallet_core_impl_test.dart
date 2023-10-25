@@ -81,12 +81,11 @@ void main() {
     });
   });
 
-  group('processUri', () {
-    test('process uri is passed on to core', () async {
-      const stringUri = 'https://example.org';
-      final uri = Uri.parse(stringUri);
-      typedWalletCore.processUri(uri);
-      verify(core.processUri(uri: stringUri)).called(1);
+  group('identifyUri', () {
+    test('identify uri is passed on to core', () async {
+      const uri = 'https://example.org';
+      await typedWalletCore.identifyUri(uri);
+      verify(core.identifyUri(uri: uri)).called(1);
     });
   });
 
@@ -214,9 +213,9 @@ void main() {
       expect(() async => await typedWalletCore.createPidIssuanceRedirectUri(), throwsA(isA<CoreError>()));
     });
 
-    test('processUri', () async {
-      when(core.processUri(uri: 'https://example.org')).thenThrow(ffiException);
-      expect(() => typedWalletCore.processUri(Uri.parse('https://example.org')), throwsA(isA<CoreError>()));
+    test('identifyUri', () async {
+      when(core.identifyUri(uri: 'https://example.org')).thenThrow(ffiException);
+      expect(() => typedWalletCore.identifyUri('https://example.org'), throwsA(isA<CoreError>()));
     });
 
     test('cancelPidIssuance', () async {

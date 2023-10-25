@@ -2,6 +2,9 @@ part of 'disclosure_bloc.dart';
 
 abstract class DisclosureEvent extends Equatable {
   const DisclosureEvent();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class DisclosureLoadRequested extends DisclosureEvent {
@@ -15,16 +18,10 @@ class DisclosureLoadRequested extends DisclosureEvent {
 
 class DisclosureOrganizationApproved extends DisclosureEvent {
   const DisclosureOrganizationApproved();
-
-  @override
-  List<Object?> get props => [];
 }
 
 class DisclosureShareRequestedAttributesApproved extends DisclosureEvent {
   const DisclosureShareRequestedAttributesApproved();
-
-  @override
-  List<Object?> get props => [];
 }
 
 class DisclosurePinConfirmed extends DisclosureEvent {
@@ -33,14 +30,11 @@ class DisclosurePinConfirmed extends DisclosureEvent {
   const DisclosurePinConfirmed(this.flow);
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [flow];
 }
 
 class DisclosureBackPressed extends DisclosureEvent {
   const DisclosureBackPressed();
-
-  @override
-  List<Object?> get props => [];
 }
 
 class DisclosureStopRequested extends DisclosureEvent {
@@ -60,4 +54,13 @@ class DisclosureReportPressed extends DisclosureEvent {
 
   @override
   List<Object?> get props => [flow, option];
+}
+
+class DisclosureUpdateState extends DisclosureEvent {
+  final DisclosureState state;
+
+  const DisclosureUpdateState(this.state);
+
+  @override
+  List<Object?> get props => [state];
 }
