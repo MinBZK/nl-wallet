@@ -11,10 +11,16 @@ use wallet_common::account::jwt::EcdsaDecodingKey;
 // when the `env_config` feature is enabled. Additionally, environment variables can
 // be added to using a file named `.env` in root directory of this crate.
 const BASE_URL: &str = "http://localhost:3000/api/v1/";
-const CERTIFICATE_PUBLIC_KEY: &str = "";
+
+// todo: this is now a random public_key to ensure the accountserver configuration contains legal values. Can we actually have a default for this?
+const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyUoWZT/C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
+
 const DIGID_CLIENT_ID: &str = "";
 const DIGID_URL: &str = "https://localhost/8006/";
-const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "";
+
+// todo: this is now a random public_key to ensure the accountserver configuration contains legal values. Can we actually have a default for this?
+const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttykoP/iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
+
 const PID_ISSUER_URL: &str = "http://localhost:3003/";
 const TRUST_ANCHOR_CERTS: &str = "MIIBgDCCASagAwIBAgIUA21zb+2cuU3O3IHdqIWQNWF6+fwwCgYIKoZIzj0EAwIwDzENMAsGA1UEAwwE\
                                   bXljYTAeFw0yMzA4MTAxNTEwNDBaFw0yNDA4MDkxNTEwNDBaMA8xDTALBgNVBAMMBG15Y2EwWTATBgcq\
