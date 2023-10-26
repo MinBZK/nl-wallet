@@ -10,6 +10,7 @@ mod uri;
 #[cfg(test)]
 mod tests;
 
+use nl_wallet_mdoc::holder::DisclosureSession;
 use tokio::sync::RwLock;
 
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
@@ -18,7 +19,6 @@ use crate::{
     account_provider::HttpAccountProviderClient,
     config::LocalConfigurationRepository,
     digid::HttpDigidSession,
-    disclosure::HttpDisclosureSession,
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData},
@@ -42,7 +42,7 @@ pub struct Wallet<
     A = HttpAccountProviderClient,
     D = HttpDigidSession,
     P = HttpPidIssuerClient,
-    R = HttpDisclosureSession,
+    R = DisclosureSession,
 > {
     config_repository: C,
     storage: RwLock<S>,

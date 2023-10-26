@@ -30,7 +30,7 @@ use crate::{
     account_provider::MockAccountProviderClient,
     config::LocalConfigurationRepository,
     digid::MockDigidSession,
-    disclosure::MockDisclosureSession,
+    disclosure::MockMdocDisclosureSession,
     document,
     pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
@@ -69,7 +69,7 @@ pub type WalletWithMocks = Wallet<
     MockAccountProviderClient,
     MockDigidSession,
     MockPidIssuerClient,
-    MockDisclosureSession,
+    MockMdocDisclosureSession,
 >;
 
 /// The account server key material, generated once for testing.

@@ -14,7 +14,7 @@ use crate::{
         cose::{sign_cose, ClonePayload},
         crypto::dh_hmac_key,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
         x509::CertificateUsage,
     },
     verifier::X509Subject,
@@ -22,6 +22,26 @@ use crate::{
 };
 
 use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
+
+// TODO: Implement actual disclosure.
+#[allow(dead_code)]
+pub struct DisclosureSession {
+    reader_engagement: ReaderEngagement,
+    pub return_url: Option<Url>,
+}
+
+impl DisclosureSession {
+    pub fn start(reader_engagement_bytes: &[u8], return_url: Option<Url>) -> Result<Self> {
+        let reader_engagement = cbor_deserialize(reader_engagement_bytes)?;
+
+        let session = DisclosureSession {
+            reader_engagement,
+            return_url,
+        };
+
+        Ok(session)
+    }
+}
 
 impl<H: HttpClient> Wallet<H> {
     pub async fn disclose<'a, K: MdocEcdsaKey + Sync>(
