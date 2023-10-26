@@ -8,14 +8,12 @@ import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
-import 'package:wallet/src/domain/usecase/deeplink/check_is_deepdive_uri_usecase.dart';
-import 'package:wallet/src/domain/usecase/deeplink/decode_deeplink_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -42,9 +40,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 
 /// Mock use cases
-@GenerateNiceMocks([MockSpec<DecodeDeeplinkUseCase>()])
-@GenerateNiceMocks([MockSpec<CheckIsDeepdiveUriUseCase>()])
-@GenerateNiceMocks([MockSpec<UpdatePidIssuanceStatusUseCase>()])
+@GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedWithPidUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletLockedUseCase>()])
@@ -83,8 +79,7 @@ class Mocks {
     sl.registerFactory<TypedWalletCore>(() => getTypedWalletCoreMock());
 
     // Use cases
-    sl.registerFactory<DecodeDeeplinkUseCase>(() => MockDecodeDeeplinkUseCase());
-    sl.registerFactory<UpdatePidIssuanceStatusUseCase>(() => MockUpdatePidIssuanceStatusUseCase());
+    sl.registerFactory<DecodeUriUseCase>(() => MockDecodeUriUseCase());
     sl.registerFactory<IsWalletInitializedWithPidUseCase>(() => MockIsWalletInitializedWithPidUseCase());
     sl.registerFactory<ObserveWalletLockedUseCase>(() => MockObserveWalletLockedUseCase());
     sl.registerFactory<CheckPinUseCase>(() => MockCheckPinUseCase());

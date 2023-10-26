@@ -8,6 +8,7 @@ use wallet_common::{
         instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
     },
     generator::Generator,
+    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
 };
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
@@ -16,7 +17,10 @@ use wallet_provider_domain::{
     EpochGenerator,
 };
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
-use wallet_provider_service::account_server::{mock, AccountServer};
+use wallet_provider_service::{
+    account_server::{mock, AccountServer},
+    keys::CertificateSigningKey,
+};
 
 struct UuidGenerator;
 impl Generator<Uuid> for UuidGenerator {
@@ -39,12 +43,13 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 
 async fn do_registration(
     account_server: &AccountServer,
+    certificate_signing_key: &impl CertificateSigningKey,
     hw_privkey: &SigningKey,
     pin_privkey: &SigningKey,
     repos: &Repositories,
 ) -> (WalletCertificate, WalletCertificateClaims) {
     let challenge = account_server
-        .registration_challenge()
+        .registration_challenge(certificate_signing_key)
         .await
         .expect("Could not get registration challenge");
 
@@ -53,12 +58,12 @@ async fn do_registration(
         .expect("Could not sign new registration");
 
     let certificate = account_server
-        .register(&UuidGenerator, repos, registration_message)
+        .register(certificate_signing_key, &UuidGenerator, repos, registration_message)
         .await
         .expect("Could not process registration message at account server");
 
     let cert_data = certificate
-        .parse_and_verify(&account_server.certificate_pubkey)
+        .parse_and_verify(&certificate_signing_key.verifying_key().await.unwrap().into())
         .expect("Could not parse and verify wallet certificate");
 
     (certificate, cert_data)
@@ -89,11 +94,21 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let account_server = mock::account_server().await;
+    let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+    let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
+
+    let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
-    let (certificate, cert_data) = do_registration(&account_server, &hw_privkey, &pin_privkey, &repos).await;
+    let (certificate, cert_data) = do_registration(
+        &account_server,
+        &certificate_signing_key,
+        &hw_privkey,
+        &pin_privkey,
+        &repos,
+    )
+    .await;
 
     let challenge1 = account_server
         .instruction_challenge(

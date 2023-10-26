@@ -103,6 +103,7 @@ impl ConvertibleError for RegistrationError {
             RegistrationError::JwtSigning(_) => ErrorType::Unexpected,
             RegistrationError::CertificateStorage(_) => ErrorType::Unexpected,
             RegistrationError::WalletCertificate(_) => ErrorType::Unexpected,
+            RegistrationError::HsmError(_) => ErrorType::Unexpected,
         }
     }
 }

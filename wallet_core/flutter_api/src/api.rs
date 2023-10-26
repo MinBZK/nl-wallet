@@ -1,14 +1,13 @@
 use anyhow::Result;
 use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
-use tracing::{info, warn};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use wallet::{
     self,
-    errors::{UriIdentificationError, WalletInitError, WalletUnlockError},
-    UriType, Wallet,
+    errors::{WalletInitError, WalletUnlockError},
+    Wallet,
 };
 
 use crate::{
@@ -17,10 +16,10 @@ use crate::{
     models::{
         card::{Card, CardAttribute, CardValue, LocalizedString},
         config::FlutterConfiguration,
-        disclosure::{MissingAttribute, RelyingParty, RequestedCard},
+        disclosure::{DisclosureResult, MissingAttribute, RelyingParty, RequestedCard},
         instruction::WalletInstructionResult,
         pin::PinValidationResult,
-        process_uri_event::{DisclosureEvent, PidIssuanceEvent, ProcessUriEvent},
+        uri::IdentifyUriResult,
     },
     stream::ClosingStreamSink,
 };
@@ -164,6 +163,16 @@ pub async fn register(pin: String) -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
+pub async fn identify_uri(uri: String) -> Result<IdentifyUriResult> {
+    let wallet = wallet().read().await;
+
+    let identify_uri_result = wallet.identify_uri(&uri).try_into()?;
+
+    Ok(identify_uri_result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
 pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     let mut wallet = wallet().write().await;
 
@@ -182,81 +191,46 @@ pub async fn cancel_pid_issuance() -> Result<()> {
     Ok(())
 }
 
-// Note that any return value from this function (success or error) is ignored in Flutter!
 #[async_runtime]
-pub async fn process_uri(uri: String, sink: StreamSink<ProcessUriEvent>) {
-    let sink = ClosingStreamSink::from(sink);
+#[flutter_api_error]
+pub async fn continue_pid_issuance(uri: String) -> Result<Vec<Card>> {
+    let url = Url::parse(&uri)?;
 
-    // Parse the URI we have received from Flutter and identify the type of
-    // redirect URI. Note that the obtained read lock only exists temporarily.
-    let uri_type = match wallet().read().await.identify_uri(&uri) {
-        Ok(uri_type) => uri_type,
-        Err(error) => {
-            // If URL parsing fails, this is probably an error on the Flutter side.
-            // Rather than panicking we just return that we do not know this URI and log a warning.
-            if let UriIdentificationError::Parse(error) = error {
-                warn!("Redirect URI error: {}", error);
-            }
-
-            sink.add(ProcessUriEvent::UnknownUri);
-
-            return;
-        }
-    };
-
-    let final_event = match uri_type {
-        // This is a PID issuance redirect URI.
-        UriType::PidIssuance(url) => {
-            // Send an event on the stream to indicate that we are in the PID issuance flow.
-            let auth_event = ProcessUriEvent::PidIssuance {
-                event: PidIssuanceEvent::Authenticating,
-            };
-            sink.add(auth_event);
-
-            // Have the wallet actually process the redirect URI.
-            let event = process_pid_issuance_redirect_uri(&url).await;
-
-            ProcessUriEvent::PidIssuance { event }
-        }
-        // Start a disclosure flow.
-        UriType::Disclosure(url) => {
-            let fetching_event = ProcessUriEvent::Disclosure {
-                event: DisclosureEvent::FetchingRequest,
-            };
-            sink.add(fetching_event);
-
-            // Have the wallet process the disclosure URI.
-            let event = process_disclosure_uri(&url);
-
-            ProcessUriEvent::Disclosure { event }
-        }
-    };
-
-    sink.add(final_event);
-}
-
-async fn process_pid_issuance_redirect_uri(url: &Url) -> PidIssuanceEvent {
     let mut wallet = wallet().write().await;
 
-    wallet.continue_pid_issuance(url).await.map_or_else(
-        |error| {
-            // Log the error, since this is not caught by the `#[flutter_api_error]` macro.
-            warn!("PID issuance error: {}", error);
-            info!("PID issuance error details: {:?}", error);
+    let documents = wallet.continue_pid_issuance(&url).await?;
 
-            // Then convert then error to JSON, wrapped inside a `PidIssuanceEvent::Error`.
-            error.into()
-        },
-        |documents| PidIssuanceEvent::Success {
-            preview_cards: documents.into_iter().map(Card::from).collect(),
-        },
-    )
+    let cards = documents.into_iter().map(Card::from).collect();
+
+    Ok(cards)
 }
 
-// TODO: actually talk to Wallet for fetching attribute request.
-fn process_disclosure_uri(url: &Url) -> DisclosureEvent {
-    match url.as_str() {
-        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/request" => DisclosureEvent::Request {
+#[async_runtime]
+#[flutter_api_error]
+pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+
+    Ok(result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn reject_pid_issuance() -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.reject_pid_issuance().await?;
+
+    Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn start_disclosure(uri: String) -> Result<DisclosureResult> {
+    // TODO: actually talk to Wallet for fetching attribute request.
+    let result = match uri.as_str() {
+        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/request" => DisclosureResult::Request {
             relying_party: RelyingParty {
                 name: "The Relying Party".to_string(),
             },
@@ -281,7 +255,7 @@ fn process_disclosure_uri(url: &Url) -> DisclosureEvent {
             }],
         },
         "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/missing" => {
-            DisclosureEvent::RequestAttributesMissing {
+            DisclosureResult::RequestAttributesMissing {
                 relying_party: RelyingParty {
                     name: "Other Relying Party".to_string(),
                 },
@@ -299,44 +273,38 @@ fn process_disclosure_uri(url: &Url) -> DisclosureEvent {
                 }],
             }
         }
-        _ => WalletUnlockError::NotRegistered.into(),
-    }
-}
-
-#[async_runtime]
-#[flutter_api_error]
-async fn cancel_disclosure() -> Result<()> {
-    // TODO: implement.
-
-    Ok(())
-}
-
-#[async_runtime]
-#[flutter_api_error]
-async fn accept_disclosure(_pin: String) -> Result<()> {
-    // TODO: implement.
-
-    Ok(())
-}
-
-#[async_runtime]
-#[flutter_api_error]
-pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
-    let mut wallet = wallet().write().await;
-
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+        // Return a placeholder error until we implement a dedicated disclosure error type
+        _ => return Err(WalletUnlockError::NotRegistered.into()),
+    };
 
     Ok(result)
 }
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn reject_pid_issuance() -> Result<()> {
-    let mut wallet = wallet().write().await;
-
-    wallet.reject_pid_issuance().await?;
+pub async fn cancel_disclosure() -> Result<()> {
+    // TODO: implement.
 
     Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
+    // TODO: implement.
+
+    if pin == "000000" {
+        return Ok(WalletInstructionResult::IncorrectPin {
+            leftover_attempts: 3,
+            is_final_attempt: false,
+        });
+    } else if pin == "111111" {
+        return Ok(WalletInstructionResult::Timeout { timeout_millis: 10_000 });
+    } else if pin == "222222" {
+        return Ok(WalletInstructionResult::Blocked {});
+    }
+
+    Ok(WalletInstructionResult::Ok)
 }
 
 #[async_runtime]

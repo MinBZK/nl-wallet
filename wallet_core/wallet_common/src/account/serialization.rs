@@ -125,7 +125,7 @@ impl From<&DerSigningKey> for DerVerifyingKey {
 
 impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let pubkey = STANDARD.encode(self.0.to_encoded_point(false).as_bytes());
+        let pubkey = STANDARD.encode(self.0.to_public_key_der().unwrap().as_bytes());
         write!(f, "{}", pubkey)
     }
 }

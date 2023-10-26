@@ -72,6 +72,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
+            .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
     }
 }
 
@@ -170,6 +171,12 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             _ => FlutterApiErrorType::Generic,
         }
+    }
+}
+
+impl FlutterApiErrorFields for url::ParseError {
+    fn typ(&self) -> FlutterApiErrorType {
+        FlutterApiErrorType::WalletState
     }
 }
 

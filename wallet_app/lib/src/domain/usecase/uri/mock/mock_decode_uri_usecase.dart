@@ -7,7 +7,7 @@ import '../../../../navigation/wallet_routes.dart';
 import '../../../../wallet_constants.dart';
 import '../../../model/navigation/navigation_request.dart';
 import '../../../model/qr/edi_qr_code.dart';
-import '../decode_deeplink_usecase.dart';
+import '../decode_uri_usecase.dart';
 
 /// Takes a [Uri] and attempts to provide a [NavigationRequest] that contains
 /// the information to navigate the user to the related destination.
@@ -17,22 +17,20 @@ import '../decode_deeplink_usecase.dart';
 ///
 /// Sample to trigger deepdive test scenario from the terminal:
 /// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deepdive#home" nl.rijksoverheid.edi.wallet
-class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
-  DecodeDeeplinkUseCaseImpl();
+class MockDecodeUriUseCase implements DecodeUriUseCase {
+  MockDecodeUriUseCase();
 
   @override
-  NavigationRequest? invoke(Uri uri) {
+  Future<NavigationRequest> invoke(Uri uri) async {
     if (uri.host == kDeeplinkHost || uri.path.startsWith(kDeeplinkPath)) {
       return _decodeDeeplink(uri);
     } else if (uri.host == kDeepDiveHost || uri.path.startsWith(kDeepDivePath)) {
       return _decodeDeepDive(uri);
-    } else {
-      Fimber.i('Unhandled incoming uri: $uri');
-      return null;
     }
+    throw UnsupportedError('Unknown uri: $uri');
   }
 
-  NavigationRequest? _decodeDeeplink(Uri uri) {
+  NavigationRequest _decodeDeeplink(Uri uri) {
     try {
       final json = jsonDecode(Uri.decodeComponent(uri.fragment));
       //FIXME: So far the only entry point has been the QR scanner.
@@ -54,27 +52,27 @@ class DecodeDeeplinkUseCaseImpl implements DecodeDeeplinkUseCase {
           argument = code.id;
           break;
       }
-      return NavigationRequest(
+      return GenericNavigationRequest(
         destination,
         argument: argument,
         navigatePrerequisites: [NavigationPrerequisite.walletUnlocked, NavigationPrerequisite.pidInitialized],
       );
     } catch (ex, stack) {
       Fimber.e('Failed to parse deeplink uri: $uri', ex: ex, stacktrace: stack);
-      return null;
+      throw UnsupportedError('Unknown uri: $uri');
     }
   }
 
-  NavigationRequest? _decodeDeepDive(Uri uri) {
+  NavigationRequest _decodeDeepDive(Uri uri) {
     if (uri.hasFragment && uri.fragment == 'home') {
-      return NavigationRequest(
+      return GenericNavigationRequest(
         WalletRoutes.homeRoute,
         argument: null,
         preNavigationActions: [PreNavigationAction.setupMockedWallet],
       );
     } else {
       Fimber.i('Unhandled deep dive uri: $uri');
-      return null;
+      throw UnsupportedError('Unknown uri: $uri');
     }
   }
 }

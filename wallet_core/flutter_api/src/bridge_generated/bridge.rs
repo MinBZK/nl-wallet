@@ -27,14 +27,13 @@ use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
+use crate::models::disclosure::DisclosureResult;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::RelyingParty;
 use crate::models::disclosure::RequestedCard;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
-use crate::models::process_uri_event::DisclosureEvent;
-use crate::models::process_uri_event::PidIssuanceEvent;
-use crate::models::process_uri_event::ProcessUriEvent;
+use crate::models::uri::IdentifyUriResult;
 
 // Section: wire functions
 
@@ -183,6 +182,19 @@ fn wire_register_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSaf
         },
     )
 }
+fn wire_identify_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, IdentifyUriResult, _>(
+        WrapInfo {
+            debug_name: "identify_uri",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_uri = uri.wire2api();
+            move |task_callback| identify_uri(api_uri)
+        },
+    )
+}
 fn wire_create_pid_issuance_redirect_uri_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, String, _>(
         WrapInfo {
@@ -203,18 +215,16 @@ fn wire_cancel_pid_issuance_impl(port_: MessagePort) {
         move || move |task_callback| cancel_pid_issuance(),
     )
 }
-fn wire_process_uri_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+fn wire_continue_pid_issuance_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<Card>, _>(
         WrapInfo {
-            debug_name: "process_uri",
+            debug_name: "continue_pid_issuance",
             port: Some(port_),
-            mode: FfiCallMode::Stream,
+            mode: FfiCallMode::Normal,
         },
         move || {
             let api_uri = uri.wire2api();
-            move |task_callback| {
-                Result::<_, ()>::Ok(process_uri(api_uri, task_callback.stream_sink::<_, ProcessUriEvent>()))
-            }
+            move |task_callback| continue_pid_issuance(api_uri)
         },
     )
 }
@@ -239,6 +249,42 @@ fn wire_reject_pid_issuance_impl(port_: MessagePort) {
             mode: FfiCallMode::Normal,
         },
         move || move |task_callback| reject_pid_issuance(),
+    )
+}
+fn wire_start_disclosure_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, DisclosureResult, _>(
+        WrapInfo {
+            debug_name: "start_disclosure",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_uri = uri.wire2api();
+            move |task_callback| start_disclosure(api_uri)
+        },
+    )
+}
+fn wire_cancel_disclosure_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "cancel_disclosure",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| cancel_disclosure(),
+    )
+}
+fn wire_accept_disclosure_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, WalletInstructionResult, _>(
+        WrapInfo {
+            debug_name: "accept_disclosure",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.wire2api();
+            move |task_callback| accept_disclosure(api_pin)
+        },
     )
 }
 fn wire_reset_wallet_impl(port_: MessagePort) {
@@ -350,15 +396,14 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
-impl support::IntoDart for DisclosureEvent {
+impl support::IntoDart for DisclosureResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::FetchingRequest => vec![0.into_dart()],
             Self::Request {
                 relying_party,
                 requested_cards,
             } => vec![
-                1.into_dart(),
+                0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 requested_cards.into_into_dart().into_dart(),
             ],
@@ -366,17 +411,16 @@ impl support::IntoDart for DisclosureEvent {
                 relying_party,
                 missing_attributes,
             } => vec![
-                2.into_dart(),
+                1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 missing_attributes.into_into_dart().into_dart(),
             ],
-            Self::Error { data } => vec![3.into_dart(), data.into_into_dart().into_dart()],
         }
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for DisclosureEvent {}
-impl rust2dart::IntoIntoDart<DisclosureEvent> for DisclosureEvent {
+impl support::IntoDartExceptPrimitive for DisclosureResult {}
+impl rust2dart::IntoIntoDart<DisclosureResult> for DisclosureResult {
     fn into_into_dart(self) -> Self {
         self
     }
@@ -416,6 +460,22 @@ impl rust2dart::IntoIntoDart<GenderCardValue> for GenderCardValue {
     }
 }
 
+impl support::IntoDart for IdentifyUriResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::PidIssuance => 0,
+            Self::Disclosure => 1,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for IdentifyUriResult {}
+impl rust2dart::IntoIntoDart<IdentifyUriResult> for IdentifyUriResult {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for LocalizedString {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -444,23 +504,6 @@ impl rust2dart::IntoIntoDart<MissingAttribute> for MissingAttribute {
     }
 }
 
-impl support::IntoDart for PidIssuanceEvent {
-    fn into_dart(self) -> support::DartAbi {
-        match self {
-            Self::Authenticating => vec![0.into_dart()],
-            Self::Success { preview_cards } => vec![1.into_dart(), preview_cards.into_into_dart().into_dart()],
-            Self::Error { data } => vec![2.into_dart(), data.into_into_dart().into_dart()],
-        }
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for PidIssuanceEvent {}
-impl rust2dart::IntoIntoDart<PidIssuanceEvent> for PidIssuanceEvent {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
 impl support::IntoDart for PinValidationResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -474,23 +517,6 @@ impl support::IntoDart for PinValidationResult {
 }
 impl support::IntoDartExceptPrimitive for PinValidationResult {}
 impl rust2dart::IntoIntoDart<PinValidationResult> for PinValidationResult {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
-impl support::IntoDart for ProcessUriEvent {
-    fn into_dart(self) -> support::DartAbi {
-        match self {
-            Self::PidIssuance { event } => vec![0.into_dart(), event.into_into_dart().into_dart()],
-            Self::Disclosure { event } => vec![1.into_dart(), event.into_into_dart().into_dart()],
-            Self::UnknownUri => vec![2.into_dart()],
-        }
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for ProcessUriEvent {}
-impl rust2dart::IntoIntoDart<ProcessUriEvent> for ProcessUriEvent {
     fn into_into_dart(self) -> Self {
         self
     }

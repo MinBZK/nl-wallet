@@ -15,7 +15,7 @@ abstract class TypedWalletCore {
 
   Future<String> createPidIssuanceRedirectUri();
 
-  Stream<ProcessUriEvent> processUri(Uri uri);
+  Future<IdentifyUriResult> identifyUri(String uri);
 
   Future<void> cancelPidIssuance();
 
@@ -28,4 +28,12 @@ abstract class TypedWalletCore {
   Stream<List<Card>> observeCards();
 
   Future<void> resetWallet();
+
+  Future<List<Card>> continuePidIssuance(Uri uri);
+
+  Future<DisclosureResult> startDisclosure(Uri uri);
+
+  Future<void> cancelDisclosure();
+
+  Future<WalletInstructionResult> acceptDisclosure(String pin);
 }

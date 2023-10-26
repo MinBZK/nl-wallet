@@ -49,7 +49,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureInitial(),
+              const DisclosureInitial(),
             ),
             name: 'initial',
           ),
@@ -79,7 +79,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureCheckOrganization(mockFlow),
+              DisclosureCheckOrganization.fromFlow(mockFlow),
             ),
             name: 'check_organization',
           ),
@@ -112,7 +112,7 @@ void main() {
               child: const DisclosureScreen()
                   .withState<DisclosureBloc, DisclosureState>(
                     MockDisclosureBloc(),
-                    DisclosureConfirmPin(mockFlow),
+                    DisclosureConfirmPin.fromFlow(mockFlow),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),
@@ -132,7 +132,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureMissingAttributes(mockFlow),
+              DisclosureMissingAttributes.fromFlow(mockFlow),
             ),
             name: 'missing_attributes',
           ),
@@ -147,7 +147,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureConfirmDataAttributes(mockFlow),
+              DisclosureConfirmDataAttributes.fromFlow(mockFlow),
             ),
             name: 'confirm_data_attributes',
           ),
@@ -162,7 +162,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureSuccess(mockFlow),
+              DisclosureSuccess.fromFlow(mockFlow),
             ),
             name: 'success',
           ),
@@ -206,7 +206,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization(mockFlow),
+          DisclosureCheckOrganization.fromFlow(mockFlow),
         ),
       );
       // Find and press the close button
@@ -223,7 +223,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureSuccess(mockFlow),
+          DisclosureSuccess.fromFlow(mockFlow),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/repository/organization/organization_repository.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../model/disclosure_flow.dart';
 
 class DisclosureMissingAttributesPage extends StatelessWidget {
-  final DisclosureFlow flow;
   final VoidCallback onDecline;
+  final Organization organization;
+  final List<Attribute> missingAttributes;
 
   const DisclosureMissingAttributesPage({
-    required this.flow,
+    required this.organization,
+    required this.missingAttributes,
     required this.onDecline,
     Key? key,
   }) : super(key: key);
@@ -53,7 +56,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            context.l10n.disclosureMissingAttributesPageDescription(flow.organization.name),
+            context.l10n.disclosureMissingAttributesPageDescription(organization.name),
             style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),
@@ -66,9 +69,9 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: AttributeRow(attribute: flow.missingAttributes[index]),
+        child: AttributeRow(attribute: missingAttributes[index]),
       ),
-      childCount: flow.missingAttributes.length,
+      childCount: missingAttributes.length,
     );
   }
 

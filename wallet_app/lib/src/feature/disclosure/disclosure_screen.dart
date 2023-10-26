@@ -2,6 +2,9 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../environment.dart';
+import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
+import '../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
@@ -9,6 +12,7 @@ import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../organization/approve/organization_approve_page.dart';
+import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
 import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
@@ -131,10 +135,10 @@ class DisclosureScreen extends StatelessWidget {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureOrganizationApproved()),
-      organization: state.flow.organization,
-      isFirstInteractionWithOrganization: !state.flow.hasPreviouslyInteractedWithOrganization,
+      organization: state.relyingParty,
+      isFirstInteractionWithOrganization: state.isFirstInteractionWithOrganization,
       purpose: ApprovalPurpose.disclosure,
-      requestPurpose: state.flow.requestPurpose,
+      requestPurpose: state.requestPurpose,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
   }
@@ -142,7 +146,8 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildMissingAttributesPage(BuildContext context, DisclosureMissingAttributes state) {
     return DisclosureMissingAttributesPage(
       onDecline: () => context.read<DisclosureBloc>().add(DisclosureStopRequested(flow: state.flow)),
-      flow: state.flow,
+      missingAttributes: state.missingAttributes,
+      organization: state.relyingParty,
     );
   }
 
@@ -151,12 +156,18 @@ class DisclosureScreen extends StatelessWidget {
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureShareRequestedAttributesApproved()),
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
-      flow: state.flow,
+      relyingParty: state.relyingParty,
+      availableAttributes: state.availableAttributes,
+      policy: state.policy,
     );
   }
 
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
+    CheckPinUseCase checkPinUseCase = Environment.mockRepositories
+        ? context.read<ConfirmTransactionUseCase>()
+        : context.read<AcceptDisclosureUseCase>();
     return DisclosureConfirmPinPage(
+      bloc: PinBloc(checkPinUseCase),
       onPinValidated: () => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(state.flow)),
     );
   }
@@ -173,7 +184,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
     return DisclosureSuccessPage(
-      verifierShortName: state.flow.organization.shortName,
+      organizationDisplayName: state.relyingParty.shortName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
     );

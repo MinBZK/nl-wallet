@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
+import '../../environment.dart';
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
 import '../domain/usecase/card/get_pid_issuance_response_usecase.dart';
@@ -29,14 +30,16 @@ import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
-import '../domain/usecase/deeplink/check_is_deepdive_uri_usecase.dart';
-import '../domain/usecase/deeplink/decode_deeplink_usecase.dart';
-import '../domain/usecase/deeplink/impl/check_is_deepdive_uri_usecase_impl.dart';
-import '../domain/usecase/deeplink/impl/decode_deeplink_usecase_impl.dart';
+import '../domain/usecase/disclosure/accept_disclosure_usecase.dart';
+import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/get_disclosure_policy_usecase.dart';
 import '../domain/usecase/disclosure/get_disclosure_request_usecase.dart';
+import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/get_disclosure_policy_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/get_disclosure_request_usecase_impl.dart';
+import '../domain/usecase/disclosure/impl/reject_disclosure_usecase_impl.dart';
+import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
+import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
@@ -57,17 +60,15 @@ import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
 import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
+import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
-import '../domain/usecase/pid/impl/observe_pid_issuance_status_usecase_impl.dart';
 import '../domain/usecase/pid/impl/reject_offered_pid_usecase_impl.dart';
-import '../domain/usecase/pid/impl/update_pid_issuance_status_usecase_impl.dart';
 import '../domain/usecase/pid/mock/accept_offered_pid_usecase_mock.dart';
-import '../domain/usecase/pid/observe_pid_issuance_status_usecase.dart';
 import '../domain/usecase/pid/reject_offered_pid_usecase.dart';
-import '../domain/usecase/pid/update_pid_issuance_status_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
@@ -78,6 +79,9 @@ import '../domain/usecase/qr/decode_qr_usecase.dart';
 import '../domain/usecase/qr/impl/decode_qr_usecase_impl.dart';
 import '../domain/usecase/sign/get_sign_request_usecase.dart';
 import '../domain/usecase/sign/impl/get_sign_request_usecase_impl.dart';
+import '../domain/usecase/uri/decode_uri_usecase.dart';
+import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
+import '../domain/usecase/uri/mock/mock_decode_uri_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
@@ -206,8 +210,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetWalletCardUpdateIssuanceRequestIdUseCase>(
           create: (context) => GetWalletCardUpdateIssuanceRequestIdUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<DecodeDeeplinkUseCase>(
-          create: (context) => DecodeDeeplinkUseCaseImpl(),
+        RepositoryProvider<DecodeUriUseCase>(
+          create: (context) =>
+              Environment.mockRepositories ? MockDecodeUriUseCase() : DecodeUriUseCaseImpl(context.read()),
         ),
         RepositoryProvider<IsWalletInitializedWithPidUseCase>(
           create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read()),
@@ -224,11 +229,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetPidIssuanceUrlUseCase>(
           create: (context) => GetPidIssuanceUrlUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ObservePidIssuanceStatusUseCase>(
-          create: (context) => ObservePidIssuanceStatusUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<UpdatePidIssuanceStatusUseCase>(
-          create: (context) => UpdatePidIssuanceStatusUseCaseImpl(context.read()),
+        RepositoryProvider<ContinuePidIssuanceUseCase>(
+          create: (context) => ContinuePidIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ObserveWalletLockedUseCase>(
           create: (context) => ObserveWalletLockedUseCaseImpl(context.read()),
@@ -252,14 +254,20 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<ResetWalletUseCase>(
           create: (context) => ResetWalletUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<CheckIsDeepdiveUriUseCase>(
-          create: (context) => CheckIsDeepdiveUriUseCaseImpl(),
-        ),
         RepositoryProvider<CheckNavigationPrerequisitesUseCase>(
           create: (context) => CheckNavigationPrerequisitesUseCaseImpl(context.read()),
         ),
         RepositoryProvider<PerformPreNavigationActionsUseCase>(
           create: (context) => PerformPreNavigationActionsUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<StartDisclosureUseCase>(
+          create: (context) => StartDisclosureUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<AcceptDisclosureUseCase>(
+          create: (context) => AcceptDisclosureUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CancelDisclosureUseCase>(
+          create: (context) => CancelDisclosureUseCaseImpl(context.read()),
         ),
       ],
       child: child,
