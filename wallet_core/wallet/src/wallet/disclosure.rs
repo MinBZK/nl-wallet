@@ -46,13 +46,15 @@ where
             return Err(DisclosureError::SessionState);
         }
 
+        let config = self.config_repository.config();
+
         // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let disclosure_redirect_uri_base = self.config_repository.config().disclosure.uri_base().unwrap();
+        let disclosure_redirect_uri_base = config.disclosure.uri_base().unwrap();
         let disclosure_uri = DisclosureUri::parse(uri, &disclosure_redirect_uri_base)?;
 
         // Start the disclosure session based on the `ReaderEngagement` and
         // retain the return URL for if the session is completed successfully.
-        let session = R::start(disclosure_uri).await?;
+        let session = R::start(disclosure_uri, &config.mdoc_trust_anchors()).await?;
         self.disclosure_session.replace(session);
 
         // TODO: Return RP data and disclosure request.
@@ -85,11 +87,14 @@ mod tests {
         let session_start_context = MockMdocDisclosureSession::start_context();
         session_start_context
             .expect()
-            .with(eq(DisclosureUri {
-                reader_engagement_bytes: b"foobar".to_vec(),
-                return_url: Url::parse("https://example.com").unwrap().into(),
-            }))
-            .return_once(|_| Ok(MockMdocDisclosureSession::default()));
+            .with(
+                eq(DisclosureUri {
+                    reader_engagement_bytes: b"foobar".to_vec(),
+                    return_url: Url::parse("https://example.com").unwrap().into(),
+                }),
+                always(),
+            )
+            .return_once(|_, _| Ok(MockMdocDisclosureSession::default()));
 
         // Starting disclosure should not fail.
         wallet

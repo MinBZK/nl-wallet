@@ -571,8 +571,6 @@ impl DeviceResponse {
     }
 }
 
-pub type X509Subject = IndexMap<String, String>;
-
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum ValidityError {
     #[error("validity parsing failed: {0}")]

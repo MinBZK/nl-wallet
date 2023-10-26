@@ -6,7 +6,10 @@ use p256::{elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
 use url::Url;
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
+use wallet_common::{
+    generator::{Generator, TimeGenerator},
+    keys::SecureEcdsaKey,
+};
 
 use crate::{
     iso::*,
@@ -15,9 +18,8 @@ use crate::{
         crypto::{dh_hmac_key, SessionKey, SessionKeyUser},
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
-        x509::CertificateUsage,
+        x509::{Certificate, CertificateType, CertificateUsage},
     },
-    verifier::X509Subject,
     Error, Result,
 };
 
@@ -39,7 +41,12 @@ impl<H> DisclosureSession<H>
 where
     H: HttpClient,
 {
-    pub async fn start(client: H, reader_engagement_bytes: &[u8], return_url: Option<Url>) -> Result<Self> {
+    pub async fn start<'a>(
+        client: H,
+        reader_engagement_bytes: &[u8],
+        return_url: Option<Url>,
+        trust_anchors: &[TrustAnchor<'a>],
+    ) -> Result<Self> {
         let reader_engagement: ReaderEngagement = cbor_deserialize(reader_engagement_bytes)?;
 
         // Extract both the verifier URL and public key, return an error if either is missing.
@@ -81,11 +88,16 @@ where
         let session_data: SessionData = client.post(&verifier_url, &device_engagement).await?;
         let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&key)?;
 
+        // A device request without `DocumentRequest` entries is useless.
         if device_request.doc_requests.is_empty() {
             return Err(HolderError::NoDocumentRequests.into());
         }
 
-        // TODO: Perform RP authentication.
+        // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
+        let _reader_registration = match device_request.verify(&transcript, &TimeGenerator, trust_anchors)? {
+            Some(CertificateType::ReaderAuth(reader_registration)) => reader_registration,
+            _ => return Err(HolderError::ReaderAuthsInconsistent.into()),
+        };
 
         // TODO: Check requested attributes against mdocs in database.
 
@@ -245,37 +257,89 @@ impl DeviceRequest {
     /// the DocRequests to be signed by distinct readers. TODO maybe support this.
     /// For now, this function requires either none of the DocRequests to be signed, or all of them
     /// by the same reader.
-    // TODO use in client
     pub fn verify(
         &self,
-        reader_authentication_bts: &[u8],
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<X509Subject>> {
+    ) -> Result<Option<CertificateType>> {
+        // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
         }
+
+        // Otherwise, all of the doc requests need reader authentication.
         if self.doc_requests.iter().any(|d| d.reader_auth.is_none()) {
             return Err(HolderError::ReaderAuthMissing.into());
         }
 
-        let mut reader: Option<X509Subject> = None;
-        for doc_request in &self.doc_requests {
-            let cose = doc_request
-                .reader_auth
-                .as_ref()
-                .unwrap()
-                .clone_with_payload(reader_authentication_bts.to_vec());
-            cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
-            let found = cose.signing_cert()?.subject().map_err(HolderError::CertificateError)?;
-            if reader.is_none() {
-                reader.replace(found);
-            } else if *reader.as_ref().unwrap() != found {
-                return Err(HolderError::ReaderAuthsInconsistent.into());
-            }
+        let mut certificates = self
+            .doc_requests
+            .iter()
+            .map(|doc_request| {
+                doc_request
+                    .verify(session_transcript, time, trust_anchors)
+                    .map(|cert| cert.unwrap()) // This unwrap is safe because we checked for reader authentication above.
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        // All of these certificates should be exactly the same.
+        certificates.dedup();
+
+        if certificates.len() != 1 {
+            return Err(HolderError::ReaderAuthsInconsistent.into());
         }
 
-        Ok(reader)
+        // Extract `CertificateUsage` from the one certificate.
+        let cert_usage = CertificateType::from_certificate(&certificates[0]).map_err(HolderError::from)?;
+
+        Ok(cert_usage)
+    }
+}
+
+impl DocRequest {
+    pub fn verify(
+        &self,
+        session_transcript: &SessionTranscript,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<Option<Certificate>> {
+        // Return early if there is no reader authentication.
+        if self.reader_auth.is_none() {
+            return Ok(None);
+        }
+
+        // Reconstruct the reader authentication bytes for this `DocRequest``,
+        // based on the item requests and session transcript.
+        let reader_auth = ReaderAuthenticationKeyed {
+            reader_auth_string: Default::default(),
+            session_transcript: session_transcript.clone(),
+            items_request_bytes: self.items_request.clone(),
+        };
+        let reader_auth = TaggedBytes(CborSeq(reader_auth));
+        let reader_authentication_bts = cbor_serialize(&reader_auth)?;
+
+        // Actually perform verification and return the `Certificate`.
+        self.verify_bts(reader_authentication_bts, time, trust_anchors)
+    }
+
+    pub fn verify_bts(
+        &self,
+        reader_authentication_bts: Vec<u8>,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<Option<Certificate>> {
+        // If reader authentication is present, verify it and return the certificate.
+        self.reader_auth
+            .as_ref()
+            .map(|reader_auth| {
+                let cose = reader_auth.clone_with_payload(reader_authentication_bts);
+                cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
+                let cert = cose.signing_cert()?;
+
+                Ok(cert)
+            })
+            .transpose()
     }
 }
 
