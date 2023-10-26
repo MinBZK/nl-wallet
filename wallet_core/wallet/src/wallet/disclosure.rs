@@ -28,7 +28,7 @@ where
     R: MdocDisclosureSession,
 {
     #[instrument(skip_all)]
-    pub fn start_disclosure(&mut self, uri: &Url) -> Result<(), DisclosureError> {
+    pub async fn start_disclosure(&mut self, uri: &Url) -> Result<(), DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if registered");
@@ -52,8 +52,10 @@ where
 
         // Start the disclosure session based on the `ReaderEngagement` and
         // retain the return URL for if the session is completed successfully.
-        let session = R::start(disclosure_uri)?;
+        let session = R::start(disclosure_uri).await?;
         self.disclosure_session.replace(session);
+
+        // TODO: Return RP data and disclosure request.
 
         Ok(())
     }
@@ -92,6 +94,7 @@ mod tests {
         // Starting disclosure should not fail.
         wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
             .expect("Could not start disclosure");
     }
 
@@ -105,6 +108,7 @@ mod tests {
         // Starting disclosure on a locked wallet should result in an error.
         let error = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
@@ -118,6 +122,7 @@ mod tests {
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
@@ -133,6 +138,7 @@ mod tests {
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);

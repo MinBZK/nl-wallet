@@ -34,4 +34,10 @@ pub enum HolderError {
     AttributeRandomLength(usize, usize),
     #[error("missing issuance session state")]
     MissingIssuanceSessionState,
+    #[error("verifier URL not present in reader engagement")]
+    VerifiedUrlMissing,
+    #[error("verifier ephemeral key not present in reader engagement")]
+    VerifierEphemeralKeyMissing,
+    #[error("no document requests are present in device request")]
+    NoDocumentRequests,
 }

@@ -12,7 +12,7 @@ use crate::{
     iso::*,
     utils::{
         cose::{sign_cose, ClonePayload},
-        crypto::dh_hmac_key,
+        crypto::{dh_hmac_key, SessionKey, SessionKeyUser},
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
         x509::CertificateUsage,
@@ -23,24 +23,85 @@ use crate::{
 
 use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
 
-// TODO: Implement actual disclosure.
+const REFERRER_URL: &str = "https://example.com/";
+
 #[allow(dead_code)]
-pub struct DisclosureSession {
-    reader_engagement: ReaderEngagement,
+pub struct DisclosureSession<H> {
     pub return_url: Option<Url>,
+    client: H,
+    verifier_url: Url,
+    transcript: SessionTranscript,
+    key: SessionKey,
+    device_request: DeviceRequest,
 }
 
-impl DisclosureSession {
-    pub fn start(reader_engagement_bytes: &[u8], return_url: Option<Url>) -> Result<Self> {
-        let reader_engagement = cbor_deserialize(reader_engagement_bytes)?;
+impl<H> DisclosureSession<H>
+where
+    H: HttpClient,
+{
+    pub async fn start(client: H, reader_engagement_bytes: &[u8], return_url: Option<Url>) -> Result<Self> {
+        let reader_engagement: ReaderEngagement = cbor_deserialize(reader_engagement_bytes)?;
+
+        // Extract both the verifier URL and public key, return an error if either is missing.
+        let verifier_url = reader_engagement
+            .0
+            .connection_methods
+            .as_ref()
+            .and_then(|methods| methods.first())
+            .map(|method| &method.0.connection_options.0.uri)
+            .ok_or(HolderError::VerifiedUrlMissing)?
+            .clone();
+
+        let verifier_pubkey = reader_engagement
+            .0
+            .security
+            .as_ref()
+            .ok_or(HolderError::VerifierEphemeralKeyMissing)?
+            .try_into()?;
+
+        // Create a new `DeviceEngagement` message and private key. Use a
+        // static referrer URL, as this is not a feature we actually use.
+        let (device_engagement, ephemeral_privkey) =
+            DeviceEngagement::new_device_engagement(Url::parse(REFERRER_URL).unwrap())?;
+
+        // Create the session transcript so far based on both engagement payloads.
+        // Note that this will panic if the `ReaderEngagement` does not contain a `Security`
+        // object, which we already checked above when extracting the verifier public key.
+        let transcript = SessionTranscript::new(&reader_engagement, &device_engagement);
+
+        // Derive the session key from both keys and the session transcript.
+        let key = SessionKey::new(
+            &ephemeral_privkey,
+            &verifier_pubkey,
+            &transcript,
+            SessionKeyUser::Reader,
+        )?;
+
+        // Send `DeviceEngagement` to verifier and decrypt the returned `DeviceRequest`.
+        let session_data: SessionData = client.post(&verifier_url, &device_engagement).await?;
+        let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&key)?;
+
+        if device_request.doc_requests.is_empty() {
+            return Err(HolderError::NoDocumentRequests.into());
+        }
+
+        // TODO: Perform RP authentication.
+
+        // TODO: Check requested attributes against mdocs in database.
 
         let session = DisclosureSession {
-            reader_engagement,
+            client,
             return_url,
+            verifier_url,
+            transcript,
+            key,
+            device_request,
         };
 
         Ok(session)
     }
+
+    // TODO: Add terminate and disclose methods.
 }
 
 impl<H: HttpClient> Wallet<H> {

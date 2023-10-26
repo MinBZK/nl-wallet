@@ -10,7 +10,7 @@ mod uri;
 #[cfg(test)]
 mod tests;
 
-use nl_wallet_mdoc::holder::DisclosureSession;
+use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use tokio::sync::RwLock;
 
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
@@ -42,7 +42,7 @@ pub struct Wallet<
     A = HttpAccountProviderClient,
     D = HttpDigidSession,
     P = HttpPidIssuerClient,
-    R = DisclosureSession,
+    R = DisclosureSession<CborHttpClient>,
 > {
     config_repository: C,
     storage: RwLock<S>,
