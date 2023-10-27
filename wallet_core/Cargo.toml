@@ -18,6 +18,7 @@ members = [
     "wallet_provider/migrations",
     "wallet_provider/persistence",
     "wallet_provider/service",
+    "wallet_server",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
@@ -55,6 +56,7 @@ indexmap = "2.0.2"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = "8.2.0"
+lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.26.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.11.4"
