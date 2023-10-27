@@ -26,7 +26,7 @@ use crate::{
 
 use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
 
-const REFERRER_URL: &str = "https://example.com/";
+const REFERRER_URL: &str = "https://referrer.url/";
 
 #[allow(dead_code)]
 pub struct DisclosureSession<H> {
