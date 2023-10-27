@@ -65,6 +65,20 @@ pub enum VerificationError {
     UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
+    #[error("attributes mismatch: {0}")]
+    AttributesMismatch(#[from] AttributesMismatch),
+}
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum AttributesMismatch {
+    #[error("less data was disclosed than was requested")]
+    MissingData,
+    #[error("missing DocType {0}")]
+    MissingDocType(DocType),
+    #[error("missing NameSpace {1} of DocType {0}")]
+    MissingNameSpace(DocType, NameSpace),
+    #[error("missing attribute {2} of NameSpace {1} of DocType {0}")]
+    MissingAttribute(DocType, NameSpace, String),
 }
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
@@ -475,6 +489,10 @@ impl Session<WaitingForResponse> {
             &TimeGenerator,
             trust_anchors,
         )?;
+        device_response
+            .match_against_requested(&self.state().items_requests)
+            .map_err(VerificationError::from)?;
+
         let response = SessionData {
             data: None,
             status: Some(SessionStatus::Termination),
@@ -528,6 +546,19 @@ impl From<SessionStatus> for SessionResult {
 }
 
 impl DeviceResponse {
+    pub fn match_against_requested(&self, requested: &[ItemsRequest]) -> std::result::Result<(), AttributesMismatch> {
+        let disclosed_documents = self.documents.as_ref().ok_or(AttributesMismatch::MissingData)?;
+
+        if disclosed_documents.len() < requested.len() {
+            return Err(AttributesMismatch::MissingData);
+        }
+
+        requested
+            .iter()
+            .zip(self.documents.as_ref().ok_or(AttributesMismatch::MissingData)?)
+            .try_for_each(|(items_request, document)| document.match_against_requested(items_request))
+    }
+
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
     ///
     /// # Arguments
@@ -709,6 +740,53 @@ impl Document {
 
         Ok((mso.doc_type, attrs))
     }
+
+    pub fn match_against_requested(&self, items_request: &ItemsRequest) -> std::result::Result<(), AttributesMismatch> {
+        if items_request.doc_type != self.doc_type {
+            return Err(AttributesMismatch::MissingDocType(items_request.doc_type.clone()));
+        }
+
+        let disclosed_name_spaces = self
+            .issuer_signed
+            .name_spaces
+            .as_ref()
+            .ok_or(AttributesMismatch::MissingData)?;
+
+        if disclosed_name_spaces.len() < items_request.name_spaces.len() {
+            return Err(AttributesMismatch::MissingData);
+        }
+
+        items_request
+            .name_spaces
+            .iter()
+            .try_for_each(|(requested_name_space, requested_attrs)| {
+                let Attributes(disclosed_attrs) =
+                    disclosed_name_spaces
+                        .get(requested_name_space)
+                        .ok_or(AttributesMismatch::MissingNameSpace(
+                            items_request.doc_type.clone(),
+                            requested_name_space.clone(),
+                        ))?;
+
+                if disclosed_attrs.len() < requested_attrs.len() {
+                    return Err(AttributesMismatch::MissingData);
+                }
+
+                requested_attrs.keys().zip(disclosed_attrs).try_for_each(
+                    |(requested_attr_name, TaggedBytes(disclosed_attr))| {
+                        if *requested_attr_name != disclosed_attr.element_identifier {
+                            Err(AttributesMismatch::MissingAttribute(
+                                items_request.doc_type.clone(),
+                                requested_name_space.clone(),
+                                requested_attr_name.clone(),
+                            ))
+                        } else {
+                            Ok(())
+                        }
+                    },
+                )
+            })
+    }
 }
 
 #[cfg(test)]
@@ -856,5 +934,164 @@ mod tests {
         .unwrap();
 
         assert_eq!(ended_session_response.status.unwrap(), SessionStatus::Termination);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use indexmap::IndexMap;
+    use rstest::rstest;
+
+    use crate::{examples::Example, DeviceResponse, ItemsRequest};
+
+    use super::AttributesMismatch;
+
+    const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
+    const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
+    const EXAMPLE_ATTR_NAME: &str = "family_name";
+
+    #[rstest]
+    #[case(do_nothing())]
+    #[case(remove_documents())]
+    #[case(remove_document())]
+    #[case(change_doctype())]
+    #[case(remove_namespace())]
+    #[case(change_namespace())]
+    #[case(remove_attribute())]
+    #[case(change_attribute())]
+    fn match_disclosed_attributes(#[case] testcase: (DeviceResponse, Result<(), AttributesMismatch>)) {
+        // Construct an items request that matches the example device response
+        let items_requests = vec![ItemsRequest {
+            doc_type: EXAMPLE_DOC_TYPE.to_string(),
+            name_spaces: IndexMap::from_iter([(
+                EXAMPLE_NAMESPACE.to_string(),
+                IndexMap::from_iter([
+                    ("family_name".to_string(), false),
+                    ("issue_date".to_string(), false),
+                    ("expiry_date".to_string(), false),
+                    ("document_number".to_string(), false),
+                    ("portrait".to_string(), false),
+                    ("driving_privileges".to_string(), false),
+                ]),
+            )]),
+            request_info: None,
+        }];
+
+        let (device_response, expected_result) = testcase;
+        assert_eq!(
+            device_response.match_against_requested(&items_requests),
+            expected_result
+        );
+    }
+
+    // return an unmodified device response, which should verify
+    fn do_nothing() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        (DeviceResponse::example(), Ok(()))
+    }
+
+    // remove all disclosed documents
+    fn remove_documents() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents = None;
+        (device_response, Err(AttributesMismatch::MissingData))
+    }
+
+    // remove a single disclosed document
+    fn remove_document() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents.as_mut().unwrap().pop();
+        (device_response, Err(AttributesMismatch::MissingData))
+    }
+
+    // Change the first doctype so it is not the requested one
+    fn change_doctype() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response
+            .documents
+            .as_mut()
+            .unwrap()
+            .first_mut()
+            .unwrap()
+            .doc_type = "some_not_requested_doc_type".to_string();
+        (
+            device_response,
+            Err(AttributesMismatch::MissingDocType(EXAMPLE_DOC_TYPE.to_string())),
+        )
+    }
+
+    // Remove one of the disclosed namespaces
+    fn remove_namespace() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents.as_mut().unwrap()[0]
+            .issuer_signed
+            .name_spaces
+            .as_mut()
+            .unwrap()
+            .pop();
+        (device_response, Err(AttributesMismatch::MissingData))
+    }
+
+    // Change a namespace so it is not the requested one
+    fn change_namespace() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        let namespaces = device_response
+            .documents
+            .as_mut()
+            .unwrap()
+            .first_mut()
+            .unwrap()
+            .issuer_signed
+            .name_spaces
+            .as_mut()
+            .unwrap();
+        let (_, attributes) = namespaces.pop().unwrap();
+        namespaces.insert("some_not_requested_name_space".to_string(), attributes);
+        (
+            device_response,
+            Err(AttributesMismatch::MissingNameSpace(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+            )),
+        )
+    }
+
+    // Remove one of the disclosed attributes
+    fn remove_attribute() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents.as_mut().unwrap()[0]
+            .issuer_signed
+            .name_spaces
+            .as_mut()
+            .unwrap()
+            .first_mut()
+            .unwrap()
+            .1
+             .0
+            .pop();
+        (device_response, Err(AttributesMismatch::MissingData))
+    }
+
+    // Swap the disclosed attributes, so that the first attribute in the device response is not the requested one
+    fn change_attribute() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents.as_mut().unwrap()[0]
+            .issuer_signed
+            .name_spaces
+            .as_mut()
+            .unwrap()
+            .first_mut()
+            .as_mut()
+            .unwrap()
+            .1
+             .0
+            .swap(0, 1);
+        (
+            device_response,
+            Err(AttributesMismatch::MissingAttribute(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                EXAMPLE_ATTR_NAME.to_string(),
+            )),
+        )
     }
 }
