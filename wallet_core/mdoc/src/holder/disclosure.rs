@@ -304,36 +304,21 @@ impl DocRequest {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<Certificate>> {
-        // Return early if there is no reader authentication.
-        if self.reader_auth.is_none() {
-            return Ok(None);
-        }
-
-        // Reconstruct the reader authentication bytes for this `DocRequest``,
-        // based on the item requests and session transcript.
-        let reader_auth = ReaderAuthenticationKeyed {
-            reader_auth_string: Default::default(),
-            session_transcript: session_transcript.clone(),
-            items_request_bytes: self.items_request.clone(),
-        };
-        let reader_auth = TaggedBytes(CborSeq(reader_auth));
-        let reader_authentication_bts = cbor_serialize(&reader_auth)?;
-
-        // Actually perform verification and return the `Certificate`.
-        self.verify_bts(reader_authentication_bts, time, trust_anchors)
-    }
-
-    pub fn verify_bts(
-        &self,
-        reader_authentication_bts: Vec<u8>,
-        time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<Certificate>> {
         // If reader authentication is present, verify it and return the certificate.
         self.reader_auth
             .as_ref()
             .map(|reader_auth| {
-                let cose = reader_auth.clone_with_payload(reader_authentication_bts);
+                // Reconstruct the reader authentication bytes for this `DocRequest`,
+                // based on the item requests and session transcript.
+                let reader_auth_payload = ReaderAuthenticationKeyed {
+                    reader_auth_string: Default::default(),
+                    session_transcript: session_transcript.clone(),
+                    items_request_bytes: self.items_request.clone(),
+                };
+                let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
+
+                // Perform verification and return the `Certificate`.
+                let cose = reader_auth.clone_with_payload(cbor_serialize(&reader_auth_payload)?);
                 cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
                 let cert = cose.signing_cert()?;
 

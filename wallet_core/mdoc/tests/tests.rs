@@ -141,15 +141,12 @@ async fn do_and_verify_iso_example_disclosure() {
 
     // Verify reader's request
     let reader_trust_anchors = Examples::reader_trust_anchors();
+    let session_transcript = ReaderAuthenticationBytes::example().0 .0.session_transcript;
     let certificate = device_request
         .doc_requests
         .first()
         .unwrap()
-        .verify_bts(
-            ReaderAuthenticationBytes::example_bts(),
-            &IsoCertTimeGenerator,
-            reader_trust_anchors,
-        )
+        .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
         .unwrap();
     let reader_x509_subject = certificate.unwrap().subject();
 
