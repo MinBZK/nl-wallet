@@ -931,6 +931,7 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+ "serde",
 ]
 
 [[package]]
@@ -4690,6 +4691,31 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
+]
+
+[[package]]
+name = "wallet_server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.21.4",
+ "chrono",
+ "config",
+ "dashmap",
+ "indexmap 2.0.2",
+ "lazy_static",
+ "nl_wallet_mdoc",
+ "p256",
+ "reqwest",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "wallet_common",
 ]
 
 [[package]]
