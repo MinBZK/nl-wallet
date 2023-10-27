@@ -325,7 +325,7 @@ impl Session<Created> {
         Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement);
+        let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement).unwrap();
 
         let cert_pair = keys
             .private_key(&self.state().usecase_id)
@@ -827,10 +827,11 @@ mod tests {
                 .unwrap();
 
         // decrypt server response
+        // Note that the unwraps here are safe, as we created the `ReaderEngagement`.
         let rp_key = SessionKey::new(
             &device_eph_key,
             &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
-            &SessionTranscript::new(&reader_engagement, &device_engagement),
+            &SessionTranscript::new(&reader_engagement, &device_engagement).unwrap(),
             SessionKeyUser::Reader,
         )
         .unwrap();

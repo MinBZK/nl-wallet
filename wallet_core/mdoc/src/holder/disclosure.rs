@@ -73,9 +73,8 @@ where
             DeviceEngagement::new_device_engagement(Url::parse(REFERRER_URL).unwrap())?;
 
         // Create the session transcript so far based on both engagement payloads.
-        // Note that this will panic if the `ReaderEngagement` does not contain a `Security`
-        // object, which we already checked above when extracting the verifier public key.
-        let transcript = SessionTranscript::new(&reader_engagement, &device_engagement);
+        let transcript = SessionTranscript::new(&reader_engagement, &device_engagement)
+            .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
 
         // Derive the session key for both directions from the private and public keys and the session transcript.
         let reader_key = SessionKey::new(
