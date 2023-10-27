@@ -273,25 +273,29 @@ impl DeviceRequest {
             return Err(HolderError::ReaderAuthMissing.into());
         }
 
-        let mut certificates = self
+        // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
+        // Note that the unwraps are safe, since we checked for the presence of reader authentication above.
+        let certificate = self
             .doc_requests
             .iter()
-            .map(|doc_request| {
-                doc_request
-                    .verify(session_transcript, time, trust_anchors)
-                    .map(|cert| cert.unwrap()) // This unwrap is safe because we checked for reader authentication above.
-            })
-            .collect::<Result<Vec<_>>>()?;
+            .try_fold(None, {
+                |result_cert, doc_request| -> Result<_> {
+                    let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
 
-        // All of these certificates should be exactly the same.
-        certificates.dedup();
+                    // If there is a certificate from a previous iteration, compare our certificate to that.
+                    if let Some(result_cert) = result_cert {
+                        if doc_request_cert != result_cert {
+                            return Err(HolderError::ReaderAuthsInconsistent.into());
+                        }
+                    }
 
-        if certificates.len() != 1 {
-            return Err(HolderError::ReaderAuthsInconsistent.into());
-        }
+                    Ok(doc_request_cert.into())
+                }
+            })?
+            .unwrap();
 
         // Extract `CertificateUsage` from the one certificate.
-        let cert_usage = CertificateType::from_certificate(&certificates[0]).map_err(HolderError::from)?;
+        let cert_usage = CertificateType::from_certificate(&certificate).map_err(HolderError::from)?;
 
         Ok(cert_usage)
     }
