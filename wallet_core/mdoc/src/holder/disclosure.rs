@@ -17,6 +17,7 @@ use crate::{
         cose::{sign_cose, ClonePayload},
         crypto::{dh_hmac_key, SessionKey, SessionKeyUser},
         keys::{KeyFactory, MdocEcdsaKey},
+        reader_auth::ReaderRegistration,
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType, CertificateUsage},
     },
@@ -94,10 +95,7 @@ where
         }
 
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
-        let _reader_registration = match device_request.verify(&transcript, &TimeGenerator, trust_anchors)? {
-            Some(CertificateType::ReaderAuth(reader_registration)) => reader_registration,
-            _ => return Err(HolderError::ReaderAuthsInconsistent.into()),
-        };
+        let _reader_registration = device_request.verify(&transcript, &TimeGenerator, trust_anchors)?;
 
         // TODO: Check requested attributes against mdocs in database.
 
@@ -262,7 +260,7 @@ impl DeviceRequest {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<CertificateType>> {
+    ) -> Result<Option<ReaderRegistration>> {
         // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -294,10 +292,13 @@ impl DeviceRequest {
             })?
             .unwrap();
 
-        // Extract `CertificateUsage` from the one certificate.
-        let cert_usage = CertificateType::from_certificate(&certificate).map_err(HolderError::from)?;
+        // Extract `ReaderRegistration` from the one certificate.
+        let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
+            Some(CertificateType::ReaderAuth(reader_registration)) => reader_registration,
+            _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
+        };
 
-        Ok(cert_usage)
+        Ok((*reader_registration).into())
     }
 }
 

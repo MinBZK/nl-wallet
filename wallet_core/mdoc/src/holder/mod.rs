@@ -1,7 +1,10 @@
 //! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
 //! See [`Storage`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
 
-use crate::{iso::*, utils::x509::CertificateError};
+use crate::{
+    iso::*,
+    utils::x509::{Certificate, CertificateError},
+};
 
 pub mod disclosure;
 pub use disclosure::*;
@@ -40,4 +43,6 @@ pub enum HolderError {
     VerifierEphemeralKeyMissing,
     #[error("no document requests are present in device request")]
     NoDocumentRequests,
+    #[error("no reader registration present in certificate")]
+    NoReaderRegistration(Certificate),
 }
