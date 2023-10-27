@@ -1,9 +1,13 @@
+use async_trait::async_trait;
 use tracing::{info, instrument};
 use url::Url;
+
+use nl_wallet_mdoc::holder::{Mdoc, MdocDataSource};
 
 use crate::{
     config::ConfigurationRepository,
     disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
+    storage::StorageError,
 };
 
 use super::Wallet;
@@ -25,7 +29,7 @@ pub enum DisclosureError {
 impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
 where
     C: ConfigurationRepository,
-    R: MdocDisclosureSession,
+    R: MdocDisclosureSession<Self>,
 {
     #[instrument(skip_all)]
     pub async fn start_disclosure(&mut self, uri: &Url) -> Result<(), DisclosureError> {
@@ -54,12 +58,34 @@ where
 
         // Start the disclosure session based on the `ReaderEngagement` and
         // retain the return URL for if the session is completed successfully.
-        let session = R::start(disclosure_uri, &config.mdoc_trust_anchors()).await?;
+        let session = R::start(disclosure_uri, self, &config.mdoc_trust_anchors()).await?;
         self.disclosure_session.replace(session);
 
         // TODO: Return RP data and disclosure request.
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl<C, S, K, A, D, P, R> MdocDataSource for Wallet<C, S, K, A, D, P, R>
+where
+    C: Sync,
+    S: Send + Sync,
+    K: Sync,
+    A: Sync,
+    D: Sync,
+    P: Sync,
+    R: Sync,
+{
+    type Error = StorageError;
+
+    async fn mdoc_by_doctypes(
+        &self,
+        _doctypes: impl Iterator<Item = impl AsRef<str>> + Send,
+    ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
+        // TODO: retrieve mdocs from storage
+        Ok(Default::default())
     }
 }
 
@@ -82,25 +108,18 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
-        // Set up `DisclosureSession` to have `start()` called on it
-        // with the items parsed from the disclosure URI.
-        let session_start_context = MockMdocDisclosureSession::start_context();
-        session_start_context
-            .expect()
-            .with(
-                eq(DisclosureUri {
-                    reader_engagement_bytes: b"foobar".to_vec(),
-                    return_url: Url::parse("https://example.com").unwrap().into(),
-                }),
-                always(),
-            )
-            .return_once(|_, _| Ok(MockMdocDisclosureSession::default()));
-
         // Starting disclosure should not fail.
         wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
             .await
             .expect("Could not start disclosure");
+
+        // Test that the `Wallet` now contains a `DisclosureSession`
+        // with the items parsed from the disclosure URI.
+        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUri {
+            reader_engagement_bytes: b"foobar".to_vec(),
+            return_url: Url::parse("https://example.com").unwrap().into(),
+        });
     }
 
     #[tokio::test]

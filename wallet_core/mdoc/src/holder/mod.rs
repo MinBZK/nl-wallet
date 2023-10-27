@@ -1,9 +1,14 @@
 //! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
 //! See [`Storage`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
 
+use std::error::Error;
+
 use crate::{
     iso::*,
-    utils::x509::{Certificate, CertificateError},
+    utils::{
+        reader_auth::ReaderRegistration,
+        x509::{Certificate, CertificateError},
+    },
 };
 
 pub mod disclosure;
@@ -45,4 +50,13 @@ pub enum HolderError {
     NoDocumentRequests,
     #[error("no reader registration present in certificate")]
     NoReaderRegistration(Certificate),
+    #[error("could not retrieve docs from source: {0}")]
+    MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
+    #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
+    MultipleCandidates(Vec<DocType>),
+    #[error("not all requested doc types and/or attributes are available, missing: {missing_attributes:?}")]
+    AttributesNotAvailable {
+        reader_registration: Box<ReaderRegistration>,
+        missing_attributes: MissingAttributes,
+    },
 }

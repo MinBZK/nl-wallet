@@ -1,3 +1,6 @@
+use std::collections::{HashMap, HashSet};
+
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use futures::future::try_join_all;
@@ -28,6 +31,23 @@ use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
 
 const REFERRER_URL: &str = "https://referrer.url/";
 
+/// This trait needs to be implemented by an entity that stores mdocs.
+#[async_trait]
+pub trait MdocDataSource {
+    // TODO: this trait should eventually replace MdocRetriever
+    //       once disclosure is fully implemented.
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// For every doctype, return a vec of `Mdoc` entities
+    /// represent it. This means that the returned `Vec` should
+    /// be the same length as the `doctypes` iterator.
+    async fn mdoc_by_doctypes(
+        &self,
+        doctypes: impl Iterator<Item = impl AsRef<str>> + Send,
+    ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
+}
+
+// TODO: not all of these fields may be necessary to finish the session.
 #[allow(dead_code)]
 pub struct DisclosureSession<H> {
     pub return_url: Option<Url>,
@@ -36,6 +56,8 @@ pub struct DisclosureSession<H> {
     transcript: SessionTranscript,
     device_key: SessionKey,
     device_request: DeviceRequest,
+    pub reader_registration: ReaderRegistration,
+    mdocs: Vec<Mdoc>,
 }
 
 impl<H> DisclosureSession<H>
@@ -46,6 +68,7 @@ where
         client: H,
         reader_engagement_bytes: &[u8],
         return_url: Option<Url>,
+        mdoc_data_source: &impl MdocDataSource,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self> {
         let reader_engagement: ReaderEngagement = cbor_deserialize(reader_engagement_bytes)?;
@@ -100,10 +123,67 @@ where
         }
 
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
-        let _reader_registration = device_request.verify(&transcript, &TimeGenerator, trust_anchors)?;
+        // Reader authentication is required to be present at this time.
+        let reader_registration = device_request
+            .verify(&transcript, &TimeGenerator, trust_anchors)?
+            .ok_or(HolderError::ReaderAuthMissing)?;
 
-        // TODO: Check requested attributes against mdocs in database.
+        // Get a `Vec` of doctypes from the `DeviceRequest` and get them from our data source.
+        let doc_types = device_request
+            .doc_requests
+            .iter()
+            .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
+            .collect::<Vec<_>>();
+        let mdocs = mdoc_data_source
+            .mdoc_by_doctypes(doc_types.iter())
+            .await
+            .map_err(|error| HolderError::MdocDataSource(error.into()))?;
 
+        // Do a sanity check, every returned `Mdoc` should match the requested doctype.
+        doc_types.iter().zip(&mdocs).for_each(|(doc_type, typed_mdocs)| {
+            typed_mdocs.iter().for_each(|mdoc| {
+                if mdoc.doc_type != *doc_type {
+                    panic!(
+                        "Inconsistent mdoc doc_type received from storage, expected \"{}\", received \"{}\"",
+                        doc_type, mdoc.doc_type
+                    );
+                }
+            })
+        });
+
+        // Choosing between multiple `Mdoc`s with the same doctype
+        // is currently not supported, so return an error.
+        if mdocs.iter().any(|typed_mdocs| typed_mdocs.len() > 1) {
+            let multiple_mdoc_doctypes = mdocs
+                .into_iter()
+                .filter(|typed_mdocs| typed_mdocs.len() > 1)
+                .map(|mut typed_mdocs| typed_mdocs.pop().unwrap().doc_type)
+                .collect::<Vec<_>>();
+
+            return Err(HolderError::MultipleCandidates(multiple_mdoc_doctypes).into());
+        }
+
+        // Filter out empty `Vec<Mdoc>` results (meaning the length no longer matches
+        // the requested doctypes) and take the one `Mdoc` out of its `Vec`.
+        let mdocs = mdocs
+            .into_iter()
+            .filter_map(|mut typed_mdocs| typed_mdocs.pop())
+            .collect::<Vec<_>>();
+
+        // Calculate missing attributes for the request, given the available `Mdoc`s.
+        let missing_attributes = device_request.missing_attributes_for_mdocs(mdocs.iter());
+
+        // If there are any, return an error and include the `ReaderRegistration`.
+        if !missing_attributes.is_empty() {
+            let error = HolderError::AttributesNotAvailable {
+                reader_registration,
+                missing_attributes,
+            };
+
+            return Err(error.into());
+        }
+
+        // Retain all the necessary information to either abort or finish the disclosure session later.
         let session = DisclosureSession {
             client,
             return_url,
@@ -111,12 +191,14 @@ where
             transcript,
             device_key,
             device_request,
+            reader_registration: *reader_registration,
+            mdocs,
         };
 
         Ok(session)
     }
 
-    // TODO: Add terminate and disclose methods.
+    // TODO: Implement terminate and disclose methods.
 }
 
 impl<H: HttpClient> Wallet<H> {
@@ -254,6 +336,8 @@ impl DeviceSigned {
     }
 }
 
+pub type MissingAttributes = Vec<(DocType, Vec<(NameSpace, Vec<DataElementIdentifier>)>)>;
+
 impl DeviceRequest {
     /// Verify reader authentication, if present.
     /// Note that since each DocRequest carries its own reader authentication, the spec allows the
@@ -265,7 +349,7 @@ impl DeviceRequest {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<ReaderRegistration>> {
+    ) -> Result<Option<Box<ReaderRegistration>>> {
         // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -303,7 +387,85 @@ impl DeviceRequest {
             _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
         };
 
-        Ok((*reader_registration).into())
+        Ok(reader_registration.into())
+    }
+
+    /// Given a set of `Mdocs`, calculate which attributes are missing and return this in a structured fashion.
+    pub fn missing_attributes_for_mdocs<'a>(&self, mdocs: impl Iterator<Item = &'a Mdoc>) -> MissingAttributes {
+        // Create a pair of nested `HashMaps`, which in turn contains a `HashSet`.
+        // The maps are indexed by `DocType` and `NameSpace` respectively, while
+        // the set contains `DataElementIdentifier`s (these are all strings).
+        let mdoc_attributes = mdocs
+            .into_iter()
+            .map(|mdoc| {
+                let name_spaces = mdoc
+                    .issuer_signed
+                    .name_spaces
+                    .as_ref()
+                    .map(|name_spaces| {
+                        name_spaces
+                            .iter()
+                            .map(|(name_space, attributes)| {
+                                let attributes = attributes
+                                    .0
+                                    .iter()
+                                    .map(|item| item.0.element_identifier.as_str())
+                                    .collect::<HashSet<_>>();
+
+                                (name_space.as_str(), attributes)
+                            })
+                            .collect::<HashMap<_, _>>()
+                    })
+                    .unwrap_or_default();
+
+                (mdoc.doc_type.as_str(), name_spaces)
+            })
+            .collect::<HashMap<_, _>>();
+
+        // Create the `MissingAttributes` nested `Vecs` based on our
+        // `DocRequest`s. Note that, if all attributes are present in
+        // the `Mdocs`, the root level `Vec` should be empty.
+        self.doc_requests
+            .iter()
+            .map(|doc_request| &doc_request.items_request.0)
+            .flat_map(|item_request| {
+                let doc_type = &item_request.doc_type;
+
+                let name_spaces = item_request
+                    .name_spaces
+                    .iter()
+                    .flat_map(|(name_space, attributes)| {
+                        let attributes = attributes
+                            .keys()
+                            .filter(|attribute| {
+                                // At the attribute level, use the `HashMap` created earlier to
+                                // do a nested lookup, to see if the attribute is present.
+                                let attribute_present = mdoc_attributes
+                                    .get(doc_type.as_str())
+                                    .and_then(|name_spaces| name_spaces.get(name_space.as_str()))
+                                    .map(|attributes| attributes.contains(attribute.as_str()))
+                                    .unwrap_or_default();
+
+                                !attribute_present
+                            })
+                            .cloned()
+                            .collect::<Vec<_>>();
+
+                        if attributes.is_empty() {
+                            return None;
+                        }
+
+                        (name_space.clone(), attributes).into()
+                    })
+                    .collect::<Vec<_>>();
+
+                if name_spaces.is_empty() {
+                    return None;
+                }
+
+                (doc_type.clone(), name_spaces).into()
+            })
+            .collect::<Vec<_>>()
     }
 }
 
