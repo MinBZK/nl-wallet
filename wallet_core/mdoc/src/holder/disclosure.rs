@@ -34,7 +34,7 @@ pub struct DisclosureSession<H> {
     client: H,
     verifier_url: Url,
     transcript: SessionTranscript,
-    key: SessionKey,
+    device_key: SessionKey,
     device_request: DeviceRequest,
 }
 
@@ -77,17 +77,23 @@ where
         // object, which we already checked above when extracting the verifier public key.
         let transcript = SessionTranscript::new(&reader_engagement, &device_engagement);
 
-        // Derive the session key from both keys and the session transcript.
-        let key = SessionKey::new(
+        // Derive the session key for both directions from the private and public keys and the session transcript.
+        let reader_key = SessionKey::new(
             &ephemeral_privkey,
             &verifier_pubkey,
             &transcript,
             SessionKeyUser::Reader,
         )?;
+        let device_key = SessionKey::new(
+            &ephemeral_privkey,
+            &verifier_pubkey,
+            &transcript,
+            SessionKeyUser::Device,
+        )?;
 
         // Send `DeviceEngagement` to verifier and decrypt the returned `DeviceRequest`.
         let session_data: SessionData = client.post(&verifier_url, &device_engagement).await?;
-        let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&key)?;
+        let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
         // A device request without `DocumentRequest` entries is useless.
         if device_request.doc_requests.is_empty() {
@@ -104,7 +110,7 @@ where
             return_url,
             verifier_url,
             transcript,
-            key,
+            device_key,
             device_request,
         };
 
