@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -65,20 +65,8 @@ pub enum VerificationError {
     UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
-    #[error("attributes mismatch: {0}")]
-    AttributesMismatch(#[from] AttributesMismatch),
-}
-
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum AttributesMismatch {
-    #[error("less data was disclosed than was requested")]
-    MissingData,
-    #[error("missing DocType {0}")]
-    MissingDocType(DocType),
-    #[error("missing NameSpace {1} of DocType {0}")]
-    MissingNameSpace(DocType, NameSpace),
-    #[error("missing attribute {2} of NameSpace {1} of DocType {0}")]
-    MissingAttribute(DocType, NameSpace, String),
+    #[error("attributes mismatch: {0:?}")]
+    MissingAttributes(Vec<AttributeIdentifier>),
 }
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
@@ -489,9 +477,7 @@ impl Session<WaitingForResponse> {
             &TimeGenerator,
             trust_anchors,
         )?;
-        device_response
-            .match_against_requested(&self.state().items_requests)
-            .map_err(VerificationError::from)?;
+        device_response.match_against_requested(&self.state().items_requests)?;
 
         let response = SessionData {
             data: None,
@@ -545,18 +531,40 @@ impl From<SessionStatus> for SessionResult {
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub struct AttributeIdentifier {
+    pub doc_type: DocType,
+    pub namespace: NameSpace,
+    pub attribute: DataElementIdentifier,
+}
+
+impl std::fmt::Debug for AttributeIdentifier {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        fmt.write_fmt(format_args!("{}/{}/{}", self.doc_type, self.namespace, self.attribute))
+    }
+}
+
 impl DeviceResponse {
-    pub fn match_against_requested(&self, requested: &[ItemsRequest]) -> std::result::Result<(), AttributesMismatch> {
-        let disclosed_documents = self.documents.as_ref().ok_or(AttributesMismatch::MissingData)?;
-
-        if disclosed_documents.len() < requested.len() {
-            return Err(AttributesMismatch::MissingData);
-        }
-
-        requested
+    /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
+    pub fn match_against_requested(&self, requested: &[ItemsRequest]) -> Result<()> {
+        let empty_vec = Vec::new();
+        let not_found: Vec<_> = requested
             .iter()
-            .zip(self.documents.as_ref().ok_or(AttributesMismatch::MissingData)?)
-            .try_for_each(|(items_request, document)| document.match_against_requested(items_request))
+            .enumerate()
+            .flat_map(|(i, items_request)| {
+                self.documents.as_ref().unwrap_or(&empty_vec).get(i).map_or_else(
+                    // If the entire document is missing then all requested attributes are missing
+                    || items_request.attribute_identifiers().into_iter().collect(),
+                    |doc| doc.match_against_requested(items_request),
+                )
+            })
+            .collect();
+
+        if not_found.is_empty() {
+            Ok(())
+        } else {
+            Err(VerificationError::MissingAttributes(not_found).into())
+        }
     }
 
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
@@ -741,51 +749,44 @@ impl Document {
         Ok((mso.doc_type, attrs))
     }
 
-    pub fn match_against_requested(&self, items_request: &ItemsRequest) -> std::result::Result<(), AttributesMismatch> {
-        if items_request.doc_type != self.doc_type {
-            return Err(AttributesMismatch::MissingDocType(items_request.doc_type.clone()));
-        }
-
-        let disclosed_name_spaces = self
-            .issuer_signed
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.issuer_signed
             .name_spaces
             .as_ref()
-            .ok_or(AttributesMismatch::MissingData)?;
-
-        if disclosed_name_spaces.len() < items_request.name_spaces.len() {
-            return Err(AttributesMismatch::MissingData);
-        }
-
-        items_request
-            .name_spaces
+            .unwrap_or(&IndexMap::new())
             .iter()
-            .try_for_each(|(requested_name_space, requested_attrs)| {
-                let Attributes(disclosed_attrs) =
-                    disclosed_name_spaces
-                        .get(requested_name_space)
-                        .ok_or(AttributesMismatch::MissingNameSpace(
-                            items_request.doc_type.clone(),
-                            requested_name_space.clone(),
-                        ))?;
-
-                if disclosed_attrs.len() < requested_attrs.len() {
-                    return Err(AttributesMismatch::MissingData);
-                }
-
-                requested_attrs.keys().zip(disclosed_attrs).try_for_each(
-                    |(requested_attr_name, TaggedBytes(disclosed_attr))| {
-                        if *requested_attr_name != disclosed_attr.element_identifier {
-                            Err(AttributesMismatch::MissingAttribute(
-                                items_request.doc_type.clone(),
-                                requested_name_space.clone(),
-                                requested_attr_name.clone(),
-                            ))
-                        } else {
-                            Ok(())
-                        }
-                    },
-                )
+            .flat_map(|(namespace, Attributes(attrs))| {
+                attrs.iter().map(move |TaggedBytes(attr)| AttributeIdentifier {
+                    doc_type: self.doc_type.clone(),
+                    namespace: namespace.clone(),
+                    attribute: attr.element_identifier.clone(),
+                })
             })
+            .collect()
+    }
+
+    /// Returns `requested` attributes, if any, that are not disclosed in this [`Document`].
+    pub fn match_against_requested(&self, requested: &ItemsRequest) -> Vec<AttributeIdentifier> {
+        requested
+            .attribute_identifiers()
+            .difference(&self.attribute_identifiers())
+            .map(Clone::clone)
+            .collect()
+    }
+}
+
+impl ItemsRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.name_spaces
+            .iter()
+            .flat_map(|(namespace, attrs)| {
+                attrs.iter().map(|(attr, _)| AttributeIdentifier {
+                    doc_type: self.doc_type.clone(),
+                    namespace: namespace.clone(),
+                    attribute: attr.clone(),
+                })
+            })
+            .collect()
     }
 }
 
@@ -795,8 +796,10 @@ mod tests {
 
     use chrono::{Duration, Utc};
     use indexmap::IndexMap;
+    use rstest::rstest;
 
     use crate::{
+        examples::Example,
         server_keys::{PrivateKey, SingleKeyRing},
         server_state::MemorySessionStore,
         utils::{
@@ -807,9 +810,13 @@ mod tests {
         verifier::{
             new_session, process_message, ValidityError,
             ValidityRequirement::{AllowNotYetValid, Valid},
+            VerificationError,
         },
-        DeviceEngagement, DeviceRequest, ItemsRequest, SessionData, SessionStatus, SessionTranscript, ValidityInfo,
+        DeviceEngagement, DeviceRequest, DeviceResponse, Error, ItemsRequest, SessionData, SessionStatus,
+        SessionTranscript, ValidityInfo,
     };
+
+    use super::AttributeIdentifier;
 
     fn new_validity_info(add_from_days: i64, add_until_days: i64) -> ValidityInfo {
         let now = Utc::now();
@@ -935,33 +942,12 @@ mod tests {
 
         assert_eq!(ended_session_response.status.unwrap(), SessionStatus::Termination);
     }
-}
-
-#[cfg(test)]
-mod test {
-    use indexmap::IndexMap;
-    use rstest::rstest;
-
-    use crate::{examples::Example, DeviceResponse, ItemsRequest};
-
-    use super::AttributesMismatch;
 
     const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
-    const EXAMPLE_ATTR_NAME: &str = "family_name";
 
-    #[rstest]
-    #[case(do_nothing())]
-    #[case(remove_documents())]
-    #[case(remove_document())]
-    #[case(change_doctype())]
-    #[case(remove_namespace())]
-    #[case(change_namespace())]
-    #[case(remove_attribute())]
-    #[case(change_attribute())]
-    fn match_disclosed_attributes(#[case] testcase: (DeviceResponse, Result<(), AttributesMismatch>)) {
-        // Construct an items request that matches the example device response
-        let items_requests = vec![ItemsRequest {
+    fn example_items_requests() -> Vec<ItemsRequest> {
+        vec![ItemsRequest {
             doc_type: EXAMPLE_DOC_TYPE.to_string(),
             name_spaces: IndexMap::from_iter([(
                 EXAMPLE_NAMESPACE.to_string(),
@@ -975,36 +961,87 @@ mod test {
                 ]),
             )]),
             request_info: None,
-        }];
+        }]
+    }
 
-        let (device_response, expected_result) = testcase;
+    /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.
+    fn attribute_identifiers(items_requests: &[ItemsRequest]) -> Vec<AttributeIdentifier> {
+        items_requests
+            .iter()
+            .flat_map(ItemsRequest::attribute_identifiers)
+            .collect()
+    }
+
+    #[rstest]
+    #[case(do_nothing())]
+    #[case(swap_attributes())]
+    #[case(remove_documents())]
+    #[case(remove_document())]
+    #[case(change_doctype())]
+    #[case(remove_namespace())]
+    #[case(change_namespace())]
+    #[case(remove_attribute())]
+    fn match_disclosed_attributes(
+        #[case] testcase: (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>),
+    ) {
+        // Construct an items request that matches the example device response
+        let (device_response, items_requests, expected_result) = testcase;
         assert_eq!(
-            device_response.match_against_requested(&items_requests),
-            expected_result
+            device_response
+                .match_against_requested(&items_requests)
+                .map_err(|e| match e {
+                    Error::Verification(VerificationError::MissingAttributes(e)) => e,
+                    _ => panic!(),
+                }),
+            expected_result,
         );
     }
 
     // return an unmodified device response, which should verify
-    fn do_nothing() -> (DeviceResponse, Result<(), AttributesMismatch>) {
-        (DeviceResponse::example(), Ok(()))
+    fn do_nothing() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+        (DeviceResponse::example(), example_items_requests(), Ok(()))
+    }
+
+    // Matching attributes is insensitive to swapped attributes, so verification succeeds
+    fn swap_attributes() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+        let mut device_response = DeviceResponse::example();
+        device_response.documents.as_mut().unwrap()[0]
+            .issuer_signed
+            .name_spaces
+            .as_mut()
+            .unwrap()
+            .first_mut()
+            .as_mut()
+            .unwrap()
+            .1
+             .0
+            .swap(0, 1);
+
+        (device_response, example_items_requests(), Ok(()))
     }
 
     // remove all disclosed documents
-    fn remove_documents() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn remove_documents() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents = None;
-        (device_response, Err(AttributesMismatch::MissingData))
+
+        let items_requests = example_items_requests();
+        let missing = attribute_identifiers(&items_requests);
+        (device_response, items_requests, Err(missing))
     }
 
     // remove a single disclosed document
-    fn remove_document() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn remove_document() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap().pop();
-        (device_response, Err(AttributesMismatch::MissingData))
+
+        let items_requests = example_items_requests();
+        let missing = attribute_identifiers(&items_requests);
+        (device_response, items_requests, Err(missing))
     }
 
     // Change the first doctype so it is not the requested one
-    fn change_doctype() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn change_doctype() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response
             .documents
@@ -1013,14 +1050,14 @@ mod test {
             .first_mut()
             .unwrap()
             .doc_type = "some_not_requested_doc_type".to_string();
-        (
-            device_response,
-            Err(AttributesMismatch::MissingDocType(EXAMPLE_DOC_TYPE.to_string())),
-        )
+
+        let items_requests = example_items_requests();
+        let missing = attribute_identifiers(&items_requests);
+        (device_response, items_requests, Err(missing))
     }
 
     // Remove one of the disclosed namespaces
-    fn remove_namespace() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn remove_namespace() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap()[0]
             .issuer_signed
@@ -1028,11 +1065,14 @@ mod test {
             .as_mut()
             .unwrap()
             .pop();
-        (device_response, Err(AttributesMismatch::MissingData))
+
+        let items_requests = example_items_requests();
+        let missing = attribute_identifiers(&items_requests);
+        (device_response, items_requests, Err(missing))
     }
 
     // Change a namespace so it is not the requested one
-    fn change_namespace() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn change_namespace() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         let namespaces = device_response
             .documents
@@ -1046,17 +1086,14 @@ mod test {
             .unwrap();
         let (_, attributes) = namespaces.pop().unwrap();
         namespaces.insert("some_not_requested_name_space".to_string(), attributes);
-        (
-            device_response,
-            Err(AttributesMismatch::MissingNameSpace(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-            )),
-        )
+
+        let items_requests = example_items_requests();
+        let missing = attribute_identifiers(&items_requests);
+        (device_response, items_requests, Err(missing))
     }
 
     // Remove one of the disclosed attributes
-    fn remove_attribute() -> (DeviceResponse, Result<(), AttributesMismatch>) {
+    fn remove_attribute() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap()[0]
             .issuer_signed
@@ -1068,30 +1105,9 @@ mod test {
             .1
              .0
             .pop();
-        (device_response, Err(AttributesMismatch::MissingData))
-    }
 
-    // Swap the disclosed attributes, so that the first attribute in the device response is not the requested one
-    fn change_attribute() -> (DeviceResponse, Result<(), AttributesMismatch>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap()[0]
-            .issuer_signed
-            .name_spaces
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .as_mut()
-            .unwrap()
-            .1
-             .0
-            .swap(0, 1);
-        (
-            device_response,
-            Err(AttributesMismatch::MissingAttribute(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-                EXAMPLE_ATTR_NAME.to_string(),
-            )),
-        )
+        let items_requests = example_items_requests();
+        let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
+        (device_response, items_requests, Err(missing))
     }
 }
