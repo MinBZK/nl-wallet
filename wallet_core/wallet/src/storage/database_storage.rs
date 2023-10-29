@@ -1,8 +1,9 @@
-use std::{marker::PhantomData, path::PathBuf};
+use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set, TransactionTrait,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
+    TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
@@ -95,6 +96,33 @@ where
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
 
         Ok(database)
+    }
+
+    async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<(Uuid, Mdoc)>>
+    where
+        F: FnOnce(Select<mdoc_copy::Entity>) -> Select<mdoc_copy::Entity>,
+    {
+        let database = self.database()?;
+
+        let select = mdoc_copy::Entity::find()
+            .select_only()
+            .column_as(mdoc_copy::Column::Id.min(), "id")
+            .column(mdoc_copy::Column::MdocId)
+            .column(mdoc_copy::Column::Mdoc)
+            .group_by(mdoc_copy::Column::MdocId);
+
+        let mdoc_copies = transform_select(select).all(database.connection()).await?;
+
+        let mdocs = mdoc_copies
+            .into_iter()
+            .map(|model| {
+                let mdoc = cbor_deserialize(model.mdoc.as_slice())?;
+
+                Ok((model.mdoc_id, mdoc))
+            })
+            .collect::<Result<_, CborError>>()?;
+
+        Ok(mdocs)
     }
 }
 
@@ -236,27 +264,18 @@ where
     }
 
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
-        let database = self.database()?;
+        self.query_unique_mdocs(|select| select).await
+    }
 
-        let mdoc_copies = mdoc_copy::Entity::find()
-            .select_only()
-            .column_as(mdoc_copy::Column::Id.min(), "id")
-            .column(mdoc_copy::Column::MdocId)
-            .column(mdoc_copy::Column::Mdoc)
-            .group_by(mdoc_copy::Column::MdocId)
-            .all(database.connection())
-            .await?;
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+        let doc_types_iter = doc_types.iter().copied();
 
-        let mdocs = mdoc_copies
-            .into_iter()
-            .map(|m| {
-                let mdoc = cbor_deserialize(m.mdoc.as_slice())?;
-
-                Ok((m.mdoc_id, mdoc))
-            })
-            .collect::<Result<_, CborError>>()?;
-
-        Ok(mdocs)
+        self.query_unique_mdocs(move |select| {
+            select
+                .inner_join(mdoc::Entity)
+                .filter(mdoc::Column::DocType.is_in(doc_types_iter))
+        })
+        .await
     }
 }
 
@@ -416,10 +435,35 @@ mod tests {
         storage.insert_mdocs(vec![mdoc_copies.clone()]).await.unwrap();
 
         // Fetch unique mdocs
-        let fetched = storage.fetch_unique_mdocs().await.unwrap();
+        let fetched_unique = storage.fetch_unique_mdocs().await.unwrap();
 
         // Only one unique `Mdoc` should be returned and it should match all copies.
-        assert_eq!(fetched.len(), 1);
-        assert_eq!(&fetched.first().unwrap().1, mdoc_copies.cred_copies.first().unwrap());
+        assert_eq!(fetched_unique.len(), 1);
+        assert_eq!(
+            &fetched_unique.first().unwrap().1,
+            mdoc_copies.cred_copies.first().unwrap()
+        );
+
+        // Fetch unique mdocs based on doctype
+        let fetched_unique_doctype = storage
+            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", "org.iso.18013.5.1.mDL"]))
+            .await
+            .unwrap();
+
+        // One matching `Mdoc` should be returned
+        assert_eq!(fetched_unique_doctype.len(), 1);
+        assert_eq!(
+            &fetched_unique_doctype.first().unwrap().1,
+            mdoc_copies.cred_copies.first().unwrap()
+        );
+
+        // Fetch unique mdocs based on non-existent doctype
+        let fetched_unique_doctype_mismatch = storage
+            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", "bar"]))
+            .await
+            .unwrap();
+
+        // No entries should be returned
+        assert!(fetched_unique_doctype_mismatch.is_empty());
     }
 }

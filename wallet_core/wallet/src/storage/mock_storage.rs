@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
@@ -125,6 +125,18 @@ impl Storage for MockStorage {
             .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
             .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
             .map(|mdoc| (Uuid::new_v4(), mdoc.clone()))
+            .collect();
+
+        Ok(mdocs)
+    }
+
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+        // Get every unique Mdoc and filter them based on the requested doc types.
+        let unique_mdocs = self.fetch_unique_mdocs().await?;
+
+        let mdocs = unique_mdocs
+            .into_iter()
+            .filter(|mdoc| doc_types.contains(mdoc.1.doc_type.as_str()))
             .collect();
 
         Ok(mdocs)

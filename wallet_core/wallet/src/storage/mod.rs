@@ -7,7 +7,7 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
-use std::{array::TryFromSliceError, io};
+use std::{array::TryFromSliceError, collections::HashSet, io};
 
 use async_trait::async_trait;
 use sea_orm::DbErr;
@@ -77,4 +77,5 @@ pub trait Storage {
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>>;
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>>;
 }

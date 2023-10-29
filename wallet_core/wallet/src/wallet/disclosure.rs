@@ -9,7 +9,7 @@ use nl_wallet_mdoc::holder::{Mdoc, MdocDataSource};
 use crate::{
     config::ConfigurationRepository,
     disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
-    storage::StorageError,
+    storage::{Storage, StorageError},
 };
 
 use super::Wallet;
@@ -72,19 +72,29 @@ where
 #[async_trait]
 impl<C, S, K, A, D, P, R> MdocDataSource for Wallet<C, S, K, A, D, P, R>
 where
-    C: Sync,
-    S: Send + Sync,
-    K: Sync,
-    A: Sync,
-    D: Sync,
-    P: Sync,
-    R: Sync,
+    C: Send + Sync,
+    S: Storage + Send + Sync,
+    K: Send + Sync,
+    A: Send + Sync,
+    D: Send + Sync,
+    P: Send + Sync,
+    R: Send + Sync,
 {
     type Error = StorageError;
 
-    async fn mdoc_by_doctypes(&self, _doctypes: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error> {
-        // TODO: retrieve mdocs from storage
-        Ok(Default::default())
+    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error> {
+        // TODO: Retain UUIDs and increment use count on mdoc_copy when disclosure takes place.
+        let mdocs = self
+            .storage
+            .read()
+            .await
+            .fetch_unique_mdocs_by_doctypes(doc_types)
+            .await?
+            .into_iter()
+            .map(|(_, mdoc)| mdoc)
+            .collect();
+
+        Ok(mdocs)
     }
 }
 

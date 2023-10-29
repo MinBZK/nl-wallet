@@ -38,8 +38,8 @@ pub trait MdocDataSource {
     //       once disclosure is fully implemented.
     type Error: std::error::Error + Send + Sync + 'static;
 
-    /// Return all `Mdoc` entries from storage that match a set of doctypes.
-    async fn mdoc_by_doctypes(&self, doctypes: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error>;
+    /// Return all `Mdoc` entries from storage that match a set of doc types.
+    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error>;
 }
 
 // TODO: not all of these fields may be necessary to finish the session.
@@ -123,8 +123,8 @@ where
             .verify(&transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
-        // Make a `HashSet` of doctypes from the `DeviceRequest` to account
-        // for potential duplicate doctypes in the request, then fetch them
+        // Make a `HashSet` of doc types from the `DeviceRequest` to account
+        // for potential duplicate doc types in the request, then fetch them
         // from our data source.
         let doc_types = device_request
             .doc_requests
@@ -132,39 +132,39 @@ where
             .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
             .collect::<HashSet<_>>();
         let source_mdocs = mdoc_data_source
-            .mdoc_by_doctypes(&doc_types)
+            .mdoc_by_doc_types(&doc_types)
             .await
             .map_err(|error| HolderError::MdocDataSource(error.into()))?;
 
-        // Build a `HashMap` of the returned `Mdoc`s, based on their doctype.
+        // Build a `HashMap` of the returned `Mdoc`s, based on their doc type.
         let mdocs = source_mdocs.into_iter().fold(
             HashMap::<_, Vec<_>>::with_capacity(doc_types.len()),
-            |mut mdocs_by_doctype, mdoc| {
-                // Sanity check, make sure this doctype is actually in the request.
+            |mut mdocs, mdoc| {
+                // Sanity check, make sure this doc type is actually in the request.
                 if let Some(doc_type) = doc_types.get(mdoc.doc_type.as_str()) {
-                    mdocs_by_doctype.entry(*doc_type).or_default().push(mdoc);
+                    mdocs.entry(*doc_type).or_default().push(mdoc);
                 }
 
-                mdocs_by_doctype
+                mdocs
             },
         );
 
-        // Choosing between multiple `Mdoc`s with the same doctype
+        // Choosing between multiple `Mdoc`s with the same doc type
         // is currently not supported, so return an error.
         // TODO: Support choosing which mdoc/attribute to disclose.
         // TODO: Should we at least support combining attributes from different `Mdoc`s?
         if mdocs.values().any(|typed_mdocs| typed_mdocs.len() > 1) {
-            let multiple_mdoc_doctypes = mdocs
+            let multiple_mdoc_doc_types = mdocs
                 .into_values()
                 .filter(|typed_mdocs| typed_mdocs.len() > 1)
                 .map(|mut typed_mdocs| typed_mdocs.pop().unwrap().doc_type)
                 .collect::<Vec<_>>();
 
-            return Err(HolderError::MultipleCandidates(multiple_mdoc_doctypes).into());
+            return Err(HolderError::MultipleCandidates(multiple_mdoc_doc_types).into());
         }
 
         // Flatten the collection of `Mdoc`s, now that we
-        // know that there is at most one per doctype.
+        // know that there is at most one per doc type.
         let mdocs = mdocs
             .into_iter()
             .flat_map(|(doc_type, mut typed_mdocs)| typed_mdocs.pop().map(|mdoc| (doc_type.to_string(), mdoc)))
