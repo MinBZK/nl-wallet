@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use axum::{
     body::Bytes,
@@ -12,6 +12,7 @@ use base64::prelude::*;
 use lazy_static::lazy_static;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 use tower_http::trace::TraceLayer;
 use tracing::log::{error, warn};
 use url::Url;
@@ -20,7 +21,7 @@ use crate::settings::Settings;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{SessionState, SessionStore, SessionToken},
+    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         serialization::cbor_serialize,
         x509::{Certificate, OwnedTrustAnchor},
@@ -69,18 +70,31 @@ impl KeyRing for RelyingPartyKeyRing {
 
 struct ApplicationState<S> {
     sessions: S,
+    cleanup_task: JoinHandle<()>,
     public_url: Url,
     internal_url: Url,
     certificates: RelyingPartyKeyRing,
     trust_anchors: Vec<OwnedTrustAnchor>,
 }
 
+impl<S> Drop for ApplicationState<S> {
+    fn drop(&mut self) {
+        self.cleanup_task.abort();
+    }
+}
+
 pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
+    let sessions = Arc::new(sessions);
+    let cleanup_task = sessions
+        .clone()
+        .start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS));
+
     let application_state = Arc::new(ApplicationState {
         sessions,
+        cleanup_task,
         public_url: settings.public_url.clone(),
         internal_url: settings.internal_url.unwrap_or(settings.public_url),
         certificates: RelyingPartyKeyRing(
@@ -124,7 +138,7 @@ where
 }
 
 async fn session<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+    State(state): State<Arc<ApplicationState<Arc<S>>>>,
     Path(session_id): Path<SessionToken>,
     msg: Bytes,
 ) -> Result<Json<SessionData>, Error>
@@ -135,7 +149,7 @@ where
         &msg,
         session_id,
         &state.certificates,
-        &state.sessions,
+        state.sessions.as_ref(),
         state
             .trust_anchors
             .iter()
@@ -162,7 +176,7 @@ pub struct StartDisclosureResponse {
 }
 
 async fn start<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+    State(state): State<Arc<ApplicationState<Arc<S>>>>,
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, Error>
 where
@@ -173,7 +187,7 @@ where
         start_request.items_requests,
         start_request.usecase,
         &state.certificates,
-        &state.sessions,
+        state.sessions.as_ref(),
     )
     .map_err(Error::StartSession)?;
 
@@ -203,7 +217,7 @@ pub enum StatusResponse {
 }
 
 async fn status<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+    State(state): State<Arc<ApplicationState<Arc<S>>>>,
     Path(session_id): Path<SessionToken>,
 ) -> Result<Json<StatusResponse>, Error>
 where

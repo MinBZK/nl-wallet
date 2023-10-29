@@ -83,7 +83,9 @@ where
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
         let sessions = Arc::new(session_store);
         Server {
-            cleanup_task: S::start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+            cleanup_task: sessions
+                .clone()
+                .start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
             url,
             keys,
             sessions,
