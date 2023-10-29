@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 use tracing::{info, instrument};
 use url::Url;
@@ -80,10 +82,7 @@ where
 {
     type Error = StorageError;
 
-    async fn mdoc_by_doctypes(
-        &self,
-        _doctypes: impl Iterator<Item = impl AsRef<str>> + Send,
-    ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
+    async fn mdoc_by_doctypes(&self, _doctypes: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error> {
         // TODO: retrieve mdocs from storage
         Ok(Default::default())
     }

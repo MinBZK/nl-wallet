@@ -38,13 +38,8 @@ pub trait MdocDataSource {
     //       once disclosure is fully implemented.
     type Error: std::error::Error + Send + Sync + 'static;
 
-    /// For every doctype, return a vec of `Mdoc` entities
-    /// represent it. This means that the returned `Vec` should
-    /// be the same length as the `doctypes` iterator.
-    async fn mdoc_by_doctypes(
-        &self,
-        doctypes: impl Iterator<Item = impl AsRef<str>> + Send,
-    ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
+    /// Return all `Mdoc` entries from storage that match a set of doctypes.
+    async fn mdoc_by_doctypes(&self, doctypes: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error>;
 }
 
 // TODO: not all of these fields may be necessary to finish the session.
@@ -57,7 +52,7 @@ pub struct DisclosureSession<H> {
     device_key: SessionKey,
     device_request: DeviceRequest,
     pub reader_registration: ReaderRegistration,
-    mdocs: Vec<Mdoc>,
+    mdocs: HashMap<DocType, Mdoc>,
 }
 
 impl<H> DisclosureSession<H>
@@ -128,34 +123,39 @@ where
             .verify(&transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
-        // Get a `Vec` of doctypes from the `DeviceRequest` and get them from our data source.
+        // Make a `HashSet` of doctypes from the `DeviceRequest` to account
+        // for potential duplicate doctypes in the request, then fetch them
+        // from our data source.
         let doc_types = device_request
             .doc_requests
             .iter()
             .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
-            .collect::<Vec<_>>();
-        let mdocs = mdoc_data_source
-            .mdoc_by_doctypes(doc_types.iter())
+            .collect::<HashSet<_>>();
+        let source_mdocs = mdoc_data_source
+            .mdoc_by_doctypes(&doc_types)
             .await
             .map_err(|error| HolderError::MdocDataSource(error.into()))?;
 
-        // Do a sanity check, every returned `Mdoc` should match the requested doctype.
-        doc_types.iter().zip(&mdocs).for_each(|(doc_type, typed_mdocs)| {
-            typed_mdocs.iter().for_each(|mdoc| {
-                if mdoc.doc_type != *doc_type {
-                    panic!(
-                        "Inconsistent mdoc doc_type received from storage, expected \"{}\", received \"{}\"",
-                        doc_type, mdoc.doc_type
-                    );
+        // Build a `HashMap` of the returned `Mdoc`s, based on their doctype.
+        let mdocs = source_mdocs.into_iter().fold(
+            HashMap::<_, Vec<_>>::with_capacity(doc_types.len()),
+            |mut mdocs_by_doctype, mdoc| {
+                // Sanity check, make sure this doctype is actually in the request.
+                if let Some(doc_type) = doc_types.get(mdoc.doc_type.as_str()) {
+                    mdocs_by_doctype.entry(*doc_type).or_default().push(mdoc);
                 }
-            })
-        });
+
+                mdocs_by_doctype
+            },
+        );
 
         // Choosing between multiple `Mdoc`s with the same doctype
         // is currently not supported, so return an error.
-        if mdocs.iter().any(|typed_mdocs| typed_mdocs.len() > 1) {
+        // TODO: Support choosing which mdoc/attribute to disclose.
+        // TODO: Should we at least support combining attributes from different `Mdoc`s?
+        if mdocs.values().any(|typed_mdocs| typed_mdocs.len() > 1) {
             let multiple_mdoc_doctypes = mdocs
-                .into_iter()
+                .into_values()
                 .filter(|typed_mdocs| typed_mdocs.len() > 1)
                 .map(|mut typed_mdocs| typed_mdocs.pop().unwrap().doc_type)
                 .collect::<Vec<_>>();
@@ -163,15 +163,30 @@ where
             return Err(HolderError::MultipleCandidates(multiple_mdoc_doctypes).into());
         }
 
-        // Filter out empty `Vec<Mdoc>` results (meaning the length no longer matches
-        // the requested doctypes) and take the one `Mdoc` out of its `Vec`.
+        // Flatten the collection of `Mdoc`s, now that we
+        // know that there is at most one per doctype.
         let mdocs = mdocs
             .into_iter()
-            .filter_map(|mut typed_mdocs| typed_mdocs.pop())
-            .collect::<Vec<_>>();
+            .flat_map(|(doc_type, mut typed_mdocs)| typed_mdocs.pop().map(|mdoc| (doc_type.to_string(), mdoc)))
+            .collect::<HashMap<_, _>>();
 
         // Calculate missing attributes for the request, given the available `Mdoc`s.
-        let missing_attributes = device_request.missing_attributes_for_mdocs(mdocs.iter());
+        // If all attributes are present in all `Mdoc`s, this should be empty.
+        let missing_attributes = device_request
+            .doc_requests
+            .iter()
+            .filter_map(|doc_request| {
+                let doc_type = doc_request.items_request.0.doc_type.as_str();
+                let mdoc = mdocs.get(doc_type);
+                let missing_mdoc_attributes = doc_request.missing_attributes_for_mdoc(mdoc);
+
+                if missing_mdoc_attributes.is_empty() {
+                    return None;
+                }
+
+                (doc_type.to_string(), missing_mdoc_attributes).into()
+            })
+            .collect::<Vec<_>>();
 
         // If there are any, return an error and include the `ReaderRegistration`.
         if !missing_attributes.is_empty() {
@@ -336,7 +351,7 @@ impl DeviceSigned {
     }
 }
 
-pub type MissingAttributes = Vec<(DocType, Vec<(NameSpace, Vec<DataElementIdentifier>)>)>;
+pub type MissingAttributes = Vec<(DocType, MissingDocumentAttributes)>;
 
 impl DeviceRequest {
     /// Verify reader authentication, if present.
@@ -390,84 +405,28 @@ impl DeviceRequest {
         Ok(reader_registration.into())
     }
 
-    /// Given a set of `Mdocs`, calculate which attributes are missing and return this in a structured fashion.
-    pub fn missing_attributes_for_mdocs<'a>(&self, mdocs: impl Iterator<Item = &'a Mdoc>) -> MissingAttributes {
-        // Create a pair of nested `HashMaps`, which in turn contains a `HashSet`.
-        // The maps are indexed by `DocType` and `NameSpace` respectively, while
-        // the set contains `DataElementIdentifier`s (these are all strings).
-        let mdoc_attributes = mdocs
-            .into_iter()
-            .map(|mdoc| {
-                let name_spaces = mdoc
-                    .issuer_signed
-                    .name_spaces
-                    .as_ref()
-                    .map(|name_spaces| {
-                        name_spaces
-                            .iter()
-                            .map(|(name_space, attributes)| {
-                                let attributes = attributes
-                                    .0
-                                    .iter()
-                                    .map(|item| item.0.element_identifier.as_str())
-                                    .collect::<HashSet<_>>();
-
-                                (name_space.as_str(), attributes)
-                            })
-                            .collect::<HashMap<_, _>>()
-                    })
-                    .unwrap_or_default();
-
-                (mdoc.doc_type.as_str(), name_spaces)
-            })
-            .collect::<HashMap<_, _>>();
-
-        // Create the `MissingAttributes` nested `Vecs` based on our
-        // `DocRequest`s. Note that, if all attributes are present in
-        // the `Mdocs`, the root level `Vec` should be empty.
+    /// Given a `HashSet` of `Mdocs`, calculate which attributes are missing
+    /// and return these in a structured fashion. If all attributes are present,
+    /// this returns an empty `Vec`.
+    pub fn missing_attributes_for_mdocs(&self, mdocs: &HashMap<DocType, Mdoc>) -> MissingAttributes {
         self.doc_requests
             .iter()
-            .map(|doc_request| &doc_request.items_request.0)
-            .flat_map(|item_request| {
-                let doc_type = &item_request.doc_type;
+            .filter_map(|doc_request| {
+                let doc_type = doc_request.items_request.0.doc_type.as_str();
+                let mdoc = mdocs.get(doc_type);
+                let missing_mdoc_attributes = doc_request.missing_attributes_for_mdoc(mdoc);
 
-                let name_spaces = item_request
-                    .name_spaces
-                    .iter()
-                    .flat_map(|(name_space, attributes)| {
-                        let attributes = attributes
-                            .keys()
-                            .filter(|attribute| {
-                                // At the attribute level, use the `HashMap` created earlier to
-                                // do a nested lookup, to see if the attribute is present.
-                                let attribute_present = mdoc_attributes
-                                    .get(doc_type.as_str())
-                                    .and_then(|name_spaces| name_spaces.get(name_space.as_str()))
-                                    .map(|attributes| attributes.contains(attribute.as_str()))
-                                    .unwrap_or_default();
-
-                                !attribute_present
-                            })
-                            .cloned()
-                            .collect::<Vec<_>>();
-
-                        if attributes.is_empty() {
-                            return None;
-                        }
-
-                        (name_space.clone(), attributes).into()
-                    })
-                    .collect::<Vec<_>>();
-
-                if name_spaces.is_empty() {
+                if missing_mdoc_attributes.is_empty() {
                     return None;
                 }
 
-                (doc_type.clone(), name_spaces).into()
+                (doc_type.to_string(), missing_mdoc_attributes).into()
             })
             .collect::<Vec<_>>()
     }
 }
+
+pub type MissingDocumentAttributes = Vec<(NameSpace, Vec<DataElementIdentifier>)>;
 
 impl DocRequest {
     pub fn verify(
@@ -497,6 +456,49 @@ impl DocRequest {
                 Ok(cert)
             })
             .transpose()
+    }
+
+    /// Calculate which attributes for which name spaces are missing from the request,
+    /// given an optional `Mdoc` and return these in a structured fashion. If the `Mdoc`
+    /// is not provided, all attributes will be returned as missing.
+    pub fn missing_attributes_for_mdoc(&self, mdoc: Option<&Mdoc>) -> MissingDocumentAttributes {
+        let mdoc_name_spaces = mdoc.and_then(|mdoc| mdoc.issuer_signed.name_spaces.as_ref());
+
+        // Note that this `Vec` will be empty if all attributes
+        // in all name spaces are present in the `Mdoc`.
+        self.items_request
+            .0
+            .name_spaces
+            .iter()
+            .flat_map(|(name_space, attributes)| {
+                // Calculate a `HasSet` of attributes that are present in the
+                // `Mdoc` for the name space, which may be empty if there is no `Mdoc`.
+                let mdoc_attribute_set = mdoc_name_spaces
+                    .and_then(|mdoc_name_spaces| mdoc_name_spaces.get(name_space))
+                    .map(|mdoc_attributes| {
+                        mdoc_attributes
+                            .0
+                            .iter()
+                            .map(|attribute| attribute.0.element_identifier.as_str())
+                            .collect::<HashSet<_>>()
+                    })
+                    .unwrap_or_default();
+
+                // Look up which of the attributes are missing from the `Mdoc`
+                // and place those in a `Vec`.
+                let missing_attributes = attributes
+                    .keys()
+                    .filter(|attribute| !mdoc_attribute_set.contains(attribute.as_str()))
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                if missing_attributes.is_empty() {
+                    return None;
+                }
+
+                (name_space.clone(), missing_attributes).into()
+            })
+            .collect()
     }
 }
 
