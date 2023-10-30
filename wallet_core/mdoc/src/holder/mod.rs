@@ -54,7 +54,7 @@ pub enum HolderError {
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
     MultipleCandidates(Vec<DocType>),
-    #[error("not all requested doc types and/or attributes are available, missing: {missing_attributes:?}")]
+    #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: MissingAttributes,

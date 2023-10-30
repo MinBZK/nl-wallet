@@ -17,13 +17,16 @@ pub mod errors;
 pub use crate::{
     config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration, PidIssuanceConfiguration},
     document::{
-        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeValue, Document, DocumentPersistence, DocumentType,
-        GenderAttributeValue,
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, Document,
+        DocumentPersistence, DocumentType, GenderAttributeValue, MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,
     wallet::{UriType, Wallet},
 };
 
+pub mod mdoc {
+    pub use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+}
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
     pub use crate::{

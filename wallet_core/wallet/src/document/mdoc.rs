@@ -4,11 +4,14 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    holder::MissingDocumentAttributes,
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
+use crate::MissingDisclosureAttributes;
+
 use super::{
-    mapping::{DataElementValueMapping, MDOC_DOCUMENT_MAPPING},
+    mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
     Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue,
 };
 
@@ -38,7 +41,7 @@ pub enum DocumentMdocError {
         doc_type: String,
         name_space: NameSpace,
         name: DataElementIdentifier,
-        value: DataElementValue,
+        value: Option<DataElementValue>,
     },
 }
 
@@ -48,6 +51,48 @@ pub enum AttributeValueType {
     Bool,
     Date,
     Gender,
+}
+
+/// Get the correct `AttributeMapping` or return an error if it cannot be found for the `doc_type`.
+fn mapping_for_doc_type(doc_type: &str) -> Result<(MappingDocType, &'static AttributeMapping), DocumentMdocError> {
+    let (doc_type, attribute_mapping) =
+        MDOC_DOCUMENT_MAPPING
+            .get_key_value(doc_type)
+            .ok_or_else(|| DocumentMdocError::UnknownDocType {
+                doc_type: doc_type.to_string(),
+            })?;
+
+    Ok((*doc_type, attribute_mapping))
+}
+
+impl MissingDisclosureAttributes {
+    pub(crate) fn from_mdoc_missing_attributes(
+        doc_type: &str,
+        missing_attributes: &MissingDocumentAttributes,
+    ) -> Result<Self, DocumentMdocError> {
+        let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
+
+        let attributes = missing_attributes
+            .iter()
+            .flat_map(|(name_space, attributes)| attributes.iter().map(move |element_id| (name_space, element_id)))
+            .map(|(name_space, element_id)| {
+                let value_mapping = attribute_mapping
+                    .get(&(name_space.as_str(), element_id.as_str()))
+                    .ok_or_else(|| DocumentMdocError::UnknownAttribute {
+                        doc_type: doc_type.to_string(),
+                        name_space: name_space.clone(),
+                        name: element_id.clone(),
+                        value: None,
+                    })?;
+
+                Ok((value_mapping.key, value_mapping.key_labels.clone()))
+            })
+            .collect::<Result<IndexMap<_, _>, _>>()?;
+
+        let missing_disclosure_attributes = MissingDisclosureAttributes { doc_type, attributes };
+
+        Ok(missing_disclosure_attributes)
+    }
 }
 
 impl TryFrom<UnsignedMdoc> for Document {
@@ -64,12 +109,7 @@ impl Document {
         doc_type: &str,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, attribute_mapping) =
-            MDOC_DOCUMENT_MAPPING
-                .get_key_value(doc_type)
-                .ok_or_else(|| DocumentMdocError::UnknownDocType {
-                    doc_type: doc_type.to_string(),
-                })?;
+        let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
 
         // Loop through the attributes in the mapping in order and find
         // the corresponding entry in the input attributes, based on the
@@ -136,7 +176,7 @@ impl Document {
                     doc_type: doc_type.to_string(),
                     name_space,
                     name: entry.name,
-                    value: entry.value,
+                    value: entry.value.into(),
                 })
             })
             .next();
@@ -494,7 +534,7 @@ pub mod tests {
                 name,
                 value,
             }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
-                  name == "foobar" && value == DataElementValue::Text("Foo Bar".to_string())
+                  name == "foobar" && value == Some(DataElementValue::Text("Foo Bar".to_string()))
         );
     }
 }

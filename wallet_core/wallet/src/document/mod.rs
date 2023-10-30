@@ -32,10 +32,11 @@ pub enum DocumentPersistence {
 
 pub type AttributeLabelLanguage = &'static str;
 pub type AttributeLabel = &'static str;
+pub type AttributeLabels = HashMap<AttributeLabelLanguage, AttributeLabel>;
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
-    pub key_labels: HashMap<AttributeLabelLanguage, AttributeLabel>,
+    pub key_labels: AttributeLabels,
     pub value: AttributeValue,
 }
 
@@ -53,6 +54,12 @@ pub enum GenderAttributeValue {
     Male,
     Female,
     NotApplicable,
+}
+
+#[derive(Debug, Clone)]
+pub struct MissingDisclosureAttributes {
+    pub doc_type: DocumentType,
+    pub attributes: IndexMap<AttributeKey, AttributeLabels>,
 }
 
 impl Document {

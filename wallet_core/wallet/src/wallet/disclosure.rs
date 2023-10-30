@@ -4,11 +4,15 @@ use async_trait::async_trait;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::holder::{Mdoc, MdocDataSource};
+use nl_wallet_mdoc::{
+    holder::{HolderError, Mdoc, MdocDataSource},
+    utils::reader_auth::ReaderRegistration,
+};
 
 use crate::{
     config::ConfigurationRepository,
     disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
+    document::{DocumentMdocError, MissingDisclosureAttributes},
     storage::{Storage, StorageError},
 };
 
@@ -25,7 +29,44 @@ pub enum DisclosureError {
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUriError(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
-    DisclosureSession(#[from] nl_wallet_mdoc::Error),
+    DisclosureSession(#[source] nl_wallet_mdoc::Error),
+    #[error("could not interpret missing mdoc attributes: {0}")]
+    AttributeMdoc(#[from] DocumentMdocError),
+    #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
+    AttributesNotAvailable {
+        reader_registration: Box<ReaderRegistration>,
+        missing_attributes: Vec<MissingDisclosureAttributes>,
+    },
+}
+
+// Promote an `AttributesNotAvailable` error to a top-level error.
+impl From<nl_wallet_mdoc::Error> for DisclosureError {
+    fn from(value: nl_wallet_mdoc::Error) -> Self {
+        match value {
+            nl_wallet_mdoc::Error::Holder(HolderError::AttributesNotAvailable {
+                reader_registration,
+                missing_attributes,
+            }) => {
+                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
+                let attributes = missing_attributes
+                    .into_iter()
+                    .map(|(doc_type, doc_attributes)| {
+                        MissingDisclosureAttributes::from_mdoc_missing_attributes(&doc_type, &doc_attributes)
+                    })
+                    .collect::<Result<Vec<_>, _>>();
+
+                // If this fails, return `DisclosureError::AttributeMdoc` instead.
+                match attributes {
+                    Ok(attributes) => DisclosureError::AttributesNotAvailable {
+                        reader_registration,
+                        missing_attributes: attributes,
+                    },
+                    Err(error) => error.into(),
+                }
+            }
+            error => DisclosureError::DisclosureSession(error),
+        }
+    }
 }
 
 impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
