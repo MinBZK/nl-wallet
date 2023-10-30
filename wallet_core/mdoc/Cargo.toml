@@ -42,6 +42,7 @@ fieldnames_derive.path = "./fieldnames_derive"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
+assert_matches.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
