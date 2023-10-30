@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     body::Bytes,
@@ -12,7 +12,6 @@ use base64::prelude::*;
 use lazy_static::lazy_static;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
 use tower_http::trace::TraceLayer;
 use tracing::log::{error, warn};
 use url::Url;
@@ -21,12 +20,12 @@ use crate::settings::Settings;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    server_state::{SessionState, SessionStore, SessionToken},
     utils::{
         serialization::cbor_serialize,
         x509::{Certificate, OwnedTrustAnchor},
     },
-    verifier::{self, DisclosureData, VerificationError},
+    verifier::{DisclosureData, StatusResponse, VerificationError, Verifier},
     ItemsRequest, SessionData,
 };
 
@@ -41,8 +40,8 @@ pub enum Error {
     StartSession(#[source] nl_wallet_mdoc::Error),
     #[error("process mdoc message error: {0}")]
     ProcessMdoc(#[source] nl_wallet_mdoc::Error),
-    #[error("unknown session")]
-    UnknownSession,
+    #[error("retrieving status error: {0}")]
+    Status(nl_wallet_mdoc::Error),
 }
 
 impl IntoResponse for Error {
@@ -55,7 +54,10 @@ impl IntoResponse for Error {
                 StatusCode::NOT_FOUND.into_response()
             }
             Error::ProcessMdoc(_) => StatusCode::BAD_REQUEST.into_response(),
-            Error::UnknownSession => StatusCode::NOT_FOUND.into_response(),
+            Error::Status(nl_wallet_mdoc::Error::Verification(VerificationError::UnknownSessionId(_))) => {
+                StatusCode::NOT_FOUND.into_response()
+            }
+            Error::Status(_) => StatusCode::BAD_REQUEST.into_response(),
         }
     }
 }
@@ -69,58 +71,44 @@ impl KeyRing for RelyingPartyKeyRing {
 }
 
 struct ApplicationState<S> {
-    sessions: S,
-    cleanup_task: JoinHandle<()>,
-    public_url: Url,
+    verifier: Verifier<RelyingPartyKeyRing, S>,
     internal_url: Url,
-    certificates: RelyingPartyKeyRing,
-    trust_anchors: Vec<OwnedTrustAnchor>,
-}
-
-impl<S> Drop for ApplicationState<S> {
-    fn drop(&mut self) {
-        self.cleanup_task.abort();
-    }
 }
 
 pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let sessions = Arc::new(sessions);
-    let cleanup_task = sessions
-        .clone()
-        .start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS));
-
     let application_state = Arc::new(ApplicationState {
-        sessions,
-        cleanup_task,
-        public_url: settings.public_url.clone(),
-        internal_url: settings.internal_url.unwrap_or(settings.public_url),
-        certificates: RelyingPartyKeyRing(
+        verifier: Verifier::new(
+            settings.public_url.clone(),
+            RelyingPartyKeyRing(
+                settings
+                    .usecases
+                    .into_iter()
+                    .map(|(usecase, keypair)| {
+                        Ok((
+                            usecase,
+                            PrivateKey::new(
+                                SigningKey::from_pkcs8_der(&BASE64_STANDARD.decode(&keypair.private_key)?)?,
+                                Certificate::from(BASE64_STANDARD.decode(&keypair.certificate)?),
+                            ),
+                        ))
+                    })
+                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
+            ),
+            sessions,
             settings
-                .usecases
+                .trust_anchors
                 .into_iter()
-                .map(|(usecase, keypair)| {
-                    Ok((
-                        usecase,
-                        PrivateKey::new(
-                            SigningKey::from_pkcs8_der(&BASE64_STANDARD.decode(&keypair.private_key)?)?,
-                            Certificate::from(BASE64_STANDARD.decode(&keypair.certificate)?),
-                        ),
-                    ))
+                .map(|certificate| {
+                    Ok(Into::<OwnedTrustAnchor>::into(&TryInto::<TrustAnchor>::try_into(
+                        &Certificate::from(BASE64_STANDARD.decode(certificate)?),
+                    )?))
                 })
-                .collect::<anyhow::Result<HashMap<_, _>>>()?,
+                .collect::<anyhow::Result<Vec<_>>>()?,
         ),
-        trust_anchors: settings
-            .trust_anchors
-            .into_iter()
-            .map(|certificate| {
-                Ok(Into::<OwnedTrustAnchor>::into(&TryInto::<TrustAnchor>::try_into(
-                    &Certificate::from(BASE64_STANDARD.decode(certificate)?),
-                )?))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?,
+        internal_url: settings.internal_url.unwrap_or(settings.public_url),
     });
 
     let wallet_router = Router::new()
@@ -138,27 +126,18 @@ where
 }
 
 async fn session<S>(
-    State(state): State<Arc<ApplicationState<Arc<S>>>>,
+    State(state): State<Arc<ApplicationState<S>>>,
     Path(session_id): Path<SessionToken>,
     msg: Bytes,
 ) -> Result<Json<SessionData>, Error>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let disclosure_data = verifier::process_message(
-        &msg,
-        session_id,
-        &state.certificates,
-        state.sessions.as_ref(),
-        state
-            .trust_anchors
-            .iter()
-            .map(Into::<TrustAnchor<'_>>::into)
-            .collect::<Vec<_>>()
-            .as_slice(),
-    )
-    .await
-    .map_err(Error::ProcessMdoc)?;
+    let disclosure_data = state
+        .verifier
+        .process_message(&msg, session_id)
+        .await
+        .map_err(Error::ProcessMdoc)?;
 
     Ok(Json(disclosure_data))
 }
@@ -176,20 +155,16 @@ pub struct StartDisclosureResponse {
 }
 
 async fn start<S>(
-    State(state): State<Arc<ApplicationState<Arc<S>>>>,
+    State(state): State<Arc<ApplicationState<S>>>,
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, Error>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let (session_id, engagement) = verifier::new_session(
-        &state.public_url,
-        start_request.items_requests,
-        start_request.usecase,
-        &state.certificates,
-        state.sessions.as_ref(),
-    )
-    .map_err(Error::StartSession)?;
+    let (session_id, engagement) = state
+        .verifier
+        .new_session(start_request.items_requests, start_request.usecase)
+        .map_err(Error::StartSession)?;
 
     let session_url = state
         .internal_url
@@ -207,32 +182,13 @@ where
     }))
 }
 
-// status without the underlying data for Created and Waiting
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "UPPERCASE", tag = "status", content = "result")]
-pub enum StatusResponse {
-    Created,
-    WaitingForResponse,
-    Done(verifier::SessionResult),
-}
-
 async fn status<S>(
-    State(state): State<Arc<ApplicationState<Arc<S>>>>,
+    State(state): State<Arc<ApplicationState<S>>>,
     Path(session_id): Path<SessionToken>,
 ) -> Result<Json<StatusResponse>, Error>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let status = match state
-        .sessions
-        .get(&session_id)
-        .ok_or(Error::UnknownSession)?
-        .session_data
-    {
-        DisclosureData::Created(_) => StatusResponse::Created,
-        DisclosureData::WaitingForResponse(_) => StatusResponse::WaitingForResponse,
-        DisclosureData::Done(data) => StatusResponse::Done(data.session_result),
-    };
-
+    let status = state.verifier.status(&session_id).map_err(Error::Status)?;
     Ok(Json(status))
 }
