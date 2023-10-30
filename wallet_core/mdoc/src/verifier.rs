@@ -547,12 +547,11 @@ impl std::fmt::Debug for AttributeIdentifier {
 impl DeviceResponse {
     /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
     pub fn match_against_requested(&self, requested: &[ItemsRequest]) -> Result<()> {
-        let empty_vec = Vec::new();
         let not_found: Vec<_> = requested
             .iter()
             .enumerate()
             .flat_map(|(i, items_request)| {
-                self.documents.as_ref().unwrap_or(&empty_vec).get(i).map_or_else(
+                self.documents.as_ref().and_then(|docs| docs.get(i)).map_or_else(
                     // If the entire document is missing then all requested attributes are missing
                     || items_request.attribute_identifiers().into_iter().collect(),
                     |doc| doc.match_against_requested(items_request),
