@@ -152,7 +152,6 @@ where
         // Choosing between multiple `Mdoc`s with the same doc type
         // is currently not supported, so return an error.
         // TODO: Support choosing which mdoc/attribute to disclose.
-        // TODO: Should we at least support combining attributes from different `Mdoc`s?
         if mdocs.values().any(|typed_mdocs| typed_mdocs.len() > 1) {
             let multiple_mdoc_doc_types = mdocs
                 .into_values()
