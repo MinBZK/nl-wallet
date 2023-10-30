@@ -41,7 +41,7 @@ pub enum Error {
     #[error("process mdoc message error: {0}")]
     ProcessMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("retrieving status error: {0}")]
-    Status(nl_wallet_mdoc::Error),
+    Status(#[source] nl_wallet_mdoc::Error),
 }
 
 impl IntoResponse for Error {
