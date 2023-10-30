@@ -752,16 +752,19 @@ impl Document {
         self.issuer_signed
             .name_spaces
             .as_ref()
-            .unwrap_or(&IndexMap::new())
-            .iter()
-            .flat_map(|(namespace, Attributes(attrs))| {
-                attrs.iter().map(move |TaggedBytes(attr)| AttributeIdentifier {
-                    doc_type: self.doc_type.clone(),
-                    namespace: namespace.clone(),
-                    attribute: attr.element_identifier.clone(),
-                })
+            .map(|name_spaces| {
+                name_spaces
+                    .iter()
+                    .flat_map(|(namespace, Attributes(attrs))| {
+                        attrs.iter().map(move |TaggedBytes(attr)| AttributeIdentifier {
+                            doc_type: self.doc_type.clone(),
+                            namespace: namespace.clone(),
+                            attribute: attr.element_identifier.clone(),
+                        })
+                    })
+                    .collect()
             })
-            .collect()
+            .unwrap_or_default()
     }
 
     /// Returns `requested` attributes, if any, that are not disclosed in this [`Document`].
