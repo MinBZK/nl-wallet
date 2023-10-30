@@ -802,9 +802,10 @@ impl ItemsRequest {
         doctype: &DocType,
         issuer_signed: &IssuerSigned,
     ) -> Vec<AttributeIdentifier> {
+        let document_identifiers = issuer_signed.attribute_identifiers(doctype);
         self.attribute_identifiers()
-            .difference(&issuer_signed.attribute_identifiers(doctype))
-            .cloned()
+            .into_iter()
+            .filter(|identifier| !document_identifiers.contains(identifier))
             .collect()
     }
 }
