@@ -1,5 +1,6 @@
 use std::{error::Error, fmt::Display};
 
+use anyhow::Chain;
 use serde::Serialize;
 
 use wallet::errors::{
@@ -122,7 +123,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
         // Since a `reqwest::Error` can occur in multiple locations
         // within the error tree, just look for it with some help
         // from the `anyhow::Chain` iterator.
-        for source in anyhow::Chain::new(self) {
+        for source in Chain::new(self) {
             // Unfortunately `openid::error::Error` is a special case, because one of its
             // variants holds a `reqwest::Error` with the `transparent` error attribute.
             // This means that the `.source()` method will be forwarded directly to the contained
@@ -168,6 +169,13 @@ impl FlutterApiErrorFields for DisclosureError {
         match self {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
+            }
+            DisclosureError::DisclosureSession(error) => {
+                if Chain::new(error).any(|source| source.is::<reqwest::Error>()) {
+                    return FlutterApiErrorType::Networking;
+                }
+
+                FlutterApiErrorType::Generic
             }
             _ => FlutterApiErrorType::Generic,
         }
