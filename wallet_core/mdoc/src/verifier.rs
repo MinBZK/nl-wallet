@@ -69,6 +69,14 @@ pub enum VerificationError {
     MissingAttributes(Vec<AttributeIdentifier>),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ItemsRequests(pub Vec<ItemsRequest>);
+impl From<Vec<ItemsRequest>> for ItemsRequests {
+    fn from(value: Vec<ItemsRequest>) -> Self {
+        Self(value)
+    }
+}
+
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
 /// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.
@@ -80,7 +88,7 @@ struct Session<S> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    items_requests: Vec<ItemsRequest>,
+    items_requests: ItemsRequests,
     usecase_id: String,
     ephemeral_privkey: DerSecretKey,
     reader_engagement: ReaderEngagement,
@@ -91,7 +99,7 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
-    items_requests: Vec<ItemsRequest>,
+    items_requests: ItemsRequests,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
     session_transcript: SessionTranscript,
@@ -167,7 +175,7 @@ impl SessionState<Done> {
 /// - `sessions` contains all currently active sessions, managed by this function and by [`process_message()`].
 pub fn new_session(
     base_url: &Url,
-    items_requests: Vec<ItemsRequest>,
+    items_requests: ItemsRequests,
     usecase_id: String,
     keys: &impl KeyRing,
     sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
@@ -176,7 +184,7 @@ pub fn new_session(
         return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
     }
 
-    if items_requests.is_empty() {
+    if items_requests.0.is_empty() {
         return Err(VerificationError::NoItemsRequests.into());
     }
 
@@ -275,7 +283,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        items_requests: Vec<ItemsRequest>,
+        items_requests: ItemsRequests,
         usecase_id: String,
         base_url: &Url,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
@@ -323,7 +331,7 @@ impl Session<Created> {
         &self,
         device_engagement: &DeviceEngagement,
         keys: &impl KeyRing,
-    ) -> Result<(SessionData, Vec<ItemsRequest>, SessionKey, SecretKey, SessionTranscript)> {
+    ) -> Result<(SessionData, ItemsRequests, SessionKey, SecretKey, SessionTranscript)> {
         Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
@@ -395,7 +403,7 @@ impl Session<Created> {
 
     fn transition_wait_for_response(
         self,
-        items_requests: Vec<ItemsRequest>,
+        items_requests: ItemsRequests,
         their_key: SessionKey,
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
@@ -413,7 +421,7 @@ impl Session<Created> {
         session_transcript: &SessionTranscript,
         private_key: &PrivateKey,
     ) -> Result<DeviceRequest> {
-        let doc_requests = try_join_all(self.state().items_requests.iter().map(|items_request| async {
+        let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
             let reader_auth = ReaderAuthenticationKeyed {
                 reader_auth_string: Default::default(),
                 session_transcript: session_transcript.clone(),
@@ -477,7 +485,7 @@ impl Session<WaitingForResponse> {
             &TimeGenerator,
             trust_anchors,
         )?;
-        device_response.match_against_requested(&self.state().items_requests)?;
+        self.state().items_requests.match_against_response(&device_response)?;
 
         let response = SessionData {
             data: None,
@@ -544,18 +552,23 @@ impl std::fmt::Debug for AttributeIdentifier {
     }
 }
 
-impl DeviceResponse {
+impl ItemsRequests {
     /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
-    pub fn match_against_requested(&self, requested: &[ItemsRequest]) -> Result<()> {
-        let not_found: Vec<_> = requested
+    pub fn match_against_response(&self, device_response: &DeviceResponse) -> Result<()> {
+        let not_found: Vec<_> = self
+            .0
             .iter()
             .enumerate()
             .flat_map(|(i, items_request)| {
-                self.documents.as_ref().and_then(|docs| docs.get(i)).map_or_else(
-                    // If the entire document is missing then all requested attributes are missing
-                    || items_request.attribute_identifiers().into_iter().collect(),
-                    |doc| doc.match_against_requested(items_request),
-                )
+                device_response
+                    .documents
+                    .as_ref()
+                    .and_then(|docs| docs.get(i))
+                    .map_or_else(
+                        // If the entire document is missing then all requested attributes are missing
+                        || items_request.attribute_identifiers().into_iter().collect(),
+                        |doc| items_request.match_against_issuer_signed(&doc.doc_type, &doc.issuer_signed),
+                    )
             })
             .collect();
 
@@ -565,7 +578,9 @@ impl DeviceResponse {
             Err(VerificationError::MissingAttributes(not_found).into())
         }
     }
+}
 
+impl DeviceResponse {
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
     ///
     /// # Arguments
@@ -670,6 +685,24 @@ impl IssuerSigned {
 
         Ok((attrs, mso))
     }
+
+    fn attribute_identifiers(&self, doctype: &DocType) -> IndexSet<AttributeIdentifier> {
+        self.name_spaces
+            .as_ref()
+            .map(|name_spaces| {
+                name_spaces
+                    .iter()
+                    .flat_map(|(namespace, Attributes(attrs))| {
+                        attrs.iter().map(|TaggedBytes(attr)| AttributeIdentifier {
+                            doc_type: doctype.clone(),
+                            namespace: namespace.clone(),
+                            attribute: attr.element_identifier.clone(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
 }
 
 impl MobileSecurityObject {
@@ -747,34 +780,6 @@ impl Document {
 
         Ok((mso.doc_type, attrs))
     }
-
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.issuer_signed
-            .name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .iter()
-                    .flat_map(|(namespace, Attributes(attrs))| {
-                        attrs.iter().map(move |TaggedBytes(attr)| AttributeIdentifier {
-                            doc_type: self.doc_type.clone(),
-                            namespace: namespace.clone(),
-                            attribute: attr.element_identifier.clone(),
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    /// Returns `requested` attributes, if any, that are not disclosed in this [`Document`].
-    pub fn match_against_requested(&self, requested: &ItemsRequest) -> Vec<AttributeIdentifier> {
-        requested
-            .attribute_identifiers()
-            .difference(&self.attribute_identifiers())
-            .map(Clone::clone)
-            .collect()
-    }
 }
 
 impl ItemsRequest {
@@ -788,6 +793,18 @@ impl ItemsRequest {
                     attribute: attr.clone(),
                 })
             })
+            .collect()
+    }
+
+    /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
+    pub fn match_against_issuer_signed(
+        &self,
+        doctype: &DocType,
+        issuer_signed: &IssuerSigned,
+    ) -> Vec<AttributeIdentifier> {
+        self.attribute_identifiers()
+            .difference(&issuer_signed.attribute_identifiers(doctype))
+            .cloned()
             .collect()
     }
 }
@@ -818,7 +835,7 @@ mod tests {
         SessionTranscript, ValidityInfo,
     };
 
-    use super::AttributeIdentifier;
+    use super::{AttributeIdentifier, ItemsRequests};
 
     fn new_validity_info(add_from_days: i64, add_until_days: i64) -> ValidityInfo {
         let now = Utc::now();
@@ -863,7 +880,7 @@ mod tests {
     const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
     const DISCLOSURE_USECASE: &str = "example_usecase";
 
-    fn new_disclosure_request() -> Vec<ItemsRequest> {
+    fn new_disclosure_request() -> ItemsRequests {
         vec![ItemsRequest {
             doc_type: DISCLOSURE_DOC_TYPE.to_string(),
             request_info: None,
@@ -876,6 +893,7 @@ mod tests {
                 ),
             )]),
         }]
+        .into()
     }
 
     #[tokio::test]
@@ -948,7 +966,7 @@ mod tests {
     const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
     const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 
-    fn example_items_requests() -> Vec<ItemsRequest> {
+    fn example_items_requests() -> ItemsRequests {
         vec![ItemsRequest {
             doc_type: EXAMPLE_DOC_TYPE.to_string(),
             name_spaces: IndexMap::from_iter([(
@@ -964,11 +982,13 @@ mod tests {
             )]),
             request_info: None,
         }]
+        .into()
     }
 
     /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.
-    fn attribute_identifiers(items_requests: &[ItemsRequest]) -> Vec<AttributeIdentifier> {
+    fn attribute_identifiers(items_requests: &ItemsRequests) -> Vec<AttributeIdentifier> {
         items_requests
+            .0
             .iter()
             .flat_map(ItemsRequest::attribute_identifiers)
             .collect()
@@ -984,13 +1004,13 @@ mod tests {
     #[case(change_namespace())]
     #[case(remove_attribute())]
     fn match_disclosed_attributes(
-        #[case] testcase: (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>),
+        #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
     ) {
         // Construct an items request that matches the example device response
         let (device_response, items_requests, expected_result) = testcase;
         assert_eq!(
-            device_response
-                .match_against_requested(&items_requests)
+            items_requests
+                .match_against_response(&device_response)
                 .map_err(|e| match e {
                     Error::Verification(VerificationError::MissingAttributes(e)) => e,
                     _ => panic!(),
@@ -1000,12 +1020,12 @@ mod tests {
     }
 
     // return an unmodified device response, which should verify
-    fn do_nothing() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn do_nothing() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         (DeviceResponse::example(), example_items_requests(), Ok(()))
     }
 
     // Matching attributes is insensitive to swapped attributes, so verification succeeds
-    fn swap_attributes() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn swap_attributes() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap()[0]
             .issuer_signed
@@ -1023,7 +1043,7 @@ mod tests {
     }
 
     // remove all disclosed documents
-    fn remove_documents() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn remove_documents() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents = None;
 
@@ -1033,7 +1053,7 @@ mod tests {
     }
 
     // remove a single disclosed document
-    fn remove_document() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn remove_document() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap().pop();
 
@@ -1043,7 +1063,7 @@ mod tests {
     }
 
     // Change the first doctype so it is not the requested one
-    fn change_doctype() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn change_doctype() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response
             .documents
@@ -1059,7 +1079,7 @@ mod tests {
     }
 
     // Remove one of the disclosed namespaces
-    fn remove_namespace() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn remove_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap()[0]
             .issuer_signed
@@ -1074,7 +1094,7 @@ mod tests {
     }
 
     // Change a namespace so it is not the requested one
-    fn change_namespace() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn change_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         let namespaces = device_response
             .documents
@@ -1095,7 +1115,7 @@ mod tests {
     }
 
     // Remove one of the disclosed attributes
-    fn remove_attribute() -> (DeviceResponse, Vec<ItemsRequest>, Result<(), Vec<AttributeIdentifier>>) {
+    fn remove_attribute() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap()[0]
             .issuer_signed
