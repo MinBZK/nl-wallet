@@ -1,10 +1,13 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
+use std::{sync::Arc, time::Duration};
+
 use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -17,12 +20,12 @@ use crate::{
     basic_sa_ext::Entry,
     iso::*,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{SessionState, SessionStore, SessionToken},
+    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
-        x509::CertificateUsage,
+        x509::{CertificateUsage, OwnedTrustAnchor},
     },
     Error, Result, SessionData,
 };
@@ -154,86 +157,145 @@ impl SessionState<Done> {
     }
 }
 
-/// Start a new disclosure session. Returns a [`ReaderEngagement`] instance that should be put in a QR
-/// or Universal Link or `mdoc://` URI.
-///
-/// - `base_url` is the URL at which the server is publically reachable; this is included in the [`ReaderEngagement`]
-///   returned to the wallet.
-/// - `items_requests` contains the attributes to be requested.
-/// - `usecase_id` should point to an existing item in the `certificates` parameter.
-/// - `keys` contains for each usecase a certificate and corresponding private key for use in RP authentication.
-/// - `sessions` contains all currently active sessions, managed by this function and by [`process_message()`].
-pub fn new_session(
-    base_url: &Url,
-    items_requests: Vec<ItemsRequest>,
-    usecase_id: String,
-    keys: &impl KeyRing,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
-) -> Result<(SessionToken, ReaderEngagement)> {
-    if !keys.contains_key(&usecase_id) {
-        return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
-    }
-
-    if items_requests.is_empty() {
-        return Err(VerificationError::NoItemsRequests.into());
-    }
-
-    let (session_token, reader_engagement, session_state) =
-        Session::<Created>::new(items_requests, usecase_id, base_url)?;
-    sessions.write(&session_state.state.into_enum());
-    Ok((session_token, reader_engagement))
+/// status without the underlying data for Created and Waiting
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "UPPERCASE", tag = "status", content = "result")]
+pub enum StatusResponse {
+    Created,
+    WaitingForResponse,
+    Done(SessionResult),
 }
 
-/// Process a disclosure protocol message of the wallet.
-///
-/// - `msg` is the received protocol message.
-/// - `token` is the session token as parsed from the URL.
-/// - `keys` and `sessions` are as in [`new_session()`].
-/// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
-///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
-pub async fn process_message(
-    msg: &[u8],
-    token: SessionToken,
-    keys: &impl KeyRing,
-    sessions: &impl SessionStore<Data = SessionState<DisclosureData>>,
-    trust_anchors: &[TrustAnchor<'_>],
-) -> Result<SessionData> {
-    let state = sessions
-        .get(&token)
-        .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
+pub struct Verifier<K, S> {
+    url: Url,
+    keys: K,
+    sessions: Arc<S>,
+    cleanup_task: JoinHandle<()>,
+    trust_anchors: Vec<OwnedTrustAnchor>,
+}
 
-    let (response, next) = match state.session_data {
-        DisclosureData::Created(session_data) => {
-            let session = Session::<Created> {
-                state: SessionState {
-                    session_data,
-                    token: state.token,
-                    last_active: state.last_active,
-                },
-            };
-            let (response, session) = session.process_device_engagement(cbor_deserialize(msg)?, keys).await;
-            match session {
-                Ok(next) => Ok((response, next.state.into_enum())),
-                Err(next) => Ok((response, next.state.into_enum())),
+impl<K, S> Drop for Verifier<K, S> {
+    fn drop(&mut self) {
+        // Stop the task at the next .await
+        self.cleanup_task.abort();
+    }
+}
+
+impl<K, S> Verifier<K, S>
+where
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+{
+    /// Create a new [`Verifier`].
+    ///
+    /// - `url` is the URL at which the server is publically reachable; this is included in the [`ReaderEngagement`]
+    ///   returned to the wallet.
+    /// - `keys` contains for each usecase a certificate and corresponding private key for use in RP authentication.
+    /// - `sessions` will contain all sessions.
+    /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
+    ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
+    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self {
+        let sessions = Arc::new(sessions);
+        Self {
+            url,
+            keys,
+            cleanup_task: sessions
+                .clone()
+                .start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+            sessions,
+            trust_anchors,
+        }
+    }
+
+    /// Start a new disclosure session. Returns a [`ReaderEngagement`] instance that should be put in a QR
+    /// or Universal Link or `mdoc://` URI.
+    ///
+    /// - `items_requests` contains the attributes to be requested.
+    /// - `usecase_id` should point to an existing item in the `certificates` parameter.
+    pub fn new_session(
+        &self,
+        items_requests: Vec<ItemsRequest>,
+        usecase_id: String,
+    ) -> Result<(SessionToken, ReaderEngagement)> {
+        if !self.keys.contains_key(&usecase_id) {
+            return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
+        }
+
+        if items_requests.is_empty() {
+            return Err(VerificationError::NoItemsRequests.into());
+        }
+
+        let (session_token, reader_engagement, session_state) =
+            Session::<Created>::new(items_requests, usecase_id, &self.url)?;
+        self.sessions.write(&session_state.state.into_enum());
+        Ok((session_token, reader_engagement))
+    }
+
+    /// Process a disclosure protocol message of the wallet.
+    ///
+    /// - `msg` is the received protocol message.
+    /// - `token` is the session token as parsed from the URL.
+    pub async fn process_message(&self, msg: &[u8], token: SessionToken) -> Result<SessionData> {
+        let state = self
+            .sessions
+            .get(&token)
+            .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
+
+        let (response, next) = match state.session_data {
+            DisclosureData::Created(session_data) => {
+                let session = Session::<Created> {
+                    state: SessionState {
+                        session_data,
+                        token: state.token,
+                        last_active: state.last_active,
+                    },
+                };
+                let (response, session) = session
+                    .process_device_engagement(cbor_deserialize(msg)?, &self.keys)
+                    .await;
+                match session {
+                    Ok(next) => Ok((response, next.state.into_enum())),
+                    Err(next) => Ok((response, next.state.into_enum())),
+                }
             }
-        }
-        DisclosureData::WaitingForResponse(session_data) => {
-            let session = Session::<WaitingForResponse> {
-                state: SessionState {
-                    session_data,
-                    token: state.token,
-                    last_active: state.last_active,
-                },
-            };
-            let (response, session) = session.process_response(cbor_deserialize(msg)?, trust_anchors);
-            Ok((response, session.state.into_enum()))
-        }
-        DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
-    }?;
+            DisclosureData::WaitingForResponse(session_data) => {
+                let session = Session::<WaitingForResponse> {
+                    state: SessionState {
+                        session_data,
+                        token: state.token,
+                        last_active: state.last_active,
+                    },
+                };
+                let (response, session) = session.process_response(
+                    cbor_deserialize(msg)?,
+                    self.trust_anchors
+                        .iter()
+                        .map(Into::<TrustAnchor<'_>>::into)
+                        .collect::<Vec<_>>()
+                        .as_slice(),
+                );
+                Ok((response, session.state.into_enum()))
+            }
+            DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
+        }?;
 
-    sessions.write(&next);
+        self.sessions.write(&next);
 
-    Ok(response)
+        Ok(response)
+    }
+
+    pub fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
+        match self
+            .sessions
+            .get(session_id)
+            .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
+            .session_data
+        {
+            DisclosureData::Created(_) => Ok(StatusResponse::Created),
+            DisclosureData::WaitingForResponse(_) => Ok(StatusResponse::WaitingForResponse),
+            DisclosureData::Done(data) => Ok(StatusResponse::Done(data.session_result)),
+        }
+    }
 }
 
 // Implementation of the typestate state engine follows.
@@ -722,11 +784,12 @@ mod tests {
         utils::{
             crypto::{SessionKey, SessionKeyUser},
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateType},
+            x509::{Certificate, CertificateType, OwnedTrustAnchor},
         },
         verifier::{
-            new_session, process_message, ValidityError,
+            ValidityError,
             ValidityRequirement::{AllowNotYetValid, Valid},
+            Verifier,
         },
         DeviceEngagement, DeviceRequest, ItemsRequest, SessionData, SessionStatus, SessionTranscript, ValidityInfo,
     };
@@ -793,7 +856,7 @@ mod tests {
     async fn disclosure() {
         // Initialize server state
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let trust_anchors = &[(&ca).try_into().unwrap()];
+        let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
         let (rp_cert, rp_privkey) = Certificate::new(
             &ca,
             &ca_privkey,
@@ -804,16 +867,17 @@ mod tests {
         let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
         let session_store = MemorySessionStore::new();
 
+        let verifier = Verifier::new(
+            "https://example.com".parse().unwrap(),
+            keys,
+            session_store,
+            trust_anchors,
+        );
+
         // Start session
-        let url = "https://example.com".parse().unwrap();
-        let (session_token, reader_engagement) = new_session(
-            &url,
-            new_disclosure_request(),
-            DISCLOSURE_USECASE.to_string(),
-            &keys,
-            &session_store,
-        )
-        .unwrap();
+        let (session_token, reader_engagement) = verifier
+            .new_session(new_disclosure_request(), DISCLOSURE_USECASE.to_string())
+            .unwrap();
 
         // Construct first device protocol message
         let (device_engagement, device_eph_key) =
@@ -821,10 +885,7 @@ mod tests {
         let msg = cbor_serialize(&device_engagement).unwrap();
 
         // send first device protocol message
-        let encrypted_device_request =
-            process_message(&msg, session_token.clone(), &keys, &session_store, trust_anchors)
-                .await
-                .unwrap();
+        let encrypted_device_request = verifier.process_message(&msg, session_token.clone()).await.unwrap();
 
         // decrypt server response
         // Note that the unwraps here are safe, as we created the `ReaderEngagement`.
@@ -844,15 +905,10 @@ mod tests {
             status: Some(SessionStatus::Termination),
         })
         .unwrap();
-        let ended_session_response = process_message(
-            &end_session_message,
-            session_token,
-            &keys,
-            &session_store,
-            trust_anchors,
-        )
-        .await
-        .unwrap();
+        let ended_session_response = verifier
+            .process_message(&end_session_message, session_token)
+            .await
+            .unwrap();
 
         assert_eq!(ended_session_response.status.unwrap(), SessionStatus::Termination);
     }

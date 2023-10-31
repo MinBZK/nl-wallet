@@ -20,7 +20,7 @@ pub trait SessionStore {
     fn write(&self, session: &Self::Data);
     fn cleanup(&self);
 
-    fn start_cleanup_task(sessions: Arc<Self>, interval: Duration) -> JoinHandle<()>
+    fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
         Self: Send + Sync + 'static,
     {
@@ -28,7 +28,7 @@ pub trait SessionStore {
         tokio::spawn(async move {
             loop {
                 interval.tick().await;
-                sessions.cleanup();
+                self.cleanup();
             }
         })
     }

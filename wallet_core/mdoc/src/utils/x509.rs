@@ -439,6 +439,7 @@ mod test {
             sharing_policy: SharingPolicy { intent_to_share: true },
             deletion_policy: DeletionPolicy { deleteable: true },
             organization: my_organization,
+            attributes: Default::default(),
         }
     }
 }

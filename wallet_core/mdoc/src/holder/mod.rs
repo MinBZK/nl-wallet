@@ -1,5 +1,5 @@
 //! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
-//! See [`Storage`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
+//! See [`MdocRetriever`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
 
 use std::error::Error;
 
