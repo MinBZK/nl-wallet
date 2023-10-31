@@ -10,7 +10,8 @@ use nl_wallet_mdoc::{
 
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue, MissingDisclosureAttributes,
+    Attribute, AttributeValue, DisclosedDocument, Document, DocumentAttributes, DocumentPersistence,
+    GenderAttributeValue, MissingDisclosureAttributes,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -63,6 +64,90 @@ fn mapping_for_doc_type(doc_type: &str) -> Result<(MappingDocType, &'static Attr
     Ok((*doc_type, attribute_mapping))
 }
 
+fn document_attributes_from_mdoc_attributes(
+    doc_type: &str,
+    mut attributes: IndexMap<NameSpace, Vec<Entry>>,
+) -> Result<(MappingDocType, DocumentAttributes), DocumentMdocError> {
+    let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
+
+    // Loop through the attributes in the mapping in order and find
+    // the corresponding entry in the input attributes, based on the
+    // name space and the entry name. If found, move the entry value
+    // out of the input attributes and try to convert it to an `Attribute`.
+    let document_attributes = attribute_mapping
+        .iter()
+        // Loop through the all the mapped attributes in order and remove any
+        // returned instances of `None` for non-mandatory attributes.
+        .flat_map(|((name_space, element_id), value_mapping)| {
+            // Get a mutable reference to the `Vec<Entry>` for the name space,
+            // then find the index within the vector for the entry that has the
+            // matching name. If found, remove the `Entry` at that index so that
+            // we have ownership over it.
+            let entry = attributes.get_mut(*name_space).and_then(|entries| {
+                entries
+                    .iter()
+                    .position(|entry| entry.name == *element_id)
+                    .map(|index| entries.swap_remove(index))
+            });
+
+            // If the entry is not found in the mdoc attributes, but it is not
+            // mandatory, we can return `None` early here.
+            if entry.is_none() && !value_mapping.is_mandatory {
+                return None;
+            }
+
+            // Otherwise, create the `Result<>` and return an error if the entry
+            // is not found.
+            let attribute_result = entry
+                .ok_or_else(|| DocumentMdocError::MissingAttribute {
+                    doc_type: doc_type.to_string(),
+                    name_space: (*name_space).to_string(),
+                    name: (*element_id).to_string(),
+                })
+                .and_then(|entry| {
+                    // If the entry is found, try to to convert it to a document
+                    // attribute, which could also result in an error.
+                    let Entry { name, value } = entry;
+
+                    Attribute::try_from((value, value_mapping)).map_err(|value| {
+                        DocumentMdocError::AttributeValueTypeMismatch {
+                            doc_type: doc_type.to_string(),
+                            name_space: (*name_space).to_string(),
+                            name,
+                            expected_type: value_mapping.value_type,
+                            value,
+                        }
+                    })
+                })
+                // Finally, make sure the attribute is returned with the key,
+                // so that we can create an `IndexMap<>` for it.
+                .map(|attribute| (value_mapping.key, attribute));
+
+            Some(attribute_result)
+        })
+        .collect::<Result<_, _>>()?;
+
+    // Find the first remaining mdoc attributes and convert it to an error.
+    let unknown_error = attributes
+        .into_iter()
+        .flat_map(|(name_space, mut entries)| {
+            entries.pop().map(|entry| DocumentMdocError::UnknownAttribute {
+                doc_type: doc_type.to_string(),
+                name_space,
+                name: entry.name,
+                value: entry.value.into(),
+            })
+        })
+        .next();
+
+    // Return the error if at least one mdoc attributes still remained.
+    if let Some(missing_error) = unknown_error {
+        return Err(missing_error);
+    }
+
+    Ok((doc_type, document_attributes))
+}
+
 impl TryFrom<UnsignedMdoc> for Document {
     type Error = DocumentMdocError;
 
@@ -75,84 +160,9 @@ impl Document {
     pub(crate) fn from_mdoc_attributes(
         persistence: DocumentPersistence,
         doc_type: &str,
-        mut attributes: IndexMap<NameSpace, Vec<Entry>>,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
-
-        // Loop through the attributes in the mapping in order and find
-        // the corresponding entry in the input attributes, based on the
-        // name space and the entry name. If found, move the entry value
-        // out of the input attributes and try to convert it to an `Attribute`.
-        let document_attributes = attribute_mapping
-            .iter()
-            // Loop through the all the mapped attributes in order and remove any
-            // returned instances of `None` for non-mandatory attributes.
-            .flat_map(|((name_space, element_id), value_mapping)| {
-                // Get a mutable reference to the `Vec<Entry>` for the name space,
-                // then find the index within the vector for the entry that has the
-                // matching name. If found, remove the `Entry` at that index so that
-                // we have ownership over it.
-                let entry = attributes.get_mut(*name_space).and_then(|entries| {
-                    entries
-                        .iter()
-                        .position(|entry| entry.name == *element_id)
-                        .map(|index| entries.swap_remove(index))
-                });
-
-                // If the entry is not found in the mdoc attributes, but it is not
-                // mandatory, we can return `None` early here.
-                if entry.is_none() && !value_mapping.is_mandatory {
-                    return None;
-                }
-
-                // Otherwise, create the `Result<>` and return an error if the entry
-                // is not found.
-                let attribute_result = entry
-                    .ok_or_else(|| DocumentMdocError::MissingAttribute {
-                        doc_type: doc_type.to_string(),
-                        name_space: (*name_space).to_string(),
-                        name: (*element_id).to_string(),
-                    })
-                    .and_then(|entry| {
-                        // If the entry is found, try to to convert it to a document
-                        // attribute, which could also result in an error.
-                        let Entry { name, value } = entry;
-
-                        Attribute::try_from((value, value_mapping)).map_err(|value| {
-                            DocumentMdocError::AttributeValueTypeMismatch {
-                                doc_type: doc_type.to_string(),
-                                name_space: (*name_space).to_string(),
-                                name,
-                                expected_type: value_mapping.value_type,
-                                value,
-                            }
-                        })
-                    })
-                    // Finally, make sure the attribute is returned with the key,
-                    // so that we can create an `IndexMap<>` for it.
-                    .map(|attribute| (value_mapping.key, attribute));
-
-                Some(attribute_result)
-            })
-            .collect::<Result<_, _>>()?;
-
-        // Find the first remaining mdoc attributes and convert it to an error.
-        let unknown_error = attributes
-            .into_iter()
-            .flat_map(|(name_space, mut entries)| {
-                entries.pop().map(|entry| DocumentMdocError::UnknownAttribute {
-                    doc_type: doc_type.to_string(),
-                    name_space,
-                    name: entry.name,
-                    value: entry.value.into(),
-                })
-            })
-            .next();
-
-        // Return the error if at least one mdoc attributes still remained.
-        if let Some(missing_error) = unknown_error {
-            return Err(missing_error);
-        }
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes)?;
 
         let document = Document {
             persistence,
@@ -261,6 +271,22 @@ impl MissingDisclosureAttributes {
         missing_disclosure_attributes.sort_by_key(|attributes| super::doc_type_priority(attributes.doc_type));
 
         Ok(missing_disclosure_attributes)
+    }
+}
+
+impl DisclosedDocument {
+    pub(crate) fn from_mdoc_attributes(
+        doc_type: &str,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
+    ) -> Result<Self, DocumentMdocError> {
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes)?;
+
+        let document = DisclosedDocument {
+            doc_type,
+            attributes: document_attributes,
+        };
+
+        Ok(document)
     }
 }
 

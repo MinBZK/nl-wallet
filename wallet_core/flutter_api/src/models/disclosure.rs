@@ -1,4 +1,7 @@
-use wallet::{errors::DisclosureError, mdoc::ReaderRegistration, MissingDisclosureAttributes};
+use wallet::{
+    errors::DisclosureError, mdoc::ReaderRegistration, DisclosedDocument, DisclosureProposal,
+    MissingDisclosureAttributes,
+};
 
 use super::card::{CardAttribute, LocalizedString};
 
@@ -36,8 +39,28 @@ impl From<ReaderRegistration> for RelyingParty {
     }
 }
 
+impl RequestedCard {
+    fn from_disclosed_documents(documents: Vec<DisclosedDocument>) -> Vec<Self> {
+        documents
+            .into_iter()
+            .map(|document| {
+                let attributes = document
+                    .attributes
+                    .into_iter()
+                    .map(|(key, attribute)| CardAttribute::from((key.to_string(), attribute)))
+                    .collect();
+
+                RequestedCard {
+                    doc_type: document.doc_type.to_string(),
+                    attributes,
+                }
+            })
+            .collect()
+    }
+}
+
 impl MissingAttribute {
-    fn attributes_from_missing_disclosure_attributes(attributes: Vec<MissingDisclosureAttributes>) -> Vec<Self> {
+    fn from_missing_disclosure_attributes(attributes: Vec<MissingDisclosureAttributes>) -> Vec<Self> {
         attributes
             .into_iter()
             .flat_map(|doc_attributes| doc_attributes.attributes.into_iter())
@@ -56,16 +79,15 @@ impl MissingAttribute {
     }
 }
 
-impl TryFrom<Result<(), DisclosureError>> for DisclosureResult {
+impl TryFrom<Result<DisclosureProposal, DisclosureError>> for DisclosureResult {
     type Error = DisclosureError;
 
-    fn try_from(value: Result<(), DisclosureError>) -> Result<Self, Self::Error> {
+    fn try_from(value: Result<DisclosureProposal, DisclosureError>) -> Result<Self, Self::Error> {
         match value {
-            Ok(_) => {
-                // TODO: use actual ok result
+            Ok(proposal) => {
                 let result = DisclosureResult::Request {
-                    relying_party: RelyingParty { name: "".to_string() },
-                    requested_cards: Default::default(),
+                    relying_party: proposal.reader_registration.into(),
+                    requested_cards: RequestedCard::from_disclosed_documents(proposal.documents),
                 };
 
                 Ok(result)
@@ -75,8 +97,7 @@ impl TryFrom<Result<(), DisclosureError>> for DisclosureResult {
                     reader_registration,
                     missing_attributes,
                 } => {
-                    let missing_attributes =
-                        MissingAttribute::attributes_from_missing_disclosure_attributes(missing_attributes);
+                    let missing_attributes = MissingAttribute::from_missing_disclosure_attributes(missing_attributes);
                     let result = DisclosureResult::RequestAttributesMissing {
                         relying_party: (*reader_registration).into(),
                         missing_attributes,

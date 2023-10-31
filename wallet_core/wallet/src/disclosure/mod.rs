@@ -2,7 +2,11 @@ mod uri;
 
 use async_trait::async_trait;
 
-use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession, MdocDataSource, TrustAnchor};
+use nl_wallet_mdoc::{
+    holder::{CborHttpClient, DisclosureSession, MdocDataSource, TrustAnchor},
+    utils::reader_auth::ReaderRegistration,
+    verifier::DisclosedAttributes,
+};
 
 use crate::utils;
 
@@ -20,6 +24,9 @@ pub trait MdocDisclosureSession<D> {
     ) -> Result<Self, nl_wallet_mdoc::Error>
     where
         Self: Sized;
+
+    fn reader_registration(&self) -> &ReaderRegistration;
+    fn disclosed_attributes(&self) -> DisclosedAttributes;
 }
 
 #[async_trait]
@@ -45,6 +52,14 @@ where
         )
         .await
     }
+
+    fn reader_registration(&self) -> &ReaderRegistration {
+        self.reader_registration()
+    }
+
+    fn disclosed_attributes(&self) -> DisclosedAttributes {
+        self.disclosed_attributes()
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -54,6 +69,8 @@ mod mock {
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUri,
+        pub reader_registration: ReaderRegistration,
+        pub disclosed_attributes: DisclosedAttributes,
     }
 
     impl Default for MockMdocDisclosureSession {
@@ -63,6 +80,8 @@ mod mock {
                     reader_engagement_bytes: Default::default(),
                     return_url: Default::default(),
                 },
+                reader_registration: Default::default(),
+                disclosed_attributes: Default::default(),
             }
         }
     }
@@ -74,9 +93,20 @@ mod mock {
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> Result<Self, nl_wallet_mdoc::Error> {
-            let session = MockMdocDisclosureSession { disclosure_uri };
+            let session = MockMdocDisclosureSession {
+                disclosure_uri,
+                ..Default::default()
+            };
 
             Ok(session)
+        }
+
+        fn reader_registration(&self) -> &ReaderRegistration {
+            &self.reader_registration
+        }
+
+        fn disclosed_attributes(&self) -> DisclosedAttributes {
+            self.disclosed_attributes.clone()
         }
     }
 }

@@ -16,12 +16,13 @@ const ADDRESS_DOCTYPE: &str = "com.example.address";
 
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
+pub type DocumentAttributes = IndexMap<AttributeKey, Attribute>;
 
 #[derive(Debug, Clone)]
 pub struct Document {
     pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
-    pub attributes: IndexMap<AttributeKey, Attribute>,
+    pub attributes: DocumentAttributes,
 }
 
 #[derive(Debug, Clone)]
@@ -60,6 +61,12 @@ pub enum GenderAttributeValue {
 pub struct MissingDisclosureAttributes {
     pub doc_type: DocumentType,
     pub attributes: IndexMap<AttributeKey, AttributeLabels>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DisclosedDocument {
+    pub doc_type: DocumentType,
+    pub attributes: DocumentAttributes,
 }
 
 /// A lower priority means that this `doc_type` should be displayed above others.

@@ -15,6 +15,8 @@ use wallet_common::{
 };
 
 use crate::{
+    basic_sa_ext::Entry,
+    identifiers::AttributeIdentifier,
     iso::*,
     utils::{
         cose::{sign_cose, ClonePayload},
@@ -42,17 +44,20 @@ pub trait MdocDataSource {
     async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error>;
 }
 
+pub type DiclosedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+
 // TODO: not all of these fields may be necessary to finish the session.
 #[allow(dead_code)]
 pub struct DisclosureSession<H> {
-    pub return_url: Option<Url>,
+    return_url: Option<Url>,
     client: H,
     verifier_url: Url,
     transcript: SessionTranscript,
     device_key: SessionKey,
     device_request: DeviceRequest,
-    pub reader_registration: ReaderRegistration,
     mdocs: Vec<Mdoc>,
+    request_attribute_identifiers: HashSet<AttributeIdentifier>,
+    reader_registration: ReaderRegistration,
 }
 
 impl<H> DisclosureSession<H>
@@ -184,9 +189,9 @@ where
             .collect::<HashSet<_>>();
 
         // Use this `HasSet` to compare against all of the attributes requested
-        // and make two `Vecs`, one with attributes that are available and one
+        // and make two `HashSet`s, one with attributes that are available and one
         // with attributes that are missing.
-        let (_present_attributes, missing_attributes): (Vec<_>, Vec<_>) = device_request
+        let (present_attributes, missing_attributes): (HashSet<_>, HashSet<_>) = device_request
             .attribute_identifiers()
             .into_iter()
             .partition(|attribute| mdoc_attributes.contains(attribute));
@@ -195,7 +200,7 @@ where
         if !missing_attributes.is_empty() {
             let error = HolderError::AttributesNotAvailable {
                 reader_registration,
-                missing_attributes,
+                missing_attributes: missing_attributes.into_iter().collect(),
             };
 
             return Err(error.into());
@@ -209,11 +214,56 @@ where
             transcript,
             device_key,
             device_request,
-            reader_registration: *reader_registration,
             mdocs,
+            reader_registration: *reader_registration,
+            request_attribute_identifiers: present_attributes,
         };
 
         Ok(session)
+    }
+
+    pub fn return_url(&self) -> Option<&Url> {
+        self.return_url.as_ref()
+    }
+
+    pub fn disclosed_attributes(&self) -> DiclosedAttributes {
+        // For every `Mdoc`, get the attributes contained and filter
+        // only those that are present in the `DeviceRequest`.
+        self.mdocs
+            .iter()
+            .map(|mdoc| {
+                let name_spaces = mdoc
+                    .attributes()
+                    .into_iter()
+                    .filter_map(|(name_space, entries)| {
+                        let entries = entries
+                            .into_iter()
+                            .filter(|entry| {
+                                let attribute_identifier = AttributeIdentifier {
+                                    doc_type: mdoc.doc_type.clone(),
+                                    namespace: name_space.clone(),
+                                    attribute: entry.name.clone(),
+                                };
+
+                                self.request_attribute_identifiers.contains(&attribute_identifier)
+                            })
+                            .collect::<Vec<_>>();
+
+                        if entries.is_empty() {
+                            return None;
+                        }
+
+                        (name_space, entries).into()
+                    })
+                    .collect();
+
+                (mdoc.doc_type.clone(), name_spaces)
+            })
+            .collect()
+    }
+
+    pub fn reader_registration(&self) -> &ReaderRegistration {
+        &self.reader_registration
     }
 
     // TODO: Implement terminate and disclose methods.

@@ -17,11 +17,12 @@ pub mod errors;
 pub use crate::{
     config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration, PidIssuanceConfiguration},
     document::{
-        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, Document,
-        DocumentPersistence, DocumentType, GenderAttributeValue, MissingDisclosureAttributes,
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, DisclosedDocument,
+        Document, DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue,
+        MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,
-    wallet::{UriType, Wallet},
+    wallet::{DisclosureProposal, UriType, Wallet},
 };
 
 pub mod mdoc {

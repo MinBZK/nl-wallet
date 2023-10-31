@@ -12,11 +12,17 @@ use nl_wallet_mdoc::{
 use crate::{
     config::ConfigurationRepository,
     disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
-    document::{DocumentMdocError, MissingDisclosureAttributes},
+    document::{DisclosedDocument, DocumentMdocError, MissingDisclosureAttributes},
     storage::{Storage, StorageError},
 };
 
 use super::Wallet;
+
+#[derive(Debug, Clone)]
+pub struct DisclosureProposal {
+    pub documents: Vec<DisclosedDocument>,
+    pub reader_registration: ReaderRegistration,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DisclosureError {
@@ -30,7 +36,7 @@ pub enum DisclosureError {
     DisclosureUriError(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
     DisclosureSession(#[source] nl_wallet_mdoc::Error),
-    #[error("could not interpret missing mdoc attributes: {0}")]
+    #[error("could not interpret mdoc attributes: {0}")]
     AttributeMdoc(#[from] DocumentMdocError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
@@ -68,7 +74,7 @@ where
     R: MdocDisclosureSession<Self>,
 {
     #[instrument(skip_all)]
-    pub async fn start_disclosure(&mut self, uri: &Url) -> Result<(), DisclosureError> {
+    pub async fn start_disclosure(&mut self, uri: &Url) -> Result<DisclosureProposal, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if registered");
@@ -92,14 +98,26 @@ where
         let disclosure_redirect_uri_base = config.disclosure.uri_base().unwrap();
         let disclosure_uri = DisclosureUri::parse(uri, &disclosure_redirect_uri_base)?;
 
-        // Start the disclosure session based on the `ReaderEngagement` and
-        // retain the return URL for if the session is completed successfully.
+        // Start the disclosure session based on the `ReaderEngagement`.
         let session = R::start(disclosure_uri, self, &config.mdoc_trust_anchors()).await?;
+
+        // Prepare a `Vec<DisclosedDocument>` to report to the caller.
+        let documents = session
+            .disclosed_attributes()
+            .into_iter()
+            .map(|(doc_type, attributes)| DisclosedDocument::from_mdoc_attributes(&doc_type, attributes))
+            .collect::<Result<_, _>>()?;
+
+        // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
+        let proposal = DisclosureProposal {
+            documents,
+            reader_registration: session.reader_registration().clone(),
+        };
+
+        // Retain the session as `Wallet` state.
         self.disclosure_session.replace(session);
 
-        // TODO: Return RP data and disclosure request.
-
-        Ok(())
+        Ok(proposal)
     }
 }
 
@@ -163,6 +181,8 @@ mod tests {
             reader_engagement_bytes: b"foobar".to_vec(),
             return_url: Url::parse("https://example.com").unwrap().into(),
         });
+
+        // TODO: Test returned `DisclosureProposal`.
     }
 
     #[tokio::test]
@@ -211,5 +231,5 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
     }
 
-    // TODO: Test for `DisclosureSessionError` when we have more error invariants.
+    // TODO: Test for `DisclosureSessionError`.
 }
