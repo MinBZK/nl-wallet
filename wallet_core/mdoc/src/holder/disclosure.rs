@@ -130,6 +130,8 @@ where
             .verify(&transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
+        // TODO: Verify `DeviceRequest` attributes using `ReaderRegistration`.
+
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
         // from our data source.
