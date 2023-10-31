@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/requested_attribute.dart';
+import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/explanation_sheet.dart';
@@ -36,13 +38,13 @@ import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
 
-const _kSampleCardFront = CardFront(
-  title: 'Sample Card',
+final _kSampleCardFront = CardFront(
+  title: 'Sample Card'.untranslated,
   backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
-  info: 'Info',
+  info: 'Info'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
-  subtitle: 'Subtitle',
+  subtitle: 'Subtitle'.untranslated,
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -109,73 +111,57 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildAttributeSection(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ThemeSectionHeader(title: 'Attributes'),
-        SizedBox(height: 12),
-        ThemeSectionSubHeader(title: 'DataAttributeRow - Type Text'),
+        const ThemeSectionHeader(title: 'Attributes'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'DataAttributeRow - Type Text'),
         AttributeRow(
-          attribute: DataAttribute(
-            value: 'This is a DataAttributeRow with type text',
+          attribute: DataAttribute.untranslated(
+            value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
             sourceCardId: 'id',
-            valueType: AttributeValueType.text,
             key: 'mock.other',
           ),
         ),
-        ThemeSectionSubHeader(title: 'DataAttributeRow - Type Image'),
+        const ThemeSectionSubHeader(title: 'RequestedAttributeRow'),
         AttributeRow(
-          attribute: DataAttribute(
-            value: WalletAssets.image_attribute_placeholder,
-            label: 'Label: This is a DataAttributeRow with type image',
-            sourceCardId: 'id',
-            valueType: AttributeValueType.image,
-            key: 'mock.other',
-          ),
-        ),
-        ThemeSectionSubHeader(title: 'RequestedAttributeRow'),
-        AttributeRow(
-          attribute: RequestedAttribute(
+          attribute: MissingAttribute.untranslated(
             label: 'This is a RequestedAttributeRow',
-            valueType: AttributeValueType.text,
             key: 'mock.other',
           ),
         ),
-        ThemeSectionSubHeader(title: 'UiAttributeRow'),
+        const ThemeSectionSubHeader(title: 'UiAttributeRow'),
         AttributeRow(
-          attribute: UiAttribute(
-            value: 'This is a UiAttributeRow',
-            valueType: AttributeValueType.text,
+          attribute: UiAttribute.untranslated(
+            value: const StringValue('This is a UiAttributeRow'),
             key: 'mock.other',
             label: 'Label',
             icon: Icons.remove_red_eye,
           ),
         ),
-        ThemeSectionSubHeader(title: 'CardAttributeRow'),
+        const ThemeSectionSubHeader(title: 'CardAttributeRow'),
         CardAttributeRow(
           entry: MapEntry(
-            WalletCard(id: 'id', front: _kSampleCardFront, attributes: [], issuerId: ''),
+            WalletCard(id: 'id', front: _kSampleCardFront, attributes: const [], issuerId: ''),
             [
-              DataAttribute(
+              DataAttribute.untranslated(
                 label: 'Voornaam',
-                value: '',
+                value: const StringValue(''),
                 sourceCardId: '',
-                valueType: AttributeValueType.text,
                 key: '',
               ),
-              DataAttribute(
+              DataAttribute.untranslated(
                 label: 'Achternaam',
-                value: '',
+                value: const StringValue(''),
                 sourceCardId: '',
-                valueType: AttributeValueType.text,
                 key: '',
               ),
-              DataAttribute(
+              DataAttribute.untranslated(
                 label: 'Postcode',
-                value: '',
+                value: const StringValue(''),
                 sourceCardId: '',
-                valueType: AttributeValueType.text,
                 key: '',
               ),
             ],
@@ -186,13 +172,13 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildCardSection(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ThemeSectionHeader(title: 'Cards'),
-        SizedBox(height: 12),
-        ThemeSectionSubHeader(title: 'WalletCardItem'),
-        WalletCardItem(
+        const ThemeSectionHeader(title: 'Cards'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'WalletCardItem'),
+        const WalletCardItem(
           title: 'Card Title',
           background: WalletAssets.svg_rijks_card_bg_dark,
           brightness: Brightness.dark,
@@ -201,10 +187,10 @@ class OtherStylesTab extends StatelessWidget {
           logo: WalletAssets.logo_card_rijksoverheid,
           holograph: WalletAssets.svg_rijks_card_holo,
         ),
-        ThemeSectionSubHeader(title: 'StackedWalletCards'),
+        const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
-          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
-          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
+          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
         ]),
       ],
     );
@@ -292,7 +278,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: const WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: []),
+          card: WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
           isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

@@ -1,3 +1,4 @@
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/document.dart';
@@ -8,40 +9,41 @@ import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.da
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {
-  static const WalletCard card = WalletCard(
+  static WalletCard card = WalletCard(
     front: cardFront,
-    attributes: [imageDataAttribute, textDataAttribute],
+    attributes: [textDataAttribute],
     id: 'id',
     issuerId: 'id',
   );
 
-  static const WalletCard altCard = WalletCard(
+  static WalletCard altCard = WalletCard(
     front: CardFront(
-      title: 'Alt Sample Card',
+      title: 'Alt Sample Card'.untranslated,
       backgroundImage: WalletAssets.svg_rijks_card_bg_light,
       theme: CardFrontTheme.light,
-      info: 'Alt Info',
+      info: 'Alt Info'.untranslated,
       logoImage: WalletAssets.logo_card_rijksoverheid,
-      subtitle: 'Alt Subtitle',
+      subtitle: 'Alt Subtitle'.untranslated,
     ),
-    attributes: [imageDataAttribute, textDataAttribute],
+    attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     id: 'id2',
     issuerId: 'id2',
   );
 
-  static const CardFront cardFront = CardFront(
-    title: 'Sample Card',
+  static CardFront cardFront = CardFront(
+    title: 'Sample Card'.untranslated,
     backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
     theme: CardFrontTheme.dark,
-    info: 'Info',
+    info: 'Info'.untranslated,
     logoImage: WalletAssets.logo_card_rijksoverheid,
-    subtitle: 'Subtitle',
+    subtitle: 'Subtitle'.untranslated,
   );
 
-  static const WalletCardDetail cardDetail = WalletCardDetail(
+  static final WalletCardDetail cardDetail = WalletCardDetail(
     card: card,
     issuer: organization,
     latestIssuedOperation: null,
@@ -57,20 +59,11 @@ abstract class WalletMockData {
     logoUrl: WalletAssets.logo_rijksoverheid,
   );
 
-  static const DataAttribute textDataAttribute = DataAttribute(
+  static final DataAttribute textDataAttribute = DataAttribute.untranslated(
     key: 'text_key',
     label: 'Label',
-    value: 'Value',
+    value: const StringValue('Value'),
     sourceCardId: 'id',
-    valueType: AttributeValueType.text,
-  );
-
-  static const DataAttribute imageDataAttribute = DataAttribute(
-    key: 'image_key',
-    label: 'Label',
-    value: WalletAssets.image_person_x,
-    sourceCardId: 'id',
-    valueType: AttributeValueType.image,
   );
 
   static const Policy policy = Policy(
@@ -90,7 +83,7 @@ abstract class WalletMockData {
   );
 
   static InteractionTimelineAttribute get interactionTimelineAttribute => InteractionTimelineAttribute(
-        dataAttributes: const [WalletMockData.textDataAttribute],
+        dataAttributes: [WalletMockData.textDataAttribute],
         dateTime: DateTime(2023, 1, 1),
         organization: WalletMockData.organization,
         status: InteractionStatus.success,
@@ -99,7 +92,7 @@ abstract class WalletMockData {
       );
 
   static SigningTimelineAttribute get signingTimelineAttribute => SigningTimelineAttribute(
-        dataAttributes: const [WalletMockData.textDataAttribute],
+        dataAttributes: [WalletMockData.textDataAttribute],
         dateTime: DateTime(2023, 1, 1),
         organization: WalletMockData.organization,
         status: SigningStatus.success,
@@ -108,7 +101,7 @@ abstract class WalletMockData {
       );
 
   static OperationTimelineAttribute get operationTimelineAttribute => OperationTimelineAttribute(
-        dataAttributes: const [WalletMockData.textDataAttribute],
+        dataAttributes: [WalletMockData.textDataAttribute],
         dateTime: DateTime(2023, 1, 1),
         organization: WalletMockData.organization,
         status: OperationStatus.issued,

@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -36,10 +37,11 @@ class CardDetailScreen extends StatelessWidget {
   static CardDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return CardDetailScreenArgument.fromMap(args as Map<String, dynamic>);
+      return CardDetailScreenArgument.fromJson(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
-      Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in [CardDetailScreenArgument] when opening the CardDetailScreen');
+      Fimber.e('Failed to decode type: ${args.runtimeType} arg: $args', ex: exception, stacktrace: stacktrace);
+      throw UnsupportedError(
+          'Make sure to pass in [CardDetailScreenArgument] as json when opening the CardDetailScreen');
     }
   }
 
@@ -65,7 +67,7 @@ class CardDetailScreen extends StatelessWidget {
           return switch (state) {
             CardDetailInitial() => fallbackAppBarTitleText,
             CardDetailLoadInProgress() => fallbackAppBarTitleText,
-            CardDetailLoadSuccess() => Text(state.detail.card.front.title),
+            CardDetailLoadSuccess() => Text(state.detail.card.front.title.l10nValue(context)),
             CardDetailLoadFailure() => fallbackAppBarTitleText,
           };
         },
@@ -106,7 +108,7 @@ class CardDetailScreen extends StatelessWidget {
                 animation.addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
                 return WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeOut);
               },
-              child: WalletCardItem.fromCardFront(front: card.front),
+              child: WalletCardItem.fromCardFront(context: context, front: card.front),
             ),
           ),
         ),
@@ -143,7 +145,7 @@ class CardDetailScreen extends StatelessWidget {
                         BuildContext toHeroContext,
                       ) =>
                           WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeIn),
-                      child: WalletCardItem.fromCardFront(front: card.front),
+                      child: WalletCardItem.fromCardFront(context: context, front: card.front),
                     ),
                   ),
                 ),
@@ -250,7 +252,7 @@ class CardDetailScreen extends StatelessWidget {
       WalletRoutes.cardDataRoute,
       arguments: CardDataScreenArgument(
         cardId: card.id,
-        cardTitle: card.front.title,
+        cardTitle: card.front.title.l10nValue(context),
       ).toMap(),
     );
   }

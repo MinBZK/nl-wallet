@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../usecase/card/log_card_interaction_usecase.dart';
-import 'attribute/requested_attribute.dart';
+import 'attribute/missing_attribute.dart';
 import 'document.dart';
 import 'policy/policy.dart';
 import 'trust_provider.dart';
@@ -11,7 +11,7 @@ class SignRequest extends Equatable {
   final Organization organization;
   final TrustProvider trustProvider;
   final Document document;
-  final List<RequestedAttribute> requestedAttributes;
+  final List<MockRequestedAttribute> requestedAttributes;
   final Policy policy;
 
   const SignRequest({

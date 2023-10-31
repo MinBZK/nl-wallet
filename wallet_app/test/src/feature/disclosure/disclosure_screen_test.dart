@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/attribute/requested_attribute.dart';
+import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
@@ -29,15 +29,9 @@ void main() {
     organization: WalletMockData.organization,
     hasPreviouslyInteractedWithOrganization: false,
     availableAttributes: {
-      WalletMockData.card: const [WalletMockData.textDataAttribute]
+      WalletMockData.card: [WalletMockData.textDataAttribute]
     },
-    requestedAttributes: [
-      RequestedAttribute(
-        label: 'name',
-        key: 'WalletMockData.textDataAttribute.type',
-        valueType: WalletMockData.textDataAttribute.valueType,
-      )
-    ],
+    requestedAttributes: [MissingAttribute.untranslated(label: 'name', key: 'WalletMockData.textDataAttribute.type')],
     requestPurpose: 'Purpose goes here',
     policy: WalletMockData.policy,
   );

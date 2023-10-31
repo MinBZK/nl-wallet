@@ -14,7 +14,7 @@ void main() {
       'light stacked wallet cards',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const StackedWalletCards(
+          StackedWalletCards(
             cards: [
               WalletMockData.card,
               WalletMockData.card,
@@ -30,7 +30,7 @@ void main() {
   group('widgets', () {
     testWidgets('card titles are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const StackedWalletCards(
+        StackedWalletCards(
           cards: [
             WalletMockData.card,
             WalletMockData.card,

@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import 'attribute/attribute.dart';
 import 'attribute/data_attribute.dart';
-import 'attribute/requested_attribute.dart';
+import 'attribute/missing_attribute.dart';
 import 'organization.dart';
 import 'policy/policy.dart';
 import 'wallet_card.dart';
@@ -24,7 +24,7 @@ class IssuanceFlow extends Equatable {
 
   List<DataAttribute> get resolvedAttributes => attributes.whereType<DataAttribute>().toList();
 
-  List<RequestedAttribute> get missingAttributes => attributes.whereType<RequestedAttribute>().toList();
+  List<MissingAttribute> get missingAttributes => attributes.whereType<MissingAttribute>().toList();
 
   @override
   List<Object?> get props => [organization, attributes, requestPurpose, policy, cards];

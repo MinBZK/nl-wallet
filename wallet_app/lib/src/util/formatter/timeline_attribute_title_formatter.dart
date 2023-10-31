@@ -1,3 +1,6 @@
+import 'package:flutter/cupertino.dart';
+
+import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../domain/model/timeline/signing_timeline_attribute.dart';
@@ -11,10 +14,15 @@ class TimelineAttributeTitleFormatter {
   ///
   /// When [TimelineAttribute] is displayed in for example a single card specific context; set:
   /// [showOperationTitle]: false
-  static String format(TimelineAttribute attribute, {bool showOperationTitle = true}) {
-    if (attribute is InteractionTimelineAttribute) return attribute.organization.shortName;
-    if (attribute is OperationTimelineAttribute) return showOperationTitle ? attribute.cardTitle : '';
-    if (attribute is SigningTimelineAttribute) return attribute.organization.shortName;
+  static String format(BuildContext context, TimelineAttribute attribute, {bool showOperationTitle = true}) {
+    switch (attribute) {
+      case InteractionTimelineAttribute():
+        return attribute.organization.shortName;
+      case OperationTimelineAttribute():
+        return showOperationTitle ? attribute.cardTitle.l10nValue(context) : '';
+      case SigningTimelineAttribute():
+        return attribute.organization.shortName;
+    }
     throw ('Unsupported attribute: $attribute');
   }
 }

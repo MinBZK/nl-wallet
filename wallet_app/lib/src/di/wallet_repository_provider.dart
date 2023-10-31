@@ -70,8 +70,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<DisclosureRepository>(
           create: (context) => provideMocks
               ? throw UnimplementedError('No MockDisclosureRepository')
-              : CoreDisclosureRepository(
-                  context.read(), context.read(), context.read(), context.read(), context.read()),
+              : CoreDisclosureRepository(context.read(), context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<ConfigurationRepository>(
           create: (context) =>
@@ -91,8 +90,7 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => LanguageRepositoryImpl(context.read(), AppLocalizations.supportedLocales),
         ),
         RepositoryProvider<PidRepository>(
-          create: (context) =>
-              provideMocks ? MockPidRepository() : CorePidRepository(context.read(), context.read(), context.read()),
+          create: (context) => provideMocks ? MockPidRepository() : CorePidRepository(context.read(), context.read()),
         ),
       ],
       child: child,

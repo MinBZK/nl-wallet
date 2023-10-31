@@ -1,13 +1,17 @@
+import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/attribute/converter/localized_string_converter.dart';
 import '../../../../domain/model/wallet_card.dart';
 
-class CardDetailScreenArgument {
-  static const _kCardKey = 'card';
-  static const _kCardIdKey = 'cardId';
-  static const _kCardTitleKey = 'cardTitle';
+part 'card_detail_screen_argument.g.dart';
 
+@JsonSerializable(converters: [LocalizedStringConverter()], explicitToJson: true)
+class CardDetailScreenArgument extends Equatable {
   final WalletCard? card;
   final String cardId;
-  final String cardTitle;
+  final LocalizedText cardTitle;
 
   const CardDetailScreenArgument({this.card, required this.cardId, required this.cardTitle});
 
@@ -17,36 +21,10 @@ class CardDetailScreenArgument {
         cardTitle: card.front.title,
       );
 
-  Map<String, dynamic> toMap() {
-    return {
-      _kCardKey: card?.toJson() ?? '',
-      _kCardIdKey: cardId,
-      _kCardTitleKey: cardTitle,
-    };
-  }
+  factory CardDetailScreenArgument.fromJson(Map<String, dynamic> json) => _$CardDetailScreenArgumentFromJson(json);
 
-  static CardDetailScreenArgument fromMap(Map<String, dynamic> map) {
-    return CardDetailScreenArgument(
-      card: map[_kCardKey].isEmpty ? null : WalletCard.fromJson(map[_kCardKey]),
-      cardId: map[_kCardIdKey],
-      cardTitle: map[_kCardTitleKey],
-    );
-  }
+  Map<String, dynamic> toJson() => _$CardDetailScreenArgumentToJson(this);
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CardDetailScreenArgument &&
-          runtimeType == other.runtimeType &&
-          card == other.card &&
-          cardId == other.cardId &&
-          cardTitle == other.cardTitle;
-
-  @override
-  int get hashCode => Object.hash(
-        runtimeType,
-        card,
-        cardId,
-        cardTitle,
-      );
+  List<Object?> get props => [card, cardId, cardTitle];
 }

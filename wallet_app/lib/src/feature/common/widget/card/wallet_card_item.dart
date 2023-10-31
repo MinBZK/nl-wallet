@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
@@ -68,13 +69,14 @@ class WalletCardItem extends StatelessWidget {
     this.ctaAnimation,
   }) : super(key: key);
 
-  WalletCardItem.fromCardFront({required CardFront front, this.onPressed, this.ctaAnimation, super.key})
-      : title = front.title,
+  WalletCardItem.fromCardFront(
+      {required BuildContext context, required CardFront front, this.onPressed, this.ctaAnimation, super.key})
+      : title = front.title.l10nValue(context),
         background = front.backgroundImage,
         logo = front.logoImage,
         holograph = front.holoImage,
-        subtitle1 = front.subtitle,
-        subtitle2 = front.info,
+        subtitle1 = front.subtitle?.l10nValue(context),
+        subtitle2 = front.info?.l10nValue(context),
         brightness = front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
 
   @override
@@ -258,11 +260,14 @@ class WalletCardItem extends StatelessWidget {
 
     return AnimatedBuilder(
       animation: animation,
-      child: WalletCardItem.fromCardFront(
-        front: front,
-        ctaAnimation: ctaAnimation,
-        onPressed: onPressed,
-      ),
+      child: Builder(builder: (context) {
+        return WalletCardItem.fromCardFront(
+          context: context,
+          front: front,
+          ctaAnimation: ctaAnimation,
+          onPressed: onPressed,
+        );
+      }),
       builder: (context, child) {
         return Transform(
           alignment: FractionalOffset.center,

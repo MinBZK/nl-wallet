@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../screen/placeholder_screen.dart';
 import '../widget/attribute/data_attribute_row.dart';
 import '../widget/button/link_button.dart';
 import '../widget/card/wallet_card_item.dart';
-import '../screen/placeholder_screen.dart';
 import '../widget/sliver_sized_box.dart';
 
 /// Generic Page that displays the attributes so the user can check them.
@@ -39,7 +39,7 @@ class CheckDataOfferingPage extends StatelessWidget {
         slivers: <Widget>[
           const SliverSizedBox(height: 32),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          SliverToBoxAdapter(child: _buildCardFront()),
+          SliverToBoxAdapter(child: _buildCardFront(context)),
           SliverSizedBox(height: showHeaderAttributesDivider ? 24 : 12),
           if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
           const SliverSizedBox(height: 12),
@@ -53,12 +53,12 @@ class CheckDataOfferingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCardFront() {
+  Widget _buildCardFront(BuildContext context) {
     final cardFront = this.cardFront;
     if (cardFront == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: WalletCardItem.fromCardFront(front: cardFront),
+      child: WalletCardItem.fromCardFront(context: context, front: cardFront),
     );
   }
 

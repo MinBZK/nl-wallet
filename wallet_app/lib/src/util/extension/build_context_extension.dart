@@ -15,4 +15,6 @@ extension BuildContextExtension on BuildContext {
   ColorScheme get colorScheme => theme.colorScheme;
 
   AppLocalizations get l10n => AppLocalizations.of(this);
+
+  String get locale => AppLocalizations.of(this).localeName;
 }

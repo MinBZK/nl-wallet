@@ -8,8 +8,6 @@ sealed class PidIssuanceStatus extends Equatable {
   List<Object?> get props => [];
 }
 
-class PidIssuanceAuthenticating extends PidIssuanceStatus {}
-
 class PidIssuanceSuccess extends PidIssuanceStatus {
   final List<Attribute> previews;
 

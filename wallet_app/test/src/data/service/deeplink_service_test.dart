@@ -20,7 +20,6 @@ void main() {
   late AppLifecycleService mockAppLifecycleService;
 
   setUp(() {
-    provideDummy<NavigationRequest>(GenericNavigationRequest('/mock_destination'));
     appLinks = MockAppLinks();
     navigatorKey = MockNavigatorKey();
     mockAppLifecycleService = AppLifecycleService();

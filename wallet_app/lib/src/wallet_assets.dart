@@ -23,8 +23,6 @@ class WalletAssets {
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
   static const image_bg_nl_driving_license = 'assets/non-free/images/bg_nl_driving_license.png';
-  static const image_person_x = 'assets/non-free/images/person_x.png';
-  static const image_attribute_placeholder = 'assets/non-free/images/attribute_placeholder.png';
   static const image_bg_health_insurance = 'assets/non-free/images/bg_health_insurance.png';
   static const image_intro_page_4 = 'assets/non-free/images/intro_page_4.png';
   static const image_intro_page_3 = 'assets/non-free/images/intro_page_3.png';

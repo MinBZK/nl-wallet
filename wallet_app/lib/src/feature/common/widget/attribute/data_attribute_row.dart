@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
-import 'data_attribute_row_image.dart';
-import 'data_attribute_row_text.dart';
+import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/formatter/attribute_value_formatter.dart';
 
 class DataAttributeRow extends StatelessWidget {
   final DataAttribute attribute;
@@ -11,17 +12,21 @@ class DataAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (attribute.valueType) {
-      case AttributeValueType.text:
-        return DataAttributeRowText(attribute: attribute);
-      case AttributeValueType.image:
-        return Align(
-          alignment: Alignment.centerLeft,
-          child: DataAttributeRowImage(
-            image: AssetImage(attribute.value),
-            label: attribute.label,
+    return MergeSemantics(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            attribute.label.l10nValue(context),
+            style: context.textTheme.bodySmall,
           ),
-        );
-    }
+          Text(
+            attribute.value.prettyPrint(context),
+            style: context.textTheme.titleMedium,
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1,10 +1,12 @@
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
-import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/card_config.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/issuance_response.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../source/mock/mock_organization_datasource.dart';
 import '../../../source/organization_datasource.dart';
