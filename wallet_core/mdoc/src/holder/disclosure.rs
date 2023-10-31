@@ -26,6 +26,7 @@ use crate::{
         serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType, CertificateUsage},
     },
+    verifier::SessionType,
     Error, Result,
 };
 
@@ -96,7 +97,8 @@ where
             DeviceEngagement::new_device_engagement(Url::parse(REFERRER_URL).unwrap())?;
 
         // Create the session transcript so far based on both engagement payloads.
-        let transcript = SessionTranscript::new(&reader_engagement, &device_engagement)
+        // TODO: Distinguish between same device and cross device flows.
+        let transcript = SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement)
             .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
 
         // Derive the session key for both directions from the private and public keys and the session transcript.
