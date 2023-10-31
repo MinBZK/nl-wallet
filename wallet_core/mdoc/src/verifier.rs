@@ -4,7 +4,7 @@ use std::{sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -733,24 +733,6 @@ impl IssuerSigned {
 
         Ok((attrs, mso))
     }
-
-    fn attribute_identifiers(&self, doctype: &DocType) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .iter()
-                    .flat_map(|(namespace, Attributes(attrs))| {
-                        attrs.iter().map(|TaggedBytes(attr)| AttributeIdentifier {
-                            doc_type: doctype.clone(),
-                            namespace: namespace.clone(),
-                            attribute: attr.element_identifier.clone(),
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
 }
 
 impl MobileSecurityObject {
@@ -831,19 +813,6 @@ impl Document {
 }
 
 impl ItemsRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
-            .iter()
-            .flat_map(|(namespace, attrs)| {
-                attrs.iter().map(|(attr, _)| AttributeIdentifier {
-                    doc_type: self.doc_type.clone(),
-                    namespace: namespace.clone(),
-                    attribute: attr.clone(),
-                })
-            })
-            .collect()
-    }
-
     /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
     pub fn match_against_issuer_signed(
         &self,
