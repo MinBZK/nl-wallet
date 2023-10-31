@@ -25,8 +25,8 @@ use nl_wallet_mdoc::{
         serialization::cbor_serialize,
         x509::{Certificate, OwnedTrustAnchor},
     },
-    verifier::{DisclosureData, StatusResponse, VerificationError, Verifier},
-    ItemsRequest, SessionData,
+    verifier::{DisclosureData, ItemsRequests, StatusResponse, VerificationError, Verifier},
+    SessionData,
 };
 
 lazy_static! {
@@ -145,7 +145,7 @@ where
 #[derive(Deserialize, Serialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    pub items_requests: Vec<ItemsRequest>,
+    pub items_requests: ItemsRequests,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

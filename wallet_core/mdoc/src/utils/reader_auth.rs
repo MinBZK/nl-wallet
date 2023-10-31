@@ -8,8 +8,9 @@ use url::Url;
 use x509_parser::der_parser::Oid;
 
 use crate::{
+    identifiers::AttributeIdentifier,
     utils::x509::{Certificate, CertificateError},
-    DataElementIdentifier, DeviceRequest, DocType, NameSpace,
+    DeviceRequest,
 };
 
 /// oid: 2.1.123.1
@@ -146,21 +147,6 @@ pub struct AuthorizedAttribute {}
 pub enum ValidationError {
     #[error("Requested unregistered attributes: {0:?}")]
     UnregisteredAttributes(Vec<AttributeIdentifier>),
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct AttributeIdentifier {
-    doc_type: DocType,
-    namespace: NameSpace,
-    attribute: DataElementIdentifier,
-}
-
-impl std::fmt::Debug for AttributeIdentifier {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        // This format is solely intended for debug display purposes.
-        // Technically '/' is allowed in the doc_type, namespace and attribute parts.
-        fmt.write_fmt(format_args!("{}/{}/{}", self.doc_type, self.namespace, self.attribute))
-    }
 }
 
 impl ReaderRegistration {

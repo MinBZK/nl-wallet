@@ -186,7 +186,8 @@ async fn test_start_session() {
                         .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
                 ),
             )]),
-        }],
+        }]
+        .into(),
     };
     let response = client
         .post(
