@@ -18,7 +18,7 @@ sequenceDiagram
     note over user, wallet_app: pin validity is guaranteed locally, see 3.1
     activate user
         wallet_app->>wallet_core: register(pin)
-        wallet_core->>wallet_provider: fetchChallenge()
+        wallet_core->>wallet_provider: requestChallenge()
         opt server error
         wallet_provider-->>wallet_core: server error
             wallet_core-->>wallet_app: error
@@ -76,7 +76,7 @@ sequenceDiagram
     participant hsm
     title Create Wallet (server) [2.2]
 
-    wallet_core->>+wallet_provider: fetchChallenge() 
+    wallet_core->>+wallet_provider: requestChallenge() 
     note over wallet_core,wallet_provider: POST /enroll
     wallet_provider->>wallet_provider: generateChallenge()
     wallet_provider-->>-wallet_core: challenge

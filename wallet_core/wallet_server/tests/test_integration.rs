@@ -63,6 +63,7 @@ fn get_my_reader_auth() -> ReaderRegistration {
         sharing_policy: SharingPolicy { intent_to_share: true },
         deletion_policy: DeletionPolicy { deleteable: true },
         organization: my_organization,
+        attributes: Default::default(),
     }
 }
 
@@ -185,7 +186,8 @@ async fn test_start_session() {
                         .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
                 ),
             )]),
-        }],
+        }]
+        .into(),
     };
     let response = client
         .post(

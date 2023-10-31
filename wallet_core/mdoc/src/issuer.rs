@@ -59,21 +59,21 @@ impl IssuanceStatus {
     }
 }
 
-pub struct Server<K, S> {
+pub struct Issuer<K, S> {
     url: Url,
     keys: K,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
 }
 
-impl<K, S> Drop for Server<K, S> {
+impl<K, S> Drop for Issuer<K, S> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<K, S> Server<K, S>
+impl<K, S> Issuer<K, S>
 where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
@@ -82,8 +82,10 @@ where
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
     pub fn new(url: Url, keys: K, session_store: S) -> Self {
         let sessions = Arc::new(session_store);
-        Server {
-            cleanup_task: S::start_cleanup_task(Arc::clone(&sessions), Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+        Issuer {
+            cleanup_task: sessions
+                .clone()
+                .start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
             url,
             keys,
             sessions,
@@ -445,7 +447,7 @@ mod tests {
         }
     }
 
-    type Server = super::Server<EmptyKeyRing, MemorySessionStore<IssuanceData>>;
+    type Server = super::Issuer<EmptyKeyRing, MemorySessionStore<IssuanceData>>;
 
     const CLEANUP_INTERVAL: Duration = Duration::from_millis(50);
 

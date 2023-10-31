@@ -42,7 +42,7 @@ const EXAMPLE_ATTR_NAME: &str = "family_name";
 static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string())); // Lazy since can't have a const String
 
 type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>>;
-type MockServer = Server<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
+type MockServer = Issuer<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
 
 struct SoftwareKeyFactory {}
 
@@ -309,7 +309,7 @@ impl HttpClient for DummyHttpClient {
 }
 
 struct MockHttpClient<K, S> {
-    issuance_server: Arc<Server<K, S>>,
+    issuance_server: Arc<Issuer<K, S>>,
 }
 
 #[async_trait]
