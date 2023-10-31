@@ -2145,6 +2145,7 @@ dependencies = [
  "regex",
  "reqwest",
  "ring 0.17.2",
+ "rstest",
  "rustls-webpki",
  "serde",
  "serde_bytes",
