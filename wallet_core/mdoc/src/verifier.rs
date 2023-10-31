@@ -18,6 +18,7 @@ use wallet_common::{
 
 use crate::{
     basic_sa_ext::Entry,
+    identifiers::AttributeIdentifier,
     iso::*,
     server_keys::{KeyRing, PrivateKey},
     server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
@@ -598,19 +599,6 @@ impl From<SessionStatus> for SessionResult {
             },
             SessionStatus::Termination => SessionResult::Cancelled,
         }
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub struct AttributeIdentifier {
-    pub doc_type: DocType,
-    pub namespace: NameSpace,
-    pub attribute: DataElementIdentifier,
-}
-
-impl std::fmt::Debug for AttributeIdentifier {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-        fmt.write_fmt(format_args!("{}/{}/{}", self.doc_type, self.namespace, self.attribute))
     }
 }
 
