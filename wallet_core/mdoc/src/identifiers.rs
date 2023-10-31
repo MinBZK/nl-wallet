@@ -23,7 +23,7 @@ impl std::fmt::Debug for AttributeIdentifier {
 }
 
 impl IssuerSigned {
-    pub(crate) fn attribute_identifiers(&self, doctype: &DocType) -> IndexSet<AttributeIdentifier> {
+    pub(crate) fn attribute_identifiers(&self, doc_type: &str) -> IndexSet<AttributeIdentifier> {
         self.name_spaces
             .as_ref()
             .map(|name_spaces| {
@@ -31,7 +31,7 @@ impl IssuerSigned {
                     .iter()
                     .flat_map(|(namespace, Attributes(attrs))| {
                         attrs.iter().map(|TaggedBytes(attr)| AttributeIdentifier {
-                            doc_type: doctype.clone(),
+                            doc_type: doc_type.to_string(),
                             namespace: namespace.clone(),
                             attribute: attr.element_identifier.clone(),
                         })

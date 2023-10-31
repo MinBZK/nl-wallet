@@ -4,15 +4,13 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    holder::MissingDocumentAttributes,
+    identifiers::AttributeIdentifier,
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
-use crate::MissingDisclosureAttributes;
-
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue,
+    Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue, MissingDisclosureAttributes,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -63,36 +61,6 @@ fn mapping_for_doc_type(doc_type: &str) -> Result<(MappingDocType, &'static Attr
             })?;
 
     Ok((*doc_type, attribute_mapping))
-}
-
-impl MissingDisclosureAttributes {
-    pub(crate) fn from_mdoc_missing_attributes(
-        doc_type: &str,
-        missing_attributes: &MissingDocumentAttributes,
-    ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
-
-        let attributes = missing_attributes
-            .iter()
-            .flat_map(|(name_space, attributes)| attributes.iter().map(move |element_id| (name_space, element_id)))
-            .map(|(name_space, element_id)| {
-                let value_mapping = attribute_mapping
-                    .get(&(name_space.as_str(), element_id.as_str()))
-                    .ok_or_else(|| DocumentMdocError::UnknownAttribute {
-                        doc_type: doc_type.to_string(),
-                        name_space: name_space.clone(),
-                        name: element_id.clone(),
-                        value: None,
-                    })?;
-
-                Ok((value_mapping.key, value_mapping.key_labels.clone()))
-            })
-            .collect::<Result<IndexMap<_, _>, _>>()?;
-
-        let missing_disclosure_attributes = MissingDisclosureAttributes { doc_type, attributes };
-
-        Ok(missing_disclosure_attributes)
-    }
 }
 
 impl TryFrom<UnsignedMdoc> for Document {
@@ -245,6 +213,51 @@ impl TryFrom<Integer> for GenderAttributeValue {
             9 => Ok(Self::NotApplicable),
             _ => Err(()),
         }
+    }
+}
+
+impl MissingDisclosureAttributes {
+    // Use the Mdoc document mapping to translate a `Vec<AttributeIdentifier>` to
+    // a `Vec<MissingDisclosureAttributes>`. If any attribute cannot be found a
+    // `DocumentMdocError` is returned.
+    pub(crate) fn from_mdoc_missing_attributes(
+        missing_attributes: Vec<AttributeIdentifier>,
+    ) -> Result<Vec<Self>, DocumentMdocError> {
+        // Create an `IndexMap` that contains `IndexMap`s of attributes per doc type.
+        let attributes_by_doc_type =
+            missing_attributes
+                .into_iter()
+                .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
+                    |mut attributes_by_doc_type, missing_attribute| {
+                        let (doc_type, attribute_mapping) = mapping_for_doc_type(missing_attribute.doc_type.as_str())?;
+                        let value_mapping = attribute_mapping
+                            .get(&(
+                                missing_attribute.namespace.as_str(),
+                                missing_attribute.attribute.as_str(),
+                            ))
+                            .ok_or_else(|| DocumentMdocError::UnknownAttribute {
+                                doc_type: missing_attribute.doc_type,
+                                name_space: missing_attribute.namespace.clone(),
+                                name: missing_attribute.attribute.clone(),
+                                value: None,
+                            })?;
+
+                        attributes_by_doc_type
+                            .entry(doc_type)
+                            .or_default()
+                            .insert(value_mapping.key, value_mapping.key_labels.clone());
+
+                        Ok(attributes_by_doc_type)
+                    }
+                })?;
+
+        // Convert these `IndexMap`s to a `Vec<MissingDisclosureAttributes>`.
+        let missing_disclosure_attributes = attributes_by_doc_type
+            .into_iter()
+            .map(|(doc_type, attributes)| MissingDisclosureAttributes { doc_type, attributes })
+            .collect();
+
+        Ok(missing_disclosure_attributes)
     }
 }
 

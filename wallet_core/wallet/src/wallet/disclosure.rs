@@ -48,15 +48,8 @@ impl From<nl_wallet_mdoc::Error> for DisclosureError {
                 missing_attributes,
             }) => {
                 // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
-                let attributes = missing_attributes
-                    .into_iter()
-                    .map(|(doc_type, doc_attributes)| {
-                        MissingDisclosureAttributes::from_mdoc_missing_attributes(&doc_type, &doc_attributes)
-                    })
-                    .collect::<Result<Vec<_>, _>>();
-
                 // If this fails, return `DisclosureError::AttributeMdoc` instead.
-                match attributes {
+                match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
                     Ok(attributes) => DisclosureError::AttributesNotAvailable {
                         reader_registration,
                         missing_attributes: attributes,

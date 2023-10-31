@@ -4,6 +4,7 @@
 use std::error::Error;
 
 use crate::{
+    identifiers::AttributeIdentifier,
     iso::*,
     utils::{
         reader_auth::ReaderRegistration,
@@ -57,6 +58,6 @@ pub enum HolderError {
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
-        missing_attributes: MissingAttributes,
+        missing_attributes: Vec<AttributeIdentifier>,
     },
 }
