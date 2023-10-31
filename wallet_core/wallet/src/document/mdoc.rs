@@ -252,10 +252,13 @@ impl MissingDisclosureAttributes {
                 })?;
 
         // Convert these `IndexMap`s to a `Vec<MissingDisclosureAttributes>`.
-        let missing_disclosure_attributes = attributes_by_doc_type
+        let mut missing_disclosure_attributes = attributes_by_doc_type
             .into_iter()
             .map(|(doc_type, attributes)| MissingDisclosureAttributes { doc_type, attributes })
-            .collect();
+            .collect::<Vec<_>>();
+
+        // Make sure that the resulting doc types are sorted canonically.
+        missing_disclosure_attributes.sort_by_key(|attributes| super::doc_type_priority(attributes.doc_type));
 
         Ok(missing_disclosure_attributes)
     }

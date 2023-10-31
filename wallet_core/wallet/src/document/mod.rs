@@ -62,14 +62,19 @@ pub struct MissingDisclosureAttributes {
     pub attributes: IndexMap<AttributeKey, AttributeLabels>,
 }
 
+/// A lower priority means that this `doc_type` should be displayed above others.
+fn doc_type_priority(doc_type: &str) -> usize {
+    match doc_type {
+        PID_DOCTYPE => 0,
+        ADDRESS_DOCTYPE => 1,
+        _ => usize::MAX,
+    }
+}
+
 impl Document {
     /// A lower priority means that this [`Document`] should be displayed above others.
     pub fn priority(&self) -> usize {
-        match self.doc_type {
-            PID_DOCTYPE => 0,
-            ADDRESS_DOCTYPE => 1,
-            _ => usize::MAX,
-        }
+        doc_type_priority(self.doc_type)
     }
 }
 
