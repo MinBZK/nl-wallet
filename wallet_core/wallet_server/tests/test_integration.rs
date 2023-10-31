@@ -19,7 +19,7 @@ use nl_wallet_mdoc::{
         serialization::cbor_deserialize,
         x509::{Certificate, CertificateType},
     },
-    verifier::DisclosureData,
+    verifier::{DisclosureData, SessionType},
     ItemsRequest, ReaderEngagement,
 };
 use wallet_server::{
@@ -175,6 +175,7 @@ async fn test_start_session() {
 
     let start_request = StartDisclosureRequest {
         usecase: "example_usecase".to_owned(),
+        session_type: SessionType::SameDevice,
         items_requests: vec![ItemsRequest {
             doc_type: "example_doctype".to_owned(),
             request_info: None,
