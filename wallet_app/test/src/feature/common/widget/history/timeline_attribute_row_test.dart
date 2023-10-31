@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/feature/common/widget/history/timeline_attribute_row.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/mock_data.dart';
@@ -19,11 +21,11 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
             attribute: OperationTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
+              dataAttributes: [WalletMockData.textDataAttribute],
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.issued,
-              cardTitle: 'Card Title',
+              cardTitle: 'Card Title'.untranslated,
             ),
             onPressed: () {},
           ),
@@ -38,11 +40,11 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
             attribute: OperationTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
+              dataAttributes: [WalletMockData.textDataAttribute],
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.issued,
-              cardTitle: 'Card Title',
+              cardTitle: 'Card Title'.untranslated,
             ),
             onPressed: () {},
           ),
@@ -59,11 +61,11 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
             attribute: OperationTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
+              dataAttributes: [WalletMockData.textDataAttribute],
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.expired,
-              cardTitle: 'Card Title',
+              cardTitle: 'Card Title'.untranslated,
             ),
             onPressed: () {},
           ),
@@ -78,11 +80,11 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           TimelineAttributeRow(
             attribute: OperationTimelineAttribute(
-              dataAttributes: const [WalletMockData.textDataAttribute],
+              dataAttributes: [WalletMockData.textDataAttribute],
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.renewed,
-              cardTitle: 'Card Title',
+              cardTitle: 'Card Title'.untranslated,
             ),
             onPressed: () {},
           ),
@@ -173,7 +175,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text(WalletMockData.operationTimelineAttribute.cardTitle);
+      final titleFinder = find.text(WalletMockData.operationTimelineAttribute.cardTitle.testValue);
       expect(titleFinder, findsOneWidget);
 
       await tester.tap(titleFinder);

@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/requested_attribute.dart';
+import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
@@ -27,7 +27,7 @@ class SignFlow extends Equatable {
 
   List<DataAttribute> get resolvedAttributes => attributes.whereType<DataAttribute>().toList();
 
-  List<RequestedAttribute> get missingAttributes => attributes.whereType<RequestedAttribute>().toList();
+  List<MissingAttribute> get missingAttributes => attributes.whereType<MissingAttribute>().toList();
 
   bool get hasMissingAttributes => missingAttributes.isNotEmpty;
 

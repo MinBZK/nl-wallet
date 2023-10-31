@@ -24,7 +24,7 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 }
 
 void main() {
-  IssuanceFlow mockFlow = const IssuanceFlow(
+  IssuanceFlow mockFlow = IssuanceFlow(
     organization: WalletMockData.organization,
     attributes: [WalletMockData.textDataAttribute],
     requestPurpose: 'Mock purpose',
@@ -180,7 +180,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              IssuanceCompleted(false, mockFlow, const [WalletMockData.card]),
+              IssuanceCompleted(false, mockFlow, [WalletMockData.card]),
             ),
             name: 'completed',
           ),
@@ -255,7 +255,7 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              IssuanceCompleted(false, mockFlow, const [WalletMockData.card, WalletMockData.altCard]),
+              IssuanceCompleted(false, mockFlow, [WalletMockData.card, WalletMockData.altCard]),
             ),
             name: 'completed',
           ),
@@ -270,7 +270,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceCompleted(false, mockFlow, const [WalletMockData.card, WalletMockData.altCard]),
+          IssuanceCompleted(false, mockFlow, [WalletMockData.card, WalletMockData.altCard]),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/feature/card/detail/bloc/card_detail_bloc.dart';
 import 'package:wallet/src/feature/card/detail/card_detail_screen.dart';
@@ -28,7 +29,7 @@ void main() {
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: CardDetailScreen(
-              cardTitle: WalletMockData.card.front.title,
+              cardTitle: WalletMockData.card.front.title.testValue,
             ).withState<CardDetailBloc, CardDetailState>(
               MockCardSummaryBloc(),
               cardDetailLoadSuccessMock,
@@ -44,7 +45,7 @@ void main() {
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: CardDetailScreen(
-              cardTitle: WalletMockData.card.front.title,
+              cardTitle: WalletMockData.card.front.title.testValue,
             ).withState<CardDetailBloc, CardDetailState>(
               MockCardSummaryBloc(),
               cardDetailLoadSuccessMock,
@@ -58,7 +59,7 @@ void main() {
     testGoldens('CardDetailLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
-          cardTitle: WalletMockData.card.front.title,
+          cardTitle: WalletMockData.card.front.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
           const CardDetailLoadInProgress(),
@@ -70,7 +71,7 @@ void main() {
     testGoldens('CardDetailLoadFailure light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
-          cardTitle: WalletMockData.card.front.title,
+          cardTitle: WalletMockData.card.front.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
           CardDetailLoadFailure(WalletMockData.card.id),
@@ -84,7 +85,7 @@ void main() {
     testWidgets('card is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(
-          cardTitle: WalletMockData.card.front.title,
+          cardTitle: WalletMockData.card.front.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
           cardDetailLoadSuccessMock,
@@ -92,7 +93,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final cardTitleFinder = find.text(WalletMockData.card.front.title);
+      final cardTitleFinder = find.text(WalletMockData.card.front.title.testValue);
       expect(cardTitleFinder, findsNWidgets(2)); // App bar title + title on card
     });
   });

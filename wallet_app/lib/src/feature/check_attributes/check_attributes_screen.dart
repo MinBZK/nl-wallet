@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/attribute/data_attribute.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -41,7 +42,7 @@ class CheckAttributesScreen extends StatelessWidget {
     return Scrollbar(
       child: CustomScrollView(
         slivers: [
-          ..._generateDataSectionSlivers(),
+          ..._generateDataSectionSlivers(context),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 32),
         ],
@@ -49,14 +50,14 @@ class CheckAttributesScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _generateDataSectionSlivers() {
+  List<Widget> _generateDataSectionSlivers(BuildContext context) {
     final dataSections = cardsToAttributes.entries.map(
       (cardToAttributes) => Column(
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24),
             child: DataAttributeSection(
-              sourceCardTitle: cardToAttributes.key.front.title,
+              sourceCardTitle: cardToAttributes.key.front.title.l10nValue(context),
               attributes: cardToAttributes.value,
             ),
           ),

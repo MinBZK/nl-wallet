@@ -1,5 +1,6 @@
 certificate_signing_key_identifier = "certificate_signing_key"
 instruction_result_signing_key_identifier = "instruction_result_signing_key"
+attestation_wrapping_key_identifier = "attestation_wrapping_key"
 pin_hash_salt = "${WP_PIN_HASH_SALT}"
 
 # Indicates whether logging should be output in a structured (JSON) manner.

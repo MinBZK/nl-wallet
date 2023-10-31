@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/formatter/attribute_value_formatter.dart';
 
 class UiAttributeRow extends StatelessWidget {
   final UiAttribute attribute;
@@ -25,11 +27,11 @@ class UiAttributeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                attribute.label,
+                attribute.label.l10nValue(context),
                 style: context.textTheme.bodySmall,
               ),
               Text(
-                attribute.value,
+                attribute.value.prettyPrint(context),
                 style: context.textTheme.titleMedium,
               ),
             ],

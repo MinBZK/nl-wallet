@@ -1,3 +1,5 @@
+import '../../domain/model/attribute/attribute.dart';
+
 extension StringExtension on String {
   /// Capitalizes first letter in string (if present)
   String get capitalize => isNotEmpty ? '${this[0].toUpperCase()}${substring(1).toLowerCase()}' : '';
@@ -7,4 +9,6 @@ extension StringExtension on String {
 
   /// Adds space to end of string (if not empty)
   String get addSpaceSuffix => isNotEmpty ? '$this ' : '';
+
+  LocalizedText get untranslated => {'': this};
 }

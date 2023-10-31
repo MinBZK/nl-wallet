@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/sheet/explanation_sheet.dart';
@@ -51,7 +52,7 @@ class CardDataScreen extends StatelessWidget {
           return switch (state) {
             CardDataInitial() => fallbackAppBarTitleText,
             CardDataLoadInProgress() => fallbackAppBarTitleText,
-            CardDataLoadSuccess() => Text(state.card.front.title),
+            CardDataLoadSuccess() => Text(state.card.front.title.l10nValue(context)),
             CardDataLoadFailure() => fallbackAppBarTitleText,
           };
         },

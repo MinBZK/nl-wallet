@@ -11,7 +11,7 @@ class CoreDisclosureBloc extends DisclosureBloc {
   final StartDisclosureUseCase _startDisclosureUseCase;
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
 
-  StartDisclosureResult? _lastStartDisclosureResult;
+  StartDisclosureResult? _startDisclosureResult;
   StreamSubscription? _startDisclosureStreamSubscription;
 
   CoreDisclosureBloc(
@@ -30,31 +30,21 @@ class CoreDisclosureBloc extends DisclosureBloc {
   }
 
   void _initDisclosure(Uri disclosureUri) async {
-    _startDisclosureStreamSubscription?.cancel();
-    _startDisclosureStreamSubscription = _startDisclosureUseCase.invoke(disclosureUri).listen(
-      (result) {
-        _lastStartDisclosureResult = result;
-        if (state is DisclosureLoadInProgress) {
-          add(
-            DisclosureUpdateState(
-              DisclosureCheckOrganization(
-                result.relyingParty,
-                '',
-                true,
-              ),
-            ),
-          );
-        } else if (state is DisclosureConfirmDataAttributes || state is DisclosureMissingAttributes) {
-          // Propagate potential translation update, by 'approving' again while in any of these two states the
-          // correct state will be re-emitted with the updated translations from [_lastStartDisclosureResult].
-          add(const DisclosureOrganizationApproved());
-        }
-      },
-      onError: (error) {
-        add(DisclosureUpdateState(DisclosureGenericError()));
-      },
-      cancelOnError: true,
-    );
+    try {
+      _startDisclosureResult = await _startDisclosureUseCase.invoke(disclosureUri);
+      add(
+        DisclosureUpdateState(
+          DisclosureCheckOrganization(
+            _startDisclosureResult!.relyingParty,
+            '',
+            true,
+          ),
+        ),
+      );
+    } catch (ex) {
+      Fimber.e('Failed to start disclosure', ex: ex);
+      add(DisclosureUpdateState(DisclosureGenericError()));
+    }
   }
 
   void _onStopRequested(DisclosureStopRequested event, emit) async {
@@ -89,11 +79,11 @@ class CoreDisclosureBloc extends DisclosureBloc {
         ),
       );
     } else if (state is DisclosureConfirmPin) {
-      assert(_lastStartDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
+      assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
       emit(
         DisclosureConfirmDataAttributes(
-          _lastStartDisclosureResult!.relyingParty,
-          (_lastStartDisclosureResult as StartDisclosureReadyToDisclose).requestedAttributes,
+          _startDisclosureResult!.relyingParty,
+          (_startDisclosureResult as StartDisclosureReadyToDisclose).requestedAttributes,
           kMockPolicy,
           afterBackPressed: true,
         ),
@@ -102,7 +92,7 @@ class CoreDisclosureBloc extends DisclosureBloc {
   }
 
   void _onOrganizationApproved(DisclosureOrganizationApproved event, emit) async {
-    final startDisclosureResult = _lastStartDisclosureResult;
+    final startDisclosureResult = _startDisclosureResult;
     switch (startDisclosureResult) {
       case null:
         throw UnsupportedError('Organization approved while in invalid state, i.e. no result available!');
@@ -125,14 +115,14 @@ class CoreDisclosureBloc extends DisclosureBloc {
   }
 
   void _onShareRequestApproved(DisclosureShareRequestedAttributesApproved event, emit) {
-    assert(_lastStartDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid data state to continue disclosing');
+    assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid data state to continue disclosing');
     assert(state is DisclosureConfirmDataAttributes, 'Invalid UI state to move to pin entry');
     if (state is DisclosureConfirmDataAttributes) emit(const DisclosureConfirmPin());
   }
 
   void _onPinConfirmed(DisclosurePinConfirmed event, emit) {
-    assert(_lastStartDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
-    emit(DisclosureSuccess(_lastStartDisclosureResult!.relyingParty));
+    assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
+    emit(DisclosureSuccess(_startDisclosureResult!.relyingParty));
   }
 
   @override

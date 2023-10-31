@@ -1,5 +1,4 @@
-import '../../../../domain/model/attribute/data_attribute.dart';
-import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../source/mock/mock_organization_datasource.dart';
 import '../../../source/organization_datasource.dart';

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../environment.dart';
 import '../data/service/deeplink_service.dart';
+import '../domain/model/attribute/attribute.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/about/about_screen.dart';
@@ -250,7 +251,7 @@ WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
     CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
     return BlocProvider<CardDetailBloc>(
       create: (context) => CardDetailBloc(context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
-      child: CardDetailScreen(cardTitle: argument.cardTitle),
+      child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
     );
   };
 }

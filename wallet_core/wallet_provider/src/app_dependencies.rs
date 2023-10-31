@@ -35,7 +35,11 @@ pub struct AppDependencies {
 
 impl AppDependencies {
     pub async fn new_from_settings(settings: Settings) -> Result<AppDependencies, Box<dyn Error>> {
-        let hsm = Pkcs11Hsm::new(settings.hsm.library_path, settings.hsm.user_pin)?;
+        let hsm = Pkcs11Hsm::new(
+            settings.hsm.library_path,
+            settings.hsm.user_pin,
+            settings.attestation_wrapping_key_identifier,
+        )?;
 
         let certificate_signing_key = CertificateSigning(WalletProviderEcdsaKey::new(
             settings.certificate_signing_key_identifier,

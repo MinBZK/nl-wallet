@@ -1,7 +1,7 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../model/attribute/attribute.dart';
 import '../../../model/attribute/data_attribute.dart';
-import '../../../model/attribute/requested_attribute.dart';
+import '../../../model/attribute/missing_attribute.dart';
 import '../../../model/wallet_card.dart';
 import '../get_requested_attributes_from_wallet_usecase.dart';
 
@@ -11,10 +11,10 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
   GetRequestedAttributesFromWalletUseCaseImpl(this.repository);
 
   @override
-  Future<List<Attribute>> invoke(List<RequestedAttribute> requestedAttributes) async {
+  Future<List<Attribute>> invoke(List<MissingAttribute> requestedAttributes) async {
     final List<WalletCard> cards = await repository.readAll();
 
-    List<RequestedAttribute> remaining = List.of(requestedAttributes);
+    List<MissingAttribute> remaining = List.of(requestedAttributes);
     List<DataAttribute> found = [];
     List<Attribute> results = [];
     do {
@@ -28,8 +28,8 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
     return _sortResultAttributes(results, requestedAttributes);
   }
 
-  /// Finds [DataAttribute]s on a single card, containing all (or most) [RequestedAttribute]s
-  List<DataAttribute> _findAttributes(List<WalletCard> cards, List<RequestedAttribute> requestedAttributes) {
+  /// Finds [DataAttribute]s on a single card, containing all (or most) [MissingAttribute]s
+  List<DataAttribute> _findAttributes(List<WalletCard> cards, List<MissingAttribute> requestedAttributes) {
     final Set<AttributeKey> findTypes = requestedAttributes.map((e) => e.key).toSet();
 
     List<DataAttribute> results = [];
@@ -45,17 +45,17 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
   }
 
   /// Removes found attributes from remaining list
-  List<RequestedAttribute> _getRemainingAttributes(List<Attribute> found, List<RequestedAttribute> attributes) {
+  List<MissingAttribute> _getRemainingAttributes(List<Attribute> found, List<MissingAttribute> attributes) {
     final List<AttributeKey> foundKeys = found.map((e) => e.key).toList();
-    final List<RequestedAttribute> remaining = List.of(attributes);
+    final List<MissingAttribute> remaining = List.of(attributes);
     remaining.removeWhere((element) => foundKeys.contains(element.key));
     return remaining;
   }
 
   /// Sorts result [List<Attribute>] list based on [List<RequestedAttribute>] order
-  List<Attribute> _sortResultAttributes(List<Attribute> results, List<RequestedAttribute> requestedAttributes) {
+  List<Attribute> _sortResultAttributes(List<Attribute> results, List<MissingAttribute> requestedAttributes) {
     return [
-      for (RequestedAttribute requestedAttribute in requestedAttributes)
+      for (MissingAttribute requestedAttribute in requestedAttributes)
         results.singleWhere((element) => element.key == requestedAttribute.key)
     ];
   }

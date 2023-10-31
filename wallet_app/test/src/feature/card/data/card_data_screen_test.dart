@@ -2,8 +2,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/card/data/bloc/card_data_bloc.dart';
 import 'package:wallet/src/feature/card/data/card_data_screen.dart';
+import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/mock_data.dart';
@@ -19,7 +21,7 @@ void main() {
           ..addScenario(
             widget: const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
               MockCardDataBloc(),
-              const CardDataLoadSuccess(WalletMockData.card),
+              CardDataLoadSuccess(WalletMockData.card),
             ),
             name: 'card data',
           ),
@@ -34,7 +36,7 @@ void main() {
           ..addScenario(
             widget: const CardDataScreen(cardTitle: 'Title').withState<CardDataBloc, CardDataState>(
               MockCardDataBloc(),
-              const CardDataLoadSuccess(WalletMockData.card),
+              CardDataLoadSuccess(WalletMockData.card),
             ),
             name: 'card data',
           ),
@@ -67,7 +69,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          const CardDataLoadSuccess(WalletMockData.card),
+          CardDataLoadSuccess(WalletMockData.card),
         ),
       );
       await tester.tap(find.byKey(kPrivacyBannerKey));
@@ -94,16 +96,17 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
           MockCardDataBloc(),
-          const CardDataLoadSuccess(WalletMockData.card),
+          CardDataLoadSuccess(WalletMockData.card),
         ),
       );
 
       // Validate that the widget exists
       final titleFinder = find.text('Sample Card');
-      final labelFinder = find.text(WalletMockData.textDataAttribute.label);
-      final valueFinder = find.text(WalletMockData.textDataAttribute.value);
+      final labelFinder = find.text(WalletMockData.textDataAttribute.label.l10nValueFromLocale('en'));
+      final valueFinder = find
+          .text(AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value));
       expect(titleFinder, findsOneWidget);
-      expect(labelFinder, findsNWidgets(2));
+      expect(labelFinder, findsOneWidget);
       expect(valueFinder, findsOneWidget);
     });
   });

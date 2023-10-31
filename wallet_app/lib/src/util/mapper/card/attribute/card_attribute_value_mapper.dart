@@ -1,35 +1,27 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
-
+import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/attribute/value/gender.dart';
 import '../../../../wallet_core/wallet_core.dart';
-import '../../locale_mapper.dart';
+import '../../mapper.dart';
 
-class CardAttributeValueMapper extends LocaleMapper<CardValue, String> {
+class CardAttributeValueMapper extends Mapper<CardValue, AttributeValue> {
   CardAttributeValueMapper();
 
   @override
-  String map(Locale locale, CardValue input) {
+  AttributeValue map(CardValue input) {
     return input.map(
-      string: (input) => input.value,
-      boolean: (input) {
-        final l10n = lookupAppLocalizations(locale);
-        return input.value ? l10n.cardValueTrue : l10n.cardValueFalse;
-      },
-      date: (input) {
-        final date = DateTime.parse(input.value);
-        return DateFormat(DateFormat.YEAR_MONTH_DAY, locale.toString()).format(date);
-      },
+      string: (input) => StringValue(input.value),
+      boolean: (input) => BooleanValue(input.value),
+      date: (input) => DateValue(DateTime.parse(input.value)),
       gender: (input) {
-        final l10n = lookupAppLocalizations(locale);
         switch (input.value) {
           case GenderCardValue.Unknown:
-            return l10n.cardValueGenderUnknown;
+            return const GenderValue(Gender.unknown);
           case GenderCardValue.Male:
-            return l10n.cardValueGenderMale;
+            return const GenderValue(Gender.male);
           case GenderCardValue.Female:
-            return l10n.cardValueGenderFemale;
+            return const GenderValue(Gender.female);
           case GenderCardValue.NotApplicable:
-            return l10n.cardValueGenderNotApplicable;
+            return const GenderValue(Gender.notApplicable);
         }
       },
     );

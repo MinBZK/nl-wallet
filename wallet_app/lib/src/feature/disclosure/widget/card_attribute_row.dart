@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -27,13 +28,13 @@ class CardAttributeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.l10n.cardAttributeRowTitle(entry.key.front.title),
+                context.l10n.cardAttributeRowTitle(entry.key.front.title.l10nValue(context)),
                 style: context.textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               ...entry.value.map(
                 (attribute) => Text(
-                  attribute.label,
+                  attribute.label.l10nValue(context),
                   style: context.textTheme.bodyLarge,
                 ),
               ),

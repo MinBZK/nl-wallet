@@ -18,7 +18,7 @@ import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
-import 'package:wallet/src/util/mapper/locale_mapper.dart';
+import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet/src/wallet_core/wallet_core.dart';
 
@@ -27,7 +27,7 @@ import 'wallet_mocks.mocks.dart';
 export 'wallet_mocks.mocks.dart';
 
 /// Mock mappers
-@GenerateNiceMocks([MockSpec<LocaleMapper>()])
+@GenerateNiceMocks([MockSpec<Mapper>()])
 
 /// Mock repositories
 @GenerateNiceMocks([MockSpec<PidRepository>()])
@@ -97,7 +97,7 @@ class Mocks {
     sl.registerFactory<WalletRepository>(() => MockWalletRepository());
 
     // Mappers
-    sl.registerFactory<LocaleMapper>(() => MockLocaleMapper());
+    sl.registerFactory<Mapper>(() => MockMapper());
 
     isInitialized = true;
   }

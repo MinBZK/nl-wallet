@@ -5,6 +5,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../extension/build_context_extension.dart';
+import '../../formatter/attribute_value_formatter.dart';
 import '../context_mapper.dart';
 
 /// Mapper that takes a list of attributes and turns them into a list of decorated [UiAttribute]s.
@@ -38,43 +39,45 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
   @override
   List<UiAttribute> map(BuildContext context, List<T> input) {
     final l10n = context.l10n;
-    final birthName = getBirthName(input);
+    final birthName = getBirthName(context, input);
+    //NOTE: We use the untranslated constructor here, since this function is called with a fresh context
+    //NOTE: on every locale change, and thus the correct localization is provided by default.
     return [
-      UiAttribute(
-        value: getFullName(input),
+      UiAttribute.untranslated(
+        value: StringValue(getFullName(context, input)),
         icon: Icons.portrait_outlined,
         label: l10n.walletPersonalizeCheckDataOfferingPageNameLabel,
       ),
       birthName == null
           ? null
-          : UiAttribute(
-              value: birthName,
+          : UiAttribute.untranslated(
+              value: StringValue(birthName),
               icon: Icons.crib_outlined,
               label: l10n.walletPersonalizeCheckDataOfferingPageBirthNameLabel,
             ),
-      UiAttribute(
-        value: getBirthDetails(context, input),
+      UiAttribute.untranslated(
+        value: StringValue(getBirthDetails(context, input)),
         icon: Icons.cake_outlined,
         label: l10n.walletPersonalizeCheckDataOfferingPageBirthInfoLabel,
       ),
-      UiAttribute(
-        value: getGender(input),
+      UiAttribute.untranslated(
+        value: StringValue(getGender(context, input)),
         icon: Icons.sentiment_satisfied, //FIXME: This icon should probably become dynamic in the future
         label: l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
       ),
-      UiAttribute(
+      UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageNationalityLabel,
-        value: getNationality(input),
+        value: StringValue(getNationality(context, input)),
         icon: Icons.language_outlined,
       ),
-      UiAttribute(
+      UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
-        value: getBsn(input),
+        value: StringValue(getBsn(context, input)),
         icon: Icons.badge_outlined,
       ),
-      UiAttribute(
+      UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageAddressLabel,
-        value: getResidentialAddress(input),
+        value: StringValue(getResidentialAddress(context, input)),
         icon: Icons.cottage_outlined,
       ),
     ].nonNulls.toList();
@@ -82,52 +85,56 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String getBirthDetails(BuildContext context, List<T> attributes) {
     return context.l10n.walletPersonalizeCheckDataOfferingPageBirthInfoValue(
-      getBirthCountry(attributes),
-      getBirthDate(attributes),
-      getBirthPlace(attributes),
+      getBirthCountry(context, attributes),
+      getBirthDate(context, attributes),
+      getBirthPlace(context, attributes),
     );
   }
 
-  String getResidentialAddress(List<T> attributes) {
-    final streetName = getStreetName(attributes);
-    final houseNumber = getHouseNumber(attributes);
-    final postalCode = getPostalCode(attributes);
-    final city = getCity(attributes);
+  String getResidentialAddress(BuildContext context, List<T> attributes) {
+    final streetName = getStreetName(context, attributes);
+    final houseNumber = getHouseNumber(context, attributes);
+    final postalCode = getPostalCode(context, attributes);
+    final city = getCity(context, attributes);
     return '$streetName $houseNumber, $postalCode $city';
   }
 
-  String getFullName(List<T> attributes) => '${getFirstNames(attributes)} ${getLastName(attributes)}';
+  String getFullName(BuildContext context, List<T> attributes) =>
+      '${getFirstNames(context, attributes)} ${getLastName(context, attributes)}';
 
-  String getFirstNames(List<T> attributes) => findByKey(attributes, firstNamesKey)!;
+  String getFirstNames(BuildContext context, List<T> attributes) => findByKey(context, attributes, firstNamesKey)!;
 
-  String getLastName(List<T> attributes) => findByKey(attributes, lastNameKey)!;
+  String getLastName(BuildContext context, List<T> attributes) => findByKey(context, attributes, lastNameKey)!;
 
-  String? getBirthName(List<T> attributes) => findByKey(attributes, birthNameKey);
+  String? getBirthName(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthNameKey);
 
-  String getBirthDate(List<T> attributes) => findByKey(attributes, birthDateKey)!;
+  String getBirthDate(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthDateKey)!;
 
-  String getBirthPlace(List<T> attributes) => findByKey(attributes, birthPlaceKey)!;
+  String getBirthPlace(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthPlaceKey)!;
 
-  String getBirthCountry(List<T> attributes) => findByKey(attributes, birthCountryKey)!;
+  String getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey)!;
 
-  String getGender(List<T> attributes) => findByKey(attributes, genderKey)!;
+  String getGender(BuildContext context, List<T> attributes) => findByKey(context, attributes, genderKey)!;
 
-  String getNationality(List<T> attributes) => findByKey(attributes, nationalityKey)!;
+  String getNationality(BuildContext context, List<T> attributes) => findByKey(context, attributes, nationalityKey)!;
 
-  String getBsn(List<T> attributes) => findByKey(attributes, bsnKey)!;
+  String getBsn(BuildContext context, List<T> attributes) => findByKey(context, attributes, bsnKey)!;
 
-  String getCity(List<T> attributes) => findByKey(attributes, residenceCityKey)!;
+  String getCity(BuildContext context, List<T> attributes) => findByKey(context, attributes, residenceCityKey)!;
 
-  String getPostalCode(List<T> attributes) => findByKey(attributes, residencePostalCodeKey)!;
+  String getPostalCode(BuildContext context, List<T> attributes) =>
+      findByKey(context, attributes, residencePostalCodeKey)!;
 
-  String getStreetName(List<T> attributes) => findByKey(attributes, residenceStreetNameKey)!;
+  String getStreetName(BuildContext context, List<T> attributes) =>
+      findByKey(context, attributes, residenceStreetNameKey)!;
 
-  String getHouseNumber(List<T> attributes) => findByKey(attributes, residenceHouseNumberKey)!;
+  String getHouseNumber(BuildContext context, List<T> attributes) =>
+      findByKey(context, attributes, residenceHouseNumberKey)!;
 
-  String? findByKey(List<Attribute> attributes, String key) {
+  String? findByKey(BuildContext context, List<Attribute> attributes, String key) {
     final attribute = attributes.firstWhereOrNull((attribute) => attribute.key == key);
     if (attribute == null) return null;
-    if (attribute is DataAttribute) return attribute.value;
-    throw UnimplementedError('Value could not be extracted from attribute with type: ${attribute.valueType}');
+    if (attribute is DataAttribute) return attribute.value.prettyPrint(context);
+    throw UnimplementedError('Value could not be extracted from attribute: $attribute}');
   }
 }

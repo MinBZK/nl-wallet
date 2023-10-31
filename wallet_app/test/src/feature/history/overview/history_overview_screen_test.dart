@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/history/overview/bloc/history_overview_bloc.dart';
 import 'package:wallet/src/feature/history/overview/history_overview_screen.dart';
 
@@ -79,7 +80,7 @@ void main() {
       );
 
       // Operation renders the title of the card
-      expect(find.text(WalletMockData.operationTimelineAttribute.cardTitle), findsOneWidget);
+      expect(find.text(WalletMockData.operationTimelineAttribute.cardTitle.testValue), findsOneWidget);
       // Sign and Interaction render the title of the organization
       expect(find.text(WalletMockData.organization.shortName), findsNWidgets(2));
     });

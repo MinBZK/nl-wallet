@@ -20,6 +20,7 @@ use crate::{
         cose::CoseKey,
         serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
     },
+    verifier::SessionType,
 };
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
@@ -63,6 +64,7 @@ pub enum SessionTranscriptError {
 
 impl SessionTranscript {
     pub fn new(
+        session_type: SessionType,
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,
     ) -> Result<Self, SessionTranscriptError> {
@@ -74,7 +76,10 @@ impl SessionTranscript {
 
         let transcript = SessionTranscriptKeyed {
             device_engagement_bytes: device_engagement.clone().into(),
-            handover: Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+            handover: match session_type {
+                SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
+                SessionType::CrossDevice => Handover::QRHandover,
+            },
             ereader_key_bytes: reader_security.0.e_sender_key_bytes.clone(),
         }
         .into();

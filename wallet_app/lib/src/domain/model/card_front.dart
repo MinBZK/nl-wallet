@@ -1,13 +1,16 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import 'attribute/attribute.dart';
+import 'attribute/converter/localized_string_converter.dart';
+
 part 'card_front.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(converters: [LocalizedStringConverter()], explicitToJson: true)
 class CardFront extends Equatable {
-  final String title;
-  final String? subtitle;
-  final String? info;
+  final LocalizedText title;
+  final LocalizedText? subtitle;
+  final LocalizedText? info;
   final String? logoImage;
   final String? holoImage;
   final String backgroundImage;

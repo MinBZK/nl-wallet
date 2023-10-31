@@ -93,6 +93,7 @@ struct Session<S> {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
     items_requests: ItemsRequests,
+    session_type: SessionType,
     usecase_id: String,
     ephemeral_privkey: DerSecretKey,
     reader_engagement: ReaderEngagement,
@@ -177,6 +178,14 @@ pub enum StatusResponse {
     Done(SessionResult),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionType {
+    // Using Universal Link
+    SameDevice,
+    /// Using QR code
+    CrossDevice,
+}
+
 pub struct Verifier<K, S> {
     url: Url,
     keys: K,
@@ -226,6 +235,7 @@ where
     pub fn new_session(
         &self,
         items_requests: ItemsRequests,
+        session_type: SessionType,
         usecase_id: String,
     ) -> Result<(SessionToken, ReaderEngagement)> {
         if !self.keys.contains_key(&usecase_id) {
@@ -237,7 +247,7 @@ where
         }
 
         let (session_token, reader_engagement, session_state) =
-            Session::<Created>::new(items_requests, usecase_id, &self.url)?;
+            Session::<Created>::new(items_requests, session_type, usecase_id, &self.url)?;
         self.sessions.write(&session_state.state.into_enum());
         Ok((session_token, reader_engagement))
     }
@@ -347,6 +357,7 @@ impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
         items_requests: ItemsRequests,
+        session_type: SessionType,
         usecase_id: String,
         base_url: &Url,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
@@ -358,6 +369,7 @@ impl Session<Created> {
                 session_token.clone(),
                 Created {
                     items_requests,
+                    session_type,
                     usecase_id,
                     ephemeral_privkey: ephemeral_privkey.into(),
                     reader_engagement: reader_engagement.clone(),
@@ -398,7 +410,12 @@ impl Session<Created> {
         Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript = SessionTranscript::new(&self.state().reader_engagement, device_engagement).unwrap();
+        let session_transcript = SessionTranscript::new(
+            self.state().session_type,
+            &self.state().reader_engagement,
+            device_engagement,
+        )
+        .unwrap();
 
         let cert_pair = keys
             .private_key(&self.state().usecase_id)
@@ -845,7 +862,7 @@ mod tests {
             x509::{Certificate, CertificateType, OwnedTrustAnchor},
         },
         verifier::{
-            ValidityError,
+            SessionType, ValidityError,
             ValidityRequirement::{AllowNotYetValid, Valid},
             VerificationError, Verifier,
         },
@@ -938,7 +955,11 @@ mod tests {
 
         // Start session
         let (session_token, reader_engagement) = verifier
-            .new_session(new_disclosure_request(), DISCLOSURE_USECASE.to_string())
+            .new_session(
+                new_disclosure_request(),
+                SessionType::SameDevice,
+                DISCLOSURE_USECASE.to_string(),
+            )
             .unwrap();
 
         // Construct first device protocol message
@@ -954,7 +975,7 @@ mod tests {
         let rp_key = SessionKey::new(
             &device_eph_key,
             &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
-            &SessionTranscript::new(&reader_engagement, &device_engagement).unwrap(),
+            &SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
             SessionKeyUser::Reader,
         )
         .unwrap();
