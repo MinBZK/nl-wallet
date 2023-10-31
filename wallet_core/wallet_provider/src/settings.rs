@@ -13,6 +13,7 @@ use wallet_provider_database_settings::{Database, DatabaseDefaults};
 pub struct Settings {
     pub certificate_signing_key_identifier: String,
     pub instruction_result_signing_key_identifier: String,
+    pub attestation_wrapping_key_identifier: String,
     pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
@@ -55,6 +56,7 @@ impl Settings {
                 "instruction_result_signing_key_identifier",
                 "instruction_result_signing_key",
             )?
+            .set_default("attestation_wrapping_key_identifier", "attestation_wrapping_key")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
             .set_default("pin_policy.rounds", 4)?

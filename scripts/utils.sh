@@ -104,7 +104,7 @@ function generate_ssl_key_pair_with_san {
 # Generate a private EC key and return the PEM body
 #
 # $1 name of the key
-function generate_wp_private_key {
+function generate_wp_signing_key {
     echo -e "${INFO}Generating EC private key${NC}"
     openssl ecparam \
             -genkey \
@@ -120,6 +120,14 @@ function generate_wp_private_key {
             -nocrypt \
             -in "${TARGET_DIR}/wallet_provider/$1.ec.key" \
             -out "${TARGET_DIR}/wallet_provider/$1.pem" > /dev/null
+}
+
+# Generate a symmetric key (AES-256)
+#
+# $1 name of the key
+function generate_wp_symmetric_key {
+    echo -e "${INFO}Generating symmetric key${NC}"
+    openssl rand -out "${TARGET_DIR}/wallet_provider/$1.key" 32 > /dev/null
 }
 
 # Generate an EC root CA for the pid_issuer

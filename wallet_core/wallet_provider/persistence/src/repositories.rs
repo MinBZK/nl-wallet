@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use p256::ecdsa::SigningKey;
-use std::collections::HashMap;
 use uuid::{self, Uuid};
 
 use wallet_provider_domain::{
-    model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeysCreate, WalletUserQueryResult},
+    model::{
+        wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
+        wrapped_key::WrappedKey,
+    },
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
 };
 
@@ -102,17 +103,9 @@ impl WalletUserRepository for Repositories {
     async fn save_keys(
         &self,
         transaction: &Self::TransactionType,
-        wallet_user_id: Uuid,
-        keys: &[(Uuid, String, SigningKey)],
+        keys: WalletUserKeys,
     ) -> Result<(), PersistenceError> {
-        wallet_user_key::create_keys(
-            transaction,
-            WalletUserKeysCreate {
-                wallet_user_id,
-                keys: keys.to_vec(),
-            },
-        )
-        .await
+        wallet_user_key::create_keys(transaction, keys).await
     }
 
     async fn find_keys_by_identifiers(
@@ -120,7 +113,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
-    ) -> Result<HashMap<String, SigningKey>, PersistenceError> {
+    ) -> Result<Vec<(String, WrappedKey)>, PersistenceError> {
         wallet_user_key::find_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 }
@@ -130,12 +123,13 @@ pub mod mock {
     use async_trait::async_trait;
     use chrono::{DateTime, Local};
     use mockall;
-    use p256::ecdsa::SigningKey;
-    use std::collections::HashMap;
     use uuid::Uuid;
 
     use wallet_provider_domain::{
-        model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult},
+        model::{
+            wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
+            wrapped_key::WrappedKey,
+        },
         repository::{MockTransaction, PersistenceError, TransactionStarter, WalletUserRepository},
     };
 
@@ -196,8 +190,7 @@ pub mod mock {
             async fn save_keys(
                 &self,
                 _transaction: &MockTransaction,
-                _wallet_user_id: Uuid,
-                _keys: &[(Uuid, String, SigningKey)],
+                _keys: WalletUserKeys,
             ) -> Result<(), PersistenceError>;
 
             async fn find_keys_by_identifiers(
@@ -205,7 +198,7 @@ pub mod mock {
                 _transaction: &MockTransaction,
                 wallet_user_id: Uuid,
                 key_identifiers: &[String],
-            ) -> Result<HashMap<String, SigningKey>, PersistenceError>;
+            ) -> Result<Vec<(String, WrappedKey)>, PersistenceError>;
         }
 
         #[async_trait]

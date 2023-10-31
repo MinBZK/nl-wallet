@@ -1,7 +1,10 @@
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use uuid::Uuid;
 
-use wallet_provider_domain::model::wallet_user::WalletUserKeysCreate;
+use wallet_provider_domain::model::{
+    wallet_user::{WalletUserKey, WalletUserKeys},
+    wrapped_key::WrappedKey,
+};
 use wallet_provider_persistence::wallet_user_key::{create_keys, find_keys_by_identifiers};
 
 pub mod common;
@@ -11,8 +14,16 @@ pub mod common;
 async fn test_create_keys() {
     let db = common::db_from_env().await.expect("Could not connect to database");
 
-    let key1 = (Uuid::new_v4(), "key1".to_string(), SigningKey::random(&mut OsRng));
-    let key2 = (Uuid::new_v4(), "key2".to_string(), SigningKey::random(&mut OsRng));
+    let key1 = WalletUserKey {
+        wallet_user_key_id: Uuid::new_v4(),
+        key_identifier: "key1".to_string(),
+        key: WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+    };
+    let key2 = WalletUserKey {
+        wallet_user_key_id: Uuid::new_v4(),
+        key_identifier: "key2".to_string(),
+        key: WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+    };
 
     let wallet_user_id = Uuid::new_v4();
     let wallet_id = Uuid::new_v4().to_string();
@@ -21,7 +32,7 @@ async fn test_create_keys() {
 
     create_keys(
         &db,
-        WalletUserKeysCreate {
+        WalletUserKeys {
             wallet_user_id,
             keys: vec![key1.clone(), key2.clone()],
         },
@@ -35,7 +46,12 @@ async fn test_create_keys() {
         .into_iter()
         .collect::<Vec<_>>();
     persisted_keys.sort_by_key(|(key, _)| key.clone());
-    let keys = persisted_keys.into_iter().map(|(_, key)| key).collect::<Vec<_>>();
+    let keys = persisted_keys
+        .into_iter()
+        .map(|(_, key)| key.into())
+        .collect::<Vec<Vec<u8>>>();
 
-    assert_eq!(vec![key1.2, key2.2], keys);
+    let key1: Vec<u8> = key1.key.into();
+    let key2: Vec<u8> = key2.key.into();
+    assert_eq!(vec![key1, key2], keys);
 }

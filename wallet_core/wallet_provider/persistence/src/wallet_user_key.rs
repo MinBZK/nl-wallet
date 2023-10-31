@@ -1,14 +1,15 @@
-use p256::ecdsa::SigningKey;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, Set};
-use std::collections::HashMap;
 
-use wallet_provider_domain::{model::wallet_user::WalletUserKeysCreate, repository::PersistenceError};
+use wallet_provider_domain::{
+    model::{wallet_user::WalletUserKeys, wrapped_key::WrappedKey},
+    repository::PersistenceError,
+};
 
 use crate::{entity::wallet_user_key, PersistenceConnection};
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-pub async fn create_keys<S, T>(db: &T, create: WalletUserKeysCreate) -> Result<()>
+pub async fn create_keys<S, T>(db: &T, create: WalletUserKeys) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -16,11 +17,11 @@ where
     let models = create
         .keys
         .into_iter()
-        .map(|(id, identifier, key)| wallet_user_key::ActiveModel {
-            id: Set(id),
+        .map(|key_create| wallet_user_key::ActiveModel {
+            id: Set(key_create.wallet_user_key_id),
             wallet_user_id: Set(create.wallet_user_id),
-            identifier: Set(identifier),
-            private_key_der: Set(key.to_bytes().to_vec()),
+            identifier: Set(key_create.key_identifier),
+            encrypted_private_key: Set(key_create.key.into()),
         })
         .collect::<Vec<_>>();
 
@@ -35,15 +36,15 @@ pub async fn find_keys_by_identifiers<S, T>(
     db: &T,
     wallet_user_id: uuid::Uuid,
     identifiers: &[String],
-) -> Result<HashMap<String, SigningKey>>
+) -> Result<Vec<(String, WrappedKey)>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result = wallet_user_key::Entity::find()
+    wallet_user_key::Entity::find()
         .select_only()
         .column(wallet_user_key::Column::Identifier)
-        .column(wallet_user_key::Column::PrivateKeyDer)
+        .column(wallet_user_key::Column::EncryptedPrivateKey)
         .filter(
             wallet_user_key::Column::WalletUserId
                 .eq(wallet_user_id)
@@ -52,14 +53,11 @@ where
         .into_tuple::<(String, Vec<u8>)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))?;
-
-    result
-        .into_iter()
-        .map(|(identifier, private_key_der)| {
-            let signing_key =
-                SigningKey::from_slice(&private_key_der).map_err(PersistenceError::SigningKeyConversion)?;
-            Ok((identifier, signing_key))
+        .map_err(|e| PersistenceError::Execution(e.into()))
+        .map(|result| {
+            result
+                .into_iter()
+                .map(|(id, key_data)| (id, WrappedKey::new(key_data)))
+                .collect()
         })
-        .collect()
 }
