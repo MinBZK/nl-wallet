@@ -8,21 +8,21 @@ part of 'data_attribute.dart';
 
 DataAttribute _$DataAttributeFromJson(Map<String, dynamic> json) => DataAttribute(
       key: json['key'] as String,
-      label: json['label'] as String,
-      value: json['value'] as String,
+      label: Map<String, String>.from(json['label'] as Map),
+      value: _$JsonConverterFromJson<Map<String, dynamic>, AttributeValue>(
+          json['value'], const AttributeValueConverter().fromJson),
       sourceCardId: json['sourceCardId'] as String,
-      valueType: $enumDecode(_$AttributeValueTypeEnumMap, json['valueType']),
     );
 
 Map<String, dynamic> _$DataAttributeToJson(DataAttribute instance) => <String, dynamic>{
       'key': instance.key,
       'label': instance.label,
-      'valueType': _$AttributeValueTypeEnumMap[instance.valueType]!,
-      'value': instance.value,
+      'value': const AttributeValueConverter().toJson(instance.value),
       'sourceCardId': instance.sourceCardId,
     };
 
-const _$AttributeValueTypeEnumMap = {
-  AttributeValueType.image: 'image',
-  AttributeValueType.text: 'text',
-};
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) =>
+    json == null ? null : fromJson(json as Json);

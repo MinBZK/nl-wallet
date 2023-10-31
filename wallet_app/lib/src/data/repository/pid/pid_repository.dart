@@ -6,8 +6,8 @@ export '../../../domain/model/pid/pid_issuance_status.dart';
 abstract class PidRepository {
   Future<String> getPidIssuanceUrl();
 
-  /// Continue the pidIssuance process, the stream exposes a (localised) list of preview attributes
-  Stream<List<DataAttribute>> continuePidIssuance(Uri uri);
+  /// Continue the pidIssuance, returns a preview of all the attributes that will be added if the pid is accepted.
+  Future<List<DataAttribute>> continuePidIssuance(Uri uri);
 
   Future<void> cancelPidIssuance();
 

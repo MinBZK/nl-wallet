@@ -7,9 +7,13 @@ part of 'card_front.dart';
 // **************************************************************************
 
 CardFront _$CardFrontFromJson(Map<String, dynamic> json) => CardFront(
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String?,
-      info: json['info'] as String?,
+      title: Map<String, String>.from(json['title'] as Map),
+      subtitle: (json['subtitle'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
+      info: (json['info'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
       logoImage: json['logoImage'] as String?,
       holoImage: json['holoImage'] as String?,
       backgroundImage: json['backgroundImage'] as String,

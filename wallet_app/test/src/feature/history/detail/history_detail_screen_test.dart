@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
 
@@ -19,7 +20,7 @@ void main() {
           ..addScenario(
             widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, const [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -33,7 +34,7 @@ void main() {
           ..addScenario(
             widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, const [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -67,15 +68,15 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, const [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
         ),
       );
 
       // Validate that the card details are rendered
-      expect(find.text(WalletMockData.cardFront.title), findsOneWidget);
+      expect(find.text(WalletMockData.cardFront.title.testValue), findsOneWidget);
       for (final attribute in WalletMockData.operationTimelineAttribute.dataAttributes) {
-        expect(find.textContaining(attribute.label), findsOneWidget);
-        expect(find.textContaining(attribute.value), findsOneWidget);
+        expect(find.textContaining(attribute.label.testValue), findsOneWidget);
+        expect(find.textContaining(attribute.value.toString()), findsOneWidget);
       }
     });
   });

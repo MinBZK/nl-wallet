@@ -26,13 +26,13 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 }
 
 void main() {
-  const SignFlow mockFlow = SignFlow(
+  SignFlow mockFlow = SignFlow(
     id: 'id',
     organization: WalletMockData.organization,
     attributes: [WalletMockData.textDataAttribute],
     document: WalletMockData.document,
     policy: WalletMockData.policy,
-    trustProvider: TrustProvider(
+    trustProvider: const TrustProvider(
       name: 'trust provider',
       logoUrl: WalletAssets.logo_sign_provider,
     ),
@@ -60,7 +60,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignLoadInProgress(mockFlow),
+              SignLoadInProgress(mockFlow),
             ),
             name: 'load_in_progress',
           ),
@@ -75,7 +75,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignCheckOrganization(mockFlow),
+              SignCheckOrganization(mockFlow),
             ),
             name: 'check_organization',
           ),
@@ -90,7 +90,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignCheckAgreement(mockFlow),
+              SignCheckAgreement(mockFlow),
             ),
             name: 'check_agreement',
           ),
@@ -108,7 +108,7 @@ void main() {
               child: const SignScreen()
                   .withState<SignBloc, SignState>(
                     MockSignBloc(),
-                    const SignConfirmPin(mockFlow),
+                    SignConfirmPin(mockFlow),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),
@@ -128,7 +128,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignConfirmAgreement(mockFlow),
+              SignConfirmAgreement(mockFlow),
             ),
             name: 'confirm_agreement',
           ),
@@ -143,7 +143,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignConfirmAgreement(mockFlow),
+              SignConfirmAgreement(mockFlow),
             ),
             name: 'confirm_agreement',
           ),
@@ -158,7 +158,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignSuccess(mockFlow),
+              SignSuccess(mockFlow),
             ),
             name: 'success',
           ),
@@ -173,7 +173,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignError(mockFlow),
+              SignError(mockFlow),
             ),
             name: 'sign_error',
           ),
@@ -188,7 +188,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              const SignStopped(mockFlow),
+              SignStopped(mockFlow),
             ),
             name: 'stopped',
           ),
@@ -203,7 +203,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
-          const SignSuccess(mockFlow),
+          SignSuccess(mockFlow),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

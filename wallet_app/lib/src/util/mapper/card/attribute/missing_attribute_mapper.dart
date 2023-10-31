@@ -1,19 +1,14 @@
-import '../../../../domain/model/attribute/data_attribute.dart';
-import '../../../../domain/model/attribute/requested_attribute.dart';
-import '../../../../wallet_core/wallet_core.dart';
-import '../../locale_mapper.dart';
+import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/attribute/missing_attribute.dart';
+import '../../../../wallet_core/wallet_core.dart' as core;
+import '../../mapper.dart';
 
-class MissingAttributeMapper extends LocaleMapper<MissingAttribute, RequestedAttribute> {
-  final LocaleMapper<List<LocalizedString>, String> _attributeLabelMapper;
+class MissingAttributeMapper extends Mapper<core.MissingAttribute, MissingAttribute> {
+  final Mapper<List<core.LocalizedString>, LocalizedText> _localizedLabelsMapper;
 
-  MissingAttributeMapper(this._attributeLabelMapper);
+  MissingAttributeMapper(this._localizedLabelsMapper);
 
   @override
-  RequestedAttribute map(Locale locale, MissingAttribute input) {
-    return RequestedAttribute(
-      key: '', // FIXME: Remove notion of key in requested attribute?
-      label: _attributeLabelMapper.map(locale, input.labels),
-      valueType: AttributeValueType.text,
-    );
-  }
+  MissingAttribute map(core.MissingAttribute input) =>
+      MissingAttribute(label: _localizedLabelsMapper.map(input.labels));
 }

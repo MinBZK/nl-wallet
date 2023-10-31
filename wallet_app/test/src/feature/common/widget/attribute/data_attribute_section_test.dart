@@ -14,12 +14,9 @@ void main() {
       'light text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const DataAttributeSection(
+          DataAttributeSection(
             sourceCardTitle: 'Card Title',
-            attributes: [
-              WalletMockData.imageDataAttribute,
-              WalletMockData.textDataAttribute,
-            ],
+            attributes: [WalletMockData.textDataAttribute],
           ),
           surfaceSize: kGoldenSize,
         );
@@ -31,12 +28,9 @@ void main() {
       'dark text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const DataAttributeSection(
+          DataAttributeSection(
             sourceCardTitle: 'Card Title',
-            attributes: [
-              WalletMockData.imageDataAttribute,
-              WalletMockData.textDataAttribute,
-            ],
+            attributes: [WalletMockData.textDataAttribute],
           ),
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
@@ -49,12 +43,9 @@ void main() {
   group('widgets', () {
     testWidgets('widgets are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const DataAttributeSection(
+        DataAttributeSection(
           sourceCardTitle: 'Card Title',
-          attributes: [
-            WalletMockData.imageDataAttribute,
-            WalletMockData.textDataAttribute,
-          ],
+          attributes: [WalletMockData.textDataAttribute],
         ),
       );
 
@@ -63,8 +54,7 @@ void main() {
       final labelFinder = find.text('Label');
       final valueFinder = find.text('Value');
       expect(titleFinder, findsOneWidget);
-      // Find the image and text data labels
-      expect(labelFinder, findsNWidgets(2));
+      expect(labelFinder, findsOneWidget);
       expect(valueFinder, findsOneWidget);
     });
   });

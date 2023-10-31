@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
@@ -33,95 +34,82 @@ void main() {
   const kPidId = 'id';
 
   /// All attributes here are needed to satisfy the [PidAttributeMapper] used when rendering the [WalletPersonalizeCheckData] state.
-  const pidAttributes = [
-    DataAttribute(
-      valueType: AttributeValueType.text,
+  final pidAttributes = [
+    DataAttribute.untranslated(
       label: 'Voornamen',
-      value: 'John',
+      value: const StringValue('John'),
       key: 'mock.firstNames',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Achternaam',
-      value: 'Doe',
+      value: const StringValue('Doe'),
       key: 'mock.lastName',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Naam bij geboorte',
-      value: 'John',
+      value: const StringValue('John'),
       key: 'mock.birthName',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geslacht',
-      value: 'Male',
+      value: const StringValue('Male'),
       key: 'mock.gender',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geboortedatum',
-      value: '01-01-2000',
+      value: DateValue(DateTime(2023, 1, 1)),
       key: 'mock.birthDate',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geboorteplaats',
-      value: 'Amsterdam',
+      value: const StringValue('Amsterdam'),
       key: 'mock.birthPlace',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geboorteland',
-      value: 'Nederland',
+      value: const StringValue('Nederland'),
       key: 'mock.birthCountry',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Burgerservicenummer (BSN)',
-      value: '******999',
+      value: const StringValue('******999'),
       key: 'mock.citizenshipNumber',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Nationaliteit',
-      value: 'Nederlands',
+      value: const StringValue('Nederlands'),
       key: 'mock.nationality',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Stad',
-      value: 'Amsterdam',
+      value: const StringValue('Amsterdam'),
       key: 'mock.city',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Postcode',
-      value: '1234AB',
+      value: const StringValue('1234AB'),
       key: 'mock.postalCode',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Straatnaam',
-      value: 'Dorpsstraat',
+      value: const StringValue('Dorpsstraat'),
       key: 'mock.streetName',
       sourceCardId: kPidId,
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Huisnummer',
-      value: '1A',
+      value: const StringValue('1A'),
       key: 'mock.houseNumber',
       sourceCardId: kPidId,
     ),
@@ -260,7 +248,7 @@ void main() {
               create: (c) => MockPidAttributeMapper(),
               child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
                 MockWalletPersonalizeBloc(),
-                const WalletPersonalizeCheckData(availableAttributes: pidAttributes),
+                WalletPersonalizeCheckData(availableAttributes: pidAttributes),
               ),
             ),
             name: 'check_data',
@@ -276,7 +264,7 @@ void main() {
           ..addScenario(
             widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
               MockWalletPersonalizeBloc(),
-              const WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+              WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
             ),
             name: 'success',
           ),
@@ -291,7 +279,7 @@ void main() {
           ..addScenario(
             widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
               MockWalletPersonalizeBloc(),
-              const WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+              WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
             ),
             name: 'success',
           ),
@@ -363,7 +351,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeSuccess([WalletMockData.card]),
+          WalletPersonalizeSuccess([WalletMockData.card]),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -400,7 +388,7 @@ void main() {
         expect(stopDialogTitleFinder, findsOneWidget);
 
         // Mock digid result coming in
-        mockStateStream.add(const WalletPersonalizeCheckData(availableAttributes: pidAttributes));
+        mockStateStream.add(WalletPersonalizeCheckData(availableAttributes: pidAttributes));
         await tester.pumpAndSettle();
 
         // Verify dialog is gone and confirm attributes screen is shown

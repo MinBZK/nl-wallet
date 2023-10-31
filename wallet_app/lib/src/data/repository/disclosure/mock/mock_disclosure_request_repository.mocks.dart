@@ -13,223 +13,187 @@ const _kPharmacy = 'PHARMACY';
 
 // region RequestedAttributes
 
-const _kFirstAndLastNameRequest = [
-  RequestedAttribute(
+final _kFirstAndLastNameRequest = [
+  MissingAttribute.untranslated(
     label: 'Voornamen',
     key: 'mock.firstNames',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Achternaam',
     key: 'mock.lastName',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kJobApplicationRequestedAttributes = [
-  RequestedAttribute(
+final _kJobApplicationRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'Opleidingsnaam',
     key: 'mock.education',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Onderwijsinstelling',
     key: 'mock.university',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Niveau',
     key: 'mock.educationLevel',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kMarketplaceLoginRequestedAttributes = [
+final _kMarketplaceLoginRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Postcode',
     key: 'mock.postalCode',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kBarRequestedAttributes = [
-  RequestedAttribute(
+final _kBarRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'Pasfoto',
     key: 'mock.profilePhoto',
-    valueType: AttributeValueType.image,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Ouder dan 18',
     key: 'mock.olderThan18',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kCarRentalRequestedAttributes = [
+final _kCarRentalRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Rijbewijscategorieën',
     key: 'mock.drivingLicenseCategories',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kFirstAidRequestedAttributes = [
-  RequestedAttribute(
+final _kFirstAidRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'Pasfoto',
     key: 'mock.profilePhoto',
-    valueType: AttributeValueType.image,
   ),
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geslacht',
     key: 'mock.gender',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Klantnummer',
     key: 'mock.healthIssuerClientId',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Kaartnummer',
     key: 'mock.documentNr',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'UZOVI',
     key: 'mock.healthIssuerId',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Verloopdatum',
     key: 'mock.healthInsuranceExpiryDate',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kPharmacyRequestedAttributes = [
+final _kPharmacyRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Huisnummer',
     key: 'mock.houseNumber',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Postcode',
     key: 'mock.postalCode',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kParkingPermitRequestedAttributes = [
-  RequestedAttribute(
+final _kParkingPermitRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'Achternaam',
     key: 'mock.lastName',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Postcode',
     key: 'mock.postalCode',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Huisnummer',
     key: 'mock.houseNumber',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kOpenBankAccountRequestedAttributes = [
+final _kOpenBankAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Nationaliteit',
     key: 'mock.nationality',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Burgerservicenummer',
     key: 'mock.citizenshipNumber',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Straatnaam',
     key: 'mock.streetName',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Huisnummer',
     key: 'mock.houseNumber',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Postcode',
     key: 'mock.postalCode',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kProvideContractDetailsRequestedAttributes = [
+final _kProvideContractDetailsRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kCreateMbAccountRequestedAttributes = [
+final _kCreateMbAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Nationaliteit',
     key: 'mock.nationality',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Straatnaam',
     key: 'mock.streetName',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Huisnummer',
     key: 'mock.houseNumber',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Postcode',
     key: 'mock.postalCode',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Woonplaats',
     key: 'mock.city',
-    valueType: AttributeValueType.text,
   ),
 ];
 

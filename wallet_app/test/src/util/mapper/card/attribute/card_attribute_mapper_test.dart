@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/bridge_generated.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
-import 'package:wallet/src/util/mapper/locale_mapper.dart';
+import 'package:wallet/src/util/mapper/mapper.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -15,41 +16,40 @@ const _kSampleCardAttribute = CardAttribute(
   value: _kSampleCardValue,
 );
 
-const _kSampleLocale = Locale('-');
-
 void main() {
-  late MockLocaleMapper<List<LocalizedString>, String> mockLabelMapper;
-  late MockLocaleMapper<CardValue, String> mockValueMapper;
+  late Mapper<List<LocalizedString>, LocalizedText> mockLabelMapper;
+  late Mapper<CardValue, AttributeValue> mockValueMapper;
 
-  late LocaleMapper<CardAttribute, DataAttribute> mapper;
+  late Mapper<CardAttribute, DataAttribute> mapper;
 
   setUp(() {
-    mockLabelMapper = MockLocaleMapper();
-    mockValueMapper = MockLocaleMapper();
+    mockLabelMapper = MockMapper();
+    mockValueMapper = MockMapper();
 
-    mapper = CardAttributeMapper(mockLabelMapper, mockValueMapper);
+    mapper = CardAttributeMapper(mockValueMapper, mockLabelMapper);
   });
 
   group('map', () {
     test('should return `DataAttribute`', () {
-      when(mockLabelMapper.map(_kSampleLocale, _kSampleCardAttributeLabels)).thenReturn('Language');
-      when(mockValueMapper.map(_kSampleLocale, _kSampleCardValue)).thenReturn('Dutch');
+      when(mockLabelMapper.map(_kSampleCardAttributeLabels)).thenReturn({'nl': 'Test'});
+      when(mockValueMapper.map(_kSampleCardValue)).thenReturn(const StringValue('John Doe'));
 
       const expected = DataAttribute(
         key: 'card.key',
-        label: 'Language',
-        value: 'Dutch',
+        label: {'nl': 'Test'},
+        value: StringValue('John Doe'),
         sourceCardId: '',
-        valueType: AttributeValueType.text,
       );
-      expect(mapper.map(_kSampleLocale, _kSampleCardAttribute), expected);
+
+      final actual = mapper.map(_kSampleCardAttribute);
+      expect(actual, expected);
     });
 
     test('should call `map` once on all class dependencies', () {
-      mapper.map(_kSampleLocale, _kSampleCardAttribute);
+      mapper.map(_kSampleCardAttribute);
 
-      verify(mockLabelMapper.map(_kSampleLocale, _kSampleCardAttributeLabels)).called(1);
-      verify(mockValueMapper.map(_kSampleLocale, _kSampleCardValue)).called(1);
+      verify(mockLabelMapper.map(_kSampleCardAttributeLabels)).called(1);
+      verify(mockValueMapper.map(_kSampleCardValue)).called(1);
     });
   });
 }

@@ -1,5 +1,4 @@
-import '../../../../domain/model/attribute/data_attribute.dart';
-import '../../../../domain/model/attribute/requested_attribute.dart';
+import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/document.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/sign_request.dart';
@@ -29,21 +28,18 @@ class MockSignRequestRepository implements SignRequestRepository {
             fileName: '230110_Huurcontract_Bruijn.pdf',
             url: 'path/to/sample.pdf',
           ),
-          requestedAttributes: const [
-            RequestedAttribute(
+          requestedAttributes: [
+            MissingAttribute.untranslated(
               label: 'Voornamen',
               key: 'mock.firstNames',
-              valueType: AttributeValueType.text,
             ),
-            RequestedAttribute(
+            MissingAttribute.untranslated(
               label: 'Achternaam',
               key: 'mock.lastName',
-              valueType: AttributeValueType.text,
             ),
-            RequestedAttribute(
+            MissingAttribute.untranslated(
               label: 'Geboortedatum',
               key: 'mock.birthDate',
-              valueType: AttributeValueType.text,
             ),
           ],
           policy: _kMockSignPolicy,

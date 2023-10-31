@@ -1,20 +1,28 @@
 import 'package:equatable/equatable.dart';
 
-import 'attribute_value_type.dart';
+import 'attribute_value.dart';
 
-export 'attribute_value_type.dart';
+export '../../../util/extension/localized_text_extension.dart';
+export 'attribute_value.dart';
 
+/// The base class to represent a card's attribute inside the app.
 abstract class Attribute extends Equatable {
+  /// Key that uniquely identifies the attribute (within a card)
   final AttributeKey key;
-  final LocalizedLabel label;
-  final AttributeValueType valueType;
+
+  /// The [Attribute]s label, often shown above the actual value to indicate what the value refers to
+  final LocalizedText label;
+
+  /// The value of this [Attribute] nullable because the [value] might not be available in the user's wallet
+  final AttributeValue? value;
 
   const Attribute({
     required this.key,
     required this.label,
-    required this.valueType,
+    this.value,
   });
 }
 
 typedef AttributeKey = String;
-typedef LocalizedLabel = String;
+
+typedef LocalizedText = Map<String /*locale*/, String /*value*/ >;
