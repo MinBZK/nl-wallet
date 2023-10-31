@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use p256::ecdsa::SigningKey;
-use std::collections::HashMap;
 
-use crate::model::wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserQueryResult};
+use crate::model::{
+    wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
+    wrapped_key::WrappedKey,
+};
 
 use super::{errors::PersistenceError, transaction::Committable};
 
@@ -48,24 +49,18 @@ pub trait WalletUserRepository {
 
     async fn reset_unsuccessful_pin_entries(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
-    async fn save_keys(
-        &self,
-        transaction: &Self::TransactionType,
-        wallet_user_id: uuid::Uuid,
-        keys: &[(uuid::Uuid, String, SigningKey)],
-    ) -> Result<()>;
+    async fn save_keys(&self, transaction: &Self::TransactionType, keys: WalletUserKeys) -> Result<()>;
 
     async fn find_keys_by_identifiers(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: uuid::Uuid,
         key_identifiers: &[String],
-    ) -> Result<HashMap<String, SigningKey>>;
+    ) -> Result<Vec<(String, WrappedKey)>>;
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use p256::ecdsa::SigningKey;
     use uuid::Uuid;
 
     use crate::model::wallet_user;
@@ -141,12 +136,7 @@ pub mod mock {
             Ok(())
         }
 
-        async fn save_keys(
-            &self,
-            _transaction: &Self::TransactionType,
-            _wallet_user_id: uuid::Uuid,
-            _keys: &[(uuid::Uuid, String, SigningKey)],
-        ) -> Result<()> {
+        async fn save_keys(&self, _transaction: &Self::TransactionType, _keys: WalletUserKeys) -> Result<()> {
             Ok(())
         }
 
@@ -155,8 +145,8 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key_identifiers: &[String],
-        ) -> Result<HashMap<String, SigningKey>> {
-            Ok(HashMap::new())
+        ) -> Result<Vec<(String, WrappedKey)>> {
+            Ok(vec![])
         }
     }
 }

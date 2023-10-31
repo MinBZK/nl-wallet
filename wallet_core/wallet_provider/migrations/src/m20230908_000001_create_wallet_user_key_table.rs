@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(WalletUserKey::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(WalletUserKey::WalletUserId).uuid().not_null())
                     .col(ColumnDef::new(WalletUserKey::Identifier).string().not_null())
-                    .col(ColumnDef::new(WalletUserKey::PrivateKeyDer).binary().not_null())
+                    .col(ColumnDef::new(WalletUserKey::EncryptedPrivateKey).binary().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
@@ -43,7 +43,7 @@ enum WalletUserKey {
     Id,
     WalletUserId,
     Identifier,
-    PrivateKeyDer,
+    EncryptedPrivateKey,
 }
 
 #[derive(Iden)]
