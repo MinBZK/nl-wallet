@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../environment.dart';
-import '../data/service/deeplink_service.dart';
+import '../data/service/navigation_service.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/about/about_screen.dart';
@@ -239,7 +239,7 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
       ],
       child: DoOnInit(
         child: const HomeScreen(),
-        onInit: (context) => context.read<DeeplinkService>().processQueue(),
+        onInit: (context) => context.read<NavigationService>().processQueue(),
       ),
     );
   };
