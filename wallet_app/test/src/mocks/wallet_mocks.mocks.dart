@@ -15,23 +15,23 @@ import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as 
 import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i15;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i9;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i12;
+import 'package:wallet/src/data/service/navigation_service.dart' as _i21;
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart' as _i11;
-import 'package:wallet/src/domain/model/navigation/navigation_request.dart' as _i22;
 import 'package:wallet/src/domain/model/organization.dart' as _i16;
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart' as _i18;
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart' as _i19;
 import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i4;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
-import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i23;
+import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i24;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i30;
-import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i29;
-import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i27;
-import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i28;
+import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i22;
+import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i28;
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i29;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i13;
-import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i21;
-import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i24;
-import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i25;
-import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i26;
+import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i23;
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i25;
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i26;
+import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i27;
 import 'package:wallet/src/util/mapper/locale_mapper.dart' as _i6;
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart' as _i20;
 
@@ -734,10 +734,39 @@ class MockTypedWalletCore extends _i1.Mock implements _i20.TypedWalletCore {
       ) as _i10.Future<_i2.WalletInstructionResult>);
 }
 
+/// A class which mocks [NavigationService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockNavigationService extends _i1.Mock implements _i21.NavigationService {
+  @override
+  _i10.Future<void> handleNavigationRequest(
+    _i22.NavigationRequest? request, {
+    bool? queueIfNotReady = false,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #handleNavigationRequest,
+          [request],
+          {#queueIfNotReady: queueIfNotReady},
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+  @override
+  _i10.Future<void> processQueue() => (super.noSuchMethod(
+        Invocation.method(
+          #processQueue,
+          [],
+        ),
+        returnValue: _i10.Future<void>.value(),
+        returnValueForMissingStub: _i10.Future<void>.value(),
+      ) as _i10.Future<void>);
+}
+
 /// A class which mocks [DecodeUriUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDecodeUriUseCase extends _i1.Mock implements _i21.DecodeUriUseCase {
+class MockDecodeUriUseCase extends _i1.Mock implements _i23.DecodeUriUseCase {
   @override
   _i10.Future<_i22.NavigationRequest> invoke(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
@@ -764,7 +793,7 @@ class MockDecodeUriUseCase extends _i1.Mock implements _i21.DecodeUriUseCase {
 /// A class which mocks [IsWalletInitializedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletInitializedUseCase extends _i1.Mock implements _i23.IsWalletInitializedUseCase {
+class MockIsWalletInitializedUseCase extends _i1.Mock implements _i24.IsWalletInitializedUseCase {
   @override
   _i10.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -779,7 +808,7 @@ class MockIsWalletInitializedUseCase extends _i1.Mock implements _i23.IsWalletIn
 /// A class which mocks [IsWalletInitializedWithPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i24.IsWalletInitializedWithPidUseCase {
+class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i25.IsWalletInitializedWithPidUseCase {
   @override
   _i10.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -794,7 +823,7 @@ class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i24.IsW
 /// A class which mocks [ObserveWalletLockedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletLockedUseCase extends _i1.Mock implements _i25.ObserveWalletLockedUseCase {
+class MockObserveWalletLockedUseCase extends _i1.Mock implements _i26.ObserveWalletLockedUseCase {
   @override
   _i10.Stream<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -836,7 +865,7 @@ class MockCheckPinUseCase extends _i1.Mock implements _i13.CheckPinUseCase {
 /// A class which mocks [SetupMockedWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetupMockedWalletUseCase extends _i1.Mock implements _i26.SetupMockedWalletUseCase {
+class MockSetupMockedWalletUseCase extends _i1.Mock implements _i27.SetupMockedWalletUseCase {
   @override
   _i10.Future<void> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -851,7 +880,7 @@ class MockSetupMockedWalletUseCase extends _i1.Mock implements _i26.SetupMockedW
 /// A class which mocks [CheckHasInternetUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckHasInternetUseCase extends _i1.Mock implements _i27.CheckHasInternetUseCase {
+class MockCheckHasInternetUseCase extends _i1.Mock implements _i28.CheckHasInternetUseCase {
   @override
   _i10.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
@@ -866,7 +895,7 @@ class MockCheckHasInternetUseCase extends _i1.Mock implements _i27.CheckHasInter
 /// A class which mocks [AcceptOfferedPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i28.AcceptOfferedPidUseCase {
+class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i29.AcceptOfferedPidUseCase {
   @override
   _i10.Future<_i13.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
@@ -893,7 +922,7 @@ class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i28.AcceptOffered
 /// A class which mocks [PerformPreNavigationActionsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i29.PerformPreNavigationActionsUseCase {
+class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i22.PerformPreNavigationActionsUseCase {
   @override
   _i10.Future<void> invoke(List<_i22.PreNavigationAction>? actions) => (super.noSuchMethod(
         Invocation.method(
