@@ -73,25 +73,25 @@ class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence> implemen
 }
 
 /// @nodoc
-abstract class _$$CardPersistence_InMemoryCopyWith<$Res> {
-  factory _$$CardPersistence_InMemoryCopyWith(
-          _$CardPersistence_InMemory value, $Res Function(_$CardPersistence_InMemory) then) =
-      __$$CardPersistence_InMemoryCopyWithImpl<$Res>;
+abstract class _$$CardPersistence_InMemoryImplCopyWith<$Res> {
+  factory _$$CardPersistence_InMemoryImplCopyWith(
+          _$CardPersistence_InMemoryImpl value, $Res Function(_$CardPersistence_InMemoryImpl) then) =
+      __$$CardPersistence_InMemoryImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$CardPersistence_InMemoryCopyWithImpl<$Res>
-    extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_InMemory>
-    implements _$$CardPersistence_InMemoryCopyWith<$Res> {
-  __$$CardPersistence_InMemoryCopyWithImpl(
-      _$CardPersistence_InMemory _value, $Res Function(_$CardPersistence_InMemory) _then)
+class __$$CardPersistence_InMemoryImplCopyWithImpl<$Res>
+    extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_InMemoryImpl>
+    implements _$$CardPersistence_InMemoryImplCopyWith<$Res> {
+  __$$CardPersistence_InMemoryImplCopyWithImpl(
+      _$CardPersistence_InMemoryImpl _value, $Res Function(_$CardPersistence_InMemoryImpl) _then)
       : super(_value, _then);
 }
 
 /// @nodoc
 
-class _$CardPersistence_InMemory implements CardPersistence_InMemory {
-  const _$CardPersistence_InMemory();
+class _$CardPersistence_InMemoryImpl implements CardPersistence_InMemory {
+  const _$CardPersistence_InMemoryImpl();
 
   @override
   String toString() {
@@ -100,7 +100,7 @@ class _$CardPersistence_InMemory implements CardPersistence_InMemory {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$CardPersistence_InMemory);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$CardPersistence_InMemoryImpl);
   }
 
   @override
@@ -170,22 +170,24 @@ class _$CardPersistence_InMemory implements CardPersistence_InMemory {
 }
 
 abstract class CardPersistence_InMemory implements CardPersistence {
-  const factory CardPersistence_InMemory() = _$CardPersistence_InMemory;
+  const factory CardPersistence_InMemory() = _$CardPersistence_InMemoryImpl;
 }
 
 /// @nodoc
-abstract class _$$CardPersistence_StoredCopyWith<$Res> {
-  factory _$$CardPersistence_StoredCopyWith(
-          _$CardPersistence_Stored value, $Res Function(_$CardPersistence_Stored) then) =
-      __$$CardPersistence_StoredCopyWithImpl<$Res>;
+abstract class _$$CardPersistence_StoredImplCopyWith<$Res> {
+  factory _$$CardPersistence_StoredImplCopyWith(
+          _$CardPersistence_StoredImpl value, $Res Function(_$CardPersistence_StoredImpl) then) =
+      __$$CardPersistence_StoredImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String id});
 }
 
 /// @nodoc
-class __$$CardPersistence_StoredCopyWithImpl<$Res> extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_Stored>
-    implements _$$CardPersistence_StoredCopyWith<$Res> {
-  __$$CardPersistence_StoredCopyWithImpl(_$CardPersistence_Stored _value, $Res Function(_$CardPersistence_Stored) _then)
+class __$$CardPersistence_StoredImplCopyWithImpl<$Res>
+    extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_StoredImpl>
+    implements _$$CardPersistence_StoredImplCopyWith<$Res> {
+  __$$CardPersistence_StoredImplCopyWithImpl(
+      _$CardPersistence_StoredImpl _value, $Res Function(_$CardPersistence_StoredImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -193,7 +195,7 @@ class __$$CardPersistence_StoredCopyWithImpl<$Res> extends _$CardPersistenceCopy
   $Res call({
     Object? id = null,
   }) {
-    return _then(_$CardPersistence_Stored(
+    return _then(_$CardPersistence_StoredImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -204,8 +206,8 @@ class __$$CardPersistence_StoredCopyWithImpl<$Res> extends _$CardPersistenceCopy
 
 /// @nodoc
 
-class _$CardPersistence_Stored implements CardPersistence_Stored {
-  const _$CardPersistence_Stored({required this.id});
+class _$CardPersistence_StoredImpl implements CardPersistence_Stored {
+  const _$CardPersistence_StoredImpl({required this.id});
 
   @override
   final String id;
@@ -219,7 +221,7 @@ class _$CardPersistence_Stored implements CardPersistence_Stored {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CardPersistence_Stored &&
+            other is _$CardPersistence_StoredImpl &&
             (identical(other.id, id) || other.id == id));
   }
 
@@ -229,8 +231,8 @@ class _$CardPersistence_Stored implements CardPersistence_Stored {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardPersistence_StoredCopyWith<_$CardPersistence_Stored> get copyWith =>
-      __$$CardPersistence_StoredCopyWithImpl<_$CardPersistence_Stored>(this, _$identity);
+  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
+      __$$CardPersistence_StoredImplCopyWithImpl<_$CardPersistence_StoredImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -296,11 +298,12 @@ class _$CardPersistence_Stored implements CardPersistence_Stored {
 }
 
 abstract class CardPersistence_Stored implements CardPersistence {
-  const factory CardPersistence_Stored({required final String id}) = _$CardPersistence_Stored;
+  const factory CardPersistence_Stored({required final String id}) = _$CardPersistence_StoredImpl;
 
   String get id;
   @JsonKey(ignore: true)
-  _$$CardPersistence_StoredCopyWith<_$CardPersistence_Stored> get copyWith => throw _privateConstructorUsedError;
+  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -374,17 +377,17 @@ class _$CardValueCopyWithImpl<$Res, $Val extends CardValue> implements $CardValu
 }
 
 /// @nodoc
-abstract class _$$CardValue_StringCopyWith<$Res> {
-  factory _$$CardValue_StringCopyWith(_$CardValue_String value, $Res Function(_$CardValue_String) then) =
-      __$$CardValue_StringCopyWithImpl<$Res>;
+abstract class _$$CardValue_StringImplCopyWith<$Res> {
+  factory _$$CardValue_StringImplCopyWith(_$CardValue_StringImpl value, $Res Function(_$CardValue_StringImpl) then) =
+      __$$CardValue_StringImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$CardValue_StringCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_String>
-    implements _$$CardValue_StringCopyWith<$Res> {
-  __$$CardValue_StringCopyWithImpl(_$CardValue_String _value, $Res Function(_$CardValue_String) _then)
+class __$$CardValue_StringImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_StringImpl>
+    implements _$$CardValue_StringImplCopyWith<$Res> {
+  __$$CardValue_StringImplCopyWithImpl(_$CardValue_StringImpl _value, $Res Function(_$CardValue_StringImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -392,7 +395,7 @@ class __$$CardValue_StringCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Re
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$CardValue_String(
+    return _then(_$CardValue_StringImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -403,8 +406,8 @@ class __$$CardValue_StringCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Re
 
 /// @nodoc
 
-class _$CardValue_String implements CardValue_String {
-  const _$CardValue_String({required this.value});
+class _$CardValue_StringImpl implements CardValue_String {
+  const _$CardValue_StringImpl({required this.value});
 
   @override
   final String value;
@@ -418,7 +421,7 @@ class _$CardValue_String implements CardValue_String {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CardValue_String &&
+            other is _$CardValue_StringImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
@@ -428,8 +431,8 @@ class _$CardValue_String implements CardValue_String {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardValue_StringCopyWith<_$CardValue_String> get copyWith =>
-      __$$CardValue_StringCopyWithImpl<_$CardValue_String>(this, _$identity);
+  _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith =>
+      __$$CardValue_StringImplCopyWithImpl<_$CardValue_StringImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -507,26 +510,26 @@ class _$CardValue_String implements CardValue_String {
 }
 
 abstract class CardValue_String implements CardValue {
-  const factory CardValue_String({required final String value}) = _$CardValue_String;
+  const factory CardValue_String({required final String value}) = _$CardValue_StringImpl;
 
   @override
   String get value;
   @JsonKey(ignore: true)
-  _$$CardValue_StringCopyWith<_$CardValue_String> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$CardValue_BooleanCopyWith<$Res> {
-  factory _$$CardValue_BooleanCopyWith(_$CardValue_Boolean value, $Res Function(_$CardValue_Boolean) then) =
-      __$$CardValue_BooleanCopyWithImpl<$Res>;
+abstract class _$$CardValue_BooleanImplCopyWith<$Res> {
+  factory _$$CardValue_BooleanImplCopyWith(_$CardValue_BooleanImpl value, $Res Function(_$CardValue_BooleanImpl) then) =
+      __$$CardValue_BooleanImplCopyWithImpl<$Res>;
   @useResult
   $Res call({bool value});
 }
 
 /// @nodoc
-class __$$CardValue_BooleanCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Boolean>
-    implements _$$CardValue_BooleanCopyWith<$Res> {
-  __$$CardValue_BooleanCopyWithImpl(_$CardValue_Boolean _value, $Res Function(_$CardValue_Boolean) _then)
+class __$$CardValue_BooleanImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_BooleanImpl>
+    implements _$$CardValue_BooleanImplCopyWith<$Res> {
+  __$$CardValue_BooleanImplCopyWithImpl(_$CardValue_BooleanImpl _value, $Res Function(_$CardValue_BooleanImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -534,7 +537,7 @@ class __$$CardValue_BooleanCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$R
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$CardValue_Boolean(
+    return _then(_$CardValue_BooleanImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -545,8 +548,8 @@ class __$$CardValue_BooleanCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$R
 
 /// @nodoc
 
-class _$CardValue_Boolean implements CardValue_Boolean {
-  const _$CardValue_Boolean({required this.value});
+class _$CardValue_BooleanImpl implements CardValue_Boolean {
+  const _$CardValue_BooleanImpl({required this.value});
 
   @override
   final bool value;
@@ -560,7 +563,7 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CardValue_Boolean &&
+            other is _$CardValue_BooleanImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
@@ -570,8 +573,8 @@ class _$CardValue_Boolean implements CardValue_Boolean {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardValue_BooleanCopyWith<_$CardValue_Boolean> get copyWith =>
-      __$$CardValue_BooleanCopyWithImpl<_$CardValue_Boolean>(this, _$identity);
+  _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith =>
+      __$$CardValue_BooleanImplCopyWithImpl<_$CardValue_BooleanImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -649,33 +652,34 @@ class _$CardValue_Boolean implements CardValue_Boolean {
 }
 
 abstract class CardValue_Boolean implements CardValue {
-  const factory CardValue_Boolean({required final bool value}) = _$CardValue_Boolean;
+  const factory CardValue_Boolean({required final bool value}) = _$CardValue_BooleanImpl;
 
   @override
   bool get value;
   @JsonKey(ignore: true)
-  _$$CardValue_BooleanCopyWith<_$CardValue_Boolean> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$CardValue_DateCopyWith<$Res> {
-  factory _$$CardValue_DateCopyWith(_$CardValue_Date value, $Res Function(_$CardValue_Date) then) =
-      __$$CardValue_DateCopyWithImpl<$Res>;
+abstract class _$$CardValue_DateImplCopyWith<$Res> {
+  factory _$$CardValue_DateImplCopyWith(_$CardValue_DateImpl value, $Res Function(_$CardValue_DateImpl) then) =
+      __$$CardValue_DateImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$CardValue_DateCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Date>
-    implements _$$CardValue_DateCopyWith<$Res> {
-  __$$CardValue_DateCopyWithImpl(_$CardValue_Date _value, $Res Function(_$CardValue_Date) _then) : super(_value, _then);
+class __$$CardValue_DateImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_DateImpl>
+    implements _$$CardValue_DateImplCopyWith<$Res> {
+  __$$CardValue_DateImplCopyWithImpl(_$CardValue_DateImpl _value, $Res Function(_$CardValue_DateImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$CardValue_Date(
+    return _then(_$CardValue_DateImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -686,8 +690,8 @@ class __$$CardValue_DateCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res,
 
 /// @nodoc
 
-class _$CardValue_Date implements CardValue_Date {
-  const _$CardValue_Date({required this.value});
+class _$CardValue_DateImpl implements CardValue_Date {
+  const _$CardValue_DateImpl({required this.value});
 
   @override
   final String value;
@@ -701,7 +705,7 @@ class _$CardValue_Date implements CardValue_Date {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CardValue_Date &&
+            other is _$CardValue_DateImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
@@ -711,8 +715,8 @@ class _$CardValue_Date implements CardValue_Date {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardValue_DateCopyWith<_$CardValue_Date> get copyWith =>
-      __$$CardValue_DateCopyWithImpl<_$CardValue_Date>(this, _$identity);
+  _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith =>
+      __$$CardValue_DateImplCopyWithImpl<_$CardValue_DateImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -790,26 +794,26 @@ class _$CardValue_Date implements CardValue_Date {
 }
 
 abstract class CardValue_Date implements CardValue {
-  const factory CardValue_Date({required final String value}) = _$CardValue_Date;
+  const factory CardValue_Date({required final String value}) = _$CardValue_DateImpl;
 
   @override
   String get value;
   @JsonKey(ignore: true)
-  _$$CardValue_DateCopyWith<_$CardValue_Date> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$CardValue_GenderCopyWith<$Res> {
-  factory _$$CardValue_GenderCopyWith(_$CardValue_Gender value, $Res Function(_$CardValue_Gender) then) =
-      __$$CardValue_GenderCopyWithImpl<$Res>;
+abstract class _$$CardValue_GenderImplCopyWith<$Res> {
+  factory _$$CardValue_GenderImplCopyWith(_$CardValue_GenderImpl value, $Res Function(_$CardValue_GenderImpl) then) =
+      __$$CardValue_GenderImplCopyWithImpl<$Res>;
   @useResult
   $Res call({GenderCardValue value});
 }
 
 /// @nodoc
-class __$$CardValue_GenderCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_Gender>
-    implements _$$CardValue_GenderCopyWith<$Res> {
-  __$$CardValue_GenderCopyWithImpl(_$CardValue_Gender _value, $Res Function(_$CardValue_Gender) _then)
+class __$$CardValue_GenderImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_GenderImpl>
+    implements _$$CardValue_GenderImplCopyWith<$Res> {
+  __$$CardValue_GenderImplCopyWithImpl(_$CardValue_GenderImpl _value, $Res Function(_$CardValue_GenderImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -817,7 +821,7 @@ class __$$CardValue_GenderCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Re
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$CardValue_Gender(
+    return _then(_$CardValue_GenderImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -828,8 +832,8 @@ class __$$CardValue_GenderCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Re
 
 /// @nodoc
 
-class _$CardValue_Gender implements CardValue_Gender {
-  const _$CardValue_Gender({required this.value});
+class _$CardValue_GenderImpl implements CardValue_Gender {
+  const _$CardValue_GenderImpl({required this.value});
 
   @override
   final GenderCardValue value;
@@ -843,7 +847,7 @@ class _$CardValue_Gender implements CardValue_Gender {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$CardValue_Gender &&
+            other is _$CardValue_GenderImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
@@ -853,8 +857,8 @@ class _$CardValue_Gender implements CardValue_Gender {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardValue_GenderCopyWith<_$CardValue_Gender> get copyWith =>
-      __$$CardValue_GenderCopyWithImpl<_$CardValue_Gender>(this, _$identity);
+  _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith =>
+      __$$CardValue_GenderImplCopyWithImpl<_$CardValue_GenderImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -932,12 +936,12 @@ class _$CardValue_Gender implements CardValue_Gender {
 }
 
 abstract class CardValue_Gender implements CardValue {
-  const factory CardValue_Gender({required final GenderCardValue value}) = _$CardValue_Gender;
+  const factory CardValue_Gender({required final GenderCardValue value}) = _$CardValue_GenderImpl;
 
   @override
   GenderCardValue get value;
   @JsonKey(ignore: true)
-  _$$CardValue_GenderCopyWith<_$CardValue_Gender> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -1019,21 +1023,21 @@ class _$DisclosureResultCopyWithImpl<$Res, $Val extends DisclosureResult> implem
 }
 
 /// @nodoc
-abstract class _$$DisclosureResult_RequestCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
-  factory _$$DisclosureResult_RequestCopyWith(
-          _$DisclosureResult_Request value, $Res Function(_$DisclosureResult_Request) then) =
-      __$$DisclosureResult_RequestCopyWithImpl<$Res>;
+abstract class _$$DisclosureResult_RequestImplCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
+  factory _$$DisclosureResult_RequestImplCopyWith(
+          _$DisclosureResult_RequestImpl value, $Res Function(_$DisclosureResult_RequestImpl) then) =
+      __$$DisclosureResult_RequestImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({RelyingParty relyingParty, List<RequestedCard> requestedCards});
 }
 
 /// @nodoc
-class __$$DisclosureResult_RequestCopyWithImpl<$Res>
-    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_Request>
-    implements _$$DisclosureResult_RequestCopyWith<$Res> {
-  __$$DisclosureResult_RequestCopyWithImpl(
-      _$DisclosureResult_Request _value, $Res Function(_$DisclosureResult_Request) _then)
+class __$$DisclosureResult_RequestImplCopyWithImpl<$Res>
+    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestImpl>
+    implements _$$DisclosureResult_RequestImplCopyWith<$Res> {
+  __$$DisclosureResult_RequestImplCopyWithImpl(
+      _$DisclosureResult_RequestImpl _value, $Res Function(_$DisclosureResult_RequestImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1042,7 +1046,7 @@ class __$$DisclosureResult_RequestCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? requestedCards = null,
   }) {
-    return _then(_$DisclosureResult_Request(
+    return _then(_$DisclosureResult_RequestImpl(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1057,8 +1061,8 @@ class __$$DisclosureResult_RequestCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureResult_Request implements DisclosureResult_Request {
-  const _$DisclosureResult_Request({required this.relyingParty, required final List<RequestedCard> requestedCards})
+class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
+  const _$DisclosureResult_RequestImpl({required this.relyingParty, required final List<RequestedCard> requestedCards})
       : _requestedCards = requestedCards;
 
   @override
@@ -1080,7 +1084,7 @@ class _$DisclosureResult_Request implements DisclosureResult_Request {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureResult_Request &&
+            other is _$DisclosureResult_RequestImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards));
   }
@@ -1091,8 +1095,8 @@ class _$DisclosureResult_Request implements DisclosureResult_Request {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureResult_RequestCopyWith<_$DisclosureResult_Request> get copyWith =>
-      __$$DisclosureResult_RequestCopyWithImpl<_$DisclosureResult_Request>(this, _$identity);
+  _$$DisclosureResult_RequestImplCopyWith<_$DisclosureResult_RequestImpl> get copyWith =>
+      __$$DisclosureResult_RequestImplCopyWithImpl<_$DisclosureResult_RequestImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1161,32 +1165,35 @@ class _$DisclosureResult_Request implements DisclosureResult_Request {
 abstract class DisclosureResult_Request implements DisclosureResult {
   const factory DisclosureResult_Request(
       {required final RelyingParty relyingParty,
-      required final List<RequestedCard> requestedCards}) = _$DisclosureResult_Request;
+      required final List<RequestedCard> requestedCards}) = _$DisclosureResult_RequestImpl;
 
   @override
   RelyingParty get relyingParty;
   List<RequestedCard> get requestedCards;
   @override
   @JsonKey(ignore: true)
-  _$$DisclosureResult_RequestCopyWith<_$DisclosureResult_Request> get copyWith => throw _privateConstructorUsedError;
+  _$$DisclosureResult_RequestImplCopyWith<_$DisclosureResult_RequestImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$DisclosureResult_RequestAttributesMissingCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
-  factory _$$DisclosureResult_RequestAttributesMissingCopyWith(_$DisclosureResult_RequestAttributesMissing value,
-          $Res Function(_$DisclosureResult_RequestAttributesMissing) then) =
-      __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>;
+abstract class _$$DisclosureResult_RequestAttributesMissingImplCopyWith<$Res>
+    implements $DisclosureResultCopyWith<$Res> {
+  factory _$$DisclosureResult_RequestAttributesMissingImplCopyWith(
+          _$DisclosureResult_RequestAttributesMissingImpl value,
+          $Res Function(_$DisclosureResult_RequestAttributesMissingImpl) then) =
+      __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({RelyingParty relyingParty, List<MissingAttribute> missingAttributes});
 }
 
 /// @nodoc
-class __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>
-    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestAttributesMissing>
-    implements _$$DisclosureResult_RequestAttributesMissingCopyWith<$Res> {
-  __$$DisclosureResult_RequestAttributesMissingCopyWithImpl(_$DisclosureResult_RequestAttributesMissing _value,
-      $Res Function(_$DisclosureResult_RequestAttributesMissing) _then)
+class __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
+    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestAttributesMissingImpl>
+    implements _$$DisclosureResult_RequestAttributesMissingImplCopyWith<$Res> {
+  __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl(_$DisclosureResult_RequestAttributesMissingImpl _value,
+      $Res Function(_$DisclosureResult_RequestAttributesMissingImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1195,7 +1202,7 @@ class __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? missingAttributes = null,
   }) {
-    return _then(_$DisclosureResult_RequestAttributesMissing(
+    return _then(_$DisclosureResult_RequestAttributesMissingImpl(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1210,8 +1217,8 @@ class __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureResult_RequestAttributesMissing implements DisclosureResult_RequestAttributesMissing {
-  const _$DisclosureResult_RequestAttributesMissing(
+class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResult_RequestAttributesMissing {
+  const _$DisclosureResult_RequestAttributesMissingImpl(
       {required this.relyingParty, required final List<MissingAttribute> missingAttributes})
       : _missingAttributes = missingAttributes;
 
@@ -1234,7 +1241,7 @@ class _$DisclosureResult_RequestAttributesMissing implements DisclosureResult_Re
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureResult_RequestAttributesMissing &&
+            other is _$DisclosureResult_RequestAttributesMissingImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
   }
@@ -1245,9 +1252,9 @@ class _$DisclosureResult_RequestAttributesMissing implements DisclosureResult_Re
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureResult_RequestAttributesMissingCopyWith<_$DisclosureResult_RequestAttributesMissing> get copyWith =>
-      __$$DisclosureResult_RequestAttributesMissingCopyWithImpl<_$DisclosureResult_RequestAttributesMissing>(
-          this, _$identity);
+  _$$DisclosureResult_RequestAttributesMissingImplCopyWith<_$DisclosureResult_RequestAttributesMissingImpl>
+      get copyWith => __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<
+          _$DisclosureResult_RequestAttributesMissingImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1316,15 +1323,15 @@ class _$DisclosureResult_RequestAttributesMissing implements DisclosureResult_Re
 abstract class DisclosureResult_RequestAttributesMissing implements DisclosureResult {
   const factory DisclosureResult_RequestAttributesMissing(
       {required final RelyingParty relyingParty,
-      required final List<MissingAttribute> missingAttributes}) = _$DisclosureResult_RequestAttributesMissing;
+      required final List<MissingAttribute> missingAttributes}) = _$DisclosureResult_RequestAttributesMissingImpl;
 
   @override
   RelyingParty get relyingParty;
   List<MissingAttribute> get missingAttributes;
   @override
   @JsonKey(ignore: true)
-  _$$DisclosureResult_RequestAttributesMissingCopyWith<_$DisclosureResult_RequestAttributesMissing> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$DisclosureResult_RequestAttributesMissingImplCopyWith<_$DisclosureResult_RequestAttributesMissingImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -1399,25 +1406,25 @@ class _$WalletInstructionResultCopyWithImpl<$Res, $Val extends WalletInstruction
 }
 
 /// @nodoc
-abstract class _$$WalletInstructionResult_OkCopyWith<$Res> {
-  factory _$$WalletInstructionResult_OkCopyWith(
-          _$WalletInstructionResult_Ok value, $Res Function(_$WalletInstructionResult_Ok) then) =
-      __$$WalletInstructionResult_OkCopyWithImpl<$Res>;
+abstract class _$$WalletInstructionResult_OkImplCopyWith<$Res> {
+  factory _$$WalletInstructionResult_OkImplCopyWith(
+          _$WalletInstructionResult_OkImpl value, $Res Function(_$WalletInstructionResult_OkImpl) then) =
+      __$$WalletInstructionResult_OkImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$WalletInstructionResult_OkCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_Ok>
-    implements _$$WalletInstructionResult_OkCopyWith<$Res> {
-  __$$WalletInstructionResult_OkCopyWithImpl(
-      _$WalletInstructionResult_Ok _value, $Res Function(_$WalletInstructionResult_Ok) _then)
+class __$$WalletInstructionResult_OkImplCopyWithImpl<$Res>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_OkImpl>
+    implements _$$WalletInstructionResult_OkImplCopyWith<$Res> {
+  __$$WalletInstructionResult_OkImplCopyWithImpl(
+      _$WalletInstructionResult_OkImpl _value, $Res Function(_$WalletInstructionResult_OkImpl) _then)
       : super(_value, _then);
 }
 
 /// @nodoc
 
-class _$WalletInstructionResult_Ok implements WalletInstructionResult_Ok {
-  const _$WalletInstructionResult_Ok();
+class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
+  const _$WalletInstructionResult_OkImpl();
 
   @override
   String toString() {
@@ -1426,7 +1433,7 @@ class _$WalletInstructionResult_Ok implements WalletInstructionResult_Ok {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletInstructionResult_Ok);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletInstructionResult_OkImpl);
   }
 
   @override
@@ -1508,24 +1515,24 @@ class _$WalletInstructionResult_Ok implements WalletInstructionResult_Ok {
 }
 
 abstract class WalletInstructionResult_Ok implements WalletInstructionResult {
-  const factory WalletInstructionResult_Ok() = _$WalletInstructionResult_Ok;
+  const factory WalletInstructionResult_Ok() = _$WalletInstructionResult_OkImpl;
 }
 
 /// @nodoc
-abstract class _$$WalletInstructionResult_IncorrectPinCopyWith<$Res> {
-  factory _$$WalletInstructionResult_IncorrectPinCopyWith(
-          _$WalletInstructionResult_IncorrectPin value, $Res Function(_$WalletInstructionResult_IncorrectPin) then) =
-      __$$WalletInstructionResult_IncorrectPinCopyWithImpl<$Res>;
+abstract class _$$WalletInstructionResult_IncorrectPinImplCopyWith<$Res> {
+  factory _$$WalletInstructionResult_IncorrectPinImplCopyWith(_$WalletInstructionResult_IncorrectPinImpl value,
+          $Res Function(_$WalletInstructionResult_IncorrectPinImpl) then) =
+      __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<$Res>;
   @useResult
   $Res call({int leftoverAttempts, bool isFinalAttempt});
 }
 
 /// @nodoc
-class __$$WalletInstructionResult_IncorrectPinCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_IncorrectPin>
-    implements _$$WalletInstructionResult_IncorrectPinCopyWith<$Res> {
-  __$$WalletInstructionResult_IncorrectPinCopyWithImpl(
-      _$WalletInstructionResult_IncorrectPin _value, $Res Function(_$WalletInstructionResult_IncorrectPin) _then)
+class __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<$Res>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_IncorrectPinImpl>
+    implements _$$WalletInstructionResult_IncorrectPinImplCopyWith<$Res> {
+  __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl(_$WalletInstructionResult_IncorrectPinImpl _value,
+      $Res Function(_$WalletInstructionResult_IncorrectPinImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1534,7 +1541,7 @@ class __$$WalletInstructionResult_IncorrectPinCopyWithImpl<$Res>
     Object? leftoverAttempts = null,
     Object? isFinalAttempt = null,
   }) {
-    return _then(_$WalletInstructionResult_IncorrectPin(
+    return _then(_$WalletInstructionResult_IncorrectPinImpl(
       leftoverAttempts: null == leftoverAttempts
           ? _value.leftoverAttempts
           : leftoverAttempts // ignore: cast_nullable_to_non_nullable
@@ -1549,8 +1556,8 @@ class __$$WalletInstructionResult_IncorrectPinCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionResult_IncorrectPin implements WalletInstructionResult_IncorrectPin {
-  const _$WalletInstructionResult_IncorrectPin({required this.leftoverAttempts, required this.isFinalAttempt});
+class _$WalletInstructionResult_IncorrectPinImpl implements WalletInstructionResult_IncorrectPin {
+  const _$WalletInstructionResult_IncorrectPinImpl({required this.leftoverAttempts, required this.isFinalAttempt});
 
   @override
   final int leftoverAttempts;
@@ -1566,7 +1573,7 @@ class _$WalletInstructionResult_IncorrectPin implements WalletInstructionResult_
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionResult_IncorrectPin &&
+            other is _$WalletInstructionResult_IncorrectPinImpl &&
             (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
             (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
   }
@@ -1577,8 +1584,9 @@ class _$WalletInstructionResult_IncorrectPin implements WalletInstructionResult_
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionResult_IncorrectPinCopyWith<_$WalletInstructionResult_IncorrectPin> get copyWith =>
-      __$$WalletInstructionResult_IncorrectPinCopyWithImpl<_$WalletInstructionResult_IncorrectPin>(this, _$identity);
+  _$$WalletInstructionResult_IncorrectPinImplCopyWith<_$WalletInstructionResult_IncorrectPinImpl> get copyWith =>
+      __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<_$WalletInstructionResult_IncorrectPinImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1658,30 +1666,30 @@ class _$WalletInstructionResult_IncorrectPin implements WalletInstructionResult_
 abstract class WalletInstructionResult_IncorrectPin implements WalletInstructionResult {
   const factory WalletInstructionResult_IncorrectPin(
       {required final int leftoverAttempts,
-      required final bool isFinalAttempt}) = _$WalletInstructionResult_IncorrectPin;
+      required final bool isFinalAttempt}) = _$WalletInstructionResult_IncorrectPinImpl;
 
   int get leftoverAttempts;
   bool get isFinalAttempt;
   @JsonKey(ignore: true)
-  _$$WalletInstructionResult_IncorrectPinCopyWith<_$WalletInstructionResult_IncorrectPin> get copyWith =>
+  _$$WalletInstructionResult_IncorrectPinImplCopyWith<_$WalletInstructionResult_IncorrectPinImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$WalletInstructionResult_TimeoutCopyWith<$Res> {
-  factory _$$WalletInstructionResult_TimeoutCopyWith(
-          _$WalletInstructionResult_Timeout value, $Res Function(_$WalletInstructionResult_Timeout) then) =
-      __$$WalletInstructionResult_TimeoutCopyWithImpl<$Res>;
+abstract class _$$WalletInstructionResult_TimeoutImplCopyWith<$Res> {
+  factory _$$WalletInstructionResult_TimeoutImplCopyWith(
+          _$WalletInstructionResult_TimeoutImpl value, $Res Function(_$WalletInstructionResult_TimeoutImpl) then) =
+      __$$WalletInstructionResult_TimeoutImplCopyWithImpl<$Res>;
   @useResult
   $Res call({int timeoutMillis});
 }
 
 /// @nodoc
-class __$$WalletInstructionResult_TimeoutCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_Timeout>
-    implements _$$WalletInstructionResult_TimeoutCopyWith<$Res> {
-  __$$WalletInstructionResult_TimeoutCopyWithImpl(
-      _$WalletInstructionResult_Timeout _value, $Res Function(_$WalletInstructionResult_Timeout) _then)
+class __$$WalletInstructionResult_TimeoutImplCopyWithImpl<$Res>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_TimeoutImpl>
+    implements _$$WalletInstructionResult_TimeoutImplCopyWith<$Res> {
+  __$$WalletInstructionResult_TimeoutImplCopyWithImpl(
+      _$WalletInstructionResult_TimeoutImpl _value, $Res Function(_$WalletInstructionResult_TimeoutImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1689,7 +1697,7 @@ class __$$WalletInstructionResult_TimeoutCopyWithImpl<$Res>
   $Res call({
     Object? timeoutMillis = null,
   }) {
-    return _then(_$WalletInstructionResult_Timeout(
+    return _then(_$WalletInstructionResult_TimeoutImpl(
       timeoutMillis: null == timeoutMillis
           ? _value.timeoutMillis
           : timeoutMillis // ignore: cast_nullable_to_non_nullable
@@ -1700,8 +1708,8 @@ class __$$WalletInstructionResult_TimeoutCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionResult_Timeout implements WalletInstructionResult_Timeout {
-  const _$WalletInstructionResult_Timeout({required this.timeoutMillis});
+class _$WalletInstructionResult_TimeoutImpl implements WalletInstructionResult_Timeout {
+  const _$WalletInstructionResult_TimeoutImpl({required this.timeoutMillis});
 
   @override
   final int timeoutMillis;
@@ -1715,7 +1723,7 @@ class _$WalletInstructionResult_Timeout implements WalletInstructionResult_Timeo
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionResult_Timeout &&
+            other is _$WalletInstructionResult_TimeoutImpl &&
             (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
   }
 
@@ -1725,8 +1733,8 @@ class _$WalletInstructionResult_Timeout implements WalletInstructionResult_Timeo
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionResult_TimeoutCopyWith<_$WalletInstructionResult_Timeout> get copyWith =>
-      __$$WalletInstructionResult_TimeoutCopyWithImpl<_$WalletInstructionResult_Timeout>(this, _$identity);
+  _$$WalletInstructionResult_TimeoutImplCopyWith<_$WalletInstructionResult_TimeoutImpl> get copyWith =>
+      __$$WalletInstructionResult_TimeoutImplCopyWithImpl<_$WalletInstructionResult_TimeoutImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1804,34 +1812,35 @@ class _$WalletInstructionResult_Timeout implements WalletInstructionResult_Timeo
 }
 
 abstract class WalletInstructionResult_Timeout implements WalletInstructionResult {
-  const factory WalletInstructionResult_Timeout({required final int timeoutMillis}) = _$WalletInstructionResult_Timeout;
+  const factory WalletInstructionResult_Timeout({required final int timeoutMillis}) =
+      _$WalletInstructionResult_TimeoutImpl;
 
   int get timeoutMillis;
   @JsonKey(ignore: true)
-  _$$WalletInstructionResult_TimeoutCopyWith<_$WalletInstructionResult_Timeout> get copyWith =>
+  _$$WalletInstructionResult_TimeoutImplCopyWith<_$WalletInstructionResult_TimeoutImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$WalletInstructionResult_BlockedCopyWith<$Res> {
-  factory _$$WalletInstructionResult_BlockedCopyWith(
-          _$WalletInstructionResult_Blocked value, $Res Function(_$WalletInstructionResult_Blocked) then) =
-      __$$WalletInstructionResult_BlockedCopyWithImpl<$Res>;
+abstract class _$$WalletInstructionResult_BlockedImplCopyWith<$Res> {
+  factory _$$WalletInstructionResult_BlockedImplCopyWith(
+          _$WalletInstructionResult_BlockedImpl value, $Res Function(_$WalletInstructionResult_BlockedImpl) then) =
+      __$$WalletInstructionResult_BlockedImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$WalletInstructionResult_BlockedCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_Blocked>
-    implements _$$WalletInstructionResult_BlockedCopyWith<$Res> {
-  __$$WalletInstructionResult_BlockedCopyWithImpl(
-      _$WalletInstructionResult_Blocked _value, $Res Function(_$WalletInstructionResult_Blocked) _then)
+class __$$WalletInstructionResult_BlockedImplCopyWithImpl<$Res>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_BlockedImpl>
+    implements _$$WalletInstructionResult_BlockedImplCopyWith<$Res> {
+  __$$WalletInstructionResult_BlockedImplCopyWithImpl(
+      _$WalletInstructionResult_BlockedImpl _value, $Res Function(_$WalletInstructionResult_BlockedImpl) _then)
       : super(_value, _then);
 }
 
 /// @nodoc
 
-class _$WalletInstructionResult_Blocked implements WalletInstructionResult_Blocked {
-  const _$WalletInstructionResult_Blocked();
+class _$WalletInstructionResult_BlockedImpl implements WalletInstructionResult_Blocked {
+  const _$WalletInstructionResult_BlockedImpl();
 
   @override
   String toString() {
@@ -1840,7 +1849,8 @@ class _$WalletInstructionResult_Blocked implements WalletInstructionResult_Block
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletInstructionResult_Blocked);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$WalletInstructionResult_BlockedImpl);
   }
 
   @override
@@ -1922,5 +1932,5 @@ class _$WalletInstructionResult_Blocked implements WalletInstructionResult_Block
 }
 
 abstract class WalletInstructionResult_Blocked implements WalletInstructionResult {
-  const factory WalletInstructionResult_Blocked() = _$WalletInstructionResult_Blocked;
+  const factory WalletInstructionResult_Blocked() = _$WalletInstructionResult_BlockedImpl;
 }

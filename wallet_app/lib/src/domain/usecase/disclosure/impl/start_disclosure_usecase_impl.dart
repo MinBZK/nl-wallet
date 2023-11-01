@@ -6,5 +6,5 @@ class StartDisclosureUseCaseImpl extends StartDisclosureUseCase {
   StartDisclosureUseCaseImpl(this._disclosureRepository);
 
   @override
-  Stream<StartDisclosureResult> invoke(Uri disclosureUri) => _disclosureRepository.startDisclosure(disclosureUri);
+  Future<StartDisclosureResult> invoke(Uri disclosureUri) => _disclosureRepository.startDisclosure(disclosureUri);
 }

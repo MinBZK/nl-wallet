@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/common/widget/select_card_row.dart';
 
@@ -84,8 +85,8 @@ void main() {
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text(WalletMockData.cardFront.title);
-      final subtitleFinder = find.text(WalletMockData.cardFront.subtitle ?? '');
+      final titleFinder = find.text(WalletMockData.cardFront.title.testValue);
+      final subtitleFinder = find.text(WalletMockData.cardFront.subtitle?.testValue ?? '');
       expect(titleFinder, findsNWidgets(2)); // Once readable, once inside the rendered WalletCard
       if (WalletMockData.cardFront.subtitle != null) {
         expect(subtitleFinder, findsNWidgets(2)); // Once readable, once inside the rendered WalletCard

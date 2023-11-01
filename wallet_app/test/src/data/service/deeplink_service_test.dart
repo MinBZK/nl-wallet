@@ -17,7 +17,6 @@ void main() {
   late AppLifecycleService mockAppLifecycleService;
 
   setUp(() {
-    provideDummy<NavigationRequest>(GenericNavigationRequest('/mock_destination'));
     appLinks = MockAppLinks();
     mockNavigationService = MockNavigationService();
     mockAppLifecycleService = AppLifecycleService(); // Uses the real implementation because it's trivial

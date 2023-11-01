@@ -608,8 +608,6 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use assert_matches::assert_matches;
     use async_trait::async_trait;
     use chrono::TimeZone;
@@ -626,7 +624,7 @@ mod tests {
     };
     use wallet_provider_domain::{
         generator::mock::MockGenerators,
-        model::{FailingPinPolicy, TimeoutPinPolicy},
+        model::{wallet_user::WalletUserKeys, wrapped_key::WrappedKey, FailingPinPolicy, TimeoutPinPolicy},
         repository::{MockTransaction, MockTransactionStarter},
         EpochGenerator, FixedUuidGenerator,
     };
@@ -767,8 +765,7 @@ mod tests {
         async fn save_keys(
             &self,
             _transaction: &Self::TransactionType,
-            _wallet_user_id: uuid::Uuid,
-            _keys: &[(uuid::Uuid, String, SigningKey)],
+            _keys: WalletUserKeys,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
@@ -777,10 +774,15 @@ mod tests {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             key_identifiers: &[String],
-        ) -> Result<HashMap<String, SigningKey>, PersistenceError> {
+        ) -> Result<Vec<(String, WrappedKey)>, PersistenceError> {
             Ok(key_identifiers
                 .iter()
-                .map(|id| (id.clone(), SigningKey::random(&mut OsRng)))
+                .map(|id| {
+                    (
+                        id.clone(),
+                        WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+                    )
+                })
                 .collect())
         }
     }

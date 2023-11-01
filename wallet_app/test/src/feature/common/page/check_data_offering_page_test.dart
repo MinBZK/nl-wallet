@@ -12,15 +12,15 @@ void main() {
       'light page',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const CheckDataOfferingPage(
+          CheckDataOfferingPage(
             title: 'Title',
             subtitle: 'Subtitle',
             cardFront: WalletMockData.cardFront,
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
-            bottomSection: Text('Bottom Section'),
-            attributes: [WalletMockData.imageDataAttribute, WalletMockData.textDataAttribute],
+            bottomSection: const Text('Bottom Section'),
+            attributes: [WalletMockData.textDataAttribute],
           ),
         );
         await screenMatchesGolden(tester, 'check_data_offering_page/light');
@@ -30,15 +30,15 @@ void main() {
       'dark page',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const CheckDataOfferingPage(
+          CheckDataOfferingPage(
             title: 'Title',
             subtitle: 'Subtitle',
             cardFront: WalletMockData.cardFront,
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
-            bottomSection: Text('Bottom Section'),
-            attributes: [WalletMockData.imageDataAttribute, WalletMockData.textDataAttribute],
+            bottomSection: const Text('Bottom Section'),
+            attributes: [WalletMockData.textDataAttribute],
           ),
           brightness: Brightness.dark,
         );
@@ -50,14 +50,14 @@ void main() {
   group('widgets', () {
     testWidgets('widgets are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const CheckDataOfferingPage(
+        CheckDataOfferingPage(
           title: 'T',
           subtitle: 'S',
           cardFront: WalletMockData.cardFront,
           footerCta: 'F',
           overline: 'O',
           showHeaderAttributesDivider: true,
-          bottomSection: Text('BS'),
+          bottomSection: const Text('BS'),
           attributes: [WalletMockData.textDataAttribute],
         ),
       );

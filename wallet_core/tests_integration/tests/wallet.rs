@@ -36,7 +36,12 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::hsm::{Hsm, Pkcs11Hsm};
 
 async fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, EcdsaDecodingKey) {
-    let hsm = Pkcs11Hsm::new(settings.hsm.library_path.clone(), settings.hsm.user_pin.clone()).unwrap();
+    let hsm = Pkcs11Hsm::new(
+        settings.hsm.library_path.clone(),
+        settings.hsm.user_pin.clone(),
+        settings.attestation_wrapping_key_identifier.clone(),
+    )
+    .unwrap();
     let certificate_public_key = hsm
         .get_verifying_key(&settings.certificate_signing_key_identifier)
         .await

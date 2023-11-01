@@ -1,24 +1,24 @@
 part of 'mock_issuance_response_repository.dart';
 
-const _kMockBirthDate = '10 maart 1997';
-const _kMockBirthPlace = 'Delft';
-const _kMockFirstNames = 'Willeke Liselotte';
-const _kMockFullName = 'Willeke De Bruijn';
-const _kMockLastName = 'De Bruijn';
-const _kMockGender = 'Vrouw';
+final _kMockBirthDate = DateValue(DateTime(1997, 3, 10));
+const _kMockBirthPlace = StringValue('Delft');
+const _kMockFirstNames = StringValue('Willeke Liselotte');
+const _kMockFullName = StringValue('Willeke De Bruijn');
+const _kMockLastName = StringValue('De Bruijn');
+const _kMockGender = StringValue('Vrouw');
 
 // region WalletCards
 const _kPidId = 'PID_1';
-const _kMockPidWalletCard = WalletCard(
+final _kMockPidWalletCard = WalletCard(
   id: _kPidId,
   issuerId: kRvigId,
   front: _kMockPidCardFront,
   attributes: _kMockPidDataAttributes,
-  config: CardConfig(),
+  config: const CardConfig(),
 );
 
 const _kAddressId = 'ADDRESS_1';
-const _kMockAddressWalletCard = WalletCard(
+final _kMockAddressWalletCard = WalletCard(
   id: _kAddressId,
   issuerId: kRvigId,
   front: _kMockAddressCardFront,
@@ -26,7 +26,7 @@ const _kMockAddressWalletCard = WalletCard(
 );
 
 const _kDiplomaId = 'DIPLOMA_1';
-const _kMockDiplomaWalletCard = WalletCard(
+final _kMockDiplomaWalletCard = WalletCard(
   id: _kDiplomaId,
   issuerId: kDuoId,
   front: _kMockDiplomaCardFront,
@@ -35,7 +35,7 @@ const _kMockDiplomaWalletCard = WalletCard(
 
 const _kMultiDiplomaId = 'MULTI_DIPLOMA';
 const _kMasterDiplomaId = 'DIPLOMA_2';
-const _kMockMasterDiplomaWalletCard = WalletCard(
+final _kMockMasterDiplomaWalletCard = WalletCard(
   id: _kMasterDiplomaId,
   issuerId: kDuoId,
   front: _kMockMasterDiplomaCardFront,
@@ -59,7 +59,7 @@ final _kMockDrivingLicenseRenewedWalletCard = WalletCard(
 );
 
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
-const _kMockHealthInsuranceWalletCard = WalletCard(
+final _kMockHealthInsuranceWalletCard = WalletCard(
   id: _kHealthInsuranceId,
   issuerId: kHealthInsuranceId,
   front: _kMockHealthInsuranceCardFront,
@@ -67,7 +67,7 @@ const _kMockHealthInsuranceWalletCard = WalletCard(
 );
 
 const _kVOGId = 'VOG';
-const _kMockVOGWalletCard = WalletCard(
+final _kMockVOGWalletCard = WalletCard(
   id: _kVOGId,
   issuerId: kJusticeId,
   front: _kMockVOGCardFront,
@@ -78,67 +78,67 @@ const _kMockVOGWalletCard = WalletCard(
 
 // region CardFronts
 
-const _kMockPidCardFront = CardFront(
-  title: 'Persoonsgegevens',
-  subtitle: 'Willeke',
+final _kMockPidCardFront = CardFront(
+  title: 'Persoonsgegevens'.untranslated,
+  subtitle: 'Willeke'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   holoImage: WalletAssets.svg_rijks_card_holo,
   backgroundImage: WalletAssets.svg_rijks_card_bg_light,
   theme: CardFrontTheme.light,
 );
 
-const _kMockAddressCardFront = CardFront(
-  title: 'Woonadres',
-  subtitle: "'s-Gravenhage",
+final _kMockAddressCardFront = CardFront(
+  title: 'Woonadres'.untranslated,
+  subtitle: "'s-Gravenhage".untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   holoImage: WalletAssets.svg_rijks_card_holo,
   backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
 );
 
-const _kMockDiplomaCardFront = CardFront(
-  title: 'BSc. Diploma',
-  info: 'Dienst Uitvoerend Onderwijs',
+final _kMockDiplomaCardFront = CardFront(
+  title: 'BSc. Diploma'.untranslated,
+  info: 'Dienst Uitvoerend Onderwijs'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
 );
 
-const _kMockMasterDiplomaCardFront = CardFront(
-  title: 'MSc. Diploma',
-  info: 'Dienst Uitvoerend Onderwijs',
+final _kMockMasterDiplomaCardFront = CardFront(
+  title: 'MSc. Diploma'.untranslated,
+  info: 'Dienst Uitvoerend Onderwijs'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
 );
 
-const _kMockDrivingLicenseCardFront = CardFront(
-  title: 'Rijbewijs',
-  subtitle: 'Categorie AM, B, BE',
+final _kMockDrivingLicenseCardFront = CardFront(
+  title: 'Rijbewijs'.untranslated,
+  subtitle: 'Categorie AM, B, BE'.untranslated,
   logoImage: WalletAssets.logo_nl_driving_license,
   backgroundImage: WalletAssets.image_bg_nl_driving_license,
   theme: CardFrontTheme.light,
 );
 
-const _kMockDrivingLicenseRenewedCardFront = CardFront(
-  title: 'Rijbewijs',
-  subtitle: 'Categorie AM, B, C1, BE',
+final _kMockDrivingLicenseRenewedCardFront = CardFront(
+  title: 'Rijbewijs'.untranslated,
+  subtitle: 'Categorie AM, B, C1, BE'.untranslated,
   logoImage: WalletAssets.logo_nl_driving_license,
   backgroundImage: WalletAssets.image_bg_nl_driving_license,
   theme: CardFrontTheme.light,
 );
 
-const _kMockHealthInsuranceCardFront = CardFront(
-  title: 'European Health Insurance Card',
-  subtitle: 'Zorgverzekeraar Z',
+final _kMockHealthInsuranceCardFront = CardFront(
+  title: 'European Health Insurance Card'.untranslated,
+  subtitle: 'Zorgverzekeraar Z'.untranslated,
   logoImage: WalletAssets.logo_nl_health_insurance,
   backgroundImage: WalletAssets.image_bg_health_insurance,
   theme: CardFrontTheme.dark,
 );
 
-const _kMockVOGCardFront = CardFront(
-  title: 'Verklaring Omtrent het Gedrag',
-  info: 'Justis',
+final _kMockVOGCardFront = CardFront(
+  title: 'Verklaring Omtrent het Gedrag'.untranslated,
+  info: 'Justis'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   backgroundImage: WalletAssets.image_bg_diploma,
   theme: CardFrontTheme.dark,
@@ -147,181 +147,157 @@ const _kMockVOGCardFront = CardFront(
 // endregion
 
 // region DataAttributes
-const _kMockPidDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockPidDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Voornamen',
     value: _kMockFirstNames,
     key: 'mock.firstNames',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Achternaam',
     value: _kMockLastName,
     key: 'mock.lastName',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Naam bij geboorte',
-    value: 'Molenaar',
+    value: const StringValue('Molenaar'),
     key: 'mock.birthName',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geslacht',
     value: _kMockGender,
     key: 'mock.gender',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geboortedatum',
     value: _kMockBirthDate,
     key: 'mock.birthDate',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Ouder dan 18',
-    value: 'Ja',
+    value: const BooleanValue(true),
     key: 'mock.olderThan18',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geboorteplaats',
     value: _kMockBirthPlace,
     key: 'mock.birthPlace',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geboorteland',
-    value: 'Nederland',
+    value: const StringValue('Nederland'),
     key: 'mock.birthCountry',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Burgerservicenummer (BSN)',
-    value: '******999',
+    value: const StringValue('******999'),
     key: 'mock.citizenshipNumber',
     sourceCardId: _kPidId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Nationaliteit',
-    value: 'Nederlands',
+    value: const StringValue('Nederlands'),
     key: 'mock.nationality',
     sourceCardId: _kPidId,
   ),
 ];
 
-const _kMockAddressDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockAddressDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Straatnaam',
-    value: 'Turfmarkt',
+    value: const StringValue('Turfmarkt'),
     key: 'mock.streetName',
     sourceCardId: _kAddressId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Huisnummer',
-    value: '147',
+    value: const StringValue('147'),
     key: 'mock.houseNumber',
     sourceCardId: _kAddressId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Postcode',
-    value: '2511 DP',
+    value: const StringValue('2511 DP'),
     key: 'mock.postalCode',
     sourceCardId: _kAddressId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Woonplaats',
-    value: 'Den Haag',
+    value: const StringValue('Den Haag'),
     key: 'mock.city',
     sourceCardId: _kAddressId,
   ),
 ];
 
-const _kMockDiplomaDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockDiplomaDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Onderwijsinstelling',
-    value: 'Universiteit X',
+    value: const StringValue('Universiteit X'),
     key: 'mock.university',
     sourceCardId: _kDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Opleiding',
-    value: 'WO Bachelor Bedrijfskunde',
+    value: const StringValue('WO Bachelor Bedrijfskunde'),
     key: 'mock.education',
     sourceCardId: _kDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Niveau',
-    value: 'WO',
+    value: const StringValue('WO'),
     key: 'mock.educationLevel',
     sourceCardId: _kDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Type',
-    value: 'Getuigschrift',
+    value: const StringValue('Getuigschrift'),
     sourceCardId: _kDiplomaId,
     key: 'mock.other',
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Uitgifte datum',
-    value: '1 januari 2013',
+    value: DateValue(DateTime(2013, 1, 1)),
     key: 'mock.issuanceDate',
     sourceCardId: _kDiplomaId,
   ),
 ];
 
-const _kMockMasterDiplomaDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockMasterDiplomaDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Onderwijsinstelling',
-    value: 'Universiteit X',
+    value: const StringValue('Universiteit X'),
     key: 'mock.university',
     sourceCardId: _kMasterDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Opleiding',
-    value: 'WO Master Bedrijfskunde',
+    value: const StringValue('WO Master Bedrijfskunde'),
     key: 'mock.education',
     sourceCardId: _kMasterDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Niveau',
-    value: 'WO',
+    value: const StringValue('WO'),
     key: 'mock.educationLevel',
     sourceCardId: _kMasterDiplomaId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Type',
-    value: 'Getuigschrift',
+    value: const StringValue('Getuigschrift'),
     sourceCardId: _kMasterDiplomaId,
     key: 'mock.other',
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Uitgifte datum',
-    value: '1 januari 2015',
+    value: DateValue(DateTime(2015, 1, 1)),
     key: 'mock.issuanceDate',
     sourceCardId: _kMasterDiplomaId,
   ),
@@ -332,136 +308,112 @@ final _kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttrib
 
 List<DataAttribute> _buildDrivingLicenseDataAttributes({required String category}) {
   return [
-    const DataAttribute(
-      valueType: AttributeValueType.image,
-      label: 'Pasfoto',
-      value: WalletAssets.image_person_x,
-      key: 'mock.profilePhoto',
-      sourceCardId: _kDrivingLicenseId,
-    ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Voornamen',
       value: _kMockFirstNames,
       key: 'mock.firstNames',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Naam',
       value: _kMockLastName,
       key: 'mock.lastName',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geboortedatum',
       value: _kMockBirthDate,
       key: 'mock.birthDate',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Geboorteplaats',
       value: _kMockBirthPlace,
       key: 'mock.birthPlace',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Afgiftedatum',
-      value: '23-04-2018',
+      value: DateValue(DateTime(2018, 4, 23)),
       key: 'mock.issuanceDate',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Datum geldig tot',
-      value: '23-04-2028',
+      value: DateValue(DateTime(2028, 4, 23)),
       key: 'mock.expiryDate',
       sourceCardId: _kDrivingLicenseId,
     ),
-    const DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Rijbewijsnummer',
-      value: '99999999999',
+      value: const StringValue('99999999999'),
       sourceCardId: _kDrivingLicenseId,
       key: 'mock.other',
     ),
-    DataAttribute(
-      valueType: AttributeValueType.text,
+    DataAttribute.untranslated(
       label: 'Rijbewijscategorieën',
-      value: category,
+      value: StringValue(category),
       key: 'mock.drivingLicenseCategories',
       sourceCardId: _kDrivingLicenseId,
     ),
   ];
 }
 
-const _kMockHealthInsuranceDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockHealthInsuranceDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Naam',
     value: _kMockFullName,
     key: 'mock.fullName',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geslacht',
     value: _kMockGender,
     key: 'mock.gender',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Geboortedatum',
     value: _kMockBirthDate,
     key: 'mock.birthDate',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Klantnummer',
-    value: '12345678',
+    value: const StringValue('12345678'),
     key: 'mock.healthIssuerClientId',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Kaartnummer',
-    value: '9999999999',
+    value: const StringValue('9999999999'),
     key: 'mock.documentNr',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'UZOVI',
-    value: 'XXXX - 9999',
+    value: const StringValue('XXXX - 9999'),
     key: 'mock.healthIssuerId',
     sourceCardId: _kHealthInsuranceId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Verloopdatum',
-    value: '1 januari 2024',
+    value: DateValue(DateTime(2024, 1, 1)),
     key: 'mock.healthInsuranceExpiryDate',
     sourceCardId: _kHealthInsuranceId,
   ),
 ];
 
-const _kMockVOGDataAttributes = [
-  DataAttribute(
-    valueType: AttributeValueType.text,
+final _kMockVOGDataAttributes = [
+  DataAttribute.untranslated(
     label: 'Type',
-    value: '1',
+    value: const StringValue('1'),
     key: 'mock.certificateOfConduct',
     sourceCardId: _kVOGId,
   ),
-  DataAttribute(
-    valueType: AttributeValueType.text,
+  DataAttribute.untranslated(
     label: 'Datum geldig tot',
-    value: '05-02-2023',
+    value: DateValue(DateTime(2023, 2, 5)),
     key: 'mock.expiryDate',
     sourceCardId: _kVOGId,
   ),
@@ -470,29 +422,25 @@ const _kMockVOGDataAttributes = [
 // endregion
 
 // region RequestedAttributes
-const _kMockGovernmentOrganizationRequestedAttributes = [
-  RequestedAttribute(
+final _kMockGovernmentOrganizationRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'BSN',
     key: 'mock.citizenshipNumber',
-    valueType: AttributeValueType.text,
   ),
 ];
 
-const _kMockHealthInsuranceRequestedAttributes = [
-  RequestedAttribute(
+final _kMockHealthInsuranceRequestedAttributes = [
+  MissingAttribute.untranslated(
     label: 'Voornamen',
     key: 'mock.firstNames',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Achternaam',
     key: 'mock.lastName',
-    valueType: AttributeValueType.text,
   ),
-  RequestedAttribute(
+  MissingAttribute.untranslated(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-    valueType: AttributeValueType.text,
   ),
 ];
 // endregion

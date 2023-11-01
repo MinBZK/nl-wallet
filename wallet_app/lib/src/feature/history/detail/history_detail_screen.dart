@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
@@ -140,7 +141,8 @@ class HistoryDetailScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(left: 56, bottom: 8, right: 16),
               child: DataAttributeSection(
-                sourceCardTitle: attribute is InteractionTimelineAttribute ? entry.key.front.title : null,
+                sourceCardTitle:
+                    attribute is InteractionTimelineAttribute ? entry.key.front.title.l10nValue(context) : null,
                 attributes: entry.value,
               ),
             ),
@@ -299,7 +301,7 @@ class HistoryDetailScreen extends StatelessWidget {
     if (attribute is InteractionTimelineAttribute) {
       title = context.l10n.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
     } else if (attribute is OperationTimelineAttribute) {
-      title = attribute.cardTitle;
+      title = attribute.cardTitle.l10nValue(context);
       subtitle = TimelineAttributeStatusDescriptionTextFormatter.map(context, attribute);
       icon = Icon(
         Icons.credit_card_outlined,

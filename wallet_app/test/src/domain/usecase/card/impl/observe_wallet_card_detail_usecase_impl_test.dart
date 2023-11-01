@@ -36,7 +36,7 @@ void main() {
 
   group('invoke', () {
     test('should return card detail on repository stream emit', () async* {
-      const WalletCard mockCard = WalletMockData.card;
+      final WalletCard mockCard = WalletMockData.card;
 
       when(mockWalletCardRepository.observeWalletCards()).thenAnswer((_) => mockWalletCardsStream);
       when(mockOrganizationRepository.read(mockCard.issuerId))

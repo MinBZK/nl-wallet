@@ -1,13 +1,13 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../domain/model/attribute/requested_attribute.dart';
+import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 
 class DisclosureRequest extends Equatable {
   final String id;
   final Organization organization;
-  final List<RequestedAttribute> requestedAttributes;
+  final List<MockRequestedAttribute> requestedAttributes;
   final String requestPurpose;
   final Policy interactionPolicy;
 

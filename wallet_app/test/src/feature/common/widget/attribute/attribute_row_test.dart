@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
-import 'package:wallet/src/domain/model/attribute/requested_attribute.dart';
+import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
 import 'package:wallet/src/domain/model/attribute/ui_attribute.dart';
 import 'package:wallet/src/feature/common/widget/attribute/attribute_row.dart';
 
@@ -20,11 +21,11 @@ void main() {
         'light ui attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
-            const AttributeRow(
-              attribute: UiAttribute(
+            AttributeRow(
+              attribute: UiAttribute.untranslated(
                 key: 'key',
                 label: 'Label',
-                value: 'Value',
+                value: const StringValue('Value'),
                 icon: Icons.add_card_outlined,
               ),
             ),
@@ -38,11 +39,11 @@ void main() {
         'dark ui attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
-            const AttributeRow(
-              attribute: UiAttribute(
+            AttributeRow(
+              attribute: UiAttribute.untranslated(
                 key: 'key',
                 label: 'Label',
-                value: 'Value',
+                value: const StringValue('Value'),
                 icon: Icons.add_card_outlined,
               ),
             ),
@@ -57,11 +58,10 @@ void main() {
         'light requested text attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
-            const AttributeRow(
-              attribute: RequestedAttribute(
+            AttributeRow(
+              attribute: MissingAttribute.untranslated(
                 label: 'Text',
                 key: 'mock.other',
-                valueType: AttributeValueType.text,
               ),
             ),
             wrapper: walletAppWrapper(brightness: Brightness.light),
@@ -74,11 +74,10 @@ void main() {
         'light requested image attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
-            const AttributeRow(
-              attribute: RequestedAttribute(
+            AttributeRow(
+              attribute: MissingAttribute.untranslated(
                 label: 'Image',
                 key: 'mock.other',
-                valueType: AttributeValueType.image,
               ),
             ),
             wrapper: walletAppWrapper(brightness: Brightness.light),
@@ -92,13 +91,12 @@ void main() {
         'light data text attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
-            const AttributeRow(
-              attribute: DataAttribute(
+            AttributeRow(
+              attribute: DataAttribute.untranslated(
                 label: 'Label',
-                value: 'Value',
+                value: const StringValue('Value'),
                 sourceCardId: '',
                 key: 'mock.other',
-                valueType: AttributeValueType.text,
               ),
             ),
             wrapper: walletAppWrapper(brightness: Brightness.light),
@@ -113,11 +111,11 @@ void main() {
   group('widgets', () {
     testWidgets('Label and value are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const AttributeRow(
-          attribute: UiAttribute(
+        AttributeRow(
+          attribute: UiAttribute.untranslated(
             key: 'K',
             label: 'L',
-            value: 'V',
+            value: const StringValue('V'),
             icon: Icons.add_card_outlined,
           ),
         ),

@@ -1,9 +1,10 @@
+import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
 import 'timeline_attribute.dart';
 
 class OperationTimelineAttribute extends TimelineAttribute {
   final OperationStatus status;
-  final String cardTitle;
+  final LocalizedText cardTitle;
 
   const OperationTimelineAttribute({
     required this.status,

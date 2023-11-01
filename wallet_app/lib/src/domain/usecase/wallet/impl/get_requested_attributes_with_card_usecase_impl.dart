@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../model/attribute/data_attribute.dart';
-import '../../../model/attribute/requested_attribute.dart';
+import '../../../model/attribute/missing_attribute.dart';
 import '../../../model/wallet_card.dart';
 import '../get_requested_attributes_with_card_usecase.dart';
 
@@ -12,7 +12,7 @@ class GetRequestedAttributesWithCardUseCaseImpl implements GetRequestedAttribute
   GetRequestedAttributesWithCardUseCaseImpl(this._repository);
 
   @override
-  Future<Map<WalletCard, List<DataAttribute>>> invoke(List<RequestedAttribute> requestedAttributes) async {
+  Future<Map<WalletCard, List<DataAttribute>>> invoke(List<MissingAttribute> requestedAttributes) async {
     final List<WalletCard> cards = await _repository.readAll();
 
     final List<DataAttribute> foundAttributes = [];
@@ -26,7 +26,7 @@ class GetRequestedAttributesWithCardUseCaseImpl implements GetRequestedAttribute
     });
   }
 
-  Future<DataAttribute?> _findAttribute(List<WalletCard> cards, RequestedAttribute requestedAttribute) async {
+  Future<DataAttribute?> _findAttribute(List<WalletCard> cards, MissingAttribute requestedAttribute) async {
     for (final card in cards) {
       final foundAttribute = card.attributes.firstWhereOrNull((attr) => attr.key == requestedAttribute.key);
       if (foundAttribute != null) return foundAttribute;

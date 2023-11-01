@@ -29,7 +29,8 @@ class TimelineAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String titleText = TimelineAttributeTitleFormatter.format(attribute, showOperationTitle: showOperationTitle);
+    final String titleText =
+        TimelineAttributeTitleFormatter.format(context, attribute, showOperationTitle: showOperationTitle);
     final String timeAgoText = TimeAgoFormatter.format(context, attribute.dateTime);
 
     return InkWell(

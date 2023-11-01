@@ -6,6 +6,7 @@ import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.da
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/timeline_section.dart';
 import 'package:wallet/src/feature/common/widget/history/timeline_section_sliver.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/mock_data.dart';
@@ -15,10 +16,7 @@ void main() {
   final mockAttributes = [
     InteractionTimelineAttribute(
       dateTime: DateTime(2023, 1, 1),
-      dataAttributes: const [
-        WalletMockData.textDataAttribute,
-        WalletMockData.imageDataAttribute,
-      ],
+      dataAttributes: [WalletMockData.textDataAttribute],
       organization: WalletMockData.organization,
       status: InteractionStatus.success,
       policy: WalletMockData.policy,
@@ -26,19 +24,13 @@ void main() {
     ),
     OperationTimelineAttribute(
         dateTime: DateTime(2023, 1, 2),
-        dataAttributes: const [
-          WalletMockData.textDataAttribute,
-          WalletMockData.imageDataAttribute,
-        ],
+        dataAttributes: [WalletMockData.textDataAttribute],
         organization: WalletMockData.organization,
         status: OperationStatus.expired,
-        cardTitle: 'Card Title'),
+        cardTitle: 'Card Title'.untranslated),
     SigningTimelineAttribute(
       dateTime: DateTime(2023, 1, 3),
-      dataAttributes: const [
-        WalletMockData.textDataAttribute,
-        WalletMockData.imageDataAttribute,
-      ],
+      dataAttributes: [WalletMockData.textDataAttribute],
       organization: WalletMockData.organization,
       status: SigningStatus.success,
       policy: WalletMockData.policy,

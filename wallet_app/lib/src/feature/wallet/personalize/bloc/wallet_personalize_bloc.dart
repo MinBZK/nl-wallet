@@ -25,8 +25,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final RejectOfferedPidUseCase rejectOfferedPidUseCase;
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
 
-  StreamSubscription? _pidIssuanceStatusSubscription;
-
   WalletPersonalizeBloc(
     Uri? pidIssuanceUri,
     this.getWalletCardsUseCase,
@@ -46,31 +44,24 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
 
     if (pidIssuanceUri != null) {
-      _pidIssuanceStatusSubscription =
-          continuePidIssuanceUseCase.invoke(pidIssuanceUri).listen(_handlePidIssuanceStatusUpdate);
+      _continuePidIssuance(pidIssuanceUri);
     }
   }
 
-  void _handlePidIssuanceStatusUpdate(PidIssuanceStatus event) {
-    switch (event) {
-      case PidIssuanceAuthenticating():
-        add(WalletPersonalizeAuthInProgress());
-        break;
-      case PidIssuanceSuccess():
-        // It's possible that [PidIssuanceSuccess] comes in twice, e.g. when the device language changed, handling this accordingly based on the current state.
-        if (state is WalletPersonalizeAuthenticating || state is WalletPersonalizeCheckData) {
-          add(WalletPersonalizeLoginWithDigidSucceeded(event.previews));
-        } else if (state is WalletPersonalizeConfirmPin) {
-          // Make sure the translations are updated in the edge case where the user changes language on the pin screen and navigates back.
-          add(WalletPersonalizeOfferingAccepted(event.previews));
-        }
-        break;
-      case PidIssuanceError():
-        //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
-        final cancelledByUser = event.error == RedirectError.accessDenied;
-        add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
-        _pidIssuanceStatusSubscription?.cancel();
-        break;
+  void _continuePidIssuance(Uri uri) async {
+    try {
+      add(WalletPersonalizeAuthInProgress());
+      final result = await continuePidIssuanceUseCase.invoke(uri);
+      switch (result) {
+        case PidIssuanceSuccess():
+          add(WalletPersonalizeLoginWithDigidSucceeded(result.previews));
+        case PidIssuanceError():
+          //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
+          final cancelledByUser = result.error == RedirectError.accessDenied;
+          add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
+      }
+    } catch (ex) {
+      add(const WalletPersonalizeLoginWithDigidFailed());
     }
   }
 
@@ -98,8 +89,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         await cancelPidIssuanceUseCase.invoke();
       } catch (ex, stack) {
         Fimber.e('Failed to cancel PID issuance', ex: ex, stacktrace: stack);
+      } finally {
+        emit(WalletPersonalizeDigidCancelled());
       }
-      emit(WalletPersonalizeDigidCancelled());
     } else {
       emit(WalletPersonalizeDigidFailure());
     }
@@ -156,11 +148,5 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       Fimber.e('Failed to fetch cards from wallet', ex: ex, stacktrace: stack);
       emit(WalletPersonalizeFailure());
     }
-  }
-
-  @override
-  Future<void> close() async {
-    _pidIssuanceStatusSubscription?.cancel();
-    super.close();
   }
 }

@@ -68,6 +68,7 @@ class CardOverviewScreen extends StatelessWidget {
     return Hero(
       tag: walletCard.id,
       child: WalletCardItem.fromCardFront(
+        context: context,
         front: walletCard.front,
         onPressed: () => _onCardPressed(context, walletCard),
       ),
@@ -79,7 +80,7 @@ class CardOverviewScreen extends StatelessWidget {
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDetailRoute,
-      arguments: CardDetailScreenArgument.forCard(walletCard).toMap(),
+      arguments: CardDetailScreenArgument.forCard(walletCard).toJson(),
     );
   }
 

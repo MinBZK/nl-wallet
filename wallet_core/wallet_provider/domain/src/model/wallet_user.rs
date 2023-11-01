@@ -1,8 +1,9 @@
 use chrono::{DateTime, Local};
-use p256::ecdsa::{SigningKey, VerifyingKey};
+use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::model::wrapped_key::WrappedKey;
 use wallet_common::account::serialization::DerVerifyingKey;
 
 pub type WalletId = String;
@@ -39,9 +40,17 @@ pub struct WalletUserCreate {
     pub pin_pubkey: VerifyingKey,
 }
 
-pub struct WalletUserKeysCreate {
+#[derive(Clone)]
+pub struct WalletUserKeys {
     pub wallet_user_id: Uuid,
-    pub keys: Vec<(Uuid, String, SigningKey)>,
+    pub keys: Vec<WalletUserKey>,
+}
+
+#[derive(Clone)]
+pub struct WalletUserKey {
+    pub wallet_user_key_id: Uuid,
+    pub key_identifier: String,
+    pub key: WrappedKey,
 }
 
 #[cfg(feature = "mock")]

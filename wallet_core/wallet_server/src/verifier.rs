@@ -25,7 +25,7 @@ use nl_wallet_mdoc::{
         serialization::cbor_serialize,
         x509::{Certificate, OwnedTrustAnchor},
     },
-    verifier::{DisclosureData, ItemsRequests, StatusResponse, VerificationError, Verifier},
+    verifier::{DisclosureData, ItemsRequests, SessionType, StatusResponse, VerificationError, Verifier},
     SessionData,
 };
 
@@ -146,6 +146,7 @@ where
 pub struct StartDisclosureRequest {
     pub usecase: String,
     pub items_requests: ItemsRequests,
+    pub session_type: SessionType,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -163,7 +164,11 @@ where
 {
     let (session_id, engagement) = state
         .verifier
-        .new_session(start_request.items_requests, start_request.usecase)
+        .new_session(
+            start_request.items_requests,
+            start_request.session_type,
+            start_request.usecase,
+        )
         .map_err(Error::StartSession)?;
 
     let session_url = state

@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/card/overview/bloc/card_overview_bloc.dart';
 import 'package:wallet/src/feature/card/overview/card_overview_screen.dart';
 
@@ -19,7 +20,7 @@ void main() {
           ..addScenario(
             widget: const CardOverviewScreen().withState<CardOverviewBloc, CardOverviewState>(
               MockCardOverviewBloc(),
-              const CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+              CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -33,7 +34,7 @@ void main() {
           ..addScenario(
             widget: const CardOverviewScreen().withState<CardOverviewBloc, CardOverviewState>(
               MockCardOverviewBloc(),
-              const CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+              CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -67,13 +68,13 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const CardOverviewScreen().withState<CardOverviewBloc, CardOverviewState>(
           MockCardOverviewBloc(),
-          const CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+          CardOverviewLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
         ),
       );
 
       // Validate that the widget exists
-      final cardTitleFinder = find.text(WalletMockData.card.front.title);
-      final altCardTitleFinder = find.text(WalletMockData.altCard.front.title);
+      final cardTitleFinder = find.text(WalletMockData.card.front.title.testValue);
+      final altCardTitleFinder = find.text(WalletMockData.altCard.front.title.testValue);
       expect(cardTitleFinder, findsOneWidget);
       expect(altCardTitleFinder, findsOneWidget);
     });

@@ -1,6 +1,6 @@
 import '../../../data/repository/organization/organization_repository.dart';
 import '../attribute/data_attribute.dart';
-import '../attribute/requested_attribute.dart';
+import '../attribute/missing_attribute.dart';
 import '../wallet_card.dart';
 
 sealed class StartDisclosureResult {
@@ -16,7 +16,7 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
 }
 
 class StartDisclosureMissingAttributes extends StartDisclosureResult {
-  final List<RequestedAttribute> missingAttributes;
+  final List<MissingAttribute> missingAttributes;
 
   StartDisclosureMissingAttributes(super.relyingParty, this.missingAttributes);
 }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fimber/fimber.dart';
-import 'package:rxdart/rxdart.dart';
 
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../util/cast_util.dart';
@@ -14,17 +13,14 @@ class ContinuePidIssuanceUseCaseImpl implements ContinuePidIssuanceUseCase {
   ContinuePidIssuanceUseCaseImpl(this._pidRepository);
 
   @override
-  Stream<PidIssuanceStatus> invoke(Uri uri) {
-    return _pidRepository
-        .continuePidIssuance(uri)
-        .map<PidIssuanceStatus>((attributes) => PidIssuanceSuccess(attributes))
-        .startWith(PidIssuanceAuthenticating())
-        .onErrorReturnWith(
-      (ex, stack) {
-        Fimber.e('Pid issuance failed', ex: ex);
-        return PidIssuanceError(_extractRedirectError(ex));
-      },
-    );
+  Future<PidIssuanceStatus> invoke(Uri uri) async {
+    try {
+      final result = await _pidRepository.continuePidIssuance(uri);
+      return PidIssuanceSuccess(result);
+    } catch (ex) {
+      Fimber.e('Failed to continue pid issuance', ex: ex);
+      return PidIssuanceError(_extractRedirectError(ex));
+    }
   }
 
   RedirectError _extractRedirectError(Object exception) {
