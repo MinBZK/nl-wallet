@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/service/app_lifecycle_service.dart';
 import '../data/service/deeplink_service.dart';
+import '../data/service/navigation_service.dart';
 
 class WalletServiceProvider extends StatelessWidget {
   final Widget child;
@@ -22,11 +23,16 @@ class WalletServiceProvider extends StatelessWidget {
         RepositoryProvider<AppLifecycleService>(
           create: (context) => AppLifecycleService(),
         ),
+        RepositoryProvider<NavigationService>(
+          create: (context) => NavigationService(
+            navigatorKey,
+            context.read(),
+            context.read(),
+          ),
+        ),
         RepositoryProvider<DeeplinkService>(
           create: (context) => DeeplinkService(
             AppLinks(),
-            navigatorKey,
-            context.read(),
             context.read(),
             context.read(),
             context.read(),
