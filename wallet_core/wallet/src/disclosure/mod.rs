@@ -65,24 +65,11 @@ where
 mod mock {
     use super::*;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUri,
         pub reader_registration: ReaderRegistration,
         pub proposed_attributes: PropsedAttributes,
-    }
-
-    impl Default for MockMdocDisclosureSession {
-        fn default() -> Self {
-            MockMdocDisclosureSession {
-                disclosure_uri: DisclosureUri {
-                    reader_engagement_bytes: Default::default(),
-                    return_url: Default::default(),
-                },
-                reader_registration: Default::default(),
-                proposed_attributes: Default::default(),
-            }
-        }
     }
 
     #[async_trait]

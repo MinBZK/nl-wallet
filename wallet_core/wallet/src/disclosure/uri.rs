@@ -16,6 +16,8 @@ pub enum DisclosureUriError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(any(test, feature = "mock"))]
+#[derive(Default)]
 pub struct DisclosureUri {
     pub reader_engagement_bytes: Vec<u8>,
     pub return_url: Option<Url>,
