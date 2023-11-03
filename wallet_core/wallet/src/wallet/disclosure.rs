@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
 use crate::{
     config::ConfigurationRepository,
     disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
-    document::{DisclosedDocument, DocumentMdocError, MissingDisclosureAttributes},
+    document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     storage::{Storage, StorageError},
 };
 
@@ -20,7 +20,7 @@ use super::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
-    pub documents: Vec<DisclosedDocument>,
+    pub documents: Vec<ProposedDisclosureDocument>,
     pub reader_registration: ReaderRegistration,
 }
 
@@ -101,11 +101,11 @@ where
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = R::start(disclosure_uri, self, &config.mdoc_trust_anchors()).await?;
 
-        // Prepare a `Vec<DisclosedDocument>` to report to the caller.
+        // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = session
-            .disclosed_attributes()
+            .proposed_attributes()
             .into_iter()
-            .map(|(doc_type, attributes)| DisclosedDocument::from_mdoc_attributes(&doc_type, attributes))
+            .map(|(doc_type, attributes)| ProposedDisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()?;
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.

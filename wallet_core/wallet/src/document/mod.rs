@@ -64,7 +64,7 @@ pub struct MissingDisclosureAttributes {
 }
 
 #[derive(Debug, Clone)]
-pub struct DisclosedDocument {
+pub struct ProposedDisclosureDocument {
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
 }

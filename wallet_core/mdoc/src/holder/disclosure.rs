@@ -45,7 +45,7 @@ pub trait MdocDataSource {
     async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error>;
 }
 
-pub type DiclosedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+pub type PropsedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
 
 // TODO: not all of these fields may be necessary to finish the session.
 #[allow(dead_code)]
@@ -232,7 +232,7 @@ where
         self.return_url.as_ref()
     }
 
-    pub fn disclosed_attributes(&self) -> DiclosedAttributes {
+    pub fn proposed_attributes(&self) -> PropsedAttributes {
         // For every `Mdoc`, get the attributes contained and filter
         // only those that are present in the `DeviceRequest`.
         self.mdocs

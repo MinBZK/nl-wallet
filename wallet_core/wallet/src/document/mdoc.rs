@@ -10,8 +10,8 @@ use nl_wallet_mdoc::{
 
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, DisclosedDocument, Document, DocumentAttributes, DocumentPersistence,
-    GenderAttributeValue, MissingDisclosureAttributes,
+    Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
+    MissingDisclosureAttributes, ProposedDisclosureDocument,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -274,14 +274,14 @@ impl MissingDisclosureAttributes {
     }
 }
 
-impl DisclosedDocument {
+impl ProposedDisclosureDocument {
     pub(crate) fn from_mdoc_attributes(
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
         let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes)?;
 
-        let document = DisclosedDocument {
+        let document = ProposedDisclosureDocument {
             doc_type,
             attributes: document_attributes,
         };

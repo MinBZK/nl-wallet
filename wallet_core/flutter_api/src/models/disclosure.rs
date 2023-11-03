@@ -1,6 +1,6 @@
 use wallet::{
-    errors::DisclosureError, mdoc::ReaderRegistration, DisclosedDocument, DisclosureProposal,
-    MissingDisclosureAttributes,
+    errors::DisclosureError, mdoc::ReaderRegistration, DisclosureProposal, MissingDisclosureAttributes,
+    ProposedDisclosureDocument,
 };
 
 use super::card::{CardAttribute, LocalizedString};
@@ -40,7 +40,7 @@ impl From<ReaderRegistration> for RelyingParty {
 }
 
 impl RequestedCard {
-    fn from_disclosed_documents(documents: Vec<DisclosedDocument>) -> Vec<Self> {
+    fn from_disclosed_documents(documents: Vec<ProposedDisclosureDocument>) -> Vec<Self> {
         documents
             .into_iter()
             .map(|document| {

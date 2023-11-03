@@ -3,9 +3,8 @@ mod uri;
 use async_trait::async_trait;
 
 use nl_wallet_mdoc::{
-    holder::{CborHttpClient, DisclosureSession, MdocDataSource, TrustAnchor},
+    holder::{CborHttpClient, DisclosureSession, MdocDataSource, PropsedAttributes, TrustAnchor},
     utils::reader_auth::ReaderRegistration,
-    verifier::DisclosedAttributes,
 };
 
 use crate::utils;
@@ -26,7 +25,7 @@ pub trait MdocDisclosureSession<D> {
         Self: Sized;
 
     fn reader_registration(&self) -> &ReaderRegistration;
-    fn disclosed_attributes(&self) -> DisclosedAttributes;
+    fn proposed_attributes(&self) -> PropsedAttributes;
 }
 
 #[async_trait]
@@ -57,8 +56,8 @@ where
         self.reader_registration()
     }
 
-    fn disclosed_attributes(&self) -> DisclosedAttributes {
-        self.disclosed_attributes()
+    fn proposed_attributes(&self) -> PropsedAttributes {
+        self.proposed_attributes()
     }
 }
 
@@ -70,7 +69,7 @@ mod mock {
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUri,
         pub reader_registration: ReaderRegistration,
-        pub disclosed_attributes: DisclosedAttributes,
+        pub proposed_attributes: PropsedAttributes,
     }
 
     impl Default for MockMdocDisclosureSession {
@@ -81,7 +80,7 @@ mod mock {
                     return_url: Default::default(),
                 },
                 reader_registration: Default::default(),
-                disclosed_attributes: Default::default(),
+                proposed_attributes: Default::default(),
             }
         }
     }
@@ -105,8 +104,8 @@ mod mock {
             &self.reader_registration
         }
 
-        fn disclosed_attributes(&self) -> DisclosedAttributes {
-            self.disclosed_attributes.clone()
+        fn proposed_attributes(&self) -> PropsedAttributes {
+            self.proposed_attributes.clone()
         }
     }
 }
