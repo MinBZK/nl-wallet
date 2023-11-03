@@ -44,7 +44,7 @@ pub enum HolderError {
     #[error("missing issuance session state")]
     MissingIssuanceSessionState,
     #[error("verifier URL not present in reader engagement")]
-    VerifiedUrlMissing,
+    VerifierUrlMissing,
     #[error("verifier ephemeral key not present in reader engagement")]
     VerifierEphemeralKeyMissing,
     #[error("no document requests are present in device request")]

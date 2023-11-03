@@ -81,7 +81,7 @@ where
             .as_ref()
             .and_then(|methods| methods.first())
             .map(|method| &method.0.connection_options.0.uri)
-            .ok_or(HolderError::VerifiedUrlMissing)?
+            .ok_or(HolderError::VerifierUrlMissing)?
             .clone();
 
         let verifier_pubkey = reader_engagement
