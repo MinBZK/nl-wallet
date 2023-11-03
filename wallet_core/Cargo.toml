@@ -11,6 +11,7 @@ members = [
     "wallet",
     "wallet/entity",
     "wallet/migration",
+    "wallet_ca",
     "wallet_common",
     "wallet_provider",
     "wallet_provider/database_settings",
@@ -32,6 +33,8 @@ rust-version = "1.73"
 aes-gcm = "0.10.1"
 android_logger = "0.13.1"
 anyhow = "1.0.66"
+assert_cmd = "2.0.12"
+assert_fs = "1.0.13"
 assert_matches = "1"
 async-trait = "0.1.68"
 axum = { version = "0.6.19", default-features = false }
@@ -39,6 +42,8 @@ backtrace = "0.3.67"
 base64 = "0.21.0"
 chrono = { version = "0.4.26", default-features = false }
 ciborium = "0.2.1"
+clap = "4.4.7"
+clio = "0.3.4"
 config = { version = "0.13.3", default-features = false }
 coset = "0.3.3"
 cryptoki = "0.6.0"
@@ -53,6 +58,7 @@ hex = "0.4.3"
 hex-literal = "0.4.1"
 http = "0.2.9"
 indexmap = "2.0.2"
+itertools = "0.11.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = "8.2.0"
@@ -66,6 +72,8 @@ openid = { version = "0.12.0", default-features = false }
 openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
+pem = "3.0.2"
+predicates = "3.0.4"
 proc-macro2 = "1.0.66"
 quote = "1.0.26"
 r2d2-cryptoki = "0.2.1"
