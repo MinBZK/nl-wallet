@@ -1,23 +1,31 @@
+use std::fmt::{Debug, Formatter};
+
 use chrono::{DateTime, Local};
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::model::wrapped_key::WrappedKey;
 use wallet_common::account::serialization::DerVerifyingKey;
+
+use crate::model::{encrypted::Encrypted, wrapped_key::WrappedKey};
 
 pub type WalletId = String;
 
-#[derive(Serialize, Debug)]
 pub struct WalletUser {
     pub id: Uuid,
     pub wallet_id: WalletId,
     pub hw_pubkey: DerVerifyingKey,
-    pub pin_pubkey: DerVerifyingKey,
+    pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     pub unsuccessful_pin_entries: u8,
     pub last_unsuccessful_pin_entry: Option<DateTime<Local>>,
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
+}
+
+impl Debug for WalletUser {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.wallet_id)
+    }
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -37,7 +45,7 @@ pub struct WalletUserCreate {
     pub id: Uuid,
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
-    pub pin_pubkey: VerifyingKey,
+    pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
 }
 
 #[derive(Clone)]
@@ -60,9 +68,12 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use uuid::uuid;
 
-    use wallet_common::account::serialization::DerVerifyingKey;
+    use wallet_common::{account::serialization::DerVerifyingKey, utils::random_bytes};
 
-    use crate::model::wallet_user::WalletUser;
+    use crate::model::{
+        encrypted::{Encrypted, InitializationVector},
+        wallet_user::WalletUser,
+    };
 
     pub fn wallet_user_1() -> WalletUser {
         WalletUser {
@@ -78,16 +89,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
                 )
                 .unwrap(),
             ),
-            pin_pubkey: DerVerifyingKey(
-                VerifyingKey::from_str(
-                    r#"-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5hSrSlRFtqYZ5zP+Fth8wwRGBsk4
-3y/LssXgXj1H3QExJGtEtGlh/LqYPvFwdaNvMYgUtpummzqvIgiuIiOYig==
------END PUBLIC KEY-----
-"#,
-                )
-                .unwrap(),
-            ),
+            encrypted_pin_pubkey: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
             unsuccessful_pin_entries: 0,
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,

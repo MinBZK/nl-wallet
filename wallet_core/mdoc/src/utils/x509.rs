@@ -422,6 +422,7 @@ mod test {
                 ("en", "Description of My Organization"),
             ]
             .into(),
+            kvk: Some("some-kvk".to_owned()),
             city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
             country: Some("nl".to_owned()),
             web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),

@@ -3,12 +3,11 @@ use std::{path::PathBuf, sync::Arc};
 use async_trait::async_trait;
 use cryptoki::{
     context::{CInitializeArgs, Pkcs11},
-    mechanism::Mechanism,
+    mechanism::{aead::GcmParams, Mechanism},
     object::{Attribute, AttributeType, KeyType, ObjectClass, ObjectHandle},
     types::AuthPin,
 };
 use der::{asn1::OctetString, Decode, Encode};
-use futures::future;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::AssociatedOid,
@@ -18,7 +17,14 @@ use r2d2_cryptoki::{Pool, SessionManager, SessionType};
 use sec1::EcParameters;
 
 use wallet_common::{spawn, utils::sha256};
-use wallet_provider_domain::model::{wallet_user::WalletId, wrapped_key::WrappedKey};
+use wallet_provider_domain::model::{
+    encrypted::{Encrypted, InitializationVector},
+    encrypter::{Decrypter, Encrypter},
+    hsm,
+    hsm::{Hsm, WalletUserHsm},
+    wallet_user::WalletId,
+    wrapped_key::WrappedKey,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {
@@ -31,11 +37,11 @@ pub enum HsmError {
     #[error("sec1 error: {0}")]
     Sec1(#[from] sec1::der::Error),
 
-    #[error("p256 error: {0}")]
-    P256(#[from] p256::ecdsa::Error),
-
     #[error("no initialized slot available")]
     NoInitializedSlotAvailable,
+
+    #[error("p256 error: {0}")]
+    P256(#[from] p256::ecdsa::Error),
 
     #[error("attribute not found: '{0}'")]
     AttributeNotFound(String),
@@ -49,70 +55,11 @@ type Result<T> = std::result::Result<T, HsmError>;
 pub(crate) struct PrivateKeyHandle(ObjectHandle);
 pub(crate) struct PublicKeyHandle(ObjectHandle);
 
+const AES_AUTHENTICATION_TAG_BITS: u64 = 128;
+
 enum HandleType {
     Public,
     Private,
-}
-
-#[async_trait]
-pub trait WalletUserHsm {
-    async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)>;
-
-    async fn generate_wrapped_keys(&self, identifiers: &[&str]) -> Result<Vec<(String, VerifyingKey, WrappedKey)>> {
-        future::try_join_all(identifiers.iter().map(|identifier| async move {
-            let result = self.generate_wrapped_key().await;
-            result.map(|(pub_key, wrapped)| (String::from(*identifier), pub_key, wrapped))
-        }))
-        .await
-    }
-
-    async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey>;
-
-    async fn generate_keys(&self, wallet_id: &WalletId, identifiers: &[&str]) -> Result<Vec<(String, VerifyingKey)>> {
-        future::try_join_all(identifiers.iter().map(|identifier| async move {
-            let result = self.generate_key(wallet_id, identifier).await;
-            result.map(|pub_key| (String::from(*identifier), pub_key))
-        }))
-        .await
-    }
-
-    async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature>;
-
-    async fn sign_multiple_wrapped(
-        &self,
-        wrapped_keys: Vec<(String, WrappedKey)>,
-        data: Arc<Vec<u8>>,
-    ) -> Result<Vec<(String, Signature)>> {
-        future::try_join_all(wrapped_keys.into_iter().map(|(identifier, wrapped_key)| async {
-            self.sign_wrapped(wrapped_key, Arc::clone(&data))
-                .await
-                .map(|signature| (identifier, signature))
-        }))
-        .await
-    }
-
-    async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature>;
-
-    async fn sign_multiple(
-        &self,
-        wallet_id: &WalletId,
-        identifiers: &[&str],
-        data: Arc<Vec<u8>>,
-    ) -> Result<Vec<(String, Signature)>> {
-        future::try_join_all(identifiers.iter().map(|identifier| async {
-            self.sign(wallet_id, identifier, Arc::clone(&data))
-                .await
-                .map(|signature| (String::from(*identifier), signature))
-        }))
-        .await
-    }
-}
-
-#[async_trait]
-pub trait Hsm {
-    async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey>;
-    async fn delete_key(&self, identifier: &str) -> Result<()>;
-    async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature>;
 }
 
 #[async_trait]
@@ -131,6 +78,19 @@ pub(crate) trait Pkcs11Client {
     ) -> Result<PrivateKeyHandle>;
     async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()>;
     async fn sign(&self, private_key_handle: PrivateKeyHandle, data: Arc<Vec<u8>>) -> Result<Signature>;
+    async fn random_bytes(&self, length: u32) -> Result<Vec<u8>>;
+    async fn encrypt(
+        &self,
+        key_handle: PrivateKeyHandle,
+        iv: InitializationVector,
+        data: Vec<u8>,
+    ) -> Result<(Vec<u8>, InitializationVector)>;
+    async fn decrypt(
+        &self,
+        key_handle: PrivateKeyHandle,
+        iv: InitializationVector,
+        encrypted_data: Vec<u8>,
+    ) -> Result<Vec<u8>>;
 }
 
 #[derive(Clone)]
@@ -158,10 +118,6 @@ impl Pkcs11Hsm {
         })
     }
 
-    fn key_identifier(prefix: &str, identifier: &str) -> String {
-        format!("{prefix}_{identifier}")
-    }
-
     async fn get_key_handle(&self, identifier: &str, handle_type: HandleType) -> Result<ObjectHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -183,7 +139,37 @@ impl Pkcs11Hsm {
 }
 
 #[async_trait]
+impl Encrypter<VerifyingKey> for Pkcs11Hsm {
+    type Error = HsmError;
+
+    async fn encrypt(
+        &self,
+        key_identifier: &str,
+        data: VerifyingKey,
+    ) -> std::result::Result<Encrypted<VerifyingKey>, Self::Error> {
+        let bytes: Vec<u8> = data.to_sec1_bytes().to_vec();
+        Hsm::encrypt(self, key_identifier, bytes).await
+    }
+}
+
+#[async_trait]
+impl Decrypter<VerifyingKey> for Pkcs11Hsm {
+    type Error = HsmError;
+
+    async fn decrypt(
+        &self,
+        key_identifier: &str,
+        encrypted: Encrypted<VerifyingKey>,
+    ) -> std::result::Result<VerifyingKey, Self::Error> {
+        let decrypted = Hsm::decrypt(self, key_identifier, encrypted).await?;
+        Ok(VerifyingKey::from_sec1_bytes(&decrypted)?)
+    }
+}
+
+#[async_trait]
 impl WalletUserHsm for Pkcs11Hsm {
+    type Error = HsmError;
+
     async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)> {
         let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
@@ -194,7 +180,7 @@ impl WalletUserHsm for Pkcs11Hsm {
     }
 
     async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
-        let key_identifier = Pkcs11Hsm::key_identifier(wallet_id, identifier);
+        let key_identifier = hsm::key_identifier(wallet_id, identifier);
         let (public_handle, _private_handle) = self.generate_signing_key_pair(&key_identifier).await?;
         Pkcs11Client::get_verifying_key(self, public_handle).await
     }
@@ -206,7 +192,7 @@ impl WalletUserHsm for Pkcs11Hsm {
     }
 
     async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
-        let key_identifier = Pkcs11Hsm::key_identifier(wallet_id, identifier);
+        let key_identifier = hsm::key_identifier(wallet_id, identifier);
         let handle = self.get_private_key_handle(&key_identifier).await?;
         Pkcs11Client::sign(self, handle, data).await
     }
@@ -214,6 +200,8 @@ impl WalletUserHsm for Pkcs11Hsm {
 
 #[async_trait]
 impl Hsm for Pkcs11Hsm {
+    type Error = HsmError;
+
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
         Pkcs11Client::get_verifying_key(self, handle).await
@@ -228,6 +216,19 @@ impl Hsm for Pkcs11Hsm {
     async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
         let handle = self.get_private_key_handle(identifier).await?;
         Pkcs11Client::sign(self, handle, data).await
+    }
+
+    async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
+        let iv = self.random_bytes(32).await?;
+        let handle = self.get_private_key_handle(identifier).await?;
+        let (encrypted_data, initializiation_vector) =
+            Pkcs11Client::encrypt(self, handle, InitializationVector(iv), data).await?;
+        Ok(Encrypted::new(encrypted_data, initializiation_vector))
+    }
+
+    async fn decrypt<T: Send>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
+        let handle = self.get_private_key_handle(identifier).await?;
+        Pkcs11Client::decrypt(self, handle, encrypted.iv, encrypted.data).await
     }
 }
 
@@ -410,88 +411,54 @@ impl Pkcs11Client for Pkcs11Hsm {
 
         spawn::blocking(move || {
             let session = pool.get()?;
-            let signature = session.sign(&Mechanism::Ecdsa, private_key_handle.0, &sha256(data.as_ref()))?;
+            let signature = session.sign(&Mechanism::Ecdsa, private_key_handle.0, &sha256(&data))?;
             Ok(Signature::from_slice(&signature)?)
         })
         .await
     }
-}
 
-#[cfg(feature = "mock")]
-pub mod mock {
-    use std::sync::Arc;
+    async fn random_bytes(&self, length: u32) -> Result<Vec<u8>> {
+        let pool = self.pool.clone();
 
-    use async_trait::async_trait;
-    use dashmap::DashMap;
-    use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-    use rand::rngs::OsRng;
-
-    use wallet_provider_domain::model::{wallet_user::WalletId, wrapped_key::WrappedKey};
-
-    use crate::hsm::{Hsm, Pkcs11Hsm, Result, WalletUserHsm};
-
-    pub struct MockPkcs11Client(DashMap<String, SigningKey>);
-
-    impl MockPkcs11Client {
-        pub fn get_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey> {
-            let entry = self.0.get(&Pkcs11Hsm::key_identifier(key_prefix, identifier)).unwrap();
-            let key = entry.value().clone();
-            Ok(key)
-        }
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let data = session.generate_random_vec(length)?;
+            Ok(data)
+        })
+        .await
     }
 
-    impl Default for MockPkcs11Client {
-        fn default() -> Self {
-            Self(DashMap::new())
-        }
+    async fn encrypt(
+        &self,
+        key_handle: PrivateKeyHandle,
+        iv: InitializationVector,
+        data: Vec<u8>,
+    ) -> Result<(Vec<u8>, InitializationVector)> {
+        let pool = self.pool.clone();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let gcm_params = GcmParams::new(&iv.0, &[], AES_AUTHENTICATION_TAG_BITS.into());
+            let encrypted_data = session.encrypt(&Mechanism::AesGcm(gcm_params), key_handle.0, &data)?;
+            Ok((encrypted_data, iv))
+        })
+        .await
     }
 
-    #[async_trait]
-    impl WalletUserHsm for MockPkcs11Client {
-        async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)> {
-            let key = SigningKey::random(&mut OsRng);
-            let verifying_key = *key.verifying_key();
-            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec())))
-        }
+    async fn decrypt(
+        &self,
+        key_handle: PrivateKeyHandle,
+        iv: InitializationVector,
+        encrypted_data: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        let pool = self.pool.clone();
 
-        async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
-            let key = SigningKey::random(&mut OsRng);
-            let verifying_key = *key.verifying_key();
-            self.0.insert(Pkcs11Hsm::key_identifier(wallet_id, identifier), key);
-            Ok(verifying_key)
-        }
-
-        async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature> {
-            let wrapped_key: Vec<u8> = wrapped_key.into();
-            let key = SigningKey::from_slice(&wrapped_key).unwrap();
-            let signature = Signer::sign(&key, data.as_ref());
-            Ok(signature)
-        }
-
-        async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
-            Hsm::sign(self, &Pkcs11Hsm::key_identifier(wallet_id, identifier), data).await
-        }
-    }
-
-    #[async_trait]
-    impl Hsm for MockPkcs11Client {
-        async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
-            let entry = self.0.get(identifier).unwrap();
-            let key = entry.value();
-            let verifying_key = key.verifying_key();
-            Ok(*verifying_key)
-        }
-
-        async fn delete_key(&self, identifier: &str) -> Result<()> {
-            self.0.remove(identifier).unwrap();
-            Ok(())
-        }
-
-        async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
-            let entry = self.0.get(identifier).unwrap();
-            let key = entry.value();
-            let signature = Signer::sign(key, data.as_ref());
-            Ok(signature)
-        }
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let gcm_params = GcmParams::new(&iv.0, &[], AES_AUTHENTICATION_TAG_BITS.into());
+            let data = session.decrypt(&Mechanism::AesGcm(gcm_params), key_handle.0, &encrypted_data)?;
+            Ok(data)
+        })
+        .await
     }
 }

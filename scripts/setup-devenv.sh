@@ -173,6 +173,10 @@ generate_wp_symmetric_key attestation_wrapping
 WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
 export WP_ATTESTATION_WRAPPING_KEY_PATH
 
+generate_wp_symmetric_key pin_pubkey_encryption
+WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
+export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
+
 WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
 export WP_PIN_HASH_SALT
 
@@ -200,6 +204,8 @@ softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PI
 softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
 # id = echo "attestation_wrapping" | xxd -p
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "6174746573746174696f6e5f7772617070696e670a" --label "attestation_wrapping_key" --token "test_token"
+# id = echo "pin_pubkey_encryption" | xxd -p
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
 
 ########################################################################
 # Configure wallet

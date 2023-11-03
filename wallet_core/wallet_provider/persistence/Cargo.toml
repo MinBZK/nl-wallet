@@ -36,6 +36,7 @@ sea-orm = { workspace = true, features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
 ] }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tracing-subscriber = { workspace = true, features = [
     "env-filter",

@@ -32,8 +32,9 @@ use wallet::{
 };
 use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
 use wallet_provider::{server, settings::Settings};
+use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_provider_service::hsm::{Hsm, Pkcs11Hsm};
+use wallet_provider_service::hsm::Pkcs11Hsm;
 
 async fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, EcdsaDecodingKey) {
     let hsm = Pkcs11Hsm::new(

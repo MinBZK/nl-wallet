@@ -12,7 +12,7 @@ use wallet_common::{
 };
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
-    model::wallet_user::WalletUserQueryResult,
+    model::{hsm::mock::MockPkcs11Client, wallet_user::WalletUserQueryResult},
     repository::{PersistenceError, TransactionStarter, WalletUserRepository},
     EpochGenerator,
 };
@@ -58,7 +58,13 @@ async fn do_registration(
         .expect("Could not sign new registration");
 
     let certificate = account_server
-        .register(certificate_signing_key, &UuidGenerator, repos, registration_message)
+        .register(
+            certificate_signing_key,
+            &UuidGenerator,
+            repos,
+            &MockPkcs11Client::default(),
+            registration_message,
+        )
         .await
         .expect("Could not process registration message at account server");
 
@@ -120,6 +126,7 @@ async fn test_instruction_challenge() {
             },
             &repos,
             &EpochGenerator,
+            &MockPkcs11Client::default(),
         )
         .await
         .unwrap();
@@ -136,6 +143,7 @@ async fn test_instruction_challenge() {
             },
             &repos,
             &EpochGenerator,
+            &MockPkcs11Client::default(),
         )
         .await
         .unwrap();

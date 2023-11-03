@@ -74,6 +74,7 @@ async fn create_wallet(
             &state.certificate_signing_key,
             state.as_ref(),
             &state.repositories,
+            &state.hsm,
             payload,
         )
         .await?;
@@ -93,7 +94,7 @@ async fn instruction_challenge(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, &state.repositories, state.as_ref())
+        .instruction_challenge(payload, &state.repositories, state.as_ref(), &state.hsm)
         .await?;
 
     let body = Challenge {

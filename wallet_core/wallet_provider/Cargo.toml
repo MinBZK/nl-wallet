@@ -51,3 +51,4 @@ wallet_provider_service.path = "service"
 
 [dev-dependencies]
 serial_test.workspace = true
+rand.workspace = true

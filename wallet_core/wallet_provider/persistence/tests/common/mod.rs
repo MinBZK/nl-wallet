@@ -1,6 +1,9 @@
 use chrono::{DateTime, Local};
 use ctor::ctor;
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+use p256::{
+    ecdsa::{SigningKey, VerifyingKey},
+    elliptic_curve::rand_core::OsRng,
+};
 use sea_orm::{
     sea_query::{Expr, Query},
     ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, QueryFilter,
@@ -10,7 +13,11 @@ use uuid::Uuid;
 use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
-    model::wallet_user::{InstructionChallenge, WalletUserCreate},
+    model::{
+        encrypter::Encrypter,
+        hsm::mock::MockPkcs11Client,
+        wallet_user::{InstructionChallenge, WalletUserCreate},
+    },
     repository::PersistenceError,
 };
 use wallet_provider_persistence::{
@@ -35,6 +42,9 @@ pub async fn db_from_env() -> Result<Db, PersistenceError> {
     Db::new(settings.database.connection_string()).await
 }
 
+#[derive(Debug, thiserror::Error)]
+enum EncrypterError {}
+
 pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)
 where
     S: ConnectionTrait,
@@ -46,7 +56,13 @@ where
             id,
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
-            pin_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
+            encrypted_pin_pubkey: Encrypter::<VerifyingKey>::encrypt(
+                &MockPkcs11Client::<EncrypterError>::default(),
+                "key1",
+                *SigningKey::random(&mut OsRng).verifying_key(),
+            )
+            .await
+            .unwrap(),
         },
     )
     .await
