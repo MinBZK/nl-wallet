@@ -15,9 +15,8 @@ pub enum DisclosureUriError {
     ReturnUrl(#[from] url::ParseError),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg(any(test, feature = "mock"))]
-#[derive(Default)]
+#[derive(Default, Clone, PartialEq, Eq)]
+#[cfg_attr(any(test, feature = "mock"), derive(Debug))]
 pub struct DisclosureUriData {
     pub reader_engagement_bytes: Vec<u8>,
     pub return_url: Option<Url>,
