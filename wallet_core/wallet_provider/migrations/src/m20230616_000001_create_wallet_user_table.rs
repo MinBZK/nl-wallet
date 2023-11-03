@@ -14,7 +14,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(WalletUser::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(WalletUser::WalletId).string().not_null().unique_key())
                     .col(ColumnDef::new(WalletUser::HwPubkeyDer).binary().not_null())
-                    .col(ColumnDef::new(WalletUser::PinPubkeyDer).binary().not_null())
+                    .col(ColumnDef::new(WalletUser::EncryptedPinPubkeySec1).binary().not_null())
+                    .col(ColumnDef::new(WalletUser::PinPubkeyIv).binary().not_null())
                     .col(
                         ColumnDef::new(WalletUser::InstructionSequenceNumber)
                             .unsigned()
@@ -52,7 +53,8 @@ enum WalletUser {
     Id,
     WalletId,
     HwPubkeyDer,
-    PinPubkeyDer,
+    EncryptedPinPubkeySec1,
+    PinPubkeyIv,
     InstructionSequenceNumber,
     PinEntries,
     LastUnsuccessfulPin,

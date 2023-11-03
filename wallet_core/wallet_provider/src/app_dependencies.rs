@@ -67,6 +67,7 @@ impl AppDependencies {
             settings.instruction_challenge_timeout_in_ms,
             "account_server".into(),
             certificate_signing_pubkey.into(),
+            settings.pin_pubkey_encryption_key_identifier,
         )
         .await?;
 

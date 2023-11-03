@@ -13,7 +13,10 @@ use sea_orm::{
 use uuid::Uuid;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::{
-    model::wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
+    model::{
+        encrypted::{Encrypted, InitializationVector},
+        wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
+    },
     repository::PersistenceError,
 };
 
@@ -33,7 +36,8 @@ where
         id: Set(user.id),
         wallet_id: Set(user.wallet_id),
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
-        pin_pubkey_der: Set(user.pin_pubkey.to_public_key_der()?.to_vec()),
+        encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
+        pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
         instruction_sequence_number: Set(0),
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
@@ -65,8 +69,9 @@ where
                 WalletUserQueryResult::Found(Box::new(WalletUser {
                     id: wallet_user.id,
                     wallet_id: wallet_user.wallet_id,
-                    pin_pubkey: DerVerifyingKey(
-                        VerifyingKey::from_public_key_der(&wallet_user.pin_pubkey_der).unwrap(),
+                    encrypted_pin_pubkey: Encrypted::new(
+                        wallet_user.encrypted_pin_pubkey_sec1,
+                        InitializationVector(wallet_user.pin_pubkey_iv),
                     ),
                     hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&wallet_user.hw_pubkey_der).unwrap()),
                     unsuccessful_pin_entries: wallet_user.pin_entries.try_into().ok().unwrap_or(u8::MAX),

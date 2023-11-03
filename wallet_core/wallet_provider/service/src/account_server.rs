@@ -22,6 +22,8 @@ use wallet_common::{
 };
 use wallet_provider_domain::{
     model::{
+        encrypter::{Decrypter, Encrypter},
+        hsm::WalletUserHsm,
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
         wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
     },
@@ -29,7 +31,7 @@ use wallet_provider_domain::{
 };
 
 use crate::{
-    hsm::{HsmError, WalletUserHsm},
+    hsm::HsmError,
     instructions::HandleInstruction,
     keys::{CertificateSigningKey, InstructionResultSigningKey},
 };
@@ -75,6 +77,8 @@ pub enum WalletCertificateError {
     UserBlocked,
     #[error("could not retrieve registered wallet user: {0}")]
     Persistence(#[from] PersistenceError),
+    #[error("hsm error: {0}")]
+    HsmError(#[from] HsmError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -133,6 +137,8 @@ pub enum InstructionValidationError {
     ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
     VerificationFailed(#[source] wallet_common::errors::Error),
+    #[error("hsm error: {0}")]
+    HsmError(#[from] HsmError),
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {
@@ -179,6 +185,7 @@ pub struct AccountServer {
     pub name: String,
 
     certificate_signing_pubkey: EcdsaDecodingKey,
+    encryption_key_identifier: String,
 }
 
 impl AccountServer {
@@ -187,12 +194,14 @@ impl AccountServer {
         instruction_challenge_timeout: Duration,
         name: String,
         certificate_signing_pubkey: EcdsaDecodingKey,
+        encryption_key_identifier: String,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             pin_hash_salt,
             instruction_challenge_timeout,
             name,
             certificate_signing_pubkey,
+            encryption_key_identifier,
         })
     }
 
@@ -223,6 +232,7 @@ impl AccountServer {
         challenge_request: InstructionChallengeRequestMessage,
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
         time_generator: &impl Generator<DateTime<Local>>,
+        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -234,7 +244,7 @@ impl AccountServer {
         debug!("Verifying certificate and retrieving wallet user");
 
         let user = self
-            .verify_wallet_certificate(&challenge_request.certificate, repositories)
+            .verify_wallet_certificate(&challenge_request.certificate, repositories, verifying_key_decrypter)
             .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
@@ -280,7 +290,7 @@ impl AccountServer {
         generators: &(impl Generator<Uuid> + Generator<DateTime<Local>> + Sync),
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
         pin_policy: &impl PinPolicyEvaluator,
-        wallet_user_hsm: &(impl WalletUserHsm + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError> + Sync),
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         T: Committable + Send + Sync,
@@ -290,7 +300,7 @@ impl AccountServer {
         debug!("Verifying certificate and retrieving wallet user");
 
         let wallet_user = self
-            .verify_wallet_certificate(&instruction.certificate, repositories)
+            .verify_wallet_certificate(&instruction.certificate, repositories, wallet_user_hsm)
             .await?;
 
         debug!(
@@ -323,7 +333,10 @@ impl AccountServer {
 
         debug!("Verifying instruction");
 
-        match self.verify_instruction(instruction, &wallet_user, generators) {
+        match self
+            .verify_instruction(instruction, &wallet_user, generators, wallet_user_hsm)
+            .await
+        {
             Ok(payload) => {
                 debug!("Instruction successfully verified, resetting pin retries");
 
@@ -374,6 +387,7 @@ impl AccountServer {
         certificate_signing_key: &impl CertificateSigningKey,
         uuid_generator: &impl Generator<Uuid>,
         repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        verifying_key_encrypter: &(impl Encrypter<VerifyingKey, Error = HsmError> + Sync),
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
@@ -405,6 +419,10 @@ impl AccountServer {
 
         debug!("Starting database transaction");
 
+        let encrypted_pin_pubkey = verifying_key_encrypter
+            .encrypt(&self.encryption_key_identifier, pin_pubkey)
+            .await?;
+
         let tx = repositories.begin_transaction().await?;
 
         debug!("Creating new wallet user");
@@ -417,7 +435,7 @@ impl AccountServer {
                     id: uuid,
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
-                    pin_pubkey,
+                    encrypted_pin_pubkey,
                 },
             )
             .await?;
@@ -473,6 +491,7 @@ impl AccountServer {
         &self,
         certificate: &WalletCertificate,
         wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
     ) -> Result<WalletUser, WalletCertificateError>
     where
         T: Committable,
@@ -506,7 +525,10 @@ impl AccountServer {
 
                 let user = *user_boxed;
 
-                let hash = pubkey_to_hash(self.pin_hash_salt.clone(), user.pin_pubkey.0)?;
+                let pin_pubkey = verifying_key_decrypter
+                    .decrypt(&self.encryption_key_identifier, user.encrypted_pin_pubkey.clone())
+                    .await?;
+                let hash = pubkey_to_hash(self.pin_hash_salt.clone(), pin_pubkey)?;
 
                 debug!("Verifying user matches the provided certificate");
 
@@ -521,11 +543,12 @@ impl AccountServer {
         }
     }
 
-    fn verify_instruction<I, R>(
+    async fn verify_instruction<I, R>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Local>>,
+        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
@@ -539,13 +562,20 @@ impl AccountServer {
             return Err(InstructionValidationError::ChallengeTimeout);
         }
 
+        let pin_pubkey = verifying_key_decrypter
+            .decrypt(
+                &self.encryption_key_identifier,
+                wallet_user.encrypted_pin_pubkey.clone(),
+            )
+            .await?;
+
         let parsed = instruction
             .instruction
             .parse_and_verify(
                 &challenge.bytes,
                 SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
                 &wallet_user.hw_pubkey.0,
-                &wallet_user.pin_pubkey.0,
+                &pin_pubkey,
             )
             .map_err(InstructionValidationError::VerificationFailed)?;
 
@@ -600,6 +630,7 @@ pub mod mock {
             Duration::milliseconds(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey,
+            "encryption_key_1".into(),
         )
         .await
         .unwrap()
@@ -624,13 +655,14 @@ mod tests {
     };
     use wallet_provider_domain::{
         generator::mock::MockGenerators,
-        model::{wallet_user::WalletUserKeys, wrapped_key::WrappedKey, FailingPinPolicy, TimeoutPinPolicy},
+        model::{
+            hsm::mock::MockPkcs11Client, wallet_user::WalletUserKeys, wrapped_key::WrappedKey, FailingPinPolicy,
+            TimeoutPinPolicy,
+        },
         repository::{MockTransaction, MockTransactionStarter},
         EpochGenerator, FixedUuidGenerator,
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
-
-    use crate::hsm::mock::MockPkcs11Client;
 
     use super::*;
 
@@ -660,6 +692,7 @@ mod tests {
                 certificate_signing_key,
                 &FixedUuidGenerator,
                 &wallet_user_repo,
+                &MockPkcs11Client::default(),
                 registration_message,
             )
             .await
@@ -712,7 +745,13 @@ mod tests {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_string(),
                 hw_pubkey: DerVerifyingKey(self.hw),
-                pin_pubkey: DerVerifyingKey(self.pin),
+                encrypted_pin_pubkey: Encrypter::<VerifyingKey>::encrypt(
+                    &MockPkcs11Client::<HsmError>::default(),
+                    "encryption_key_1",
+                    self.pin,
+                )
+                .await
+                .unwrap(),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
@@ -829,6 +868,7 @@ mod tests {
                     },
                     &deps,
                     &EpochGenerator,
+                    &MockPkcs11Client::default(),
                 )
                 .await
                 .expect_err("should return instruction sequence number mismatch error"),
@@ -845,6 +885,7 @@ mod tests {
                 },
                 &deps,
                 &EpochGenerator,
+                &MockPkcs11Client::default(),
             )
             .await
             .unwrap();
@@ -932,6 +973,7 @@ mod tests {
                     instruction_sequence_number: 0,
                 },
                 &EpochGenerator,
+                &MockPkcs11Client::default(),
             )
             .await
             .unwrap();
@@ -945,6 +987,7 @@ mod tests {
                     challenge: Some(challenge),
                     instruction_sequence_number: 0,
                 },
+                &MockPkcs11Client::default(),
             )
             .await
             .unwrap();
@@ -972,6 +1015,7 @@ mod tests {
                     challenge: None,
                     instruction_sequence_number: 0,
                 },
+                &MockPkcs11Client::default(),
             )
             .await
             .expect_err("Should not validate");
@@ -998,6 +1042,7 @@ mod tests {
                     challenge: None,
                     instruction_sequence_number: 0,
                 },
+                &MockPkcs11Client::default(),
             )
             .await
             .expect_err("Should not validate");
@@ -1032,7 +1077,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
             .await
             .unwrap();
 
@@ -1051,7 +1096,9 @@ mod tests {
                         .unwrap(),
                     &user,
                     &EpochGenerator,
+                    &MockPkcs11Client::default(),
                 )
+                .await
                 .is_ok()
         )
     }
@@ -1085,7 +1132,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
             .await
             .unwrap();
 
@@ -1104,7 +1151,8 @@ mod tests {
                         .unwrap(),
                     &user,
                     &EpochGenerator,
-                ),
+                    &MockPkcs11Client::default(),
+                ).await,
                 Err(InstructionValidationError::VerificationFailed(
                     wallet_common::errors::Error::ChallengeMismatch
                 ))
@@ -1149,7 +1197,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
             .await
             .unwrap();
 
@@ -1164,13 +1212,16 @@ mod tests {
             });
 
             assert_matches!(
-                account_server.verify_instruction(
-                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
-                        .await
-                        .unwrap(),
-                    &user,
-                    &EpochGenerator,
-                ),
+                account_server
+                    .verify_instruction(
+                        Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                            .await
+                            .unwrap(),
+                        &user,
+                        &EpochGenerator,
+                        &MockPkcs11Client::default(),
+                    )
+                    .await,
                 Err(InstructionValidationError::ChallengeTimeout)
             );
         }

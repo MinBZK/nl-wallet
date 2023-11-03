@@ -4,8 +4,9 @@ use async_trait::async_trait;
 use p256::ecdsa::{Signature, VerifyingKey};
 
 use wallet_common::keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier};
+use wallet_provider_domain::model::hsm::Hsm;
 
-use crate::hsm::{Hsm, HsmError, Pkcs11Hsm};
+use crate::hsm::{HsmError, Pkcs11Hsm};
 
 pub trait CertificateSigningKey: SecureEcdsaKey {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey {}
