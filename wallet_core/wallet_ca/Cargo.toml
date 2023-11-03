@@ -1,0 +1,25 @@
+[package]
+name = "wallet_ca"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow.workspace = true
+clap = { workspace = true, features = ["derive"] }
+clio = { workspace = true, features = ["clap-parse"] }
+itertools.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "pem"] }
+pem.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+x509-parser.workspace = true
+
+nl_wallet_mdoc = { path = "../mdoc" }
+
+[dev-dependencies]
+assert_cmd.workspace = true
+assert_fs.workspace = true
+predicates.workspace = true
