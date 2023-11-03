@@ -12,7 +12,9 @@ pub struct Model {
     #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
     pub hw_pubkey_der: Vec<u8>,
     #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
-    pub pin_pubkey_der: Vec<u8>,
+    pub encrypted_pin_pubkey_sec1: Vec<u8>,
+    #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
+    pub pin_pubkey_iv: Vec<u8>,
     pub instruction_sequence_number: i32,
     pub pin_entries: i16,
     pub last_unsuccessful_pin: Option<DateTimeWithTimeZone>,

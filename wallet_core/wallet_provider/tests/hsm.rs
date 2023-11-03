@@ -1,17 +1,22 @@
 use std::sync::Arc;
 
-use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::{
+    signature::{rand_core::OsRng, Verifier},
+    SigningKey,
+};
 use serial_test::serial;
 
 use wallet_common::utils::{random_bytes, random_string};
 use wallet_provider::settings::Settings;
-use wallet_provider_domain::model::wallet_user::WalletId;
-use wallet_provider_service::hsm::{Hsm, Pkcs11Hsm, WalletUserHsm};
+use wallet_provider_domain::model::{
+    encrypted::Encrypted,
+    encrypter::{Decrypter, Encrypter},
+    hsm::{Hsm, WalletUserHsm},
+    wallet_user::WalletId,
+};
+use wallet_provider_service::hsm::Pkcs11Hsm;
 
-#[tokio::test]
-#[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
-async fn generate_key_and_sign() {
+fn setup_hsm() -> (Pkcs11Hsm, Settings) {
     let settings = Settings::new().unwrap();
     let hsm = Pkcs11Hsm::new(
         settings.hsm.library_path,
@@ -19,6 +24,14 @@ async fn generate_key_and_sign() {
         settings.attestation_wrapping_key_identifier,
     )
     .unwrap();
+    (hsm, Settings::new().unwrap())
+}
+
+#[tokio::test]
+#[serial]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn generate_key_and_sign() {
+    let (hsm, _) = setup_hsm();
 
     let wallet_id: WalletId = String::from("wallet_user_1");
     let identifier = random_string(8);
@@ -39,13 +52,7 @@ async fn generate_key_and_sign() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn wrap_key_and_sign() {
-    let settings = Settings::new().unwrap();
-    let hsm = Pkcs11Hsm::new(
-        settings.hsm.library_path,
-        settings.hsm.user_pin,
-        settings.attestation_wrapping_key_identifier,
-    )
-    .unwrap();
+    let (hsm, _) = setup_hsm();
 
     let (public_key, wrapped) = hsm.generate_wrapped_key().await.unwrap();
 
@@ -55,4 +62,43 @@ async fn wrap_key_and_sign() {
         .unwrap();
 
     public_key.verify(data.as_ref(), &signature).unwrap();
+}
+
+#[tokio::test]
+#[serial]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn encrypt_decrypt() {
+    let (hsm, settings) = setup_hsm();
+
+    let data = random_bytes(32);
+    let encrypted: Encrypted<Vec<u8>> =
+        Hsm::encrypt(&hsm, &settings.pin_pubkey_encryption_key_identifier, data.clone())
+            .await
+            .unwrap();
+
+    assert_ne!(data.clone(), encrypted.data.clone());
+
+    let decrypted = Hsm::decrypt(&hsm, &settings.pin_pubkey_encryption_key_identifier, encrypted)
+        .await
+        .unwrap();
+
+    assert_eq!(data, decrypted);
+}
+
+#[tokio::test]
+#[serial]
+#[cfg_attr(not(feature = "db_test"), ignore)]
+async fn encrypt_decrypt_verifying_key() {
+    let (hsm, settings) = setup_hsm();
+
+    let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
+    let encrypted = Encrypter::encrypt(&hsm, &settings.pin_pubkey_encryption_key_identifier, verifying_key)
+        .await
+        .unwrap();
+
+    let decrypted = Decrypter::decrypt(&hsm, &settings.pin_pubkey_encryption_key_identifier, encrypted)
+        .await
+        .unwrap();
+
+    assert_eq!(verifying_key, decrypted);
 }

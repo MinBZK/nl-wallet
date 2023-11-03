@@ -12,11 +12,14 @@ use wallet_common::{
     generator::Generator,
 };
 use wallet_provider_domain::{
-    model::wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
+    model::{
+        hsm::WalletUserHsm,
+        wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
+    },
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
 
-use crate::{account_server::InstructionError, hsm::WalletUserHsm};
+use crate::{account_server::InstructionError, hsm::HsmError};
 
 #[async_trait]
 pub trait HandleInstruction {
@@ -29,7 +32,7 @@ pub trait HandleInstruction {
         wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
               + WalletUserRepository<TransactionType = T>
               + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable + Send + Sync;
@@ -46,7 +49,7 @@ impl HandleInstruction for CheckPin {
         _wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
               + WalletUserRepository<TransactionType = T>
               + Sync),
-        _wallet_user_hsm: &(impl WalletUserHsm + Sync),
+        _wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
     ) -> Result<(), InstructionError>
     where
         T: Committable + Send + Sync,
@@ -66,7 +69,7 @@ impl HandleInstruction for GenerateKey {
         wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
               + WalletUserRepository<TransactionType = T>
               + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable + Send + Sync,
@@ -115,7 +118,7 @@ impl HandleInstruction for Sign {
         wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
               + WalletUserRepository<TransactionType = T>
               + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm + Sync),
+        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable + Send + Sync,
@@ -152,13 +155,13 @@ mod tests {
         utils::random_bytes,
     };
     use wallet_provider_domain::{
-        model::{wallet_user, wrapped_key::WrappedKey},
+        model::{hsm::mock::MockPkcs11Client, wallet_user, wrapped_key::WrappedKey},
         repository::MockTransaction,
         FixedUuidGenerator,
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::{hsm::mock::MockPkcs11Client, instructions::HandleInstruction};
+    use crate::instructions::HandleInstruction;
 
     #[tokio::test]
     async fn should_handle_checkpin() {
