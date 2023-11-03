@@ -7,7 +7,7 @@ use crate::{
     identifiers::AttributeIdentifier,
     iso::*,
     utils::{
-        reader_auth::ReaderRegistration,
+        reader_auth::{self, ReaderRegistration},
         x509::{Certificate, CertificateError},
     },
 };
@@ -51,6 +51,8 @@ pub enum HolderError {
     NoDocumentRequests,
     #[error("no reader registration present in certificate")]
     NoReaderRegistration(Certificate),
+    #[error("reader registration attribute validation failed: {0}")]
+    ReaderRegistrationValidation(#[from] reader_auth::ValidationError),
     #[error("could not retrieve docs from source: {0}")]
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]

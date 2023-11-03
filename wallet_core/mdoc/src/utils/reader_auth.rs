@@ -163,7 +163,7 @@ pub struct AuthorizedAttribute {}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError {
-    #[error("Requested unregistered attributes: {0:?}")]
+    #[error("requested unregistered attributes: {0:?}")]
     UnregisteredAttributes(Vec<AttributeIdentifier>),
 }
 
