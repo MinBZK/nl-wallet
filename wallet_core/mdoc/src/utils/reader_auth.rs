@@ -67,6 +67,7 @@ pub struct Organization {
     pub description: LocalizedStrings,
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
+    pub kvk: Option<String>,
     pub city: Option<LocalizedStrings>,
     pub country: Option<String>,
     pub privacy_policy_url: Option<Url>,
