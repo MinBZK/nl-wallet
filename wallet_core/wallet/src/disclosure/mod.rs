@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
 
 use crate::utils;
 
-pub use self::uri::{DisclosureUri, DisclosureUriError};
+pub use self::uri::{DisclosureUriData, DisclosureUriError};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockMdocDisclosureSession;
@@ -17,7 +17,7 @@ pub use self::mock::MockMdocDisclosureSession;
 #[async_trait]
 pub trait MdocDisclosureSession<D> {
     async fn start<'a>(
-        disclosure_uri: DisclosureUri,
+        disclosure_uri: DisclosureUriData,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self, nl_wallet_mdoc::Error>
@@ -34,7 +34,7 @@ where
     D: MdocDataSource + Sync,
 {
     async fn start<'a>(
-        disclosure_uri: DisclosureUri,
+        disclosure_uri: DisclosureUriData,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self, nl_wallet_mdoc::Error> {
@@ -67,7 +67,7 @@ mod mock {
 
     #[derive(Debug, Default)]
     pub struct MockMdocDisclosureSession {
-        pub disclosure_uri: DisclosureUri,
+        pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
         pub proposed_attributes: PropsedAttributes,
     }
@@ -75,7 +75,7 @@ mod mock {
     #[async_trait]
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         async fn start<'a>(
-            disclosure_uri: DisclosureUri,
+            disclosure_uri: DisclosureUriData,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> Result<Self, nl_wallet_mdoc::Error> {

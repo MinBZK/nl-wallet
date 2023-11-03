@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
 
 use crate::{
     config::ConfigurationRepository,
-    disclosure::{DisclosureUri, DisclosureUriError, MdocDisclosureSession},
+    disclosure::{DisclosureUriData, DisclosureUriError, MdocDisclosureSession},
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     storage::{Storage, StorageError},
 };
@@ -33,7 +33,7 @@ pub enum DisclosureError {
     #[error("disclosure session is not in the correct state")]
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
-    DisclosureUriError(#[from] DisclosureUriError),
+    DisclosureUri(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
     DisclosureSession(#[source] nl_wallet_mdoc::Error),
     #[error("could not interpret mdoc attributes: {0}")]
@@ -96,7 +96,7 @@ where
 
         // Assume that redirect URI creation is checked when updating the `Configuration`.
         let disclosure_redirect_uri_base = config.disclosure.uri_base().unwrap();
-        let disclosure_uri = DisclosureUri::parse(uri, &disclosure_redirect_uri_base)?;
+        let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = R::start(disclosure_uri, self, &config.mdoc_trust_anchors()).await?;
@@ -177,7 +177,7 @@ mod tests {
 
         // Test that the `Wallet` now contains a `DisclosureSession`
         // with the items parsed from the disclosure URI.
-        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUri {
+        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
             return_url: Url::parse("https://example.com").unwrap().into(),
         });

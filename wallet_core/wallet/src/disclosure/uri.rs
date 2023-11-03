@@ -18,15 +18,15 @@ pub enum DisclosureUriError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg(any(test, feature = "mock"))]
 #[derive(Default)]
-pub struct DisclosureUri {
+pub struct DisclosureUriData {
     pub reader_engagement_bytes: Vec<u8>,
     pub return_url: Option<Url>,
 }
 
-impl DisclosureUri {
+impl DisclosureUriData {
     /// Parse the `ReaderEngagement` bytes and a possible return URL from the disclosure URI.
     /// The `base_uri` argument is contained in the `Configuration`.
-    pub fn parse(uri: &Url, base_uri: &Url) -> Result<Self, DisclosureUriError> {
+    pub fn parse_from_uri(uri: &Url, base_uri: &Url) -> Result<Self, DisclosureUriError> {
         // Check if both URIs can have path segments (see below) and
         // if the the base URI is actually a base of the disclosure URI.
         if uri.cannot_be_a_base() || base_uri.cannot_be_a_base() || !uri.as_str().starts_with(base_uri.as_str()) {
@@ -62,7 +62,7 @@ impl DisclosureUri {
             .map(|url| Url::parse(url.as_ref()))
             .transpose()?;
 
-        let disclosure_uri = DisclosureUri {
+        let disclosure_uri = DisclosureUriData {
             reader_engagement_bytes,
             return_url,
         };
@@ -105,7 +105,8 @@ mod tests {
         #[case] expected_bytes: &[u8],
         #[case] expected_return_url: Option<&str>,
     ) {
-        let disclosure_uri = DisclosureUri::parse(&uri, &base_uri).expect("Could not parse disclosure URI");
+        let disclosure_uri =
+            DisclosureUriData::parse_from_uri(&uri, &base_uri).expect("Could not parse disclosure URI");
 
         assert_eq!(disclosure_uri.reader_engagement_bytes, expected_bytes);
         assert_eq!(
@@ -122,8 +123,8 @@ mod tests {
     #[case("scheme://host.name/some/path/", "scheme://host.name/some/path")]
     #[case("scheme://host.name/some/path/", "scheme://host.name/some/path/")]
     fn test_parse_disclosure_uri_error_malformed(#[case] uri: Url, #[case] base_uri: Url) {
-        let error =
-            DisclosureUri::parse(&uri, &base_uri).expect_err("Parsing disclosure URI should have resulted in error");
+        let error = DisclosureUriData::parse_from_uri(&uri, &base_uri)
+            .expect_err("Parsing disclosure URI should have resulted in error");
 
         assert_matches!(error, DisclosureUriError::Malformed(_));
     }
@@ -132,8 +133,8 @@ mod tests {
     #[case("scheme://host.name/some/path/foobar", "scheme://host.name/some/path")]
     #[case("scheme://host.name/some/path/Zm9vYmFyCg==", "scheme://host.name/some/path")]
     fn test_parse_disclosure_uri_error_base64(#[case] uri: Url, #[case] base_uri: Url) {
-        let error =
-            DisclosureUri::parse(&uri, &base_uri).expect_err("Parsing disclosure URI should have resulted in error");
+        let error = DisclosureUriData::parse_from_uri(&uri, &base_uri)
+            .expect_err("Parsing disclosure URI should have resulted in error");
 
         assert_matches!(error, DisclosureUriError::Base64(_));
     }
@@ -144,8 +145,8 @@ mod tests {
         "scheme://host.name/some/path"
     )]
     fn test_parse_disclosure_uri_error_return_url(#[case] uri: Url, #[case] base_uri: Url) {
-        let error =
-            DisclosureUri::parse(&uri, &base_uri).expect_err("Parsing disclosure URI should have resulted in error");
+        let error = DisclosureUriData::parse_from_uri(&uri, &base_uri)
+            .expect_err("Parsing disclosure URI should have resulted in error");
 
         assert_matches!(error, DisclosureUriError::ReturnUrl(_));
     }
