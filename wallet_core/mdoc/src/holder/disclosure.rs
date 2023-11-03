@@ -189,7 +189,7 @@ where
         }
 
         // Create a `HashSet` of all the available attributes in the provided `Mdoc`s.
-        let mdoc_attributes = mdocs
+        let available_attributes = mdocs
             .iter()
             .flat_map(|mdoc| mdoc.issuer_signed.attribute_identifiers(&mdoc.doc_type))
             .collect::<HashSet<_>>();
@@ -200,7 +200,7 @@ where
         let (present_attributes, missing_attributes): (HashSet<_>, HashSet<_>) = device_request
             .attribute_identifiers()
             .into_iter()
-            .partition(|attribute| mdoc_attributes.contains(attribute));
+            .partition(|attribute| available_attributes.contains(attribute));
 
         // If any attributes are missing, return an error and include the `ReaderRegistration`.
         if !missing_attributes.is_empty() {
