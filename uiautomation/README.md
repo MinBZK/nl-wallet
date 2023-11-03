@@ -60,9 +60,10 @@ The Appium Server will start automatically. Appium Server will handle the proces
 - Add the following environment variables to the `~/.bash_profile` or `~/.zshrc` file:
     - `export BROWSERSTACK_USER={USERNAME}`
     - `export BROWSERSTACK_KEY={ACCESS_KEY}`
-- Second, fetch the dependencies by running `flutter pub get`, and then create an APK by executing `flutter build apk --profile`
-- For iOS use `bundle exec fastlane ios build build_mode:profile bundle_id:nl.ictu.edi.wallet.latest` to create a `.ipa` file
-- To upload the app to BrowserStack, see [upload app from filesystem](https://www.browserstack.com/docs/app-automate/appium/upload-app-from-filesystem). By default, running tests will retrieve the latest uploaded app.
+- Build the app(s):
+    - Android: `bundle exec fastlane android build build_mode:profile package_name:nl.ictu.edi.wallet.latest file_format:apk` to create an APK file
+    - iOS: `bundle exec fastlane ios build build_mode:profile bundle_id:nl.ictu.edi.wallet.latest` to create an IPA file.
+- Manually upload the app(s) to BrowserStack, see [upload app from filesystem](https://www.browserstack.com/docs/app-automate/appium/upload-app-from-filesystem). By default, running tests will retrieve the latest uploaded app.
 
 1. Open `device.conf.json` file in the resource directory
 2. Replace the value of `device` with one of the devices listed under browserstackDevices, such as `Google Pixel 7 Pro`
