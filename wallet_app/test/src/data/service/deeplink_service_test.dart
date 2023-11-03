@@ -12,64 +12,83 @@ import '../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockAppLinks appLinks;
-  late DeeplinkService service;
   late MockDecodeUriUseCase mockDecodeUriUseCase;
-  late MockCheckNavigationPrerequisitesUseCase mockCheckNavigationPrerequisitesUseCase;
-  late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
-  late MockNavigatorKey navigatorKey;
+  late MockNavigationService mockNavigationService;
   late AppLifecycleService mockAppLifecycleService;
 
   setUp(() {
     appLinks = MockAppLinks();
-    navigatorKey = MockNavigatorKey();
-    mockAppLifecycleService = AppLifecycleService();
-    // Usecases
-    mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
-    mockPerformPreNavigationActionsUseCase = MockPerformPreNavigationActionsUseCase();
+    mockNavigationService = MockNavigationService();
+    mockAppLifecycleService = AppLifecycleService(); // Uses the real implementation because it's trivial
     mockDecodeUriUseCase = MockDecodeUriUseCase();
 
-    service = DeeplinkService(
+    DeeplinkService(
       appLinks,
-      navigatorKey,
+      mockNavigationService,
       mockDecodeUriUseCase,
-      mockCheckNavigationPrerequisitesUseCase,
-      mockPerformPreNavigationActionsUseCase,
       mockAppLifecycleService,
     );
   });
 
-  group('processUri', () {
-    test('A navigation event should be triggered when a supported deeplink url is provided', () async {
-      // Allow deeplink_service to navigate
-      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
-
-      // Navigation is triggered when supported deeplink is provided
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => GenericNavigationRequest('/mock'));
+  group('uri events', () {
+    test('Navigation request should be passed on to the navigation service if the app is resumed', () async {
+      final navigationRequest = GenericNavigationRequest('/mock');
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 
-      // Make sure navigation was triggered (note: currently only shallow validation by checking interaction with the navigator)
-      verify(navigatorKey.currentState);
+      // Make sure the navigation request was passed on
+      verify(mockNavigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true));
     });
-  });
 
-  group('processQueue', () {
-    test('Navigation requested when queue is filled but navigation can now be done', () async {
+    test('Navigation request should not be passed on to the navigation service when the app is paused', () async {
       // Provide NavigationRequest
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => GenericNavigationRequest('/mock'));
+      mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
+      final navigationRequest = GenericNavigationRequest('/mock');
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       // Make sure it gets queued
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
-      // Allow queue to be processed
-      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
-      // Process the queue
-      await service.processQueue();
-      // Make sure navigation was triggered (note: currently only shallow validation by checking interaction with the navigator)
-      verify(navigatorKey.currentState);
+
+      // Make sure navigation request was not passed on
+      verifyNever(mockNavigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true));
+    });
+
+    test('Navigation request be queued and passed on once the app is resumed', () async {
+      // Provide NavigationRequest
+      mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
+      final navigationRequest = GenericNavigationRequest('/mock');
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      // Make sure it gets queued
+      await appLinks.mockUriEvent(Uri.parse('https://example.org'));
+
+      // Make sure it's not passed on yet
+      verifyNever(mockNavigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true));
+
+      // Transition the app to the resumed state
+      mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed);
+      await Future.delayed(kResumeDebounceDuration * 1.5);
+
+      // Make sure the navigation request is now passed on
+      verify(mockNavigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true));
+    });
+
+    test('Navigation request is only handled once as the app cycles through lifecycles', () async {
+      // Provide NavigationRequest
+      final navigationRequest = GenericNavigationRequest('/mock');
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      // Insert the uri
+      await appLinks.mockUriEvent(Uri.parse('https://example.org'));
+
+      // Transition the app through paused and resumed states
+      mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
+      mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed);
+      await Future.delayed(kResumeDebounceDuration * 1.5);
+
+      // Make sure the navigation request was only passed on once
+      // (note that this test fails when commenting out the clearController in the DeeplinkService)
+      verify(mockNavigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true)).called(1);
     });
   });
 }
-
-// ignore: must_be_immutable
-class MockNavigatorKey extends Mock implements GlobalKey<NavigatorState> {}
 
 class MockAppLinks implements AppLinks {
   MockAppLinks();
