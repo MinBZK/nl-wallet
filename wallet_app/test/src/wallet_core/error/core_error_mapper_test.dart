@@ -29,6 +29,13 @@ void main() {
       expect(result, const CoreGenericError(defaultDescription));
     });
 
+    test('mapping FlutterApiErrorType.walletState results in CoreStateError', () {
+      final error = FlutterApiError(type: FlutterApiErrorType.walletState, description: defaultDescription, data: null);
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, const CoreStateError(defaultDescription, null));
+    });
+
     test('mapping FlutterApiErrorType.networking results in CoreNetworkError', () {
       final error = FlutterApiError(type: FlutterApiErrorType.networking, description: defaultDescription, data: null);
       final errorJson = jsonEncode(error);

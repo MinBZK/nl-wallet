@@ -38,6 +38,9 @@ extension BlocExtensions on Bloc {
             onRedirectUriError.call(ex);
             return;
           }
+        case CoreStateError():
+          // This is a programming error and thus should not be handled gracefully.
+          throw ex;
       }
       if (onCoreError != null) {
         onCoreError.call(ex);

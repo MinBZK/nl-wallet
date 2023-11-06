@@ -17,6 +17,15 @@ class CoreNetworkError extends CoreError {
   const CoreNetworkError(super.description);
 }
 
+class CoreStateError extends CoreError {
+  final Map<String, dynamic>? data;
+
+  const CoreStateError(super.description, this.data);
+
+  @override
+  List<Object?> get props => [description, data];
+}
+
 class CoreRedirectUriError extends CoreError {
   final RedirectError redirectError;
 

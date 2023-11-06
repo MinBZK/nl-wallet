@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
@@ -72,49 +73,19 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   }
 
   @override
-  Future<PinValidationResult> isValidPin(String pin) async {
-    try {
-      return await _walletCore.isValidPin(pin: pin);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<PinValidationResult> isValidPin(String pin) => call((core) => core.isValidPin(pin: pin));
 
   @override
-  Future<void> register(String pin) async {
-    try {
-      return await _walletCore.register(pin: pin);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<void> register(String pin) => call((core) => core.register(pin: pin));
 
   @override
-  Future<bool> isRegistered() async {
-    try {
-      return await _walletCore.hasRegistration();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<bool> isRegistered() => call((core) => core.hasRegistration());
 
   @override
-  Future<void> lockWallet() async {
-    try {
-      return await _walletCore.lockWallet();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<void> lockWallet() => call((core) => core.lockWallet());
 
   @override
-  Future<WalletInstructionResult> unlockWallet(String pin) async {
-    try {
-      return await _walletCore.unlockWallet(pin: pin);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<WalletInstructionResult> unlockWallet(String pin) => call((core) => core.unlockWallet(pin: pin));
 
   @override
   Stream<bool> get isLocked => _isLocked;
@@ -123,119 +94,77 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
 
   @override
-  Future<String> createPidIssuanceRedirectUri() async {
-    try {
-      return await _walletCore.createPidIssuanceRedirectUri();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<String> createPidIssuanceRedirectUri() => call((core) => core.createPidIssuanceRedirectUri());
 
   @override
-  Future<IdentifyUriResult> identifyUri(String uri) async {
-    try {
-      return await _walletCore.identifyUri(uri: uri);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<IdentifyUriResult> identifyUri(String uri) => call((core) => core.identifyUri(uri: uri));
 
   @override
-  Future<void> cancelPidIssuance() async {
-    try {
-      return await _walletCore.cancelPidIssuance();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<void> cancelPidIssuance() => call((core) => core.cancelPidIssuance());
 
   @override
-  Future<List<Card>> continuePidIssuance(Uri uri) async {
-    try {
-      return await _walletCore.continuePidIssuance(uri: uri.toString());
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<List<Card>> continuePidIssuance(Uri uri) => call((core) => core.continuePidIssuance(uri: uri.toString()));
 
   @override
-  Future<WalletInstructionResult> acceptOfferedPid(String pin) async {
-    try {
-      return await _walletCore.acceptPidIssuance(pin: pin);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) => call((core) => core.acceptPidIssuance(pin: pin));
 
   @override
-  Future<void> rejectOfferedPid() async {
-    try {
-      return await _walletCore.rejectPidIssuance();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<void> rejectOfferedPid() => call((core) => core.rejectPidIssuance());
 
   @override
-  Future<DisclosureResult> startDisclosure(Uri uri) async {
-    try {
-      return await _walletCore.startDisclosure(uri: uri.toString());
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<DisclosureResult> startDisclosure(Uri uri) => call((core) => core.startDisclosure(uri: uri.toString()));
 
   @override
-  Future<void> cancelDisclosure() async {
-    try {
-      return await _walletCore.cancelDisclosure();
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
 
   @override
-  Future<WalletInstructionResult> acceptDisclosure(String pin) async {
-    try {
-      return await _walletCore.acceptDisclosure(pin: pin);
-    } catch (ex) {
-      throw _handleCoreException(ex);
-    }
-  }
+  Future<WalletInstructionResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
 
   @override
   Stream<List<Card>> observeCards() => _cards.stream;
 
   @override
-  Future<void> resetWallet() async {
+  Future<void> resetWallet() => call((core) => core.resetWallet());
+
+  /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
+  /// before they are (re)thrown.
+  Future<T> call<T>(Future<T> Function(WalletCore) runnable) async {
     try {
-      return await _walletCore.resetWallet();
-    } catch (ex) {
-      throw _handleCoreException(ex);
+      return await runnable(_walletCore);
+    } catch (exception, stacktrace) {
+      throw _handleCoreException(exception, stackTrace: stacktrace);
     }
   }
 
-  /// Converts the exception to a [CoreError]
-  /// if it can be mapped into one, otherwise returns
-  /// the original exception.
-  Object _handleCoreException(Object ex) {
+  /// Converts the exception to a [CoreError] if it can be mapped into one, otherwise returns the original exception.
+  Object _handleCoreException(Object ex, {StackTrace? stackTrace}) {
     try {
-      var coreErrorJson = '';
-      if (ex is FrbAnyhowException) {
-        Fimber.e('FrbAnyhowException contents: ${ex.anyhow}');
-        coreErrorJson = ex.anyhow;
-      } else if (ex is FfiException) {
-        Fimber.e('FfiException contents. Code: ${ex.code}, Message: ${ex.message}');
-        if (ex.code != 'RESULT_ERROR') return ex;
-        coreErrorJson = ex.message;
-      } else if (ex is String) {
-        Fimber.e('String type exception. Contents: $ex');
-        coreErrorJson = ex;
+      String coreErrorJson = _extractErrorJson(ex)!;
+      final error = _errorMapper.map(coreErrorJson);
+      if (error is CoreStateError) {
+        Fimber.e('StateError detected, this indicates a programming error. Crashing...',
+            ex: error, stacktrace: stackTrace);
+        exit(0);
       }
-      return _errorMapper.map(coreErrorJson);
-    } catch (mapException) {
-      Fimber.e('Failed to map exception to CoreError, returning original exception', ex: mapException);
+      return error;
+    } catch (exception) {
+      Fimber.e('Failed to map exception to CoreError, returning original exception', ex: exception);
       return ex;
     }
+  }
+
+  String? _extractErrorJson(Object ex) {
+    if (ex is FrbAnyhowException) {
+      Fimber.e('FrbAnyhowException. Contents: ${ex.anyhow}');
+      return ex.anyhow;
+    } else if (ex is FfiException) {
+      Fimber.e('FfiException. Code: ${ex.code}, Message: ${ex.message}');
+      if (ex.code != 'RESULT_ERROR') return null;
+      return ex.message;
+    } else if (ex is String) {
+      Fimber.e('StringException. Contents: $ex');
+      return ex;
+    }
+    return null;
   }
 }
