@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
+use indexmap::IndexMap;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -134,17 +135,31 @@ where
 {
     type Error = StorageError;
 
-    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Mdoc>, Self::Error> {
+    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
         // TODO: Retain UUIDs and increment use count on mdoc_copy when disclosure takes place.
-        let mdocs = self
+
+        // Build an `IndexMap<>` to group `Mdoc` entries with the same `doc_type`.
+        let mdocs_by_doc_type = self
             .storage
             .read()
             .await
             .fetch_unique_mdocs_by_doctypes(doc_types)
             .await?
             .into_iter()
-            .map(|(_, mdoc)| mdoc)
-            .collect();
+            .fold(
+                IndexMap::<_, Vec<_>>::with_capacity(doc_types.len()),
+                |mut mdocs_by_doc_type, (_, mdoc)| {
+                    // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
+                    let doc_type = *doc_types
+                        .get(mdoc.doc_type.as_str())
+                        .expect("Storage returned mdoc with unexpected doc_type");
+                    mdocs_by_doc_type.entry(doc_type).or_default().push(mdoc);
+
+                    mdocs_by_doc_type
+                },
+            );
+        // Take only the values of this `HashMap`, which is what we need for the return type.
+        let mdocs = mdocs_by_doc_type.into_values().collect();
 
         Ok(mdocs)
     }
