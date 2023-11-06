@@ -69,6 +69,7 @@ where
         client: H,
         reader_engagement_bytes: &[u8],
         return_url: Option<Url>,
+        session_type: SessionType,
         mdoc_data_source: &impl MdocDataSource,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self> {
@@ -97,8 +98,7 @@ where
             DeviceEngagement::new_device_engagement(Url::parse(REFERRER_URL).unwrap())?;
 
         // Create the session transcript so far based on both engagement payloads.
-        // TODO: Distinguish between same device and cross device flows.
-        let transcript = SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement)
+        let transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement)
             .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
 
         // Derive the session key for both directions from the private and public keys and the session transcript.

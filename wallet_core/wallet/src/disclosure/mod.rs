@@ -6,6 +6,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     holder::{CborHttpClient, DisclosureSession, MdocDataSource, PropsedAttributes, TrustAnchor},
     utils::reader_auth::ReaderRegistration,
+    verifier::SessionType,
 };
 
 use crate::utils;
@@ -48,6 +49,7 @@ where
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
             disclosure_uri.return_url,
+            SessionType::SameDevice, // TODO: Distinguish between same device and cross device flows.
             mdoc_data_source,
             trust_anchors,
         )
