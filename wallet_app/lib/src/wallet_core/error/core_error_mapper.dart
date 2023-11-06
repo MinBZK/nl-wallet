@@ -16,8 +16,7 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
       case FlutterApiErrorType.networking:
         return CoreNetworkError(flutterApiError.description);
       case FlutterApiErrorType.walletState:
-        // TODO: Do something here that does not result in a generic error screen.
-        throw UnimplementedError();
+        return CoreStateError(flutterApiError.description, flutterApiError.data);
       case FlutterApiErrorType.redirectUri:
         return CoreRedirectUriError(
           flutterApiError.description,
