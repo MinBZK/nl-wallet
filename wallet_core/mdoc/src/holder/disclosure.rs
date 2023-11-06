@@ -50,7 +50,7 @@ pub type PropsedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
 // TODO: not all of these fields may be necessary to finish the session.
 #[allow(dead_code)]
 pub struct DisclosureSession<H> {
-    return_url: Option<Url>,
+    pub return_url: Option<Url>,
     client: H,
     verifier_url: Url,
     transcript: SessionTranscript,
@@ -58,7 +58,7 @@ pub struct DisclosureSession<H> {
     device_request: DeviceRequest,
     mdocs: Vec<Mdoc>,
     request_attribute_identifiers: HashSet<AttributeIdentifier>,
-    reader_registration: ReaderRegistration,
+    pub reader_registration: ReaderRegistration,
 }
 
 impl<H> DisclosureSession<H>
@@ -228,10 +228,6 @@ where
         Ok(session)
     }
 
-    pub fn return_url(&self) -> Option<&Url> {
-        self.return_url.as_ref()
-    }
-
     pub fn proposed_attributes(&self) -> PropsedAttributes {
         // For every `Mdoc`, get the attributes contained and filter
         // only those that are present in the `DeviceRequest`.
@@ -266,10 +262,6 @@ where
                 (mdoc.doc_type.clone(), name_spaces)
             })
             .collect()
-    }
-
-    pub fn reader_registration(&self) -> &ReaderRegistration {
-        &self.reader_registration
     }
 
     // TODO: Implement terminate and disclose methods.
