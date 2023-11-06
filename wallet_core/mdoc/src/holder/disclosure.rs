@@ -103,7 +103,7 @@ impl ProposedDocument {
 
                     (name_space, attributes.into()).into()
                 })
-                .collect::<IndexMap<_, _>>()
+                .collect()
         });
 
         // Construct everything necessary for signing when the user approves the disclosure.
@@ -224,7 +224,7 @@ where
             .doc_requests
             .iter()
             .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
-            .collect::<HashSet<_>>();
+            .collect();
 
         let mdocs = mdoc_data_source
             .mdoc_by_doc_types(&doc_types)
@@ -246,63 +246,60 @@ where
         // Filter all of the `Vec<Mdoc>`s returned by removing any `Mdoc`
         // that does not contain all of the attributes that are requested.
         // While doing this, collect any attributes that are missing.
-        let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::with_capacity(mdocs.len());
+        let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
 
         let mdoc_candidates = mdocs
             .into_iter()
-            .filter_map(|doc_type_mdocs| {
+            .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
+            .map(|doc_type_mdocs| {
                 // Fist, get the `doc_type` from the first `Mdoc` entry. Note that this
                 // is cross-references with the doc types in the request as a sanity check.
-                let first_doc_type = doc_type_mdocs.first().map(|mdoc| {
-                    *doc_types
-                        .get(mdoc.doc_type.as_str())
-                        .expect("Received mdoc candidate with unrequested doc_type from storage")
-                });
+                // The unwrap is safe, because we filtered out empty `Vec`s above.
+                let doc_type = *doc_types
+                    .get(doc_type_mdocs.first().unwrap().doc_type.as_str())
+                    .expect("Received mdoc candidate with unrequested doc_type from storage");
 
-                // Map the optional `doc_type` in order to filter out empty `Vec`s using `filter_map()`.
-                first_doc_type.map(|doc_type| {
-                    // Do another sanity check, all of the remaining `Mdoc`s
-                    // in the `Vec` should have the same `doc_type`.
-                    for mdoc in &doc_type_mdocs {
-                        if mdoc.doc_type != doc_type {
-                            panic!("Received mdoc candidate with inconsistent doc_type from storage");
+                // Do another sanity check, all of the remaining `Mdoc`s
+                // in the `Vec` should have the same `doc_type`.
+                for mdoc in &doc_type_mdocs {
+                    if mdoc.doc_type != doc_type {
+                        panic!("Received mdoc candidate with inconsistent doc_type from storage");
+                    }
+                }
+
+                // Prepare the `IndexSet<AttributeIdentifier>` that we should match against
+                // for all of the `Mdoc`s with this `doc_type`. The unwrap is safe, as we
+                // checked if this is one of the requested doc types above.
+                let requested_attributes = requested_attributes_by_doc_type.get(doc_type).unwrap();
+                let mut doc_type_missing_attributes = Vec::new();
+
+                let satisfying_mdocs = doc_type_mdocs
+                    .into_iter()
+                    .filter(|mdoc| {
+                        // Calculate missing attributes for every `Mdoc` and filter it out
+                        // if we find any. Also, collect the missing attributes separately.
+                        let available_attributes = mdoc.issuer_signed.attribute_identifiers(doc_type);
+                        let missing_attributes = requested_attributes
+                            .difference(&available_attributes)
+                            .collect::<Vec<_>>();
+
+                        let is_satisfying = missing_attributes.is_empty();
+
+                        if !is_satisfying {
+                            doc_type_missing_attributes.push(missing_attributes.into_iter().cloned().collect());
                         }
-                    }
 
-                    // Prepare the `IndexSet<AttributeIdentifier>` that we should match against
-                    // for all of the `Mdoc`s with this `doc_type`. The unwrap is safe, as we
-                    // checked if this one of the requested doc types above.
-                    let requested_attributes = requested_attributes_by_doc_type.get(doc_type).unwrap();
-                    let mut doc_type_missing_attributes = Vec::with_capacity(doc_type_mdocs.len());
+                        is_satisfying
+                    })
+                    .collect::<Vec<_>>();
 
-                    let satisfying_mdocs = doc_type_mdocs
-                        .into_iter()
-                        .filter(|mdoc| {
-                            // Calculate missing attributes for every `Mdoc` and filter it out
-                            // if we find any. Also, collect the missing attributes separately.
-                            let available_attributes = mdoc.issuer_signed.attribute_identifiers(doc_type);
-                            let missing_attributes = requested_attributes
-                                .difference(&available_attributes)
-                                .collect::<Vec<_>>();
+                // If we have multiple `Mdoc`s with missing attributes, just record the first one.
+                // TODO: Report on missing attributes for multiple `Mdoc` candidates.
+                if let Some(missing_attributes) = doc_type_missing_attributes.into_iter().next() {
+                    all_missing_attributes.push(missing_attributes);
+                }
 
-                            let is_satisfying = missing_attributes.is_empty();
-
-                            if !is_satisfying {
-                                doc_type_missing_attributes.push(missing_attributes.into_iter().cloned().collect());
-                            }
-
-                            is_satisfying
-                        })
-                        .collect::<Vec<_>>();
-
-                    // If we have multiple `Mdoc`s with missing attributes, just record the first one.
-                    // TODO: Report on missing attributes for multiple `Mdoc` candidates.
-                    if let Some(missing_attributes) = doc_type_missing_attributes.into_iter().next() {
-                        all_missing_attributes.push(missing_attributes);
-                    }
-
-                    satisfying_mdocs
-                })
+                satisfying_mdocs
             })
             .collect::<Vec<_>>();
 
@@ -324,6 +321,7 @@ where
         if mdoc_candidates.iter().any(|doc_type_mdocs| doc_type_mdocs.len() > 1) {
             let duplicate_doc_types = mdoc_candidates
                 .into_iter()
+                .filter(|doc_type_mdocs| doc_type_mdocs.len() > 1)
                 .map(|doc_type_mdocs| doc_type_mdocs.into_iter().next().unwrap().doc_type)
                 .collect();
 
