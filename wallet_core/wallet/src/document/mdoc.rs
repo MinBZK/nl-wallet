@@ -67,6 +67,7 @@ fn mapping_for_doc_type(doc_type: &str) -> Result<(MappingDocType, &'static Attr
 fn document_attributes_from_mdoc_attributes(
     doc_type: &str,
     mut attributes: IndexMap<NameSpace, Vec<Entry>>,
+    error_on_missing: bool,
 ) -> Result<(MappingDocType, DocumentAttributes), DocumentMdocError> {
     let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
 
@@ -91,8 +92,9 @@ fn document_attributes_from_mdoc_attributes(
             });
 
             // If the entry is not found in the mdoc attributes, but it is not
-            // mandatory, we can return `None` early here.
-            if entry.is_none() && !value_mapping.is_mandatory {
+            // mandatory or we are not processing mandatory attributes, we can
+            // return `None` early here.
+            if entry.is_none() && (!value_mapping.is_mandatory || !error_on_missing) {
                 return None;
             }
 
@@ -162,7 +164,7 @@ impl Document {
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes)?;
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, true)?;
 
         let document = Document {
             persistence,
@@ -279,7 +281,7 @@ impl ProposedDisclosureDocument {
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes)?;
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, false)?;
 
         let document = ProposedDisclosureDocument {
             doc_type,
