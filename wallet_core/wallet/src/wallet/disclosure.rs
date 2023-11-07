@@ -93,14 +93,14 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let config = self.config_repository.config();
+        let config = &self.config_repository.config().disclosure;
 
         // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let disclosure_redirect_uri_base = config.disclosure.uri_base().unwrap();
+        let disclosure_redirect_uri_base = config.uri_base().unwrap();
         let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = R::start(disclosure_uri, self, &config.mdoc_trust_anchors()).await?;
+        let session = R::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = session
