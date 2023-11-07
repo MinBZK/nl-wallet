@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-wallet-provider-ont-static-files
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: $WALLET_PROVIDER_EXTERNAL_HOSTNAME
+      http:
+        paths:
+          - backend:
+              service:
+                name: static-files
+                port:
+                  number: 8080
+            path: /.well-known
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - $WALLET_PROVIDER_EXTERNAL_HOSTNAME
+      secretName: nl-wallet-letsencrypt-live-cert
