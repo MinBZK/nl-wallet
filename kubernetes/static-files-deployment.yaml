@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-files
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: static-files
+  template:
+    metadata:
+      labels:
+        app: static-files
+        tier: vertrouwd
+        ingress-controller-frontoffice-policy: allow
+        egress-frontoffice-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: static-files
+          image: $STATIC_FILES_HOSTING_IMAGE
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: well-known-app-association-volume
+              mountPath: /usr/share/nginx/html/.well-known/apple-app-site-association
+              subPath: apple-app-site-association
+            - name: well-known-app-association-volume
+              mountPath: /usr/share/nginx/html/.well-known/assetlinks.json
+              subPath: assetlinks.json
+      volumes:
+        - name: well-known-app-association-volume
+          secret:
+            secretName: nl-wallet-well-known-app-association
