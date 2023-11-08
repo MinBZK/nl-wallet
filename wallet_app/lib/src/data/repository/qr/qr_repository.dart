@@ -1,5 +1,7 @@
-import '../../../domain/model/qr/qr_request.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../../../domain/model/navigation/navigation_request.dart';
 
 abstract class QrRepository {
-  Future<QrRequest> getRequest(String rawValue);
+  Future<NavigationRequest> processBarcode(Barcode barcode);
 }

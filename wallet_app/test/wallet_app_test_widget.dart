@@ -64,6 +64,13 @@ extension TestWidgetExtensions on Widget {
         },
         child: Builder(builder: (context) => this),
       );
+
+  /// Wraps the widget with a RepositoryProvider to provide the result of [create].
+  ///
+  /// Useful to provide a widget under test with a dependency.
+  Widget withDependency<T>(T Function(BuildContext context) create) => Builder(
+        builder: (context) => RepositoryProvider(create: (c) => create(c), child: this),
+      );
 }
 
 extension WidgetTesterExtensions on WidgetTester {

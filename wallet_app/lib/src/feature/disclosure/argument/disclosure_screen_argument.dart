@@ -1,27 +1,22 @@
-class IssuanceScreenArgument {
+class DisclosureScreenArgument {
   static const _kSessionIdKey = 'sessionId';
-  static const _kIsRefreshFlowKey = 'isRefreshFlow';
   static const _kUriKey = 'uri';
 
   final String? mockSessionId;
-  final bool isRefreshFlow;
   final String? uri;
 
-  const IssuanceScreenArgument({this.mockSessionId, this.isRefreshFlow = false, this.uri})
-      : assert(mockSessionId != null || uri != null);
+  const DisclosureScreenArgument({this.mockSessionId, this.uri}) : assert(mockSessionId != null || uri != null);
 
   Map<String, dynamic> toMap() {
     return {
       _kSessionIdKey: mockSessionId,
-      _kIsRefreshFlowKey: isRefreshFlow,
       _kUriKey: uri,
     };
   }
 
-  static IssuanceScreenArgument fromMap(Map<String, dynamic> map) {
-    return IssuanceScreenArgument(
+  static DisclosureScreenArgument fromMap(Map<String, dynamic> map) {
+    return DisclosureScreenArgument(
       mockSessionId: map[_kSessionIdKey],
-      isRefreshFlow: map[_kIsRefreshFlowKey],
       uri: map[_kUriKey],
     );
   }
@@ -29,15 +24,15 @@ class IssuanceScreenArgument {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is IssuanceScreenArgument &&
+      other is DisclosureScreenArgument &&
           runtimeType == other.runtimeType &&
           mockSessionId == other.mockSessionId &&
-          isRefreshFlow == other.isRefreshFlow;
+          uri == other.uri;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
         mockSessionId,
-        isRefreshFlow,
+        uri,
       );
 }

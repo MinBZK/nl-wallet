@@ -50,6 +50,7 @@ class DeeplinkService {
     }).listen(
       (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
       onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),
+      cancelOnError: false,
     );
   }
 }

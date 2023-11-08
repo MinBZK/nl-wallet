@@ -22,7 +22,7 @@ class QrScanLoading extends QrScanState {
 }
 
 class QrScanSuccess extends QrScanState {
-  final QrRequest request;
+  final NavigationRequest request;
 
   const QrScanSuccess(this.request);
 

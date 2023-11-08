@@ -1,3 +1,6 @@
+import 'package:equatable/equatable.dart';
+
+import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../../../navigation/wallet_routes.dart';
 import 'navigation_prerequisite.dart';
 import 'pre_navigation_action.dart';
@@ -5,7 +8,7 @@ import 'pre_navigation_action.dart';
 export 'navigation_prerequisite.dart';
 export 'pre_navigation_action.dart';
 
-sealed class NavigationRequest {
+sealed class NavigationRequest extends Equatable {
   /// The destination route to navigate to
   final String destination;
 
@@ -18,7 +21,7 @@ sealed class NavigationRequest {
   /// A list of navigation pre navigation actions, used to specify which actions should be performed before the user should be navigated to [destination]
   final List<PreNavigationAction> preNavigationActions;
 
-  NavigationRequest(
+  const NavigationRequest(
     this.destination, {
     this.argument,
     this.navigatePrerequisites = const [],
@@ -29,10 +32,13 @@ sealed class NavigationRequest {
   String toString() {
     return 'NavigationRequest{destination: $destination, argument: $argument}';
   }
+
+  @override
+  List<Object?> get props => [destination, argument, navigatePrerequisites, preNavigationActions];
 }
 
 class GenericNavigationRequest extends NavigationRequest {
-  GenericNavigationRequest(
+  const GenericNavigationRequest(
     String destination, {
     Object? argument,
     List<NavigationPrerequisite> navigatePrerequisites = const [],
@@ -46,7 +52,7 @@ class GenericNavigationRequest extends NavigationRequest {
 }
 
 class PidIssuanceNavigationRequest extends NavigationRequest {
-  PidIssuanceNavigationRequest(Uri uri)
+  PidIssuanceNavigationRequest(String uri)
       : super(
           WalletRoutes.walletPersonalizeRoute,
           argument: uri,
@@ -61,10 +67,10 @@ class PidIssuanceNavigationRequest extends NavigationRequest {
 }
 
 class DisclosureNavigationRequest extends NavigationRequest {
-  DisclosureNavigationRequest(Uri uri)
+  DisclosureNavigationRequest(String uri)
       : super(
           WalletRoutes.disclosureRoute,
-          argument: uri,
+          argument: DisclosureScreenArgument(uri: uri),
           navigatePrerequisites: [
             NavigationPrerequisite.walletUnlocked,
             NavigationPrerequisite.walletInitialized,
