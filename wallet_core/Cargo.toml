@@ -5,6 +5,7 @@ members = [
     "mdoc",
     "mdoc/fieldnames",
     "mdoc/fieldnames_derive",
+    "mock_relying_party",
     "pid_issuer",
     "platform_support",
     "tests_integration",
@@ -35,9 +36,11 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 assert_cmd = "2.0.12"
 assert_fs = "1.0.13"
+askama = "0.12.1"
 assert_matches = "1"
 async-trait = "0.1.68"
 axum = { version = "0.6.19", default-features = false }
+axum-extra = "0.8.0"
 backtrace = "0.3.67"
 base64 = "0.21.0"
 chrono = { version = "0.4.26", default-features = false }
@@ -93,6 +96,7 @@ serde_bytes = "0.11.7"
 serde_json = { version = "1.0.92", default-features = false }
 serde_repr = "0.1.16"
 serde_with = "3.3.0"
+serde_url_params = "0.2.1"
 serial_test = "2.0.0"
 sha2 = "0.10.6"
 syn = "2.0"

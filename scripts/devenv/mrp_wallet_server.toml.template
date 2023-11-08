@@ -1,0 +1,20 @@
+# Example config
+
+trust_anchors = []
+
+[wallet_server]
+ip = '0.0.0.0'
+port = 3001
+
+[requester_server]
+ip = '0.0.0.0'
+port = 3002
+
+[usecases]
+[usecases.driving_license]
+certificate = "${MOCK_RELYING_PARTY_CRT}"
+private_key = "${MOCK_RELYING_PARTY_KEY}"
+
+[usecases.parking_permit]
+certificate = "${MOCK_RELYING_PARTY_CRT}"
+private_key = "${MOCK_RELYING_PARTY_KEY}"

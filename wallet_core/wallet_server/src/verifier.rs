@@ -16,7 +16,7 @@ use tower_http::trace::TraceLayer;
 use tracing::log::{error, warn};
 use url::Url;
 
-use crate::settings::Settings;
+use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::{KeyRing, PrivateKey},
@@ -129,17 +129,17 @@ async fn session<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_id): Path<SessionToken>,
     msg: Bytes,
-) -> Result<Json<SessionData>, Error>
+) -> Result<Cbor<SessionData>, Error>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let disclosure_data = state
+    let response = state
         .verifier
         .process_message(&msg, session_id)
         .await
         .map_err(Error::ProcessMdoc)?;
 
-    Ok(Json(disclosure_data))
+    Ok(Cbor(response))
 }
 
 #[derive(Deserialize, Serialize)]

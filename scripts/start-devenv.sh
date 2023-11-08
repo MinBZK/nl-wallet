@@ -5,6 +5,7 @@
 # - nl-rdo-max-private (digid-connector)
 #   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
 #   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
+# - mock_relying_party
 # - pid_issuer
 # - wallet_provider
 # - wallet
@@ -46,7 +47,8 @@ Where:
     wp, wallet_provider:        Start the wallet_provider.
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
-    pi, pid_issuer:             Start the wallet_provider.
+    pi, pid_issuer:             Start the pid_issuer.
+    mrp, mock_relying_party:    Start the mock_relying_party (this also starts a wallet_server).
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     docker:                     Start a PostgreSQL database, including pgadmin4, on docker.
 
@@ -70,6 +72,7 @@ expect_command flutter "Missing binary 'flutter', please install Flutter"
 # Commandline arguments
 
 PID_ISSUER=1
+MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
 WALLET=1
 DIGID_CONNECTOR=1
@@ -98,6 +101,10 @@ do
             ;;
         pi|pid_issuer)
             PID_ISSUER=0
+            shift # past argument
+            ;;
+        mrp|mock_relying_party)
+            MOCK_RELYING_PARTY=0
             shift # past argument
             ;;
         digid|digid_connector)
@@ -215,6 +222,50 @@ then
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
 fi
+
+########################################################################
+# Manage mock_relying_party
+
+if [ "${MOCK_RELYING_PARTY}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage mock_relying_party${NC}"
+
+    cd "${MOCK_RELYING_PARTY_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
+        killall mock_relying_party || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}mock_relying_party${NC}"
+        RUST_LOG=debug cargo run --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
+
+        echo -e "mock_relying_party logs can be found at ${CYAN}${TARGET_DIR}/mock_relying_party.log${NC}"
+    fi
+
+    # As part of the MRP a wallet_server is started
+    echo
+    echo -e "${SECTION}Manage wallet_server${NC}"
+
+    cd "${MRP_WALLET_SERVER_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
+        killall wallet_server || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
+        RUST_LOG=debug cargo run --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
+
+        echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
+    fi
+fi
+
 
 ########################################################################
 # Manage wallet_provider

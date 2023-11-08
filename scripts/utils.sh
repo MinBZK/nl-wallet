@@ -163,3 +163,19 @@ function generate_pid_issuer_key_pair {
             -CAkey "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
             -out "${TARGET_DIR}/pid_issuer/issuer_crt.pem"
 }
+
+# Generate an EC key pair for the mock_relying_party
+function generate_mock_relying_party_key_pair {
+    cargo run --manifest-path ${BASE_DIR}/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "ca.example.com" \
+        --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
+        --force
+
+    cargo run --manifest-path ${BASE_DIR}/wallet_core/Cargo.toml --bin wallet_ca reader-auth-cert \
+        --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        --common-name "rp.example.com" \
+        --reader-auth-file "${DEVENV}/reader_auth.json" \
+        --file-prefix "${TARGET_DIR}/mock_relying_party/rp" \
+        --force
+}
