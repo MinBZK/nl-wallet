@@ -6,7 +6,8 @@ certificate_signing_key_identifier = "certificate_signing_key"
 
 # Identifier for key used to sign instruction results sent from wallet_provider to wallet
 instruction_result_signing_key_identifier = "instruction_result_signing_key"
-pin_hash_salt = "AIZwpO3BYBpjMLPsTqF2bExLEj1i4zKUCsgOUhSlK60"
+
+
 
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false

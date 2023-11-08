@@ -48,6 +48,10 @@ pub enum HsmError {
 
     #[error("key not found: '{0}'")]
     KeyNotFound(String),
+
+    #[cfg(feature = "mock")]
+    #[error("hmac error: {0}")]
+    Hmac(#[from] hmac::digest::MacError),
 }
 
 type Result<T> = std::result::Result<T, HsmError>;
@@ -290,7 +294,7 @@ impl Pkcs11Client for Pkcs11Hsm {
                 Attribute::Sign(true),
                 Attribute::Class(ObjectClass::SECRET_KEY),
                 Attribute::KeyType(KeyType::GENERIC_SECRET),
-                Attribute::ValueLen(256.into()),
+                Attribute::ValueLen(32.into()),
                 Attribute::Label(identifier.clone().into()),
             ];
 

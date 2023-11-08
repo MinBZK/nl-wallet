@@ -920,38 +920,15 @@ dependencies = [
 
 [[package]]
 name = "cryptoki"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e08651cefd925cd83d8d1b4f96276c18fe5ee148ab8c8a47f462316d36bc01af"
-dependencies = [
- "bitflags 1.3.2",
- "cryptoki-sys 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "libloading",
- "log",
- "paste",
- "secrecy",
-]
-
-[[package]]
-name = "cryptoki"
 version = "0.6.1"
 source = "git+https://github.com/reduced-permissions-bot/rust-cryptoki.git#84d569ad76f98cdf78eb003a4315ac3448673a5d"
 dependencies = [
  "bitflags 1.3.2",
- "cryptoki-sys 0.1.7 (git+https://github.com/reduced-permissions-bot/rust-cryptoki.git)",
+ "cryptoki-sys",
  "libloading",
  "log",
  "paste",
  "secrecy",
-]
-
-[[package]]
-name = "cryptoki-sys"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a978e5e226446ac68eded4f92796947130f0d21de1e21bf80298f9f50d917d5"
-dependencies = [
- "libloading",
 ]
 
 [[package]]
@@ -2940,8 +2917,9 @@ dependencies = [
 [[package]]
 name = "r2d2-cryptoki"
 version = "0.2.1"
+source = "git+https://github.com/reduced-permissions-bot/r2d2-cryptoki#230b975662fad9a2fe2887a5110f74124e0ec6e7"
 dependencies = [
- "cryptoki 0.6.1",
+ "cryptoki",
  "r2d2",
 ]
 
@@ -4952,10 +4930,11 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "chrono",
- "cryptoki 0.6.0",
+ "cryptoki",
  "dashmap",
  "der",
  "futures",
+ "hmac",
  "jsonwebtoken",
  "p256",
  "r2d2-cryptoki",

@@ -5,7 +5,6 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationMilliSeconds};
 
-use wallet_common::account::serialization::Base64Bytes;
 use wallet_provider_database_settings::{Database, DatabaseDefaults};
 
 #[serde_as]
@@ -16,7 +15,6 @@ pub struct Settings {
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
-    pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
     pub hsm: Hsm,

@@ -93,7 +93,7 @@ pub mod mock {
 
     use async_trait::async_trait;
     use dashmap::DashMap;
-    use hmac::{Hmac, Mac};
+    use hmac::{digest::MacError, Hmac, Mac};
     use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
     use rand::rngs::OsRng;
     use sha2::Sha256;
@@ -107,6 +107,8 @@ pub mod mock {
         wallet_user::WalletId,
         wrapped_key::WrappedKey,
     };
+
+    type HmacSha256 = Hmac<Sha256>;
 
     pub struct MockPkcs11Client<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
 
@@ -152,7 +154,7 @@ pub mod mock {
     }
 
     #[async_trait]
-    impl<E: Error + Send + Sync> WalletUserHsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> WalletUserHsm for MockPkcs11Client<E> {
         type Error = E;
 
         async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey), Self::Error> {
@@ -186,7 +188,7 @@ pub mod mock {
     }
 
     #[async_trait]
-    impl<E: Error + Send + Sync> Hsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
         type Error = E;
 
         async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error> {
@@ -217,7 +219,6 @@ pub mod mock {
             let entry = self.1.entry(String::from(identifier)).or_insert(random_bytes(32));
             let key = entry.value();
 
-            type HmacSha256 = Hmac<Sha256>;
             let mut mac = HmacSha256::new_from_slice(key).unwrap();
             mac.update(&data);
             let signature = mac.finalize().into_bytes();
@@ -231,14 +232,12 @@ pub mod mock {
             data: Arc<Vec<u8>>,
             signature: Vec<u8>,
         ) -> Result<(), Self::Error> {
-            let entry = self.1.entry(String::from(identifier)).or_insert(random_bytes(32));
+            let entry = self.1.get(identifier).unwrap();
             let key = entry.value();
 
-            type HmacSha256 = Hmac<Sha256>;
             let mut mac = HmacSha256::new_from_slice(key).unwrap();
             mac.update(&data);
-            mac.verify_slice(&signature).unwrap();
-            Ok(())
+            Ok(mac.verify_slice(&signature)?)
         }
 
         async fn encrypt<T>(&self, _identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error> {

@@ -115,4 +115,4 @@ x509-parser = "0.15.1"
 
 [patch.crates-io]
 cryptoki = { git = "https://github.com/reduced-permissions-bot/rust-cryptoki.git" }
-r2d2-cryptoki = { path = "../../../github/reduced-permissions-bot/r2d2-cryptoki"}
+r2d2-cryptoki = { git = "https://github.com/reduced-permissions-bot/r2d2-cryptoki" }
