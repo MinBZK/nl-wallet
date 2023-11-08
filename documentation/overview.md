@@ -1,4 +1,4 @@
-# Sequence Diagrams
+# Overview
 
 The intention of this readme is to provide insight into the communication that happens between the different layers of the app. This file mainly serves as an introduction and a table of contents, the actual (sequence) diagrams can be found in the referenced files.
 
@@ -16,9 +16,16 @@ A brief summary of the participants used in diagrams.
 | wallet_app | The Flutter application code (i.e. Dart).                                                                            |
 | wallet_core | The core business logic, built using Rust.                                                                          |
 | wallet_provider | The backend, its business logic is often kept out of scope for now.                                             |
-| digid_connector | Service used to abstract the digid SAML protocol.                                                               |
-| pid_issuer | The service that will provide the pid to the wallet.                                                                 |
+| digid_connector | Service used to abstract the DigiD SAML protocol.                                                               |
+| pid_issuer | The service that will provide the PID to the wallet.                                                                 |
 | digid | DigiD service, used to authenticate users and retrieve their BSN.                                                         |
+
+
+## Components overview
+
+A global overview of how the different components interact with each other. For a more detailed view, see the flows below.
+
+See [components.md](./components.md)
 
 ## 1. App Startup
 
