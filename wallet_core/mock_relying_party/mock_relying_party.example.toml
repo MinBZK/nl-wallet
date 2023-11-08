@@ -1,0 +1,14 @@
+wallet_server_url = 'http://localhost:3002'
+
+[webserver]
+ip = '127.0.0.1'
+port = 3004
+
+[[usecases.driving_license]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { given_name = false, family_name = true } }
+
+[[usecases.parking_permit]]
+docType = "com.example.address"
+nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_city = true } }
+

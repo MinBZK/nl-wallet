@@ -1,28 +1,28 @@
 [package]
-name = "wallet_server"
+name = "mock_relying_party"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+askama.workspace = true
 axum = { workspace = true, features = [
-    "headers",
     "http1",
-    "json",
+    "form",
     "tokio",
     "tower-log",
     "tracing",
+    "headers",
+    "macros",
 ] }
+axum-extra.workspace = true
 base64.workspace = true
-config = { workspace = true, features = ["toml"] }
-chrono.workspace = true
-dashmap = { workspace = true, features = ["serde"] }
-lazy_static.workspace = true
-mime.workspace = true
-p256 = { workspace = true, features = ["ecdsa"] }
+config.workspace = true
+dashmap.workspace = true
 reqwest.workspace = true
-serde = { workspace = true, features = ["serde_derive"] }
+serde = { workspace = true, features = ["derive"] }
+serde_url_params.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
@@ -36,7 +36,5 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
+wallet_server.path = "../wallet_server"
 
-[dev-dependencies]
-indexmap.workspace = true
-reqwest.workspace = true

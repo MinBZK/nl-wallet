@@ -36,7 +36,9 @@
 # - Android Emulator configuration
 #
 #     adb reverse tcp:3000 tcp:3000
+#     adb reverse tcp:3001 tcp:3001
 #     adb reverse tcp:3003 tcp:3003
+#     adb reverse tcp:3004 tcp:3004
 #     adb reverse tcp:8006 tcp:8006
 #
 
@@ -102,6 +104,7 @@ fi
 
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/pid_issuer"
+mkdir -p "${TARGET_DIR}/mock_relying_party"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
@@ -150,6 +153,32 @@ export PID_ISSUER_CRT
 
 render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
 render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
+
+########################################################################
+# Configure mock_relying_party
+
+echo
+echo -e "${SECTION}Configure relying_party${NC}"
+
+cd "${BASE_DIR}"
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair
+
+RP_CA_CRT=$(get_pem_body "${TARGET_DIR}/mock_relying_party/ca.crt.pem")
+export RP_CA_CRT
+MOCK_RELYING_PARTY_KEY=$(get_pem_body "${TARGET_DIR}/mock_relying_party/rp.key.pem")
+export MOCK_RELYING_PARTY_KEY
+MOCK_RELYING_PARTY_CRT=$(get_pem_body "${TARGET_DIR}/mock_relying_party/rp.crt.pem")
+export MOCK_RELYING_PARTY_CRT
+
+render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
+render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
+
+# And the mrp's wallet_server config
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mrp_wallet_server.toml"
+
 
 ########################################################################
 # Configure wallet_provider
