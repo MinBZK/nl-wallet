@@ -279,23 +279,22 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
 Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
 WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
+  final args = DisclosureScreen.getArgument(settings);
   if (Environment.mockRepositories) {
-    String sessionId = DisclosureScreen.getArguments(settings);
     return (context) {
       return BlocProvider<DisclosureBloc>(
         create: (BuildContext context) {
           return MockDisclosureBloc(context.read(), context.read(), context.read(), context.read())
-            ..add(DisclosureLoadRequested(sessionId));
+            ..add(DisclosureLoadRequested(args.mockSessionId!));
         },
         child: const DisclosureScreen(),
       );
     };
   } else {
-    Uri disclosureUri = settings.arguments as Uri;
     return (context) {
       return BlocProvider<DisclosureBloc>(
         create: (BuildContext context) => CoreDisclosureBloc(
-          disclosureUri,
+          args.uri!,
           context.read(),
           context.read(),
         ),
@@ -318,7 +317,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
         return IssuanceBloc(context.read(), context.read(), context.read(), context.read())
-          ..add(IssuanceLoadTriggered(argument.sessionId, argument.isRefreshFlow));
+          ..add(IssuanceLoadTriggered(argument.mockSessionId!, argument.isRefreshFlow));
       },
       child: const IssuanceScreen(),
     );
@@ -327,10 +326,11 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
   return (context) {
-    String sessionId = SignScreen.getArguments(settings);
+    final arguments = SignScreen.getArgument(settings);
     return BlocProvider<SignBloc>(
       create: (BuildContext context) {
-        return SignBloc(context.read(), context.read(), context.read())..add(SignLoadTriggered(sessionId));
+        return SignBloc(context.read(), context.read(), context.read())
+          ..add(SignLoadTriggered(arguments.mockSessionId!));
       },
       child: const SignScreen(),
     );
@@ -339,7 +339,7 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
   return (context) {
-    Uri? argument = tryCast<Uri>(settings.arguments);
+    String? argument = tryCast<String>(settings.arguments);
 
     return BlocProvider<WalletPersonalizeBloc>(
       create: (BuildContext context) => WalletPersonalizeBloc(

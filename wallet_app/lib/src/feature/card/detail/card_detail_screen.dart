@@ -275,7 +275,7 @@ class CardDetailScreen extends StatelessWidget {
           context,
           WalletRoutes.issuanceRoute,
           arguments: IssuanceScreenArgument(
-            sessionId: issuanceRequestId,
+            mockSessionId: issuanceRequestId,
             isRefreshFlow: true,
           ).toMap(),
         );

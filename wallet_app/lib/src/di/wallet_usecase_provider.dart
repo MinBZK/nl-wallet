@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
-import '../../environment.dart';
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
 import '../domain/usecase/card/get_pid_issuance_response_usecase.dart';
@@ -81,7 +80,6 @@ import '../domain/usecase/sign/get_sign_request_usecase.dart';
 import '../domain/usecase/sign/impl/get_sign_request_usecase_impl.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
 import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
-import '../domain/usecase/uri/mock/mock_decode_uri_usecase.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
@@ -211,8 +209,7 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => GetWalletCardUpdateIssuanceRequestIdUseCaseImpl(context.read()),
         ),
         RepositoryProvider<DecodeUriUseCase>(
-          create: (context) =>
-              Environment.mockRepositories ? MockDecodeUriUseCase() : DecodeUriUseCaseImpl(context.read()),
+          create: (context) => DecodeUriUseCaseImpl(context.read()),
         ),
         RepositoryProvider<IsWalletInitializedWithPidUseCase>(
           create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read()),

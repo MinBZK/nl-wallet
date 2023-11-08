@@ -13,7 +13,7 @@ void main() {
   late MockNavigatorKey navigatorKey;
 
   setUp(() {
-    provideDummy<NavigationRequest>(GenericNavigationRequest('/mock_destination'));
+    provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     navigatorKey = MockNavigatorKey();
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
@@ -31,7 +31,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'));
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'));
 
       // Make sure navigation was triggered (note: currently only shallow validation by checking interaction with the navigator)
       verify(navigatorKey.currentState);
@@ -41,7 +41,7 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'));
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'));
 
       verifyInOrder([mockPerformPreNavigationActionsUseCase.invoke(any), navigatorKey.currentState]);
     });
@@ -50,7 +50,7 @@ void main() {
       // Disallow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
 
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'));
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'));
 
       // Make sure navigation was NOT triggered
       verifyNever(navigatorKey.currentState);
@@ -61,7 +61,7 @@ void main() {
     test('Verify request is not queued if not explicitly requested', () async {
       // Disallow navigation, meaning the request should be queued if that is requested
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'));
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'));
 
       // Now allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
@@ -75,7 +75,7 @@ void main() {
     test('Verify request is queued when requested', () async {
       // Disallow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'), queueIfNotReady: true);
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'), queueIfNotReady: true);
 
       // Now allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
@@ -89,7 +89,7 @@ void main() {
     test('Verify even if request is queued, it is not processed if the app is still not ready', () async {
       // Disallow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
-      await service.handleNavigationRequest(GenericNavigationRequest('/mock'), queueIfNotReady: true);
+      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'), queueIfNotReady: true);
 
       // And process any queue if it exists, while app is still NOT ready
       await service.processQueue();

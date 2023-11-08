@@ -25,7 +25,7 @@ void _setupMockitoDummies() {
   );
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
-  provideDummy<NavigationRequest>(GenericNavigationRequest('/mock_destination'));
+  provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../navigation/wallet_routes.dart';
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
@@ -11,6 +12,7 @@ import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../organization/approve/organization_approve_page.dart';
+import 'argument/sign_screen_argument.dart';
 import 'bloc/sign_bloc.dart';
 import 'page/check_agreement_page.dart';
 import 'page/confirm_agreement_page.dart';
@@ -20,12 +22,13 @@ import 'page/sign_stopped_page.dart';
 import 'page/sign_success_page.dart';
 
 class SignScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+  static SignScreenArgument getArgument(RouteSettings settings) {
+    final args = settings.arguments;
     try {
-      return settings.arguments as String;
+      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
-      Fimber.e('Failed to decode ${settings.arguments}', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a (mock) id when opening the SignScreen');
+      Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
+      throw UnsupportedError('Make sure to pass in [SignScreenArgument] when opening the SignScreen');
     }
   }
 

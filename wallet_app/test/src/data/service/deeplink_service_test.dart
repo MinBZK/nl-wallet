@@ -17,6 +17,7 @@ void main() {
   late AppLifecycleService mockAppLifecycleService;
 
   setUp(() {
+    provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     appLinks = MockAppLinks();
     mockNavigationService = MockNavigationService();
     mockAppLifecycleService = AppLifecycleService(); // Uses the real implementation because it's trivial
@@ -32,7 +33,7 @@ void main() {
 
   group('uri events', () {
     test('Navigation request should be passed on to the navigation service if the app is resumed', () async {
-      final navigationRequest = GenericNavigationRequest('/mock');
+      const navigationRequest = GenericNavigationRequest('/mock');
       when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 
@@ -43,7 +44,7 @@ void main() {
     test('Navigation request should not be passed on to the navigation service when the app is paused', () async {
       // Provide NavigationRequest
       mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
-      final navigationRequest = GenericNavigationRequest('/mock');
+      const navigationRequest = GenericNavigationRequest('/mock');
       when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       // Make sure it gets queued
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
@@ -55,7 +56,7 @@ void main() {
     test('Navigation request be queued and passed on once the app is resumed', () async {
       // Provide NavigationRequest
       mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
-      final navigationRequest = GenericNavigationRequest('/mock');
+      const navigationRequest = GenericNavigationRequest('/mock');
       when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       // Make sure it gets queued
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
@@ -73,7 +74,7 @@ void main() {
 
     test('Navigation request is only handled once as the app cycles through lifecycles', () async {
       // Provide NavigationRequest
-      final navigationRequest = GenericNavigationRequest('/mock');
+      const navigationRequest = GenericNavigationRequest('/mock');
       when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
       // Insert the uri
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));

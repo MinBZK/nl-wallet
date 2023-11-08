@@ -1,12 +1,25 @@
-import '../../../../domain/model/qr/qr_request.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../../../../../bridge_generated.dart';
+import '../../../../domain/model/navigation/navigation_request.dart';
+import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../qr_repository.dart';
 
 class CoreQrRepository implements QrRepository {
-  CoreQrRepository();
+  final TypedWalletCore _walletCore;
+
+  CoreQrRepository(this._walletCore);
 
   @override
-  Future<QrRequest> getRequest(String rawValue) {
-    // TODO: implement getRequest
-    throw UnimplementedError();
+  Future<NavigationRequest> processBarcode(Barcode barcode) => _processRawValue(barcode.rawValue!);
+
+  Future<NavigationRequest> _processRawValue(String rawValue) async {
+    final uriType = await _walletCore.identifyUri(rawValue);
+    switch (uriType) {
+      case IdentifyUriResult.PidIssuance:
+        return PidIssuanceNavigationRequest(rawValue);
+      case IdentifyUriResult.Disclosure:
+        return DisclosureNavigationRequest(rawValue);
+    }
   }
 }

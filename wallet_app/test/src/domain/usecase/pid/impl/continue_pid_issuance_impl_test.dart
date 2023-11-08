@@ -20,7 +20,7 @@ void main() {
     test('PidIssuanceSuccess is emitted with the sample attributes', () async {
       final sampleAttribute = DataAttribute.untranslated(
           key: 'key', label: 'label', value: const StringValue('value'), sourceCardId: 'sourceCardId');
-      final samplePidIssuanceUri = Uri.parse('https://example.org');
+      const samplePidIssuanceUri = 'https://example.org';
       when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer((_) async => [sampleAttribute]);
 
       final result = await usecase.invoke(samplePidIssuanceUri);
