@@ -15,6 +15,7 @@ pub struct Settings {
     pub instruction_result_signing_key_identifier: String,
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
+    pub pin_public_disclosure_protection_key_identifier: String,
     pub pin_hash_salt: Base64Bytes,
     pub database: Database,
     pub webserver: Webserver,
@@ -59,6 +60,10 @@ impl Settings {
             )?
             .set_default("attestation_wrapping_key_identifier", "attestation_wrapping_key")?
             .set_default("pin_pubkey_encryption_key_identifier", "pin_pubkey_encryption_key")?
+            .set_default(
+                "pin_public_disclosure_protection_key_identifier",
+                "pin_public_disclosure_protection_key",
+            )?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
             .set_default("pin_policy.rounds", 4)?
