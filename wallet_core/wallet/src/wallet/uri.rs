@@ -19,10 +19,10 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    C: ConfigurationRepository,
-    D: DigidSession,
+    CR: ConfigurationRepository,
+    DGS: DigidSession,
 {
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
         info!("Identifying type of URI: {}", uri_str);

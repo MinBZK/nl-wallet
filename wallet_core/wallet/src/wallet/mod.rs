@@ -36,21 +36,21 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    C = LocalConfigurationRepository,
-    S = DatabaseStorage<HardwareEncryptionKey>,
-    K = HardwareEcdsaKey,
-    A = HttpAccountProviderClient,
-    D = HttpDigidSession,
-    P = HttpPidIssuerClient,
-    R = DisclosureSession<CborHttpClient>,
+    CR = LocalConfigurationRepository,          // ConfigurationRepository
+    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
+    PEK = HardwareEcdsaKey,                     // PlatformEcdsaKey
+    APC = HttpAccountProviderClient,            // AccountProviderClient
+    DGS = HttpDigidSession,                     // DigidSession
+    PIC = HttpPidIssuerClient,                  // PidIssuerClient
+    MDS = DisclosureSession<CborHttpClient>,    // MdocDisclosureSession
 > {
-    config_repository: C,
+    config_repository: CR,
     storage: RwLock<S>,
-    hw_privkey: K,
-    account_provider_client: A,
-    digid_session: Option<D>,
-    pid_issuer: P,
-    disclosure_session: Option<R>,
+    hw_privkey: PEK,
+    account_provider_client: APC,
+    digid_session: Option<DGS>,
+    pid_issuer: PIC,
+    disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,

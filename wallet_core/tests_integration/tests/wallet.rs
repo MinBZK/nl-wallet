@@ -167,12 +167,12 @@ where
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
 }
 
-async fn test_wallet_registration<C, S, K, A, D, P>(mut wallet: Wallet<C, S, K, A, D, P>)
+async fn test_wallet_registration<CR, S, PEK, APC, DGS, PIC, MDS>(mut wallet: Wallet<CR, S, PEK, APC, DGS, PIC, MDS>)
 where
-    C: ConfigurationRepository,
+    CR: ConfigurationRepository,
     S: Storage,
-    K: PlatformEcdsaKey,
-    A: AccountProviderClient,
+    PEK: PlatformEcdsaKey,
+    APC: AccountProviderClient,
 {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());

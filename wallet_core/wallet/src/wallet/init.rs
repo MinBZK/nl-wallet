@@ -40,22 +40,22 @@ impl Wallet {
     }
 }
 
-impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    PEK: PlatformEcdsaKey,
 {
     pub(super) fn new(
-        config_repository: C,
+        config_repository: CR,
         storage: S,
-        account_provider_client: A,
-        pid_issuer: P,
+        account_provider_client: APC,
+        pid_issuer: PIC,
         registration: Option<RegistrationData>,
     ) -> Self {
         Wallet {
             config_repository,
             storage: RwLock::new(storage),
-            hw_privkey: K::new(WALLET_KEY_ID),
+            hw_privkey: PEK::new(WALLET_KEY_ID),
             account_provider_client,
             digid_session: None,
             pid_issuer,
@@ -69,10 +69,10 @@ where
 
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
-        config_repository: C,
+        config_repository: CR,
         mut storage: S,
-        account_provider_client: A,
-        pid_issuer: P,
+        account_provider_client: APC,
+        pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 

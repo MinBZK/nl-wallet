@@ -69,10 +69,10 @@ impl From<nl_wallet_mdoc::Error> for DisclosureError {
     }
 }
 
-impl<C, S, K, A, D, P, R> Wallet<C, S, K, A, D, P, R>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    C: ConfigurationRepository,
-    R: MdocDisclosureSession<Self>,
+    CR: ConfigurationRepository,
+    MDS: MdocDisclosureSession<Self>,
 {
     #[instrument(skip_all)]
     pub async fn start_disclosure(&mut self, uri: &Url) -> Result<DisclosureProposal, DisclosureError> {
@@ -100,7 +100,7 @@ where
         let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = R::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
+        let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = session
@@ -123,15 +123,15 @@ where
 }
 
 #[async_trait]
-impl<C, S, K, A, D, P, R> MdocDataSource for Wallet<C, S, K, A, D, P, R>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    C: Send + Sync,
+    CR: Send + Sync,
     S: Storage + Send + Sync,
-    K: Send + Sync,
-    A: Send + Sync,
-    D: Send + Sync,
-    P: Send + Sync,
-    R: Send + Sync,
+    PEK: Send + Sync,
+    APC: Send + Sync,
+    DGS: Send + Sync,
+    PIC: Send + Sync,
+    MDS: Send + Sync,
 {
     type Error = StorageError;
 
