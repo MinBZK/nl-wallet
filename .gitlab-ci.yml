@@ -88,7 +88,7 @@ test-flutter-ui:
 test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3ce69596778f722dae23f64f40240c490f4686d5b361f116d98b507057768b8b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
   before_script:
     - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
   script:
@@ -112,7 +112,7 @@ test-rust:
 integration-test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3ce69596778f722dae23f64f40240c490f4686d5b361f116d98b507057768b8b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
   variables:
     POSTGRES_USER: "postgres"
     POSTGRES_PASSWORD: "postgres"
@@ -135,6 +135,7 @@ integration-test-rust:
     - softhsm2-util --import instruction_result_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
     - softhsm2-util --import attestation_wrapping_key.key --aes --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "6174746573746174696f6e5f7772617070696e670a" --label "attestation_wrapping_key" --token "test_token"
     - softhsm2-util --import pin_pubkey_encryption_key.key --aes --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
+    - p11tool --login --write --secret-key="$(openssl rand 32 | xxd -p | tr -d '\n')" --set-pin "${WALLET_PROVIDER_HSM__USER_PIN}" --label="pin_public_disclosure_protection_key" "$(p11tool --list-token-urls | grep "SoftHSM")"
   script:
     - cargo run --bin wallet_provider_migrations -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
@@ -150,7 +151,7 @@ integration-test-rust:
 test-rust-compilation-android-linux:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:ae28cb3473876d1fd165bdfcb717bfd3020076033cca7ddd3598f46274a5e8bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:26374a07e7546053d4e7fa9049fccf0f2294a2a9500abf86573194c3796ae6a9"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -210,7 +211,7 @@ dependency-check:
 dependency-check-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3ce69596778f722dae23f64f40240c490f4686d5b361f116d98b507057768b8b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -293,7 +294,7 @@ sonar-android:
 test-codegen:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:0a9b701fec40f8fde9cb6606d83b6ea6a08cb1fedf33de75125a7b6e493633fb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:ec948ce194722c9dd49fbcb132f9526d04a064e5140b961aca366c1c1d7ee929"
   script:
     - set -euxo pipefail
     - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
@@ -382,7 +383,7 @@ build-android-app:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:ae28cb3473876d1fd165bdfcb717bfd3020076033cca7ddd3598f46274a5e8bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:26374a07e7546053d4e7fa9049fccf0f2294a2a9500abf86573194c3796ae6a9"
   artifacts:
     name: "wallet-android"
     paths:
