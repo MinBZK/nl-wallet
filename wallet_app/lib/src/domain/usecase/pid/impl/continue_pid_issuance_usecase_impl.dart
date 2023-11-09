@@ -13,7 +13,7 @@ class ContinuePidIssuanceUseCaseImpl implements ContinuePidIssuanceUseCase {
   ContinuePidIssuanceUseCaseImpl(this._pidRepository);
 
   @override
-  Future<PidIssuanceStatus> invoke(Uri uri) async {
+  Future<PidIssuanceStatus> invoke(String uri) async {
     try {
       final result = await _pidRepository.continuePidIssuance(uri);
       return PidIssuanceSuccess(result);

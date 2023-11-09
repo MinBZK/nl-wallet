@@ -6,6 +6,7 @@ import '../../../environment.dart';
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
@@ -14,6 +15,7 @@ import '../common/widget/fake_paging_animated_switcher.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
+import 'argument/disclosure_screen_argument.dart';
 import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
 import 'page/disclosure_confirm_pin_page.dart';
@@ -25,13 +27,13 @@ import 'page/disclosure_success_page.dart';
 import 'widget/disclosure_stop_sheet.dart';
 
 class DisclosureScreen extends StatelessWidget {
-  static String getArguments(RouteSettings settings) {
+  static DisclosureScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return tryCast<DisclosureScreenArgument>(args) ?? DisclosureScreenArgument.fromMap(args as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in a (mock) id when opening the DisclosureScreen');
+      throw UnsupportedError('Make sure to pass in [DisclosureScreenArgument] when opening the DisclosureScreen');
     }
   }
 

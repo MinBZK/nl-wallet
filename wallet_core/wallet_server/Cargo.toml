@@ -16,9 +16,12 @@ axum = { workspace = true, features = [
 ] }
 base64.workspace = true
 config = { workspace = true, features = ["toml"] }
+chrono.workspace = true
 dashmap = { workspace = true, features = ["serde"] }
 lazy_static.workspace = true
+mime.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
+reqwest.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = [
@@ -33,7 +36,6 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
-chrono.workspace = true
 
 [dev-dependencies]
 indexmap.workspace = true

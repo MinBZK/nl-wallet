@@ -7,7 +7,7 @@ abstract class PidRepository {
   Future<String> getPidIssuanceUrl();
 
   /// Continue the pidIssuance, returns a preview of all the attributes that will be added if the pid is accepted.
-  Future<List<DataAttribute>> continuePidIssuance(Uri uri);
+  Future<List<DataAttribute>> continuePidIssuance(String uri);
 
   Future<void> cancelPidIssuance();
 

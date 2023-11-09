@@ -15,7 +15,7 @@ class CoreDisclosureBloc extends DisclosureBloc {
   StreamSubscription? _startDisclosureStreamSubscription;
 
   CoreDisclosureBloc(
-    Uri disclosureUri,
+    String disclosureUri,
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
   ) : super(initialState: DisclosureLoadInProgress()) {
@@ -29,7 +29,7 @@ class CoreDisclosureBloc extends DisclosureBloc {
     _initDisclosure(disclosureUri);
   }
 
-  void _initDisclosure(Uri disclosureUri) async {
+  void _initDisclosure(String disclosureUri) async {
     try {
       _startDisclosureResult = await _startDisclosureUseCase.invoke(disclosureUri);
       add(

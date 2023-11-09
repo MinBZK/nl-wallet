@@ -103,7 +103,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<void> cancelPidIssuance() => call((core) => core.cancelPidIssuance());
 
   @override
-  Future<List<Card>> continuePidIssuance(Uri uri) => call((core) => core.continuePidIssuance(uri: uri.toString()));
+  Future<List<Card>> continuePidIssuance(String uri) => call((core) => core.continuePidIssuance(uri: uri));
 
   @override
   Future<WalletInstructionResult> acceptOfferedPid(String pin) => call((core) => core.acceptPidIssuance(pin: pin));
@@ -112,7 +112,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<void> rejectOfferedPid() => call((core) => core.rejectPidIssuance());
 
   @override
-  Future<DisclosureResult> startDisclosure(Uri uri) => call((core) => core.startDisclosure(uri: uri.toString()));
+  Future<DisclosureResult> startDisclosure(String uri) => call((core) => core.startDisclosure(uri: uri));
 
   @override
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());

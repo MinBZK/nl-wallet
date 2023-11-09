@@ -32,6 +32,9 @@ import '../data/repository/qr/qr_repository.dart';
 import '../data/repository/sign/core/core_sign_request_repository.dart';
 import '../data/repository/sign/mock/mock_sign_request_repository.dart';
 import '../data/repository/sign/sign_request_repository.dart';
+import '../data/repository/uri/core/core_uri_repository.dart';
+import '../data/repository/uri/mock/mock_uri_repository.dart';
+import '../data/repository/uri/uri_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/mock/mock_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
@@ -77,7 +80,7 @@ class WalletRepositoryProvider extends StatelessWidget {
               provideMocks ? MockConfigurationRepository() : CoreConfigurationRepository(context.read()),
         ),
         RepositoryProvider<QrRepository>(
-          create: (context) => provideMocks ? MockQrRepository() : CoreQrRepository(),
+          create: (context) => provideMocks ? MockQrRepository() : CoreQrRepository(context.read()),
         ),
         RepositoryProvider<IssuanceResponseRepository>(
           create: (context) =>
@@ -91,6 +94,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<PidRepository>(
           create: (context) => provideMocks ? MockPidRepository() : CorePidRepository(context.read(), context.read()),
+        ),
+        RepositoryProvider<UriRepository>(
+          create: (context) => provideMocks ? MockUriRepository() : CoreUriRepository(context.read()),
         ),
       ],
       child: child,

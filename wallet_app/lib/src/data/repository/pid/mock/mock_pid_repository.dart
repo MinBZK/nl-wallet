@@ -18,7 +18,7 @@ class MockPidRepository extends PidRepository {
   Future<void> rejectOfferedPid() async => Fimber.d('Pid declined');
 
   @override
-  Future<List<DataAttribute>> continuePidIssuance(Uri uri) {
+  Future<List<DataAttribute>> continuePidIssuance(String uri) {
     throw UnimplementedError('This method should not be called on mock builds');
   }
 }

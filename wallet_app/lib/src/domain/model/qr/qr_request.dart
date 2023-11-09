@@ -1,4 +1,4 @@
-abstract class QrRequest {
+sealed class QrRequest {
   String get sessionId;
 
   QrRequestType get type;

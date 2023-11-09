@@ -2,11 +2,14 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/qr/qr_request.dart';
+import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/service/navigation_service.dart';
+import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/feature/qr/qr_screen.dart';
 import 'package:wallet/src/feature/qr/tab/qr_scan/bloc/qr_scan_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 
 class MockQrScanBloc extends MockBloc<QrScanEvent, QrScanState> implements QrScanBloc {}
@@ -89,7 +92,7 @@ void main() {
           ..addScenario(
             widget: const QrScreen().withState<QrScanBloc, QrScanState>(
               MockQrScanBloc(),
-              QrScanSuccess(QrIssuanceRequest('id')),
+              const QrScanSuccess(GenericNavigationRequest('/')),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -103,7 +106,7 @@ void main() {
           ..addScenario(
             widget: const QrScreen().withState<QrScanBloc, QrScanState>(
               MockQrScanBloc(),
-              QrScanSuccess(QrIssuanceRequest('id')),
+              const QrScanSuccess(GenericNavigationRequest('/')),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -117,7 +120,7 @@ void main() {
           ..addScenario(
             widget: const QrScreen().withState<QrScanBloc, QrScanState>(
               MockQrScanBloc(),
-              QrScanSuccess(QrIssuanceRequest('id')),
+              const QrScanLoading(),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -188,40 +191,19 @@ void main() {
       expect(find.text('QR-code'), findsOneWidget);
     });
 
-    testWidgets('issuance navigation is performed', (tester) async {
+    testWidgets('navigation is delegated to navigation service', (tester) async {
+      final NavigationService mockNavigationService = MockNavigationService();
       await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
-          MockQrScanBloc(),
-          QrScanSuccess(QrIssuanceRequest('id')),
-        ),
+        const QrScreen()
+            .withState<QrScanBloc, QrScanState>(
+              MockQrScanBloc(),
+              const QrScanSuccess(GenericNavigationRequest('/issuance')),
+            )
+            .withDependency((context) => mockNavigationService),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('/issuance'), findsOneWidget);
-    });
-
-    testWidgets('sign navigation is performed', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
-          MockQrScanBloc(),
-          QrScanSuccess(QrSignRequest('id')),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('/sign'), findsOneWidget);
-    });
-
-    testWidgets('disclosure navigation is performed', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
-          MockQrScanBloc(),
-          QrScanSuccess(QrDisclosureRequest('id')),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('/disclosure'), findsOneWidget);
+      verify(mockNavigationService.handleNavigationRequest(const GenericNavigationRequest('/issuance'))).called(1);
     });
   });
 }

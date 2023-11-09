@@ -147,7 +147,7 @@ class MockPidRepository extends _i1.Mock implements _i8.PidRepository {
       ) as _i9.Future<String>);
 
   @override
-  _i9.Future<List<_i10.DataAttribute>> continuePidIssuance(Uri? uri) => (super.noSuchMethod(
+  _i9.Future<List<_i10.DataAttribute>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #continuePidIssuance,
           [uri],
@@ -690,7 +690,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i19.TypedWalletCore {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<List<_i2.Card>> continuePidIssuance(Uri? uri) => (super.noSuchMethod(
+  _i9.Future<List<_i2.Card>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #continuePidIssuance,
           [uri],
@@ -700,7 +700,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i19.TypedWalletCore {
       ) as _i9.Future<List<_i2.Card>>);
 
   @override
-  _i9.Future<_i2.DisclosureResult> startDisclosure(Uri? uri) => (super.noSuchMethod(
+  _i9.Future<_i2.DisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
           [uri],

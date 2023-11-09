@@ -26,7 +26,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
 
   WalletPersonalizeBloc(
-    Uri? pidIssuanceUri,
+    String? pidIssuanceUri,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
@@ -48,7 +48,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _continuePidIssuance(Uri uri) async {
+  void _continuePidIssuance(String uri) async {
     try {
       add(WalletPersonalizeAuthInProgress());
       final result = await continuePidIssuanceUseCase.invoke(uri);

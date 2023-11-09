@@ -2,26 +2,28 @@ import 'dart:convert';
 
 import 'package:fimber/fimber.dart';
 
+import '../../../../domain/model/navigation/navigation_request.dart';
+import '../../../../domain/model/qr/edi_qr_code.dart';
+import '../../../../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../../../../feature/issuance/argument/issuance_screen_argument.dart';
+import '../../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../../navigation/wallet_routes.dart';
 import '../../../../wallet_constants.dart';
-import '../../../model/navigation/navigation_request.dart';
-import '../../../model/qr/edi_qr_code.dart';
-import '../decode_uri_usecase.dart';
+import '../uri_repository.dart';
 
-/// Takes a [Uri] and attempts to provide a [NavigationRequest] that contains
-/// the information to navigate the user to the related destination.
-///
-/// Sample to trigger 'Marketplace' verify mock scenario (QR code) from the terminal:
-/// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deeplink#%7B%22id%22%3A%20%22MARKETPLACE_LOGIN%22%2C%22type%22%3A%20%22verify%22%7D" nl.rijksoverheid.edi.wallet
-///
-/// Sample to trigger deepdive test scenario from the terminal:
-/// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deepdive#home" nl.rijksoverheid.edi.wallet
-class MockDecodeUriUseCase implements DecodeUriUseCase {
-  MockDecodeUriUseCase();
+class MockUriRepository implements UriRepository {
+  MockUriRepository();
 
+  /// Takes a [Uri] and attempts to provide a [NavigationRequest] that contains
+  /// the information to navigate the user to the related destination.
+  ///
+  /// Sample to trigger 'Marketplace' verify mock scenario (QR code) from the terminal:
+  /// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deeplink#%7B%22id%22%3A%20%22MARKETPLACE_LOGIN%22%2C%22type%22%3A%20%22verify%22%7D" nl.rijksoverheid.edi.wallet
+  ///
+  /// Sample to trigger deepdive test scenario from the terminal:
+  /// adb shell am start -a android.intent.action.VIEW -d "walletdebuginteraction://deepdive#home" nl.rijksoverheid.edi.wallet
   @override
-  Future<NavigationRequest> invoke(Uri uri) async {
+  Future<NavigationRequest> processUri(Uri uri) async {
     if (uri.host == kDeeplinkHost || uri.path.startsWith(kDeeplinkPath)) {
       return _decodeDeeplink(uri);
     } else if (uri.host == kDeepDiveHost || uri.path.startsWith(kDeepDivePath)) {
@@ -41,21 +43,21 @@ class MockDecodeUriUseCase implements DecodeUriUseCase {
       switch (code.type) {
         case EdiQrType.issuance:
           destination = WalletRoutes.issuanceRoute;
-          argument = IssuanceScreenArgument(sessionId: code.id).toMap();
+          argument = IssuanceScreenArgument(mockSessionId: code.id);
           break;
         case EdiQrType.disclosure:
           destination = WalletRoutes.disclosureRoute;
-          argument = code.id;
+          argument = DisclosureScreenArgument(mockSessionId: code.id);
           break;
         case EdiQrType.sign:
           destination = WalletRoutes.signRoute;
-          argument = code.id;
+          argument = SignScreenArgument(mockSessionId: code.id);
           break;
       }
       return GenericNavigationRequest(
         destination,
         argument: argument,
-        navigatePrerequisites: [NavigationPrerequisite.walletUnlocked, NavigationPrerequisite.pidInitialized],
+        navigatePrerequisites: const [NavigationPrerequisite.walletUnlocked, NavigationPrerequisite.pidInitialized],
       );
     } catch (ex, stack) {
       Fimber.e('Failed to parse deeplink uri: $uri', ex: ex, stacktrace: stack);
@@ -65,7 +67,7 @@ class MockDecodeUriUseCase implements DecodeUriUseCase {
 
   NavigationRequest _decodeDeepDive(Uri uri) {
     if (uri.hasFragment && uri.fragment == 'home') {
-      return GenericNavigationRequest(
+      return const GenericNavigationRequest(
         WalletRoutes.homeRoute,
         argument: null,
         preNavigationActions: [PreNavigationAction.setupMockedWallet],

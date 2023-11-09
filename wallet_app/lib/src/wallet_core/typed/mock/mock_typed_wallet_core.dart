@@ -88,13 +88,13 @@ class MockTypedWalletCore extends TypedWalletCore {
   }
 
   @override
-  Future<List<Card>> continuePidIssuance(Uri uri) {
+  Future<List<Card>> continuePidIssuance(String uri) {
     // TODO: implement startPidIssuance
     throw UnimplementedError();
   }
 
   @override
-  Future<DisclosureResult> startDisclosure(Uri uri) {
+  Future<DisclosureResult> startDisclosure(String uri) {
     // TODO: implement startDisclosure
     throw UnimplementedError();
   }

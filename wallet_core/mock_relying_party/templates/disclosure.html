@@ -1,0 +1,127 @@
+<html>
+<head>
+  <link rel="stylesheet" href="marx.min.css">
+  <style>
+    dl {
+      display: flex;
+      flex-flow: row;
+      flex-wrap: wrap;
+      width: 300px;
+      overflow: visible;
+    }
+
+    dl dt {
+      flex: 0 0 50%;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    dl dd {
+      flex:0 0 50%;
+      margin-left: auto;
+      text-align: left;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+  </style>
+  <script>
+    let session_url = document.location.hash;
+    if (session_url !== "") {
+      session_url = session_url.substring(1); // remove '#'
+    }
+    console.log(session_url);
+  </script>
+</head>
+<body>
+  <main>
+  <h1>Mock Relying Party</h1>
+  <form method="POST">
+    <h4>Select a usecase:</h4>
+    {% for (idx, option) in usecases.iter().enumerate() -%}
+    <p>
+      <input type="radio" name="usecase" id="{{ option }}" value="{{ option }}" {% if selected.is_some() && option == selected.as_ref().unwrap().usecase[..] || idx == 0 %}checked{% endif %}>
+      <label for="{{ option }}">{{ option }}</label>
+    </p>
+    {% endfor -%}
+    <h4>Submit a session type:</h4>
+    <p>
+      <input type="submit" name="session_type" value="cross_device">
+    </p>
+    <p>
+      <input type="submit" name="session_type" value="same_device">
+    </p>
+  </form>
+  <div id="session" {% if engagement.is_none() %}style="display: none;"{% endif %}>
+    <h2>Session</h2>
+    <h3><span id="attributes"></span></h3>
+    <dl>
+      <dt>Status</dt>
+      <dd><span id="status"></span></dd>
+    </dl>
+  </div>
+  {% match engagement -%}
+    {% when Some(urls) -%}
+    <dl>
+      <dt>Usecase</dt>
+      <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
+
+      <dt>Type</dt>
+    {% if selected.as_ref().unwrap().session_type == SessionType::CrossDevice %}
+      <dd>cross_device</dd>
+    </dl>
+    <canvas width="400" height="400" id="canvas" style="cursor: none;"></canvas>
+    {% else %}
+      <dd>same_device</dd>
+    </dl>
+    <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
+      Open NL Wallet
+    </a>
+    {% endif %}
+
+    <script src="/qrcodegen.min.js"></script>
+    <script>
+    document.getElementById("status").innerText = "CREATED";
+    session_url = "{{ urls.1 }}"; // overwrite session_url
+
+    qrcodegen.init().then(function (api) {
+      var matrix = api.encodeText("{{ urls.0 }}", qrcodegen.Ecc.LOW);
+      var canvas = document.getElementById('canvas');
+      qrcodegen.drawCanvas(canvas, matrix);
+    });
+    </script>
+    {% when None -%}
+  {% endmatch -%}
+  </main>
+  <script>
+    let sessionDiv = document.getElementById("session");
+    let statusSpan = document.getElementById("status");
+    let attributesSpan = document.getElementById("attributes");
+    let interval = null;
+
+    const loadStatus = (session_id) => {
+      fetch(session_url).then(res => res.json()).then(body => {
+        sessionDiv.style = "display: block;";
+        statusSpan.innerText = body.status;
+        if (body.status == "CREATED") {
+          console.log("session created, nothing happened yet");
+        } else if (body.status == "WAITING") {
+          console.log("waiting for response, qr is scanned");
+        } else if (body.status == "DONE") {
+          console.log("we are done, result:")
+          console.log(body.result);
+          attributesSpan = body.result;
+          clearInterval(interval);
+        }
+      }).catch(_ => statusSpan.innerText = "ERROR");
+    }
+
+    if (session_url) {
+      loadStatus(session_url);
+
+      interval = setInterval(() => {
+        loadStatus(session_url);
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

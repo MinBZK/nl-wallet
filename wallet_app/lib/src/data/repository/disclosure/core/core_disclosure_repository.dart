@@ -22,7 +22,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   );
 
   @override
-  Future<StartDisclosureResult> startDisclosure(Uri disclosureUri) async {
+  Future<StartDisclosureResult> startDisclosure(String disclosureUri) async {
     final result = await _walletCore.startDisclosure(disclosureUri);
     return result.map(
       request: (value) {

@@ -4,15 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../../environment.dart';
-import '../../../../domain/model/qr/qr_request.dart';
-import '../../../../navigation/wallet_routes.dart';
+import '../../../../data/service/navigation_service.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/sheet/explanation_sheet.dart';
 import '../../../common/widget/button/text_icon_button.dart';
 import '../../../common/widget/centered_loading_indicator.dart';
 import '../../../common/widget/loading_indicator.dart';
 import '../../../common/widget/utility/check_permission_on_resume.dart';
-import '../../../issuance/argument/issuance_screen_argument.dart';
 import '../../widget/qr_scanner.dart';
 import '../../widget/qr_scanner_frame.dart';
 import 'bloc/qr_scan_bloc.dart';
@@ -185,28 +183,7 @@ class QrScanTab extends StatelessWidget {
   }
 
   void _handleScanSuccess(BuildContext context, QrScanSuccess state) {
-    switch (state.request.type) {
-      case QrRequestType.disclosure:
-        Navigator.restorablePushNamed(
-          context,
-          WalletRoutes.disclosureRoute,
-          arguments: state.request.sessionId,
-        );
-        break;
-      case QrRequestType.issuance:
-        Navigator.restorablePushNamed(
-          context,
-          WalletRoutes.issuanceRoute,
-          arguments: IssuanceScreenArgument(sessionId: state.request.sessionId).toMap(),
-        );
-        break;
-      case QrRequestType.sign:
-        Navigator.restorablePushNamed(
-          context,
-          WalletRoutes.signRoute,
-          arguments: state.request.sessionId,
-        );
-        break;
-    }
+    final NavigationService navigationService = context.read();
+    navigationService.handleNavigationRequest(state.request);
   }
 }

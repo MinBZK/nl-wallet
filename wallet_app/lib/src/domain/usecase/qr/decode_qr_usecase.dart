@@ -1,7 +1,7 @@
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../../model/qr/qr_request.dart';
+import '../../model/navigation/navigation_request.dart';
 
 abstract class DecodeQrUseCase {
-  Future<QrRequest?> invoke(Barcode barcode);
+  Future<NavigationRequest?> invoke(Barcode barcode);
 }
