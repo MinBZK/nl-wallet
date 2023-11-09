@@ -40,7 +40,7 @@ impl From<ReaderRegistration> for RelyingParty {
 }
 
 impl RequestedCard {
-    fn from_disclosed_documents(documents: Vec<ProposedDisclosureDocument>) -> Vec<Self> {
+    fn from_proposed_disclosure_documents(documents: Vec<ProposedDisclosureDocument>) -> Vec<Self> {
         documents
             .into_iter()
             .map(|document| {
@@ -87,7 +87,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
             Ok(proposal) => {
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.into(),
-                    requested_cards: RequestedCard::from_disclosed_documents(proposal.documents),
+                    requested_cards: RequestedCard::from_proposed_disclosure_documents(proposal.documents),
                 };
 
                 Ok(result)
