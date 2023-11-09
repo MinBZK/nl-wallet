@@ -329,11 +329,10 @@ where
         }
 
         // Now that we know that we have exactly one candidate for every `doc_type`,
-        // we can unwrap the first `Mdoc` entry from every `Vec` and start converting
-        // all of the `Mdoc`s to `ProposedDocument`s.
+        // we can flatten the `Vec` and start converting all of the `Mdoc`s to `ProposedDocument`s.
         let proposed_documents = mdoc_candidates
             .into_iter()
-            .map(|doc_type_mdocs| doc_type_mdocs.into_iter().next().unwrap())
+            .flatten()
             .map(|mdoc| {
                 // Get the requested attributes again, based on the `doc_type`,
                 // whose presence we already checked above.
