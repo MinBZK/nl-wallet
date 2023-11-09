@@ -72,13 +72,56 @@ struct ProposedDocument {
 }
 
 impl ProposedDocument {
+    /// For a given set of `Mdoc`s with the same `doc_type`, return two `Vec`s:
+    /// * A `Vec<ProposedDocument>` that contains all of the proposed
+    ///   disclosure documents that provide all of the required attributes.
+    /// * A `Vec<Vec<AttributeIdentifier>>` that contain the missing
+    ///   attributes for every `Mdoc` that has at least one attribute missing.
+    fn candidates_and_missing_attributes_from_mdocs(
+        doc_type: DocType,
+        mdocs: Vec<Mdoc>,
+        requested_attributes: &IndexSet<AttributeIdentifier>,
+        session_transcript: SessionTranscript,
+    ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
+        // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
+        // so that it can be used as a challenge when constructing `DeviceSigned` later on.
+        let device_authentication = DeviceAuthentication::from_session_transcript(session_transcript, doc_type);
+        let device_signed_challenge = cbor_serialize(&TaggedBytes(device_authentication))?;
+
+        let mut all_missing_attributes = Vec::new();
+
+        // Collect all `ProposedDocument`s for this `doc_type`.
+        let proposed_documents = mdocs
+            .into_iter()
+            .filter(|mdoc| {
+                // Calculate missing attributes for every `Mdoc` and filter it out
+                // if we find any. Also, collect the missing attributes separately.
+                let available_attributes = mdoc.issuer_signed.attribute_identifiers(&mdoc.doc_type);
+                let missing_attributes = requested_attributes
+                    .difference(&available_attributes)
+                    .collect::<Vec<_>>();
+
+                let is_satisfying = missing_attributes.is_empty();
+
+                if !is_satisfying {
+                    all_missing_attributes.push(missing_attributes.into_iter().cloned().collect());
+                }
+
+                is_satisfying
+            })
+            .map(|mdoc| ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge.clone()))
+            .collect::<Vec<_>>();
+
+        Ok((proposed_documents, all_missing_attributes))
+    }
+
     /// Create [`ProposedDocument`] from an [`Mdoc`], containing only requested
-    /// attributes and a [`DeviceSigned`] challenge based on the [`SessionTranscript`].
+    /// attributes and a [`DeviceSigned`] challenge.
     fn from_mdoc(
         mdoc: Mdoc,
-        session_transcript: SessionTranscript,
         requested_attributes: &IndexSet<AttributeIdentifier>,
-    ) -> Result<Self> {
+        device_signed_challenge: Vec<u8>,
+    ) -> Self {
         let name_spaces = mdoc.issuer_signed.name_spaces.map(|name_spaces| {
             name_spaces
                 .into_iter()
@@ -111,21 +154,13 @@ impl ProposedDocument {
             name_spaces,
             issuer_auth: mdoc.issuer_signed.issuer_auth,
         };
-        let device_authentication = DeviceAuthenticationKeyed {
-            device_authentication: Default::default(),
-            session_transcript,
-            doc_type: mdoc.doc_type.clone(),
-            device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
-        };
 
-        let document = ProposedDocument {
+        ProposedDocument {
             private_key_id: mdoc.private_key_id,
             doc_type: mdoc.doc_type,
             issuer_signed,
-            device_signed_challenge: cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?,
-        };
-
-        Ok(document)
+            device_signed_challenge,
+        }
     }
 
     /// Return the attributes contained within this [`ProposedDocument`].
@@ -157,48 +192,24 @@ where
     ) -> Result<Self> {
         let reader_engagement: ReaderEngagement = cbor_deserialize(reader_engagement_bytes)?;
 
-        // Extract both the verifier URL and public key, return an error if either is missing.
-        let verifier_url = reader_engagement
-            .0
-            .connection_methods
-            .as_ref()
-            .and_then(|methods| methods.first())
-            .map(|method| &method.0.connection_options.0.uri)
-            .ok_or(HolderError::VerifierUrlMissing)?
-            .clone();
-
-        let verifier_pubkey = reader_engagement
-            .0
-            .security
-            .as_ref()
-            .ok_or(HolderError::VerifierEphemeralKeyMissing)?
-            .try_into()?;
+        // Extract the verifier URL, return an error if it is is missing.
+        let verifier_url = reader_engagement.verifier_url()?;
 
         // Create a new `DeviceEngagement` message and private key. Use a
         // static referrer URL, as this is not a feature we actually use.
         let (device_engagement, ephemeral_privkey) =
             DeviceEngagement::new_device_engagement(Url::parse(REFERRER_URL).unwrap())?;
 
-        // Create the session transcript so far based on both engagement payloads.
-        let transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement)
-            .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
-
-        // Derive the session key for both directions from the private and public keys and the session transcript.
-        let reader_key = SessionKey::new(
-            &ephemeral_privkey,
-            &verifier_pubkey,
-            &transcript,
-            SessionKeyUser::Reader,
-        )?;
-        let device_key = SessionKey::new(
-            &ephemeral_privkey,
-            &verifier_pubkey,
-            &transcript,
-            SessionKeyUser::Device,
+        // Derive the session transcript and keys in both directions from the
+        // `ReaderEngagement`, the `DeviceEngagement` and the ephemeral private key.
+        let (transcript, reader_key, device_key) = reader_engagement.transcript_and_keys_for_device_engagement(
+            session_type,
+            &device_engagement,
+            ephemeral_privkey,
         )?;
 
         // Send `DeviceEngagement` to verifier and decrypt the returned `DeviceRequest`.
-        let session_data: SessionData = client.post(&verifier_url, &device_engagement).await?;
+        let session_data: SessionData = client.post(verifier_url, &device_engagement).await?;
         let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
         // A device request without `DocumentRequest` entries is useless.
@@ -212,145 +223,49 @@ where
             .verify(&transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
-        // Verify that the requested attributes are included in the reader authentication.
-        device_request
-            .verify_requested_attributes(reader_registration.as_ref())
-            .map_err(HolderError::from)?;
+        // Fetch documents from the database, calculate which ones match and
+        // formulate a proposal. If there is a mismatch, return an error.
+        let candidates_by_doc_type = match device_request
+            .match_stored_documents(mdoc_data_source, &transcript)
+            .await?
+        {
+            DeviceRequestMatch::Candidates(candidates) => candidates,
+            DeviceRequestMatch::MissingAttributes(missing_attributes) => {
+                // Attributes are missing, turn the `missing_attributes`
+                // into an error along with the `ReaderRegistration`.
+                let error = HolderError::AttributesNotAvailable {
+                    reader_registration: reader_registration.into(),
+                    missing_attributes,
+                };
 
-        // Make a `HashSet` of doc types from the `DeviceRequest` to account
-        // for potential duplicate doc types in the request, then fetch them
-        // from our data source.
-        let doc_types = device_request
-            .doc_requests
-            .iter()
-            .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
-            .collect();
-
-        let mdocs = mdoc_data_source
-            .mdoc_by_doc_types(&doc_types)
-            .await
-            .map_err(|error| HolderError::MdocDataSource(error.into()))?;
-
-        // For each `doc_type`, calculate the set of `AttributeIdentifier`s that are needed to satisfy the request.
-        let requested_attributes_by_doc_type = device_request
-            .doc_requests
-            .iter()
-            .map(|doc_request| {
-                let item_request = &doc_request.items_request.0;
-                let attribute_identifiers = item_request.attribute_identifiers();
-
-                (item_request.doc_type.as_str(), attribute_identifiers)
-            })
-            .collect::<HashMap<_, _>>();
-
-        // Filter all of the `Vec<Mdoc>`s returned by removing any `Mdoc`
-        // that does not contain all of the attributes that are requested.
-        // While doing this, collect any attributes that are missing.
-        let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
-
-        let mdoc_candidates = mdocs
-            .into_iter()
-            .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
-            .map(|doc_type_mdocs| {
-                // Fist, get the `doc_type` from the first `Mdoc` entry. Note that this
-                // is cross-references with the doc types in the request as a sanity check.
-                // The unwrap is safe, because we filtered out empty `Vec`s above.
-                let doc_type = *doc_types
-                    .get(doc_type_mdocs.first().unwrap().doc_type.as_str())
-                    .expect("Received mdoc candidate with unrequested doc_type from storage");
-
-                // Do another sanity check, all of the remaining `Mdoc`s
-                // in the `Vec` should have the same `doc_type`.
-                for mdoc in &doc_type_mdocs {
-                    if mdoc.doc_type != doc_type {
-                        panic!("Received mdoc candidate with inconsistent doc_type from storage");
-                    }
-                }
-
-                // Prepare the `IndexSet<AttributeIdentifier>` that we should match against
-                // for all of the `Mdoc`s with this `doc_type`. The unwrap is safe, as we
-                // checked if this is one of the requested doc types above.
-                let requested_attributes = requested_attributes_by_doc_type.get(doc_type).unwrap();
-                let mut doc_type_missing_attributes = Vec::new();
-
-                let satisfying_mdocs = doc_type_mdocs
-                    .into_iter()
-                    .filter(|mdoc| {
-                        // Calculate missing attributes for every `Mdoc` and filter it out
-                        // if we find any. Also, collect the missing attributes separately.
-                        let available_attributes = mdoc.issuer_signed.attribute_identifiers(doc_type);
-                        let missing_attributes = requested_attributes
-                            .difference(&available_attributes)
-                            .collect::<Vec<_>>();
-
-                        let is_satisfying = missing_attributes.is_empty();
-
-                        if !is_satisfying {
-                            doc_type_missing_attributes.push(missing_attributes.into_iter().cloned().collect());
-                        }
-
-                        is_satisfying
-                    })
-                    .collect::<Vec<_>>();
-
-                // If we have multiple `Mdoc`s with missing attributes, just record the first one.
-                // TODO: Report on missing attributes for multiple `Mdoc` candidates.
-                if let Some(missing_attributes) = doc_type_missing_attributes.into_iter().next() {
-                    all_missing_attributes.push(missing_attributes);
-                }
-
-                satisfying_mdocs
-            })
-            .collect::<Vec<_>>();
-
-        // If we cannot find a suitable candidate for any of the doc types,
-        // collect all of the attributes that are missing and return an error.
-        if mdoc_candidates.iter().any(|doc_type_mdocs| doc_type_mdocs.is_empty()) {
-            let missing_attributes = all_missing_attributes.into_iter().flatten().collect();
-
-            let error = HolderError::AttributesNotAvailable {
-                reader_registration,
-                missing_attributes,
-            };
-
-            return Err(error.into());
-        }
+                return Err(error.into());
+            }
+        };
 
         // If we have multiple candidates for any of the doc types, return an error.
         // TODO: Support having the user a choose between multiple candidates.
-        if mdoc_candidates.iter().any(|doc_type_mdocs| doc_type_mdocs.len() > 1) {
-            let duplicate_doc_types = mdoc_candidates
+        if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
+            let duplicate_doc_types = candidates_by_doc_type
                 .into_iter()
-                .filter(|doc_type_mdocs| doc_type_mdocs.len() > 1)
-                .map(|doc_type_mdocs| doc_type_mdocs.into_iter().next().unwrap().doc_type)
+                .filter(|(_, candidates)| candidates.len() > 1)
+                .map(|(doc_type, _)| doc_type)
                 .collect();
 
             return Err(HolderError::MultipleCandidates(duplicate_doc_types).into());
         }
 
         // Now that we know that we have exactly one candidate for every `doc_type`,
-        // we can flatten the `Vec` and start converting all of the `Mdoc`s to `ProposedDocument`s.
-        let proposed_documents = mdoc_candidates
-            .into_iter()
-            .flatten()
-            .map(|mdoc| {
-                // Get the requested attributes again, based on the `doc_type`,
-                // whose presence we already checked above.
-                let requested_attributes = requested_attributes_by_doc_type.get(mdoc.doc_type.as_str()).unwrap();
-                let document = ProposedDocument::from_mdoc(mdoc, transcript.clone(), requested_attributes)?;
-
-                Ok(document)
-            })
-            .collect::<Result<Vec<_>>>()?;
+        // we can flatten these candidates to a 1-dimensional `Vec`.
+        let proposed_documents = candidates_by_doc_type.into_values().flatten().collect();
 
         // Retain all the necessary information to either abort or finish the disclosure session later.
         let session = DisclosureSession {
             client,
             return_url,
-            verifier_url,
+            verifier_url: verifier_url.clone(),
             device_key,
             proposed_documents,
-            reader_registration: *reader_registration,
+            reader_registration,
         };
 
         Ok(session)
@@ -503,6 +418,11 @@ impl DeviceSigned {
     }
 }
 
+enum DeviceRequestMatch {
+    Candidates(HashMap<DocType, Vec<ProposedDocument>>),
+    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate.
+}
+
 impl DeviceRequest {
     /// Verify reader authentication, if present.
     /// Note that since each DocRequest carries its own reader authentication, the spec allows the
@@ -514,7 +434,7 @@ impl DeviceRequest {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<Box<ReaderRegistration>>> {
+    ) -> Result<Option<ReaderRegistration>> {
         // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -548,11 +468,178 @@ impl DeviceRequest {
 
         // Extract `ReaderRegistration` from the one certificate.
         let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
-            Some(CertificateType::ReaderAuth(reader_registration)) => reader_registration,
+            Some(CertificateType::ReaderAuth(reader_registration)) => *reader_registration,
             _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
         };
 
+        // Verify that the requested attributes are included in the reader authentication.
+        self.verify_requested_attributes(&reader_registration)
+            .map_err(HolderError::from)?;
+
         Ok(reader_registration.into())
+    }
+
+    async fn match_stored_documents(
+        &self,
+        mdoc_data_source: &impl MdocDataSource,
+        session_transcript: &SessionTranscript,
+    ) -> Result<DeviceRequestMatch> {
+        // Make a `HashSet` of doc types from the `DeviceRequest` to account
+        // for potential duplicate doc types in the request, then fetch them
+        // from our data source.
+        let doc_types = self
+            .doc_requests
+            .iter()
+            .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
+            .collect();
+
+        let mdocs = mdoc_data_source
+            .mdoc_by_doc_types(&doc_types)
+            .await
+            .map_err(|error| HolderError::MdocDataSource(error.into()))?;
+
+        // For each `doc_type`, calculate the set of `AttributeIdentifier`s that
+        // are needed to satisfy the request. Note that a `doc_type` may occur more
+        // than once in a `DeviceRequest`, so we combine all attributes and then split
+        // them out by `doc_type`.
+        let mut requested_attributes_by_doc_type = self.attribute_identifiers().into_iter().fold(
+            HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
+            |mut requested_attributes, attribute_identifier| {
+                // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
+                let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
+                requested_attributes
+                    .entry(doc_type)
+                    .or_default()
+                    .insert(attribute_identifier);
+
+                requested_attributes
+            },
+        );
+
+        // Filter all of the `Vec<Mdoc>`s returned by removing any `Mdoc`
+        // that does not contain all of the attributes that are requested
+        // and converting the remaining ones to a `ProposedDocument`.
+        // While doing this, collect any attributes that are missing.
+        let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
+
+        let candidates_by_doc_type = mdocs
+            .into_iter()
+            .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
+            .map(|doc_type_mdocs| {
+                // First, remove the `IndexSet` of attributes that are required for this
+                // `doc_type` from the global `HashSet`. If this cannot be found, then
+                // `MdocDataSource` did not obey the contract as either:
+                // * It responded with a `doc_type` we did not request.
+                // * It repeated a `doc_type` we already encountered in an
+                //   earlier iteration of the top-level `Vec`.
+                let first_doc_type = doc_type_mdocs.first().unwrap().doc_type.as_str();
+                let (doc_type, requested_attributes) = requested_attributes_by_doc_type
+                    .remove_entry(first_doc_type)
+                    .expect("Received mdoc candidate with unexpected doc_type from storage");
+
+                // Do another sanity check, all of the remaining `Mdoc`s
+                // in the `Vec` should have the same `doc_type`.
+                for mdoc in &doc_type_mdocs {
+                    if mdoc.doc_type != doc_type {
+                        panic!("Received mdoc candidate with inconsistent doc_type from storage");
+                    }
+                }
+
+                // Get all the candidates and missing attributes from the provided `Mdoc`s.
+                let (candidates, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
+                    doc_type.to_string(),
+                    doc_type_mdocs,
+                    &requested_attributes,
+                    session_transcript.clone(),
+                )?;
+
+                // If we have multiple `Mdoc`s with missing attributes, just record the first one.
+                // TODO: Report on missing attributes for multiple `Mdoc` candidates.
+                if let Some(missing_attributes) = missing_attributes.into_iter().next() {
+                    all_missing_attributes.push(missing_attributes);
+                }
+
+                Ok((doc_type.to_string(), candidates))
+            })
+            .collect::<Result<HashMap<_, _>>>()?;
+
+        // If we cannot find a suitable candidate for any of the doc types
+        // or one of the doc types is missing entirely, collect all of the
+        // attributes that are missing and return an error.
+        if candidates_by_doc_type.values().any(|candidates| candidates.is_empty())
+            || !requested_attributes_by_doc_type.is_empty()
+        {
+            // Combine the missing attributes from the processed `Mdoc`s with
+            // the requested attributes for any `doc_type` we did not see at all.
+            let missing_attributes = all_missing_attributes
+                .into_iter()
+                .flatten()
+                .chain(requested_attributes_by_doc_type.into_values().flatten())
+                .collect();
+
+            return Ok(DeviceRequestMatch::MissingAttributes(missing_attributes));
+        }
+
+        Ok(DeviceRequestMatch::Candidates(candidates_by_doc_type))
+    }
+}
+
+impl ReaderEngagement {
+    /// Get the URL for the HTTPS endpoint of the verifier.
+    fn verifier_url(&self) -> Result<&Url> {
+        let verifier_url = self
+            .0
+            .connection_methods
+            .as_ref()
+            .and_then(|methods| methods.first())
+            .map(|method| &method.0.connection_options.0.uri)
+            .ok_or(HolderError::VerifierUrlMissing)?;
+
+        Ok(verifier_url)
+    }
+
+    /// Get the public key for the verifier.
+    fn verifier_public_key(&self) -> Result<PublicKey> {
+        let verifier_public_key = self
+            .0
+            .security
+            .as_ref()
+            .ok_or(HolderError::VerifierEphemeralKeyMissing)?
+            .try_into()?;
+
+        Ok(verifier_public_key)
+    }
+
+    /// Calculate the [`SessionTranscript`], the [`SessionKey`] for the reader
+    /// (for decrypting the [`DeviceRequest`]) and the [`SessionKey`] for the
+    /// device (for encrypting the [`DeviceResponse`]).
+    fn transcript_and_keys_for_device_engagement(
+        &self,
+        session_type: SessionType,
+        device_engagement: &DeviceEngagement,
+        device_private_key: SecretKey,
+    ) -> Result<(SessionTranscript, SessionKey, SessionKey)> {
+        let verifier_public_key = self.verifier_public_key()?;
+
+        // Create the session transcript so far based on both engagement payloads.
+        let transcript = SessionTranscript::new(session_type, self, device_engagement)
+            .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
+
+        // Derive the session key for both directions from the private and public keys and the session transcript.
+        let reader_key = SessionKey::new(
+            &device_private_key,
+            &verifier_public_key,
+            &transcript,
+            SessionKeyUser::Reader,
+        )?;
+        let device_key = SessionKey::new(
+            &device_private_key,
+            &verifier_public_key,
+            &transcript,
+            SessionKeyUser::Device,
+        )?;
+
+        Ok((transcript, reader_key, device_key))
     }
 }
 
@@ -620,5 +707,18 @@ impl DeviceEngagement {
         };
 
         Ok((engagement.into(), privkey))
+    }
+}
+
+impl DeviceAuthentication {
+    /// Re-construct a [`DeviceAuthentication`] from a [`SessionTranscript`] and [`DocType`].
+    fn from_session_transcript(session_transcript: SessionTranscript, doc_type: DocType) -> Self {
+        DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript,
+            doc_type,
+            device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+        }
+        .into()
     }
 }
