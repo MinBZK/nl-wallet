@@ -90,7 +90,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta;
 
-  Future<DisclosureResult> startDisclosure({required String uri, dynamic hint});
+  Future<StartDisclosureResult> startDisclosure({required String uri, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta;
 
@@ -153,18 +153,6 @@ class CardValue with _$CardValue {
   const factory CardValue.gender({
     required GenderCardValue value,
   }) = CardValue_Gender;
-}
-
-@freezed
-class DisclosureResult with _$DisclosureResult {
-  const factory DisclosureResult.request({
-    required RelyingParty relyingParty,
-    required List<RequestedCard> requestedCards,
-  }) = DisclosureResult_Request;
-  const factory DisclosureResult.requestAttributesMissing({
-    required RelyingParty relyingParty,
-    required List<MissingAttribute> missingAttributes,
-  }) = DisclosureResult_RequestAttributesMissing;
 }
 
 class FlutterConfiguration {
@@ -230,6 +218,18 @@ class RequestedCard {
     required this.docType,
     required this.attributes,
   });
+}
+
+@freezed
+class StartDisclosureResult with _$StartDisclosureResult {
+  const factory StartDisclosureResult.request({
+    required RelyingParty relyingParty,
+    required List<RequestedCard> requestedCards,
+  }) = StartDisclosureResult_Request;
+  const factory StartDisclosureResult.requestAttributesMissing({
+    required RelyingParty relyingParty,
+    required List<MissingAttribute> missingAttributes,
+  }) = StartDisclosureResult_RequestAttributesMissing;
 }
 
 @freezed
@@ -562,11 +562,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<DisclosureResult> startDisclosure({required String uri, dynamic hint}) {
+  Future<StartDisclosureResult> startDisclosure({required String uri, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_start_disclosure(port_, arg0),
-      parseSuccessData: _wire2api_disclosure_result,
+      parseSuccessData: _wire2api_start_disclosure_result,
       parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kStartDisclosureConstMeta,
       argValues: [uri],
@@ -705,23 +705,6 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
-  DisclosureResult _wire2api_disclosure_result(dynamic raw) {
-    switch (raw[0]) {
-      case 0:
-        return DisclosureResult_Request(
-          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
-          requestedCards: _wire2api_list_requested_card(raw[2]),
-        );
-      case 1:
-        return DisclosureResult_RequestAttributesMissing(
-          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
-          missingAttributes: _wire2api_list_missing_attribute(raw[2]),
-        );
-      default:
-        throw Exception("unreachable");
-    }
-  }
-
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -799,6 +782,23 @@ class WalletCoreImpl implements WalletCore {
       docType: _wire2api_String(arr[0]),
       attributes: _wire2api_list_card_attribute(arr[1]),
     );
+  }
+
+  StartDisclosureResult _wire2api_start_disclosure_result(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return StartDisclosureResult_Request(
+          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          requestedCards: _wire2api_list_requested_card(raw[2]),
+        );
+      case 1:
+        return StartDisclosureResult_RequestAttributesMissing(
+          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          missingAttributes: _wire2api_list_missing_attribute(raw[2]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   int _wire2api_u16(dynamic raw) {

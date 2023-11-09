@@ -31,7 +31,7 @@ abstract class TypedWalletCore {
 
   Future<List<Card>> continuePidIssuance(String uri);
 
-  Future<DisclosureResult> startDisclosure(String uri);
+  Future<StartDisclosureResult> startDisclosure(String uri);
 
   Future<void> cancelDisclosure();
 

@@ -10,8 +10,8 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::Card, config::FlutterConfiguration, disclosure::DisclosureResult, instruction::WalletInstructionResult,
-        pin::PinValidationResult, uri::IdentifyUriResult,
+        card::Card, config::FlutterConfiguration, disclosure::StartDisclosureResult,
+        instruction::WalletInstructionResult, pin::PinValidationResult, uri::IdentifyUriResult,
     },
     stream::ClosingStreamSink,
 };
@@ -219,7 +219,7 @@ pub async fn reject_pid_issuance() -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn start_disclosure(uri: String) -> Result<DisclosureResult> {
+pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;

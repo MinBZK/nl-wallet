@@ -19,7 +19,7 @@ pub struct RequestedCard {
     pub attributes: Vec<CardAttribute>,
 }
 
-pub enum DisclosureResult {
+pub enum StartDisclosureResult {
     Request {
         relying_party: RelyingParty,
         requested_cards: Vec<RequestedCard>,
@@ -79,13 +79,13 @@ impl MissingAttribute {
     }
 }
 
-impl TryFrom<Result<DisclosureProposal, DisclosureError>> for DisclosureResult {
+impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureResult {
     type Error = DisclosureError;
 
     fn try_from(value: Result<DisclosureProposal, DisclosureError>) -> Result<Self, Self::Error> {
         match value {
             Ok(proposal) => {
-                let result = DisclosureResult::Request {
+                let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.into(),
                     requested_cards: RequestedCard::from_disclosed_documents(proposal.documents),
                 };
@@ -98,7 +98,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for DisclosureResult {
                     missing_attributes,
                 } => {
                     let missing_attributes = MissingAttribute::from_missing_disclosure_attributes(missing_attributes);
-                    let result = DisclosureResult::RequestAttributesMissing {
+                    let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: (*reader_registration).into(),
                         missing_attributes,
                     };

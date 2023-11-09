@@ -945,7 +945,7 @@ abstract class CardValue_Gender implements CardValue {
 }
 
 /// @nodoc
-mixin _$DisclosureResult {
+mixin _$StartDisclosureResult {
   RelyingParty get relyingParty => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
@@ -969,39 +969,40 @@ mixin _$DisclosureResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureResult_Request value) request,
-    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
+    required TResult Function(StartDisclosureResult_Request value) request,
+    required TResult Function(StartDisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureResult_Request value)? request,
-    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult? Function(StartDisclosureResult_Request value)? request,
+    TResult? Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureResult_Request value)? request,
-    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult Function(StartDisclosureResult_Request value)? request,
+    TResult Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $DisclosureResultCopyWith<DisclosureResult> get copyWith => throw _privateConstructorUsedError;
+  $StartDisclosureResultCopyWith<StartDisclosureResult> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $DisclosureResultCopyWith<$Res> {
-  factory $DisclosureResultCopyWith(DisclosureResult value, $Res Function(DisclosureResult) then) =
-      _$DisclosureResultCopyWithImpl<$Res, DisclosureResult>;
+abstract class $StartDisclosureResultCopyWith<$Res> {
+  factory $StartDisclosureResultCopyWith(StartDisclosureResult value, $Res Function(StartDisclosureResult) then) =
+      _$StartDisclosureResultCopyWithImpl<$Res, StartDisclosureResult>;
   @useResult
   $Res call({RelyingParty relyingParty});
 }
 
 /// @nodoc
-class _$DisclosureResultCopyWithImpl<$Res, $Val extends DisclosureResult> implements $DisclosureResultCopyWith<$Res> {
-  _$DisclosureResultCopyWithImpl(this._value, this._then);
+class _$StartDisclosureResultCopyWithImpl<$Res, $Val extends StartDisclosureResult>
+    implements $StartDisclosureResultCopyWith<$Res> {
+  _$StartDisclosureResultCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -1023,21 +1024,21 @@ class _$DisclosureResultCopyWithImpl<$Res, $Val extends DisclosureResult> implem
 }
 
 /// @nodoc
-abstract class _$$DisclosureResult_RequestImplCopyWith<$Res> implements $DisclosureResultCopyWith<$Res> {
-  factory _$$DisclosureResult_RequestImplCopyWith(
-          _$DisclosureResult_RequestImpl value, $Res Function(_$DisclosureResult_RequestImpl) then) =
-      __$$DisclosureResult_RequestImplCopyWithImpl<$Res>;
+abstract class _$$StartDisclosureResult_RequestImplCopyWith<$Res> implements $StartDisclosureResultCopyWith<$Res> {
+  factory _$$StartDisclosureResult_RequestImplCopyWith(
+          _$StartDisclosureResult_RequestImpl value, $Res Function(_$StartDisclosureResult_RequestImpl) then) =
+      __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({RelyingParty relyingParty, List<RequestedCard> requestedCards});
 }
 
 /// @nodoc
-class __$$DisclosureResult_RequestImplCopyWithImpl<$Res>
-    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestImpl>
-    implements _$$DisclosureResult_RequestImplCopyWith<$Res> {
-  __$$DisclosureResult_RequestImplCopyWithImpl(
-      _$DisclosureResult_RequestImpl _value, $Res Function(_$DisclosureResult_RequestImpl) _then)
+class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
+    extends _$StartDisclosureResultCopyWithImpl<$Res, _$StartDisclosureResult_RequestImpl>
+    implements _$$StartDisclosureResult_RequestImplCopyWith<$Res> {
+  __$$StartDisclosureResult_RequestImplCopyWithImpl(
+      _$StartDisclosureResult_RequestImpl _value, $Res Function(_$StartDisclosureResult_RequestImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1046,7 +1047,7 @@ class __$$DisclosureResult_RequestImplCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? requestedCards = null,
   }) {
-    return _then(_$DisclosureResult_RequestImpl(
+    return _then(_$StartDisclosureResult_RequestImpl(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1061,8 +1062,9 @@ class __$$DisclosureResult_RequestImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
-  const _$DisclosureResult_RequestImpl({required this.relyingParty, required final List<RequestedCard> requestedCards})
+class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Request {
+  const _$StartDisclosureResult_RequestImpl(
+      {required this.relyingParty, required final List<RequestedCard> requestedCards})
       : _requestedCards = requestedCards;
 
   @override
@@ -1077,14 +1079,14 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
 
   @override
   String toString() {
-    return 'DisclosureResult.request(relyingParty: $relyingParty, requestedCards: $requestedCards)';
+    return 'StartDisclosureResult.request(relyingParty: $relyingParty, requestedCards: $requestedCards)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureResult_RequestImpl &&
+            other is _$StartDisclosureResult_RequestImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards));
   }
@@ -1095,8 +1097,8 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureResult_RequestImplCopyWith<_$DisclosureResult_RequestImpl> get copyWith =>
-      __$$DisclosureResult_RequestImplCopyWithImpl<_$DisclosureResult_RequestImpl>(this, _$identity);
+  _$$StartDisclosureResult_RequestImplCopyWith<_$StartDisclosureResult_RequestImpl> get copyWith =>
+      __$$StartDisclosureResult_RequestImplCopyWithImpl<_$StartDisclosureResult_RequestImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1133,8 +1135,8 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureResult_Request value) request,
-    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
+    required TResult Function(StartDisclosureResult_Request value) request,
+    required TResult Function(StartDisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) {
     return request(this);
   }
@@ -1142,8 +1144,8 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureResult_Request value)? request,
-    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult? Function(StartDisclosureResult_Request value)? request,
+    TResult? Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) {
     return request?.call(this);
   }
@@ -1151,8 +1153,8 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureResult_Request value)? request,
-    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult Function(StartDisclosureResult_Request value)? request,
+    TResult Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (request != null) {
@@ -1162,38 +1164,39 @@ class _$DisclosureResult_RequestImpl implements DisclosureResult_Request {
   }
 }
 
-abstract class DisclosureResult_Request implements DisclosureResult {
-  const factory DisclosureResult_Request(
+abstract class StartDisclosureResult_Request implements StartDisclosureResult {
+  const factory StartDisclosureResult_Request(
       {required final RelyingParty relyingParty,
-      required final List<RequestedCard> requestedCards}) = _$DisclosureResult_RequestImpl;
+      required final List<RequestedCard> requestedCards}) = _$StartDisclosureResult_RequestImpl;
 
   @override
   RelyingParty get relyingParty;
   List<RequestedCard> get requestedCards;
   @override
   @JsonKey(ignore: true)
-  _$$DisclosureResult_RequestImplCopyWith<_$DisclosureResult_RequestImpl> get copyWith =>
+  _$$StartDisclosureResult_RequestImplCopyWith<_$StartDisclosureResult_RequestImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$DisclosureResult_RequestAttributesMissingImplCopyWith<$Res>
-    implements $DisclosureResultCopyWith<$Res> {
-  factory _$$DisclosureResult_RequestAttributesMissingImplCopyWith(
-          _$DisclosureResult_RequestAttributesMissingImpl value,
-          $Res Function(_$DisclosureResult_RequestAttributesMissingImpl) then) =
-      __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>;
+abstract class _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<$Res>
+    implements $StartDisclosureResultCopyWith<$Res> {
+  factory _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith(
+          _$StartDisclosureResult_RequestAttributesMissingImpl value,
+          $Res Function(_$StartDisclosureResult_RequestAttributesMissingImpl) then) =
+      __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({RelyingParty relyingParty, List<MissingAttribute> missingAttributes});
 }
 
 /// @nodoc
-class __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
-    extends _$DisclosureResultCopyWithImpl<$Res, _$DisclosureResult_RequestAttributesMissingImpl>
-    implements _$$DisclosureResult_RequestAttributesMissingImplCopyWith<$Res> {
-  __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl(_$DisclosureResult_RequestAttributesMissingImpl _value,
-      $Res Function(_$DisclosureResult_RequestAttributesMissingImpl) _then)
+class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
+    extends _$StartDisclosureResultCopyWithImpl<$Res, _$StartDisclosureResult_RequestAttributesMissingImpl>
+    implements _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<$Res> {
+  __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl(
+      _$StartDisclosureResult_RequestAttributesMissingImpl _value,
+      $Res Function(_$StartDisclosureResult_RequestAttributesMissingImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1202,7 +1205,7 @@ class __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
     Object? relyingParty = null,
     Object? missingAttributes = null,
   }) {
-    return _then(_$DisclosureResult_RequestAttributesMissingImpl(
+    return _then(_$StartDisclosureResult_RequestAttributesMissingImpl(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
@@ -1217,8 +1220,8 @@ class __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResult_RequestAttributesMissing {
-  const _$DisclosureResult_RequestAttributesMissingImpl(
+class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDisclosureResult_RequestAttributesMissing {
+  const _$StartDisclosureResult_RequestAttributesMissingImpl(
       {required this.relyingParty, required final List<MissingAttribute> missingAttributes})
       : _missingAttributes = missingAttributes;
 
@@ -1234,14 +1237,14 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
 
   @override
   String toString() {
-    return 'DisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes)';
+    return 'StartDisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DisclosureResult_RequestAttributesMissingImpl &&
+            other is _$StartDisclosureResult_RequestAttributesMissingImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
   }
@@ -1252,9 +1255,9 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$DisclosureResult_RequestAttributesMissingImplCopyWith<_$DisclosureResult_RequestAttributesMissingImpl>
-      get copyWith => __$$DisclosureResult_RequestAttributesMissingImplCopyWithImpl<
-          _$DisclosureResult_RequestAttributesMissingImpl>(this, _$identity);
+  _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>
+      get copyWith => __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<
+          _$StartDisclosureResult_RequestAttributesMissingImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1291,8 +1294,8 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(DisclosureResult_Request value) request,
-    required TResult Function(DisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
+    required TResult Function(StartDisclosureResult_Request value) request,
+    required TResult Function(StartDisclosureResult_RequestAttributesMissing value) requestAttributesMissing,
   }) {
     return requestAttributesMissing(this);
   }
@@ -1300,8 +1303,8 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(DisclosureResult_Request value)? request,
-    TResult? Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult? Function(StartDisclosureResult_Request value)? request,
+    TResult? Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
   }) {
     return requestAttributesMissing?.call(this);
   }
@@ -1309,8 +1312,8 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(DisclosureResult_Request value)? request,
-    TResult Function(DisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
+    TResult Function(StartDisclosureResult_Request value)? request,
+    TResult Function(StartDisclosureResult_RequestAttributesMissing value)? requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (requestAttributesMissing != null) {
@@ -1320,17 +1323,17 @@ class _$DisclosureResult_RequestAttributesMissingImpl implements DisclosureResul
   }
 }
 
-abstract class DisclosureResult_RequestAttributesMissing implements DisclosureResult {
-  const factory DisclosureResult_RequestAttributesMissing(
+abstract class StartDisclosureResult_RequestAttributesMissing implements StartDisclosureResult {
+  const factory StartDisclosureResult_RequestAttributesMissing(
       {required final RelyingParty relyingParty,
-      required final List<MissingAttribute> missingAttributes}) = _$DisclosureResult_RequestAttributesMissingImpl;
+      required final List<MissingAttribute> missingAttributes}) = _$StartDisclosureResult_RequestAttributesMissingImpl;
 
   @override
   RelyingParty get relyingParty;
   List<MissingAttribute> get missingAttributes;
   @override
   @JsonKey(ignore: true)
-  _$$DisclosureResult_RequestAttributesMissingImplCopyWith<_$DisclosureResult_RequestAttributesMissingImpl>
+  _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 

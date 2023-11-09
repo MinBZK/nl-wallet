@@ -94,7 +94,7 @@ class MockTypedWalletCore extends TypedWalletCore {
   }
 
   @override
-  Future<DisclosureResult> startDisclosure(String uri) {
+  Future<StartDisclosureResult> startDisclosure(String uri) {
     // TODO: implement startDisclosure
     throw UnimplementedError();
   }
