@@ -581,4 +581,150 @@ pub mod tests {
                   name == "foobar" && value == Some(DataElementValue::Text("Foo Bar".to_string()))
         );
     }
+
+    #[test]
+    fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
+        let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+
+        let disclosure_document =
+            ProposedDisclosureDocument::from_mdoc_attributes(&unsigned_mdoc.doc_type, unsigned_mdoc.attributes)
+                .expect("Could not convert attributes to proposed disclosure document");
+
+        assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
+        assert_eq!(
+            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("given_name").unwrap(),
+            Attribute {
+                key_labels,
+                value: AttributeValue::String(given_name),
+            } if key_labels == &HashMap::from([("en", "First names"), ("nl", "Voornamen")]) &&
+                 given_name == "Willeke Liselotte"
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("family_name").unwrap(),
+            Attribute {
+                key_labels: _,
+                value: AttributeValue::String(family_name),
+            } if family_name == "De Bruijn"
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("birth_date").unwrap(),
+            Attribute {
+                key_labels: _,
+                value: AttributeValue::Date(birth_date),
+            } if birth_date == &NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap()
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("age_over_18").unwrap(),
+            Attribute {
+                key_labels: _,
+                value: AttributeValue::Boolean(true),
+            }
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("bsn").unwrap(),
+            Attribute {
+                key_labels: _,
+                value: AttributeValue::String(given_name),
+            } if given_name == "999999999"
+        );
+    }
+
+    #[test]
+    fn test_mdoc_to_proposed_disclosure_document_mapping_age_over_18() {
+        let attributes = IndexMap::from([(
+            PID_DOCTYPE.to_string(),
+            vec![Entry {
+                name: "age_over_18".to_string(),
+                value: DataElementValue::Bool(true),
+            }],
+        )]);
+
+        // This should not result in a `DocumentMdocError::MissingAttribute` error.
+        let disclosure_document = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes)
+            .expect("Could not convert attributes to proposed disclosure document");
+
+        assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
+        assert_eq!(
+            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            vec!["age_over_18"]
+        );
+        assert_matches!(
+            disclosure_document.attributes.get("age_over_18").unwrap(),
+            Attribute {
+                key_labels: _,
+                value: AttributeValue::Boolean(true),
+            }
+        );
+    }
+
+    #[test]
+    fn test_mdoc_to_proposed_disclosure_document_mapping_error_unknown_doc_type() {
+        let attributes = IndexMap::from([(
+            PID_DOCTYPE.to_string(),
+            vec![Entry {
+                name: "age_over_18".to_string(),
+                value: DataElementValue::Bool(true),
+            }],
+        )]);
+
+        let result = ProposedDisclosureDocument::from_mdoc_attributes("com.example.foobar", attributes);
+
+        assert_matches!(
+            result,
+            Err(DocumentMdocError::UnknownDocType { doc_type }) if doc_type == "com.example.foobar"
+        );
+    }
+
+    #[test]
+    fn test_mdoc_to_proposed_disclosure_document_mapping_error_attribute_value_type_mismatch() {
+        let attributes = IndexMap::from([(
+            PID_DOCTYPE.to_string(),
+            vec![Entry {
+                name: "age_over_18".to_string(),
+                value: DataElementValue::Text("Yes".to_string()),
+            }],
+        )]);
+
+        let result = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+
+        assert_matches!(
+            result,
+            Err(DocumentMdocError::AttributeValueTypeMismatch {
+                doc_type,
+                name_space,
+                name,
+                expected_type: AttributeValueType::Bool,
+                value,
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
+                  name == "age_over_18" && value == DataElementValue::Text("Yes".to_string())
+        );
+    }
+
+    #[test]
+    fn test_mdoc_to_proposed_disclosure_document_mapping_error_unknown_attribute() {
+        let attributes = IndexMap::from([(
+            PID_DOCTYPE.to_string(),
+            vec![Entry {
+                name: "favourite_colour".to_string(),
+                value: DataElementValue::Text("Red".to_string()),
+            }],
+        )]);
+
+        let result = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+
+        assert_matches!(
+            result,
+            Err(DocumentMdocError::UnknownAttribute {
+                doc_type,
+                name_space,
+                name,
+                value,
+            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
+                  name == "favourite_colour" && value == Some(DataElementValue::Text("Red".to_string()))
+        );
+    }
 }
