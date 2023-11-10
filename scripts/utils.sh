@@ -63,6 +63,13 @@ function get_pem_body {
     grep -v "\-\-\-\-\-" < "$1" | tr -d "\n"
 }
 
+# Generate n random bytes.
+#
+# $1 n: how many random bytes to generate
+function random_bytes {
+    dd if=/dev/urandom bs="$1" count=1 2>/dev/null
+}
+
 # Generate a key and certificate to use for local TLS.
 # The generated certificate will have the following SAN names:
 #
@@ -122,12 +129,19 @@ function generate_wp_signing_key {
             -out "${TARGET_DIR}/wallet_provider/$1.pem" > /dev/null
 }
 
-# Generate a symmetric key (AES-256)
+# Generate a random key (32 bytes)
+#
+# random_data may contain the null byte (00) or newline (0a). `softhsm2-util --aes` uses fgets to read
+# the key. It stops reading when encountering a null byte or newline. Therefore these are stripped out.
 #
 # $1 name of the key
-function generate_wp_symmetric_key {
-    echo -e "${INFO}Generating symmetric key${NC}"
-    openssl rand -out "${TARGET_DIR}/wallet_provider/$1.key" 32 > /dev/null
+function generate_wp_random_key {
+    echo -e "${INFO}Generating random key${NC}"
+    random_data=$(random_bytes 32)
+    replacement_values=$(random_bytes 64 | tr -d '\000\n')
+    replacement_values=${replacement_values:0:2}
+    filtered_data=$(echo -n "$random_data" | tr '\000\n' "$replacement_values")
+    echo -n "$filtered_data" > "${TARGET_DIR}/wallet_provider/$1.key"
 }
 
 # Generate an EC root CA for the pid_issuer

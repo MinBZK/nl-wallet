@@ -198,11 +198,11 @@ export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" base64 | tr -d '\n')
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
-generate_wp_symmetric_key attestation_wrapping
+generate_wp_random_key attestation_wrapping
 WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
 export WP_ATTESTATION_WRAPPING_KEY_PATH
 
-generate_wp_symmetric_key pin_pubkey_encryption
+generate_wp_random_key pin_pubkey_encryption
 WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 
