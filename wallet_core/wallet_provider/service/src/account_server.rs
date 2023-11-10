@@ -229,15 +229,17 @@ impl AccountServer {
         Ok(challenge)
     }
 
-    pub async fn instruction_challenge<T>(
+    pub async fn instruction_challenge<T, R, H>(
         &self,
         challenge_request: InstructionChallengeRequestMessage,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        repositories: &R,
         time_generator: &impl Generator<DateTime<Local>>,
-        hsm: &(impl Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync),
+        hsm: &H,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Starting database transaction");
 
@@ -285,22 +287,22 @@ impl AccountServer {
         Ok(challenge.bytes)
     }
 
-    pub async fn handle_instruction<T, I, R>(
+    pub async fn handle_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: Instruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
-        generators: &(impl Generator<Uuid> + Generator<DateTime<Local>> + Sync),
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        generators: &G,
+        repositories: &R,
         pin_policy: &impl PinPolicyEvaluator,
-        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError>
-              + Hsm<Error = HsmError>
-              + Decrypter<VerifyingKey, Error = HsmError>
-              + Sync),
-    ) -> Result<InstructionResult<R>, InstructionError>
+        wallet_user_hsm: &H,
+    ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable + Send + Sync,
-        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
-        R: Serialize + DeserializeOwned,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
+        I: HandleInstruction<Result = IR> + Serialize + DeserializeOwned,
+        IR: Serialize + DeserializeOwned,
+        G: Generator<Uuid> + Generator<DateTime<Local>> + Sync,
+        H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError> + Sync,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
@@ -387,16 +389,18 @@ impl AccountServer {
         }
     }
 
-    pub async fn register<T>(
+    pub async fn register<T, R, H>(
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
         uuid_generator: &impl Generator<Uuid>,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
-        hsm: &(impl Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync),
+        repositories: &R,
+        hsm: &H,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Parsing message to lookup public keys");
 
@@ -454,14 +458,17 @@ impl AccountServer {
         Ok(cert_result)
     }
 
-    async fn new_wallet_certificate(
+    async fn new_wallet_certificate<H>(
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
         wallet_id: String,
         wallet_hw_pubkey: VerifyingKey,
         wallet_pin_pubkey: VerifyingKey,
-        hsm: &(impl Hsm<Error = HsmError> + Sync),
-    ) -> Result<WalletCertificate, RegistrationError> {
+        hsm: &H,
+    ) -> Result<WalletCertificate, RegistrationError>
+    where
+        H: Hsm<Error = HsmError> + Sync,
+    {
         let pin_pubkey_hash = sign_pin_pubkey(
             wallet_pin_pubkey,
             &self.pin_public_disclosure_protection_key_identifier,
@@ -498,14 +505,16 @@ impl AccountServer {
         .map_err(RegistrationError::ChallengeValidation)
     }
 
-    async fn verify_wallet_certificate<T>(
+    async fn verify_wallet_certificate<T, R, H>(
         &self,
         certificate: &WalletCertificate,
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
-        hsm: &(impl Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync),
+        wallet_user_repository: &R,
+        hsm: &H,
     ) -> Result<WalletUser, WalletCertificateError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Parsing and verifying the provided certificate");
 
@@ -560,15 +569,16 @@ impl AccountServer {
         }
     }
 
-    async fn verify_instruction<I, R>(
+    async fn verify_instruction<I, R, D>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Local>>,
-        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
+        verifying_key_decrypter: &D,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
+        D: Decrypter<VerifyingKey, Error = HsmError> + Sync,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -619,11 +629,14 @@ impl AccountServer {
     }
 }
 
-async fn sign_pin_pubkey(
+async fn sign_pin_pubkey<H>(
     pubkey: VerifyingKey,
     key_identifier: &str,
-    hsm: &(impl Hsm<Error = HsmError> + Sync),
-) -> Result<Base64Bytes, WalletCertificateError> {
+    hsm: &H,
+) -> Result<Base64Bytes, WalletCertificateError>
+where
+    H: Hsm<Error = HsmError> + Sync,
+{
     let pin_pubkey_bts = pubkey
         .to_public_key_der()
         .map_err(WalletCertificateError::PinPubKeyDecoding)?
@@ -634,12 +647,15 @@ async fn sign_pin_pubkey(
     Ok(signature.into())
 }
 
-async fn verify_pin_pubkey(
+async fn verify_pin_pubkey<H>(
     pubkey: VerifyingKey,
     pin_pubkey_hash: Base64Bytes,
     key_identifier: &str,
-    hsm: &(impl Hsm<Error = HsmError> + Sync),
-) -> Result<(), WalletCertificateError> {
+    hsm: &H,
+) -> Result<(), WalletCertificateError>
+where
+    H: Hsm<Error = HsmError> + Sync,
+{
     let pin_pubkey_bts = pubkey
         .to_public_key_der()
         .map_err(WalletCertificateError::PinPubKeyDecoding)?
