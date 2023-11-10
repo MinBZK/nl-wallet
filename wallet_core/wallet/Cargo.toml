@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-mock = ["dep:mockall"]
+mock = ["dep:mockall", "nl_wallet_mdoc/mock"]
 wallet_deps = []
 disable_tls_validation = []
 env_config = ["dep:dotenvy"]
