@@ -28,7 +28,7 @@ Default settings are specified in `src/settings.rs`.
 In order to override default settings, create a file named `wallet_provider.toml` in the same location as `wallet_provider.example.toml` (which can also be used
 as a starting point).
 
-Alternatively, see the instructions for setting up a development environment in the main [`README.md`](../../README.md#configuring-the-development-environment)
+Alternatively, see the instructions for setting up a development environment in the main [`README.md`](../../README.md#configuring-the-development-environment).
 
 Default settings (in `wallet_provider/src/settings.rs`) and settings specified in `wallet_provider.toml` can both be overriden by environment variables. All
 environment variables should be prefixed with `WALLET_PROVIDER`, e.g. `WALLET_PROVIDER_SIGNING_PRIVATE_KEY`. Grouped settings can be specified as
