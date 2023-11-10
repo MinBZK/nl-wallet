@@ -81,16 +81,10 @@ impl ProposedDocument {
     /// This means that the sum of the length of these `Vec`s is equal to the
     /// length of the input `Vec<Mdoc>`.
     fn candidates_and_missing_attributes_from_mdocs(
-        doc_type: DocType,
         mdocs: Vec<Mdoc>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
-        session_transcript: SessionTranscript,
+        device_signed_challenge: Vec<u8>,
     ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
-        // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
-        // so that it can be used as a challenge when constructing `DeviceSigned` later on.
-        let device_authentication = DeviceAuthentication::from_session_transcript(session_transcript, doc_type);
-        let device_signed_challenge = cbor_serialize(&TaggedBytes(device_authentication))?;
-
         let mut all_missing_attributes = Vec::new();
 
         // Collect all `ProposedDocument`s for this `doc_type`,
@@ -532,6 +526,8 @@ impl DeviceRequest {
         // * Do some sanity checks, as the request should actually contain this `doc_type`
         //   and any subsequent `Mdoc`s should have the same `doc_type`. This is part of
         //   the contract of `MdocDataSource` that is not enforceable.
+        // * Calculate the challenge needed to create the `DeviceSigned` for this
+        //   `doc_type` later on during actual disclosure.
         // * Convert all `Mdoc`s that satisfy the requirement to `ProposedDocument`,
         //   while collecting any missing attributes separately.
         // * Collect the candidates in a `HashMap` per `doc_type`.
@@ -566,12 +562,17 @@ impl DeviceRequest {
                     }
                 }
 
+                // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
+                // so that it can be used as a challenge when constructing `DeviceSigned` later on.
+                let device_authentication =
+                    DeviceAuthentication::from_session_transcript(session_transcript.clone(), doc_type.to_string());
+                let device_signed_challenge = cbor_serialize(&TaggedBytes(device_authentication))?;
+
                 // Get all the candidates and missing attributes from the provided `Mdoc`s.
                 let (candidates, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
-                    doc_type.to_string(),
                     doc_type_mdocs,
                     &requested_attributes,
-                    session_transcript.clone(),
+                    device_signed_challenge,
                 )?;
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
@@ -735,7 +736,7 @@ impl DeviceEngagement {
 
 impl DeviceAuthentication {
     /// Re-construct a [`DeviceAuthentication`] from a [`SessionTranscript`] and [`DocType`].
-    fn from_session_transcript(session_transcript: SessionTranscript, doc_type: DocType) -> Self {
+    pub fn from_session_transcript(session_transcript: SessionTranscript, doc_type: DocType) -> Self {
         DeviceAuthenticationKeyed {
             device_authentication: Default::default(),
             session_transcript,
