@@ -298,6 +298,7 @@ pub mod tests {
 
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
+    use rstest::rstest;
 
     use nl_wallet_mdoc::Tdate;
 
@@ -726,5 +727,59 @@ pub mod tests {
             }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "favourite_colour" && value == Some(DataElementValue::Text("Red".to_string()))
         );
+    }
+
+    #[rstest]
+    #[case(vec![], vec![].into())]
+    #[case(vec!["com.example.pid/com.example.pid/bsn"], vec![("com.example.pid", vec!["bsn"])].into())]
+    #[case(
+        vec!["com.example.pid/com.example.pid/bsn", "com.example.pid/com.example.pid/age_over_18"],
+        vec![("com.example.pid", vec!["bsn", "age_over_18"])].into())
+    ]
+    #[case(
+        vec![
+            "com.example.address/com.example.address/resident_country",
+            "com.example.pid/com.example.pid/bsn",
+            "com.example.address/com.example.address/resident_state",
+            "com.example.pid/com.example.pid/gender",
+        ],
+        vec![("com.example.pid", vec!["bsn", "gender"]), ("com.example.address", vec!["resident_country", "resident_state"])].into())
+    ]
+    #[case(vec!["com.example.foo/com.example.bar/something"], None)] // DocumentMdocError::UnknownDocType
+    #[case(vec!["com.example.pid/com.example.pid/favorite_colour"], None)] // DocumentMdocError::UnknownAttribute
+    fn test_missing_disclosure_attributes_from_mdoc_missing_attributes(
+        #[case] attribute_identifiers: Vec<&str>,
+        #[case] expected_result: Option<Vec<(&str, Vec<&str>)>>,
+    ) {
+        // Convert the input attribute identifier strings to actual `AttributeIdentifier`s.
+        let attribute_identifiers: Vec<AttributeIdentifier> = attribute_identifiers
+            .into_iter()
+            .map(|attribute| attribute.parse().unwrap())
+            .collect();
+
+        // Attempt to convert the identifiers to a `Vec<MissingDisclosureAttributes>`.
+        let result = MissingDisclosureAttributes::from_mdoc_missing_attributes(attribute_identifiers);
+
+        // If `expected_result` contains a `Vec`, match the expected `doc_type` and keys against the result.
+        // Note that the returned order is relevant.
+        if let Some(expected_result) = expected_result {
+            let missing = result.expect("Could not convert attribute identifiers to missing disclosure attributes");
+
+            assert_eq!(missing.len(), expected_result.len());
+            missing.into_iter().zip(expected_result).for_each(
+                |(missing_attributes, (expected_doc_type, expected_attributes))| {
+                    assert_eq!(missing_attributes.doc_type, expected_doc_type);
+                    assert_eq!(
+                        missing_attributes.attributes.into_keys().collect::<Vec<_>>(),
+                        expected_attributes
+                    );
+                },
+            );
+
+            return;
+        }
+
+        // If `expected_result` is None, the result should be an error.
+        assert!(result.is_err());
     }
 }
