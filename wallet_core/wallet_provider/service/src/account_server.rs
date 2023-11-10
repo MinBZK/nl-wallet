@@ -670,11 +670,14 @@ where
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use chrono::Duration;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use super::*;
 
-    pub async fn account_server(certificate_signing_pubkey: EcdsaDecodingKey) -> AccountServer {
-        AccountServer::new(
+    pub async fn account_server_and_hsm(
+        certificate_signing_pubkey: EcdsaDecodingKey,
+    ) -> (AccountServer, MockPkcs11Client<HsmError>) {
+        let account_server = AccountServer::new(
             Duration::milliseconds(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey,
@@ -682,7 +685,12 @@ pub mod mock {
             "signing_key_2".into(),
         )
         .await
-        .unwrap()
+        .unwrap();
+
+        let hsm = MockPkcs11Client::default();
+        hsm.generate_generic_secret_key("signing_key_2").await.unwrap();
+
+        (account_server, hsm)
     }
 }
 
@@ -754,9 +762,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -900,9 +906,7 @@ mod tests {
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
         let instruction_result_signing_key = SoftwareEcdsaKey::new("instruction_result_signing_key");
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1015,9 +1019,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1075,9 +1077,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1112,9 +1112,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1148,9 +1146,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1212,9 +1208,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -1286,9 +1280,7 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let hsm = MockPkcs11Client::default();
-
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 

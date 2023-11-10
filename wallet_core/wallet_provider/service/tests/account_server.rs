@@ -102,12 +102,10 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let hsm = MockPkcs11Client::default();
-
     let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
     let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-    let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+    let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 

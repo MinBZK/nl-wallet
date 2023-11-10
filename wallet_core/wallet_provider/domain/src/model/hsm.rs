@@ -192,7 +192,7 @@ pub mod mock {
         type Error = E;
 
         async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error> {
-            self.1.insert(String::from(identifier), random_bytes(32)).unwrap();
+            self.1.insert(String::from(identifier), random_bytes(32));
             Ok(())
         }
 
@@ -211,12 +211,13 @@ pub mod mock {
         async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error> {
             let entry = self.0.get(identifier).unwrap();
             let key = entry.value();
+
             let signature = Signer::sign(key, &data);
             Ok(signature)
         }
 
         async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Vec<u8>, Self::Error> {
-            let entry = self.1.entry(String::from(identifier)).or_insert(random_bytes(32));
+            let entry = self.1.get(identifier).unwrap();
             let key = entry.value();
 
             let mut mac = HmacSha256::new_from_slice(key).unwrap();
