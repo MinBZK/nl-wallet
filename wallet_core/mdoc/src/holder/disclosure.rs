@@ -47,7 +47,7 @@ pub trait MdocDataSource {
     async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
 }
 
-pub type PropsedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -271,7 +271,7 @@ where
         Ok(session)
     }
 
-    pub fn proposed_attributes(&self) -> PropsedAttributes {
+    pub fn proposed_attributes(&self) -> ProposedAttributes {
         // Get all of the attributes to be disclosed from the
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents

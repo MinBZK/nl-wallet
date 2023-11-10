@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    holder::{CborHttpClient, DisclosureSession, MdocDataSource, PropsedAttributes, TrustAnchor},
+    holder::{CborHttpClient, DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor},
     utils::reader_auth::ReaderRegistration,
     verifier::SessionType,
 };
@@ -28,7 +28,7 @@ pub trait MdocDisclosureSession<D> {
 
     fn return_url(&self) -> Option<&Url>;
     fn reader_registration(&self) -> &ReaderRegistration;
-    fn proposed_attributes(&self) -> PropsedAttributes;
+    fn proposed_attributes(&self) -> ProposedAttributes;
 }
 
 #[async_trait]
@@ -64,7 +64,7 @@ where
         &self.reader_registration
     }
 
-    fn proposed_attributes(&self) -> PropsedAttributes {
+    fn proposed_attributes(&self) -> ProposedAttributes {
         self.proposed_attributes()
     }
 }
@@ -77,7 +77,7 @@ mod mock {
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
-        pub proposed_attributes: PropsedAttributes,
+        pub proposed_attributes: ProposedAttributes,
     }
 
     #[async_trait]
@@ -103,7 +103,7 @@ mod mock {
             &self.reader_registration
         }
 
-        fn proposed_attributes(&self) -> PropsedAttributes {
+        fn proposed_attributes(&self) -> ProposedAttributes {
             self.proposed_attributes.clone()
         }
     }
