@@ -27,10 +27,10 @@ use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
-use crate::models::disclosure::DisclosureResult;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::RelyingParty;
 use crate::models::disclosure::RequestedCard;
+use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
@@ -252,7 +252,7 @@ fn wire_reject_pid_issuance_impl(port_: MessagePort) {
     )
 }
 fn wire_start_disclosure_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, DisclosureResult, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, StartDisclosureResult, _>(
         WrapInfo {
             debug_name: "start_disclosure",
             port: Some(port_),
@@ -396,36 +396,6 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
-impl support::IntoDart for DisclosureResult {
-    fn into_dart(self) -> support::DartAbi {
-        match self {
-            Self::Request {
-                relying_party,
-                requested_cards,
-            } => vec![
-                0.into_dart(),
-                relying_party.into_into_dart().into_dart(),
-                requested_cards.into_into_dart().into_dart(),
-            ],
-            Self::RequestAttributesMissing {
-                relying_party,
-                missing_attributes,
-            } => vec![
-                1.into_dart(),
-                relying_party.into_into_dart().into_dart(),
-                missing_attributes.into_into_dart().into_dart(),
-            ],
-        }
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for DisclosureResult {}
-impl rust2dart::IntoIntoDart<DisclosureResult> for DisclosureResult {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -545,6 +515,36 @@ impl support::IntoDart for RequestedCard {
 }
 impl support::IntoDartExceptPrimitive for RequestedCard {}
 impl rust2dart::IntoIntoDart<RequestedCard> for RequestedCard {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for StartDisclosureResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Request {
+                relying_party,
+                requested_cards,
+            } => vec![
+                0.into_dart(),
+                relying_party.into_into_dart().into_dart(),
+                requested_cards.into_into_dart().into_dart(),
+            ],
+            Self::RequestAttributesMissing {
+                relying_party,
+                missing_attributes,
+            } => vec![
+                1.into_dart(),
+                relying_party.into_into_dart().into_dart(),
+                missing_attributes.into_into_dart().into_dart(),
+            ],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for StartDisclosureResult {}
+impl rust2dart::IntoIntoDart<StartDisclosureResult> for StartDisclosureResult {
     fn into_into_dart(self) -> Self {
         self
     }

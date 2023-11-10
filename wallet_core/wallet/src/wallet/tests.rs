@@ -30,6 +30,7 @@ use crate::{
     account_provider::MockAccountProviderClient,
     config::LocalConfigurationRepository,
     digid::MockDigidSession,
+    disclosure::MockMdocDisclosureSession,
     document,
     pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
@@ -68,6 +69,7 @@ pub type WalletWithMocks = Wallet<
     MockAccountProviderClient,
     MockDigidSession,
     MockPidIssuerClient,
+    MockMdocDisclosureSession,
 >;
 
 /// The account server key material, generated once for testing.
@@ -235,9 +237,11 @@ impl Default for WalletWithMocks {
         // Override public key material in the `Configuration`.
         let config = {
             let mut config = Configuration::default();
+
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
             config.account_server.instruction_result_public_key =
                 (*keys.instruction_result_signing_key.verifying_key()).into();
+
             config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
 
             config

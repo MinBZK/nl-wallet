@@ -4,7 +4,7 @@ use std::{sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -415,7 +415,8 @@ impl Session<Created> {
             self.state().session_type,
             &self.state().reader_engagement,
             device_engagement,
-        );
+        )
+        .unwrap();
 
         let cert_pair = keys
             .private_key(&self.state().usecase_id)
@@ -691,8 +692,6 @@ impl DeviceResponse {
     }
 }
 
-pub type X509Subject = IndexMap<String, String>;
-
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum ValidityError {
     #[error("validity parsing failed: {0}")]
@@ -752,24 +751,6 @@ impl IssuerSigned {
 
         Ok((attrs, mso))
     }
-
-    fn attribute_identifiers(&self, doctype: &DocType) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .iter()
-                    .flat_map(|(namespace, Attributes(attrs))| {
-                        attrs.iter().map(|TaggedBytes(attr)| AttributeIdentifier {
-                            doc_type: doctype.clone(),
-                            namespace: namespace.clone(),
-                            attribute: attr.element_identifier.clone(),
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
 }
 
 impl MobileSecurityObject {
@@ -818,13 +799,9 @@ impl Document {
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication = DeviceAuthenticationKeyed {
-            device_authentication: Default::default(),
-            session_transcript: session_transcript.clone(),
-            doc_type: self.doc_type.clone(),
-            device_name_spaces_bytes: self.device_signed.name_spaces.clone(),
-        };
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+        let device_authentication =
+            DeviceAuthentication::from_session_transcript(session_transcript.clone(), self.doc_type.clone());
+        let device_authentication_bts = cbor_serialize(&TaggedBytes(device_authentication))?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
@@ -850,19 +827,6 @@ impl Document {
 }
 
 impl ItemsRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.name_spaces
-            .iter()
-            .flat_map(|(namespace, attrs)| {
-                attrs.iter().map(|(attr, _)| AttributeIdentifier {
-                    doc_type: self.doc_type.clone(),
-                    namespace: namespace.clone(),
-                    attribute: attr.clone(),
-                })
-            })
-            .collect()
-    }
-
     /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
     pub fn match_against_issuer_signed(
         &self,
@@ -1004,10 +968,11 @@ mod tests {
         let encrypted_device_request = verifier.process_message(&msg, session_token.clone()).await.unwrap();
 
         // decrypt server response
+        // Note that the unwraps here are safe, as we created the `ReaderEngagement`.
         let rp_key = SessionKey::new(
             &device_eph_key,
             &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
-            &SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement),
+            &SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
             SessionKeyUser::Reader,
         )
         .unwrap();

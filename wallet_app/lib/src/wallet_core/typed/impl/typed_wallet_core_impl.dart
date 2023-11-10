@@ -112,7 +112,7 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<void> rejectOfferedPid() => call((core) => core.rejectPidIssuance());
 
   @override
-  Future<DisclosureResult> startDisclosure(String uri) => call((core) => core.startDisclosure(uri: uri));
+  Future<StartDisclosureResult> startDisclosure(String uri) => call((core) => core.startDisclosure(uri: uri));
 
   @override
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());

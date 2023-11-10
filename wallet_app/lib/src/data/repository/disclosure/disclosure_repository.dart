@@ -1,4 +1,4 @@
-import '../../../../bridge_generated.dart';
+import '../../../../bridge_generated.dart' hide StartDisclosureResult;
 import '../../../domain/model/disclosure/start_disclosure_result.dart';
 
 export '../../../domain/model/disclosure/start_disclosure_result.dart';

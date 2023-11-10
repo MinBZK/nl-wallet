@@ -1,7 +1,7 @@
 use tracing::info;
 use url::Url;
 
-use crate::digid::DigidSession;
+use crate::{config::ConfigurationRepository, digid::DigidSession};
 
 use super::Wallet;
 
@@ -19,9 +19,10 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    D: DigidSession,
+    CR: ConfigurationRepository,
+    DGS: DigidSession,
 {
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
         info!("Identifying type of URI: {}", uri_str);
@@ -37,11 +38,10 @@ where
             return Ok(UriType::PidIssuance(uri));
         }
 
-        // TODO: actually implement disclosure recognition.
-        if uri
-            .as_str()
-            .starts_with("walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure")
-        {
+        // Assume that redirect URI creation is checked when updating the `Configuration`.
+        let disclosure_redirect_uri_base = self.config_repository.config().disclosure.uri_base().unwrap();
+
+        if uri.as_str().starts_with(disclosure_redirect_uri_base.as_str()) {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -63,24 +63,31 @@ mod tests {
         let mut wallet = WalletWithMocks::default();
 
         // Set up some URLs to work with.
+        let example_uri = "https://example.com";
         let digid_uri = "redirect://here";
-        let disclosure_uri = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/foo";
-        let example_uri = "https://exampl.com";
 
-        // The placeholder disclosure URI should be recognised.
-        assert_matches!(wallet.identify_uri(disclosure_uri).unwrap(), UriType::Disclosure(_));
+        let mut disclosure_uri_base = wallet.config_repository.config().disclosure.uri_base().unwrap();
 
-        // The wallet should recognise neither of these URIs, as there is no `DigidSession`.
-        assert_matches!(
-            wallet.identify_uri(digid_uri).unwrap_err(),
-            UriIdentificationError::Unknown
-        );
+        // Add a trailing slash to the base path, if needed.
+        if !disclosure_uri_base.path().ends_with('/') {
+            disclosure_uri_base.path_segments_mut().unwrap().push("/");
+        }
+
+        let disclosure_uri = disclosure_uri_base.join("abcd").unwrap();
+
+        // The example URI should not be recognised.
         assert_matches!(
             wallet.identify_uri(example_uri).unwrap_err(),
             UriIdentificationError::Unknown
         );
 
-        // Set up a `DigidSession` that will match only the first URI.
+        // The wallet should not recognise the DigiD URI, as there is no `DigidSession`.
+        assert_matches!(
+            wallet.identify_uri(digid_uri).unwrap_err(),
+            UriIdentificationError::Unknown
+        );
+
+        // Set up a `DigidSession` that will match the URI.
         let digid_session = {
             let mut digid_session = MockDigidSession::new();
 
@@ -94,21 +101,19 @@ mod tests {
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
-        assert_matches!(
-            wallet.identify_uri(example_uri).unwrap_err(),
-            UriIdentificationError::Unknown
-        );
 
-        // After clearing the `DigidSession`, neither URI should be recognised again.
+        // After clearing the `DigidSession`, the URI should not be recognised again.
         wallet.digid_session = None;
 
         assert_matches!(
             wallet.identify_uri(digid_uri).unwrap_err(),
             UriIdentificationError::Unknown
         );
+
+        // The disclosure URI should be recognised.
         assert_matches!(
-            wallet.identify_uri(example_uri).unwrap_err(),
-            UriIdentificationError::Unknown
+            wallet.identify_uri(disclosure_uri.as_str()).unwrap(),
+            UriType::Disclosure(_)
         );
     }
 }

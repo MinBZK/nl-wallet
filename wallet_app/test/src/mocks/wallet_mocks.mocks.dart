@@ -75,8 +75,8 @@ class _FakeTimelineAttribute_2 extends _i1.SmartFake implements _i4.TimelineAttr
         );
 }
 
-class _FakeDisclosureResult_3 extends _i1.SmartFake implements _i2.DisclosureResult {
-  _FakeDisclosureResult_3(
+class _FakeStartDisclosureResult_3 extends _i1.SmartFake implements _i2.StartDisclosureResult {
+  _FakeStartDisclosureResult_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -700,26 +700,26 @@ class MockTypedWalletCore extends _i1.Mock implements _i19.TypedWalletCore {
       ) as _i9.Future<List<_i2.Card>>);
 
   @override
-  _i9.Future<_i2.DisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
+  _i9.Future<_i2.StartDisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
           [uri],
         ),
-        returnValue: _i9.Future<_i2.DisclosureResult>.value(_FakeDisclosureResult_3(
+        returnValue: _i9.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
           this,
           Invocation.method(
             #startDisclosure,
             [uri],
           ),
         )),
-        returnValueForMissingStub: _i9.Future<_i2.DisclosureResult>.value(_FakeDisclosureResult_3(
+        returnValueForMissingStub: _i9.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
           this,
           Invocation.method(
             #startDisclosure,
             [uri],
           ),
         )),
-      ) as _i9.Future<_i2.DisclosureResult>);
+      ) as _i9.Future<_i2.StartDisclosureResult>);
 
   @override
   _i9.Future<void> cancelDisclosure() => (super.noSuchMethod(
@@ -1565,7 +1565,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<_i2.DisclosureResult> startDisclosure({
+  _i9.Future<_i2.StartDisclosureResult> startDisclosure({
     required String? uri,
     dynamic hint,
   }) =>
@@ -1578,7 +1578,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i9.Future<_i2.DisclosureResult>.value(_FakeDisclosureResult_3(
+        returnValue: _i9.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
           this,
           Invocation.method(
             #startDisclosure,
@@ -1589,7 +1589,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i9.Future<_i2.DisclosureResult>.value(_FakeDisclosureResult_3(
+        returnValueForMissingStub: _i9.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
           this,
           Invocation.method(
             #startDisclosure,
@@ -1600,7 +1600,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i9.Future<_i2.DisclosureResult>);
+      ) as _i9.Future<_i2.StartDisclosureResult>);
 
   @override
   _i9.Future<void> cancelDisclosure({dynamic hint}) => (super.noSuchMethod(

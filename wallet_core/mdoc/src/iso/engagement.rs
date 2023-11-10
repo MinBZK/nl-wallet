@@ -56,28 +56,35 @@ pub struct SessionTranscriptKeyed {
 /// Transcript of the session so far. Used in [`DeviceAuthentication`].
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
 
+#[derive(Debug, thiserror::Error)]
+pub enum SessionTranscriptError {
+    #[error("reader engagement is missing security information")]
+    MissingReaderEngagementSecurity,
+}
+
 impl SessionTranscript {
     pub fn new(
         session_type: SessionType,
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,
-    ) -> Self {
-        SessionTranscriptKeyed {
+    ) -> Result<Self, SessionTranscriptError> {
+        let reader_security = reader_engagement
+            .0
+            .security
+            .as_ref()
+            .ok_or(SessionTranscriptError::MissingReaderEngagementSecurity)?;
+
+        let transcript = SessionTranscriptKeyed {
             device_engagement_bytes: device_engagement.clone().into(),
             handover: match session_type {
                 SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
                 SessionType::CrossDevice => Handover::QRHandover,
             },
-            ereader_key_bytes: reader_engagement
-                .0
-                .security
-                .as_ref()
-                .unwrap()
-                .0
-                .e_sender_key_bytes
-                .clone(),
+            ereader_key_bytes: reader_security.0.e_sender_key_bytes.clone(),
         }
-        .into()
+        .into();
+
+        Ok(transcript)
     }
 }
 

@@ -1,4 +1,4 @@
-use wallet::{self, AttributeValue, Document, DocumentPersistence, GenderAttributeValue};
+use wallet::{self, Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue};
 
 pub struct Card {
     pub persistence: CardPersistence,
@@ -61,28 +61,34 @@ impl From<Document> for Card {
         let attributes = value
             .attributes
             .into_iter()
-            .map(|(key, attribute)| {
-                let labels = attribute
-                    .key_labels
-                    .into_iter()
-                    .map(|(language, value)| LocalizedString {
-                        language: language.to_string(),
-                        value: value.to_string(),
-                    })
-                    .collect();
-
-                CardAttribute {
-                    key: key.to_string(),
-                    labels,
-                    value: CardValue::from(attribute.value),
-                }
-            })
+            .map(|(key, attribute)| CardAttribute::from((key.to_string(), attribute)))
             .collect();
 
         Card {
             persistence: value.persistence.into(),
             doc_type: value.doc_type.to_string(),
             attributes,
+        }
+    }
+}
+
+impl From<(String, Attribute)> for CardAttribute {
+    fn from(value: (String, Attribute)) -> Self {
+        let (key, attribute) = value;
+
+        let labels = attribute
+            .key_labels
+            .into_iter()
+            .map(|(language, value)| LocalizedString {
+                language: language.to_string(),
+                value: value.to_string(),
+            })
+            .collect();
+
+        CardAttribute {
+            key: key.to_string(),
+            labels,
+            value: CardValue::from(attribute.value),
         }
     }
 }

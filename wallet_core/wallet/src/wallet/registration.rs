@@ -39,7 +39,7 @@ pub enum WalletRegistrationError {
     StoreCertificate(#[from] StorageError),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
     }
@@ -47,10 +47,10 @@ impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
     #[instrument(skip_all)]
     pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
     where
-        C: ConfigurationRepository,
+        CR: ConfigurationRepository,
         S: Storage,
-        A: AccountProviderClient,
-        K: PlatformEcdsaKey,
+        APC: AccountProviderClient,
+        PEK: PlatformEcdsaKey,
     {
         info!("Checking if already registered");
 

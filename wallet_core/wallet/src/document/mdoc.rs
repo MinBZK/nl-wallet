@@ -4,12 +4,14 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    identifiers::AttributeIdentifier,
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
 use super::{
-    mapping::{DataElementValueMapping, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue,
+    mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
+    Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
+    MissingDisclosureAttributes, ProposedDisclosureDocument,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -38,7 +40,7 @@ pub enum DocumentMdocError {
         doc_type: String,
         name_space: NameSpace,
         name: DataElementIdentifier,
-        value: DataElementValue,
+        value: Option<DataElementValue>,
     },
 }
 
@@ -48,6 +50,104 @@ pub enum AttributeValueType {
     Bool,
     Date,
     Gender,
+}
+
+/// Get the correct `AttributeMapping` or return an error if it cannot be found for the `doc_type`.
+fn mapping_for_doc_type(doc_type: &str) -> Result<(MappingDocType, &'static AttributeMapping), DocumentMdocError> {
+    let (doc_type, attribute_mapping) =
+        MDOC_DOCUMENT_MAPPING
+            .get_key_value(doc_type)
+            .ok_or_else(|| DocumentMdocError::UnknownDocType {
+                doc_type: doc_type.to_string(),
+            })?;
+
+    Ok((*doc_type, attribute_mapping))
+}
+
+fn document_attributes_from_mdoc_attributes(
+    doc_type: &str,
+    mut attributes: IndexMap<NameSpace, Vec<Entry>>,
+    error_on_missing: bool,
+) -> Result<(MappingDocType, DocumentAttributes), DocumentMdocError> {
+    let (doc_type, attribute_mapping) = mapping_for_doc_type(doc_type)?;
+
+    // Loop through the attributes in the mapping in order and find
+    // the corresponding entry in the input attributes, based on the
+    // name space and the entry name. If found, move the entry value
+    // out of the input attributes and try to convert it to an `Attribute`.
+    let document_attributes = attribute_mapping
+        .iter()
+        // Loop through the all the mapped attributes in order and remove any
+        // returned instances of `None` for non-mandatory attributes.
+        .flat_map(|((name_space, element_id), value_mapping)| {
+            // Get a mutable reference to the `Vec<Entry>` for the name space,
+            // then find the index within the vector for the entry that has the
+            // matching name. If found, remove the `Entry` at that index so that
+            // we have ownership over it.
+            let entry = attributes.get_mut(*name_space).and_then(|entries| {
+                entries
+                    .iter()
+                    .position(|entry| entry.name == *element_id)
+                    .map(|index| entries.swap_remove(index))
+            });
+
+            // If the entry is not found in the mdoc attributes, but it is not
+            // mandatory or we are not processing mandatory attributes, we can
+            // return `None` early here.
+            if entry.is_none() && (!value_mapping.is_mandatory || !error_on_missing) {
+                return None;
+            }
+
+            // Otherwise, create the `Result<>` and return an error if the entry
+            // is not found.
+            let attribute_result = entry
+                .ok_or_else(|| DocumentMdocError::MissingAttribute {
+                    doc_type: doc_type.to_string(),
+                    name_space: (*name_space).to_string(),
+                    name: (*element_id).to_string(),
+                })
+                .and_then(|entry| {
+                    // If the entry is found, try to to convert it to a document
+                    // attribute, which could also result in an error.
+                    let Entry { name, value } = entry;
+
+                    Attribute::try_from((value, value_mapping)).map_err(|value| {
+                        DocumentMdocError::AttributeValueTypeMismatch {
+                            doc_type: doc_type.to_string(),
+                            name_space: (*name_space).to_string(),
+                            name,
+                            expected_type: value_mapping.value_type,
+                            value,
+                        }
+                    })
+                })
+                // Finally, make sure the attribute is returned with the key,
+                // so that we can create an `IndexMap<>` for it.
+                .map(|attribute| (value_mapping.key, attribute));
+
+            Some(attribute_result)
+        })
+        .collect::<Result<_, _>>()?;
+
+    // Find the first remaining mdoc attributes and convert it to an error.
+    let unknown_error = attributes
+        .into_iter()
+        .flat_map(|(name_space, mut entries)| {
+            entries.pop().map(|entry| DocumentMdocError::UnknownAttribute {
+                doc_type: doc_type.to_string(),
+                name_space,
+                name: entry.name,
+                value: entry.value.into(),
+            })
+        })
+        .next();
+
+    // Return the error if at least one mdoc attributes still remained.
+    if let Some(missing_error) = unknown_error {
+        return Err(missing_error);
+    }
+
+    Ok((doc_type, document_attributes))
 }
 
 impl TryFrom<UnsignedMdoc> for Document {
@@ -62,89 +162,9 @@ impl Document {
     pub(crate) fn from_mdoc_attributes(
         persistence: DocumentPersistence,
         doc_type: &str,
-        mut attributes: IndexMap<NameSpace, Vec<Entry>>,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, attribute_mapping) =
-            MDOC_DOCUMENT_MAPPING
-                .get_key_value(doc_type)
-                .ok_or_else(|| DocumentMdocError::UnknownDocType {
-                    doc_type: doc_type.to_string(),
-                })?;
-
-        // Loop through the attributes in the mapping in order and find
-        // the corresponding entry in the input attributes, based on the
-        // name space and the entry name. If found, move the entry value
-        // out of the input attributes and try to convert it to an `Attribute`.
-        let document_attributes = attribute_mapping
-            .iter()
-            // Loop through the all the mapped attributes in order and remove any
-            // returned instances of `None` for non-mandatory attributes.
-            .flat_map(|((name_space, element_id), value_mapping)| {
-                // Get a mutable reference to the `Vec<Entry>` for the name space,
-                // then find the index within the vector for the entry that has the
-                // matching name. If found, remove the `Entry` at that index so that
-                // we have ownership over it.
-                let entry = attributes.get_mut(*name_space).and_then(|entries| {
-                    entries
-                        .iter()
-                        .position(|entry| entry.name == *element_id)
-                        .map(|index| entries.swap_remove(index))
-                });
-
-                // If the entry is not found in the mdoc attributes, but it is not
-                // mandatory, we can return `None` early here.
-                if entry.is_none() && !value_mapping.is_mandatory {
-                    return None;
-                }
-
-                // Otherwise, create the `Result<>` and return an error if the entry
-                // is not found.
-                let attribute_result = entry
-                    .ok_or_else(|| DocumentMdocError::MissingAttribute {
-                        doc_type: doc_type.to_string(),
-                        name_space: (*name_space).to_string(),
-                        name: (*element_id).to_string(),
-                    })
-                    .and_then(|entry| {
-                        // If the entry is found, try to to convert it to a document
-                        // attribute, which could also result in an error.
-                        let Entry { name, value } = entry;
-
-                        Attribute::try_from((value, value_mapping)).map_err(|value| {
-                            DocumentMdocError::AttributeValueTypeMismatch {
-                                doc_type: doc_type.to_string(),
-                                name_space: (*name_space).to_string(),
-                                name,
-                                expected_type: value_mapping.value_type,
-                                value,
-                            }
-                        })
-                    })
-                    // Finally, make sure the attribute is returned with the key,
-                    // so that we can create an `IndexMap<>` for it.
-                    .map(|attribute| (value_mapping.key, attribute));
-
-                Some(attribute_result)
-            })
-            .collect::<Result<_, _>>()?;
-
-        // Find the first remaining mdoc attributes and convert it to an error.
-        let unknown_error = attributes
-            .into_iter()
-            .flat_map(|(name_space, mut entries)| {
-                entries.pop().map(|entry| DocumentMdocError::UnknownAttribute {
-                    doc_type: doc_type.to_string(),
-                    name_space,
-                    name: entry.name,
-                    value: entry.value,
-                })
-            })
-            .next();
-
-        // Return the error if at least one mdoc attributes still remained.
-        if let Some(missing_error) = unknown_error {
-            return Err(missing_error);
-        }
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, true)?;
 
         let document = Document {
             persistence,
@@ -205,6 +225,70 @@ impl TryFrom<Integer> for GenderAttributeValue {
             9 => Ok(Self::NotApplicable),
             _ => Err(()),
         }
+    }
+}
+
+impl MissingDisclosureAttributes {
+    // Use the Mdoc document mapping to translate a `Vec<AttributeIdentifier>` to
+    // a `Vec<MissingDisclosureAttributes>`. If any attribute cannot be found a
+    // `DocumentMdocError` is returned.
+    pub(crate) fn from_mdoc_missing_attributes(
+        missing_attributes: Vec<AttributeIdentifier>,
+    ) -> Result<Vec<Self>, DocumentMdocError> {
+        // Create an `IndexMap` that contains `IndexMap`s of attributes per doc type.
+        let attributes_by_doc_type =
+            missing_attributes
+                .into_iter()
+                .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
+                    |mut attributes_by_doc_type, missing_attribute| {
+                        let (doc_type, attribute_mapping) = mapping_for_doc_type(missing_attribute.doc_type.as_str())?;
+                        let value_mapping = attribute_mapping
+                            .get(&(
+                                missing_attribute.namespace.as_str(),
+                                missing_attribute.attribute.as_str(),
+                            ))
+                            .ok_or_else(|| DocumentMdocError::UnknownAttribute {
+                                doc_type: missing_attribute.doc_type,
+                                name_space: missing_attribute.namespace.clone(),
+                                name: missing_attribute.attribute.clone(),
+                                value: None,
+                            })?;
+
+                        attributes_by_doc_type
+                            .entry(doc_type)
+                            .or_default()
+                            .insert(value_mapping.key, value_mapping.key_labels.clone());
+
+                        Ok(attributes_by_doc_type)
+                    }
+                })?;
+
+        // Convert these `IndexMap`s to a `Vec<MissingDisclosureAttributes>`.
+        let mut missing_disclosure_attributes = attributes_by_doc_type
+            .into_iter()
+            .map(|(doc_type, attributes)| MissingDisclosureAttributes { doc_type, attributes })
+            .collect::<Vec<_>>();
+
+        // Make sure that the resulting doc types are sorted canonically.
+        missing_disclosure_attributes.sort_by_key(|attributes| super::doc_type_priority(attributes.doc_type));
+
+        Ok(missing_disclosure_attributes)
+    }
+}
+
+impl ProposedDisclosureDocument {
+    pub(crate) fn from_mdoc_attributes(
+        doc_type: &str,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
+    ) -> Result<Self, DocumentMdocError> {
+        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, false)?;
+
+        let document = ProposedDisclosureDocument {
+            doc_type,
+            attributes: document_attributes,
+        };
+
+        Ok(document)
     }
 }
 
@@ -494,7 +578,7 @@ pub mod tests {
                 name,
                 value,
             }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
-                  name == "foobar" && value == DataElementValue::Text("Foo Bar".to_string())
+                  name == "foobar" && value == Some(DataElementValue::Text("Foo Bar".to_string()))
         );
     }
 }

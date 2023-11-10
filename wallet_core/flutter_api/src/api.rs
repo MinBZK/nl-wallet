@@ -4,22 +4,14 @@ use tokio::sync::{OnceCell, RwLock};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::{
-    self,
-    errors::{WalletInitError, WalletUnlockError},
-    Wallet,
-};
+use wallet::{self, errors::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::{Card, CardAttribute, CardValue, LocalizedString},
-        config::FlutterConfiguration,
-        disclosure::{DisclosureResult, MissingAttribute, RelyingParty, RequestedCard},
-        instruction::WalletInstructionResult,
-        pin::PinValidationResult,
-        uri::IdentifyUriResult,
+        card::Card, config::FlutterConfiguration, disclosure::StartDisclosureResult,
+        instruction::WalletInstructionResult, pin::PinValidationResult, uri::IdentifyUriResult,
     },
     stream::ClosingStreamSink,
 };
@@ -227,55 +219,12 @@ pub async fn reject_pid_issuance() -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn start_disclosure(uri: String) -> Result<DisclosureResult> {
-    // TODO: actually talk to Wallet for fetching attribute request.
-    let result = match uri.as_str() {
-        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/request" => DisclosureResult::Request {
-            relying_party: RelyingParty {
-                name: "The Relying Party".to_string(),
-            },
-            requested_cards: vec![RequestedCard {
-                doc_type: "com.example.pid".to_string(),
-                attributes: vec![CardAttribute {
-                    key: "given_name".to_string(),
-                    labels: vec![
-                        LocalizedString {
-                            language: "en".to_string(),
-                            value: "First name".to_string(),
-                        },
-                        LocalizedString {
-                            language: "nl".to_string(),
-                            value: "Voornaam".to_string(),
-                        },
-                    ],
-                    value: CardValue::String {
-                        value: "Willeke Liselotte".to_string(),
-                    },
-                }],
-            }],
-        },
-        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/missing" => {
-            DisclosureResult::RequestAttributesMissing {
-                relying_party: RelyingParty {
-                    name: "Other Relying Party".to_string(),
-                },
-                missing_attributes: vec![MissingAttribute {
-                    labels: vec![
-                        LocalizedString {
-                            language: "en".to_string(),
-                            value: "Email address".to_string(),
-                        },
-                        LocalizedString {
-                            language: "nl".to_string(),
-                            value: "E-mailadres".to_string(),
-                        },
-                    ],
-                }],
-            }
-        }
-        // Return a placeholder error until we implement a dedicated disclosure error type
-        _ => return Err(WalletUnlockError::NotRegistered.into()),
-    };
+pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
+    let url = Url::parse(&uri)?;
+
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.start_disclosure(&url).await.try_into()?;
 
     Ok(result)
 }

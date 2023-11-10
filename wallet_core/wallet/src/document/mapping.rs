@@ -3,15 +3,13 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
-use super::{
-    mdoc::AttributeValueType, AttributeKey, AttributeLabel, AttributeLabelLanguage, ADDRESS_DOCTYPE, PID_DOCTYPE,
-};
+use super::{mdoc::AttributeValueType, AttributeKey, AttributeLabels, ADDRESS_DOCTYPE, PID_DOCTYPE};
 
 #[derive(Debug, Clone)]
 pub(super) struct DataElementValueMapping {
     pub key: AttributeKey,
     pub is_mandatory: bool,
-    pub key_labels: HashMap<AttributeLabelLanguage, AttributeLabel>,
+    pub key_labels: AttributeLabels,
     pub value_type: AttributeValueType,
 }
 

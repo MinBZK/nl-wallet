@@ -4,9 +4,9 @@ use super::Wallet;
 
 pub type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    C: ConfigurationRepository,
+    CR: ConfigurationRepository,
 {
     pub fn set_config_callback<F>(&mut self, mut callback: F)
     where

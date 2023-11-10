@@ -1,10 +1,11 @@
 use std::{error::Error, fmt::Display};
 
+use anyhow::Chain;
 use serde::Serialize;
 
 use wallet::errors::{
-    openid, reqwest, AccountProviderError, DigidError, InstructionError, PidIssuanceError, UriIdentificationError,
-    WalletInitError, WalletRegistrationError, WalletUnlockError,
+    openid, reqwest, AccountProviderError, DigidError, DisclosureError, InstructionError, PidIssuanceError,
+    UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -71,6 +72,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
             .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
+            .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
     }
 }
@@ -121,7 +123,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
         // Since a `reqwest::Error` can occur in multiple locations
         // within the error tree, just look for it with some help
         // from the `anyhow::Chain` iterator.
-        for source in anyhow::Chain::new(self) {
+        for source in Chain::new(self) {
             // Unfortunately `openid::error::Error` is a special case, because one of its
             // variants holds a `reqwest::Error` with the `transparent` error attribute.
             // This means that the `.source()` method will be forwarded directly to the contained
@@ -137,7 +139,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
 
         match self {
-            PidIssuanceError::Locked | PidIssuanceError::NotRegistered | PidIssuanceError::SessionState => {
+            PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
             PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
@@ -158,6 +160,24 @@ impl FlutterApiErrorFields for PidIssuanceError {
                 .collect::<serde_json::Value>()
                 .into(),
             _ => None,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for DisclosureError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
+                FlutterApiErrorType::WalletState
+            }
+            DisclosureError::DisclosureSession(error) => {
+                if Chain::new(error).any(|source| source.is::<reqwest::Error>()) {
+                    return FlutterApiErrorType::Networking;
+                }
+
+                FlutterApiErrorType::Generic
+            }
+            _ => FlutterApiErrorType::Generic,
         }
     }
 }

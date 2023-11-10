@@ -56,6 +56,23 @@ impl ReaderRegistration {
         let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
         Ok(ext)
     }
+
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.attributes
+            .iter()
+            .flat_map(|(doc_type, AuthorizedMdoc(namespaces))| {
+                namespaces
+                    .into_iter()
+                    .flat_map(|(namespace, AuthorizedNamespace(attributes))| {
+                        attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
+                            doc_type: doc_type.to_owned(),
+                            namespace: namespace.to_owned(),
+                            attribute: attribute.to_owned(),
+                        })
+                    })
+            })
+            .collect()
+    }
 }
 
 #[skip_serializing_none]
@@ -146,34 +163,15 @@ pub struct AuthorizedAttribute {}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError {
-    #[error("Requested unregistered attributes: {0:?}")]
+    #[error("requested unregistered attributes: {0:?}")]
     UnregisteredAttributes(Vec<AttributeIdentifier>),
-}
-
-impl ReaderRegistration {
-    fn flatten_attribute_ids(&self) -> IndexSet<AttributeIdentifier> {
-        self.attributes
-            .iter()
-            .flat_map(|(doc_type, AuthorizedMdoc(namespaces))| {
-                namespaces
-                    .into_iter()
-                    .flat_map(|(namespace, AuthorizedNamespace(attributes))| {
-                        attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                            doc_type: doc_type.to_owned(),
-                            namespace: namespace.to_owned(),
-                            attribute: attribute.to_owned(),
-                        })
-                    })
-            })
-            .collect()
-    }
 }
 
 impl DeviceRequest {
     /// Verify whether all requested attributes exist in the `registration`.
     pub fn verify_requested_attributes(&self, reader_registration: &ReaderRegistration) -> Result<(), ValidationError> {
-        let requested_attributes = self.flatten_attribute_ids();
-        let registered_attributes = reader_registration.flatten_attribute_ids();
+        let requested_attributes = self.attribute_identifiers();
+        let registered_attributes = reader_registration.attribute_identifiers();
 
         let difference: Vec<AttributeIdentifier> = requested_attributes
             .difference(&registered_attributes)
@@ -185,23 +183,6 @@ impl DeviceRequest {
         }
 
         Ok(())
-    }
-
-    fn flatten_attribute_ids(&self) -> IndexSet<AttributeIdentifier> {
-        self.doc_requests
-            .iter()
-            .flat_map(|doc_request| {
-                let items_request = &doc_request.items_request.0;
-                let doc_type = &items_request.doc_type;
-                items_request.name_spaces.iter().flat_map(|(namespace, attributes)| {
-                    attributes.keys().map(|attribute| AttributeIdentifier {
-                        doc_type: doc_type.to_owned(),
-                        namespace: namespace.to_owned(),
-                        attribute: attribute.to_owned(),
-                    })
-                })
-            })
-            .collect()
     }
 }
 

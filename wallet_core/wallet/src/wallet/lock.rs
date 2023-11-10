@@ -23,7 +23,7 @@ pub enum WalletUnlockError {
     Instruction(#[from] InstructionError),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -47,10 +47,10 @@ impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P> {
     #[instrument(skip_all)]
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
-        C: ConfigurationRepository,
+        CR: ConfigurationRepository,
         S: Storage,
-        K: PlatformEcdsaKey,
-        A: AccountProviderClient,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Validating pin");
 

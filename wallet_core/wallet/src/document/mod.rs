@@ -16,12 +16,13 @@ const ADDRESS_DOCTYPE: &str = "com.example.address";
 
 pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
+pub type DocumentAttributes = IndexMap<AttributeKey, Attribute>;
 
 #[derive(Debug, Clone)]
 pub struct Document {
     pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
-    pub attributes: IndexMap<AttributeKey, Attribute>,
+    pub attributes: DocumentAttributes,
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +33,11 @@ pub enum DocumentPersistence {
 
 pub type AttributeLabelLanguage = &'static str;
 pub type AttributeLabel = &'static str;
+pub type AttributeLabels = HashMap<AttributeLabelLanguage, AttributeLabel>;
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
-    pub key_labels: HashMap<AttributeLabelLanguage, AttributeLabel>,
+    pub key_labels: AttributeLabels,
     pub value: AttributeValue,
 }
 
@@ -55,14 +57,31 @@ pub enum GenderAttributeValue {
     NotApplicable,
 }
 
+#[derive(Debug, Clone)]
+pub struct MissingDisclosureAttributes {
+    pub doc_type: DocumentType,
+    pub attributes: IndexMap<AttributeKey, AttributeLabels>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProposedDisclosureDocument {
+    pub doc_type: DocumentType,
+    pub attributes: DocumentAttributes,
+}
+
+/// A lower priority means that this `doc_type` should be displayed above others.
+fn doc_type_priority(doc_type: &str) -> usize {
+    match doc_type {
+        PID_DOCTYPE => 0,
+        ADDRESS_DOCTYPE => 1,
+        _ => usize::MAX,
+    }
+}
+
 impl Document {
     /// A lower priority means that this [`Document`] should be displayed above others.
     pub fn priority(&self) -> usize {
-        match self.doc_type {
-            PID_DOCTYPE => 0,
-            ADDRESS_DOCTYPE => 1,
-            _ => usize::MAX,
-        }
+        doc_type_priority(self.doc_type)
     }
 }
 

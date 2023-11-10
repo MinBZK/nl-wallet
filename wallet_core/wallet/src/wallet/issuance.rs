@@ -19,14 +19,14 @@ use super::Wallet;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
-    #[error("wallet is locked")]
-    Locked,
     #[error("wallet is not registered")]
     NotRegistered,
+    #[error("wallet is locked")]
+    Locked,
+    #[error("issuance session is not in the correct state")]
+    SessionState,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidError),
-    #[error("no PID issuance session or session is not in the correct state")]
-    SessionState,
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
@@ -43,11 +43,11 @@ pub enum PidIssuanceError {
     KeyNotFound(String),
 }
 
-impl<C, S, K, A, D, P> Wallet<C, S, K, A, D, P>
+impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    C: ConfigurationRepository,
-    D: DigidSession,
-    P: PidIssuerClient,
+    CR: ConfigurationRepository,
+    DGS: DigidSession,
+    PIC: PidIssuerClient,
 {
     #[instrument(skip_all)]
     pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
@@ -69,11 +69,13 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
+        // Assume that redirect URI creation is checked when updating the `Configuration`.
+        let digid_redirect_uri = pid_issuance_config.digid_redirect_uri().unwrap();
 
-        let session = D::start(
+        let session = DGS::start(
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
-            pid_issuance_config.digid_redirect_uri.clone(),
+            digid_redirect_uri,
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;
@@ -179,8 +181,8 @@ where
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         S: Storage + Send + Sync,
-        K: PlatformEcdsaKey + Sync,
-        A: AccountProviderClient + Sync,
+        PEK: PlatformEcdsaKey + Sync,
+        APC: AccountProviderClient + Sync,
     {
         info!("Accepting PID issuance");
 

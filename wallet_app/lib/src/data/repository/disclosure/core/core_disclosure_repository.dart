@@ -3,7 +3,7 @@ import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../../../wallet_core/wallet_core.dart' as core show MissingAttribute;
-import '../../../../wallet_core/wallet_core.dart' hide MissingAttribute;
+import '../../../../wallet_core/wallet_core.dart' hide MissingAttribute, StartDisclosureResult;
 import '../../organization/organization_repository.dart';
 import '../disclosure_repository.dart';
 

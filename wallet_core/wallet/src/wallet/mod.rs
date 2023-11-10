@@ -1,4 +1,5 @@
 mod config;
+mod disclosure;
 mod documents;
 mod init;
 mod issuance;
@@ -9,6 +10,7 @@ mod uri;
 #[cfg(test)]
 mod tests;
 
+use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use tokio::sync::RwLock;
 
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
@@ -23,6 +25,7 @@ use crate::{
 };
 
 pub use self::{
+    disclosure::{DisclosureError, DisclosureProposal},
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::WalletUnlockError,
@@ -33,19 +36,21 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    C = LocalConfigurationRepository,
-    S = DatabaseStorage<HardwareEncryptionKey>,
-    K = HardwareEcdsaKey,
-    A = HttpAccountProviderClient,
-    D = HttpDigidSession,
-    P = HttpPidIssuerClient,
+    CR = LocalConfigurationRepository,          // ConfigurationRepository
+    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
+    PEK = HardwareEcdsaKey,                     // PlatformEcdsaKey
+    APC = HttpAccountProviderClient,            // AccountProviderClient
+    DGS = HttpDigidSession,                     // DigidSession
+    PIC = HttpPidIssuerClient,                  // PidIssuerClient
+    MDS = DisclosureSession<CborHttpClient>,    // MdocDisclosureSession
 > {
-    config_repository: C,
+    config_repository: CR,
     storage: RwLock<S>,
-    hw_privkey: K,
-    account_provider_client: A,
-    digid_session: Option<D>,
-    pid_issuer: P,
+    hw_privkey: PEK,
+    account_provider_client: APC,
+    digid_session: Option<DGS>,
+    pid_issuer: PIC,
+    disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
     config_callback: Option<ConfigurationCallback>,
