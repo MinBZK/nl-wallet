@@ -168,10 +168,11 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use mockall::predicate::*;
     use serial_test::serial;
 
-    use crate::disclosure::MockMdocDisclosureSession;
+    use nl_wallet_mdoc::{basic_sa_ext::Entry, DataElementValue};
+
+    use crate::{disclosure::MockMdocDisclosureSession, Attribute, AttributeValue};
 
     use super::{super::tests::WalletWithMocks, *};
 
@@ -184,8 +185,29 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
+        // Prepare for an `MdocDisclosureSession` to return the following values.
+        let reader_registration = ReaderRegistration {
+            id: "1234".to_string(),
+            ..Default::default()
+        };
+        let proposed_attributes = IndexMap::from([(
+            "com.example.pid".to_string(),
+            IndexMap::from([(
+                "com.example.pid".to_string(),
+                vec![Entry {
+                    name: "age_over_18".to_string(),
+                    value: DataElementValue::Bool(true),
+                }],
+            )]),
+        )]);
+
+        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
+            reader_registration,
+            proposed_attributes,
+        );
+
         // Starting disclosure should not fail.
-        wallet
+        let proposal = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
             .await
             .expect("Could not start disclosure");
@@ -197,7 +219,24 @@ mod tests {
             return_url: Url::parse("https://example.com").unwrap().into(),
         });
 
-        // TODO: Test returned `DisclosureProposal`.
+        // Test that the returned `DisclosureProposal` contains the
+        // `ReaderRegistration` we set up earlier, as well as the
+        // proposed attributes converted to a `ProposedDisclosureDocument`.
+        assert_eq!(proposal.reader_registration.id, "1234");
+        assert_eq!(proposal.documents.len(), 1);
+        let document = proposal.documents.first().unwrap();
+        assert_eq!(document.doc_type, "com.example.pid");
+        assert_eq!(document.attributes.len(), 1);
+        assert_matches!(
+            document.attributes.first().unwrap(),
+            (
+                &"age_over_18",
+                Attribute {
+                    key_labels: _,
+                    value: AttributeValue::Boolean(true)
+                }
+            )
+        );
     }
 
     #[tokio::test]

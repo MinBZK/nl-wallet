@@ -71,13 +71,32 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
+    use std::sync::Mutex;
+
+    use once_cell::sync::Lazy;
+
     use super::*;
+
+    pub static READER_REGISTRATION_DISCLOSED_ATTRIBUTES: Lazy<Mutex<Option<(ReaderRegistration, ProposedAttributes)>>> =
+        Lazy::new(|| Mutex::new(None));
 
     #[derive(Debug, Default)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
         pub proposed_attributes: ProposedAttributes,
+    }
+
+    impl MockMdocDisclosureSession {
+        pub fn next_reader_registration_and_proposed_attributes(
+            reader_registration: ReaderRegistration,
+            proposed_attributes: ProposedAttributes,
+        ) {
+            READER_REGISTRATION_DISCLOSED_ATTRIBUTES
+                .lock()
+                .unwrap()
+                .replace((reader_registration, proposed_attributes));
+        }
     }
 
     #[async_trait]
@@ -87,9 +106,16 @@ mod mock {
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> Result<Self, nl_wallet_mdoc::Error> {
+            let (reader_registration, proposed_attributes) = READER_REGISTRATION_DISCLOSED_ATTRIBUTES
+                .lock()
+                .unwrap()
+                .take()
+                .unwrap_or_default();
+
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
-                ..Default::default()
+                reader_registration,
+                proposed_attributes,
             };
 
             Ok(session)

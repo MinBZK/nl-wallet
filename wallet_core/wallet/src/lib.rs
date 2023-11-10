@@ -43,7 +43,7 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_provider::MockAccountProviderClient, digid::MockDigidSession, pid_issuer::MockPidIssuerClient,
-        storage::MockStorage,
+        account_provider::MockAccountProviderClient, digid::MockDigidSession, disclosure::MockMdocDisclosureSession,
+        pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 }
