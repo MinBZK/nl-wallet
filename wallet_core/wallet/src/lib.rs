@@ -26,7 +26,9 @@ pub use crate::{
 };
 
 pub mod mdoc {
-    pub use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    pub use nl_wallet_mdoc::utils::reader_auth::{
+        DeletionPolicy, Image, LocalizedStrings, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy,
+    };
 }
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {

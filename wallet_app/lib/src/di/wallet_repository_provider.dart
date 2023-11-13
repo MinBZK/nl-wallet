@@ -73,7 +73,14 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<DisclosureRepository>(
           create: (context) => provideMocks
               ? throw UnimplementedError('No MockDisclosureRepository')
-              : CoreDisclosureRepository(context.read(), context.read(), context.read(), context.read()),
+              : CoreDisclosureRepository(
+                  context.read(),
+                  context.read(),
+                  context.read(),
+                  context.read(),
+                  context.read(),
+                  context.read(),
+                ),
         ),
         RepositoryProvider<ConfigurationRepository>(
           create: (context) =>

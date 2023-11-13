@@ -7,6 +7,7 @@ import '../domain/model/attribute/data_attribute.dart';
 import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/pin/pin_validation_error.dart';
+import '../domain/model/policy/policy.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
@@ -22,6 +23,7 @@ import '../util/mapper/pid/core_pid_attribute_mapper.dart';
 import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
 import '../util/mapper/pid/pid_attribute_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
+import '../util/mapper/policy/request_policy.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
 import '../wallet_core/wallet_core.dart' as core;
@@ -73,7 +75,12 @@ class WalletMapperProvider extends StatelessWidget {
 
         /// Organization / Relying party mappers
         RepositoryProvider<Mapper<RelyingParty, Organization>>(
-          create: (context) => RelyingPartyMapper(),
+          create: (context) => RelyingPartyMapper(context.read()),
+        ),
+
+        /// Policy
+        RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
+          create: (context) => RequestPolicyMapper(),
         ),
 
         /// Pid mappers

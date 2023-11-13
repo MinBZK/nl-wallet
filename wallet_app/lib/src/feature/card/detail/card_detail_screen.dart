@@ -154,7 +154,8 @@ class CardDetailScreen extends StatelessWidget {
                 InfoRow(
                   icon: Icons.description_outlined,
                   title: Text(context.l10n.cardDetailScreenCardDataCta),
-                  subtitle: Text(context.l10n.cardDetailScreenCardDataIssuedBy(detail.issuer.shortName)),
+                  subtitle:
+                      Text(context.l10n.cardDetailScreenCardDataIssuedBy(detail.issuer.displayName.l10nValue(context))),
                   onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
@@ -205,7 +206,7 @@ class CardDetailScreen extends StatelessWidget {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
       final String status = TimelineAttributeStatusTextFormatter.map(context, attribute).toLowerCase();
       return context.l10n.cardDetailScreenLatestSuccessInteraction(
-        attribute.organization.shortName,
+        attribute.organization.displayName.l10nValue(context),
         status,
         timeAgo,
       );

@@ -316,7 +316,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
-        return IssuanceBloc(context.read(), context.read(), context.read(), context.read())
+        return IssuanceBloc(context.read(), context.read(), context.read(), context.read(), context.read())
           ..add(IssuanceLoadTriggered(argument.mockSessionId!, argument.isRefreshFlow));
       },
       child: const IssuanceScreen(),

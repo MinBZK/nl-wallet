@@ -8,6 +8,7 @@ import '../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -186,7 +187,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
     return DisclosureSuccessPage(
-      organizationDisplayName: state.relyingParty.shortName,
+      organizationDisplayName: state.relyingParty.displayName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
     );
@@ -202,7 +203,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.read<DisclosureBloc>();
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
-      final organizationName = context.read<DisclosureBloc>().state.organization?.shortName ?? '-';
+      final organizationName = context.read<DisclosureBloc>().state.organization?.displayName ?? '-'.untranslated;
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,

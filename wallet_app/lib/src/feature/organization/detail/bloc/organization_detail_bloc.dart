@@ -13,8 +13,21 @@ class OrganizationDetailBloc extends Bloc<OrganizationDetailEvent, OrganizationD
   final GetOrganizationByIdUseCase _getOrganizationByIdUseCase;
   final HasPreviouslyInteractedWithOrganizationUseCase _hasPreviouslyInteractedWithOrganizationUseCase;
 
-  OrganizationDetailBloc(this._getOrganizationByIdUseCase, this._hasPreviouslyInteractedWithOrganizationUseCase)
+  OrganizationDetailBloc(this._getOrganizationByIdUseCase, this._hasPreviouslyInteractedWithOrganizationUseCase,
+      {Organization? organization})
       : super(OrganizationDetailInitial()) {
+    on<OrganizationLoadTriggered>(_onOrganizationLoadTriggered);
+  }
+
+  OrganizationDetailBloc.forOrganization(
+    this._getOrganizationByIdUseCase,
+    this._hasPreviouslyInteractedWithOrganizationUseCase, {
+    required Organization organization,
+    required bool isFirstInteractionWithOrganization,
+  }) : super(OrganizationDetailSuccess(
+          organization: organization,
+          isFirstInteractionWithOrganization: isFirstInteractionWithOrganization,
+        )) {
     on<OrganizationLoadTriggered>(_onOrganizationLoadTriggered);
   }
 
@@ -25,7 +38,7 @@ class OrganizationDetailBloc extends Bloc<OrganizationDetailEvent, OrganizationD
       emit(
         OrganizationDetailSuccess(
           organization: organization!,
-          hasPreviouslyInteractedWithOrganization: hasInteraction,
+          isFirstInteractionWithOrganization: hasInteraction,
         ),
       );
     } catch (exception) {

@@ -1,28 +1,33 @@
 import 'package:equatable/equatable.dart';
 
+import 'localized_text.dart';
+
 class Organization extends Equatable {
   final String id;
-  final String name;
-  final String shortName;
-  final String category;
-  final String description;
+  final LocalizedText legalName;
+  final LocalizedText displayName;
+  final LocalizedText? type;
+  final LocalizedText? description;
   final String logoUrl;
   final String? webUrl;
-  final String? location;
-  final String? department;
+  final LocalizedText? country;
+  final LocalizedText? city;
+  final LocalizedText? department;
 
   const Organization({
     required this.id,
-    required this.name,
-    required this.shortName,
-    required this.category,
+    required this.legalName,
+    required this.displayName,
+    required this.type,
     required this.description,
     required this.logoUrl,
     this.webUrl,
-    this.location,
+    this.country,
+    this.city,
     this.department,
   });
 
   @override
-  List<Object?> get props => [id, name, shortName, category, description, logoUrl, webUrl, location, department];
+  List<Object?> get props =>
+      [id, legalName, displayName, type, description, logoUrl, webUrl, city, country, department];
 }

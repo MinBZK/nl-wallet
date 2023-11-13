@@ -191,7 +191,7 @@ class SignScreen extends StatelessWidget {
 
   Widget _buildSuccess(BuildContext context, SignSuccess state) {
     return SignSuccessPage(
-      organizationName: state.flow.organization.shortName,
+      organizationName: state.flow.organization.displayName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(
         context,

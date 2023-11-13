@@ -1,5 +1,5 @@
-import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
+import '../localized_text.dart';
 import 'timeline_attribute.dart';
 
 class OperationTimelineAttribute extends TimelineAttribute {

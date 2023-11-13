@@ -1,5 +1,5 @@
 import '../../../../../bridge_generated.dart';
-import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/localized_text.dart';
 import '../../mapper.dart';
 
 class LocalizedLabelsMapper extends Mapper<List<LocalizedString>, LocalizedText> {

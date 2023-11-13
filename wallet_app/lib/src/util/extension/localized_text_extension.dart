@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../environment.dart';
-import '../../domain/model/attribute/attribute.dart';
+import '../../domain/model/localized_text.dart';
 import 'build_context_extension.dart';
 
 extension LocalizedLabelsExtension on LocalizedText {

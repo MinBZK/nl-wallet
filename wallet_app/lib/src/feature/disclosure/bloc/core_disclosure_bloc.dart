@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:fimber/fimber.dart';
 
-import '../../../domain/model/policy/policy.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'disclosure_bloc.dart';
@@ -36,8 +35,8 @@ class CoreDisclosureBloc extends DisclosureBloc {
         DisclosureUpdateState(
           DisclosureCheckOrganization(
             _startDisclosureResult!.relyingParty,
-            '',
-            true,
+            _startDisclosureResult!.requestPurpose,
+            _startDisclosureResult!.isFirstInteractionWithOrganization,
           ),
         ),
       );
@@ -61,30 +60,33 @@ class CoreDisclosureBloc extends DisclosureBloc {
   void _onBackPressed(DisclosureBackPressed event, emit) async {
     final state = this.state;
     if (state is DisclosureConfirmDataAttributes) {
+      assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
       emit(
         DisclosureCheckOrganization(
           state.relyingParty,
-          '',
-          true,
+          _startDisclosureResult!.requestPurpose,
+          _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
       );
     } else if (state is DisclosureMissingAttributes) {
+      assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
       emit(
         DisclosureCheckOrganization(
           state.relyingParty,
-          '',
-          true,
+          _startDisclosureResult!.requestPurpose,
+          _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
       );
     } else if (state is DisclosureConfirmPin) {
       assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
+      final result = _startDisclosureResult as StartDisclosureReadyToDisclose;
       emit(
         DisclosureConfirmDataAttributes(
           _startDisclosureResult!.relyingParty,
-          (_startDisclosureResult as StartDisclosureReadyToDisclose).requestedAttributes,
-          kMockPolicy,
+          result.requestedAttributes,
+          result.policy,
           afterBackPressed: true,
         ),
       );
@@ -101,7 +103,7 @@ class CoreDisclosureBloc extends DisclosureBloc {
           DisclosureConfirmDataAttributes(
             startDisclosureResult.relyingParty,
             startDisclosureResult.requestedAttributes,
-            kMockPolicy,
+            startDisclosureResult.policy,
           ),
         );
       case StartDisclosureMissingAttributes():
@@ -131,13 +133,3 @@ class CoreDisclosureBloc extends DisclosureBloc {
     return super.close();
   }
 }
-
-// TODO: Replace with non-mock policy coming from the core.
-const kMockPolicy = Policy(
-  storageDuration: Duration(days: 1),
-  dataIsShared: false,
-  dataIsSignature: false,
-  dataContainsSingleViewProfilePhoto: false,
-  deletionCanBeRequested: false,
-  privacyPolicyUrl: '',
-);
