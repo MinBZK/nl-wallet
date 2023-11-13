@@ -82,7 +82,7 @@ void main() {
       // Operation renders the title of the card
       expect(find.text(WalletMockData.operationTimelineAttribute.cardTitle.testValue), findsOneWidget);
       // Sign and Interaction render the title of the organization
-      expect(find.text(WalletMockData.organization.shortName), findsNWidgets(2));
+      expect(find.text(WalletMockData.organization.displayName.testValue), findsNWidgets(2));
     });
   });
 }

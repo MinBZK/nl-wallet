@@ -206,12 +206,12 @@ class OtherStylesTab extends StatelessWidget {
         TimelineAttributeRow(
           attribute: InteractionTimelineAttribute(
             dateTime: DateTime.now(),
-            organization: const Organization(
+            organization: Organization(
               id: 'id',
-              name: 'Organization Name',
-              category: 'Category',
-              shortName: 'This is a TimelineAttributeRow',
-              description: 'Organization description',
+              legalName: 'Organization Name'.untranslated,
+              type: 'Category'.untranslated,
+              displayName: 'This is a TimelineAttributeRow'.untranslated,
+              description: 'Organization description'.untranslated,
               logoUrl: WalletAssets.logo_rijksoverheid,
             ),
             dataAttributes: const [],

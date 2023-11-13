@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/converter/localized_string_converter.dart';
+import '../../../../domain/model/localized_text.dart';
 import '../../../../domain/model/wallet_card.dart';
 
 part 'card_detail_screen_argument.g.dart';

@@ -48,7 +48,7 @@ fn get_my_reader_auth() -> ReaderRegistration {
         .into(),
         kvk: Some("1234 1234".to_owned()),
         city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-        country: Some("nl".to_owned()),
+        country_code: Some("nl".to_owned()),
         web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
         privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
         logo: None,

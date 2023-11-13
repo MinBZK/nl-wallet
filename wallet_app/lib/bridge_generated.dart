@@ -203,10 +203,36 @@ enum PinValidationResult {
 }
 
 class RelyingParty {
-  final String name;
+  final List<LocalizedString> legalName;
+  final List<LocalizedString> displayName;
+  final List<LocalizedString> description;
+  final String? webUrl;
+  final String? kvk;
+  final List<LocalizedString>? city;
+  final String? countryCode;
 
   const RelyingParty({
-    required this.name,
+    required this.legalName,
+    required this.displayName,
+    required this.description,
+    this.webUrl,
+    this.kvk,
+    this.city,
+    this.countryCode,
+  });
+}
+
+class RequestPolicy {
+  final int? dataStorageDurationDays;
+  final bool dataSharedWithThirdParties;
+  final bool dataDeletionPossible;
+  final String policyUrl;
+
+  const RequestPolicy({
+    this.dataStorageDurationDays,
+    required this.dataSharedWithThirdParties,
+    required this.dataDeletionPossible,
+    required this.policyUrl,
   });
 }
 
@@ -224,11 +250,16 @@ class RequestedCard {
 class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required RelyingParty relyingParty,
+    required RequestPolicy policy,
     required List<RequestedCard> requestedCards,
+    required bool isFirstInteractionWithRelyingParty,
+    required List<LocalizedString> requestPurpose,
   }) = StartDisclosureResult_Request;
   const factory StartDisclosureResult.requestAttributesMissing({
     required RelyingParty relyingParty,
     required List<MissingAttribute> missingAttributes,
+    required bool isFirstInteractionWithRelyingParty,
+    required List<LocalizedString> requestPurpose,
   }) = StartDisclosureResult_RequestAttributesMissing;
 }
 
@@ -645,8 +676,16 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  int _wire2api_box_autoadd_i64(dynamic raw) {
+    return _wire2api_i64(raw);
+  }
+
   RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
     return _wire2api_relying_party(raw);
+  }
+
+  RequestPolicy _wire2api_box_autoadd_request_policy(dynamic raw) {
+    return _wire2api_request_policy(raw);
   }
 
   Card _wire2api_card(dynamic raw) {
@@ -722,6 +761,10 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
+  int _wire2api_i64(dynamic raw) {
+    return castInt(raw);
+  }
+
   IdentifyUriResult _wire2api_identify_uri_result(dynamic raw) {
     return IdentifyUriResult.values[raw as int];
   }
@@ -763,15 +806,44 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
+  String? _wire2api_opt_String(dynamic raw) {
+    return raw == null ? null : _wire2api_String(raw);
+  }
+
+  int? _wire2api_opt_box_autoadd_i64(dynamic raw) {
+    return raw == null ? null : _wire2api_box_autoadd_i64(raw);
+  }
+
+  List<LocalizedString>? _wire2api_opt_list_localized_string(dynamic raw) {
+    return raw == null ? null : _wire2api_list_localized_string(raw);
+  }
+
   PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
     return PinValidationResult.values[raw as int];
   }
 
   RelyingParty _wire2api_relying_party(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return RelyingParty(
-      name: _wire2api_String(arr[0]),
+      legalName: _wire2api_list_localized_string(arr[0]),
+      displayName: _wire2api_list_localized_string(arr[1]),
+      description: _wire2api_list_localized_string(arr[2]),
+      webUrl: _wire2api_opt_String(arr[3]),
+      kvk: _wire2api_opt_String(arr[4]),
+      city: _wire2api_opt_list_localized_string(arr[5]),
+      countryCode: _wire2api_opt_String(arr[6]),
+    );
+  }
+
+  RequestPolicy _wire2api_request_policy(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return RequestPolicy(
+      dataStorageDurationDays: _wire2api_opt_box_autoadd_i64(arr[0]),
+      dataSharedWithThirdParties: _wire2api_bool(arr[1]),
+      dataDeletionPossible: _wire2api_bool(arr[2]),
+      policyUrl: _wire2api_String(arr[3]),
     );
   }
 
@@ -789,12 +861,17 @@ class WalletCoreImpl implements WalletCore {
       case 0:
         return StartDisclosureResult_Request(
           relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
-          requestedCards: _wire2api_list_requested_card(raw[2]),
+          policy: _wire2api_box_autoadd_request_policy(raw[2]),
+          requestedCards: _wire2api_list_requested_card(raw[3]),
+          isFirstInteractionWithRelyingParty: _wire2api_bool(raw[4]),
+          requestPurpose: _wire2api_list_localized_string(raw[5]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
           relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
           missingAttributes: _wire2api_list_missing_attribute(raw[2]),
+          isFirstInteractionWithRelyingParty: _wire2api_bool(raw[3]),
+          requestPurpose: _wire2api_list_localized_string(raw[4]),
         );
       default:
         throw Exception("unreachable");

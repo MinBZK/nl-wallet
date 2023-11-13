@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/page/flow_terminal_page.dart';
 
 class DisclosureSuccessPage extends StatelessWidget {
-  final String organizationDisplayName;
+  final LocalizedText organizationDisplayName;
   final VoidCallback? onHistoryPressed;
   final VoidCallback onClosePressed;
 
@@ -20,7 +21,7 @@ class DisclosureSuccessPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.check,
       title: context.l10n.disclosureSuccessPageTitle,
-      description: context.l10n.disclosureSuccessPageDescription(organizationDisplayName),
+      description: context.l10n.disclosureSuccessPageDescription(organizationDisplayName.l10nValue(context)),
       closeButtonCta: context.l10n.disclosureSuccessPageCloseCta,
       onClosePressed: onClosePressed,
       tertiaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,

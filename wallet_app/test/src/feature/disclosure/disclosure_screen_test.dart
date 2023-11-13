@@ -9,6 +9,7 @@ import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
 import 'package:wallet/src/feature/disclosure/model/disclosure_flow.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
@@ -32,7 +33,7 @@ void main() {
       WalletMockData.card: [WalletMockData.textDataAttribute]
     },
     requestedAttributes: [MissingAttribute.untranslated(label: 'name', key: 'WalletMockData.textDataAttribute.type')],
-    requestPurpose: 'Purpose goes here',
+    requestPurpose: 'Purpose goes here'.untranslated,
     policy: WalletMockData.policy,
   );
 

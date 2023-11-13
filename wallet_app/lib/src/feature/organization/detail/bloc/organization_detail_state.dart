@@ -11,12 +11,12 @@ class OrganizationDetailInitial extends OrganizationDetailState {
 
 class OrganizationDetailSuccess extends OrganizationDetailState {
   final Organization organization;
-  final bool hasPreviouslyInteractedWithOrganization;
+  final bool isFirstInteractionWithOrganization;
 
-  const OrganizationDetailSuccess({required this.organization, required this.hasPreviouslyInteractedWithOrganization});
+  const OrganizationDetailSuccess({required this.organization, required this.isFirstInteractionWithOrganization});
 
   @override
-  List<Object> get props => [organization, hasPreviouslyInteractedWithOrganization];
+  List<Object> get props => [organization, isFirstInteractionWithOrganization];
 }
 
 class OrganizationDetailFailure extends OrganizationDetailState {

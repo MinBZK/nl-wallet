@@ -10,7 +10,7 @@ import 'wallet_card.dart';
 class IssuanceFlow extends Equatable {
   final Organization organization;
   final List<Attribute> attributes;
-  final String requestPurpose;
+  final LocalizedText requestPurpose;
   final Policy policy;
   final List<WalletCard> cards;
 

@@ -160,7 +160,8 @@ class HistoryDetailScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: InfoRow(
                 title: Text(context.l10n.historyDetailScreenTermsTitle),
-                subtitle: Text(context.l10n.historyDetailScreenTermsSubtitle(attribute.organization.shortName)),
+                subtitle: Text(context.l10n
+                    .historyDetailScreenTermsSubtitle(attribute.organization.displayName.l10nValue(context))),
                 leading: Icon(Icons.policy_outlined, color: iconColor),
                 onTap: () => PolicyScreen.show(context, policy),
               ),
@@ -233,10 +234,10 @@ class HistoryDetailScreen extends StatelessWidget {
         ),
       ),
       title: Text(context.l10n.historyDetailScreenOrganizationNameAndStatus(
-        organization.shortName,
+        organization.displayName.l10nValue(context),
         status,
       )),
-      subtitle: Text(organization.category),
+      subtitle: Text(organization.type?.l10nValue(context) ?? ''),
       onTap: () => OrganizationDetailScreen.show(
         context,
         organization.id,

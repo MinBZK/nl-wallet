@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/store/active_locale_provider.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
 import '../../../domain/model/multiple_cards_flow.dart';
@@ -22,6 +23,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
   final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
   final LogCardInteractionUseCase logCardInteractionUseCase;
+  final ActiveLocaleProvider localeProvider;
 
   bool _userSharedData = false;
 
@@ -30,6 +32,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     this.walletAddIssuedCardsUseCase,
     this.getRequestedAttributesFromWalletUseCase,
     this.logCardInteractionUseCase,
+    this.localeProvider,
   ) : super(const IssuanceInitial(false)) {
     on<IssuanceLoadTriggered>(_onIssuanceLoadTriggered);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
@@ -141,11 +144,12 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceStopped(state.isRefreshFlow));
   }
 
-  void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) {
+  void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) async {
+    final activeLocale = await localeProvider.observe().first;
     logCardInteractionUseCase.invoke(
       status: status,
       policy: flow.policy,
-      requestPurpose: flow.requestPurpose,
+      requestPurpose: flow.requestPurpose.l10nValueFromLocale(activeLocale.languageCode),
       organization: flow.organization,
       resolvedAttributes: flow.resolvedAttributes,
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -32,7 +33,7 @@ class DocumentSection extends StatelessWidget {
             textAlign: TextAlign.start,
           ),
           Text(
-            organization.name,
+            organization.legalName.l10nValue(context),
             style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),

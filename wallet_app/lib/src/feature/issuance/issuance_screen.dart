@@ -2,9 +2,11 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
@@ -223,11 +225,11 @@ class IssuanceScreen extends StatelessWidget {
   void _stopIssuance(BuildContext context) async {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
-      final organizationName = bloc.state.organization?.shortName ?? '-';
+      final organizationName = bloc.state.organization?.displayName ?? '-'.untranslated;
       final stopped = await ConfirmActionSheet.show(
         context,
         title: context.l10n.issuanceStopSheetTitle,
-        description: context.l10n.issuanceStopSheetDescription(organizationName),
+        description: context.l10n.issuanceStopSheetDescription(organizationName.l10nValue(context)),
         cancelButtonText: context.l10n.issuanceStopSheetNegativeCta,
         confirmButtonText: context.l10n.issuanceStopSheetPositiveCta,
         confirmButtonColor: context.colorScheme.error,

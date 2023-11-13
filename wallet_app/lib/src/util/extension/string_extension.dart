@@ -1,4 +1,4 @@
-import '../../domain/model/attribute/attribute.dart';
+import '../../domain/model/localized_text.dart';
 
 extension StringExtension on String {
   /// Capitalizes first letter in string (if present)

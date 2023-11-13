@@ -15,7 +15,7 @@ class Policy extends Equatable {
   final String? privacyPolicyUrl;
 
   const Policy({
-    required this.storageDuration,
+    this.storageDuration,
     this.dataPurpose,
     this.dataPurposeDescription,
     required this.dataIsShared,

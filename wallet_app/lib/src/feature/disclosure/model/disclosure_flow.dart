@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/organization.dart';
@@ -13,7 +14,7 @@ class DisclosureFlow extends Equatable {
   final bool hasPreviouslyInteractedWithOrganization;
   final Map<WalletCard, List<DataAttribute>> availableAttributes;
   final List<MockRequestedAttribute> requestedAttributes;
-  final String requestPurpose;
+  final LocalizedText requestPurpose;
   final Policy policy;
 
   const DisclosureFlow({

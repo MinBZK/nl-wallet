@@ -35,7 +35,7 @@ class DisclosureCheckOrganization extends DisclosureState {
   @override
   final DisclosureFlow? flow;
   final Organization relyingParty;
-  final String requestPurpose;
+  final LocalizedText requestPurpose;
   final bool isFirstInteractionWithOrganization;
 
   final bool afterBackPressed;
