@@ -170,7 +170,7 @@ mod tests {
     use assert_matches::assert_matches;
     use serial_test::serial;
 
-    use nl_wallet_mdoc::{basic_sa_ext::Entry, DataElementValue};
+    use nl_wallet_mdoc::{basic_sa_ext::Entry, examples::Examples, mock as mdoc_mock, DataElementValue};
 
     use crate::{disclosure::MockMdocDisclosureSession, Attribute, AttributeValue};
 
@@ -419,5 +419,77 @@ mod tests {
                 value: Some(DataElementValue::Text(value)),
             }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foo" && value == "bar"
         );
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Create some fake `Mdoc` entries to place into wallet storage.
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let mdoc1 = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc2 = {
+            let mut mdoc2 = mdoc1.clone();
+
+            mdoc2.doc_type = "com.example.doc_type".to_string();
+
+            mdoc2
+        };
+
+        // Place 3 copies of each `Mdoc` into `MockStorage`.
+        wallet
+            .storage
+            .write()
+            .await
+            .insert_mdocs(vec![
+                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].into(),
+                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].into(),
+            ])
+            .await
+            .unwrap();
+
+        // Call the `MdocDataSource.mdoc_by_doc_types()` method on the `Wallet`.
+        let mdoc_by_doc_types = wallet
+            .mdoc_by_doc_types(&["com.example.doc_type", "org.iso.18013.5.1.mDL"].into())
+            .await
+            .expect("Could not get mdocs by doc types from wallet");
+
+        // The result should be one copy of each distinct `Mdoc`,
+        // while retaining the original insertion order.
+        assert_eq!(mdoc_by_doc_types, vec![vec![mdoc1], vec![mdoc2]]);
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types_empty() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Calling the `MdocDataSource.mdoc_by_doc_types()` method
+        // on the `Wallet` should return an empty result.
+        let mdoc_by_doc_types = wallet
+            .mdoc_by_doc_types(&Default::default())
+            .await
+            .expect("Could not get mdocs by doc types from wallet");
+
+        assert!(mdoc_by_doc_types.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types_error() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Set up `MockStorage` to return an error when performing a query.
+        wallet.storage.write().await.has_query_error = true;
+
+        // Calling the `MdocDataSource.mdoc_by_doc_types()` method
+        // on the `Wallet` should forward the `StorageError`.
+        let error = wallet
+            .mdoc_by_doc_types(&Default::default())
+            .await
+            .expect_err("Getting mdocs by doc types from wallet should result in an error");
+
+        assert_matches!(error, StorageError::Database(_));
     }
 }
