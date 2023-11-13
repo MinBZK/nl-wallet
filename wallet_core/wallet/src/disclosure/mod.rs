@@ -77,6 +77,8 @@ mod mock {
 
     use super::*;
 
+    pub static READER_REGISTRATION_NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> =
+        Lazy::new(|| Mutex::new(None));
     pub static READER_REGISTRATION_DISCLOSED_ATTRIBUTES: Lazy<Mutex<Option<(ReaderRegistration, ProposedAttributes)>>> =
         Lazy::new(|| Mutex::new(None));
 
@@ -97,6 +99,10 @@ mod mock {
                 .unwrap()
                 .replace((reader_registration, proposed_attributes));
         }
+
+        pub fn next_start_error(error: nl_wallet_mdoc::Error) {
+            READER_REGISTRATION_NEXT_START_ERROR.lock().unwrap().replace(error);
+        }
     }
 
     #[async_trait]
@@ -106,6 +112,10 @@ mod mock {
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> Result<Self, nl_wallet_mdoc::Error> {
+            if let Some(error) = READER_REGISTRATION_NEXT_START_ERROR.lock().unwrap().take() {
+                return Err(error);
+            }
+
             let (reader_registration, proposed_attributes) = READER_REGISTRATION_DISCLOSED_ATTRIBUTES
                 .lock()
                 .unwrap()
