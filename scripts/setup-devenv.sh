@@ -235,7 +235,12 @@ softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_
 # id = echo "pin_pubkey_encryption" | xxd -p
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
 
-p11tool --login --write --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" --set-pin "${HSM_USER_PIN}" --label="pin_public_disclosure_protection_key" "$(p11tool --list-token-urls | grep "SoftHSM")"
+p11tool --login --write \
+  --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
+  --set-pin "${HSM_USER_PIN}" \
+  --label="pin_public_disclosure_protection_key" \
+  --provider="${HSM_LIBRARY_PATH}" \
+  "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
 
 ########################################################################
 # Configure wallet
