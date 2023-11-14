@@ -17,11 +17,11 @@ class TimelineAttributeTitleFormatter {
   static String format(BuildContext context, TimelineAttribute attribute, {bool showOperationTitle = true}) {
     switch (attribute) {
       case InteractionTimelineAttribute():
-        return attribute.organization.shortName;
+        return attribute.organization.displayName.l10nValue(context);
       case OperationTimelineAttribute():
         return showOperationTitle ? attribute.cardTitle.l10nValue(context) : '';
       case SigningTimelineAttribute():
-        return attribute.organization.shortName;
+        return attribute.organization.displayName.l10nValue(context);
     }
     throw ('Unsupported attribute: $attribute');
   }

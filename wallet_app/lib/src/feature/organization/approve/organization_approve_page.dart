@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
@@ -27,7 +28,7 @@ class OrganizationApprovePage extends StatelessWidget {
   final ApprovalPurpose purpose;
 
   /// Inform the user what the purpose is of this request
-  final String? requestPurpose;
+  final LocalizedText? requestPurpose;
 
   /// If true, the 'first interaction' banner will be shown.
   final bool isFirstInteractionWithOrganization;
@@ -57,12 +58,13 @@ class OrganizationApprovePage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverToBoxAdapter(
             child: OrganizationRow(
-              onTap: () => OrganizationDetailScreen.show(
+              onTap: () => OrganizationDetailScreen.showPreloaded(
                 context,
-                organization.id,
+                organization,
+                isFirstInteractionWithOrganization,
                 onReportIssuePressed: onReportIssuePressed,
               ),
-              organizationName: organization.category,
+              subtitle: organization.type?.l10nValue(context) ?? '',
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
@@ -108,11 +110,11 @@ class OrganizationApprovePage extends StatelessWidget {
   String _headerTitleText(BuildContext context) {
     switch (purpose) {
       case ApprovalPurpose.issuance:
-        return context.l10n.organizationApprovePageReceiveFromTitle(organization.name);
+        return context.l10n.organizationApprovePageReceiveFromTitle(organization.legalName.l10nValue(context));
       case ApprovalPurpose.disclosure:
-        return context.l10n.organizationApprovePageShareWithTitle(organization.name);
+        return context.l10n.organizationApprovePageShareWithTitle(organization.legalName.l10nValue(context));
       case ApprovalPurpose.sign:
-        return context.l10n.organizationApprovePageSignWithTitle(organization.name);
+        return context.l10n.organizationApprovePageSignWithTitle(organization.legalName.l10nValue(context));
     }
   }
 
@@ -132,7 +134,7 @@ class OrganizationApprovePage extends StatelessWidget {
             color: context.colorScheme.primary,
           ),
           text: Text(
-            context.l10n.organizationApprovePagePurpose(requestPurpose ?? purpose.name),
+            context.l10n.organizationApprovePagePurpose(requestPurpose?.l10nValue(context) ?? purpose.name),
           ),
         ),
       ],

@@ -50,12 +50,12 @@ abstract class WalletMockData {
     latestSuccessInteraction: null,
   );
 
-  static const Organization organization = Organization(
+  static final Organization organization = Organization(
     id: 'id',
-    name: 'Organization Name',
-    category: 'Category',
-    shortName: 'Name',
-    description: 'Organization description',
+    legalName: 'Organization Name'.untranslated,
+    type: 'Category'.untranslated,
+    displayName: 'Name'.untranslated,
+    description: 'Organization description'.untranslated,
     logoUrl: WalletAssets.logo_rijksoverheid,
   );
 

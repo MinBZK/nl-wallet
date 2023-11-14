@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/issuance_flow.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
@@ -61,8 +62,8 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     final organization = flow.organization;
     final issuanceProofIdentityPageSubtitle = isRefreshFlow
-        ? context.l10n.issuanceProofIdentityPageRefreshDataSubtitle(organization.shortName)
-        : context.l10n.issuanceProofIdentityPageSubtitle(organization.shortName);
+        ? context.l10n.issuanceProofIdentityPageRefreshDataSubtitle(organization.displayName.l10nValue(context))
+        : context.l10n.issuanceProofIdentityPageSubtitle(organization.displayName.l10nValue(context));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

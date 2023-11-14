@@ -947,23 +947,36 @@ abstract class CardValue_Gender implements CardValue {
 /// @nodoc
 mixin _$StartDisclosureResult {
   RelyingParty get relyingParty => throw _privateConstructorUsedError;
+  bool get isFirstInteractionWithRelyingParty => throw _privateConstructorUsedError;
+  List<LocalizedString> get requestPurpose => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
+    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
+        request,
+    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -996,7 +1009,7 @@ abstract class $StartDisclosureResultCopyWith<$Res> {
   factory $StartDisclosureResultCopyWith(StartDisclosureResult value, $Res Function(StartDisclosureResult) then) =
       _$StartDisclosureResultCopyWithImpl<$Res, StartDisclosureResult>;
   @useResult
-  $Res call({RelyingParty relyingParty});
+  $Res call({RelyingParty relyingParty, bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose});
 }
 
 /// @nodoc
@@ -1013,12 +1026,22 @@ class _$StartDisclosureResultCopyWithImpl<$Res, $Val extends StartDisclosureResu
   @override
   $Res call({
     Object? relyingParty = null,
+    Object? isFirstInteractionWithRelyingParty = null,
+    Object? requestPurpose = null,
   }) {
     return _then(_value.copyWith(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
               as RelyingParty,
+      isFirstInteractionWithRelyingParty: null == isFirstInteractionWithRelyingParty
+          ? _value.isFirstInteractionWithRelyingParty
+          : isFirstInteractionWithRelyingParty // ignore: cast_nullable_to_non_nullable
+              as bool,
+      requestPurpose: null == requestPurpose
+          ? _value.requestPurpose
+          : requestPurpose // ignore: cast_nullable_to_non_nullable
+              as List<LocalizedString>,
     ) as $Val);
   }
 }
@@ -1030,7 +1053,12 @@ abstract class _$$StartDisclosureResult_RequestImplCopyWith<$Res> implements $St
       __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({RelyingParty relyingParty, List<RequestedCard> requestedCards});
+  $Res call(
+      {RelyingParty relyingParty,
+      RequestPolicy policy,
+      List<RequestedCard> requestedCards,
+      bool isFirstInteractionWithRelyingParty,
+      List<LocalizedString> requestPurpose});
 }
 
 /// @nodoc
@@ -1045,17 +1073,32 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? relyingParty = null,
+    Object? policy = null,
     Object? requestedCards = null,
+    Object? isFirstInteractionWithRelyingParty = null,
+    Object? requestPurpose = null,
   }) {
     return _then(_$StartDisclosureResult_RequestImpl(
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
               as RelyingParty,
+      policy: null == policy
+          ? _value.policy
+          : policy // ignore: cast_nullable_to_non_nullable
+              as RequestPolicy,
       requestedCards: null == requestedCards
           ? _value._requestedCards
           : requestedCards // ignore: cast_nullable_to_non_nullable
               as List<RequestedCard>,
+      isFirstInteractionWithRelyingParty: null == isFirstInteractionWithRelyingParty
+          ? _value.isFirstInteractionWithRelyingParty
+          : isFirstInteractionWithRelyingParty // ignore: cast_nullable_to_non_nullable
+              as bool,
+      requestPurpose: null == requestPurpose
+          ? _value._requestPurpose
+          : requestPurpose // ignore: cast_nullable_to_non_nullable
+              as List<LocalizedString>,
     ));
   }
 }
@@ -1064,11 +1107,18 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
 
 class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Request {
   const _$StartDisclosureResult_RequestImpl(
-      {required this.relyingParty, required final List<RequestedCard> requestedCards})
-      : _requestedCards = requestedCards;
+      {required this.relyingParty,
+      required this.policy,
+      required final List<RequestedCard> requestedCards,
+      required this.isFirstInteractionWithRelyingParty,
+      required final List<LocalizedString> requestPurpose})
+      : _requestedCards = requestedCards,
+        _requestPurpose = requestPurpose;
 
   @override
   final RelyingParty relyingParty;
+  @override
+  final RequestPolicy policy;
   final List<RequestedCard> _requestedCards;
   @override
   List<RequestedCard> get requestedCards {
@@ -1078,8 +1128,18 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   }
 
   @override
+  final bool isFirstInteractionWithRelyingParty;
+  final List<LocalizedString> _requestPurpose;
+  @override
+  List<LocalizedString> get requestPurpose {
+    if (_requestPurpose is EqualUnmodifiableListView) return _requestPurpose;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_requestPurpose);
+  }
+
+  @override
   String toString() {
-    return 'StartDisclosureResult.request(relyingParty: $relyingParty, requestedCards: $requestedCards)';
+    return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, requestedCards: $requestedCards, isFirstInteractionWithRelyingParty: $isFirstInteractionWithRelyingParty, requestPurpose: $requestPurpose)';
   }
 
   @override
@@ -1088,11 +1148,21 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
         (other.runtimeType == runtimeType &&
             other is _$StartDisclosureResult_RequestImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
-            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards));
+            (identical(other.policy, policy) || other.policy == policy) &&
+            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
+            (identical(other.isFirstInteractionWithRelyingParty, isFirstInteractionWithRelyingParty) ||
+                other.isFirstInteractionWithRelyingParty == isFirstInteractionWithRelyingParty) &&
+            const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, relyingParty, const DeepCollectionEquality().hash(_requestedCards));
+  int get hashCode => Object.hash(
+      runtimeType,
+      relyingParty,
+      policy,
+      const DeepCollectionEquality().hash(_requestedCards),
+      isFirstInteractionWithRelyingParty,
+      const DeepCollectionEquality().hash(_requestPurpose));
 
   @JsonKey(ignore: true)
   @override
@@ -1103,31 +1173,42 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
+    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
+        request,
+    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) {
-    return request(relyingParty, requestedCards);
+    return request(relyingParty, policy, requestedCards, isFirstInteractionWithRelyingParty, requestPurpose);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
   }) {
-    return request?.call(relyingParty, requestedCards);
+    return request?.call(relyingParty, policy, requestedCards, isFirstInteractionWithRelyingParty, requestPurpose);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (request != null) {
-      return request(relyingParty, requestedCards);
+      return request(relyingParty, policy, requestedCards, isFirstInteractionWithRelyingParty, requestPurpose);
     }
     return orElse();
   }
@@ -1167,11 +1248,19 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
 abstract class StartDisclosureResult_Request implements StartDisclosureResult {
   const factory StartDisclosureResult_Request(
       {required final RelyingParty relyingParty,
-      required final List<RequestedCard> requestedCards}) = _$StartDisclosureResult_RequestImpl;
+      required final RequestPolicy policy,
+      required final List<RequestedCard> requestedCards,
+      required final bool isFirstInteractionWithRelyingParty,
+      required final List<LocalizedString> requestPurpose}) = _$StartDisclosureResult_RequestImpl;
 
   @override
   RelyingParty get relyingParty;
+  RequestPolicy get policy;
   List<RequestedCard> get requestedCards;
+  @override
+  bool get isFirstInteractionWithRelyingParty;
+  @override
+  List<LocalizedString> get requestPurpose;
   @override
   @JsonKey(ignore: true)
   _$$StartDisclosureResult_RequestImplCopyWith<_$StartDisclosureResult_RequestImpl> get copyWith =>
@@ -1187,7 +1276,11 @@ abstract class _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<$Re
       __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({RelyingParty relyingParty, List<MissingAttribute> missingAttributes});
+  $Res call(
+      {RelyingParty relyingParty,
+      List<MissingAttribute> missingAttributes,
+      bool isFirstInteractionWithRelyingParty,
+      List<LocalizedString> requestPurpose});
 }
 
 /// @nodoc
@@ -1204,6 +1297,8 @@ class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
   $Res call({
     Object? relyingParty = null,
     Object? missingAttributes = null,
+    Object? isFirstInteractionWithRelyingParty = null,
+    Object? requestPurpose = null,
   }) {
     return _then(_$StartDisclosureResult_RequestAttributesMissingImpl(
       relyingParty: null == relyingParty
@@ -1214,6 +1309,14 @@ class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
           ? _value._missingAttributes
           : missingAttributes // ignore: cast_nullable_to_non_nullable
               as List<MissingAttribute>,
+      isFirstInteractionWithRelyingParty: null == isFirstInteractionWithRelyingParty
+          ? _value.isFirstInteractionWithRelyingParty
+          : isFirstInteractionWithRelyingParty // ignore: cast_nullable_to_non_nullable
+              as bool,
+      requestPurpose: null == requestPurpose
+          ? _value._requestPurpose
+          : requestPurpose // ignore: cast_nullable_to_non_nullable
+              as List<LocalizedString>,
     ));
   }
 }
@@ -1222,8 +1325,12 @@ class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
 
 class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDisclosureResult_RequestAttributesMissing {
   const _$StartDisclosureResult_RequestAttributesMissingImpl(
-      {required this.relyingParty, required final List<MissingAttribute> missingAttributes})
-      : _missingAttributes = missingAttributes;
+      {required this.relyingParty,
+      required final List<MissingAttribute> missingAttributes,
+      required this.isFirstInteractionWithRelyingParty,
+      required final List<LocalizedString> requestPurpose})
+      : _missingAttributes = missingAttributes,
+        _requestPurpose = requestPurpose;
 
   @override
   final RelyingParty relyingParty;
@@ -1236,8 +1343,18 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   }
 
   @override
+  final bool isFirstInteractionWithRelyingParty;
+  final List<LocalizedString> _requestPurpose;
+  @override
+  List<LocalizedString> get requestPurpose {
+    if (_requestPurpose is EqualUnmodifiableListView) return _requestPurpose;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_requestPurpose);
+  }
+
+  @override
   String toString() {
-    return 'StartDisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes)';
+    return 'StartDisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes, isFirstInteractionWithRelyingParty: $isFirstInteractionWithRelyingParty, requestPurpose: $requestPurpose)';
   }
 
   @override
@@ -1246,11 +1363,15 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
         (other.runtimeType == runtimeType &&
             other is _$StartDisclosureResult_RequestAttributesMissingImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
-            const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
+            const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes) &&
+            (identical(other.isFirstInteractionWithRelyingParty, isFirstInteractionWithRelyingParty) ||
+                other.isFirstInteractionWithRelyingParty == isFirstInteractionWithRelyingParty) &&
+            const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, relyingParty, const DeepCollectionEquality().hash(_missingAttributes));
+  int get hashCode => Object.hash(runtimeType, relyingParty, const DeepCollectionEquality().hash(_missingAttributes),
+      isFirstInteractionWithRelyingParty, const DeepCollectionEquality().hash(_requestPurpose));
 
   @JsonKey(ignore: true)
   @override
@@ -1262,31 +1383,45 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards) request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)
+    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
+        request,
+    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) {
-    return requestAttributesMissing(relyingParty, missingAttributes);
+    return requestAttributesMissing(
+        relyingParty, missingAttributes, isFirstInteractionWithRelyingParty, requestPurpose);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
   }) {
-    return requestAttributesMissing?.call(relyingParty, missingAttributes);
+    return requestAttributesMissing?.call(
+        relyingParty, missingAttributes, isFirstInteractionWithRelyingParty, requestPurpose);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, List<RequestedCard> requestedCards)? request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes)? requestAttributesMissing,
+    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        request,
+    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+            bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
+        requestAttributesMissing,
     required TResult orElse(),
   }) {
     if (requestAttributesMissing != null) {
-      return requestAttributesMissing(relyingParty, missingAttributes);
+      return requestAttributesMissing(
+          relyingParty, missingAttributes, isFirstInteractionWithRelyingParty, requestPurpose);
     }
     return orElse();
   }
@@ -1326,11 +1461,17 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
 abstract class StartDisclosureResult_RequestAttributesMissing implements StartDisclosureResult {
   const factory StartDisclosureResult_RequestAttributesMissing(
       {required final RelyingParty relyingParty,
-      required final List<MissingAttribute> missingAttributes}) = _$StartDisclosureResult_RequestAttributesMissingImpl;
+      required final List<MissingAttribute> missingAttributes,
+      required final bool isFirstInteractionWithRelyingParty,
+      required final List<LocalizedString> requestPurpose}) = _$StartDisclosureResult_RequestAttributesMissingImpl;
 
   @override
   RelyingParty get relyingParty;
   List<MissingAttribute> get missingAttributes;
+  @override
+  bool get isFirstInteractionWithRelyingParty;
+  @override
+  List<LocalizedString> get requestPurpose;
   @override
   @JsonKey(ignore: true)
   _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>

@@ -9,6 +9,7 @@ import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
@@ -27,7 +28,7 @@ void main() {
   IssuanceFlow mockFlow = IssuanceFlow(
     organization: WalletMockData.organization,
     attributes: [WalletMockData.textDataAttribute],
-    requestPurpose: 'Mock purpose',
+    requestPurpose: 'Mock purpose'.untranslated,
     policy: WalletMockData.policy,
     cards: [WalletMockData.card, WalletMockData.altCard],
   );

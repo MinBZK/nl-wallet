@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/repository/organization/organization_repository.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -105,7 +106,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.name),
+              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.legalName.l10nValue(context)),
               style: context.textTheme.bodySmall,
               textAlign: TextAlign.start,
             ),

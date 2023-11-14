@@ -63,11 +63,11 @@ impl AppDependencies {
         );
 
         let account_server = AccountServer::new(
-            settings.pin_hash_salt.0,
             settings.instruction_challenge_timeout_in_ms,
             "account_server".into(),
             certificate_signing_pubkey.into(),
             settings.pin_pubkey_encryption_key_identifier,
+            settings.pin_public_disclosure_protection_key_identifier,
         )
         .await?;
 

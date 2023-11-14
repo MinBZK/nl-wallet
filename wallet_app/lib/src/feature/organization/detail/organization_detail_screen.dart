@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -134,7 +135,7 @@ class OrganizationDetailScreen extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  organization.name,
+                  organization.legalName.l10nValue(context),
                   textAlign: TextAlign.start,
                   style: context.textTheme.displayMedium,
                 ),
@@ -143,7 +144,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            organization.description,
+            organization.description?.l10nValue(context) ?? '',
             style: context.textTheme.bodyLarge,
           ),
         ],
@@ -183,7 +184,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(vertical: 8),
         ),
-        if (!state.hasPreviouslyInteractedWithOrganization)
+        if (state.isFirstInteractionWithOrganization)
           IconRow(
             icon: Image.asset(
               WalletAssets.icon_first_share,
@@ -209,19 +210,19 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.apartment),
-          text: Text(organization.category),
+          text: Text(organization.type?.l10nValue(context) ?? ''),
           padding: const EdgeInsets.symmetric(vertical: 8),
         ),
         if (organization.department != null)
           IconRow(
             icon: const Icon(Icons.meeting_room_outlined),
-            text: Text(organization.department!),
+            text: Text(organization.department!.l10nValue(context)),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
-        if (organization.location != null)
+        if (organization.country != null || organization.city != null)
           IconRow(
             icon: const Icon(Icons.location_on_outlined),
-            text: Text(organization.location!),
+            text: Text(_generateLocationLabel(context, organization.country, organization.city)),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
         if (organization.webUrl != null)
@@ -243,7 +244,11 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context, String organizationId, {VoidCallback? onReportIssuePressed}) {
+  static Future<void> show(
+    BuildContext context,
+    String organizationId, {
+    VoidCallback? onReportIssuePressed,
+  }) {
     return Navigator.push(
       context,
       SecuredPageRoute(
@@ -251,6 +256,30 @@ class OrganizationDetailScreen extends StatelessWidget {
           return BlocProvider<OrganizationDetailBloc>(
             create: (BuildContext context) => OrganizationDetailBloc(context.read(), context.read())
               ..add(OrganizationLoadTriggered(organizationId: organizationId)),
+            child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
+          );
+        },
+      ),
+    );
+  }
+
+  static Future<void> showPreloaded(
+    BuildContext context,
+    Organization organization,
+    bool isFirstInteractionWithOrganization, {
+    VoidCallback? onReportIssuePressed,
+  }) {
+    return Navigator.push(
+      context,
+      SecuredPageRoute(
+        builder: (context) {
+          return BlocProvider<OrganizationDetailBloc>(
+            create: (BuildContext context) => OrganizationDetailBloc.forOrganization(
+              context.read(),
+              context.read(),
+              organization: organization,
+              isFirstInteractionWithOrganization: isFirstInteractionWithOrganization,
+            ),
             child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
           );
         },
@@ -272,5 +301,14 @@ class OrganizationDetailScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _generateLocationLabel(BuildContext context, LocalizedText? country, LocalizedText? city) {
+    assert(country != null || city != null, 'At least one of [country, city] needs to be provided');
+    final countryLabel = country?.l10nValue(context);
+    final cityLabel = city?.l10nValue(context);
+    if (cityLabel == null) return countryLabel!;
+    if (countryLabel == null) return cityLabel;
+    return '$cityLabel, $countryLabel';
   }
 }

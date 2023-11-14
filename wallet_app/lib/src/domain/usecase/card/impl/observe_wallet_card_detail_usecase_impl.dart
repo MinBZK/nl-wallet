@@ -4,6 +4,7 @@ import '../../../../../environment.dart';
 import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/organization/organization_repository.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../../../model/wallet_card.dart';
@@ -52,7 +53,14 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
       Fimber.e('Could not load card details because we\'re running a core build. Enriching with mock data.', ex: ex);
       return WalletCardDetail(
         card: card,
-        issuer: const Organization(id: '', name: 'RvIG', shortName: 'RvIG', category: '', description: '', logoUrl: ''),
+        issuer: Organization(
+          id: '',
+          legalName: 'RvIG'.untranslated,
+          displayName: 'RvIG'.untranslated,
+          type: ''.untranslated,
+          description: ''.untranslated,
+          logoUrl: '',
+        ),
         latestIssuedOperation: null,
         latestSuccessInteraction: null,
       );

@@ -1,8 +1,10 @@
 import 'package:equatable/equatable.dart';
 
+import '../localized_text.dart';
 import 'attribute_value.dart';
 
 export '../../../util/extension/localized_text_extension.dart';
+export '../localized_text.dart';
 export 'attribute_value.dart';
 
 /// The base class to represent a card's attribute inside the app.
@@ -24,5 +26,3 @@ abstract class Attribute extends Equatable {
 }
 
 typedef AttributeKey = String;
-
-typedef LocalizedText = Map<String /*locale*/, String /*value*/ >;

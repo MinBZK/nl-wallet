@@ -1,10 +1,12 @@
 import 'package:fimber/fimber.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/disclosure/get_disclosure_request_usecase.dart';
 import '../../../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
 import '../../../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 import '../model/disclosure_flow.dart';
 import 'disclosure_bloc.dart';
@@ -42,7 +44,7 @@ class MockDisclosureBloc extends DisclosureBloc {
               await hasPreviouslyInteractedWithOrganizationUseCase.invoke(request.organization.id),
           availableAttributes: await getRequestedAttributesWithCardUseCase.invoke(request.requestedAttributes),
           requestedAttributes: request.requestedAttributes,
-          requestPurpose: request.requestPurpose,
+          requestPurpose: request.requestPurpose.untranslated,
           policy: request.interactionPolicy,
         );
         emit(DisclosureCheckOrganization.fromFlow(disclosureFlow));
@@ -108,7 +110,7 @@ class MockDisclosureBloc extends DisclosureBloc {
       policy: flow.policy,
       organization: flow.organization,
       resolvedAttributes: flow.resolvedAttributes,
-      requestPurpose: flow.requestPurpose,
+      requestPurpose: flow.requestPurpose.l10nValueFromLocale('nl'),
     );
   }
 }

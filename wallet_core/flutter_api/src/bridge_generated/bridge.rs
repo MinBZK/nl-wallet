@@ -29,6 +29,7 @@ use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::RelyingParty;
+use crate::models::disclosure::RequestPolicy;
 use crate::models::disclosure::RequestedCard;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionResult;
@@ -494,11 +495,38 @@ impl rust2dart::IntoIntoDart<PinValidationResult> for PinValidationResult {
 
 impl support::IntoDart for RelyingParty {
     fn into_dart(self) -> support::DartAbi {
-        vec![self.name.into_into_dart().into_dart()].into_dart()
+        vec![
+            self.legal_name.into_into_dart().into_dart(),
+            self.display_name.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+            self.web_url.into_dart(),
+            self.kvk.into_dart(),
+            self.city.into_dart(),
+            self.country_code.into_dart(),
+        ]
+        .into_dart()
     }
 }
 impl support::IntoDartExceptPrimitive for RelyingParty {}
 impl rust2dart::IntoIntoDart<RelyingParty> for RelyingParty {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for RequestPolicy {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.data_storage_duration_days.into_dart(),
+            self.data_shared_with_third_parties.into_into_dart().into_dart(),
+            self.data_deletion_possible.into_into_dart().into_dart(),
+            self.policy_url.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for RequestPolicy {}
+impl rust2dart::IntoIntoDart<RequestPolicy> for RequestPolicy {
     fn into_into_dart(self) -> Self {
         self
     }
@@ -525,19 +553,29 @@ impl support::IntoDart for StartDisclosureResult {
         match self {
             Self::Request {
                 relying_party,
+                policy,
                 requested_cards,
+                is_first_interaction_with_relying_party,
+                request_purpose,
             } => vec![
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
+                policy.into_into_dart().into_dart(),
                 requested_cards.into_into_dart().into_dart(),
+                is_first_interaction_with_relying_party.into_into_dart().into_dart(),
+                request_purpose.into_into_dart().into_dart(),
             ],
             Self::RequestAttributesMissing {
                 relying_party,
                 missing_attributes,
+                is_first_interaction_with_relying_party,
+                request_purpose,
             } => vec![
                 1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 missing_attributes.into_into_dart().into_dart(),
+                is_first_interaction_with_relying_party.into_into_dart().into_dart(),
+                request_purpose.into_into_dart().into_dart(),
             ],
         }
         .into_dart()

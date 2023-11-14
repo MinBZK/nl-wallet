@@ -1,6 +1,6 @@
 part of 'mock_organization_datasource.dart';
 
-const _kOrganizations = [
+final _kOrganizations = [
   _kRvigOrganization,
   _kRdwOrganization,
   _kDuoOrganization,
@@ -34,164 +34,178 @@ const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 const kPharmacyId = 'pharmacy';
 
-const _kRvigOrganization = Organization(
+final _kRvigOrganization = Organization(
   id: kRvigId,
-  name: 'Rijksdienst voor Identiteitsgegevens',
-  shortName: 'Rijksdienst voor Identiteitsgegevens',
-  category: 'Overheid',
+  legalName: 'Rijksdienst voor Identiteitsgegevens'.untranslated,
+  displayName: 'Rijksdienst voor Identiteitsgegevens'.untranslated,
+  type: 'Overheid'.untranslated,
   description:
-      'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.',
+      'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.'
+          .untranslated,
   logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
-const _kRdwOrganization = Organization(
+final _kRdwOrganization = Organization(
   id: kRdwId,
-  name: 'Rijksdienst voor het Wegverkeer (RDW)',
-  shortName: 'RDW',
-  category: 'Overheid',
+  legalName: 'Rijksdienst voor het Wegverkeer (RDW)'.untranslated,
+  displayName: 'RDW'.untranslated,
+  type: 'Overheid'.untranslated,
   logoUrl: WalletAssets.logo_rdw,
   description:
-      'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.',
+      'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
+          .untranslated,
 );
 
-const _kDuoOrganization = Organization(
+final _kDuoOrganization = Organization(
   id: kDuoId,
-  name: 'Dienst Uitvoering Onderwijs (DUO)',
-  shortName: 'DUO',
-  category: 'Overheid',
+  legalName: 'Dienst Uitvoering Onderwijs (DUO)'.untranslated,
+  displayName: 'DUO'.untranslated,
+  type: 'Overheid'.untranslated,
   logoUrl: WalletAssets.logo_rijksoverheid,
   description:
-      'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.',
+      'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
+          .untranslated,
 );
 
-const _kEmployerOrganization = Organization(
+final _kEmployerOrganization = Organization(
   id: kEmployerId,
-  name: 'Werken voor Nederland',
-  shortName: 'Werken voor Nederland',
-  category: 'Bedrijf',
+  legalName: 'Werken voor Nederland'.untranslated,
+  displayName: 'Werken voor Nederland'.untranslated,
+  type: 'Bedrijf'.untranslated,
   description:
-      'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.',
+      'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.'
+          .untranslated,
   logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
-const _kJustisOrganization = Organization(
+final _kJustisOrganization = Organization(
   id: kJusticeId,
-  name: 'Ministerie van Justitie en Veiligheid',
-  shortName: 'Justis',
-  category: 'Overheid',
+  legalName: 'Ministerie van Justitie en Veiligheid'.untranslated,
+  displayName: 'Justis'.untranslated,
+  type: 'Overheid'.untranslated,
   description:
-      'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.',
+      'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.'
+          .untranslated,
   logoUrl: WalletAssets.logo_rijksoverheid,
 );
 
-const _kMarketPlaceOrganization = Organization(
+final _kMarketPlaceOrganization = Organization(
   id: kMarketplaceId,
-  name: 'Online Marketplace',
-  shortName: 'Online Marketplace',
-  category: 'Webwinkel',
-  description: 'De winkel van ons allemaal.',
+  legalName: 'Online Marketplace'.untranslated,
+  displayName: 'Online Marketplace'.untranslated,
+  type: 'Webwinkel'.untranslated,
+  description: 'De winkel van ons allemaal.'.untranslated,
   logoUrl: WalletAssets.logo_ecommerce,
-  department: 'Afdeling online marketing',
-  location: 'Utrecht, Nederland',
+  department: 'Afdeling online marketing'.untranslated,
+  city: 'Utrecht'.untranslated,
+  country: 'Nederland'.untranslated,
   webUrl: 'https://online-marketplace.nl',
 );
 
-const _kBarOrganization = Organization(
+final _kBarOrganization = Organization(
   id: kBarId,
-  name: 'Cafe de Dobbelaar',
-  shortName: 'Cafe de Dobbelaar',
-  category: 'Horeca',
-  description: 'Familiecafe sinds 1984.',
+  legalName: 'Cafe de Dobbelaar'.untranslated,
+  displayName: 'Cafe de Dobbelaar'.untranslated,
+  type: 'Horeca'.untranslated,
+  description: 'Familiecafe sinds 1984.'.untranslated,
   logoUrl: WalletAssets.logo_bar,
 );
 
-const _kHealthInsurerOrganization = Organization(
+final _kHealthInsurerOrganization = Organization(
   id: kHealthInsuranceId,
-  name: 'Zorgverzekeraar Z',
-  shortName: 'Zorgverzekeraar Z',
-  category: 'Zorgverlener',
+  legalName: 'Zorgverzekeraar Z'.untranslated,
+  displayName: 'Zorgverzekeraar Z'.untranslated,
+  type: 'Zorgverlener'.untranslated,
   description:
-      'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.',
+      'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.'
+          .untranslated,
   logoUrl: WalletAssets.logo_zorgverzekeraar_z,
 );
 
-const _kHousingCorporationOrganization = Organization(
+final _kHousingCorporationOrganization = Organization(
   id: kHousingCorpId,
-  name: 'BeterWonen',
-  shortName: 'BetwerWonen',
-  category: 'Wooncorporatie',
-  description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.',
+  legalName: 'BeterWonen'.untranslated,
+  displayName: 'BetwerWonen'.untranslated,
+  type: 'Wooncorporatie'.untranslated,
+  description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
   logoUrl: WalletAssets.logo_housing_corp,
   webUrl: 'https://beterwonen.nl',
-  location: 'Den Haag, Nederland',
-  department: 'Secretariaat',
+  country: 'Nederland'.untranslated,
+  city: 'Den Haag'.untranslated,
+  department: 'Secretariaat'.untranslated,
 );
 
-const _kCarRentalOrganization = Organization(
+final _kCarRentalOrganization = Organization(
   id: kCarRentalId,
-  name: 'CarRental',
-  shortName: 'CarRental',
-  category: 'Autoverhuur',
-  description: 'Betrouwbaar huren.',
+  legalName: 'CarRental'.untranslated,
+  displayName: 'CarRental'.untranslated,
+  type: 'Autoverhuur'.untranslated,
+  description: 'Betrouwbaar huren.'.untranslated,
   logoUrl: WalletAssets.logo_car_rental,
 );
 
-const _kFirstAidOrganization = Organization(
+final _kFirstAidOrganization = Organization(
   id: 'first_aid',
-  name: 'Healthcare Facility',
-  shortName: 'Healthcare Facility',
-  category: 'Zorgverlener',
+  legalName: 'Healthcare Facility'.untranslated,
+  displayName: 'Healthcare Facility'.untranslated,
+  type: 'Zorgverlener'.untranslated,
   description:
-      'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.',
+      'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.'
+          .untranslated,
   logoUrl: WalletAssets.logo_first_aid,
 );
 
-const _kMunicipalityDelftOrganization = Organization(
+final _kMunicipalityDelftOrganization = Organization(
   id: kMunicipalityTheHagueId,
-  name: 'Gemeente Den Haag',
-  shortName: 'Gemeente Den Haag',
-  category: 'Gemeente',
+  legalName: 'Gemeente Den Haag'.untranslated,
+  displayName: 'Gemeente Den Haag'.untranslated,
+  type: 'Gemeente'.untranslated,
   description:
-      'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.',
+      'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
+          .untranslated,
   logoUrl: WalletAssets.logo_den_haag,
-  department: 'Parkeren',
-  location: 'Den Haag, Nederland',
+  department: 'Parkeren'.untranslated,
+  city: 'Den Haag'.untranslated,
+  country: 'Nederland'.untranslated,
   webUrl: 'https://www.denhaag.nl',
 );
 
-const _kBankOrganization = Organization(
+final _kBankOrganization = Organization(
   id: kBankId,
-  name: 'Jouw Bank',
-  shortName: 'Jouw Bank',
-  category: 'Bank',
-  description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.',
+  legalName: 'Jouw Bank'.untranslated,
+  displayName: 'Jouw Bank'.untranslated,
+  type: 'Bank'.untranslated,
+  description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'.untranslated,
   logoUrl: WalletAssets.logo_bank,
-  department: 'Klantenservice',
-  location: 'Amsterdam, Nederland',
+  department: 'Klantenservice'.untranslated,
+  country: 'Nederland'.untranslated,
+  city: 'Amsterdam'.untranslated,
   webUrl: 'https://jouwbank.nl',
 );
 
-const _kMonkeyBikeOrganization = Organization(
+final _kMonkeyBikeOrganization = Organization(
   id: kMonkeyBikeId,
-  name: 'MonkeyBike',
-  shortName: 'MonkeyBike',
-  category: 'Bezorgdienst',
-  description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.',
+  legalName: 'MonkeyBike'.untranslated,
+  displayName: 'MonkeyBike'.untranslated,
+  type: 'Bezorgdienst'.untranslated,
+  description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.'.untranslated,
   logoUrl: WalletAssets.logo_monkeybike,
-  department: 'Online marketing',
-  location: 'Groningen, Land',
+  department: 'Online marketing'.untranslated,
+  country: 'Land'.untranslated,
+  city: 'Groningen'.untranslated,
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   //companyInfo: 'KVK: 3945-2932',
 );
 
-const _kPharmacyOrganization = Organization(
+final _kPharmacyOrganization = Organization(
   id: kPharmacyId,
-  name: 'De Noord Apotheek',
-  shortName: 'Apotheek',
-  category: 'Apotheek',
-  description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.',
+  legalName: 'De Noord Apotheek'.untranslated,
+  displayName: 'Apotheek'.untranslated,
+  type: 'Apotheek'.untranslated,
+  description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated,
   logoUrl: WalletAssets.logo_zorgverzekeraar_z,
-  department: 'KVK: 1234-1234',
-  location: 'Den Haag, Nederland',
+  department: 'KVK: 1234-1234'.untranslated,
+  city: 'Den Haag'.untranslated,
+  country: 'Nederland'.untranslated,
   webUrl: 'https://denoordapotheek.nl',
 );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -44,7 +45,7 @@ class DisclosureStopSheet extends StatelessWidget {
 
   static Future<bool> show(
     BuildContext context, {
-    required String organizationName,
+    required LocalizedText organizationName,
     VoidCallback? onReportIssuePressed,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
@@ -54,7 +55,7 @@ class DisclosureStopSheet extends StatelessWidget {
         return Scrollbar(
           child: SingleChildScrollView(
             child: DisclosureStopSheet(
-              organizationName: organizationName,
+              organizationName: organizationName.l10nValue(context),
               onReportIssuePressed: onReportIssuePressed,
               onConfirmPressed: () => Navigator.pop(context, true),
               onCancelPressed: () => Navigator.pop(context, false),

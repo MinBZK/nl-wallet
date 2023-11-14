@@ -5,8 +5,8 @@
     "en": "My Service Name"
   },
   "purposeStatement": {
-    "nl": "Beschrijving van mijn dienst",
-    "en": "My Service Description"
+    "nl": "Reden voor dit verzoek",
+    "en": "Purpose of this request"
   },
   "retentionPolicy": {
     "intentToRetain": true,
@@ -36,7 +36,8 @@
       "nl": "Den Haag",
       "en": "The Hague"
     },
-    "country": "nl",
+    "countryCode": "nl",
+    "kvk": "5684 6846",
     "privacyPolicyUrl": "https://example.com/privacy"
   },
   "attributes": {

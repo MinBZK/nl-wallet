@@ -1,3 +1,4 @@
+import 'attribute/attribute.dart';
 import 'attribute/missing_attribute.dart';
 import 'organization.dart';
 import 'policy/policy.dart';
@@ -6,7 +7,7 @@ import 'wallet_card.dart';
 class IssuanceResponse {
   final Organization organization;
   final List<MockRequestedAttribute> requestedAttributes;
-  final String requestPurpose;
+  final LocalizedText requestPurpose;
   final Policy policy;
   final List<WalletCard> cards;
 

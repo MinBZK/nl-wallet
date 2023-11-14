@@ -56,7 +56,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            context.l10n.disclosureMissingAttributesPageDescription(organization.name),
+            context.l10n.disclosureMissingAttributesPageDescription(organization.legalName.l10nValue(context)),
             style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),

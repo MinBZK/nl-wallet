@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/organization/detail/bloc/organization_detail_bloc.dart';
 import 'package:wallet/src/feature/organization/detail/organization_detail_screen.dart';
 
@@ -22,9 +23,9 @@ void main() {
             widget: OrganizationDetailScreen(onReportIssuePressed: () {})
                 .withState<OrganizationDetailBloc, OrganizationDetailState>(
               MockOrganizationDetailBloc(),
-              const OrganizationDetailSuccess(
+              OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                hasPreviouslyInteractedWithOrganization: false,
+                isFirstInteractionWithOrganization: true,
               ),
             ),
           ),
@@ -40,9 +41,9 @@ void main() {
             widget: OrganizationDetailScreen(onReportIssuePressed: () {})
                 .withState<OrganizationDetailBloc, OrganizationDetailState>(
               MockOrganizationDetailBloc(),
-              const OrganizationDetailSuccess(
+              OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                hasPreviouslyInteractedWithOrganization: false,
+                isFirstInteractionWithOrganization: true,
               ),
             ),
           ),
@@ -77,15 +78,15 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
-          const OrganizationDetailSuccess(
+          OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            hasPreviouslyInteractedWithOrganization: false,
+            isFirstInteractionWithOrganization: true,
           ),
         ),
       );
 
-      expect(find.text(WalletMockData.organization.name), findsOneWidget);
-      expect(find.text(WalletMockData.organization.description), findsOneWidget);
+      expect(find.text(WalletMockData.organization.legalName.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
     });
 
     testWidgets('onReportIssuePressed callback is triggered when button is clicked', (tester) async {
@@ -95,9 +96,9 @@ void main() {
           onReportIssuePressed: () => isCalled = true,
         ).withState<OrganizationDetailBloc, OrganizationDetailState>(
           MockOrganizationDetailBloc(),
-          const OrganizationDetailSuccess(
+          OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            hasPreviouslyInteractedWithOrganization: false,
+            isFirstInteractionWithOrganization: true,
           ),
         ),
       );

@@ -1,5 +1,8 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="marx.min.css">
   <style>
     dl {
@@ -36,14 +39,14 @@
   <main>
   <h1>Mock Relying Party</h1>
   <form method="POST">
-    <h4>Select a usecase:</h4>
+    <h4>Select a usecase</h4>
     {% for (idx, option) in usecases.iter().enumerate() -%}
     <p>
       <input type="radio" name="usecase" id="{{ option }}" value="{{ option }}" {% if selected.is_some() && option == selected.as_ref().unwrap().usecase[..] || idx == 0 %}checked{% endif %}>
       <label for="{{ option }}">{{ option }}</label>
     </p>
     {% endfor -%}
-    <h4>Submit a session type:</h4>
+    <h4>Submit a session type</h4>
     <p>
       <input type="submit" name="session_type" value="cross_device">
     </p>

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/document_section.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../model/sign_flow.dart';
 
@@ -110,7 +111,7 @@ class CheckAgreementPage extends StatelessWidget {
           Expanded(
             child: Text(
               context.l10n.checkAgreementPageSignProvider(
-                flow.organization.shortName,
+                flow.organization.displayName.l10nValue(context),
                 flow.trustProvider.name,
               ),
               style: context.textTheme.bodyLarge,
