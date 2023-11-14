@@ -749,8 +749,9 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
+    use std::{convert::Infallible, fmt};
 
+    use assert_matches::assert_matches;
     use serde::{de::DeserializeOwned, Serialize};
 
     use crate::{
@@ -825,7 +826,7 @@ mod tests {
     /// A type that implements `MdocDataSource` and simply returns
     /// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
     /// `doc_type` is requested.
-    #[derive(Default)]
+    #[derive(Debug, Default)]
     struct MockMdocDataSource {}
 
     #[async_trait]
@@ -858,6 +859,16 @@ mod tests {
         reader_ephemeral_key: SecretKey,
     }
 
+    impl fmt::Debug for MockVerifierSession {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("MockVerifierSession")
+                .field("session_type", &self.session_type)
+                .field("trust_anchors", &self.trust_anchors)
+                .field("reader_engagement", &self.reader_engagement)
+                .finish_non_exhaustive()
+        }
+    }
+
     impl MockVerifierSession {
         fn new(session_type: SessionType, session_url: Url, reader_registration: ReaderRegistration) -> Self {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
@@ -883,6 +894,21 @@ mod tests {
                 reader_engagement,
                 reader_ephemeral_key,
             }
+        }
+
+        fn client(&self) -> MockVerifierSessionClient {
+            MockVerifierSessionClient { session: self }
+        }
+
+        fn reader_engagement_bytes(&self) -> Vec<u8> {
+            cbor_serialize(&self.reader_engagement).unwrap()
+        }
+
+        fn trust_anchors(&self) -> Vec<TrustAnchor> {
+            self.trust_anchors
+                .iter()
+                .map(|anchor| anchor.into())
+                .collect::<Vec<_>>()
         }
 
         // Generate the `SessionData` response containing the `DeviceRequest`,
@@ -942,6 +968,7 @@ mod tests {
 
     /// This type implements [`HttpClient`] and simply forwards the
     /// requests to an instance of [`MockVerifierSession`].
+    #[derive(Debug)]
     struct MockVerifierSessionClient<'a> {
         session: &'a MockVerifierSession,
     }
@@ -984,28 +1011,18 @@ mod tests {
             SESSION_URL.parse().unwrap(),
             reader_registration.clone(),
         );
-        let client = MockVerifierSessionClient {
-            session: &verifier_session,
-        };
         let mdoc_data_source = MockMdocDataSource::default();
 
-        // Encode the `ReaderEngagement` of the session to bytes and set up other arguments.
-        let reader_engagement_bytes = cbor_serialize(&verifier_session.reader_engagement).unwrap();
         let return_url = Url::parse(RETURN_URL).unwrap();
-        let trust_anchors = verifier_session
-            .trust_anchors
-            .iter()
-            .map(|anchor| anchor.into())
-            .collect::<Vec<_>>();
 
         // Starting a disclosure session should now succeed.
         let session = DisclosureSession::start(
-            client,
-            &reader_engagement_bytes,
+            verifier_session.client(),
+            &verifier_session.reader_engagement_bytes(),
             return_url.clone().into(),
-            SessionType::SameDevice,
+            verifier_session.session_type,
             &mdoc_data_source,
-            &trust_anchors,
+            &verifier_session.trust_anchors(),
         )
         .await
         .expect("Could not start disclosure session");
@@ -1023,6 +1040,31 @@ mod tests {
             .unwrap_or_default();
 
         assert_eq!(entry_keys, EXAMPLE_ATTRIBUTES);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_decode_reader_engagement() {
+        let verifier_session = MockVerifierSession::new(
+            SessionType::SameDevice,
+            SESSION_URL.parse().unwrap(),
+            Default::default(),
+        );
+        let mdoc_data_source = MockMdocDataSource::default();
+
+        // Starting a `DisclosureSession` with invalid `ReaderEngagement`
+        // bytes should result in a `Error::Cbor` error.
+        let error = DisclosureSession::start(
+            verifier_session.client(),
+            &[],
+            None,
+            verifier_session.session_type,
+            &mdoc_data_source,
+            &verifier_session.trust_anchors(),
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Cbor(_));
     }
 
     #[test]
