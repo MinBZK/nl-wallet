@@ -749,16 +749,288 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use crate::examples::Example;
+    use std::convert::Infallible;
+
+    use serde::{de::DeserializeOwned, Serialize};
+
+    use crate::{
+        examples::{Example, Examples},
+        mock,
+        server_keys::PrivateKey,
+        utils::{
+            cose::{self, MdocCose},
+            reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
+            x509::OwnedTrustAnchor,
+        },
+    };
 
     use super::*;
+
+    // Constants for testing.
+    const RP_CA_CN: &str = "ca.rp.example.com";
+    const RP_CERT_CN: &str = "cert.rp.example.com";
+    const SESSION_URL: &str = "http://example.com/disclosure";
+    const RETURN_URL: &str = "http://example.com/return";
+
+    // Describe what is in `DeviceResponse::example()`.
+    const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
+    const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
+    const EXAMPLE_ATTRIBUTES: [&str; 5] = [
+        "family_name",
+        "issue_date",
+        "expiry_date",
+        "document_number",
+        "driving_privileges",
+    ];
+
+    /// Build an [`ItemsRequest`] from a list of attributes.
+    fn items_request(
+        doc_type: String,
+        name_space: String,
+        attributes: impl Iterator<Item = impl Into<String>>,
+    ) -> ItemsRequest {
+        ItemsRequest {
+            doc_type,
+            name_spaces: IndexMap::from_iter([(
+                name_space,
+                attributes.map(|attribute| (attribute.into(), false)).collect(),
+            )]),
+            request_info: None,
+        }
+    }
+
+    /// Build attributes for [`ReaderRegistration`] from a list of attributes.
+    fn reader_registration_attributes(
+        doc_type: String,
+        name_space: String,
+        attributes: impl Iterator<Item = impl Into<String>>,
+    ) -> IndexMap<String, AuthorizedMdoc> {
+        [(
+            doc_type,
+            AuthorizedMdoc(
+                [(
+                    name_space,
+                    AuthorizedNamespace(
+                        attributes
+                            .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
+                            .collect(),
+                    ),
+                )]
+                .into(),
+            ),
+        )]
+        .into()
+    }
+
+    /// A type that implements `MdocDataSource` and simply returns
+    /// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
+    /// `doc_type` is requested.
+    #[derive(Default)]
+    struct MockMdocDataSource {}
+
+    #[async_trait]
+    impl MdocDataSource for MockMdocDataSource {
+        type Error = Infallible;
+
+        async fn mdoc_by_doc_types(
+            &self,
+            doc_types: &HashSet<&str>,
+        ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
+            if doc_types.contains(EXAMPLE_DOC_TYPE) {
+                let trust_anchors = Examples::iaca_trust_anchors();
+                let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+
+                return Ok(vec![vec![mdoc]]);
+            }
+
+            Ok(Default::default())
+        }
+    }
+
+    /// This type contains the minimum logic to respond with the correct
+    /// verifier messages in a disclosure session. Currently it only responds
+    /// with a [`SessionData`] containing a [`DeviceRequest`].
+    struct MockVerifierSession {
+        session_type: SessionType,
+        trust_anchors: Vec<OwnedTrustAnchor>,
+        private_key: PrivateKey,
+        reader_engagement: ReaderEngagement,
+        reader_ephemeral_key: SecretKey,
+    }
+
+    impl MockVerifierSession {
+        fn new(session_type: SessionType, session_url: Url, reader_registration: ReaderRegistration) -> Self {
+            // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
+            let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+            let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
+            let (rp_certificate, rp_signing_key) = Certificate::new(
+                &ca,
+                &ca_privkey,
+                RP_CERT_CN,
+                CertificateType::ReaderAuth(reader_registration.into()),
+            )
+            .unwrap();
+            let private_key = PrivateKey::new(rp_signing_key, rp_certificate);
+
+            // Generate the `ReaderEngagement` that would be be sent in the UL.
+            let (reader_engagement, reader_ephemeral_key) =
+                ReaderEngagement::new_reader_engagement(session_url).unwrap();
+
+            MockVerifierSession {
+                session_type,
+                trust_anchors,
+                private_key,
+                reader_engagement,
+                reader_ephemeral_key,
+            }
+        }
+
+        // Generate the `SessionData` response containing the `DeviceRequest`,
+        // based on the `DeviceEngagement` received from the device.
+        async fn device_request_session_data(&self, device_engagement: DeviceEngagement) -> SessionData {
+            // Create the session transcript and encryption key.
+            let session_transcript =
+                SessionTranscript::new(self.session_type, &self.reader_engagement, &device_engagement).unwrap();
+
+            let device_public_key = device_engagement.0.security.as_ref().unwrap().try_into().unwrap();
+
+            let reader_key = SessionKey::new(
+                &self.reader_ephemeral_key,
+                &device_public_key,
+                &session_transcript,
+                SessionKeyUser::Reader,
+            )
+            .unwrap();
+
+            // Generate the example `ItemRequest`.
+            let items_request = items_request(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
+            );
+
+            // Generate the reader authentication signature, without payload.
+            let reader_auth = ReaderAuthenticationKeyed {
+                reader_auth_string: Default::default(),
+                session_transcript,
+                items_request_bytes: items_request.clone().into(),
+            };
+
+            let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
+                &TaggedBytes(CborSeq(reader_auth)),
+                cose::new_certificate_header(&self.private_key.cert_bts),
+                &self.private_key,
+                false,
+            )
+            .await
+            .unwrap();
+
+            // Create and encrypt the `DeviceRequest`.
+            let doc_request = DocRequest {
+                items_request: items_request.into(),
+                reader_auth: Some(cose.0.into()),
+            };
+
+            let device_request = DeviceRequest {
+                version: DeviceRequestVersion::V1_0,
+                doc_requests: vec![doc_request],
+            };
+
+            SessionData::serialize_and_encrypt(&device_request, &reader_key).unwrap()
+        }
+    }
+
+    /// This type implements [`HttpClient`] and simply forwards the
+    /// requests to an instance of [`MockVerifierSession`].
+    struct MockVerifierSessionClient<'a> {
+        session: &'a MockVerifierSession,
+    }
+
+    #[async_trait]
+    impl HttpClient for MockVerifierSessionClient<'_> {
+        async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+        where
+            V: Serialize + Sync,
+            R: DeserializeOwned,
+        {
+            // The URL has to match the one on the configured `ReaderEngagement`.
+            assert_eq!(url, self.session.reader_engagement.verifier_url().unwrap());
+
+            // Serialize and deserialize both the request and response
+            // in order to adhere to the trait bounds.
+            let device_engagement = cbor_deserialize(cbor_serialize(val).unwrap().as_slice()).unwrap();
+            let session_data = self.session.device_request_session_data(device_engagement).await;
+            let result = cbor_deserialize(cbor_serialize(&session_data).unwrap().as_slice()).unwrap();
+
+            Ok(result)
+        }
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start() {
+        // Create a reader registration with all of the example attributes.
+        let reader_registration = ReaderRegistration {
+            attributes: reader_registration_attributes(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
+            ),
+            ..Default::default()
+        };
+
+        // Create a mock session, client and mdoc data source.
+        let verifier_session = MockVerifierSession::new(
+            SessionType::SameDevice,
+            SESSION_URL.parse().unwrap(),
+            reader_registration.clone(),
+        );
+        let client = MockVerifierSessionClient {
+            session: &verifier_session,
+        };
+        let mdoc_data_source = MockMdocDataSource::default();
+
+        // Encode the `ReaderEngagement` of the session to bytes and set up other arguments.
+        let reader_engagement_bytes = cbor_serialize(&verifier_session.reader_engagement).unwrap();
+        let return_url = Url::parse(RETURN_URL).unwrap();
+        let trust_anchors = verifier_session
+            .trust_anchors
+            .iter()
+            .map(|anchor| anchor.into())
+            .collect::<Vec<_>>();
+
+        // Starting a disclosure session should now succeed.
+        let session = DisclosureSession::start(
+            client,
+            &reader_engagement_bytes,
+            return_url.clone().into(),
+            SessionType::SameDevice,
+            &mdoc_data_source,
+            &trust_anchors,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Test if the return `Url` and `ReaderRegistration` match the input.
+        assert_eq!(session.return_url.as_ref().unwrap(), &return_url);
+        assert_eq!(session.reader_registration, reader_registration);
+
+        // Test that the proposal for disclosure contains the example attributes, in order.
+        let entry_keys = session
+            .proposed_attributes()
+            .remove(EXAMPLE_DOC_TYPE)
+            .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
+            .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        assert_eq!(entry_keys, EXAMPLE_ATTRIBUTES);
+    }
 
     #[test]
     fn test_device_authentication_bytes_from_session_transcript() {
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
         println!("{:?}", session_transcript);
         let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript, "org.iso.18013.5.1.mDL".to_string());
+            DeviceAuthentication::from_session_transcript(session_transcript, EXAMPLE_DOC_TYPE.to_string());
 
         assert_eq!(
             cbor_serialize(&TaggedBytes(device_authentication)).unwrap(),

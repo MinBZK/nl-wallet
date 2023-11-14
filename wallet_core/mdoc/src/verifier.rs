@@ -584,7 +584,7 @@ impl Session<WaitingForResponse> {
 }
 
 impl ReaderEngagement {
-    fn new_reader_engagement(session_url: Url) -> Result<(ReaderEngagement, SecretKey)> {
+    pub fn new_reader_engagement(session_url: Url) -> Result<(ReaderEngagement, SecretKey)> {
         let privkey = SecretKey::random(&mut OsRng);
 
         let engagement = Engagement {
