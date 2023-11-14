@@ -20,6 +20,7 @@
 # - standard unix tools like: grep, sed, tr, ...
 # - docker: with compose v2 extension, to run the digid-connector
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
+# - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -62,6 +63,7 @@ expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
 expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
 expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
+expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
 check_openssl
 
 if is_macos
@@ -206,9 +208,6 @@ generate_wp_random_key pin_pubkey_encryption
 WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 
-WP_PIN_HASH_SALT=$(openssl rand 32 | base64 | tr -d '=')
-export WP_PIN_HASH_SALT
-
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
@@ -235,6 +234,8 @@ softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "6174746573746174696f6e5f7772617070696e670a" --label "attestation_wrapping_key" --token "test_token"
 # id = echo "pin_pubkey_encryption" | xxd -p
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
+
+p11tool --login --write --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" --set-pin "${HSM_USER_PIN}" --label="pin_public_disclosure_protection_key" "$(p11tool --list-token-urls | grep "SoftHSM")"
 
 ########################################################################
 # Configure wallet

@@ -3,7 +3,7 @@ ARG HARBOR_NLW_PROJECT
 
 # Build Stage
 # rust 1.71
-FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:3ce69596778f722dae23f64f40240c490f4686d5b361f116d98b507057768b8b AS builder
+FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12 AS builder
 WORKDIR /usr/src/
 RUN apt-get update && apt-get install -y musl musl-tools musl-dev && \
     update-ca-certificates && \

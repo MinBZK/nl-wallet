@@ -48,6 +48,10 @@ pub enum HsmError {
 
     #[error("key not found: '{0}'")]
     KeyNotFound(String),
+
+    #[cfg(feature = "mock")]
+    #[error("hmac error: {0}")]
+    Hmac(#[from] hmac::digest::MacError),
 }
 
 type Result<T> = std::result::Result<T, HsmError>;
@@ -62,8 +66,14 @@ enum HandleType {
     Private,
 }
 
+pub(crate) enum SigningMechanism {
+    Ecdsa256,
+    Sha256Hmac,
+}
+
 #[async_trait]
 pub(crate) trait Pkcs11Client {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
@@ -77,7 +87,19 @@ pub(crate) trait Pkcs11Client {
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle>;
     async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()>;
-    async fn sign(&self, private_key_handle: PrivateKeyHandle, data: Arc<Vec<u8>>) -> Result<Signature>;
+    async fn sign(
+        &self,
+        private_key_handle: PrivateKeyHandle,
+        mechanism: SigningMechanism,
+        data: Arc<Vec<u8>>,
+    ) -> Result<Vec<u8>>;
+    async fn verify(
+        &self,
+        private_key_handle: PrivateKeyHandle,
+        mechanism: SigningMechanism,
+        data: Arc<Vec<u8>>,
+        signature: Vec<u8>,
+    ) -> Result<()>;
     async fn random_bytes(&self, length: u32) -> Result<Vec<u8>>;
     async fn encrypt(
         &self,
@@ -188,19 +210,27 @@ impl WalletUserHsm for Pkcs11Hsm {
     async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature> {
         let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(private_wrapping_handle, wrapped_key).await?;
-        Pkcs11Client::sign(self, private_handle, data).await
+        let signature = Pkcs11Client::sign(self, private_handle, SigningMechanism::Ecdsa256, data).await?;
+        Ok(Signature::from_slice(&signature)?)
     }
 
     async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
         let key_identifier = hsm::key_identifier(wallet_id, identifier);
         let handle = self.get_private_key_handle(&key_identifier).await?;
-        Pkcs11Client::sign(self, handle, data).await
+        let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
+        Ok(Signature::from_slice(&signature)?)
     }
 }
 
 #[async_trait]
 impl Hsm for Pkcs11Hsm {
     type Error = HsmError;
+
+    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        Pkcs11Client::generate_generic_secret_key(self, identifier)
+            .await
+            .map(|_| ())
+    }
 
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
@@ -213,9 +243,25 @@ impl Hsm for Pkcs11Hsm {
         Ok(())
     }
 
-    async fn sign(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
+    async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Signature, Self::Error> {
         let handle = self.get_private_key_handle(identifier).await?;
-        Pkcs11Client::sign(self, handle, data).await
+        let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
+        Ok(Signature::from_slice(&signature)?)
+    }
+
+    async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Vec<u8>, Self::Error> {
+        let handle = self.get_private_key_handle(identifier).await?;
+        Pkcs11Client::sign(self, handle, SigningMechanism::Sha256Hmac, data).await
+    }
+
+    async fn verify_hmac(
+        &self,
+        identifier: &str,
+        data: Arc<Vec<u8>>,
+        signature: Vec<u8>,
+    ) -> std::result::Result<(), Self::Error> {
+        let handle = self.get_private_key_handle(identifier).await?;
+        Pkcs11Client::verify(self, handle, SigningMechanism::Sha256Hmac, data, signature).await
     }
 
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
@@ -234,6 +280,31 @@ impl Hsm for Pkcs11Hsm {
 
 #[async_trait]
 impl Pkcs11Client for Pkcs11Hsm {
+    async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
+        let pool = self.pool.clone();
+        let identifier = String::from(identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let priv_key_template = &[
+                Attribute::Token(true),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Sign(true),
+                Attribute::Class(ObjectClass::SECRET_KEY),
+                Attribute::KeyType(KeyType::GENERIC_SECRET),
+                Attribute::ValueLen(32.into()),
+                Attribute::Label(identifier.clone().into()),
+            ];
+
+            let private_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, priv_key_template)?;
+
+            Ok(PrivateKeyHandle(private_handle))
+        })
+        .await
+    }
+
     async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);
@@ -406,13 +477,45 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
-    async fn sign(&self, private_key_handle: PrivateKeyHandle, data: Arc<Vec<u8>>) -> Result<Signature> {
+    async fn sign(
+        &self,
+        private_key_handle: PrivateKeyHandle,
+        mechanism: SigningMechanism,
+        data: Arc<Vec<u8>>,
+    ) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
+            let mechanism = match mechanism {
+                SigningMechanism::Ecdsa256 => Mechanism::Ecdsa,
+                SigningMechanism::Sha256Hmac => Mechanism::Sha256Hmac,
+            };
+
             let session = pool.get()?;
-            let signature = session.sign(&Mechanism::Ecdsa, private_key_handle.0, &sha256(&data))?;
-            Ok(Signature::from_slice(&signature)?)
+            let signature = session.sign(&mechanism, private_key_handle.0, &sha256(&data))?;
+            Ok(signature)
+        })
+        .await
+    }
+
+    async fn verify(
+        &self,
+        private_key_handle: PrivateKeyHandle,
+        mechanism: SigningMechanism,
+        data: Arc<Vec<u8>>,
+        signature: Vec<u8>,
+    ) -> Result<()> {
+        let pool = self.pool.clone();
+
+        spawn::blocking(move || {
+            let mechanism = match mechanism {
+                SigningMechanism::Ecdsa256 => Mechanism::Ecdsa,
+                SigningMechanism::Sha256Hmac => Mechanism::Sha256Hmac,
+            };
+
+            let session = pool.get()?;
+            let signature = session.verify(&mechanism, private_key_handle.0, &sha256(&data), &signature)?;
+            Ok(signature)
         })
         .await
     }

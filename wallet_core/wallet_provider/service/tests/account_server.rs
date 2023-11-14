@@ -19,6 +19,7 @@ use wallet_provider_domain::{
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{
     account_server::{mock, AccountServer},
+    hsm::HsmError,
     keys::CertificateSigningKey,
 };
 
@@ -43,6 +44,7 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 
 async fn do_registration(
     account_server: &AccountServer,
+    hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl CertificateSigningKey,
     hw_privkey: &SigningKey,
     pin_privkey: &SigningKey,
@@ -62,7 +64,7 @@ async fn do_registration(
             certificate_signing_key,
             &UuidGenerator,
             repos,
-            &MockPkcs11Client::default(),
+            hsm,
             registration_message,
         )
         .await
@@ -103,12 +105,13 @@ async fn test_instruction_challenge() {
     let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
     let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-    let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+    let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
     let (certificate, cert_data) = do_registration(
         &account_server,
+        &hsm,
         &certificate_signing_key,
         &hw_privkey,
         &pin_privkey,
@@ -126,7 +129,7 @@ async fn test_instruction_challenge() {
             },
             &repos,
             &EpochGenerator,
-            &MockPkcs11Client::default(),
+            &hsm,
         )
         .await
         .unwrap();
@@ -143,7 +146,7 @@ async fn test_instruction_challenge() {
             },
             &repos,
             &EpochGenerator,
-            &MockPkcs11Client::default(),
+            &hsm,
         )
         .await
         .unwrap();

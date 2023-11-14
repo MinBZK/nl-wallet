@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Duration, Local};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -18,12 +20,12 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
-    utils::{random_bytes, random_string, sha256},
+    utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{
     model::{
         encrypter::{Decrypter, Encrypter},
-        hsm::WalletUserHsm,
+        hsm::{Hsm, WalletUserHsm},
         pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator},
         wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
     },
@@ -179,29 +181,29 @@ impl JwtClaims for RegistrationChallengeClaims {
 }
 
 pub struct AccountServer {
-    pin_hash_salt: Vec<u8>,
     instruction_challenge_timeout: Duration,
 
     pub name: String,
 
     certificate_signing_pubkey: EcdsaDecodingKey,
     encryption_key_identifier: String,
+    pin_public_disclosure_protection_key_identifier: String,
 }
 
 impl AccountServer {
     pub async fn new(
-        pin_hash_salt: Vec<u8>,
         instruction_challenge_timeout: Duration,
         name: String,
         certificate_signing_pubkey: EcdsaDecodingKey,
         encryption_key_identifier: String,
+        pin_public_disclosure_protection_key_identifier: String,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
-            pin_hash_salt,
             instruction_challenge_timeout,
             name,
             certificate_signing_pubkey,
             encryption_key_identifier,
+            pin_public_disclosure_protection_key_identifier,
         })
     }
 
@@ -227,15 +229,17 @@ impl AccountServer {
         Ok(challenge)
     }
 
-    pub async fn instruction_challenge<T>(
+    pub async fn instruction_challenge<T, R, H>(
         &self,
         challenge_request: InstructionChallengeRequestMessage,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        repositories: &R,
         time_generator: &impl Generator<DateTime<Local>>,
-        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
+        hsm: &H,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Starting database transaction");
 
@@ -244,7 +248,7 @@ impl AccountServer {
         debug!("Verifying certificate and retrieving wallet user");
 
         let user = self
-            .verify_wallet_certificate(&challenge_request.certificate, repositories, verifying_key_decrypter)
+            .verify_wallet_certificate(&challenge_request.certificate, repositories, hsm)
             .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
@@ -283,19 +287,22 @@ impl AccountServer {
         Ok(challenge.bytes)
     }
 
-    pub async fn handle_instruction<T, I, R>(
+    pub async fn handle_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: Instruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
-        generators: &(impl Generator<Uuid> + Generator<DateTime<Local>> + Sync),
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync),
+        generators: &G,
+        repositories: &R,
         pin_policy: &impl PinPolicyEvaluator,
-        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError> + Sync),
-    ) -> Result<InstructionResult<R>, InstructionError>
+        wallet_user_hsm: &H,
+    ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable + Send + Sync,
-        I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
-        R: Serialize + DeserializeOwned,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
+        I: HandleInstruction<Result = IR> + Serialize + DeserializeOwned,
+        IR: Serialize + DeserializeOwned,
+        G: Generator<Uuid> + Generator<DateTime<Local>> + Sync,
+        H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError> + Sync,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
@@ -382,16 +389,18 @@ impl AccountServer {
         }
     }
 
-    pub async fn register<T>(
+    pub async fn register<T, R, H>(
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
         uuid_generator: &impl Generator<Uuid>,
-        repositories: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
-        verifying_key_encrypter: &(impl Encrypter<VerifyingKey, Error = HsmError> + Sync),
+        repositories: &R,
+        hsm: &H,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Parsing message to lookup public keys");
 
@@ -419,9 +428,7 @@ impl AccountServer {
 
         debug!("Starting database transaction");
 
-        let encrypted_pin_pubkey = verifying_key_encrypter
-            .encrypt(&self.encryption_key_identifier, pin_pubkey)
-            .await?;
+        let encrypted_pin_pubkey = Encrypter::encrypt(hsm, &self.encryption_key_identifier, pin_pubkey).await?;
 
         let tx = repositories.begin_transaction().await?;
 
@@ -443,7 +450,7 @@ impl AccountServer {
         debug!("Generating new wallet certificate for user {}", uuid);
 
         let cert_result = self
-            .new_wallet_certificate(certificate_signing_key, wallet_id, hw_pubkey, pin_pubkey)
+            .new_wallet_certificate(certificate_signing_key, wallet_id, hw_pubkey, pin_pubkey, hsm)
             .await?;
 
         tx.commit().await?;
@@ -451,17 +458,28 @@ impl AccountServer {
         Ok(cert_result)
     }
 
-    async fn new_wallet_certificate(
+    async fn new_wallet_certificate<H>(
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
         wallet_id: String,
         wallet_hw_pubkey: VerifyingKey,
         wallet_pin_pubkey: VerifyingKey,
-    ) -> Result<WalletCertificate, RegistrationError> {
+        hsm: &H,
+    ) -> Result<WalletCertificate, RegistrationError>
+    where
+        H: Hsm<Error = HsmError> + Sync,
+    {
+        let pin_pubkey_hash = sign_pin_pubkey(
+            wallet_pin_pubkey,
+            &self.pin_public_disclosure_protection_key_identifier,
+            hsm,
+        )
+        .await?;
+
         let cert = WalletCertificateClaims {
             wallet_id,
             hw_pubkey: wallet_hw_pubkey.into(),
-            pin_pubkey_hash: pubkey_to_hash(self.pin_hash_salt.clone(), wallet_pin_pubkey)?,
+            pin_pubkey_hash,
             version: WALLET_CERTIFICATE_VERSION,
 
             iss: self.name.clone(),
@@ -487,14 +505,16 @@ impl AccountServer {
         .map_err(RegistrationError::ChallengeValidation)
     }
 
-    async fn verify_wallet_certificate<T>(
+    async fn verify_wallet_certificate<T, R, H>(
         &self,
         certificate: &WalletCertificate,
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
-        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
+        wallet_user_repository: &R,
+        hsm: &H,
     ) -> Result<WalletUser, WalletCertificateError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
     {
         debug!("Parsing and verifying the provided certificate");
 
@@ -525,14 +545,20 @@ impl AccountServer {
 
                 let user = *user_boxed;
 
-                let pin_pubkey = verifying_key_decrypter
-                    .decrypt(&self.encryption_key_identifier, user.encrypted_pin_pubkey.clone())
-                    .await?;
-                let hash = pubkey_to_hash(self.pin_hash_salt.clone(), pin_pubkey)?;
+                let pin_pubkey =
+                    Decrypter::decrypt(hsm, &self.encryption_key_identifier, user.encrypted_pin_pubkey.clone()).await?;
+
+                let pin_hash_verification = verify_pin_pubkey(
+                    pin_pubkey,
+                    cert_data.pin_pubkey_hash,
+                    &self.pin_public_disclosure_protection_key_identifier,
+                    hsm,
+                )
+                .await;
 
                 debug!("Verifying user matches the provided certificate");
 
-                if hash != cert_data.pin_pubkey_hash {
+                if pin_hash_verification.is_err() {
                     Err(WalletCertificateError::PinPubKeyMismatch)
                 } else if user.hw_pubkey != cert_data.hw_pubkey {
                     Err(WalletCertificateError::HwPubKeyMismatch)
@@ -543,15 +569,16 @@ impl AccountServer {
         }
     }
 
-    async fn verify_instruction<I, R>(
+    async fn verify_instruction<I, R, D>(
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Local>>,
-        verifying_key_decrypter: &(impl Decrypter<VerifyingKey, Error = HsmError> + Sync),
+        verifying_key_decrypter: &D,
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
+        D: Decrypter<VerifyingKey, Error = HsmError> + Sync,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -602,38 +629,68 @@ impl AccountServer {
     }
 }
 
-fn der_encode(payload: impl der::Encode) -> Result<Vec<u8>, der::Error> {
-    let mut buf = Vec::<u8>::with_capacity(payload.encoded_len()?.try_into()?);
-    payload.encode_to_vec(&mut buf)?;
-    Ok(buf)
-}
-
-fn pubkey_to_hash(pin_hash_salt: Vec<u8>, pubkey: VerifyingKey) -> Result<Base64Bytes, WalletCertificateError> {
+async fn sign_pin_pubkey<H>(
+    pubkey: VerifyingKey,
+    key_identifier: &str,
+    hsm: &H,
+) -> Result<Base64Bytes, WalletCertificateError>
+where
+    H: Hsm<Error = HsmError> + Sync,
+{
     let pin_pubkey_bts = pubkey
         .to_public_key_der()
         .map_err(WalletCertificateError::PinPubKeyDecoding)?
         .to_vec();
-    let pin_pubkey_tohash =
-        der_encode(vec![pin_hash_salt, pin_pubkey_bts]).map_err(WalletCertificateError::PinPubKeyEncoding)?;
-    Ok(sha256(&pin_pubkey_tohash).into())
+
+    let signature = hsm.sign_hmac(key_identifier, Arc::new(pin_pubkey_bts)).await?;
+
+    Ok(signature.into())
+}
+
+async fn verify_pin_pubkey<H>(
+    pubkey: VerifyingKey,
+    pin_pubkey_hash: Base64Bytes,
+    key_identifier: &str,
+    hsm: &H,
+) -> Result<(), WalletCertificateError>
+where
+    H: Hsm<Error = HsmError> + Sync,
+{
+    let pin_pubkey_bts = pubkey
+        .to_public_key_der()
+        .map_err(WalletCertificateError::PinPubKeyDecoding)?
+        .to_vec();
+
+    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash.0)
+        .await?;
+
+    Ok(())
 }
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use chrono::Duration;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use super::*;
 
-    pub async fn account_server(certificate_signing_pubkey: EcdsaDecodingKey) -> AccountServer {
-        AccountServer::new(
-            random_bytes(32),
+    pub async fn account_server_and_hsm(
+        certificate_signing_pubkey: EcdsaDecodingKey,
+    ) -> (AccountServer, MockPkcs11Client<HsmError>) {
+        let account_server = AccountServer::new(
             Duration::milliseconds(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey,
             "encryption_key_1".into(),
+            "signing_key_2".into(),
         )
         .await
-        .unwrap()
+        .unwrap();
+
+        let hsm = MockPkcs11Client::default();
+        hsm.generate_generic_secret_key("signing_key_2").await.unwrap();
+
+        (account_server, hsm)
     }
 }
 
@@ -668,6 +725,7 @@ mod tests {
 
     async fn do_registration(
         account_server: &AccountServer,
+        hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl CertificateSigningKey,
         hw_privkey: &SigningKey,
         pin_privkey: &SigningKey,
@@ -692,7 +750,7 @@ mod tests {
                 certificate_signing_key,
                 &FixedUuidGenerator,
                 &wallet_user_repo,
-                &MockPkcs11Client::default(),
+                hsm,
                 registration_message,
             )
             .await
@@ -704,11 +762,18 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         // Verify the certificate
         let cert_data = cert
@@ -841,14 +906,21 @@ mod tests {
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
         let instruction_result_signing_key = SoftwareEcdsaKey::new("instruction_result_signing_key");
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         let deps = WalletUserTestRepo {
             hw: hw_pubkey,
@@ -868,7 +940,7 @@ mod tests {
                     },
                     &deps,
                     &EpochGenerator,
-                    &MockPkcs11Client::default(),
+                    &hsm,
                 )
                 .await
                 .expect_err("should return instruction sequence number mismatch error"),
@@ -885,7 +957,7 @@ mod tests {
                 },
                 &deps,
                 &EpochGenerator,
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .unwrap();
@@ -912,7 +984,7 @@ mod tests {
                         instruction_sequence_number: 43,
                     },
                     &FailingPinPolicy,
-                    &MockPkcs11Client::default(),
+                    &hsm,
                 )
                 .await
                 .expect_err("sequence number mismatch error should result in IncorrectPin error"),
@@ -936,7 +1008,7 @@ mod tests {
                     instruction_sequence_number: 2,
                 },
                 &TimeoutPinPolicy,
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .expect("should return instruction result");
@@ -947,14 +1019,21 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         let challenge_request = InstructionChallengeRequestMessage {
             message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
@@ -973,7 +1052,7 @@ mod tests {
                     instruction_sequence_number: 0,
                 },
                 &EpochGenerator,
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .unwrap();
@@ -987,7 +1066,7 @@ mod tests {
                     challenge: Some(challenge),
                     instruction_sequence_number: 0,
                 },
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .unwrap();
@@ -998,13 +1077,20 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         account_server
             .verify_wallet_certificate(
@@ -1015,7 +1101,7 @@ mod tests {
                     challenge: None,
                     instruction_sequence_number: 0,
                 },
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .expect_err("Should not validate");
@@ -1026,12 +1112,19 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         account_server
             .verify_wallet_certificate(
@@ -1042,7 +1135,7 @@ mod tests {
                     challenge: None,
                     instruction_sequence_number: 0,
                 },
-                &MockPkcs11Client::default(),
+                &hsm,
             )
             .await
             .expect_err("Should not validate");
@@ -1053,14 +1146,21 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         let mut repo = WalletUserTestRepo {
             hw: hw_pubkey,
@@ -1077,7 +1177,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &hsm)
             .await
             .unwrap();
 
@@ -1096,7 +1196,7 @@ mod tests {
                         .unwrap(),
                     &user,
                     &EpochGenerator,
-                    &MockPkcs11Client::default(),
+                    &hsm,
                 )
                 .await
                 .is_ok()
@@ -1108,14 +1208,21 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         let mut repo = WalletUserTestRepo {
             hw: hw_pubkey,
@@ -1132,7 +1239,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &hsm)
             .await
             .unwrap();
 
@@ -1151,7 +1258,7 @@ mod tests {
                         .unwrap(),
                     &user,
                     &EpochGenerator,
-                    &MockPkcs11Client::default(),
+                    &hsm,
                 ).await,
                 Err(InstructionValidationError::VerificationFailed(
                     wallet_common::errors::Error::ChallengeMismatch
@@ -1173,14 +1280,21 @@ mod tests {
         let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-        let account_server = mock::account_server(certificate_signing_pubkey.into()).await;
+        let (account_server, hsm) = mock::account_server_and_hsm(certificate_signing_pubkey.into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
         let hw_pubkey = *hw_privkey.verifying_key();
         let pin_pubkey = *pin_privkey.verifying_key();
 
-        let cert = do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey).await;
+        let cert = do_registration(
+            &account_server,
+            &hsm,
+            &certificate_signing_key,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await;
 
         let repo = WalletUserTestRepo {
             hw: hw_pubkey,
@@ -1197,7 +1311,7 @@ mod tests {
         };
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &MockPkcs11Client::default())
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, &hsm)
             .await
             .unwrap();
 
@@ -1219,7 +1333,7 @@ mod tests {
                             .unwrap(),
                         &user,
                         &EpochGenerator,
-                        &MockPkcs11Client::default(),
+                        &hsm,
                     )
                     .await,
                 Err(InstructionValidationError::ChallengeTimeout)

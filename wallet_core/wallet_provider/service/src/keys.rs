@@ -77,7 +77,7 @@ impl EcdsaKey for WalletProviderEcdsaKey {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        Hsm::sign(&self.hsm, &self.identifier, Arc::new(msg.into())).await
+        Hsm::sign_ecdsa(&self.hsm, &self.identifier, Arc::new(msg.into())).await
     }
 }
 
