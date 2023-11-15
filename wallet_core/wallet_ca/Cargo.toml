@@ -17,7 +17,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 x509-parser.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc" }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 
 [dev-dependencies]
 assert_cmd.workspace = true

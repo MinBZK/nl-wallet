@@ -1,7 +1,6 @@
 use chrono::Duration;
 pub use indexmap::{IndexMap, IndexSet};
-use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, Encode, SliceReader};
-use rcgen::CustomExtension;
+use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, skip_serializing_none, DurationSeconds};
 use url::Url;
@@ -16,7 +15,7 @@ use crate::{
 /// oid: 2.1.123.1
 /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
 /// suffix: 1, unofficial id for Reader Authentication
-const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
+pub const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
 
 #[skip_serializing_none]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,13 +47,6 @@ impl ReaderRegistration {
             None => None,
         };
         Ok(registration)
-    }
-
-    pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
-        let json_string = serde_json::to_string(self)?;
-        let string = Utf8StringRef::new(&json_string)?;
-        let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
-        Ok(ext)
     }
 
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {

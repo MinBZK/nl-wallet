@@ -6,7 +6,8 @@ rust-version.workspace = true
 
 [features]
 examples = ["dep:anyhow", "dep:hex-literal"]
-mock = ["examples", "wallet_common/mock", "wallet_common/software-keys"]
+generate = ["dep:rcgen"]
+mock = ["examples", "generate", "wallet_common/mock", "wallet_common/software-keys"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -20,7 +21,6 @@ hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
-rcgen = { workspace = true, features = ["x509-parser"] }
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
 rustls-webpki.workspace = true
@@ -36,6 +36,7 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 anyhow = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
 
 fieldnames.path = "./fieldnames"
 fieldnames_derive.path = "./fieldnames_derive"
