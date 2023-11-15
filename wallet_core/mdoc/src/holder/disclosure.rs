@@ -94,7 +94,7 @@ impl ProposedDocument {
             .filter(|mdoc| {
                 // Calculate missing attributes for every `Mdoc` and filter it out
                 // if we find any. Also, collect the missing attributes separately.
-                let available_attributes = mdoc.issuer_signed.attribute_identifiers(&mdoc.doc_type);
+                let available_attributes = mdoc.issuer_signed_attribute_identifiers();
                 let missing_attributes = requested_attributes
                     .difference(&available_attributes)
                     .collect::<Vec<_>>();
