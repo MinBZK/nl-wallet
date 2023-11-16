@@ -517,7 +517,7 @@ impl rust2dart::IntoIntoDart<RelyingParty> for RelyingParty {
 impl support::IntoDart for RequestPolicy {
     fn into_dart(self) -> support::DartAbi {
         vec![
-            self.data_storage_duration_days.into_dart(),
+            self.data_storage_duration_in_minutes.into_dart(),
             self.data_shared_with_third_parties.into_into_dart().into_dart(),
             self.data_deletion_possible.into_into_dart().into_dart(),
             self.policy_url.into_into_dart().into_dart(),

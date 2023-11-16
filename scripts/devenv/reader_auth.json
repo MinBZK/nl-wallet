@@ -10,7 +10,7 @@
   },
   "retentionPolicy": {
     "intentToRetain": true,
-    "maxDurationInSeconds": 31536000
+    "maxDurationInMinutes": 525600
   },
   "sharingPolicy": {
     "intentToShare": true
