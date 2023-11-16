@@ -59,7 +59,7 @@ fn get_my_reader_auth() -> ReaderRegistration {
         purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
         retention_policy: RetentionPolicy {
             intent_to_retain: true,
-            max_duration: Some(Duration::minutes(525600)),
+            max_duration_in_minutes: Some(60 * 24 * 365),
         },
         sharing_policy: SharingPolicy { intent_to_share: true },
         deletion_policy: DeletionPolicy { deleteable: true },

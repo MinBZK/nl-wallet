@@ -7,7 +7,8 @@ class RequestPolicyMapper extends Mapper<RequestPolicy, Policy> {
 
   @override
   Policy map(RequestPolicy input) => Policy(
-        storageDuration: input.dataStorageDurationDays == null ? null : Duration(days: input.dataStorageDurationDays!),
+        storageDuration:
+            input.dataStorageDurationInMinutes == null ? null : Duration(minutes: input.dataStorageDurationInMinutes!),
         dataIsShared: input.dataSharedWithThirdParties,
         dataIsSignature: false,
         dataContainsSingleViewProfilePhoto: false,
