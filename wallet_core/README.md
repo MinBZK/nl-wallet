@@ -49,7 +49,7 @@ cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
 In our rust files, we order the imports (`use` statements) first by the following categories, separated by a newline, and then alphabetically.
 
 1. Standard Library imports
-2. 3pp imports
+2. 3pp (Third-Party Package) imports
 3. Workspace imports
 4. Local imports
 
