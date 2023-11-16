@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-10-23T09:19:02+02:00",
+    "@@last_modified": "2023-11-15T13:44:31+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -842,6 +842,7 @@
     "organizationButtonLabel": "Over deze partij",
     "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
     "organizationDetailScreenInfoHeader": "Info",
+    "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
     "organizationDetailScreenReportIssueCta": "Een probleem melden",
@@ -853,7 +854,7 @@
     "pinBlockedScreenHeadline": "Je app is geblokkeerd",
     "pinBlockedScreenResetWalletCta": "Wallet wissen",
     "pinBlockedScreenTitle": "Geblokkeerd",
-    "pinFieldSemanticsLabel": "Toegangscode veld, {enteredDigits} van {totalDigits} ingevoerd, beveiligd tekstveld",
+    "pinFieldSemanticsLabel": "Toegangscode veld, {enteredDigits} van {totalDigits} ingevoerd, beveiligd tekstveld.",
     "@pinFieldSemanticsLabel": {
         "placeholders": {
             "enteredDigits": {

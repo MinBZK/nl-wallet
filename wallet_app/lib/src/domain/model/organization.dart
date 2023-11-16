@@ -13,6 +13,7 @@ class Organization extends Equatable {
   final LocalizedText? country;
   final LocalizedText? city;
   final LocalizedText? department;
+  final String? kvk;
 
   const Organization({
     required this.id,
@@ -25,9 +26,10 @@ class Organization extends Equatable {
     this.country,
     this.city,
     this.department,
+    this.kvk,
   });
 
   @override
   List<Object?> get props =>
-      [id, legalName, displayName, type, description, logoUrl, webUrl, city, country, department];
+      [id, legalName, displayName, type, description, logoUrl, webUrl, city, country, department, kvk];
 }

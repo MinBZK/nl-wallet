@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-10-23T09:19:02+02:00",
+    "@@last_modified": "2023-11-15T13:44:31+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -842,6 +842,7 @@
     "organizationButtonLabel": "About this organization",
     "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
     "organizationDetailScreenInfoHeader": "Info",
+    "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyPolicy": "privacy statement",
     "organizationDetailScreenReportIssueCta": "Report a problem",
