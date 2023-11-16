@@ -1,4 +1,4 @@
-wallet_server_url = 'http://localhost:3002'
+wallet_server_url = 'http://${SERVICES_HOST}:3002'
 
 [webserver]
 # ip = '0.0.0.0'
