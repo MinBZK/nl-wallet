@@ -306,7 +306,7 @@ mod tests {
         let mut wallet = WalletWithMocks::registered().await;
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(HolderError::NoDocumentRequests.into());
+        MockMdocDisclosureSession::next_start_error(HolderError::NoAttributesRequested.into());
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
