@@ -1,6 +1,6 @@
 package helper
 
-import helper.Browserstack.markTest
+import helper.BrowserStackHelper.markTest
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.TestWatcher
 

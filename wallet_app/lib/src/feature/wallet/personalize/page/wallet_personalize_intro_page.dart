@@ -70,6 +70,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         ElevatedButton(
+          key: const Key('loginWithDigidCta'),
           onPressed: onLoginWithDigidPressed,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -88,6 +89,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
         const SizedBox(height: 8),
         Center(
           child: TextIconButton(
+            key: const Key('noDigidCta'),
             onPressed: onNoDigidPressed,
             child: Text(context.l10n.walletPersonalizeIntroPageNoDigidCta),
           ),

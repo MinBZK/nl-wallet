@@ -18,8 +18,8 @@ class DisclosureStoppedPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.disclosureStoppedPageTitle,
       description: context.l10n.disclosureStoppedPageDescription,
-      closeButtonCta: context.l10n.disclosureStoppedPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.disclosureStoppedPageCloseCta,
+      onPrimaryPressed: onClosePressed,
     );
   }
 }

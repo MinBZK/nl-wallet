@@ -20,8 +20,8 @@ class IssuanceStoppedPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.issuanceStoppedPageTitle,
       description: context.l10n.issuanceStoppedPageDescription,
-      closeButtonCta: context.l10n.issuanceStoppedPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.issuanceStoppedPageCloseCta,
+      onPrimaryPressed: onClosePressed,
       secondaryButtonCta: context.l10n.issuanceStoppedPageGiveFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
     );

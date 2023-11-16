@@ -146,6 +146,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage1(BuildContext context) {
     const pageIndex = 0;
     return IntroductionPage(
+      key: const Key('introductionPage1'),
       image: const AssetImage(WalletAssets.image_intro_page_1),
       title: context.l10n.introductionPage1Title,
       subtitle: context.l10n.introductionPage1Description,
@@ -161,6 +162,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage2(BuildContext context) {
     const pageIndex = 1;
     return IntroductionPage(
+      key: const Key('introductionPage2'),
       image: const AssetImage(WalletAssets.image_intro_page_2),
       title: context.l10n.introductionPage2Title,
       subtitle: context.l10n.introductionPage2Description,
@@ -177,6 +179,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage3(BuildContext context) {
     const pageIndex = 2;
     return IntroductionPage(
+      key: const Key('introductionPage3'),
       image: const AssetImage(WalletAssets.image_intro_page_3),
       title: context.l10n.introductionPage3Title,
       subtitle: context.l10n.introductionPage3Description,
@@ -192,6 +195,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget _buildAppIntroPage4(BuildContext context) {
     const pageIndex = 3;
     return IntroductionPage(
+      key: const Key('introductionPage4'),
       image: const AssetImage(WalletAssets.image_intro_page_4),
       title: context.l10n.introductionPage4Title,
       bulletPoints: context.l10n.introductionPage4BulletPoints.split('\n'),

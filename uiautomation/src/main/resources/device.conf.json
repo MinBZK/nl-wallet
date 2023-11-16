@@ -1,5 +1,5 @@
 {
-    "device": "Google Pixel 7 Pro",
+    "device": "Google Pixel 8",
     "remoteOrLocal": "Remote",
     "appPackage": "nl.rijksoverheid.edi.wallet",
     "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
@@ -13,6 +13,11 @@
         "name": "single-run"
     },
     "browserstackDevices": [
+        {
+            "deviceName": "Google Pixel 8",
+            "platformName": "android",
+            "platformVersion": "14.0"
+        },
         {
             "deviceName": "Google Pixel 7 Pro",
             "platformName": "android",

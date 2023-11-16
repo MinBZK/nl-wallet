@@ -40,13 +40,13 @@ class ConfirmButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool buttonExceedsWidth = _isExceedingMaxWidth(
           context,
-          ConfirmButtonType.outlined,
+          ConfirmButtonType.reject,
           declineIcon != null,
           declineText,
         ) ||
         _isExceedingMaxWidth(
           context,
-          ConfirmButtonType.elevated,
+          ConfirmButtonType.accept,
           acceptIcon != null,
           acceptText,
         );
@@ -82,7 +82,7 @@ class ConfirmButtons extends StatelessWidget {
         vertical: vertical,
         child: _buildButtonContainer(
           context,
-          ConfirmButtonType.outlined,
+          ConfirmButtonType.reject,
           onDeclinePressed,
           declineIcon,
           declineText,
@@ -94,7 +94,7 @@ class ConfirmButtons extends StatelessWidget {
         vertical: vertical,
         child: _buildButtonContainer(
           context,
-          ConfirmButtonType.elevated,
+          ConfirmButtonType.accept,
           onAcceptPressed,
           acceptIcon,
           acceptText,
@@ -148,13 +148,15 @@ class ConfirmButtons extends StatelessWidget {
 
   Widget _buildButtonType({required ConfirmButtonType type, required VoidCallback onPressed, required Widget child}) {
     switch (type) {
-      case ConfirmButtonType.elevated:
+      case ConfirmButtonType.accept:
         return ElevatedButton(
+          key: const Key('acceptButton'),
           onPressed: onPressed,
           child: child,
         );
-      case ConfirmButtonType.outlined:
+      case ConfirmButtonType.reject:
         return OutlinedButton(
+          key: const Key('rejectButton'),
           onPressed: onPressed,
           child: child,
         );
@@ -179,9 +181,9 @@ class ConfirmButtons extends StatelessWidget {
   TextStyle? _getButtonTextStyle(BuildContext context, ConfirmButtonType type) {
     final states = {MaterialState.focused};
     switch (type) {
-      case ConfirmButtonType.elevated:
+      case ConfirmButtonType.accept:
         return context.theme.elevatedButtonTheme.style?.textStyle?.resolve(states);
-      case ConfirmButtonType.outlined:
+      case ConfirmButtonType.reject:
         return context.theme.outlinedButtonTheme.style?.textStyle?.resolve(states);
     }
   }
@@ -213,4 +215,4 @@ class ConfirmButtons extends StatelessWidget {
   }
 }
 
-enum ConfirmButtonType { elevated, outlined }
+enum ConfirmButtonType { accept, reject }

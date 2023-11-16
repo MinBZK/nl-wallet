@@ -13,9 +13,9 @@ class SetupSecurityCompletedPage extends StatelessWidget {
     return FlowTerminalPage(
       icon: Icons.check,
       title: context.l10n.setupSecurityCompletedPageTitle,
-      closeButtonCta: context.l10n.setupSecurityCompletedPageCreateWalletCta,
+      primaryButtonCta: context.l10n.setupSecurityCompletedPageCreateWalletCta,
       description: context.l10n.setupSecurityCompletedPageDescription,
-      onClosePressed: onSetupWalletPressed,
+      onPrimaryPressed: onSetupWalletPressed,
     );
   }
 }

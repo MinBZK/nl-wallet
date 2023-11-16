@@ -1,32 +1,33 @@
-package server
+package service
 
 import io.appium.java_client.service.local.AppiumDriverLocalService
 import io.appium.java_client.service.local.AppiumServiceBuilder
 import io.appium.java_client.service.local.flags.GeneralServerFlag
 
 object AppiumServiceProvider {
-    var server: AppiumDriverLocalService? = null
+    var service: AppiumDriverLocalService? = null
 
     fun startService() {
-        if (server != null) throw UnsupportedOperationException("Server already running!")
+        if (service != null) throw UnsupportedOperationException("Service already running!")
 
         val environment = HashMap<String, String>()
         environment["PATH"] = "/usr/local/bin:" + System.getenv("PATH")
 
         val serviceBuilder = AppiumServiceBuilder()
             .usingAnyFreePort() // Use any port, in case the default 4723 is already taken
-            .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
-            .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
+            .withArgument(GeneralServerFlag.ALLOW_INSECURE, "chromedriver_autodownload")
             .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
+            .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
             .withArgument(GeneralServerFlag.RELAXED_SECURITY)
+            .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
             .withEnvironment(environment)
 
-        server = AppiumDriverLocalService.buildService(serviceBuilder)
-        server?.start()
+        service = AppiumDriverLocalService.buildService(serviceBuilder)
+        service?.start()
     }
 
-    fun stopServer() {
-        server?.stop()
-        server = null
+    fun stopService() {
+        service?.stop()
+        service = null
     }
 }
