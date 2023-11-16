@@ -4,18 +4,16 @@ import com.codeborne.selenide.WebDriverProvider
 import config.TestDataConfig.Companion.browserstackAccessKey
 import config.TestDataConfig.Companion.browserstackUserName
 import config.TestDataConfig.Companion.testDataConfig
-import helper.Browserstack
+import helper.BrowserStackHelper
+import helper.TestBase
+import io.appium.java_client.android.AndroidDriver
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.remote.DesiredCapabilities
-import org.openqa.selenium.remote.RemoteWebDriver
-import uiTests.TestBase
-
 import util.SetupTestTagHandler
-
 import java.net.URL
 
-class BrowserstackMobileDriver : WebDriverProvider {
+class BrowserStackMobileDriver : WebDriverProvider {
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
         val remoteDevice = testDataConfig.defaultRemoteDevice
@@ -25,15 +23,16 @@ class BrowserstackMobileDriver : WebDriverProvider {
         val browserstackOptions = HashMap<String, Any>()
 
         // Set other BrowserStack capabilities
-        browserstackOptions["projectName"] = testDataConfig.browserStackCapabilities.project
         browserstackOptions["appiumVersion"] = "2.0.1"
+        browserstackOptions["buildName"] = BrowserStackHelper.buildName
         browserstackOptions["disableAnimations"] = "true"
-        browserstackOptions["buildName"] = Browserstack.buildName
-        browserstackOptions["sessionName"] = TestBase.sessionName
         browserstackOptions["idleTimeout"] = BROWSER_STACK_IDLE_TIMEOUT_SECONDS
+        browserstackOptions["networkLogs"] = "true"
+        browserstackOptions["projectName"] = testDataConfig.browserStackCapabilities.project
+        browserstackOptions["sessionName"] = TestBase.sessionName
         caps.setCapability("bstack:options", browserstackOptions)
 
-        // Specify device and os_version for testing
+        // Specify device and OS version for testing
         caps.setCapability("platformName", remoteDevice.platformName)
         caps.setCapability("appium:automationName", "Flutter")
         caps.setCapability("appium:platformVersion", remoteDevice.platformVersion)
@@ -46,13 +45,13 @@ class BrowserstackMobileDriver : WebDriverProvider {
         caps.setCapability(
             "appium:app",
             when (remoteDevice.platformName) {
-                "android" -> Browserstack.getAppUrl("NLWalletAndroid")
-                "ios" -> Browserstack.getAppUrl("NLWalletIos")
+                "android" -> BrowserStackHelper.getAppUrl("NLWalletAndroid")
+                "ios" -> BrowserStackHelper.getAppUrl("NLWalletIos")
                 else -> throw IllegalArgumentException("Invalid app: ${remoteDevice.platformName}")
             },
         )
 
-        return RemoteWebDriver(
+        return AndroidDriver(
             URL("http://$browserstackUserName:$browserstackAccessKey@hub-cloud.browserstack.com/wd/hub"),
             caps,
         )

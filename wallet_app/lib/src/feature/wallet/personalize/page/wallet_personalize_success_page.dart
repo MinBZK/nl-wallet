@@ -32,8 +32,8 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
         ),
       ),
       description: context.l10n.walletPersonalizeSuccessPageDescription,
-      closeButtonCta: context.l10n.walletPersonalizeSuccessPageContinueCta,
-      onClosePressed: onContinuePressed,
+      primaryButtonCta: context.l10n.walletPersonalizeSuccessPageContinueCta,
+      onPrimaryPressed: onContinuePressed,
     );
   }
 }

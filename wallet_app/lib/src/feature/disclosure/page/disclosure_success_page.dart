@@ -22,8 +22,8 @@ class DisclosureSuccessPage extends StatelessWidget {
       icon: Icons.check,
       title: context.l10n.disclosureSuccessPageTitle,
       description: context.l10n.disclosureSuccessPageDescription(organizationDisplayName.l10nValue(context)),
-      closeButtonCta: context.l10n.disclosureSuccessPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.disclosureSuccessPageCloseCta,
+      onPrimaryPressed: onClosePressed,
       tertiaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
       onTertiaryButtonPressed: onHistoryPressed,
     );

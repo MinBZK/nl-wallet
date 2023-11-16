@@ -4,7 +4,7 @@ import org.junit.platform.suite.api.SelectPackages
 import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName
 
-@SelectPackages("uiTests")
+@SelectPackages("feature")
 @Suite
-@SuiteDisplayName("Run all tests")
-object RunTests
+@SuiteDisplayName("Feature test suite")
+object FeatureTestSuite

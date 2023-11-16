@@ -13,6 +13,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('introductionPrivacyScreen'),
       appBar: AppBar(
         title: Text(context.l10n.introductionPrivacyScreenTitle),
       ),
@@ -81,6 +82,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           TextIconButton(
+            key: const Key('introductionPrivacyScreenPrivacyCta'),
             iconPosition: IconPosition.start,
             child: Text(context.l10n.introductionPrivacyScreenPrivacyCta),
             onPressed: () => PlaceholderScreen.show(context, secured: false),

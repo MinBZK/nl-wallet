@@ -17,8 +17,8 @@ import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
 
-const _kSelectPinKey = ValueKey('select_pin');
-const _kConfirmPinKey = ValueKey('confirm_pin');
+const _kSelectPinScreenKey = ValueKey('selectPinScreen');
+const _kConfirmPinScreenKey = ValueKey('confirmPinScreen');
 
 class SetupSecurityScreen extends StatelessWidget {
   const SetupSecurityScreen({Key? key}) : super(key: key);
@@ -139,7 +139,7 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildSelectPinPage(BuildContext context, SetupSecuritySelectPinInProgress state) {
     return SetupSecurityPinPage(
-      key: _kSelectPinKey,
+      key: _kSelectPinScreenKey,
       content: Text(
         context.l10n.setupSecuritySelectPinPageTitle,
         style: context.textTheme.displaySmall,
@@ -165,20 +165,18 @@ class SetupSecurityScreen extends StatelessWidget {
         errorDescription = context.l10n.setupSecuritySelectPinErrorPageDefaultError;
     }
     return SetupSecurityPinPage(
-      key: _kSelectPinKey,
+      key: _kSelectPinScreenKey,
       content: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
             Text(
               errorTitle,
-              key: const Key('setupSecurityPinPageSimpleErrorMessageTitle'),
               style: context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error),
               textAlign: TextAlign.center,
             ),
             Text(
               errorDescription,
-              key: const Key('setupSecurityPinPageSimpleErrorMessageDescription'),
               style: context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error),
               textAlign: TextAlign.center,
             ),
@@ -194,7 +192,7 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildPinConfirmationPage(BuildContext context, SetupSecurityPinConfirmationInProgress state) {
     return SetupSecurityPinPage(
-      key: _kConfirmPinKey,
+      key: _kConfirmPinScreenKey,
       content: Text(
         context.l10n.setupSecurityConfirmationPageTitle,
         style: context.textTheme.displaySmall,
@@ -214,13 +212,11 @@ class SetupSecurityScreen extends StatelessWidget {
       content = Column(
         children: [
           Text(
-            key: const Key('setupSecurityConfirmationErrorPageTitle'),
             context.l10n.setupSecurityConfirmationErrorPageTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
-            key: const Key('setupSecurityConfirmationErrorPageDescription'),
             context.l10n.setupSecurityConfirmationErrorPageDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
@@ -231,13 +227,11 @@ class SetupSecurityScreen extends StatelessWidget {
       content = Column(
         children: [
           Text(
-            key: const Key('setupSecurityConfirmationErrorPageFatalTitle'),
             context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
             style: titleStyle,
             textAlign: TextAlign.center,
           ),
           Text(
-            key: const Key('setupSecurityConfirmationErrorPageFatalDescription'),
             context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
             style: descriptionStyle,
             textAlign: TextAlign.center,
@@ -252,7 +246,7 @@ class SetupSecurityScreen extends StatelessWidget {
       );
     }
     return SetupSecurityPinPage(
-      key: _kConfirmPinKey,
+      key: _kConfirmPinScreenKey,
       showInput: state.retryAllowed,
       content: content,
       enteredDigits: 0,
@@ -271,7 +265,7 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
-      key: const Key('setupSecurityCompletedPageKey'),
+      key: const Key('setupSecurityCompletedPage'),
       onSetupWalletPressed: () =>
           Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
     );

@@ -92,7 +92,7 @@ By applying the @RetryingTest annotation with the following attributes, you can 
 
 ### @DisplayName
 
-#### @DisplayName("UC 9.3 - Verify introduction screens and privacy policy screen")
+#### @DisplayName("UC 1.2 - Feature ticket title [PVW-1234]")
 
 The @DisplayName enables the creation of custom names for test classes and methods. By using this annotation, you can provide more meaningful and descriptive names that accurately convey the purpose and functionality of your tests.
 
@@ -107,16 +107,16 @@ The @Tag annotation allows you to assign tags to your test classes or methods. T
 The @Suite annotation allows you to create test suites to execute tests spread across multiple classes and packages. A test suite is a logical grouping of tests that provides a convenient way to organize and execute related tests together.
 
 ```
-@SelectPackages("uiTests")
+@SelectPackages("feature")
 @Suite
-@SuiteDisplayName("Run all tests")
-object RunTests {
+@SuiteDisplayName("Feature test suite")
+object FeatureTestSuite {
 }
 ```
 
-The code snippet provided utilizes annotations to define a test suite called "RunTests" that includes all tests within the "uiTests" package. Here's what each annotation does:
+The code snippet provided utilizes annotations to define a test suite called "RunTests" that includes all tests within the "feature" package. Here's what each annotation does:
 
-- @SelectPackages("uiTests"): This annotation specifies that only the tests within the "uiTests"
+- @SelectPackages("feature"): This annotation specifies that only the tests within the "feature"
   package should be included in the test suite. It acts as a filter, ensuring that only tests within the specified package are executed.
 - @Suite: This annotation marks the class as a test suite. It indicates that the class is responsible for defining and executing a suite of tests rather than being a regular test class.
-- @SuiteDisplayName("Run all tests"): This annotation assigns a display name to the test suite. In this case, the display name is set as "Run all tests," which provides a descriptive name for the suite, indicating that it encompasses all tests within the "uiTests" package.
+- @SuiteDisplayName("Run all tests"): This annotation assigns a display name to the test suite. In this case, the display name is set as "Run all tests," which provides a descriptive name for the suite, indicating that it encompasses all tests within the "feature" package.

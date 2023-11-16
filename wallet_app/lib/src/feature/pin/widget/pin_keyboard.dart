@@ -31,6 +31,7 @@ class PinKeyboard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
         child: SafeArea(
+          key: const Key('pinKeyboard'),
           child: DefaultTextStyle(
             style: context.textTheme.displayMedium!,
             child: Column(

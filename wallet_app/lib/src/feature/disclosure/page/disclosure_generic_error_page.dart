@@ -18,8 +18,8 @@ class DisclosureGenericErrorPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.disclosureGenericErrorPageTitle,
       description: context.l10n.disclosureGenericErrorPageDescription,
-      closeButtonCta: context.l10n.disclosureGenericErrorPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.disclosureGenericErrorPageCloseCta,
+      onPrimaryPressed: onClosePressed,
     );
   }
 }

@@ -91,7 +91,7 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
               offset: _calcWaveOffset(index),
               child: PinDot(
                 checked: index < widget.enteredDigits,
-                key: ValueKey(index),
+                key: ValueKey('pinDot#$index'),
                 color: context.colorScheme.onBackground,
               ),
             ),
