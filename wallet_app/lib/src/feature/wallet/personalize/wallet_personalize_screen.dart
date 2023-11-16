@@ -117,6 +117,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       context.bloc.add(const WalletPersonalizeLoginWithDigidFailed());
     }
     return WalletPersonalizeCheckDataOfferingPage(
+      key: const Key('personalizePidPreviewPage'),
       onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingAccepted(state.availableAttributes)),
       onRejectPressed: () => context.bloc.add(WalletPersonalizeOfferingRejected()),
       attributes: attributes,
@@ -125,6 +126,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
     return GenericLoadingPage(
+      key: const Key('personalizeLoadingPage'),
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
       onCancel: onCancel,
@@ -180,6 +182,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildWalletIntroPage(BuildContext context) {
     return WalletPersonalizeIntroPage(
+      key: const Key('personalizeInformPage'),
       onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
       onNoDigidPressed: () => WalletPersonalizeNoDigidScreen.show(context),
     );
@@ -215,6 +218,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
     return WalletPersonalizeSuccessPage(
+      key: const Key('personalizeSuccessPage'),
       onContinuePressed: () => HomeScreen.show(context, cards: state.addedCards),
       cards: state.addedCards,
     );
@@ -226,8 +230,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.walletPersonalizeScreenErrorTitle,
       description: context.l10n.walletPersonalizeScreenErrorDescription,
-      closeButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
-      onClosePressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
+      primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
+      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
     );
   }
 

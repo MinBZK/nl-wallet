@@ -13,6 +13,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('introductionConditionsScreen'),
       appBar: AppBar(
         title: Text(context.l10n.introductionConditionsScreenTitle),
       ),
@@ -81,6 +82,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           TextIconButton(
+            key: const Key('introductionConditionsScreenConditionsCta'),
             iconPosition: IconPosition.start,
             child: Text(context.l10n.introductionConditionsScreenConditionsCta),
             onPressed: () => PlaceholderScreen.show(context, secured: false),

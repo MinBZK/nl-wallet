@@ -12,6 +12,7 @@ class IntroductionExpectationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('introductionExpectationsScreen'),
       backgroundColor: context.colorScheme.inverseSurface,
       body: SafeArea(
         child: Column(

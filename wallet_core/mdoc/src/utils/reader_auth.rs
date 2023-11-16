@@ -1,8 +1,7 @@
-use chrono::Duration;
 use indexmap::{IndexMap, IndexSet};
 use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none, DurationSeconds};
+use serde_with::{serde_as, skip_serializing_none};
 use url::Url;
 use x509_parser::der_parser::Oid;
 
@@ -128,9 +127,7 @@ impl From<Vec<(&str, &str)>> for LocalizedStrings {
 #[serde(rename_all = "camelCase")]
 pub struct RetentionPolicy {
     pub intent_to_retain: bool,
-    #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    #[serde(rename = "maxDurationInSeconds")]
-    pub max_duration: Option<Duration>,
+    pub max_duration_in_minutes: Option<u64>,
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -18,8 +18,8 @@ class DisclosureReportSubmittedPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.disclosureReportSubmittedPageTitle,
       description: context.l10n.disclosureReportSubmittedPageSubtitle,
-      closeButtonCta: context.l10n.disclosureReportSubmittedPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.disclosureReportSubmittedPageCloseCta,
+      onPrimaryPressed: onClosePressed,
     );
   }
 }

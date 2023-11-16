@@ -22,8 +22,8 @@ class SignSuccessPage extends StatelessWidget {
       icon: Icons.check,
       title: context.l10n.signSuccessPageTitle,
       description: context.l10n.signSuccessPageDescription(organizationName.l10nValue(context)),
-      closeButtonCta: context.l10n.signSuccessPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.signSuccessPageCloseCta,
+      onPrimaryPressed: onClosePressed,
       tertiaryButtonCta: context.l10n.signSuccessPageHistoryCta,
       onTertiaryButtonPressed: onHistoryPressed,
     );

@@ -38,6 +38,7 @@ class SplashScreen extends StatelessWidget {
   /// Build the visual part of the SplashScreen
   Widget _buildContent(BuildContext context) {
     return Scaffold(
+      key: const Key('splashScreen'),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

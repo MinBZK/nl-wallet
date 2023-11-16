@@ -1,25 +1,17 @@
 package screen.introduction
 
-import com.codeborne.selenide.WebDriverRunner
-import io.github.ashwith.flutter.FlutterFinder
-
-import io.qameta.allure.Step
-import org.openqa.selenium.remote.RemoteWebDriver
-
 import util.MobileActions
 
 class IntroductionExpectationsScreen : MobileActions() {
 
-    private val find = FlutterFinder(WebDriverRunner.getWebDriver() as RemoteWebDriver)
+    private val screen = find.byValueKey("introductionExpectationsScreen")
+
     private val nextButton = find.byValueKey("introductionExpectationsScreenCta")
+    private val backButton = find.byValueKey("introductionBackCta")
 
-    @Step("next button is visible")
-    fun waitForButtonVisibility(): Boolean {
-        return waitForVisibility(nextButton)
-    }
+    fun visible() = isElementVisible(screen)
 
-    @Step("click next button")
-    fun clickNextButton() {
-        tapElement(nextButton)
-    }
+    fun clickNextButton() = clickElement(nextButton)
+
+    fun clickBackButton() = clickElement(backButton)
 }

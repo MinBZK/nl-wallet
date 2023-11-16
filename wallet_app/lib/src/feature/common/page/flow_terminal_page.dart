@@ -15,8 +15,8 @@ class FlowTerminalPage extends StatelessWidget {
   final VoidCallback? onSecondaryButtonPressed;
   final String? tertiaryButtonCta;
   final VoidCallback? onTertiaryButtonPressed;
-  final String closeButtonCta;
-  final VoidCallback onClosePressed;
+  final String primaryButtonCta;
+  final VoidCallback onPrimaryPressed;
   final Widget? content;
 
   const FlowTerminalPage({
@@ -29,8 +29,8 @@ class FlowTerminalPage extends StatelessWidget {
     this.tertiaryButtonCta,
     this.onTertiaryButtonPressed,
     this.content,
-    required this.closeButtonCta,
-    required this.onClosePressed,
+    required this.primaryButtonCta,
+    required this.onPrimaryPressed,
     Key? key,
   }) : super(key: key);
 
@@ -113,8 +113,9 @@ class FlowTerminalPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ElevatedButton(
-            onPressed: onClosePressed,
-            child: Text(closeButtonCta),
+            key: const Key('primaryButtonCta'),
+            onPressed: onPrimaryPressed,
+            child: Text(primaryButtonCta),
           ),
         ),
         const SizedBox(height: 16),

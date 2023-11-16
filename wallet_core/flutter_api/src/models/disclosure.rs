@@ -17,7 +17,7 @@ pub struct RelyingParty {
 }
 
 pub struct RequestPolicy {
-    pub data_storage_duration_days: Option<i64>,
+    pub data_storage_duration_in_minutes: Option<u64>,
     pub data_shared_with_third_parties: bool,
     pub data_deletion_possible: bool,
     pub policy_url: String,
@@ -81,7 +81,7 @@ impl From<Organization> for RelyingParty {
 impl From<&ReaderRegistration> for RequestPolicy {
     fn from(value: &ReaderRegistration) -> Self {
         RequestPolicy {
-            data_storage_duration_days: value.retention_policy.max_duration.map(|duration| duration.num_days()),
+            data_storage_duration_in_minutes: value.retention_policy.max_duration_in_minutes,
             data_shared_with_third_parties: value.sharing_policy.intent_to_share,
             data_deletion_possible: value.deletion_policy.deleteable,
             policy_url: value

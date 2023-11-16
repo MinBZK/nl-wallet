@@ -1,6 +1,7 @@
 # Example config
 
 trust_anchors = []
+public_url = 'http://${SERVICES_HOST}:3001/'
 
 [wallet_server]
 ip = '0.0.0.0'

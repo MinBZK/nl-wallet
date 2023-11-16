@@ -223,13 +223,13 @@ class RelyingParty {
 }
 
 class RequestPolicy {
-  final int? dataStorageDurationDays;
+  final int? dataStorageDurationInMinutes;
   final bool dataSharedWithThirdParties;
   final bool dataDeletionPossible;
   final String policyUrl;
 
   const RequestPolicy({
-    this.dataStorageDurationDays,
+    this.dataStorageDurationInMinutes,
     required this.dataSharedWithThirdParties,
     required this.dataDeletionPossible,
     required this.policyUrl,
@@ -676,16 +676,16 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
-  int _wire2api_box_autoadd_i64(dynamic raw) {
-    return _wire2api_i64(raw);
-  }
-
   RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
     return _wire2api_relying_party(raw);
   }
 
   RequestPolicy _wire2api_box_autoadd_request_policy(dynamic raw) {
     return _wire2api_request_policy(raw);
+  }
+
+  int _wire2api_box_autoadd_u64(dynamic raw) {
+    return _wire2api_u64(raw);
   }
 
   Card _wire2api_card(dynamic raw) {
@@ -761,10 +761,6 @@ class WalletCoreImpl implements WalletCore {
     return raw as int;
   }
 
-  int _wire2api_i64(dynamic raw) {
-    return castInt(raw);
-  }
-
   IdentifyUriResult _wire2api_identify_uri_result(dynamic raw) {
     return IdentifyUriResult.values[raw as int];
   }
@@ -810,8 +806,8 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_String(raw);
   }
 
-  int? _wire2api_opt_box_autoadd_i64(dynamic raw) {
-    return raw == null ? null : _wire2api_box_autoadd_i64(raw);
+  int? _wire2api_opt_box_autoadd_u64(dynamic raw) {
+    return raw == null ? null : _wire2api_box_autoadd_u64(raw);
   }
 
   List<LocalizedString>? _wire2api_opt_list_localized_string(dynamic raw) {
@@ -840,7 +836,7 @@ class WalletCoreImpl implements WalletCore {
     final arr = raw as List<dynamic>;
     if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return RequestPolicy(
-      dataStorageDurationDays: _wire2api_opt_box_autoadd_i64(arr[0]),
+      dataStorageDurationInMinutes: _wire2api_opt_box_autoadd_u64(arr[0]),
       dataSharedWithThirdParties: _wire2api_bool(arr[1]),
       dataDeletionPossible: _wire2api_bool(arr[2]),
       policyUrl: _wire2api_String(arr[3]),
