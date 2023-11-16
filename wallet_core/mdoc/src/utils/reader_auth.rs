@@ -7,7 +7,7 @@ use url::Url;
 use x509_parser::der_parser::Oid;
 
 use crate::{
-    identifiers::AttributeIdentifier,
+    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     utils::x509::{Certificate, CertificateError},
     DeviceRequest,
 };
@@ -48,7 +48,9 @@ impl ReaderRegistration {
         };
         Ok(registration)
     }
+}
 
+impl AttributeIdentifierHolder for ReaderRegistration {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.attributes
             .iter()
@@ -162,19 +164,33 @@ pub enum ValidationError {
 impl DeviceRequest {
     /// Verify whether all requested attributes exist in the `registration`.
     pub fn verify_requested_attributes(&self, reader_registration: &ReaderRegistration) -> Result<(), ValidationError> {
-        let requested_attributes = self.attribute_identifiers();
-        let registered_attributes = reader_registration.attribute_identifiers();
-
-        let difference: Vec<AttributeIdentifier> = requested_attributes
-            .difference(&registered_attributes)
-            .cloned()
-            .collect();
+        let difference: Vec<AttributeIdentifier> = self.difference(reader_registration).into_iter().collect();
 
         if !difference.is_empty() {
             return Err(ValidationError::UnregisteredAttributes(difference));
         }
 
         Ok(())
+    }
+}
+
+#[cfg(feature = "generate")]
+mod generate {
+    use p256::pkcs8::der::{asn1::Utf8StringRef, Encode};
+    use rcgen::CustomExtension;
+
+    use crate::utils::{
+        reader_auth::{ReaderRegistration, OID_EXT_READER_AUTH},
+        x509::CertificateError,
+    };
+
+    impl ReaderRegistration {
+        pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
+            let json_string = serde_json::to_string(self)?;
+            let string = Utf8StringRef::new(&json_string)?;
+            let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
+            Ok(ext)
+        }
     }
 }
 

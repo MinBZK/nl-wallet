@@ -286,17 +286,14 @@ mod generate {
     use p256::{
         ecdsa::SigningKey,
         pkcs8::{
-            der::{
-                asn1::{SequenceOf, Utf8StringRef},
-                Encode,
-            },
+            der::{asn1::SequenceOf, Encode},
             DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
         },
     };
     use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
 
     use crate::utils::{
-        reader_auth::{ReaderRegistration, OID_EXT_READER_AUTH},
+        reader_auth::ReaderRegistration,
         x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE},
     };
 
@@ -373,15 +370,6 @@ mod generate {
             }
 
             Ok(extensions)
-        }
-    }
-
-    impl ReaderRegistration {
-        pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
-            let json_string = serde_json::to_string(self)?;
-            let string = Utf8StringRef::new(&json_string)?;
-            let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
-            Ok(ext)
         }
     }
 }

@@ -16,7 +16,7 @@ use wallet_common::{
 
 use crate::{
     basic_sa_ext::Entry,
-    identifiers::AttributeIdentifier,
+    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     utils::{
         cose::{sign_cose, ClonePayload},

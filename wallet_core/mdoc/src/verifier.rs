@@ -18,7 +18,7 @@ use wallet_common::{
 
 use crate::{
     basic_sa_ext::Entry,
-    identifiers::AttributeIdentifier,
+    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     server_keys::{KeyRing, PrivateKey},
     server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
@@ -831,8 +831,8 @@ impl ItemsRequest {
     pub fn match_against_issuer_signed(&self, document: &Document) -> Vec<AttributeIdentifier> {
         let document_identifiers = document.issuer_signed_attribute_identifiers();
         self.attribute_identifiers()
-            .difference(&document_identifiers)
-            .cloned()
+            .into_iter()
+            .filter(|attribute| !document_identifiers.contains(attribute))
             .collect()
     }
 }
@@ -847,6 +847,7 @@ mod tests {
 
     use crate::{
         examples::Example,
+        identifiers::AttributeIdentifierHolder,
         server_keys::{PrivateKey, SingleKeyRing},
         server_state::MemorySessionStore,
         utils::{
@@ -1016,7 +1017,7 @@ mod tests {
         items_requests
             .0
             .iter()
-            .flat_map(ItemsRequest::attribute_identifiers)
+            .flat_map(AttributeIdentifierHolder::attribute_identifiers)
             .collect()
     }
 

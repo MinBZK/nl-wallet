@@ -56,8 +56,20 @@ impl Document {
     }
 }
 
-impl DeviceRequest {
-    pub(crate) fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+pub trait AttributeIdentifierHolder {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier>;
+
+    fn difference(&self, other: &impl AttributeIdentifierHolder) -> IndexSet<AttributeIdentifier> {
+        let other_attributes = other.attribute_identifiers();
+        self.attribute_identifiers()
+            .into_iter()
+            .filter(|attribute| !other_attributes.contains(attribute))
+            .collect()
+    }
+}
+
+impl AttributeIdentifierHolder for DeviceRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.doc_requests
             .iter()
             .flat_map(|doc_request| doc_request.items_request.0.attribute_identifiers())
@@ -65,8 +77,8 @@ impl DeviceRequest {
     }
 }
 
-impl ItemsRequest {
-    pub(crate) fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+impl AttributeIdentifierHolder for ItemsRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.name_spaces
             .iter()
             .flat_map(|(namespace, attributes)| {
