@@ -26,7 +26,7 @@ class SetupTestTagHandler {
         }
 
         private fun setupLanguage(testInfo: TestInfo) {
-            setDutchLanguage() //Default to dutch when no language tag is set
+            setDutchLanguage() // Default to dutch when no language tag is set
             testInfo.tags.forEach { tag ->
                 when (tag) {
                     ENGLISH_LANGUAGE_TAG -> setEnglishLanguage()
@@ -44,7 +44,7 @@ class SetupTestTagHandler {
         }
 
         private fun setFranceLanguage() {
-            language = "fr"
+            language = "FR"
             locale = if (platformName == "android") "FR" else "fr-FR"
         }
 

@@ -20,8 +20,8 @@ class SignStoppedPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.signStoppedPageTitle,
       description: context.l10n.signStoppedPageDescription,
-      closeButtonCta: context.l10n.signStoppedPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.signStoppedPageCloseCta,
+      onPrimaryPressed: onClosePressed,
       secondaryButtonCta: context.l10n.signStoppedPageFeedbackCta,
       onSecondaryButtonPressed: onGiveFeedbackPressed,
     );

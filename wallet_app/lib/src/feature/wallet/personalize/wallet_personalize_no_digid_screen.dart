@@ -14,6 +14,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('personalizeNoDigidScreen'),
       appBar: AppBar(
         title: Text(context.l10n.walletPersonalizeNoDigidPageTitle),
       ),
@@ -63,6 +64,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         ElevatedButton(
+          key: const Key('applyForDigidCta'),
           onPressed: () => _openRequestDigidUrl(),
           child: Row(
             mainAxisSize: MainAxisSize.min,

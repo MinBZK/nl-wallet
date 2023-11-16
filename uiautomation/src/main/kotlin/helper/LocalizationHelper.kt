@@ -1,4 +1,4 @@
-package localization
+package helper
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -8,8 +8,7 @@ import java.io.File
 
 class LocalizationHelper {
 
-    fun getLocalizedString(key: String): Any? {
-
+    fun getString(key: String): String {
         val path = "../wallet_app/lib/l10n"
         val jsonFile = if (language == "NL") {
             File("$path/intl_nl.arb")
@@ -22,7 +21,7 @@ class LocalizationHelper {
         val adapter: JsonAdapter<Map<*, *>>? = moshi.adapter(Map::class.java)
 
         val localizedStrings = adapter?.fromJson(json)
-        return localizedStrings?.get(key)
+        return localizedStrings?.get(key) as? String ?: ""
     }
 }
 

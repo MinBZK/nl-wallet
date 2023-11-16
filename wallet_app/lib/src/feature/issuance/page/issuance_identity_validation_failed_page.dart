@@ -20,8 +20,8 @@ class IssuanceIdentityValidationFailedPage extends StatelessWidget {
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.issuanceIdentityValidationFailedPageTitle,
       description: context.l10n.issuanceIdentityValidationFailedPageDescription,
-      closeButtonCta: context.l10n.issuanceIdentityValidationFailedPageCloseCta,
-      onClosePressed: onClosePressed,
+      primaryButtonCta: context.l10n.issuanceIdentityValidationFailedPageCloseCta,
+      onPrimaryPressed: onClosePressed,
       secondaryButtonCta: context.l10n.issuanceIdentityValidationFailedPageSomethingNotRightCta,
       onSecondaryButtonPressed: onSomethingNotRightPressed,
     );
