@@ -762,7 +762,7 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::Infallible, fmt, sync::Arc};
+    use std::{fmt, sync::Arc};
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
@@ -838,6 +838,8 @@ mod tests {
         .into()
     }
 
+    /// Convenience function for creating a [`PrivateKey`],
+    /// based on a CA certificate and signing key.
     fn create_private_key(
         ca: &Certificate,
         ca_signing_key: &SigningKey,
@@ -887,22 +889,44 @@ mod tests {
     /// A type that implements `MdocDataSource` and simply returns
     /// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
     /// `doc_type` is requested.
-    #[derive(Debug, Default)]
-    struct MockMdocDataSource {}
+    #[derive(Debug)]
+    struct MockMdocDataSource {
+        mdocs: Vec<Mdoc>,
+        has_error: bool,
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    enum MdocDataSourceError {
+        #[error("failed")]
+        Failed,
+    }
+
+    impl Default for MockMdocDataSource {
+        fn default() -> Self {
+            let trust_anchors = Examples::iaca_trust_anchors();
+            let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+
+            MockMdocDataSource {
+                mdocs: vec![mdoc],
+                has_error: false,
+            }
+        }
+    }
 
     #[async_trait]
     impl MdocDataSource for MockMdocDataSource {
-        type Error = Infallible;
+        type Error = MdocDataSourceError;
 
         async fn mdoc_by_doc_types(
             &self,
             doc_types: &HashSet<&str>,
         ) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
-            if doc_types.contains(EXAMPLE_DOC_TYPE) {
-                let trust_anchors = Examples::iaca_trust_anchors();
-                let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+            if self.has_error {
+                return Err(MdocDataSourceError::Failed);
+            }
 
-                return Ok(vec![vec![mdoc]]);
+            if doc_types.contains(EXAMPLE_DOC_TYPE) {
+                return Ok(vec![self.mdocs.clone()]);
             }
 
             Ok(Default::default())
@@ -1080,9 +1104,13 @@ mod tests {
         }
     }
 
-    async fn disclosure_session_start<FS, FD>(
+    /// Perform a [`DisclosureSession`] start with test defaults.
+    /// This function takes several closures for modifying these
+    /// defaults just before they are actually used.
+    async fn disclosure_session_start<FS, FM, FD>(
         session_type: SessionType,
         transform_verfier_session: FS,
+        transform_mdoc: FM,
         transform_device_request: FD,
     ) -> Result<(
         DisclosureSession<MockVerifierSessionClient<FD>>,
@@ -1090,6 +1118,7 @@ mod tests {
     )>
     where
         FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
+        FM: FnOnce(MockMdocDataSource) -> MockMdocDataSource,
         FD: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
     {
         // Create a reader registration with all of the example attributes.
@@ -1107,13 +1136,13 @@ mod tests {
             SessionType::SameDevice,
             SESSION_URL.parse().unwrap(),
             Url::parse(RETURN_URL).unwrap().into(),
-            reader_registration.clone(),
+            reader_registration,
             transform_device_request,
         );
         let verifier_session = Arc::new(transform_verfier_session(verifier_session));
 
         // Set up the mock data source.
-        let mdoc_data_source = MockMdocDataSource::default();
+        let mdoc_data_source = transform_mdoc(MockMdocDataSource::default());
 
         // Starting disclosure and return the result.
         DisclosureSession::start(
@@ -1132,7 +1161,7 @@ mod tests {
     async fn test_disclosure_session_start() {
         // Starting a disclosure session should succeed.
         let (disclosure_session, verifier_session) =
-            disclosure_session_start(SessionType::SameDevice, identity, identity)
+            disclosure_session_start(SessionType::SameDevice, identity, identity, identity)
                 .await
                 .expect("Could not start disclosure session");
 
@@ -1166,6 +1195,7 @@ mod tests {
                 verifier_session
             },
             identity,
+            identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1187,6 +1217,7 @@ mod tests {
                 verifier_session
             },
             identity,
+            identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1206,6 +1237,7 @@ mod tests {
                 verifier_session
             },
             identity,
+            identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1217,7 +1249,7 @@ mod tests {
     async fn test_disclosure_session_start_error_session_type() {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let error = disclosure_session_start(SessionType::CrossDevice, identity, identity)
+        let error = disclosure_session_start(SessionType::CrossDevice, identity, identity, identity)
             .await
             .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1235,6 +1267,7 @@ mod tests {
 
                 verifier_session
             },
+            identity,
             identity,
         )
         .await
@@ -1256,6 +1289,7 @@ mod tests {
                 verifier_session
             },
             identity,
+            identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1267,7 +1301,7 @@ mod tests {
     async fn test_disclosure_session_start_error_reader_auth_missing() {
         // Starting a `DisclosureSession` where the received `DeviceRequest`
         // does not have reader auth should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, identity, |mut device_request| {
+        let error = disclosure_session_start(SessionType::SameDevice, identity, identity, |mut device_request| {
             device_request
                 .doc_requests
                 .iter_mut()
@@ -1282,7 +1316,7 @@ mod tests {
 
         // Starting a `DisclosureSession` where not all of the `DocRequest`s in the
         // received `DeviceRequest` contain reader auth should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, identity, |mut device_request| {
+        let error = disclosure_session_start(SessionType::SameDevice, identity, identity, |mut device_request| {
             let mut doc_request = device_request.doc_requests.first().unwrap().clone();
             doc_request.reader_auth = None;
             device_request.doc_requests.push(doc_request);
@@ -1305,6 +1339,7 @@ mod tests {
 
                 verifier_session
             },
+            identity,
             identity,
         )
         .await
@@ -1332,11 +1367,136 @@ mod tests {
                 verifier_session
             },
             identity,
+            identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_mdoc_data_source() {
+        // Starting a `DisclosureSession` when the database returns
+        // an error should result in that error being forwarded.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.has_error = true;
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::MdocDataSource(mdoc_error)) if mdoc_error.is::<MdocDataSourceError>()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_multiple_candidates() {
+        // Starting a `DisclosureSession` when the database contains multiple
+        // candidates for the same `doc_type` should result in an error.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.mdocs.push(mdoc_source.mdocs.first().unwrap().clone());
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::MultipleCandidates(doc_types)) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_attributes_not_available() {
+        // Starting a `DisclosureSession` where a `DeviceRequest` is received that
+        // requests a `doc_type` that is not in the database should result in an error.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.mdocs.clear();
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::AttributesNotAvailable {
+                reader_registration: _,
+                missing_attributes
+            }) if missing_attributes == expected_missing_attributes
+        );
+
+        // Starting a `DisclosureSession` where a `DeviceRequest` is received that
+        // requests an attribute that is not in the database should result in an error.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            identity,
+            |mut mdoc_source| {
+                // Remove the last attribute.
+                mdoc_source
+                    .mdocs
+                    .first_mut()
+                    .unwrap()
+                    .issuer_signed
+                    .name_spaces
+                    .as_mut()
+                    .unwrap()
+                    .get_mut(EXAMPLE_NAMESPACE)
+                    .unwrap()
+                    .0
+                    .pop();
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        let expected_missing_attributes: Vec<AttributeIdentifier> =
+            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"]
+                .into_iter()
+                .map(|attribute| attribute.parse().unwrap())
+                .collect();
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::AttributesNotAvailable {
+                reader_registration: _,
+                missing_attributes
+            }) if missing_attributes == expected_missing_attributes
+        );
     }
 
     // TODO: Test `HolderError::NoReaderRegistration` error result.
@@ -1429,6 +1589,8 @@ mod tests {
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
     }
+
+    // TODO: Add complex test cases for `DeviceRequest.match_stored_documents()`.
 
     #[test]
     fn test_device_authentication_bytes_from_session_transcript() {
