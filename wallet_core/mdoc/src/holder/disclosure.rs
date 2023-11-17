@@ -761,7 +761,7 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::Infallible, fmt};
+    use std::{convert::Infallible, fmt, sync::Arc};
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
@@ -866,11 +866,14 @@ mod tests {
     /// with a [`SessionData`] containing a [`DeviceRequest`].
     struct MockVerifierSession {
         session_type: SessionType,
+        return_url: Option<Url>,
+        reader_registration: ReaderRegistration,
         trust_anchors: Vec<OwnedTrustAnchor>,
         private_key: PrivateKey,
         reader_engagement: ReaderEngagement,
         reader_ephemeral_key: SecretKey,
-        items_requests: Option<Vec<ItemsRequest>>,
+        reader_engagement_bytes_override: Option<Vec<u8>>,
+        items_requests: Vec<ItemsRequest>,
     }
 
     impl fmt::Debug for MockVerifierSession {
@@ -884,7 +887,12 @@ mod tests {
     }
 
     impl MockVerifierSession {
-        fn new(session_type: SessionType, session_url: Url, reader_registration: ReaderRegistration) -> Self {
+        fn new(
+            session_type: SessionType,
+            session_url: Url,
+            return_url: Option<Url>,
+            reader_registration: ReaderRegistration,
+        ) -> Self {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
             let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
             let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
@@ -892,7 +900,7 @@ mod tests {
                 &ca,
                 &ca_privkey,
                 RP_CERT_CN,
-                CertificateType::ReaderAuth(reader_registration.into()),
+                CertificateType::ReaderAuth(reader_registration.clone().into()),
             )
             .unwrap();
             let private_key = PrivateKey::new(rp_signing_key, rp_certificate);
@@ -901,22 +909,37 @@ mod tests {
             let (reader_engagement, reader_ephemeral_key) =
                 ReaderEngagement::new_reader_engagement(session_url).unwrap();
 
+            // Set up the default item requests
+            let items_requests = vec![items_request(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
+            )];
+
             MockVerifierSession {
                 session_type,
+                return_url,
+                reader_registration,
                 trust_anchors,
                 private_key,
                 reader_engagement,
+                reader_engagement_bytes_override: None,
                 reader_ephemeral_key,
-                items_requests: None,
+                items_requests,
             }
         }
 
-        fn client(&self) -> MockVerifierSessionClient {
-            MockVerifierSessionClient { session: self }
+        fn client(self: &Arc<Self>) -> MockVerifierSessionClient {
+            MockVerifierSessionClient {
+                session: Arc::clone(self),
+            }
         }
 
         fn reader_engagement_bytes(&self) -> Vec<u8> {
-            cbor_serialize(&self.reader_engagement).unwrap()
+            self.reader_engagement_bytes_override
+                .as_ref()
+                .cloned()
+                .unwrap_or(cbor_serialize(&self.reader_engagement).unwrap())
         }
 
         fn trust_anchors(&self) -> Vec<TrustAnchor> {
@@ -943,18 +966,9 @@ mod tests {
             )
             .unwrap();
 
-            // Clone the `items_requests` field or generate the example `ItemRequest`.
-            let items_requests = self.items_requests.as_ref().cloned().unwrap_or_else(|| {
-                vec![items_request(
-                    EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
-                    EXAMPLE_ATTRIBUTES.iter().copied(),
-                )]
-            });
-
             // Clone enough `SessionTranscript` instances for each `ItemRequest`.
             let session_transcripts = {
-                let count = items_requests.len();
+                let count = self.items_requests.len();
                 let mut session_transcripts = Vec::with_capacity(count);
                 session_transcripts.resize(count, session_transcript);
 
@@ -962,7 +976,7 @@ mod tests {
             };
 
             // Create a `DocRequest` for every `ItemRequest`.
-            let doc_requests = join_all(items_requests.into_iter().zip(session_transcripts).map(
+            let doc_requests = join_all(self.items_requests.iter().cloned().zip(session_transcripts).map(
                 |(items_request, session_transcript)| async {
                     // Generate the reader authentication signature, without payload.
                     let reader_auth = ReaderAuthenticationKeyed {
@@ -1001,12 +1015,12 @@ mod tests {
     /// This type implements [`HttpClient`] and simply forwards the
     /// requests to an instance of [`MockVerifierSession`].
     #[derive(Debug)]
-    struct MockVerifierSessionClient<'a> {
-        session: &'a MockVerifierSession,
+    struct MockVerifierSessionClient {
+        session: Arc<MockVerifierSession>,
     }
 
     #[async_trait]
-    impl HttpClient for MockVerifierSessionClient<'_> {
+    impl HttpClient for MockVerifierSessionClient {
         async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
         where
             V: Serialize + Sync,
@@ -1025,8 +1039,13 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_disclosure_session_start() {
+    async fn disclosure_session_start<F>(
+        session_type: SessionType,
+        transform_verfier_session: F,
+    ) -> Result<(DisclosureSession<MockVerifierSessionClient>, Arc<MockVerifierSession>)>
+    where
+        F: FnOnce(MockVerifierSession) -> MockVerifierSession,
+    {
         // Create a reader registration with all of the example attributes.
         let reader_registration = ReaderRegistration {
             attributes: reader_registration_attributes(
@@ -1037,34 +1056,47 @@ mod tests {
             ..Default::default()
         };
 
-        // Create a mock session, client and mdoc data source.
+        // Create a mock session and call the transform callback.
         let verifier_session = MockVerifierSession::new(
             SessionType::SameDevice,
             SESSION_URL.parse().unwrap(),
+            Url::parse(RETURN_URL).unwrap().into(),
             reader_registration.clone(),
         );
+        let verifier_session = Arc::new(transform_verfier_session(verifier_session));
+
+        // Set up the mock data source.
         let mdoc_data_source = MockMdocDataSource::default();
 
-        let return_url = Url::parse(RETURN_URL).unwrap();
-
-        // Starting a disclosure session should now succeed.
-        let session = DisclosureSession::start(
+        // Starting disclosure and return the result.
+        DisclosureSession::start(
             verifier_session.client(),
             &verifier_session.reader_engagement_bytes(),
-            return_url.clone().into(),
-            verifier_session.session_type,
+            verifier_session.return_url.clone(),
+            session_type,
             &mdoc_data_source,
             &verifier_session.trust_anchors(),
         )
         .await
-        .expect("Could not start disclosure session");
+        .map(|disclosure_session| (disclosure_session, verifier_session))
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start() {
+        // Starting a disclosure session should succeed.
+        let (disclosure_session, verifier_session) = disclosure_session_start(SessionType::SameDevice, identity)
+            .await
+            .expect("Could not start disclosure session");
 
         // Test if the return `Url` and `ReaderRegistration` match the input.
-        assert_eq!(session.return_url.as_ref().unwrap(), &return_url);
-        assert_eq!(session.reader_registration, reader_registration);
+        assert_eq!(disclosure_session.return_url, verifier_session.return_url);
+        assert_eq!(
+            disclosure_session.reader_registration,
+            verifier_session.reader_registration
+        );
 
         // Test that the proposal for disclosure contains the example attributes, in order.
-        let entry_keys = session
+        let entry_keys = disclosure_session
             .proposed_attributes()
             .remove(EXAMPLE_DOC_TYPE)
             .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
@@ -1076,23 +1108,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_decode_reader_engagement() {
-        let verifier_session = MockVerifierSession::new(
-            SessionType::SameDevice,
-            SESSION_URL.parse().unwrap(),
-            Default::default(),
-        );
-        let mdoc_data_source = MockMdocDataSource::default();
-
         // Starting a `DisclosureSession` with invalid `ReaderEngagement`
         // bytes should result in a `Error::Cbor` error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &[],
-            None,
-            verifier_session.session_type,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
+        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
+            verifier_session.reader_engagement_bytes_override = vec![].into();
+
+            verifier_session
+        })
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1101,33 +1123,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_url_mising() {
-        let verifier_session = MockVerifierSession::new(
-            SessionType::SameDevice,
-            SESSION_URL.parse().unwrap(),
-            Default::default(),
-        );
-        let mdoc_data_source = MockMdocDataSource::default();
-
-        let reader_engagement = {
-            let mut reader_engagement = verifier_session.reader_engagement.clone();
-
-            if let Some(methods) = reader_engagement.0.connection_methods.as_mut() {
+        // Starting a `DisclosureSession` with a `ReaderEngagement` that
+        // does not contain a verifier URL should result in an error.
+        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
+            if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
                 methods.clear()
             }
 
-            reader_engagement
-        };
-
-        // Starting a `DisclosureSession` with a `ReaderEngagement` that
-        // does not contain a verifier URL should result in an error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &cbor_serialize(&reader_engagement).unwrap(),
-            None,
-            verifier_session.session_type,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
+            verifier_session
+        })
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1136,31 +1140,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_ephemeral_key_missing() {
-        let verifier_session = MockVerifierSession::new(
-            SessionType::SameDevice,
-            SESSION_URL.parse().unwrap(),
-            Default::default(),
-        );
-        let mdoc_data_source = MockMdocDataSource::default();
-
-        let reader_engagement = {
-            let mut reader_engagement = verifier_session.reader_engagement.clone();
-
-            reader_engagement.0.security = None;
-
-            reader_engagement
-        };
-
         // Starting a `DisclosureSession` with a `ReaderEngagement` that does not
         // contain an ephemeral verifier public key should result in an error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &cbor_serialize(&reader_engagement).unwrap(),
-            None,
-            verifier_session.session_type,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
+        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
+            verifier_session.reader_engagement.0.security = None;
+
+            verifier_session
+        })
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1169,71 +1155,40 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_session_type() {
-        let verifier_session = MockVerifierSession::new(
-            SessionType::SameDevice,
-            SESSION_URL.parse().unwrap(),
-            Default::default(),
-        );
-        let mdoc_data_source = MockMdocDataSource::default();
-
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &verifier_session.reader_engagement_bytes(),
-            None,
-            SessionType::CrossDevice,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
-        .await
-        .expect_err("Starting disclosure session should have resulted in an error");
+        let error = disclosure_session_start(SessionType::CrossDevice, identity)
+            .await
+            .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Crypto(_));
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_no_attributes_requested() {
-        let mut verifier_session = MockVerifierSession::new(
-            SessionType::SameDevice,
-            SESSION_URL.parse().unwrap(),
-            Default::default(),
-        );
-        verifier_session.items_requests = vec![].into();
-        let mdoc_data_source = MockMdocDataSource::default();
-
         // Starting a `DisclosureSession` in which a `DeviceRequest` with no
         // `DocRequest` entries is received should result in an error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &verifier_session.reader_engagement_bytes(),
-            None,
-            verifier_session.session_type,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
+        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
+            verifier_session.items_requests.clear();
+
+            verifier_session
+        })
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::NoAttributesRequested));
 
-        verifier_session.items_requests = vec![items_request(
-            EXAMPLE_DOC_TYPE.to_string(),
-            EXAMPLE_NAMESPACE.to_string(),
-            Vec::<String>::new().into_iter(),
-        )]
-        .into();
-
         // Starting a `DisclosureSession` in which a `DeviceRequest` with an
         // empty `DocRequest` entry is received should result in an error.
-        let error = DisclosureSession::start(
-            verifier_session.client(),
-            &verifier_session.reader_engagement_bytes(),
-            None,
-            verifier_session.session_type,
-            &mdoc_data_source,
-            &verifier_session.trust_anchors(),
-        )
+        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
+            verifier_session.items_requests = vec![items_request(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                Vec::<String>::new().into_iter(),
+            )];
+
+            verifier_session
+        })
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
