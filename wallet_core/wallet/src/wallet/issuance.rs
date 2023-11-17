@@ -1,3 +1,5 @@
+use chrono::Local;
+use entity::transaction::{TransactionStatus, TransactionType};
 use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
@@ -12,7 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{Storage, StorageError},
+    storage::{Storage, StorageError, TransactionRecord},
 };
 
 use super::Wallet;
@@ -48,6 +50,7 @@ where
     CR: ConfigurationRepository,
     DGS: DigidSession,
     PIC: PidIssuerClient,
+    S: Storage,
 {
     #[instrument(skip_all)]
     pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
@@ -174,7 +177,22 @@ where
         }
 
         info!("Rejecting any PID held in memory");
-        self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
+        self.pid_issuer
+            .reject_pid()
+            .await
+            .map_err(PidIssuanceError::PidIssuer)?;
+
+        self.storage
+            .get_mut()
+            .insert_transaction_log_record(TransactionRecord::new(
+                TransactionType::PidIssuance,
+                Local::now(),
+                None,
+                TransactionStatus::Cancelled,
+            ))
+            .await?;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -242,6 +260,16 @@ where
 
         self.storage.get_mut().insert_mdocs(mdocs).await?;
         self.emit_documents().await?;
+
+        self.storage
+            .get_mut()
+            .insert_transaction_log_record(TransactionRecord::new(
+                TransactionType::PidIssuance,
+                Local::now(),
+                None,
+                TransactionStatus::Success,
+            ))
+            .await?;
 
         Ok(())
     }

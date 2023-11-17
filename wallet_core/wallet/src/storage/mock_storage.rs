@@ -11,6 +11,7 @@ use nl_wallet_mdoc::{
 
 use super::{
     data::{KeyedData, RegistrationData},
+    transaction_log::TransactionRecord,
     Storage, StorageResult, StorageState,
 };
 
@@ -20,6 +21,7 @@ pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
+    pub transaction_log: Vec<TransactionRecord>,
     pub has_query_error: bool,
 }
 
@@ -37,6 +39,7 @@ impl MockStorage {
             state,
             data,
             mdocs,
+            transaction_log: vec![],
             has_query_error: false,
         }
     }
@@ -140,6 +143,11 @@ impl Storage for MockStorage {
             .collect();
 
         Ok(mdocs)
+    }
+
+    async fn insert_transaction_log_record(&mut self, record: TransactionRecord) -> StorageResult<()> {
+        self.transaction_log.push(record);
+        Ok(())
     }
 }
 

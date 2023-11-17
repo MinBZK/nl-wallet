@@ -2,13 +2,13 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
+    sea_query::Expr, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
     TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
 
-use entity::{keyed_data, mdoc, mdoc_copy};
+use entity::{keyed_data, mdoc, mdoc_copy, transaction};
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::serialization::CborError,
@@ -22,7 +22,7 @@ use super::{
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
-    Storage, StorageError, StorageResult, StorageState,
+    Storage, StorageError, StorageResult, StorageState, TransactionRecord,
 };
 
 const DATABASE_NAME: &str = "wallet";
@@ -276,6 +276,18 @@ where
                 .filter(mdoc::Column::DocType.is_in(doc_types_iter))
         })
         .await
+    }
+
+    async fn insert_transaction_log_record(&mut self, record: TransactionRecord) -> StorageResult<()> {
+        let tr = transaction::ActiveModel {
+            id: ActiveValue::NotSet,
+            r#type: ActiveValue::Set(record.r#type),
+            timestamp: ActiveValue::Set(record.timestamp),
+            remote_party_certificate: ActiveValue::Set(record.remote_party_certificate),
+            status: ActiveValue::Set(record.status),
+        };
+        tr.insert(self.database()?.connection()).await?;
+        Ok(())
     }
 }
 
