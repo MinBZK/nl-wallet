@@ -2,17 +2,7 @@ use std::borrow::Cow;
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::pkcs8::DecodePublicKey,
-    pkcs8::{
-        der::{asn1::SequenceOf, Encode},
-        DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
-    },
-};
-use rcgen::{
-    BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, RcgenError,
-};
+use p256::{ecdsa::VerifyingKey, elliptic_curve::pkcs8::DecodePublicKey};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
@@ -37,8 +27,9 @@ pub enum CertificateError {
     ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
     #[error("certificate private key generation failed: {0}")]
     GeneratingPrivateKey(p256::pkcs8::Error),
+    #[cfg(feature = "generate")]
     #[error("certificate creation failed: {0}")]
-    GeneratingFailed(#[from] RcgenError),
+    GeneratingFailed(#[from] rcgen::RcgenError),
     #[error("failed to parse certificate public key: {0}")]
     KeyParsingFailed(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
@@ -57,7 +48,7 @@ pub enum CertificateError {
     X509Error(#[from] X509Error),
 }
 
-const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
+pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 
 /// A version of [`TrustAnchor`] that can more easily be used as a field
 /// in another struct, as it does not require a liftetime annotation.
@@ -192,45 +183,6 @@ impl Certificate {
         self.try_into()
     }
 
-    /// Generate a new self-signed CA certificate.
-    pub fn new_ca(common_name: &str) -> Result<(Certificate, SigningKey), CertificateError> {
-        let mut ca_params = CertificateParams::new(vec![]);
-        ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-        ca_params.distinguished_name.push(DnType::CommonName, common_name);
-        let cert = RcgenCertificate::from_params(ca_params)?;
-
-        let privkey = Self::rcgen_cert_privkey(&cert)?;
-
-        Ok((cert.serialize_der()?.into(), privkey))
-    }
-
-    /// Generate a new certificate signed with the specified CA certificate.
-    pub fn new(
-        ca: &Certificate,
-        ca_privkey: &SigningKey,
-        common_name: &str,
-        certificate_type: CertificateType,
-    ) -> Result<(Certificate, SigningKey), CertificateError> {
-        let mut cert_params = CertificateParams::new(vec![]);
-        cert_params.is_ca = IsCa::NoCa;
-        cert_params.distinguished_name.push(DnType::CommonName, common_name);
-        cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
-        let cert_unsigned = RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;
-
-        let ca_keypair = rcgen::KeyPair::from_der(
-            &ca_privkey
-                .to_pkcs8_der()
-                .map_err(CertificateError::GeneratingPrivateKey)?
-                .to_bytes(),
-        )?;
-        let ca = RcgenCertificate::from_params(rcgen::CertificateParams::from_ca_cert_der(&ca.0, ca_keypair)?)?;
-
-        let cert_bts = cert_unsigned.serialize_der_with_signer(&ca)?;
-        let cert_privkey = Self::rcgen_cert_privkey(&cert_unsigned)?;
-
-        Ok((cert_bts.into(), cert_privkey))
-    }
-
     pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
         let subject = self
             .to_x509()?
@@ -246,10 +198,6 @@ impl Certificate {
             .collect();
 
         Ok(subject)
-    }
-
-    fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
-        SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
     }
 }
 
@@ -299,18 +247,6 @@ impl CertificateUsage {
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
         }
     }
-
-    fn to_custom_ext(&self) -> CustomExtension {
-        // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but [`CertificateParams`]
-        // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
-        // the custom extensions.
-        // We unwrap in these functions because they have fixed input for which they always succeed.
-        let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
-        seq.add(ObjectIdentifier::from_bytes(self.to_eku()).unwrap()).unwrap();
-        let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
-        ext.set_criticality(true);
-        ext
-    }
 }
 
 /// Acts as configuration for the [Certificate::new] function.
@@ -333,19 +269,6 @@ impl CertificateType {
         };
         Ok(result)
     }
-
-    fn to_custom_exts(&self) -> Result<Vec<CustomExtension>, CertificateError> {
-        let usage: CertificateUsage = self.into();
-        let mut extensions = vec![usage.to_custom_ext()];
-
-        if let Self::ReaderAuth(auth) = self {
-            let registration: &ReaderRegistration = auth;
-            let ext_reader_auth = registration.to_custom_ext()?;
-            extensions.push(ext_reader_auth);
-        }
-
-        Ok(extensions)
-    }
 }
 
 impl From<&CertificateType> for CertificateUsage {
@@ -354,6 +277,99 @@ impl From<&CertificateType> for CertificateUsage {
         match source {
             Mdl => Self::Mdl,
             ReaderAuth(_) => Self::ReaderAuth,
+        }
+    }
+}
+
+#[cfg(feature = "generate")]
+mod generate {
+    use p256::{
+        ecdsa::SigningKey,
+        pkcs8::{
+            der::{asn1::SequenceOf, Encode},
+            DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
+        },
+    };
+    use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
+
+    use crate::utils::{
+        reader_auth::ReaderRegistration,
+        x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE},
+    };
+
+    impl Certificate {
+        /// Generate a new self-signed CA certificate.
+        pub fn new_ca(common_name: &str) -> Result<(Certificate, SigningKey), CertificateError> {
+            let mut ca_params = CertificateParams::new(vec![]);
+            ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            ca_params.distinguished_name.push(DnType::CommonName, common_name);
+            let cert = RcgenCertificate::from_params(ca_params)?;
+
+            let privkey = Self::rcgen_cert_privkey(&cert)?;
+
+            Ok((cert.serialize_der()?.into(), privkey))
+        }
+
+        /// Generate a new certificate signed with the specified CA certificate.
+        pub fn new(
+            ca: &Certificate,
+            ca_privkey: &SigningKey,
+            common_name: &str,
+            certificate_type: CertificateType,
+        ) -> Result<(Certificate, SigningKey), CertificateError> {
+            let mut cert_params = CertificateParams::new(vec![]);
+            cert_params.is_ca = IsCa::NoCa;
+            cert_params.distinguished_name.push(DnType::CommonName, common_name);
+            cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
+            let cert_unsigned =
+                RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;
+
+            let ca_keypair = rcgen::KeyPair::from_der(
+                &ca_privkey
+                    .to_pkcs8_der()
+                    .map_err(CertificateError::GeneratingPrivateKey)?
+                    .to_bytes(),
+            )?;
+            let ca = RcgenCertificate::from_params(rcgen::CertificateParams::from_ca_cert_der(&ca.0, ca_keypair)?)?;
+
+            let cert_bts = cert_unsigned.serialize_der_with_signer(&ca)?;
+            let cert_privkey = Self::rcgen_cert_privkey(&cert_unsigned)?;
+
+            Ok((cert_bts.into(), cert_privkey))
+        }
+
+        fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
+            SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
+                .map_err(CertificateError::GeneratingPrivateKey)
+        }
+    }
+
+    impl CertificateUsage {
+        fn to_custom_ext(&self) -> CustomExtension {
+            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but [`CertificateParams`]
+            // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
+            // the custom extensions.
+            // We unwrap in these functions because they have fixed input for which they always succeed.
+            let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
+            seq.add(ObjectIdentifier::from_bytes(self.to_eku()).unwrap()).unwrap();
+            let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
+            ext.set_criticality(true);
+            ext
+        }
+    }
+
+    impl CertificateType {
+        fn to_custom_exts(&self) -> Result<Vec<CustomExtension>, CertificateError> {
+            let usage: CertificateUsage = self.into();
+            let mut extensions = vec![usage.to_custom_ext()];
+
+            if let Self::ReaderAuth(auth) = self {
+                let registration: &ReaderRegistration = auth;
+                let ext_reader_auth = registration.to_custom_ext()?;
+                extensions.push(ext_reader_auth);
+            }
+
+            Ok(extensions)
         }
     }
 }

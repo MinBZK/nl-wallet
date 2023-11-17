@@ -1,3 +1,5 @@
+use std::{fs, io, path::Path};
+
 use anyhow::{anyhow, Result};
 use clio::CachedInput;
 use p256::{
@@ -7,8 +9,6 @@ use p256::{
 use pem::{EncodeConfig, LineEnding, Pem};
 
 use nl_wallet_mdoc::utils::{reader_auth::ReaderRegistration, x509::Certificate};
-
-use std::{fs, io, path::Path};
 
 pub fn read_certificate(input: CachedInput) -> Result<Certificate> {
     let input_string = io::read_to_string(input)?;
