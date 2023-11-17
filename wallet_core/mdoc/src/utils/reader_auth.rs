@@ -14,7 +14,7 @@ use crate::{
 /// oid: 2.1.123.1
 /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
 /// suffix: 1, unofficial id for Reader Authentication
-pub const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
+const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
 
 #[skip_serializing_none]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
