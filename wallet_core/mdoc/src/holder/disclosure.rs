@@ -773,7 +773,7 @@ mod tests {
         mock,
         server_keys::PrivateKey,
         utils::{
-            cose::{self, MdocCose},
+            cose::{self, CoseError, MdocCose},
             reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
             x509::OwnedTrustAnchor,
         },
@@ -865,7 +865,7 @@ mod tests {
     /// This type contains the minimum logic to respond with the correct
     /// verifier messages in a disclosure session. Currently it only responds
     /// with a [`SessionData`] containing a [`DeviceRequest`].
-    struct MockVerifierSession {
+    struct MockVerifierSession<F> {
         session_type: SessionType,
         return_url: Option<Url>,
         reader_registration: ReaderRegistration,
@@ -875,24 +875,36 @@ mod tests {
         reader_ephemeral_key: SecretKey,
         reader_engagement_bytes_override: Option<Vec<u8>>,
         items_requests: Vec<ItemsRequest>,
+        transform_device_request: F,
     }
 
-    impl fmt::Debug for MockVerifierSession {
+    impl<F> fmt::Debug for MockVerifierSession<F> {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.debug_struct("MockVerifierSession")
                 .field("session_type", &self.session_type)
+                .field("return_url", &self.return_url)
+                .field("reader_registration", &self.reader_registration)
                 .field("trust_anchors", &self.trust_anchors)
                 .field("reader_engagement", &self.reader_engagement)
+                .field(
+                    "reader_engagement_bytes_override",
+                    &self.reader_engagement_bytes_override,
+                )
+                .field("items_requests", &self.items_requests)
                 .finish_non_exhaustive()
         }
     }
 
-    impl MockVerifierSession {
+    impl<F> MockVerifierSession<F>
+    where
+        F: Fn(DeviceRequest) -> DeviceRequest,
+    {
         fn new(
             session_type: SessionType,
             session_url: Url,
             return_url: Option<Url>,
             reader_registration: ReaderRegistration,
+            transform_device_request: F,
         ) -> Self {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
             let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
@@ -927,10 +939,11 @@ mod tests {
                 reader_engagement_bytes_override: None,
                 reader_ephemeral_key,
                 items_requests,
+                transform_device_request,
             }
         }
 
-        fn client(self: &Arc<Self>) -> MockVerifierSessionClient {
+        fn client(self: &Arc<Self>) -> MockVerifierSessionClient<F> {
             MockVerifierSessionClient {
                 session: Arc::clone(self),
             }
@@ -1004,10 +1017,10 @@ mod tests {
             ))
             .await;
 
-            let device_request = DeviceRequest {
+            let device_request = (self.transform_device_request)(DeviceRequest {
                 version: DeviceRequestVersion::V1_0,
                 doc_requests,
-            };
+            });
 
             SessionData::serialize_and_encrypt(&device_request, &reader_key).unwrap()
         }
@@ -1015,13 +1028,23 @@ mod tests {
 
     /// This type implements [`HttpClient`] and simply forwards the
     /// requests to an instance of [`MockVerifierSession`].
-    #[derive(Debug)]
-    struct MockVerifierSessionClient {
-        session: Arc<MockVerifierSession>,
+    struct MockVerifierSessionClient<F> {
+        session: Arc<MockVerifierSession<F>>,
+    }
+
+    impl<F> fmt::Debug for MockVerifierSessionClient<F> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("MockVerifierSessionClient")
+                .field("session", &self.session)
+                .finish_non_exhaustive()
+        }
     }
 
     #[async_trait]
-    impl HttpClient for MockVerifierSessionClient {
+    impl<F> HttpClient for MockVerifierSessionClient<F>
+    where
+        F: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
+    {
         async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
         where
             V: Serialize + Sync,
@@ -1040,12 +1063,17 @@ mod tests {
         }
     }
 
-    async fn disclosure_session_start<F>(
+    async fn disclosure_session_start<FS, FD>(
         session_type: SessionType,
-        transform_verfier_session: F,
-    ) -> Result<(DisclosureSession<MockVerifierSessionClient>, Arc<MockVerifierSession>)>
+        transform_verfier_session: FS,
+        transform_device_request: FD,
+    ) -> Result<(
+        DisclosureSession<MockVerifierSessionClient<FD>>,
+        Arc<MockVerifierSession<FD>>,
+    )>
     where
-        F: FnOnce(MockVerifierSession) -> MockVerifierSession,
+        FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
+        FD: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
     {
         // Create a reader registration with all of the example attributes.
         let reader_registration = ReaderRegistration {
@@ -1058,11 +1086,12 @@ mod tests {
         };
 
         // Create a mock session and call the transform callback.
-        let verifier_session = MockVerifierSession::new(
+        let verifier_session = MockVerifierSession::<FD>::new(
             SessionType::SameDevice,
             SESSION_URL.parse().unwrap(),
             Url::parse(RETURN_URL).unwrap().into(),
             reader_registration.clone(),
+            transform_device_request,
         );
         let verifier_session = Arc::new(transform_verfier_session(verifier_session));
 
@@ -1085,9 +1114,10 @@ mod tests {
     #[tokio::test]
     async fn test_disclosure_session_start() {
         // Starting a disclosure session should succeed.
-        let (disclosure_session, verifier_session) = disclosure_session_start(SessionType::SameDevice, identity)
-            .await
-            .expect("Could not start disclosure session");
+        let (disclosure_session, verifier_session) =
+            disclosure_session_start(SessionType::SameDevice, identity, identity)
+                .await
+                .expect("Could not start disclosure session");
 
         // Test if the return `Url` and `ReaderRegistration` match the input.
         assert_eq!(disclosure_session.return_url, verifier_session.return_url);
@@ -1111,11 +1141,15 @@ mod tests {
     async fn test_disclosure_session_start_error_decode_reader_engagement() {
         // Starting a `DisclosureSession` with invalid `ReaderEngagement`
         // bytes should result in a `Error::Cbor` error.
-        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
-            verifier_session.reader_engagement_bytes_override = vec![].into();
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session.reader_engagement_bytes_override = vec![].into();
 
-            verifier_session
-        })
+                verifier_session
+            },
+            identity,
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1126,13 +1160,17 @@ mod tests {
     async fn test_disclosure_session_start_error_verifier_url_mising() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that
         // does not contain a verifier URL should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
-            if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
-                methods.clear()
-            }
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
+                    methods.clear()
+                }
 
-            verifier_session
-        })
+                verifier_session
+            },
+            identity,
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1143,11 +1181,15 @@ mod tests {
     async fn test_disclosure_session_start_error_verifier_ephemeral_key_missing() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that does not
         // contain an ephemeral verifier public key should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
-            verifier_session.reader_engagement.0.security = None;
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session.reader_engagement.0.security = None;
 
-            verifier_session
-        })
+                verifier_session
+            },
+            identity,
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1158,7 +1200,7 @@ mod tests {
     async fn test_disclosure_session_start_error_session_type() {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let error = disclosure_session_start(SessionType::CrossDevice, identity)
+        let error = disclosure_session_start(SessionType::CrossDevice, identity, identity)
             .await
             .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1169,11 +1211,15 @@ mod tests {
     async fn test_disclosure_session_start_error_no_attributes_requested() {
         // Starting a `DisclosureSession` in which a `DeviceRequest` with no
         // `DocRequest` entries is received should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
-            verifier_session.items_requests.clear();
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session.items_requests.clear();
 
-            verifier_session
-        })
+                verifier_session
+            },
+            identity,
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
@@ -1181,19 +1227,102 @@ mod tests {
 
         // Starting a `DisclosureSession` in which a `DeviceRequest` with an
         // empty `DocRequest` entry is received should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, |mut verifier_session| {
-            verifier_session.items_requests = vec![items_request(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-                Vec::<String>::new().into_iter(),
-            )];
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session.items_requests = vec![items_request(
+                    EXAMPLE_DOC_TYPE.to_string(),
+                    EXAMPLE_NAMESPACE.to_string(),
+                    Vec::<String>::new().into_iter(),
+                )];
 
-            verifier_session
-        })
+                verifier_session
+            },
+            identity,
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::NoAttributesRequested));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_auth_missing() {
+        // Starting a `DisclosureSession` where the received `DeviceRequest`
+        // does not have reader auth should result in an error.
+        let error = disclosure_session_start(SessionType::SameDevice, identity, |mut device_request| {
+            device_request
+                .doc_requests
+                .iter_mut()
+                .for_each(|doc_request| doc_request.reader_auth = None);
+
+            device_request
+        })
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::ReaderAuthMissing));
+
+        // Starting a `DisclosureSession` where not all of the `DocRequest`s in the
+        // received `DeviceRequest` contain reader auth should result in an error.
+        let error = disclosure_session_start(SessionType::SameDevice, identity, |mut device_request| {
+            let mut doc_request = device_request.doc_requests.first().unwrap().clone();
+            doc_request.reader_auth = None;
+            device_request.doc_requests.push(doc_request);
+
+            device_request
+        })
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::ReaderAuthMissing));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_auth_invalid() {
+        // Starting a `DisclosureSession` without trust anchors should result in an error.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session.trust_anchors.clear();
+
+                verifier_session
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Cose(CoseError::Certificate(_)));
+    }
+
+    // TODO: Test `HolderError::ReaderAuthsInconsistent` error result.
+    // TODO: Test `HolderError::NoReaderRegistration` error result.
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_registration_validation() {
+        // Starting a `DisclosureSession` where the `DeviceRequest` contains an attribute
+        // that is not in the `ReaderRegistration` should result in an error.
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            |mut verifier_session| {
+                verifier_session
+                    .items_requests
+                    .first_mut()
+                    .unwrap()
+                    .name_spaces
+                    .get_mut(EXAMPLE_NAMESPACE)
+                    .unwrap()
+                    .insert("foobar".to_string(), false);
+
+                verifier_session
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
     }
 
     #[test]
