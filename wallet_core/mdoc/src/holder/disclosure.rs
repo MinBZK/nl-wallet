@@ -766,6 +766,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
+    use p256::ecdsa::SigningKey;
     use serde::{de::DeserializeOwned, Serialize};
 
     use crate::{
@@ -835,6 +836,52 @@ mod tests {
             ),
         )]
         .into()
+    }
+
+    fn create_private_key(
+        ca: &Certificate,
+        ca_signing_key: &SigningKey,
+        reader_registration: ReaderRegistration,
+    ) -> PrivateKey {
+        let (certificate, signing_key) = Certificate::new(
+            ca,
+            ca_signing_key,
+            RP_CERT_CN,
+            CertificateType::ReaderAuth(reader_registration.into()),
+        )
+        .unwrap();
+
+        PrivateKey::new(signing_key, certificate)
+    }
+
+    /// Create a `DocRequest` including reader authentication,
+    /// based on a `SessionTranscript` and `PrivateKey`.
+    async fn create_doc_request(
+        items_request: ItemsRequest,
+        session_transcript: SessionTranscript,
+        private_key: &PrivateKey,
+    ) -> DocRequest {
+        // Generate the reader authentication signature, without payload.
+        let reader_auth = ReaderAuthenticationKeyed {
+            reader_auth_string: Default::default(),
+            session_transcript,
+            items_request_bytes: items_request.clone().into(),
+        };
+
+        let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
+            &TaggedBytes(CborSeq(reader_auth)),
+            cose::new_certificate_header(&private_key.cert_bts),
+            private_key,
+            false,
+        )
+        .await
+        .unwrap();
+
+        // Create and encrypt the `DeviceRequest`.
+        DocRequest {
+            items_request: items_request.into(),
+            reader_auth: Some(cose.0.into()),
+        }
     }
 
     /// A type that implements `MdocDataSource` and simply returns
@@ -909,14 +956,7 @@ mod tests {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
             let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
             let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
-            let (rp_certificate, rp_signing_key) = Certificate::new(
-                &ca,
-                &ca_privkey,
-                RP_CERT_CN,
-                CertificateType::ReaderAuth(reader_registration.clone().into()),
-            )
-            .unwrap();
-            let private_key = PrivateKey::new(rp_signing_key, rp_certificate);
+            let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone());
 
             // Generate the `ReaderEngagement` that would be be sent in the UL.
             let (reader_engagement, reader_ephemeral_key) =
@@ -957,10 +997,7 @@ mod tests {
         }
 
         fn trust_anchors(&self) -> Vec<TrustAnchor> {
-            self.trust_anchors
-                .iter()
-                .map(|anchor| anchor.into())
-                .collect::<Vec<_>>()
+            self.trust_anchors.iter().map(|anchor| anchor.into()).collect()
         }
 
         // Generate the `SessionData` response containing the `DeviceRequest`,
@@ -992,27 +1029,7 @@ mod tests {
             // Create a `DocRequest` for every `ItemRequest`.
             let doc_requests = join_all(self.items_requests.iter().cloned().zip(session_transcripts).map(
                 |(items_request, session_transcript)| async {
-                    // Generate the reader authentication signature, without payload.
-                    let reader_auth = ReaderAuthenticationKeyed {
-                        reader_auth_string: Default::default(),
-                        session_transcript,
-                        items_request_bytes: items_request.clone().into(),
-                    };
-
-                    let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
-                        &TaggedBytes(CborSeq(reader_auth)),
-                        cose::new_certificate_header(&self.private_key.cert_bts),
-                        &self.private_key,
-                        false,
-                    )
-                    .await
-                    .unwrap();
-
-                    // Create and encrypt the `DeviceRequest`.
-                    DocRequest {
-                        items_request: items_request.into(),
-                        reader_auth: Some(cose.0.into()),
-                    }
+                    create_doc_request(items_request, session_transcript, &self.private_key).await
                 },
             ))
             .await;
@@ -1296,9 +1313,6 @@ mod tests {
         assert_matches!(error, Error::Cose(CoseError::Certificate(_)));
     }
 
-    // TODO: Test `HolderError::ReaderAuthsInconsistent` error result.
-    // TODO: Test `HolderError::NoReaderRegistration` error result.
-
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_registration_validation() {
         // Starting a `DisclosureSession` where the `DeviceRequest` contains an attribute
@@ -1323,6 +1337,97 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
+    }
+
+    // TODO: Test `HolderError::NoReaderRegistration` error result.
+
+    #[tokio::test]
+    async fn test_device_request_verify() {
+        // Create two certificates and private keys.
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let owned_trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
+        let reader_registration = ReaderRegistration::default();
+        let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
+        let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
+
+        // Create a basic `SessionTranscript` we can use.
+        let (reader_engagement, _reader_private_key) =
+            ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
+        let (device_engagement, _device_private_key) =
+            DeviceEngagement::new_device_engagement(REFERRER_URL.parse().unwrap()).unwrap();
+        let session_transcript =
+            SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap();
+
+        // Create an empty `ItemsRequest` and generate `DeviceRequest` with two `DocRequest`s
+        // from it, each signed with the same certificate.
+        let items_request = items_request(
+            EXAMPLE_DOC_TYPE.to_string(),
+            EXAMPLE_NAMESPACE.to_string(),
+            Vec::<String>::new().into_iter(),
+        );
+
+        let device_request = DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests: vec![
+                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
+                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
+            ],
+        };
+
+        // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
+        let trust_anchors = owned_trust_anchors
+            .iter()
+            .map(|anchor| anchor.into())
+            .collect::<Vec<TrustAnchor>>();
+
+        let verified_reader_registration = device_request
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .expect("Could not verify DeviceRequest");
+
+        assert_eq!(verified_reader_registration, Some(reader_registration));
+
+        // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.
+        let device_request = DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests: vec![
+                DocRequest {
+                    items_request: items_request.clone().into(),
+                    reader_auth: None,
+                },
+                DocRequest {
+                    items_request: items_request.clone().into(),
+                    reader_auth: None,
+                },
+            ],
+        };
+
+        let no_reader_registration = device_request
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .expect("Could not verify DeviceRequest");
+
+        assert!(no_reader_registration.is_none());
+
+        // Generate `DeviceRequest` with two `DocRequest`s, each signed
+        // with a different key and including a different certificate.
+        let device_request = DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests: vec![
+                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
+                create_doc_request(items_request, session_transcript.clone(), &private_key2).await,
+            ],
+        };
+
+        // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
+        let trust_anchors = owned_trust_anchors
+            .iter()
+            .map(|anchor| anchor.into())
+            .collect::<Vec<TrustAnchor>>();
+
+        let error = device_request
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .expect_err("Verifying DeviceRequest should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
     }
 
     #[test]
