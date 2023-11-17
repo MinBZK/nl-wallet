@@ -97,12 +97,13 @@ impl ProposedDocument {
                 let available_attributes = mdoc.issuer_signed_attribute_identifiers();
                 let missing_attributes = requested_attributes
                     .difference(&available_attributes)
+                    .cloned()
                     .collect::<Vec<_>>();
 
                 let is_satisfying = missing_attributes.is_empty();
 
                 if !is_satisfying {
-                    all_missing_attributes.push(missing_attributes.into_iter().cloned().collect());
+                    all_missing_attributes.push(missing_attributes);
                 }
 
                 is_satisfying
