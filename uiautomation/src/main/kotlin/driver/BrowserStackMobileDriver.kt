@@ -58,7 +58,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
     }
 
     companion object {
-        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500
+        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500 // Default: 3000 milliseconds
         private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default: 90 seconds
     }
 }
