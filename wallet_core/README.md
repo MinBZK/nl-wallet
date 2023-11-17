@@ -41,3 +41,29 @@ To regenerate the bindings, run the following command from `wallet_core`:
 ```sh
 cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
 ```
+
+## Code Conventions
+
+### Imports
+
+In our rust files, we order the imports (`use` statements) first by the following categories, separated by a newline, and then alphabetically.
+
+1. Standard Library imports
+2. 3pp (Third-Party Package) imports
+3. Workspace imports
+4. Local imports
+
+```rs
+// Standard Library imports
+use std::*;
+
+// 3pp imports
+use serde::...;
+
+// Workspace imports
+use wallet_common::...;
+
+// Local imports
+use crate::...;
+use super::...;
+```

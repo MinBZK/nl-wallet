@@ -1,12 +1,14 @@
 use indexmap::IndexSet;
 
 use crate::{
+    holder::Mdoc,
     iso::{
         device_retrieval::{DeviceRequest, ItemsRequest},
         disclosure::IssuerSigned,
         mdocs::{Attributes, DataElementIdentifier, DocType, NameSpace},
     },
     utils::serialization::TaggedBytes,
+    Document,
 };
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -23,17 +25,17 @@ impl std::fmt::Debug for AttributeIdentifier {
 }
 
 impl IssuerSigned {
-    pub(crate) fn attribute_identifiers(&self, doc_type: &str) -> IndexSet<AttributeIdentifier> {
+    fn attribute_identifiers(&self, doc_type: &str) -> IndexSet<AttributeIdentifier> {
         self.name_spaces
             .as_ref()
             .map(|name_spaces| {
                 name_spaces
-                    .iter()
-                    .flat_map(|(namespace, Attributes(attrs))| {
-                        attrs.iter().map(|TaggedBytes(attr)| AttributeIdentifier {
-                            doc_type: doc_type.to_string(),
-                            namespace: namespace.clone(),
-                            attribute: attr.element_identifier.clone(),
+                    .into_iter()
+                    .flat_map(|(namespace, Attributes(attributes))| {
+                        attributes.iter().map(|TaggedBytes(attribute)| AttributeIdentifier {
+                            doc_type: doc_type.to_owned(),
+                            namespace: namespace.to_owned(),
+                            attribute: attribute.element_identifier.to_owned(),
                         })
                     })
                     .collect()
@@ -42,8 +44,32 @@ impl IssuerSigned {
     }
 }
 
-impl DeviceRequest {
-    pub(crate) fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+impl Mdoc {
+    pub(crate) fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.issuer_signed.attribute_identifiers(&self.doc_type)
+    }
+}
+
+impl Document {
+    pub(crate) fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.issuer_signed.attribute_identifiers(&self.doc_type)
+    }
+}
+
+pub trait AttributeIdentifierHolder {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier>;
+
+    fn difference(&self, other: &impl AttributeIdentifierHolder) -> IndexSet<AttributeIdentifier> {
+        let other_attributes = other.attribute_identifiers();
+        self.attribute_identifiers()
+            .into_iter()
+            .filter(|attribute| !other_attributes.contains(attribute))
+            .collect()
+    }
+}
+
+impl AttributeIdentifierHolder for DeviceRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.doc_requests
             .iter()
             .flat_map(|doc_request| doc_request.items_request.0.attribute_identifiers())
@@ -51,15 +77,15 @@ impl DeviceRequest {
     }
 }
 
-impl ItemsRequest {
-    pub(crate) fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+impl AttributeIdentifierHolder for ItemsRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.name_spaces
             .iter()
-            .flat_map(|(namespace, attrs)| {
-                attrs.iter().map(|(attr, _)| AttributeIdentifier {
-                    doc_type: self.doc_type.clone(),
-                    namespace: namespace.clone(),
-                    attribute: attr.clone(),
+            .flat_map(|(namespace, attributes)| {
+                attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
+                    doc_type: self.doc_type.to_owned(),
+                    namespace: namespace.to_owned(),
+                    attribute: attribute.to_owned(),
                 })
             })
             .collect()

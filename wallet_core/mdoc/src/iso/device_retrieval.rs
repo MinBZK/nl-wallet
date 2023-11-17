@@ -1,11 +1,14 @@
 //! Data structures with which a verifier requests attributes from a holder.
 
+use std::fmt::Debug;
+
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
+
+use fieldnames_derive::FieldNames;
 
 use crate::{
     iso::{engagement::*, mdocs::*},
@@ -14,7 +17,6 @@ use crate::{
         serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
     },
 };
-use fieldnames_derive::FieldNames;
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
@@ -24,6 +26,7 @@ pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
     pub doc_requests: Vec<DocRequest>,
 }
+
 impl DeviceRequest {
     pub fn new(items_requests: Vec<ItemsRequest>) -> DeviceRequest {
         DeviceRequest {
