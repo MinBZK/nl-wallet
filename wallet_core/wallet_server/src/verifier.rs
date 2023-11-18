@@ -20,7 +20,7 @@ use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{SessionState, SessionStore, SessionToken},
+    server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
     utils::{
         serialization::cbor_serialize,
         x509::{Certificate, OwnedTrustAnchor},
@@ -48,17 +48,26 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("{}", self);
         match self {
-            Error::StartSession(nl_wallet_mdoc::Error::Verification(_)) => StatusCode::BAD_REQUEST.into_response(),
-            Error::StartSession(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-            Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(VerificationError::UnknownSessionId(_))) => {
-                StatusCode::NOT_FOUND.into_response()
+            Error::StartSession(nl_wallet_mdoc::Error::Verification(_)) => StatusCode::BAD_REQUEST,
+            Error::StartSession(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(VerificationError::UnknownSessionId(_)))
+            | Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(VerificationError::SessionStore(
+                SessionStoreError::NotFound,
+            ))) => StatusCode::NOT_FOUND,
+            Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(VerificationError::SessionStore(_))) => {
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-            Error::ProcessMdoc(_) => StatusCode::BAD_REQUEST.into_response(),
-            Error::Status(nl_wallet_mdoc::Error::Verification(VerificationError::UnknownSessionId(_))) => {
-                StatusCode::NOT_FOUND.into_response()
+            Error::ProcessMdoc(_) => StatusCode::BAD_REQUEST,
+            Error::Status(nl_wallet_mdoc::Error::Verification(VerificationError::UnknownSessionId(_)))
+            | Error::Status(nl_wallet_mdoc::Error::Verification(VerificationError::SessionStore(
+                SessionStoreError::NotFound,
+            ))) => StatusCode::NOT_FOUND,
+            Error::Status(nl_wallet_mdoc::Error::Verification(VerificationError::SessionStore(_))) => {
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-            Error::Status(_) => StatusCode::BAD_REQUEST.into_response(),
+            Error::Status(_) => StatusCode::BAD_REQUEST,
         }
+        .into_response()
     }
 }
 
@@ -169,6 +178,7 @@ where
             start_request.session_type,
             start_request.usecase,
         )
+        .await
         .map_err(Error::StartSession)?;
 
     let session_url = state
@@ -194,6 +204,6 @@ async fn status<S>(
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let status = state.verifier.status(&session_id).map_err(Error::Status)?;
+    let status = state.verifier.status(&session_id).await.map_err(Error::Status)?;
     Ok(Json(status))
 }

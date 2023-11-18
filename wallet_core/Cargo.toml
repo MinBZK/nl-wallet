@@ -21,6 +21,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_server",
+    "wallet_server/migration",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"

@@ -40,6 +40,8 @@ pub enum IssuanceError {
     PrivatePublicKeyConversion(Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("failed to parse DER-encoded private key: {0}")]
     DerPrivateKey(#[from] p256::pkcs8::Error),
+    #[error("error with sessionstore: {0}")]
+    SessionStore(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl Response {

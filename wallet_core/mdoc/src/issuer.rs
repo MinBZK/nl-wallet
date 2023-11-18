@@ -94,7 +94,7 @@ where
 
     /// Start a new issuance session for the specified (unsigned) mdocs. Returns the [`ServiceEngagement`] to be
     /// presented to the user.
-    pub fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<ServiceEngagement> {
+    pub async fn new_session(&self, docs: Vec<UnsignedMdoc>) -> Result<ServiceEngagement> {
         self.check_keys(&docs)?;
 
         let challenge = ByteBuf::from(random_bytes(32));
@@ -106,10 +106,13 @@ where
             unsigned_mdocs: docs,
         };
 
-        self.sessions.write(&SessionState::new(
-            token.clone(),
-            IssuanceData::new(request, session_id),
-        ));
+        self.sessions
+            .write(&SessionState::new(
+                token.clone(),
+                IssuanceData::new(request, session_id),
+            ))
+            .await
+            .map_err(|e| IssuanceError::SessionStore(e.into()))?;
 
         let url = self.url.join(&token.0).unwrap(); // token is alphanumeric so this will always succeed
         Ok(ServiceEngagement {
@@ -134,12 +137,13 @@ where
         let mut session_data = self
             .sessions
             .get(&token)
+            .await
+            .map_err(|e| IssuanceError::SessionStore(e.into()))?
             .ok_or_else(|| Error::from(IssuanceError::UnknownSessionId(token.clone())))?;
         let session = Session {
             sessions: self.sessions.as_ref(),
             session_data: &mut session_data,
             keys: &self.keys,
-            updated: false,
         };
 
         // If this is not the very first protocol message, the session ID is expected in every message.
@@ -234,18 +238,6 @@ where
     sessions: &'a S,
     session_data: &'a mut SessionState<IssuanceData>,
     keys: &'a K,
-    updated: bool,
-}
-
-impl<'a, K, S> Drop for Session<'a, K, S>
-where
-    S: SessionStore<Data = SessionState<IssuanceData>>,
-{
-    fn drop(&mut self) {
-        if self.updated {
-            self.sessions.write(self.session_data);
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -270,14 +262,18 @@ impl<'a, K: KeyRing, S> Session<'a, K, S>
 where
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
-    fn update_state(&mut self, new_state: IssuanceStatus) {
+    async fn update_state(&mut self, new_state: IssuanceStatus) -> Result<()> {
         self.session_data.session_data.state.update(new_state);
         self.session_data.last_active = Utc::now();
-        self.updated = true;
+        Ok(self
+            .sessions
+            .write(self.session_data)
+            .await
+            .map_err(|e| IssuanceError::SessionStore(Box::new(e)))?)
     }
 
     async fn process_start(mut self, _: StartProvisioningMessage) -> Result<ReadyToProvisionMessage> {
-        self.update_state(Started);
+        self.update_state(Started).await?;
         let response = ReadyToProvisionMessage {
             e_session_id: self.session_data.session_data.request.e_session_id.clone(),
         };
@@ -285,21 +281,21 @@ where
     }
 
     async fn process_get_request(mut self, _: StartIssuingMessage) -> Result<RequestKeyGenerationMessage> {
-        self.update_state(WaitingForResponse);
+        self.update_state(WaitingForResponse).await?;
         Ok(self.session_data.session_data.request.clone())
     }
 
     async fn process_response(mut self, device_response: KeyGenerationResponseMessage) -> Result<DataToIssueMessage> {
         let issuance_result = self.issue(device_response).await;
         match issuance_result {
-            Ok(_) => self.update_state(Done),
-            Err(_) => self.update_state(Failed),
+            Ok(_) => self.update_state(Done).await?,
+            Err(_) => self.update_state(Failed).await?,
         }
         issuance_result
     }
 
     async fn process_cancel(mut self, _: RequestEndSessionMessage) -> Result<EndSessionMessage> {
-        self.update_state(Cancelled);
+        self.update_state(Cancelled).await?;
         let response = EndSessionMessage {
             e_session_id: self.session_data.session_data.request.e_session_id.clone(),
             reason: "success".to_string(),
@@ -467,7 +463,7 @@ mod tests {
 
         // insert a fresh session
         let session_data = dummy_session_data();
-        server.sessions.write(&session_data);
+        server.sessions.write(&session_data).await.unwrap();
         assert_eq!(server.sessions.sessions.len(), 1);
 
         // wait at least one duration: session should still be here
@@ -477,7 +473,7 @@ mod tests {
         // insert a stale session
         let mut session_data = dummy_session_data();
         session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
-        server.sessions.write(&session_data);
+        server.sessions.write(&session_data).await.unwrap();
         assert_eq!(server.sessions.sessions.len(), 2);
 
         // wait at least one duration: stale session should be removed
@@ -505,7 +501,7 @@ mod tests {
             // insert a stale session
             let mut session_data = dummy_session_data();
             session_data.last_active = chrono::Utc::now() - chrono::Duration::hours(1);
-            server.sessions.write(&session_data);
+            server.sessions.write(&session_data).await.unwrap();
             assert_eq!(server.sessions.sessions.len(), 1);
 
             // Drop the server and its cleanup task before giving the cleanup task a chance to run

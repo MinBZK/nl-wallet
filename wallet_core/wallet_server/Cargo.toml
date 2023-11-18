@@ -15,14 +15,22 @@ axum = { workspace = true, features = [
     "tracing",
 ] }
 base64.workspace = true
-config = { workspace = true, features = ["toml"] }
 chrono.workspace = true
+config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 lazy_static.workspace = true
 mime.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 reqwest.workspace = true
+sea-orm = { workspace = true, optional = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+] }
 serde = { workspace = true, features = ["serde_derive"] }
+serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
@@ -36,6 +44,10 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
+
+[features]
+default = ["postgres"]
+postgres = ["dep:sea-orm"]
 
 [dev-dependencies]
 indexmap.workspace = true

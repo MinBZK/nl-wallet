@@ -403,7 +403,7 @@ async fn issuance_using_consent(
     issuance_server: Arc<MockServer>,
     ca: &Certificate,
 ) -> Option<Vec<MdocCopies>> {
-    let service_engagement = issuance_server.new_session(request).unwrap();
+    let service_engagement = issuance_server.new_session(request).await.unwrap();
 
     wallet.start_issuance(service_engagement).await.unwrap();
 

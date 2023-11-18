@@ -13,7 +13,7 @@ use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionState, SessionStore, SessionToken},
+    server_state::{SessionState, SessionStore, SessionToken},
     utils::{
         reader_auth::{DeletionPolicy, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy},
         serialization::cbor_deserialize,
@@ -25,6 +25,7 @@ use nl_wallet_mdoc::{
 use wallet_server::{
     server,
     settings::{KeyPair, Server, Settings},
+    store::new_session_store,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -85,6 +86,7 @@ fn wallet_server_settings() -> Settings {
         internal_url: Some(format!("http://127.0.0.1:{}/", port2).parse().unwrap()),
         usecases: HashMap::new(),
         trust_anchors: Vec::new(),
+        store_url: "memory://".parse().unwrap(),
     };
     let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
     let (cert, cert_privkey) = Certificate::new(
@@ -168,7 +170,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[tokio::test]
 async fn test_start_session() {
     let settings = wallet_server_settings();
-    let sessions = MemorySessionStore::<DisclosureData>::new();
+    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions).await;
 
@@ -228,12 +230,11 @@ async fn test_start_session() {
 #[tokio::test]
 async fn test_session_not_found() {
     let settings = wallet_server_settings();
-    let sessions = MemorySessionStore::<DisclosureData>::new();
+    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions).await;
 
     let client = reqwest::Client::new();
-
     // does it exist for the RP side of things?
     let response = client
         .get(
@@ -248,7 +249,6 @@ async fn test_session_not_found() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
     // does it exist for the wallet side of things?
     let response = client
         .post(settings.public_url.join(&format!("/{}", SessionToken::new())).unwrap())
