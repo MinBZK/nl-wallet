@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
-use futures::future::try_join_all;
+use futures::future::{try_join_all, TryFutureExt};
 use indexmap::{IndexMap, IndexSet};
 use p256::{elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
 use url::Url;
@@ -212,8 +212,21 @@ where
             ephemeral_privkey,
         )?;
 
-        // Send the `DeviceEngagement` to the verifier and decrypt the returned `DeviceRequest`.
-        let session_data: SessionData = client.post(verifier_url, &device_engagement).await?;
+        // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
+        // If decoding fails, send a `SessionData` to the verifier to report this.
+        let session_data: SessionData = client
+            .post(verifier_url, &device_engagement)
+            .or_else(|error| async {
+                if matches!(error, Error::Cbor(_)) {
+                    // Ignore the response or any errors.
+                    let _: Result<SessionData> = client.post(verifier_url, &SessionData::new_decoding_error()).await;
+                }
+
+                Err(error)
+            })
+            .await?;
+
+        // Decrypt the returned `DeviceRequest`.
         let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
         // A device request without any attributes is useless, so return an error.
@@ -784,6 +797,7 @@ mod tests {
     use futures::future::join_all;
     use p256::ecdsa::SigningKey;
     use serde::{de::DeserializeOwned, Serialize};
+    use tokio::sync::mpsc;
 
     use crate::{
         examples::{Example, Examples},
@@ -792,6 +806,7 @@ mod tests {
         utils::{
             cose::{self, CoseError, MdocCose},
             reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
+            serialization::CborError,
             x509::OwnedTrustAnchor,
         },
     };
@@ -1132,6 +1147,35 @@ mod tests {
         }
     }
 
+    /// An implementor of `HttpClient` that just returns errors. Messages
+    /// sent through this `HttpClient` can be inspected through a `mpsc` channel.
+    struct ErrorHttpClient<F> {
+        error_factory: F,
+        payload_sender: mpsc::Sender<Vec<u8>>,
+    }
+
+    impl<F> fmt::Debug for ErrorHttpClient<F> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("ErrorHttpClient").finish_non_exhaustive()
+        }
+    }
+
+    #[async_trait]
+    impl<F> HttpClient for ErrorHttpClient<F>
+    where
+        F: Fn() -> Error + Send + Sync,
+    {
+        async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
+        where
+            V: Serialize + Sync,
+            R: DeserializeOwned,
+        {
+            _ = self.payload_sender.send(cbor_serialize(val).unwrap()).await;
+
+            Err((self.error_factory)())
+        }
+    }
+
     /// Perform a [`DisclosureSession`] start with test defaults.
     /// This function takes several closures for modifying these
     /// defaults just before they are actually used.
@@ -1282,6 +1326,49 @@ mod tests {
             .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Crypto(_));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_session_data_decode() {
+        // Set up a `ErrorHttpClient` that returns a `Error::CborError`.
+        let (payload_sender, mut payload_receiver) = mpsc::channel(256);
+        let client = ErrorHttpClient {
+            error_factory: || CborError::from(ciborium::de::Error::RecursionLimitExceeded).into(),
+            payload_sender,
+        };
+
+        // Set up a basic `ReaderEngagement` and `MdocDataSource` (which is not actually consulted).
+        let (reader_engagement, _) = ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
+        let mdoc_data_source = MockMdocDataSource::default();
+
+        let error = DisclosureSession::start(
+            client,
+            &cbor_serialize(&reader_engagement).unwrap(),
+            None,
+            SessionType::SameDevice,
+            &mdoc_data_source,
+            &[],
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        // Collect the serialized payloads sent through the `HttpClient`.
+        let mut payloads = Vec::with_capacity(2);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        // Test that we got the expected error and that the last payload
+        // is a `SessionData` containing the expected `SessionStatus`.
+        assert_matches!(error, Error::Cbor(_));
+        assert_eq!(payloads.len(), 2);
+
+        let session_data: SessionData =
+            cbor_deserialize(payloads.last().unwrap().as_slice()).expect("Last sent message is not SessionData");
+
+        assert!(session_data.data.is_none());
+        assert_matches!(session_data.status, Some(SessionStatus::DecodingError));
     }
 
     #[tokio::test]
