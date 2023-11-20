@@ -130,7 +130,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           Row(
             children: [
               ExcludeSemantics(
-                child: OrganizationLogo(image: AssetImage(organization.logoUrl), size: 40),
+                child: OrganizationLogo(image: organization.logo, size: 40),
               ),
               const SizedBox(width: 16),
               Expanded(

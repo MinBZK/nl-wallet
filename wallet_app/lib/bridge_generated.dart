@@ -177,6 +177,19 @@ enum IdentifyUriResult {
   Disclosure,
 }
 
+@freezed
+class Image with _$Image {
+  const factory Image.svg({
+    required String xml,
+  }) = Image_Svg;
+  const factory Image.png({
+    required String base64,
+  }) = Image_Png;
+  const factory Image.jpg({
+    required String base64,
+  }) = Image_Jpg;
+}
+
 class LocalizedString {
   final String language;
   final String value;
@@ -206,6 +219,7 @@ class RelyingParty {
   final List<LocalizedString> legalName;
   final List<LocalizedString> displayName;
   final List<LocalizedString> description;
+  final Image? image;
   final String? webUrl;
   final String? kvk;
   final List<LocalizedString>? city;
@@ -215,6 +229,7 @@ class RelyingParty {
     required this.legalName,
     required this.displayName,
     required this.description,
+    this.image,
     this.webUrl,
     this.kvk,
     this.city,
@@ -676,6 +691,10 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  Image _wire2api_box_autoadd_image(dynamic raw) {
+    return _wire2api_image(raw);
+  }
+
   RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
     return _wire2api_relying_party(raw);
   }
@@ -765,6 +784,25 @@ class WalletCoreImpl implements WalletCore {
     return IdentifyUriResult.values[raw as int];
   }
 
+  Image _wire2api_image(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return Image_Svg(
+          xml: _wire2api_String(raw[1]),
+        );
+      case 1:
+        return Image_Png(
+          base64: _wire2api_String(raw[1]),
+        );
+      case 2:
+        return Image_Jpg(
+          base64: _wire2api_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   List<Card> _wire2api_list_card(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_card).toList();
   }
@@ -806,6 +844,10 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_String(raw);
   }
 
+  Image? _wire2api_opt_box_autoadd_image(dynamic raw) {
+    return raw == null ? null : _wire2api_box_autoadd_image(raw);
+  }
+
   int? _wire2api_opt_box_autoadd_u64(dynamic raw) {
     return raw == null ? null : _wire2api_box_autoadd_u64(raw);
   }
@@ -820,15 +862,16 @@ class WalletCoreImpl implements WalletCore {
 
   RelyingParty _wire2api_relying_party(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return RelyingParty(
       legalName: _wire2api_list_localized_string(arr[0]),
       displayName: _wire2api_list_localized_string(arr[1]),
       description: _wire2api_list_localized_string(arr[2]),
-      webUrl: _wire2api_opt_String(arr[3]),
-      kvk: _wire2api_opt_String(arr[4]),
-      city: _wire2api_opt_list_localized_string(arr[5]),
-      countryCode: _wire2api_opt_String(arr[6]),
+      image: _wire2api_opt_box_autoadd_image(arr[3]),
+      webUrl: _wire2api_opt_String(arr[4]),
+      kvk: _wire2api_opt_String(arr[5]),
+      city: _wire2api_opt_list_localized_string(arr[6]),
+      countryCode: _wire2api_opt_String(arr[7]),
     );
   }
 

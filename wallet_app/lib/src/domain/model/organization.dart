@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'app_image_data.dart';
 import 'localized_text.dart';
 
 class Organization extends Equatable {
@@ -8,7 +9,7 @@ class Organization extends Equatable {
   final LocalizedText displayName;
   final LocalizedText? type;
   final LocalizedText? description;
-  final String logoUrl;
+  final AppImageData logo;
   final String? webUrl;
   final LocalizedText? country;
   final LocalizedText? city;
@@ -21,7 +22,7 @@ class Organization extends Equatable {
     required this.displayName,
     required this.type,
     required this.description,
-    required this.logoUrl,
+    required this.logo,
     this.webUrl,
     this.country,
     this.city,
@@ -30,6 +31,17 @@ class Organization extends Equatable {
   });
 
   @override
-  List<Object?> get props =>
-      [id, legalName, displayName, type, description, logoUrl, webUrl, city, country, department, kvk];
+  List<Object?> get props => [
+        id,
+        legalName,
+        displayName,
+        type,
+        description,
+        logo,
+        webUrl,
+        city,
+        country,
+        department,
+        kvk,
+      ];
 }

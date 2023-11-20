@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/missing_attribute.dart';
@@ -212,7 +213,7 @@ class OtherStylesTab extends StatelessWidget {
               type: 'Category'.untranslated,
               displayName: 'This is a TimelineAttributeRow'.untranslated,
               description: 'Organization description'.untranslated,
-              logoUrl: WalletAssets.logo_rijksoverheid,
+              logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
             ),
             dataAttributes: const [],
             status: InteractionStatus.success,

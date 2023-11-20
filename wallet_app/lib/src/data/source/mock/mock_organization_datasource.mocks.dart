@@ -42,7 +42,7 @@ final _kRvigOrganization = Organization(
   description:
       'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.'
           .untranslated,
-  logoUrl: WalletAssets.logo_rijksoverheid,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 final _kRdwOrganization = Organization(
@@ -50,7 +50,7 @@ final _kRdwOrganization = Organization(
   legalName: 'Rijksdienst voor het Wegverkeer (RDW)'.untranslated,
   displayName: 'RDW'.untranslated,
   type: 'Overheid'.untranslated,
-  logoUrl: WalletAssets.logo_rdw,
+  logo: const AppAssetImage(WalletAssets.logo_rdw),
   description:
       'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
           .untranslated,
@@ -61,7 +61,7 @@ final _kDuoOrganization = Organization(
   legalName: 'Dienst Uitvoering Onderwijs (DUO)'.untranslated,
   displayName: 'DUO'.untranslated,
   type: 'Overheid'.untranslated,
-  logoUrl: WalletAssets.logo_rijksoverheid,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   description:
       'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
           .untranslated,
@@ -75,7 +75,7 @@ final _kEmployerOrganization = Organization(
   description:
       'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.'
           .untranslated,
-  logoUrl: WalletAssets.logo_rijksoverheid,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 final _kJustisOrganization = Organization(
@@ -86,7 +86,7 @@ final _kJustisOrganization = Organization(
   description:
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.'
           .untranslated,
-  logoUrl: WalletAssets.logo_rijksoverheid,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 final _kMarketPlaceOrganization = Organization(
@@ -95,7 +95,7 @@ final _kMarketPlaceOrganization = Organization(
   displayName: 'Online Marketplace'.untranslated,
   type: 'Webwinkel'.untranslated,
   description: 'De winkel van ons allemaal.'.untranslated,
-  logoUrl: WalletAssets.logo_ecommerce,
+  logo: const AppAssetImage(WalletAssets.logo_ecommerce),
   department: 'Afdeling online marketing'.untranslated,
   city: 'Utrecht'.untranslated,
   country: 'Nederland'.untranslated,
@@ -108,7 +108,7 @@ final _kBarOrganization = Organization(
   displayName: 'Cafe de Dobbelaar'.untranslated,
   type: 'Horeca'.untranslated,
   description: 'Familiecafe sinds 1984.'.untranslated,
-  logoUrl: WalletAssets.logo_bar,
+  logo: const AppAssetImage(WalletAssets.logo_bar),
 );
 
 final _kHealthInsurerOrganization = Organization(
@@ -119,7 +119,7 @@ final _kHealthInsurerOrganization = Organization(
   description:
       'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.'
           .untranslated,
-  logoUrl: WalletAssets.logo_zorgverzekeraar_z,
+  logo: const AppAssetImage(WalletAssets.logo_zorgverzekeraar_z),
 );
 
 final _kHousingCorporationOrganization = Organization(
@@ -128,7 +128,7 @@ final _kHousingCorporationOrganization = Organization(
   displayName: 'BetwerWonen'.untranslated,
   type: 'Wooncorporatie'.untranslated,
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
-  logoUrl: WalletAssets.logo_housing_corp,
+  logo: const AppAssetImage(WalletAssets.logo_housing_corp),
   webUrl: 'https://beterwonen.nl',
   country: 'Nederland'.untranslated,
   city: 'Den Haag'.untranslated,
@@ -141,7 +141,7 @@ final _kCarRentalOrganization = Organization(
   displayName: 'CarRental'.untranslated,
   type: 'Autoverhuur'.untranslated,
   description: 'Betrouwbaar huren.'.untranslated,
-  logoUrl: WalletAssets.logo_car_rental,
+  logo: const AppAssetImage(WalletAssets.logo_car_rental),
 );
 
 final _kFirstAidOrganization = Organization(
@@ -152,7 +152,7 @@ final _kFirstAidOrganization = Organization(
   description:
       'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.'
           .untranslated,
-  logoUrl: WalletAssets.logo_first_aid,
+  logo: const AppAssetImage(WalletAssets.logo_first_aid),
 );
 
 final _kMunicipalityDelftOrganization = Organization(
@@ -163,7 +163,7 @@ final _kMunicipalityDelftOrganization = Organization(
   description:
       'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
           .untranslated,
-  logoUrl: WalletAssets.logo_den_haag,
+  logo: const AppAssetImage(WalletAssets.logo_den_haag),
   department: 'Parkeren'.untranslated,
   city: 'Den Haag'.untranslated,
   country: 'Nederland'.untranslated,
@@ -176,7 +176,7 @@ final _kBankOrganization = Organization(
   displayName: 'Jouw Bank'.untranslated,
   type: 'Bank'.untranslated,
   description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'.untranslated,
-  logoUrl: WalletAssets.logo_bank,
+  logo: const AppAssetImage(WalletAssets.logo_bank),
   department: 'Klantenservice'.untranslated,
   country: 'Nederland'.untranslated,
   city: 'Amsterdam'.untranslated,
@@ -189,7 +189,7 @@ final _kMonkeyBikeOrganization = Organization(
   displayName: 'MonkeyBike'.untranslated,
   type: 'Bezorgdienst'.untranslated,
   description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.'.untranslated,
-  logoUrl: WalletAssets.logo_monkeybike,
+  logo: const AppAssetImage(WalletAssets.logo_monkeybike),
   department: 'Online marketing'.untranslated,
   country: 'Land'.untranslated,
   city: 'Groningen'.untranslated,
@@ -203,7 +203,7 @@ final _kPharmacyOrganization = Organization(
   displayName: 'Apotheek'.untranslated,
   type: 'Apotheek'.untranslated,
   description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated,
-  logoUrl: WalletAssets.logo_zorgverzekeraar_z,
+  logo: const AppAssetImage(WalletAssets.logo_zorgverzekeraar_z),
   department: 'KVK: 1234-1234'.untranslated,
   city: 'Den Haag'.untranslated,
   country: 'Nederland'.untranslated,
