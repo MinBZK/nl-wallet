@@ -1595,7 +1595,6 @@ mod tests {
     #[test]
     fn test_device_authentication_bytes_from_session_transcript() {
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-        println!("{:?}", session_transcript);
         let device_authentication =
             DeviceAuthentication::from_session_transcript(session_transcript, EXAMPLE_DOC_TYPE.to_string());
 
