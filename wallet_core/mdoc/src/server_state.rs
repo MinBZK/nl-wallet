@@ -1,24 +1,38 @@
-use std::{fmt::Display, sync::Arc, time::Duration};
+use std::{fmt::Display, marker::Send, sync::Arc, time::Duration};
 
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
 use wallet_common::utils::random_string;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionState<T> {
     pub session_data: T,
     pub token: SessionToken,
     pub last_active: DateTime<Utc>,
 }
 
-pub trait SessionStore {
-    type Data: Clone;
+#[derive(Debug, thiserror::Error)]
+pub enum SessionStoreError {
+    #[error("key not found")]
+    NotFound,
+    #[error("error while serializing: {0}")]
+    Serialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("error while deserializing: {0}")]
+    Deserialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("something went wrong: {0}")]
+    Other(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
 
-    fn get(&self, id: &SessionToken) -> Option<Self::Data>;
-    fn write(&self, session: &Self::Data);
-    fn cleanup(&self);
+#[async_trait]
+pub trait SessionStore {
+    type Data: Clone + Send + Sync;
+
+    async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError>;
+    async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError>;
+    async fn cleanup(&self) -> Result<(), SessionStoreError>;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
@@ -28,9 +42,27 @@ pub trait SessionStore {
         tokio::spawn(async move {
             loop {
                 interval.tick().await;
-                self.cleanup();
+                let _ = self.cleanup().await; // TODO use result
             }
         })
+    }
+}
+
+// based on https://doc.rust-lang.org/1.73.0/src/std/io/impls.rs.html#159
+#[async_trait]
+impl<S: SessionStore + ?Sized + Send + Sync> SessionStore for Box<S> {
+    type Data = S::Data;
+
+    async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
+        Ok((**self).get(id).await?)
+    }
+
+    async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
+        Ok((**self).write(session).await?)
+    }
+
+    async fn cleanup(&self) -> Result<(), SessionStoreError> {
+        Ok((**self).cleanup().await?)
     }
 }
 
@@ -63,21 +95,24 @@ pub const SESSION_EXPIRY_MINUTES: u64 = 5;
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: u64 = 10;
 
-impl<T: Clone> SessionStore for MemorySessionStore<T> {
+#[async_trait]
+impl<T: Clone + Send + Sync> SessionStore for MemorySessionStore<T> {
     type Data = SessionState<T>;
 
-    fn get(&self, token: &SessionToken) -> Option<SessionState<T>> {
-        self.sessions.get(token).map(|s| s.clone())
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
+        Ok(self.sessions.get(token).map(|s| s.clone()))
     }
 
-    fn write(&self, session: &SessionState<T>) {
+    async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
         self.sessions.insert(session.token.clone(), session.clone());
+        Ok(())
     }
 
-    fn cleanup(&self) {
+    async fn cleanup(&self) -> Result<(), SessionStoreError> {
         let now = Utc::now();
         let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
         self.sessions.retain(|_, session| now - session.last_active < cutoff);
+        Ok(())
     }
 }
 

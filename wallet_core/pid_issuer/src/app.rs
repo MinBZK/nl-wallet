@@ -130,7 +130,7 @@ where
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
     let attributes = state.attributes_lookup.attributes(&bsn);
-    let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc)?;
+    let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc).await?;
 
     Ok(Json(service_engagement))
 }

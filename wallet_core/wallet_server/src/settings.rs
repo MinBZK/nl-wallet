@@ -16,6 +16,8 @@ pub struct Settings {
     pub public_url: Url,
     // used by the application, if not configured the public_url will be used
     pub internal_url: Option<Url>,
+    // supported schemes are: memory:// (default) and postgres://
+    pub store_url: Url,
 }
 
 #[derive(Deserialize, Clone)]
@@ -43,6 +45,7 @@ impl Settings {
             .set_default("requester_server.port", 3002)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
+            .set_default("store_url", "memory://")?
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_server")

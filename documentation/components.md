@@ -69,9 +69,9 @@ graph
             PID Issuer Server
             _[Container: Rust (wallet_server)]_
         `"]
-        redis[("`
+        cache[("`
             Cache
-            _[Container: Redis]_
+            _[Container: Postgres]_
         `")]
 
         pid_issuer -- "`
@@ -84,8 +84,8 @@ graph
         `" --> pid_issuer_server
         pid_issuer_server -- "`
             Stores session
-            _[JSON/HTTPS]_
-        `" --> redis
+            _[SQL/TCP]_
+        `" --> cache
     end
 
     subgraph RP[Relying Party]
@@ -97,9 +97,9 @@ graph
             Relying Party
             _[Container: Rust]_
         `"]
-        redis_rp[("`
+        cache_rp[("`
             Cache
-            _[Container: Redis]_
+            _[Container: Postgres]_
         `")]
 
         relying_party -- "`
@@ -112,8 +112,8 @@ graph
         `" --> relying_party
         relying_party_server -- "`
             Stores session
-            _[JSON/HTTPS]_
-        `"--> redis_rp
+            _[SQL/TCP]_
+        `"--> cache_rp
     end
 
     wallet_app -- "`

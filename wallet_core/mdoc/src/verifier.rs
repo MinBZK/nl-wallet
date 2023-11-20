@@ -21,11 +21,11 @@ use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
-        serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_hex, cbor_serialize, CborSeq, TaggedBytes},
         x509::{CertificateUsage, OwnedTrustAnchor},
     },
     Error, Result, SessionData,
@@ -71,6 +71,8 @@ pub enum VerificationError {
     NoItemsRequests,
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
+    #[error("error with sessionstore: {0}")]
+    SessionStore(SessionStoreError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -96,6 +98,7 @@ pub struct Created {
     session_type: SessionType,
     usecase_id: String,
     ephemeral_privkey: DerSecretKey,
+    #[serde(with = "cbor_hex")]
     reader_engagement: ReaderEngagement,
 }
 
@@ -233,7 +236,7 @@ where
     ///
     /// - `items_requests` contains the attributes to be requested.
     /// - `usecase_id` should point to an existing item in the `certificates` parameter.
-    pub fn new_session(
+    pub async fn new_session(
         &self,
         items_requests: ItemsRequests,
         session_type: SessionType,
@@ -249,7 +252,10 @@ where
 
         let (session_token, reader_engagement, session_state) =
             Session::<Created>::new(items_requests, session_type, usecase_id, &self.url)?;
-        self.sessions.write(&session_state.state.into_enum());
+        self.sessions
+            .write(&session_state.state.into_enum())
+            .await
+            .map_err(VerificationError::SessionStore)?;
         Ok((session_token, reader_engagement))
     }
 
@@ -261,6 +267,8 @@ where
         let state = self
             .sessions
             .get(&token)
+            .await
+            .map_err(VerificationError::SessionStore)?
             .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
 
         let (response, next) = match state.session_data {
@@ -301,15 +309,20 @@ where
             DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
         }?;
 
-        self.sessions.write(&next);
+        self.sessions
+            .write(&next)
+            .await
+            .map_err(VerificationError::SessionStore)?;
 
         Ok(response)
     }
 
-    pub fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
+    pub async fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
         match self
             .sessions
             .get(session_id)
+            .await
+            .map_err(VerificationError::SessionStore)?
             .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
             .session_data
         {
@@ -954,6 +967,7 @@ mod tests {
                 SessionType::SameDevice,
                 DISCLOSURE_USECASE.to_string(),
             )
+            .await
             .unwrap();
 
         // Construct first device protocol message

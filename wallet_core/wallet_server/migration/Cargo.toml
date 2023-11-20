@@ -1,0 +1,19 @@
+[package]
+name = "wallet_server_migration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "wallet_server_migration"
+path = "src/lib.rs"
+
+[dependencies]
+async-std = { version = "1", features = ["attributes", "tokio1"] }
+
+[dependencies.sea-orm-migration]
+version = "0.12.0"
+features = [
+  "runtime-tokio-rustls",
+  "sqlx-postgres",
+]
