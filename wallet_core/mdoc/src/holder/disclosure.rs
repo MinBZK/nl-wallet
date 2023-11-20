@@ -422,6 +422,7 @@ impl DeviceSigned {
     }
 }
 
+#[derive(Debug)]
 enum DeviceRequestMatch {
     Candidates(HashMap<DocType, Vec<ProposedDocument>>),
     MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate.
@@ -777,7 +778,7 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt, sync::Arc};
+    use std::{fmt, iter, sync::Arc};
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
@@ -828,6 +829,22 @@ mod tests {
             )]),
             request_info: None,
         }
+    }
+
+    fn example_items_request() -> ItemsRequest {
+        items_request(
+            EXAMPLE_DOC_TYPE.to_string(),
+            EXAMPLE_NAMESPACE.to_string(),
+            EXAMPLE_ATTRIBUTES.iter().copied(),
+        )
+    }
+
+    fn emtpy_items_request() -> ItemsRequest {
+        items_request(
+            EXAMPLE_DOC_TYPE.to_string(),
+            EXAMPLE_NAMESPACE.to_string(),
+            iter::empty::<String>(),
+        )
     }
 
     /// Build attributes for [`ReaderRegistration`] from a list of attributes.
@@ -1002,11 +1019,7 @@ mod tests {
                 ReaderEngagement::new_reader_engagement(session_url).unwrap();
 
             // Set up the default item requests
-            let items_requests = vec![items_request(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-                EXAMPLE_ATTRIBUTES.iter().copied(),
-            )];
+            let items_requests = vec![example_items_request()];
 
             MockVerifierSession {
                 session_type,
@@ -1295,11 +1308,7 @@ mod tests {
         let error = disclosure_session_start(
             SessionType::SameDevice,
             |mut verifier_session| {
-                verifier_session.items_requests = vec![items_request(
-                    EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
-                    Vec::<String>::new().into_iter(),
-                )];
+                verifier_session.items_requests = vec![emtpy_items_request()];
 
                 verifier_session
             },
@@ -1516,6 +1525,16 @@ mod tests {
 
     // TODO: Test `HolderError::NoReaderRegistration` error result.
 
+    /// Create a basic `SessionTranscript` we can use for testing.
+    fn create_basic_session_transcript() -> SessionTranscript {
+        let (reader_engagement, _reader_private_key) =
+            ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
+        let (device_engagement, _device_private_key) =
+            DeviceEngagement::new_device_engagement(REFERRER_URL.parse().unwrap()).unwrap();
+
+        SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap()
+    }
+
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
@@ -1525,21 +1544,11 @@ mod tests {
         let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
         let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
 
-        // Create a basic `SessionTranscript` we can use.
-        let (reader_engagement, _reader_private_key) =
-            ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
-        let (device_engagement, _device_private_key) =
-            DeviceEngagement::new_device_engagement(REFERRER_URL.parse().unwrap()).unwrap();
-        let session_transcript =
-            SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap();
+        let session_transcript = create_basic_session_transcript();
 
         // Create an empty `ItemsRequest` and generate `DeviceRequest` with two `DocRequest`s
         // from it, each signed with the same certificate.
-        let items_request = items_request(
-            EXAMPLE_DOC_TYPE.to_string(),
-            EXAMPLE_NAMESPACE.to_string(),
-            Vec::<String>::new().into_iter(),
-        );
+        let items_request = emtpy_items_request();
 
         let device_request = DeviceRequest {
             version: DeviceRequestVersion::V1_0,
@@ -1605,7 +1614,135 @@ mod tests {
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
     }
 
-    // TODO: Add complex test cases for `DeviceRequest.match_stored_documents()`.
+    // TODO: Add more complex test cases for `DeviceRequest.match_stored_documents()`.
+
+    #[tokio::test]
+    async fn test_device_request_match_stored_documents() {
+        let mut mdoc_data_source = MockMdocDataSource::default();
+        let session_transcript = create_basic_session_transcript();
+
+        let empty_device_request = DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests: vec![],
+        };
+
+        // An empty `DeviceRequest` should result in an empty set of candidates.
+        let match_result = empty_device_request
+            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .await
+            .expect("Could not match device request with stored documents");
+
+        assert_matches!(match_result, DeviceRequestMatch::Candidates(candidates) if candidates.is_empty());
+
+        // Have the `MdocDataSource` contain several mdocs with different attributes
+        let mdoc1 = mdoc_data_source.mdocs.pop().unwrap();
+        let mdoc2 = {
+            let mut mdoc = mdoc1.clone();
+
+            // Remove the `driving_privileges` attribute.
+            mdoc.issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .first_mut()
+                .unwrap()
+                .1
+                 .0
+                .pop();
+
+            mdoc
+        };
+        let mdoc3 = {
+            let mut mdoc = mdoc1.clone();
+
+            // Add a fake `foobar` attribute.
+            let attributes = &mut mdoc
+                .issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .first_mut()
+                .unwrap()
+                .1
+                 .0;
+
+            let mut attribute = attributes.first().unwrap().clone();
+            attribute.0.element_identifier = "foobar".to_string();
+            attributes.push(attribute);
+
+            mdoc
+        };
+        let mdoc4 = {
+            let mut mdoc = mdoc1.clone();
+
+            // Remove all attributes.
+            mdoc.issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .first_mut()
+                .unwrap()
+                .1
+                 .0
+                .clear();
+
+            mdoc
+        };
+        mdoc_data_source.mdocs = vec![mdoc1, mdoc2, mdoc3, mdoc4];
+
+        let items_request = example_items_request();
+
+        let device_request = DeviceRequest {
+            version: DeviceRequestVersion::V1_0,
+            doc_requests: vec![DocRequest {
+                items_request: items_request.into(),
+                reader_auth: None,
+            }],
+        };
+
+        // Only two of the `Mdoc` should match and be returned as a `DocumentProposal`,
+        // which should contain only the requested attributes.
+        let match_result = device_request
+            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .await
+            .expect("Could not match device request with stored documents");
+
+        assert_matches!(
+            match_result,
+            DeviceRequestMatch::Candidates(candidates) if candidates.get(EXAMPLE_DOC_TYPE).unwrap().len() == 2 &&
+                candidates.get(EXAMPLE_DOC_TYPE).unwrap().iter().all(|proposed_document|
+                    proposed_document
+                        .issuer_signed
+                        .name_spaces
+                        .as_ref()
+                        .unwrap()
+                        .get(EXAMPLE_NAMESPACE)
+                        .unwrap()
+                        .0
+                        .len() == 5
+                )
+        );
+
+        // Remove all but `mdoc2` from `MdocDataSource`.
+        mdoc_data_source.mdocs.pop();
+        mdoc_data_source.mdocs.pop();
+        mdoc_data_source.mdocs.swap_remove(0);
+
+        // Now there should not be a match, one of the attributes should be reported as missing.
+        let match_result = device_request
+            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .await
+            .expect("Could not match device request with stored documents");
+
+        let expected_missing_attributes = vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
+            .parse()
+            .unwrap()];
+        assert_matches!(
+            match_result,
+            DeviceRequestMatch::MissingAttributes(missing_attributes)
+                if missing_attributes == expected_missing_attributes
+        );
+    }
 
     #[test]
     fn test_device_authentication_bytes_from_session_transcript() {
