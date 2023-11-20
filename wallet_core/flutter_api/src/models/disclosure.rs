@@ -6,10 +6,17 @@ use wallet::{
 
 use super::card::{CardAttribute, LocalizedString};
 
+pub enum Image {
+    Svg { xml: String },
+    Png { base64: String },
+    Jpg { base64: String },
+}
+
 pub struct RelyingParty {
     pub legal_name: Vec<LocalizedString>,
     pub display_name: Vec<LocalizedString>,
     pub description: Vec<LocalizedString>,
+    pub image: Option<Image>,
     pub web_url: Option<String>,
     pub kvk: Option<String>,
     pub city: Option<Vec<LocalizedString>>,
@@ -64,12 +71,27 @@ impl From<RPLocalizedStrings> for Vec<LocalizedString> {
     }
 }
 
+impl From<wallet::mdoc::Image> for Image {
+    fn from(value: wallet::mdoc::Image) -> Self {
+        match value.mime_type {
+            wallet::mdoc::ImageType::Svg => Image::Svg { xml: value.image_data },
+            wallet::mdoc::ImageType::Png => Image::Png {
+                base64: value.image_data,
+            },
+            wallet::mdoc::ImageType::Jpeg => Image::Jpg {
+                base64: value.image_data,
+            },
+        }
+    }
+}
+
 impl From<Organization> for RelyingParty {
     fn from(value: Organization) -> Self {
         RelyingParty {
             legal_name: RPLocalizedStrings(value.legal_name).into(),
             display_name: RPLocalizedStrings(value.display_name).into(),
             description: RPLocalizedStrings(value.description).into(),
+            image: value.logo.map(|logo| logo.into()),
             kvk: value.kvk,
             city: value.city.map(|city| RPLocalizedStrings(city).into()),
             country_code: value.country_code,

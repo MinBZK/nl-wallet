@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/app_image_data.dart';
+import '../app_image.dart';
+
 const _kBorderRadiusFactor = 10.0;
 
 class OrganizationLogo extends StatelessWidget {
-  final ImageProvider image;
+  final AppImageData image;
   final double size;
 
   const OrganizationLogo({
@@ -19,10 +22,7 @@ class OrganizationLogo extends StatelessWidget {
       height: size,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size / _kBorderRadiusFactor),
-        child: Image(
-          image: image,
-          fit: BoxFit.cover,
-        ),
+        child: AppImage(asset: image, fit: BoxFit.cover),
       ),
     );
   }

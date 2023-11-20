@@ -27,6 +27,7 @@ use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
+use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::RelyingParty;
 use crate::models::disclosure::RequestPolicy;
@@ -447,6 +448,23 @@ impl rust2dart::IntoIntoDart<IdentifyUriResult> for IdentifyUriResult {
     }
 }
 
+impl support::IntoDart for Image {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Svg { xml } => vec![0.into_dart(), xml.into_into_dart().into_dart()],
+            Self::Png { base64 } => vec![1.into_dart(), base64.into_into_dart().into_dart()],
+            Self::Jpg { base64 } => vec![2.into_dart(), base64.into_into_dart().into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for Image {}
+impl rust2dart::IntoIntoDart<Image> for Image {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for LocalizedString {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -499,6 +517,7 @@ impl support::IntoDart for RelyingParty {
             self.legal_name.into_into_dart().into_dart(),
             self.display_name.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
+            self.image.into_dart(),
             self.web_url.into_dart(),
             self.kvk.into_dart(),
             self.city.into_dart(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/app_image_data.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/organization/organization_logo.dart';
@@ -17,7 +18,7 @@ class DigidSignInWithOrganization extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const OrganizationLogo(
-            image: AssetImage(WalletAssets.logo_rijksoverheid),
+            image: AppAssetImage(WalletAssets.logo_rijksoverheid),
             size: _kOrganizationLogoSize,
           ),
           const SizedBox(height: 16),

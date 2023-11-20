@@ -65,6 +65,7 @@ class WalletAssets {
   static const logo_zorgverzekeraar_z = 'assets/non-free/logos/zorgverzekeraar_z.png';
   static const logo_delft = 'assets/non-free/logos/delft.png';
   static const logo_rdw = 'assets/non-free/logos/rdw.png';
+  static const logo_rp_placeholder = 'assets/non-free/logos/rp_placeholder.png';
 
   // ICONS
   static const icon_first_share = 'assets/non-free/icons/first_share.png';

@@ -229,7 +229,7 @@ class HistoryDetailScreen extends StatelessWidget {
     return InfoRow(
       leading: ExcludeSemantics(
         child: OrganizationLogo(
-          image: AssetImage(organization.logoUrl),
+          image: organization.logo,
           size: _kOrganizationLogoSize,
         ),
       ),

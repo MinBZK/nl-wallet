@@ -1,3 +1,4 @@
+import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
@@ -56,7 +57,7 @@ abstract class WalletMockData {
     type: 'Category'.untranslated,
     displayName: 'Name'.untranslated,
     description: 'Organization description'.untranslated,
-    logoUrl: WalletAssets.logo_rijksoverheid,
+    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   );
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(

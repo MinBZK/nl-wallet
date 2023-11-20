@@ -99,10 +99,10 @@ pub enum ImageType {
 #[serde(rename_all = "camelCase")]
 pub struct Image {
     /// Media Type of the image, expected to start with: `image/`.
-    mime_type: ImageType,
+    pub mime_type: ImageType,
     /// String encoded data of the image, f.e. XML text for `image/xml+svg`, or Base64 encoded binary data for
     /// `image/png`.
-    image_data: String,
+    pub image_data: String,
 }
 
 type Language = String;
