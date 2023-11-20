@@ -230,7 +230,7 @@ where
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
         let candidates_by_doc_type = match device_request
-            .match_stored_documents(mdoc_data_source, &transcript)
+            .match_stored_documents(mdoc_data_source, transcript)
             .await?
         {
             DeviceRequestMatch::Candidates(candidates) => candidates,
@@ -495,7 +495,7 @@ impl DeviceRequest {
     async fn match_stored_documents(
         &self,
         mdoc_data_source: &impl MdocDataSource,
-        session_transcript: &SessionTranscript,
+        session_transcript: SessionTranscript,
     ) -> Result<DeviceRequestMatch> {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
@@ -555,10 +555,25 @@ impl DeviceRequest {
         //   which means that all of them count as missing attributes.
         let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
 
-        let candidates_by_doc_type = mdocs
+        let mdocs = mdocs
             .into_iter()
             .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
-            .map(|doc_type_mdocs| {
+            .collect::<Vec<_>>();
+
+        // Clone exactly as many `SessionTranscript`s as necessary.
+        let session_transcripts = {
+            let length = mdocs.len();
+
+            let mut session_transcripts = Vec::with_capacity(mdocs.len());
+            session_transcripts.resize(length, session_transcript);
+
+            session_transcripts
+        };
+
+        let candidates_by_doc_type = mdocs
+            .into_iter()
+            .zip(session_transcripts)
+            .map(|(doc_type_mdocs, session_transcript)| {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
