@@ -7,7 +7,12 @@ rust-version.workspace = true
 [features]
 examples = ["dep:anyhow", "dep:hex-literal"]
 generate = ["dep:rcgen"]
-mock = ["examples", "generate", "wallet_common/mock", "wallet_common/software-keys"]
+mock = [
+    "examples",
+    "generate",
+    "wallet_common/mock",
+    "wallet_common/software-keys",
+]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -28,7 +33,7 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json.workspace = true
 serde_repr.workspace = true
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["chrono"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
