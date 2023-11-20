@@ -45,7 +45,7 @@ class TimelineAttributeRow extends StatelessWidget {
               children: [
                 ExcludeSemantics(
                   child: OrganizationLogo(
-                    image: AssetImage(attribute.organization.logoUrl),
+                    image: attribute.organization.logo,
                     size: _kOrganizationLogoSize,
                   ),
                 ),

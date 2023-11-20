@@ -5,6 +5,7 @@ import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/organization/organization_repository.dart';
 import '../../../../util/extension/string_extension.dart';
+import '../../../model/app_image_data.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../../../model/wallet_card.dart';
@@ -59,7 +60,7 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
           displayName: 'RvIG'.untranslated,
           type: ''.untranslated,
           description: ''.untranslated,
-          logoUrl: '',
+          logo: const AppAssetImage(''),
         ),
         latestIssuedOperation: null,
         latestSuccessInteraction: null,

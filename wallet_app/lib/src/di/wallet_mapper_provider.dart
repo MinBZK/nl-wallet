@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/repository/organization/organization_repository.dart';
+import '../domain/model/app_image_data.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/attribute/data_attribute.dart';
 import '../domain/model/attribute/missing_attribute.dart';
@@ -17,6 +18,7 @@ import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/requested_card_mapper.dart';
+import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
 import '../util/mapper/organization/relying_party_mapper.dart';
 import '../util/mapper/pid/core_pid_attribute_mapper.dart';
@@ -43,6 +45,9 @@ class WalletMapperProvider extends StatelessWidget {
         /// Core mappers
         RepositoryProvider<Mapper<String, CoreError>>(
           create: (context) => CoreErrorMapper(),
+        ),
+        RepositoryProvider<Mapper<core.Image, AppImageData>>(
+          create: (context) => ImageMapper(),
         ),
 
         /// Card attribute mappers
@@ -75,7 +80,7 @@ class WalletMapperProvider extends StatelessWidget {
 
         /// Organization / Relying party mappers
         RepositoryProvider<Mapper<RelyingParty, Organization>>(
-          create: (context) => RelyingPartyMapper(context.read()),
+          create: (context) => RelyingPartyMapper(context.read(), context.read()),
         ),
 
         /// Policy

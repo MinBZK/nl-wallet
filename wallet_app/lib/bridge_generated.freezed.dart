@@ -945,6 +945,471 @@ abstract class CardValue_Gender implements CardValue {
 }
 
 /// @nodoc
+mixin _$Image {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String xml) svg,
+    required TResult Function(String base64) png,
+    required TResult Function(String base64) jpg,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String xml)? svg,
+    TResult? Function(String base64)? png,
+    TResult? Function(String base64)? jpg,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String xml)? svg,
+    TResult Function(String base64)? png,
+    TResult Function(String base64)? jpg,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Image_Svg value) svg,
+    required TResult Function(Image_Png value) png,
+    required TResult Function(Image_Jpg value) jpg,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Image_Svg value)? svg,
+    TResult? Function(Image_Png value)? png,
+    TResult? Function(Image_Jpg value)? jpg,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Image_Svg value)? svg,
+    TResult Function(Image_Png value)? png,
+    TResult Function(Image_Jpg value)? jpg,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ImageCopyWith<$Res> {
+  factory $ImageCopyWith(Image value, $Res Function(Image) then) = _$ImageCopyWithImpl<$Res, Image>;
+}
+
+/// @nodoc
+class _$ImageCopyWithImpl<$Res, $Val extends Image> implements $ImageCopyWith<$Res> {
+  _$ImageCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$Image_SvgImplCopyWith<$Res> {
+  factory _$$Image_SvgImplCopyWith(_$Image_SvgImpl value, $Res Function(_$Image_SvgImpl) then) =
+      __$$Image_SvgImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String xml});
+}
+
+/// @nodoc
+class __$$Image_SvgImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Image_SvgImpl>
+    implements _$$Image_SvgImplCopyWith<$Res> {
+  __$$Image_SvgImplCopyWithImpl(_$Image_SvgImpl _value, $Res Function(_$Image_SvgImpl) _then) : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? xml = null,
+  }) {
+    return _then(_$Image_SvgImpl(
+      xml: null == xml
+          ? _value.xml
+          : xml // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$Image_SvgImpl implements Image_Svg {
+  const _$Image_SvgImpl({required this.xml});
+
+  @override
+  final String xml;
+
+  @override
+  String toString() {
+    return 'Image.svg(xml: $xml)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$Image_SvgImpl &&
+            (identical(other.xml, xml) || other.xml == xml));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, xml);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$Image_SvgImplCopyWith<_$Image_SvgImpl> get copyWith =>
+      __$$Image_SvgImplCopyWithImpl<_$Image_SvgImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String xml) svg,
+    required TResult Function(String base64) png,
+    required TResult Function(String base64) jpg,
+  }) {
+    return svg(xml);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String xml)? svg,
+    TResult? Function(String base64)? png,
+    TResult? Function(String base64)? jpg,
+  }) {
+    return svg?.call(xml);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String xml)? svg,
+    TResult Function(String base64)? png,
+    TResult Function(String base64)? jpg,
+    required TResult orElse(),
+  }) {
+    if (svg != null) {
+      return svg(xml);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Image_Svg value) svg,
+    required TResult Function(Image_Png value) png,
+    required TResult Function(Image_Jpg value) jpg,
+  }) {
+    return svg(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Image_Svg value)? svg,
+    TResult? Function(Image_Png value)? png,
+    TResult? Function(Image_Jpg value)? jpg,
+  }) {
+    return svg?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Image_Svg value)? svg,
+    TResult Function(Image_Png value)? png,
+    TResult Function(Image_Jpg value)? jpg,
+    required TResult orElse(),
+  }) {
+    if (svg != null) {
+      return svg(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class Image_Svg implements Image {
+  const factory Image_Svg({required final String xml}) = _$Image_SvgImpl;
+
+  String get xml;
+  @JsonKey(ignore: true)
+  _$$Image_SvgImplCopyWith<_$Image_SvgImpl> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$Image_PngImplCopyWith<$Res> {
+  factory _$$Image_PngImplCopyWith(_$Image_PngImpl value, $Res Function(_$Image_PngImpl) then) =
+      __$$Image_PngImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String base64});
+}
+
+/// @nodoc
+class __$$Image_PngImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Image_PngImpl>
+    implements _$$Image_PngImplCopyWith<$Res> {
+  __$$Image_PngImplCopyWithImpl(_$Image_PngImpl _value, $Res Function(_$Image_PngImpl) _then) : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? base64 = null,
+  }) {
+    return _then(_$Image_PngImpl(
+      base64: null == base64
+          ? _value.base64
+          : base64 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$Image_PngImpl implements Image_Png {
+  const _$Image_PngImpl({required this.base64});
+
+  @override
+  final String base64;
+
+  @override
+  String toString() {
+    return 'Image.png(base64: $base64)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$Image_PngImpl &&
+            (identical(other.base64, base64) || other.base64 == base64));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, base64);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$Image_PngImplCopyWith<_$Image_PngImpl> get copyWith =>
+      __$$Image_PngImplCopyWithImpl<_$Image_PngImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String xml) svg,
+    required TResult Function(String base64) png,
+    required TResult Function(String base64) jpg,
+  }) {
+    return png(base64);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String xml)? svg,
+    TResult? Function(String base64)? png,
+    TResult? Function(String base64)? jpg,
+  }) {
+    return png?.call(base64);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String xml)? svg,
+    TResult Function(String base64)? png,
+    TResult Function(String base64)? jpg,
+    required TResult orElse(),
+  }) {
+    if (png != null) {
+      return png(base64);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Image_Svg value) svg,
+    required TResult Function(Image_Png value) png,
+    required TResult Function(Image_Jpg value) jpg,
+  }) {
+    return png(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Image_Svg value)? svg,
+    TResult? Function(Image_Png value)? png,
+    TResult? Function(Image_Jpg value)? jpg,
+  }) {
+    return png?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Image_Svg value)? svg,
+    TResult Function(Image_Png value)? png,
+    TResult Function(Image_Jpg value)? jpg,
+    required TResult orElse(),
+  }) {
+    if (png != null) {
+      return png(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class Image_Png implements Image {
+  const factory Image_Png({required final String base64}) = _$Image_PngImpl;
+
+  String get base64;
+  @JsonKey(ignore: true)
+  _$$Image_PngImplCopyWith<_$Image_PngImpl> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$Image_JpgImplCopyWith<$Res> {
+  factory _$$Image_JpgImplCopyWith(_$Image_JpgImpl value, $Res Function(_$Image_JpgImpl) then) =
+      __$$Image_JpgImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String base64});
+}
+
+/// @nodoc
+class __$$Image_JpgImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Image_JpgImpl>
+    implements _$$Image_JpgImplCopyWith<$Res> {
+  __$$Image_JpgImplCopyWithImpl(_$Image_JpgImpl _value, $Res Function(_$Image_JpgImpl) _then) : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? base64 = null,
+  }) {
+    return _then(_$Image_JpgImpl(
+      base64: null == base64
+          ? _value.base64
+          : base64 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$Image_JpgImpl implements Image_Jpg {
+  const _$Image_JpgImpl({required this.base64});
+
+  @override
+  final String base64;
+
+  @override
+  String toString() {
+    return 'Image.jpg(base64: $base64)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$Image_JpgImpl &&
+            (identical(other.base64, base64) || other.base64 == base64));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, base64);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$Image_JpgImplCopyWith<_$Image_JpgImpl> get copyWith =>
+      __$$Image_JpgImplCopyWithImpl<_$Image_JpgImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String xml) svg,
+    required TResult Function(String base64) png,
+    required TResult Function(String base64) jpg,
+  }) {
+    return jpg(base64);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String xml)? svg,
+    TResult? Function(String base64)? png,
+    TResult? Function(String base64)? jpg,
+  }) {
+    return jpg?.call(base64);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String xml)? svg,
+    TResult Function(String base64)? png,
+    TResult Function(String base64)? jpg,
+    required TResult orElse(),
+  }) {
+    if (jpg != null) {
+      return jpg(base64);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Image_Svg value) svg,
+    required TResult Function(Image_Png value) png,
+    required TResult Function(Image_Jpg value) jpg,
+  }) {
+    return jpg(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Image_Svg value)? svg,
+    TResult? Function(Image_Png value)? png,
+    TResult? Function(Image_Jpg value)? jpg,
+  }) {
+    return jpg?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Image_Svg value)? svg,
+    TResult Function(Image_Png value)? png,
+    TResult Function(Image_Jpg value)? jpg,
+    required TResult orElse(),
+  }) {
+    if (jpg != null) {
+      return jpg(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class Image_Jpg implements Image {
+  const factory Image_Jpg({required final String base64}) = _$Image_JpgImpl;
+
+  String get base64;
+  @JsonKey(ignore: true)
+  _$$Image_JpgImplCopyWith<_$Image_JpgImpl> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$StartDisclosureResult {
   RelyingParty get relyingParty => throw _privateConstructorUsedError;
   bool get isFirstInteractionWithRelyingParty => throw _privateConstructorUsedError;

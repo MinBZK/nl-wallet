@@ -95,7 +95,7 @@ class OrganizationApprovePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          OrganizationLogo(image: AssetImage(organization.logoUrl), size: 64),
+          OrganizationLogo(image: organization.logo, size: 64),
           const SizedBox(height: 24),
           Text(
             _headerTitleText(context),
