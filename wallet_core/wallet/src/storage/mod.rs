@@ -1,9 +1,9 @@
 mod data;
 mod database;
 mod database_storage;
+mod event_log;
 mod key_file;
 mod sql_cipher_key;
-mod transaction_log;
 
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
@@ -23,8 +23,8 @@ use platform_support::utils::UtilitiesError;
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
+    event_log::WalletEvent,
     key_file::KeyFileError,
-    transaction_log::TransactionRecord,
 };
 
 #[cfg(any(test, feature = "mock"))]
@@ -81,5 +81,5 @@ pub trait Storage {
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>>;
 
-    async fn insert_transaction_log_record(&mut self, record: TransactionRecord) -> StorageResult<()>;
+    async fn insert_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()>;
 }

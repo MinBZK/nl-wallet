@@ -3,7 +3,7 @@ use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
-pub enum TransactionType {
+pub enum EventType {
     #[sea_orm(string_value = "PidIssuance")]
     PidIssuance,
     #[sea_orm(string_value = "Disclosure")]
@@ -12,7 +12,7 @@ pub enum TransactionType {
 
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
-pub enum TransactionStatus {
+pub enum EventStatus {
     #[sea_orm(string_value = "Success")]
     Success,
     #[sea_orm(string_value = "Error")]
@@ -22,14 +22,15 @@ pub enum TransactionStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "transaction")]
+#[sea_orm(table_name = "event_log")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = true)]
-    pub id: i64,
-    pub r#type: TransactionType,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    #[sea_orm(column_name = "type")]
+    pub event_type: EventType,
     pub timestamp: DateTime<Local>,
     pub remote_party_certificate: Option<Vec<u8>>,
-    pub status: TransactionStatus,
+    pub status: EventStatus,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -8,7 +8,7 @@ use sea_orm::{
 use tokio::fs;
 use uuid::Uuid;
 
-use entity::{keyed_data, mdoc, mdoc_copy, transaction};
+use entity::{event_log, keyed_data, mdoc, mdoc_copy};
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::serialization::CborError,
@@ -22,7 +22,7 @@ use super::{
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
-    Storage, StorageError, StorageResult, StorageState, TransactionRecord,
+    Storage, StorageError, StorageResult, StorageState, WalletEvent,
 };
 
 const DATABASE_NAME: &str = "wallet";
@@ -278,13 +278,13 @@ where
         .await
     }
 
-    async fn insert_transaction_log_record(&mut self, record: TransactionRecord) -> StorageResult<()> {
-        let tr = transaction::ActiveModel {
-            id: ActiveValue::NotSet,
-            r#type: ActiveValue::Set(record.r#type),
-            timestamp: ActiveValue::Set(record.timestamp),
-            remote_party_certificate: ActiveValue::Set(record.remote_party_certificate),
-            status: ActiveValue::Set(record.status),
+    async fn insert_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
+        let tr = event_log::ActiveModel {
+            id: ActiveValue::Set(Uuid::new_v4()),
+            event_type: ActiveValue::Set(event.event_type),
+            timestamp: ActiveValue::Set(event.timestamp),
+            remote_party_certificate: ActiveValue::Set(event.remote_party_certificate),
+            status: ActiveValue::Set(event.status),
         };
         tr.insert(self.database()?.connection()).await?;
         Ok(())

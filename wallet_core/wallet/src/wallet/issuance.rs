@@ -1,5 +1,5 @@
 use chrono::Local;
-use entity::transaction::{TransactionStatus, TransactionType};
+use entity::event_log::{EventStatus, EventType};
 use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
@@ -14,7 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{Storage, StorageError, TransactionRecord},
+    storage::{Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -184,11 +184,11 @@ where
 
         self.storage
             .get_mut()
-            .insert_transaction_log_record(TransactionRecord::new(
-                TransactionType::PidIssuance,
+            .insert_wallet_event(WalletEvent::new(
+                EventType::PidIssuance,
                 Local::now(),
                 None,
-                TransactionStatus::Cancelled,
+                EventStatus::Cancelled,
             ))
             .await?;
 
@@ -263,11 +263,11 @@ where
 
         self.storage
             .get_mut()
-            .insert_transaction_log_record(TransactionRecord::new(
-                TransactionType::PidIssuance,
+            .insert_wallet_event(WalletEvent::new(
+                EventType::PidIssuance,
                 Local::now(),
                 None,
-                TransactionStatus::Success,
+                EventStatus::Success,
             ))
             .await?;
 
