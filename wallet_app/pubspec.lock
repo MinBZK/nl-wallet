@@ -225,6 +225,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.1"
+  country_codes:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "521ef1c2f1e3756eade396513b7e423664435776"
+      resolved-ref: "521ef1c2f1e3756eade396513b7e423664435776"
+      url: "https://github.com/kyle-seongwoo-jun/country_codes.git"
+    source: git
+    version: "2.2.0"
   coverage:
     dependency: transitive
     description:

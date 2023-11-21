@@ -14,6 +14,13 @@ dependencies:
   app_links: ^3.4.5
   collection: ^1.17.2
   connectivity_plus: ^5.0.1
+  country_codes:
+    git:
+      url: https://github.com/kyle-seongwoo-jun/country_codes.git
+      # This (forked) commit includes https://github.com/miguelpruivo/country_codes/pull/29
+      # We need those changes to resolve the localized country labels,
+      # once it's merged we can fall back to normal country_code package.
+      ref: 521ef1c2f1e3756eade396513b7e423664435776
   device_info_plus: ^9.0.3
   equatable: ^2.0.5
   ffi: ^2.1.0

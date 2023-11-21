@@ -23,8 +23,7 @@ class RelyingPartyMapper extends Mapper<RelyingParty, Organization> {
             : _imageMapper.map(input.image!),
         type: 'type (missing from core)'.untranslated,
         kvk: input.kvk,
-        //TODO: Needs mapping from ISO-3166-1 alpha-2 to a localized string. PVW-1656
-        country: input.countryCode == null ? null : input.countryCode!.untranslated,
+        countryCode: input.countryCode,
         city: input.city == null ? null : _localizedStringMapper.map(input.city!),
         webUrl: input.webUrl,
       );
