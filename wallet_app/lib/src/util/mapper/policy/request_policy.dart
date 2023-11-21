@@ -1,5 +1,6 @@
+import 'package:wallet_core/core.dart';
+
 import '../../../domain/model/policy/policy.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../mapper.dart';
 
 class RequestPolicyMapper extends Mapper<RequestPolicy, Policy> {

@@ -1,0 +1,17 @@
+name: wallet_mock
+description: A package that holds all mock implementations for the wallet_app
+version: 1.0.0
+
+# Prevent accidental publishing to pub.dev.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  wallet_core:
+    path: ../wallet_core
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.9

@@ -1,4 +1,6 @@
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart' hide Organization;
+import 'package:wallet_core/core.dart' as core show Organization;
 
 import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
@@ -7,8 +9,6 @@ import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../../wallet_core/wallet_core.dart' hide Organization;
-import '../../../wallet_core/wallet_core.dart' as core show Organization;
 import '../mapper.dart';
 
 class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {

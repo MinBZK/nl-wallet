@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-
-import '../../../../wallet_core/wallet_core.dart';
+import 'package:wallet_core/core.dart';
 
 class LocalizedStringConverter extends JsonConverter<LocalizedString, Map<String, dynamic>> {
   const LocalizedStringConverter();

@@ -6,11 +6,10 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet/src/wallet_core/error/core_error_mapper.dart';
 import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
-import 'package:wallet/src/wallet_core/typed/impl/typed_wallet_core_impl.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
-import 'package:wallet/src/wallet_core/wallet_core.dart';
+import 'package:wallet_core/core.dart';
 
-import '../../../mocks/wallet_mocks.dart';
+import '../../mocks/wallet_mocks.dart';
 
 const samplePin = '112233';
 
@@ -20,7 +19,7 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
-    typedWalletCore = TypedWalletCoreImpl(core, CoreErrorMapper()); //FIXME: Mock mapper
+    typedWalletCore = TypedWalletCore(core, CoreErrorMapper()); //FIXME: Mock mapper
 
     /// Setup default initialization mock
     when(core.isInitialized()).thenAnswer((realInvocation) async => false);

@@ -1,6 +1,6 @@
+import 'package:wallet_core/core.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/navigation/navigation_request.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../qr_repository.dart';

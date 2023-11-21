@@ -1,4 +1,5 @@
-import '../../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../../../domain/model/localized_text.dart';
 import '../../mapper.dart';
 

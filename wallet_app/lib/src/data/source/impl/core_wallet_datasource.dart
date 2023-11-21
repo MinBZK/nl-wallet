@@ -1,11 +1,11 @@
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/mapper/mapper.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../../store/active_locale_provider.dart';
 import '../wallet_datasource.dart';
 

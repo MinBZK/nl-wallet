@@ -1,6 +1,7 @@
+import 'package:wallet_core/core.dart';
+
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/value/gender.dart';
-import '../../../../wallet_core/wallet_core.dart';
 import '../../mapper.dart';
 
 class CardAttributeValueMapper extends Mapper<CardValue, AttributeValue> {

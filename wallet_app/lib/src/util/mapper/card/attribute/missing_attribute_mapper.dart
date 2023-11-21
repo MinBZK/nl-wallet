@@ -1,6 +1,8 @@
+import 'package:wallet_core/core.dart' as core;
+
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/localized_text.dart';
-import '../../../../wallet_core/wallet_core.dart' as core;
 import '../../mapper.dart';
 
 class MissingAttributeMapper extends Mapper<core.MissingAttribute, MissingAttribute> {

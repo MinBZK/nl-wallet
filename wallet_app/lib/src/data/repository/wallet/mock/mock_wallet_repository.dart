@@ -1,8 +1,8 @@
+import 'package:wallet_core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/pin/pin_validation_error.dart';
 import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../../../util/extension/wallet_instruction_result_extension.dart';

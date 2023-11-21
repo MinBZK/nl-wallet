@@ -1,7 +1,8 @@
+import 'package:wallet_core/core.dart';
+
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../mapper.dart';
 
 /// Maps a [Card] to a [WalletCard] and enriches with (currently) hardcoded data.
