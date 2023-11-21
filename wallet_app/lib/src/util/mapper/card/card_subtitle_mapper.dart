@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../../formatter/attribute_value_formatter.dart';
 import '../mapper.dart';
 

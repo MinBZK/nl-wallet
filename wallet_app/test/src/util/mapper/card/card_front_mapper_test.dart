@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/bridge_generated.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/localized_text.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_assets.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 

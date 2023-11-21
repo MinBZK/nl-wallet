@@ -1,9 +1,10 @@
+import 'package:wallet_core/core.dart' hide Organization;
+import 'package:wallet_core/core.dart' as core show Organization;
+
 import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';
-import '../../../wallet_core/wallet_core.dart' hide Organization;
-import '../../../wallet_core/wallet_core.dart' as core show Organization;
 import '../../extension/string_extension.dart';
 import '../mapper.dart';
 

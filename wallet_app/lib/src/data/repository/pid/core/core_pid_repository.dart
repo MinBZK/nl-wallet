@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:wallet_core/core.dart';
 
-import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';

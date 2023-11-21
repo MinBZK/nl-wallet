@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wallet_core/core.dart' as core;
+import 'package:wallet_core/core.dart'
+    show Card, CardAttribute, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
 
 import '../data/repository/organization/organization_repository.dart';
 import '../domain/model/app_image_data.dart';
@@ -30,9 +33,6 @@ import '../util/mapper/pin/pin_validation_error_mapper.dart';
 import '../util/mapper/policy/request_policy.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
-import '../wallet_core/wallet_core.dart' as core;
-import '../wallet_core/wallet_core.dart'
-    show Card, CardAttribute, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
 
 class WalletMapperProvider extends StatelessWidget {
   final Widget child;

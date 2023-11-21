@@ -1,9 +1,9 @@
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../mapper.dart';
 
 class CardFrontMapper extends Mapper<Card, CardFront> {

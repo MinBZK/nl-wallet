@@ -1,4 +1,5 @@
-import '../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../domain/usecase/pin/check_pin_usecase.dart';
 
 extension WalletInstructionResultExtension on WalletInstructionResult {

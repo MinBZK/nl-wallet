@@ -1,4 +1,4 @@
-import '../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
 
 abstract class HistoryRepository {
   Future<List<WalletEvent>> getHistory();

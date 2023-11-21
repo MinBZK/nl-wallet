@@ -1,4 +1,5 @@
-import '../../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_attribute.dart';
