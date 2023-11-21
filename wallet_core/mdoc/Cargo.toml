@@ -49,6 +49,7 @@ wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true
+http.workspace = true
 regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true

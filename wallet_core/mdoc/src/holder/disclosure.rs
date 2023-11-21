@@ -26,7 +26,7 @@ use crate::{
         crypto::{dh_hmac_key, SessionKey, SessionKeyUser},
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::ReaderRegistration,
-        serialization::{cbor_deserialize, cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, CborError, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType, CertificateUsage},
     },
     verifier::SessionType,
@@ -217,7 +217,7 @@ where
         let session_data: SessionData = client
             .post(verifier_url, &device_engagement)
             .or_else(|error| async {
-                if matches!(error, Error::Cbor(_)) {
+                if matches!(error, Error::Cbor(CborError::Deserialization(_))) {
                     // Ignore the response or any errors.
                     let _: Result<SessionData> = client.post(verifier_url, &SessionData::new_decoding_error()).await;
                 }
@@ -226,54 +226,74 @@ where
             })
             .await?;
 
-        // Decrypt the returned `DeviceRequest`.
-        let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
+        // After having receveid the `SessionData` from the verifier, we should end
+        // the session by sending our own `SessionData` to the verifier to report errors.
+        // In order to do that we start a new async context to catch any errors that occur.
+        let (proposed_documents, reader_registration) = (async {
+            // Decrypt the received `DeviceRequest`.
+            let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
-        // A device request without any attributes is useless, so return an error.
-        if !device_request.has_attributes() {
-            return Err(HolderError::NoAttributesRequested.into());
-        }
-
-        // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
-        // Reader authentication is required to be present at this time.
-        let reader_registration = device_request
-            .verify(&transcript, &TimeGenerator, trust_anchors)?
-            .ok_or(HolderError::ReaderAuthMissing)?;
-
-        // Fetch documents from the database, calculate which ones satisfy the request and
-        // formulate proposals for those documents. If there is a mismatch, return an error.
-        let candidates_by_doc_type = match device_request
-            .match_stored_documents(mdoc_data_source, transcript)
-            .await?
-        {
-            DeviceRequestMatch::Candidates(candidates) => candidates,
-            DeviceRequestMatch::MissingAttributes(missing_attributes) => {
-                // Attributes are missing, turn the `missing_attributes`
-                // into an error along with the `ReaderRegistration`.
-                let error = HolderError::AttributesNotAvailable {
-                    reader_registration: reader_registration.into(),
-                    missing_attributes,
-                };
-
-                return Err(error.into());
+            // A device request without any attributes is useless, so return an error.
+            if !device_request.has_attributes() {
+                return Result::Err(HolderError::NoAttributesRequested.into());
             }
-        };
 
-        // If we have multiple candidates for any of the doc types, return an error.
-        // TODO: Support having the user a choose between multiple candidates.
-        if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
-            let duplicate_doc_types = candidates_by_doc_type
-                .into_iter()
-                .filter(|(_, candidates)| candidates.len() > 1)
-                .map(|(doc_type, _)| doc_type)
-                .collect();
+            // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
+            // Reader authentication is required to be present at this time.
+            let reader_registration = device_request
+                .verify(&transcript, &TimeGenerator, trust_anchors)?
+                .ok_or(HolderError::ReaderAuthMissing)?;
 
-            return Err(HolderError::MultipleCandidates(duplicate_doc_types).into());
-        }
+            // Fetch documents from the database, calculate which ones satisfy the request and
+            // formulate proposals for those documents. If there is a mismatch, return an error.
+            let candidates_by_doc_type = match device_request
+                .match_stored_documents(mdoc_data_source, transcript)
+                .await?
+            {
+                DeviceRequestMatch::Candidates(candidates) => candidates,
+                DeviceRequestMatch::MissingAttributes(missing_attributes) => {
+                    // Attributes are missing, turn the `missing_attributes`
+                    // into an error along with the `ReaderRegistration`.
+                    let error = HolderError::AttributesNotAvailable {
+                        reader_registration: reader_registration.into(),
+                        missing_attributes,
+                    };
 
-        // Now that we know that we have exactly one candidate for every `doc_type`,
-        // we can flatten these candidates to a 1-dimensional `Vec`.
-        let proposed_documents = candidates_by_doc_type.into_values().flatten().collect();
+                    return Err(error.into());
+                }
+            };
+
+            // If we have multiple candidates for any of the doc types, return an error.
+            // TODO: Support having the user a choose between multiple candidates.
+            if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
+                let duplicate_doc_types = candidates_by_doc_type
+                    .into_iter()
+                    .filter(|(_, candidates)| candidates.len() > 1)
+                    .map(|(doc_type, _)| doc_type)
+                    .collect();
+
+                return Err(HolderError::MultipleCandidates(duplicate_doc_types).into());
+            }
+
+            // Now that we know that we have exactly one candidate for every `doc_type`,
+            // we can flatten these candidates to a 1-dimensional `Vec`.
+            let proposed_documents = candidates_by_doc_type.into_values().flatten().collect();
+
+            Ok((proposed_documents, reader_registration))
+        })
+        .or_else(|error| async {
+            // Determine the category of the error, so we can report on it.
+            let error_session_data = match error {
+                Error::Cbor(CborError::Deserialization(_)) => SessionData::new_decoding_error(),
+                Error::Crypto(_) => SessionData::new_encryption_error(),
+                _ => SessionData::new_termination(),
+            };
+
+            let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
+
+            Err(error)
+        })
+        .await?;
 
         // Retain all the necessary information to either abort or finish the disclosure session later.
         let session = DisclosureSession {
@@ -795,6 +815,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
+    use http::StatusCode;
     use p256::ecdsa::SigningKey;
     use serde::{de::DeserializeOwned, Serialize};
     use tokio::sync::mpsc;
@@ -1050,12 +1071,6 @@ mod tests {
             }
         }
 
-        fn client(self: &Arc<Self>) -> MockVerifierSessionClient<F> {
-            MockVerifierSessionClient {
-                session: Arc::clone(self),
-            }
-        }
-
         fn reader_engagement_bytes(&self) -> Vec<u8> {
             self.reader_engagement_bytes_override
                 .as_ref()
@@ -1114,6 +1129,7 @@ mod tests {
     /// requests to an instance of [`MockVerifierSession`].
     struct MockVerifierSessionClient<F> {
         session: Arc<MockVerifierSession<F>>,
+        payload_sender: mpsc::Sender<Vec<u8>>,
     }
 
     impl<F> fmt::Debug for MockVerifierSessionClient<F> {
@@ -1137,10 +1153,18 @@ mod tests {
             // The URL has to match the one on the configured `ReaderEngagement`.
             assert_eq!(url, self.session.reader_engagement.verifier_url().unwrap());
 
+            // Serialize the payload and give a copy of it to the sender.
+            let payload = cbor_serialize(val).unwrap();
+            _ = self.payload_sender.send(payload.clone()).await;
+
             // Serialize and deserialize both the request and response
-            // in order to adhere to the trait bounds.
-            let device_engagement = cbor_deserialize(cbor_serialize(val).unwrap().as_slice()).unwrap();
-            let session_data = self.session.device_request_session_data(device_engagement).await;
+            // in order to adhere to the trait bounds. If the request deserializes
+            // as a `DeviceEngagement` process it, otherwise terminate the session.
+            let session_data = match cbor_deserialize(payload.as_slice()) {
+                Ok(device_engagement) => self.session.device_request_session_data(device_engagement).await,
+                Err(_) => SessionData::new_termination(),
+            };
+
             let result = cbor_deserialize(cbor_serialize(&session_data).unwrap().as_slice()).unwrap();
 
             Ok(result)
@@ -1170,6 +1194,7 @@ mod tests {
             V: Serialize + Sync,
             R: DeserializeOwned,
         {
+            // Serialize the payload and give it to the sender.
             _ = self.payload_sender.send(cbor_serialize(val).unwrap()).await;
 
             Err((self.error_factory)())
@@ -1181,6 +1206,7 @@ mod tests {
     /// defaults just before they are actually used.
     async fn disclosure_session_start<FS, FM, FD>(
         session_type: SessionType,
+        payloads: &mut Vec<Vec<u8>>,
         transform_verfier_session: FS,
         transform_mdoc: FM,
         transform_device_request: FD,
@@ -1213,12 +1239,19 @@ mod tests {
         );
         let verifier_session = Arc::new(transform_verfier_session(verifier_session));
 
+        // Create the payload channel and a mock HTTP client.
+        let (payload_sender, mut payload_receiver) = mpsc::channel(256);
+        let client = MockVerifierSessionClient {
+            session: Arc::clone(&verifier_session),
+            payload_sender,
+        };
+
         // Set up the mock data source.
         let mdoc_data_source = transform_mdoc(MockMdocDataSource::default());
 
         // Starting disclosure and return the result.
-        DisclosureSession::start(
-            verifier_session.client(),
+        let result = DisclosureSession::start(
+            client,
             &verifier_session.reader_engagement_bytes(),
             verifier_session.return_url.clone(),
             session_type,
@@ -1226,14 +1259,28 @@ mod tests {
             &verifier_session.trust_anchors(),
         )
         .await
-        .map(|disclosure_session| (disclosure_session, verifier_session))
+        .map(|disclosure_session| (disclosure_session, verifier_session));
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        result
+    }
+
+    fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
+        let session_data: SessionData = cbor_deserialize(payload).expect("Sent message is not SessionData");
+
+        assert!(session_data.data.is_none());
+        assert_matches!(session_data.status, Some(session_status) if session_status == expected_session_status);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start() {
         // Starting a disclosure session should succeed.
+        let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session) =
-            disclosure_session_start(SessionType::SameDevice, identity, identity, identity)
+            disclosure_session_start(SessionType::SameDevice, &mut payloads, identity, identity, identity)
                 .await
                 .expect("Could not start disclosure session");
 
@@ -1243,6 +1290,7 @@ mod tests {
             disclosure_session.reader_registration,
             verifier_session.reader_registration
         );
+        assert_eq!(payloads.len(), 1);
 
         // Test that the proposal for disclosure contains the example attributes, in order.
         let entry_keys = disclosure_session
@@ -1259,8 +1307,10 @@ mod tests {
     async fn test_disclosure_session_start_error_decode_reader_engagement() {
         // Starting a `DisclosureSession` with invalid `ReaderEngagement`
         // bytes should result in a `Error::Cbor` error.
+        let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement_bytes_override = vec![].into();
 
@@ -1273,14 +1323,17 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Cbor(_));
+        assert!(payloads.is_empty());
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_url_mising() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that
         // does not contain a verifier URL should result in an error.
+        let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
                     methods.clear()
@@ -1295,14 +1348,17 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::VerifierUrlMissing));
+        assert!(payloads.is_empty());
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_ephemeral_key_missing() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that does not
         // contain an ephemeral verifier public key should result in an error.
+        let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement.0.security = None;
 
@@ -1315,25 +1371,32 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::VerifierEphemeralKeyMissing));
+        assert!(payloads.is_empty());
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_session_type() {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let error = disclosure_session_start(SessionType::CrossDevice, identity, identity, identity)
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(SessionType::CrossDevice, &mut payloads, identity, identity, identity)
             .await
             .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Crypto(_));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::EncryptionError);
     }
 
-    #[tokio::test]
-    async fn test_disclosure_session_start_error_session_data_decode() {
-        // Set up a `ErrorHttpClient` that returns a `Error::CborError`.
+    async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
+    where
+        F: Fn() -> Error + Send + Sync,
+    {
+        // Set up a `ErrorHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
         let client = ErrorHttpClient {
-            error_factory: || CborError::from(ciborium::de::Error::RecursionLimitExceeded).into(),
+            error_factory,
             payload_sender,
         };
 
@@ -1359,24 +1422,67 @@ mod tests {
             payloads.push(payload);
         }
 
+        (error, payloads)
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_http_client_data_serialization() {
+        // Set up the `ErrorHttpClient` to return a `CborError::Serialization`.
+        let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
+            CborError::from(ciborium::ser::Error::Value("".to_string())).into()
+        })
+        .await;
+
+        // Test that we got the expected error and that no `SessionData`
+        // was sent to the verifier to report the error.
+        assert_matches!(error, Error::Cbor(CborError::Serialization(_)));
+        assert_eq!(payloads.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_http_client_request() {
+        // Set up the `ErrorHttpClient` to return a `HolderError::Serialization`.
+        let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("")
+                .unwrap();
+            let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
+
+            HolderError::from(reqwest_error).into()
+        })
+        .await;
+
+        // Test that we got the expected error and that no `SessionData`
+        // was sent to the verifier to report the error.
+        assert_matches!(error, Error::Holder(HolderError::RequestError(_)));
+        assert_eq!(payloads.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_http_client_data_deserialization() {
+        // Set up the `ErrorHttpClient` to return a `CborError::Deserialization`.
+        let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
+            CborError::from(ciborium::de::Error::RecursionLimitExceeded).into()
+        })
+        .await;
+
         // Test that we got the expected error and that the last payload
         // is a `SessionData` containing the expected `SessionStatus`.
-        assert_matches!(error, Error::Cbor(_));
+        assert_matches!(error, Error::Cbor(CborError::Deserialization(_)));
         assert_eq!(payloads.len(), 2);
 
-        let session_data: SessionData =
-            cbor_deserialize(payloads.last().unwrap().as_slice()).expect("Last sent message is not SessionData");
-
-        assert!(session_data.data.is_none());
-        assert_matches!(session_data.status, Some(SessionStatus::DecodingError));
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::DecodingError);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_no_attributes_requested() {
         // Starting a `DisclosureSession` in which a `DeviceRequest` with no
         // `DocRequest` entries is received should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests.clear();
 
@@ -1389,11 +1495,16 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::NoAttributesRequested));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
 
         // Starting a `DisclosureSession` in which a `DeviceRequest` with an
         // empty `DocRequest` entry is received should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests = vec![emtpy_items_request()];
 
@@ -1406,45 +1517,70 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::NoAttributesRequested));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_auth_missing() {
         // Starting a `DisclosureSession` where the received `DeviceRequest`
         // does not have reader auth should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, identity, identity, |mut device_request| {
-            device_request
-                .doc_requests
-                .iter_mut()
-                .for_each(|doc_request| doc_request.reader_auth = None);
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            &mut payloads,
+            identity,
+            identity,
+            |mut device_request| {
+                device_request
+                    .doc_requests
+                    .iter_mut()
+                    .for_each(|doc_request| doc_request.reader_auth = None);
 
-            device_request
-        })
+                device_request
+            },
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthMissing));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
 
         // Starting a `DisclosureSession` where not all of the `DocRequest`s in the
         // received `DeviceRequest` contain reader auth should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, identity, identity, |mut device_request| {
-            let mut doc_request = device_request.doc_requests.first().unwrap().clone();
-            doc_request.reader_auth = None;
-            device_request.doc_requests.push(doc_request);
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            &mut payloads,
+            identity,
+            identity,
+            |mut device_request| {
+                let mut doc_request = device_request.doc_requests.first().unwrap().clone();
+                doc_request.reader_auth = None;
+                device_request.doc_requests.push(doc_request);
 
-            device_request
-        })
+                device_request
+            },
+        )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthMissing));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_auth_invalid() {
         // Starting a `DisclosureSession` without trust anchors should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session.trust_anchors.clear();
 
@@ -1457,14 +1593,19 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Cose(CoseError::Certificate(_)));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_registration_validation() {
         // Starting a `DisclosureSession` where the `DeviceRequest` contains an attribute
         // that is not in the `ReaderRegistration` should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             |mut verifier_session| {
                 verifier_session
                     .items_requests
@@ -1484,14 +1625,19 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_mdoc_data_source() {
         // Starting a `DisclosureSession` when the database returns
         // an error should result in that error being forwarded.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             identity,
             |mut mdoc_source| {
                 mdoc_source.has_error = true;
@@ -1507,14 +1653,19 @@ mod tests {
             error,
             Error::Holder(HolderError::MdocDataSource(mdoc_error)) if mdoc_error.is::<MdocDataSourceError>()
         );
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_multiple_candidates() {
         // Starting a `DisclosureSession` when the database contains multiple
         // candidates for the same `doc_type` should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.push(mdoc_source.mdocs.first().unwrap().clone());
@@ -1530,14 +1681,19 @@ mod tests {
             error,
             Error::Holder(HolderError::MultipleCandidates(doc_types)) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
         );
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_attributes_not_available() {
         // Starting a `DisclosureSession` where a `DeviceRequest` is received that
         // requests a `doc_type` that is not in the database should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.clear();
@@ -1567,11 +1723,16 @@ mod tests {
                 missing_attributes
             }) if missing_attributes == expected_missing_attributes
         );
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
 
         // Starting a `DisclosureSession` where a `DeviceRequest` is received that
         // requests an attribute that is not in the database should result in an error.
+        let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            &mut payloads,
             identity,
             |mut mdoc_source| {
                 // Remove the last attribute.
@@ -1608,6 +1769,9 @@ mod tests {
                 missing_attributes
             }) if missing_attributes == expected_missing_attributes
         );
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
     // TODO: Test `HolderError::NoReaderRegistration` error result.
