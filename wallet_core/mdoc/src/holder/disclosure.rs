@@ -50,8 +50,6 @@ pub trait MdocDataSource {
     async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
 }
 
-pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
-
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct DisclosureSession<H> {
@@ -59,8 +57,14 @@ pub struct DisclosureSession<H> {
     client: H,
     verifier_url: Url,
     device_key: SessionKey,
-    proposed_documents: Vec<ProposedDocument>,
     pub reader_registration: ReaderRegistration,
+    state: DisclosureSessionState,
+}
+
+#[derive(Debug)]
+enum DisclosureSessionState {
+    MissingAttributes(Vec<AttributeIdentifier>),
+    Proposal(Vec<ProposedDocument>),
 }
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
@@ -181,6 +185,8 @@ impl ProposedDocument {
     }
 }
 
+pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+
 impl<H> DisclosureSession<H>
 where
     H: HttpClient,
@@ -229,7 +235,7 @@ where
         // After having receveid the `SessionData` from the verifier, we should end
         // the session by sending our own `SessionData` to the verifier to report errors.
         // In order to do that we start a new async context to catch any errors that occur.
-        let (proposed_documents, reader_registration) = (async {
+        let (state, reader_registration) = (async {
             // Decrypt the received `DeviceRequest`.
             let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
@@ -252,14 +258,11 @@ where
             {
                 DeviceRequestMatch::Candidates(candidates) => candidates,
                 DeviceRequestMatch::MissingAttributes(missing_attributes) => {
-                    // Attributes are missing, turn the `missing_attributes`
-                    // into an error along with the `ReaderRegistration`.
-                    let error = HolderError::AttributesNotAvailable {
-                        reader_registration: reader_registration.into(),
-                        missing_attributes,
-                    };
-
-                    return Err(error.into());
+                    // Attributes are missing, the type of state is `DisclosureSessionMissingAttributes`.
+                    return Ok((
+                        DisclosureSessionState::MissingAttributes(missing_attributes),
+                        reader_registration,
+                    ));
                 }
             };
 
@@ -279,7 +282,10 @@ where
             // we can flatten these candidates to a 1-dimensional `Vec`.
             let proposed_documents = candidates_by_doc_type.into_values().flatten().collect();
 
-            Ok((proposed_documents, reader_registration))
+            Ok((
+                DisclosureSessionState::Proposal(proposed_documents),
+                reader_registration,
+            ))
         })
         .or_else(|error| async {
             // Determine the category of the error, so we can report on it.
@@ -301,20 +307,39 @@ where
             return_url,
             verifier_url: verifier_url.clone(),
             device_key,
-            proposed_documents,
+            state,
             reader_registration,
         };
 
         Ok(session)
     }
 
+    pub fn has_missing_attributes(&self) -> bool {
+        match self.state {
+            DisclosureSessionState::MissingAttributes(_) => true,
+            DisclosureSessionState::Proposal(_) => false,
+        }
+    }
+
+    pub fn missing_attributes(&self) -> Vec<AttributeIdentifier> {
+        match self.state {
+            DisclosureSessionState::MissingAttributes(ref missing_attributes) => missing_attributes.clone(),
+            DisclosureSessionState::Proposal(_) => Default::default(),
+        }
+    }
+
     pub fn proposed_attributes(&self) -> ProposedAttributes {
-        // Get all of the attributes to be disclosed from the
-        // prepared `IssuerSigned` on the `ProposedDocument`s.
-        self.proposed_documents
-            .iter()
-            .map(|document| (document.doc_type.clone(), document.name_spaces()))
-            .collect()
+        match self.state {
+            DisclosureSessionState::MissingAttributes(_) => Default::default(),
+            DisclosureSessionState::Proposal(ref proposed_documents) => {
+                // Get all of the attributes to be disclosed from the
+                // prepared `IssuerSigned` on the `ProposedDocument`s.
+                proposed_documents
+                    .iter()
+                    .map(|document| (document.doc_type.clone(), document.name_spaces()))
+                    .collect()
+            }
+        }
     }
 
     // TODO: Implement terminate and disclose methods.
@@ -1276,8 +1301,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_disclosure_session_start() {
-        // Starting a disclosure session should succeed.
+    async fn test_disclosure_session_start_proposal() {
+        // Starting a disclosure session should succeed with a disclosure proposal.
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session) =
             disclosure_session_start(SessionType::SameDevice, &mut payloads, identity, identity, identity)
@@ -1290,7 +1315,13 @@ mod tests {
             disclosure_session.reader_registration,
             verifier_session.reader_registration
         );
+
+        // Test that there are no missing attributes and that a `DeviceEngagement` was sent.
+        assert!(!disclosure_session.has_missing_attributes());
+        assert!(disclosure_session.missing_attributes().is_empty());
         assert_eq!(payloads.len(), 1);
+        let _device_engagement: DeviceEngagement =
+            cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
 
         // Test that the proposal for disclosure contains the example attributes, in order.
         let entry_keys = disclosure_session
@@ -1301,6 +1332,90 @@ mod tests {
             .unwrap_or_default();
 
         assert_eq!(entry_keys, EXAMPLE_ATTRIBUTES);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_missing_attributes_one() {
+        // Starting a disclosure session should succeed with missing attributes.
+        let mut payloads = Vec::with_capacity(1);
+        let (disclosure_session, _) = disclosure_session_start(
+            SessionType::SameDevice,
+            &mut payloads,
+            identity,
+            |mut mdoc_source| {
+                // Remove the last attribute.
+                mdoc_source
+                    .mdocs
+                    .first_mut()
+                    .unwrap()
+                    .issuer_signed
+                    .name_spaces
+                    .as_mut()
+                    .unwrap()
+                    .get_mut(EXAMPLE_NAMESPACE)
+                    .unwrap()
+                    .0
+                    .pop();
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Test that there are no proposed documents and that a `DeviceEngagement` was sent.
+        assert!(disclosure_session.has_missing_attributes());
+        assert!(disclosure_session.proposed_attributes().is_empty());
+        assert_eq!(payloads.len(), 1);
+        let _device_engagement: DeviceEngagement =
+            cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
+
+        let expected_missing_attributes: Vec<AttributeIdentifier> =
+            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
+                .parse()
+                .unwrap()];
+
+        assert_eq!(disclosure_session.missing_attributes(), expected_missing_attributes);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_missing_attributes_all() {
+        // Starting a disclosure session should succeed with missing attributes.
+        let mut payloads = Vec::with_capacity(1);
+        let (disclosure_session, _) = disclosure_session_start(
+            SessionType::SameDevice,
+            &mut payloads,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.mdocs.clear();
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Test that there are no proposed documents and that a `DeviceEngagement` was sent.
+        assert!(disclosure_session.has_missing_attributes());
+        assert!(disclosure_session.proposed_attributes().is_empty());
+        assert_eq!(payloads.len(), 1);
+        let _device_engagement: DeviceEngagement =
+            cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
+
+        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        assert_eq!(disclosure_session.missing_attributes(), expected_missing_attributes);
     }
 
     #[tokio::test]
@@ -1680,94 +1795,6 @@ mod tests {
         assert_matches!(
             error,
             Error::Holder(HolderError::MultipleCandidates(doc_types)) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
-        );
-        assert_eq!(payloads.len(), 2);
-
-        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
-    }
-
-    #[tokio::test]
-    async fn test_disclosure_session_start_error_attributes_not_available() {
-        // Starting a `DisclosureSession` where a `DeviceRequest` is received that
-        // requests a `doc_type` that is not in the database should result in an error.
-        let mut payloads = Vec::with_capacity(2);
-        let error = disclosure_session_start(
-            SessionType::SameDevice,
-            &mut payloads,
-            identity,
-            |mut mdoc_source| {
-                mdoc_source.mdocs.clear();
-
-                mdoc_source
-            },
-            identity,
-        )
-        .await
-        .expect_err("Starting disclosure session should have resulted in an error");
-
-        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
-
-        assert_matches!(
-            error,
-            Error::Holder(HolderError::AttributesNotAvailable {
-                reader_registration: _,
-                missing_attributes
-            }) if missing_attributes == expected_missing_attributes
-        );
-        assert_eq!(payloads.len(), 2);
-
-        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
-
-        // Starting a `DisclosureSession` where a `DeviceRequest` is received that
-        // requests an attribute that is not in the database should result in an error.
-        let mut payloads = Vec::with_capacity(2);
-        let error = disclosure_session_start(
-            SessionType::SameDevice,
-            &mut payloads,
-            identity,
-            |mut mdoc_source| {
-                // Remove the last attribute.
-                mdoc_source
-                    .mdocs
-                    .first_mut()
-                    .unwrap()
-                    .issuer_signed
-                    .name_spaces
-                    .as_mut()
-                    .unwrap()
-                    .get_mut(EXAMPLE_NAMESPACE)
-                    .unwrap()
-                    .0
-                    .pop();
-
-                mdoc_source
-            },
-            identity,
-        )
-        .await
-        .expect_err("Starting disclosure session should have resulted in an error");
-
-        let expected_missing_attributes: Vec<AttributeIdentifier> =
-            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"]
-                .into_iter()
-                .map(|attribute| attribute.parse().unwrap())
-                .collect();
-
-        assert_matches!(
-            error,
-            Error::Holder(HolderError::AttributesNotAvailable {
-                reader_registration: _,
-                missing_attributes
-            }) if missing_attributes == expected_missing_attributes
         );
         assert_eq!(payloads.len(), 2);
 

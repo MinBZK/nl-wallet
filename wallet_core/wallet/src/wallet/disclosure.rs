@@ -6,7 +6,7 @@ use tracing::{info, instrument};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    holder::{HolderError, Mdoc, MdocDataSource},
+    holder::{Mdoc, MdocDataSource},
     utils::reader_auth::ReaderRegistration,
 };
 
@@ -36,7 +36,7 @@ pub enum DisclosureError {
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
-    DisclosureSession(#[source] nl_wallet_mdoc::Error),
+    DisclosureSession(#[from] nl_wallet_mdoc::Error),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
@@ -44,29 +44,6 @@ pub enum DisclosureError {
     },
     #[error("could not interpret (missing) mdoc attributes: {0}")]
     MdocAttributes(#[from] DocumentMdocError),
-}
-
-// Promote an `AttributesNotAvailable` error to a top-level error.
-impl From<nl_wallet_mdoc::Error> for DisclosureError {
-    fn from(value: nl_wallet_mdoc::Error) -> Self {
-        match value {
-            nl_wallet_mdoc::Error::Holder(HolderError::AttributesNotAvailable {
-                reader_registration,
-                missing_attributes,
-            }) => {
-                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
-                // If this fails, return `DisclosureError::AttributeMdoc` instead.
-                match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
-                    Ok(attributes) => DisclosureError::AttributesNotAvailable {
-                        reader_registration,
-                        missing_attributes: attributes,
-                    },
-                    Err(error) => error.into(),
-                }
-            }
-            error => DisclosureError::DisclosureSession(error),
-        }
-    }
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -101,6 +78,20 @@ where
 
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
+
+        if session.has_missing_attributes() {
+            // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
+            // If this fails, return `DisclosureError::AttributeMdoc` instead.
+            let error = match MissingDisclosureAttributes::from_mdoc_missing_attributes(session.missing_attributes()) {
+                Ok(attributes) => DisclosureError::AttributesNotAvailable {
+                    reader_registration: session.reader_registration().clone().into(),
+                    missing_attributes: attributes,
+                },
+                Err(error) => error.into(),
+            };
+
+            return Err(error);
+        }
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = session
@@ -170,7 +161,9 @@ mod tests {
     use assert_matches::assert_matches;
     use serial_test::serial;
 
-    use nl_wallet_mdoc::{basic_sa_ext::Entry, examples::Examples, mock as mdoc_mock, DataElementValue};
+    use nl_wallet_mdoc::{
+        basic_sa_ext::Entry, examples::Examples, holder::HolderError, mock as mdoc_mock, DataElementValue,
+    };
 
     use crate::{disclosure::MockMdocDisclosureSession, Attribute, AttributeValue};
 
@@ -201,10 +194,7 @@ mod tests {
             )]),
         )]);
 
-        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
-            reader_registration,
-            proposed_attributes,
-        );
+        MockMdocDisclosureSession::next_fields(reader_registration, Default::default(), proposed_attributes);
 
         // Starting disclosure should not fail.
         let proposal = wallet
@@ -323,13 +313,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
-        // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(
-            HolderError::AttributesNotAvailable {
-                reader_registration: Default::default(),
-                missing_attributes: vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()],
-            }
-            .into(),
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()],
+            Default::default(),
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -354,13 +342,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
-        // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(
-            HolderError::AttributesNotAvailable {
-                reader_registration: Default::default(),
-                missing_attributes: vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()],
-            }
-            .into(),
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()],
+            Default::default(),
         );
 
         // Starting disclosure where an attribute that is both unavailable
@@ -399,10 +385,7 @@ mod tests {
             )]),
         )]);
 
-        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
-            Default::default(),
-            proposed_attributes,
-        );
+        MockMdocDisclosureSession::next_fields(Default::default(), Default::default(), proposed_attributes);
 
         // Starting disclosure where unknown attributes are requested should result in an error.
         let error = wallet
