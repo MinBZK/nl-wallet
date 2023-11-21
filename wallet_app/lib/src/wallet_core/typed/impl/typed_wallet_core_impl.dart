@@ -121,6 +121,13 @@ class TypedWalletCoreImpl extends TypedWalletCore {
   Future<WalletInstructionResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
 
   @override
+  Future<List<WalletEvent>> getHistory() => call((core) => core.getHistory());
+
+  @override
+  Future<List<WalletEvent>> getHistoryForCard(String docType) =>
+      call((core) => core.getHistoryForCard(docType: docType));
+
+  @override
   Stream<List<Card>> observeCards() => _cards.stream;
 
   @override

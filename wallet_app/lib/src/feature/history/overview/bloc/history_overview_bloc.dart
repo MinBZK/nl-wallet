@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/timeline/timeline_attribute.dart';
@@ -22,6 +23,7 @@ class HistoryOverviewBloc extends Bloc<HistoryOverviewEvent, HistoryOverviewStat
       List<TimelineAttribute> attributes = await getWalletTimelineAttributesUseCase.invoke();
       emit(HistoryOverviewLoadSuccess(attributes));
     } catch (error) {
+      Fimber.e('Failed to load history', ex: error);
       emit(const HistoryOverviewLoadFailure());
     }
   }

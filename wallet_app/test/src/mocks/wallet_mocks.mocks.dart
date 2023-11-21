@@ -122,7 +122,7 @@ class MockMapper<I, O> extends _i1.Mock implements _i6.Mapper<I, O> {
       ) as O);
 
   @override
-  List<O> mapList(List<I>? input) => (super.noSuchMethod(
+  List<O> mapList(Iterable<I>? input) => (super.noSuchMethod(
         Invocation.method(
           #mapList,
           [input],
@@ -752,6 +752,26 @@ class MockTypedWalletCore extends _i1.Mock implements _i19.TypedWalletCore {
           ),
         )),
       ) as _i9.Future<_i2.WalletInstructionResult>);
+
+  @override
+  _i9.Future<List<_i2.WalletEvent>> getHistory() => (super.noSuchMethod(
+        Invocation.method(
+          #getHistory,
+          [],
+        ),
+        returnValue: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i9.Future<List<_i2.WalletEvent>>);
+
+  @override
+  _i9.Future<List<_i2.WalletEvent>> getHistoryForCard(String? docType) => (super.noSuchMethod(
+        Invocation.method(
+          #getHistoryForCard,
+          [docType],
+        ),
+        returnValue: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i9.Future<List<_i2.WalletEvent>>);
 }
 
 /// A class which mocks [NavigationService].
@@ -1261,6 +1281,32 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
       ) as _i5.FlutterRustBridgeTaskConstMeta);
 
   @override
+  _i5.FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kGetHistoryConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+          this,
+          Invocation.getter(#kGetHistoryConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+          this,
+          Invocation.getter(#kGetHistoryConstMeta),
+        ),
+      ) as _i5.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i5.FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kGetHistoryForCardConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+          this,
+          Invocation.getter(#kGetHistoryForCardConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+          this,
+          Invocation.getter(#kGetHistoryForCardConstMeta),
+        ),
+      ) as _i5.FlutterRustBridgeTaskConstMeta);
+
+  @override
   _i5.FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kResetWalletConstMeta),
         returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
@@ -1650,6 +1696,35 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
           ),
         )),
       ) as _i9.Future<_i2.WalletInstructionResult>);
+
+  @override
+  _i9.Future<List<_i2.WalletEvent>> getHistory({dynamic hint}) => (super.noSuchMethod(
+        Invocation.method(
+          #getHistory,
+          [],
+          {#hint: hint},
+        ),
+        returnValue: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i9.Future<List<_i2.WalletEvent>>);
+
+  @override
+  _i9.Future<List<_i2.WalletEvent>> getHistoryForCard({
+    required String? docType,
+    dynamic hint,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getHistoryForCard,
+          [],
+          {
+            #docType: docType,
+            #hint: hint,
+          },
+        ),
+        returnValue: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i9.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i9.Future<List<_i2.WalletEvent>>);
 
   @override
   _i9.Future<void> resetWallet({dynamic hint}) => (super.noSuchMethod(

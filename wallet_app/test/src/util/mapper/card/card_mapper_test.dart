@@ -43,11 +43,10 @@ void main() {
       expect(mapper.map(input).id, 'id-987');
     });
 
-    test('card with multiple `attributes` should call mocked `mockCardAttributeMapper` multiple times', () {
+    test('all card attributes should be mapped by the attributeMapper', () {
       mapper.map(_kSampleCard);
 
-      verify(mockCardAttributeMapper.map(_kSampleCardAttributeName)).called(1);
-      verify(mockCardAttributeMapper.map(_kSampleCardAttributeCity)).called(1);
+      verify(mockCardAttributeMapper.mapList(_kSampleCard.attributes)).called(1);
     });
 
     test('card with `pid_id` docType should call `mockCardFrontMapper` once', () {

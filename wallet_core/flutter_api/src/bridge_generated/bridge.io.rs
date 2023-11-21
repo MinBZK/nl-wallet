@@ -112,6 +112,16 @@ pub extern "C" fn wire_accept_disclosure(port_: i64, pin: *mut wire_uint_8_list)
 }
 
 #[no_mangle]
+pub extern "C" fn wire_get_history(port_: i64) {
+    wire_get_history_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_get_history_for_card(port_: i64, doc_type: *mut wire_uint_8_list) {
+    wire_get_history_for_card_impl(port_, doc_type)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_reset_wallet(port_: i64) {
     wire_reset_wallet_impl(port_)
 }

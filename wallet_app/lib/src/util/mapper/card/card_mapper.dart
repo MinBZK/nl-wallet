@@ -21,7 +21,7 @@ class CardMapper extends Mapper<Card, WalletCard> {
       id: cardId,
       issuerId: '', // FIXME: Eventually remove issuerId (mock builds still rely on them for now)
       front: _cardFrontMapper.map(input),
-      attributes: input.attributes.map((attribute) => _attributeMapper.map(attribute)).toList(),
+      attributes: _attributeMapper.mapList(input.attributes),
     );
   }
 }

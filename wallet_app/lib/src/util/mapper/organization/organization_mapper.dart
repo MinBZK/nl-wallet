@@ -2,18 +2,19 @@ import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';
-import '../../../wallet_core/wallet_core.dart';
+import '../../../wallet_core/wallet_core.dart' hide Organization;
+import '../../../wallet_core/wallet_core.dart' as core show Organization;
 import '../../extension/string_extension.dart';
 import '../mapper.dart';
 
-class RelyingPartyMapper extends Mapper<RelyingParty, Organization> {
+class OrganizationMapper extends Mapper<core.Organization, Organization> {
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<Image, AppImageData> _imageMapper;
 
-  RelyingPartyMapper(this._localizedStringMapper, this._imageMapper);
+  OrganizationMapper(this._localizedStringMapper, this._imageMapper);
 
   @override
-  Organization map(RelyingParty input) => Organization(
+  Organization map(core.Organization input) => Organization(
         id: 'id (missing from core)',
         legalName: _localizedStringMapper.map(input.legalName),
         displayName: _localizedStringMapper.map(input.displayName),

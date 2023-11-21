@@ -20,7 +20,7 @@ void main() {
       organization: WalletMockData.organization,
       status: InteractionStatus.success,
       policy: WalletMockData.policy,
-      requestPurpose: 'Request Purpose',
+      requestPurpose: 'Request Purpose'.untranslated,
     ),
     OperationTimelineAttribute(
         dateTime: DateTime(2023, 1, 2),
