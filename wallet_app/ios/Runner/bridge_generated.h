@@ -70,6 +70,10 @@ void wire_cancel_disclosure(int64_t port_);
 
 void wire_accept_disclosure(int64_t port_, struct wire_uint_8_list *pin);
 
+void wire_get_history(int64_t port_);
+
+void wire_get_history_for_card(int64_t port_, struct wire_uint_8_list *doc_type);
+
 void wire_reset_wallet(int64_t port_);
 
 struct wire_uint_8_list *new_uint_8_list_0(int32_t len);
@@ -100,6 +104,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_start_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_cancel_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_accept_disclosure);
+    dummy_var ^= ((int64_t) (void*) wire_get_history);
+    dummy_var ^= ((int64_t) (void*) wire_get_history_for_card);
     dummy_var ^= ((int64_t) (void*) wire_reset_wallet);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
     dummy_var ^= ((int64_t) (void*) free_WireSyncReturn);

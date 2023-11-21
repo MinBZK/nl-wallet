@@ -9,6 +9,7 @@ import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/policy.dart';
+import '../domain/model/timeline/timeline_attribute.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
@@ -18,9 +19,10 @@ import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/requested_card_mapper.dart';
+import '../util/mapper/history/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
-import '../util/mapper/organization/relying_party_mapper.dart';
+import '../util/mapper/organization/organization_mapper.dart';
 import '../util/mapper/pid/core_pid_attribute_mapper.dart';
 import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
 import '../util/mapper/pid/pid_attribute_mapper.dart';
@@ -30,7 +32,7 @@ import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
 import '../wallet_core/wallet_core.dart' as core;
 import '../wallet_core/wallet_core.dart'
-    show Card, CardAttribute, CardValue, LocalizedString, PinValidationResult, RelyingParty, RequestedCard;
+    show Card, CardAttribute, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
 
 class WalletMapperProvider extends StatelessWidget {
   final Widget child;
@@ -75,12 +77,12 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => CardMapper(context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<RequestedCard, WalletCard>>(
-          create: (context) => RequestedCardMapper(context.read(), context.read()),
+          create: (context) => RequestedCardMapper(context.read()),
         ),
 
         /// Organization / Relying party mappers
-        RepositoryProvider<Mapper<RelyingParty, Organization>>(
-          create: (context) => RelyingPartyMapper(context.read(), context.read()),
+        RepositoryProvider<Mapper<core.Organization, Organization>>(
+          create: (context) => OrganizationMapper(context.read(), context.read()),
         ),
 
         /// Policy
@@ -96,6 +98,17 @@ class WalletMapperProvider extends StatelessWidget {
         /// Pin mappers
         RepositoryProvider<Mapper<PinValidationResult, PinValidationError?>>(
           create: (context) => PinValidationErrorMapper(),
+        ),
+
+        /// Transaction mapper
+        RepositoryProvider<Mapper<WalletEvent, TimelineAttribute>>(
+          create: (context) => WalletEventMapper(
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: child,

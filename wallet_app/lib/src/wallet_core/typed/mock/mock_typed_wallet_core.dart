@@ -110,4 +110,16 @@ class MockTypedWalletCore extends TypedWalletCore {
     // TODO: implement acceptDisclosure
     throw UnimplementedError();
   }
+
+  @override
+  Future<List<WalletEvent>> getHistory() {
+    // TODO: implement getHistory
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<WalletEvent>> getHistoryForCard(String docType) {
+    // TODO: implement getHistoryForCard
+    throw UnimplementedError();
+  }
 }

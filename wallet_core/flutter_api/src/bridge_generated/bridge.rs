@@ -29,13 +29,15 @@ use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
-use crate::models::disclosure::RelyingParty;
+use crate::models::disclosure::Organization;
 use crate::models::disclosure::RequestPolicy;
 use crate::models::disclosure::RequestedCard;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
+use crate::models::wallet_event::DisclosureStatus;
+use crate::models::wallet_event::WalletEvent;
 
 // Section: wire functions
 
@@ -289,6 +291,29 @@ fn wire_accept_disclosure_impl(port_: MessagePort, pin: impl Wire2Api<String> + 
         },
     )
 }
+fn wire_get_history_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<WalletEvent>, _>(
+        WrapInfo {
+            debug_name: "get_history",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| get_history(),
+    )
+}
+fn wire_get_history_for_card_impl(port_: MessagePort, doc_type: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<WalletEvent>, _>(
+        WrapInfo {
+            debug_name: "get_history_for_card",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_doc_type = doc_type.wire2api();
+            move |task_callback| get_history_for_card(api_doc_type)
+        },
+    )
+}
 fn wire_reset_wallet_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
         WrapInfo {
@@ -398,6 +423,23 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
+impl support::IntoDart for DisclosureStatus {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Success => 0,
+            Self::Cancelled => 1,
+            Self::Error => 2,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureStatus {}
+impl rust2dart::IntoIntoDart<DisclosureStatus> for DisclosureStatus {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -493,25 +535,7 @@ impl rust2dart::IntoIntoDart<MissingAttribute> for MissingAttribute {
     }
 }
 
-impl support::IntoDart for PinValidationResult {
-    fn into_dart(self) -> support::DartAbi {
-        match self {
-            Self::Ok => 0,
-            Self::TooFewUniqueDigits => 1,
-            Self::SequentialDigits => 2,
-            Self::OtherIssue => 3,
-        }
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for PinValidationResult {}
-impl rust2dart::IntoIntoDart<PinValidationResult> for PinValidationResult {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
-impl support::IntoDart for RelyingParty {
+impl support::IntoDart for Organization {
     fn into_dart(self) -> support::DartAbi {
         vec![
             self.legal_name.into_into_dart().into_dart(),
@@ -526,8 +550,26 @@ impl support::IntoDart for RelyingParty {
         .into_dart()
     }
 }
-impl support::IntoDartExceptPrimitive for RelyingParty {}
-impl rust2dart::IntoIntoDart<RelyingParty> for RelyingParty {
+impl support::IntoDartExceptPrimitive for Organization {}
+impl rust2dart::IntoIntoDart<Organization> for Organization {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for PinValidationResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => 0,
+            Self::TooFewUniqueDigits => 1,
+            Self::SequentialDigits => 2,
+            Self::OtherIssue => 3,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for PinValidationResult {}
+impl rust2dart::IntoIntoDart<PinValidationResult> for PinValidationResult {
     fn into_into_dart(self) -> Self {
         self
     }
@@ -602,6 +644,46 @@ impl support::IntoDart for StartDisclosureResult {
 }
 impl support::IntoDartExceptPrimitive for StartDisclosureResult {}
 impl rust2dart::IntoIntoDart<StartDisclosureResult> for StartDisclosureResult {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for WalletEvent {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Disclosure {
+                date_time,
+                relying_party,
+                purpose,
+                requested_cards,
+                request_policy,
+                status,
+            } => vec![
+                0.into_dart(),
+                date_time.into_into_dart().into_dart(),
+                relying_party.into_into_dart().into_dart(),
+                purpose.into_into_dart().into_dart(),
+                requested_cards.into_into_dart().into_dart(),
+                request_policy.into_into_dart().into_dart(),
+                status.into_into_dart().into_dart(),
+            ],
+            Self::Issuance {
+                date_time,
+                issuer,
+                card,
+            } => vec![
+                1.into_dart(),
+                date_time.into_into_dart().into_dart(),
+                issuer.into_into_dart().into_dart(),
+                card.into_into_dart().into_dart(),
+            ],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for WalletEvent {}
+impl rust2dart::IntoIntoDart<WalletEvent> for WalletEvent {
     fn into_into_dart(self) -> Self {
         self
     }

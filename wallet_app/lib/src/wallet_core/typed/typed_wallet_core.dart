@@ -36,4 +36,8 @@ abstract class TypedWalletCore {
   Future<void> cancelDisclosure();
 
   Future<WalletInstructionResult> acceptDisclosure(String pin);
+
+  Future<List<WalletEvent>> getHistory();
+
+  Future<List<WalletEvent>> getHistoryForCard(String docType);
 }

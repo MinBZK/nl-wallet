@@ -215,7 +215,7 @@ class HistoryDetailScreen extends StatelessWidget {
   Widget _buildInteractionRequestPurposeRow(BuildContext context, InteractionTimelineAttribute attribute) {
     return InfoRow(
       title: Text(context.l10n.historyDetailScreenInteractionRequestPurposeTitle),
-      subtitle: Text(attribute.requestPurpose),
+      subtitle: Text(attribute.requestPurpose.l10nValue(context)),
       leading: Icon(
         Icons.outlined_flag_outlined,
         color: context.colorScheme.onSurface,

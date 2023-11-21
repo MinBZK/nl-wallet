@@ -88,7 +88,7 @@ abstract class WalletMockData {
         dateTime: DateTime(2023, 1, 1),
         organization: WalletMockData.organization,
         status: InteractionStatus.success,
-        requestPurpose: 'Purpose',
+        requestPurpose: 'Purpose'.untranslated,
         policy: WalletMockData.policy,
       );
 
