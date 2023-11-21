@@ -1,11 +1,12 @@
+import 'package:wallet_core/core.dart' as core show MissingAttribute, Organization;
+import 'package:wallet_core/core.dart' hide MissingAttribute, StartDisclosureResult, Organization;
+
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
-import '../../../../wallet_core/wallet_core.dart' as core show MissingAttribute;
-import '../../../../wallet_core/wallet_core.dart' hide MissingAttribute, StartDisclosureResult;
 import '../../organization/organization_repository.dart';
 import '../disclosure_repository.dart';
 
@@ -14,7 +15,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
 
   final Mapper<RequestedCard, WalletCard> _cardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
-  final Mapper<RelyingParty, Organization> _relyingPartyMapper;
+  final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
 

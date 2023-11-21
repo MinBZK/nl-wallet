@@ -1,5 +1,6 @@
+import 'package:wallet_core/core.dart';
+
 import '../../../domain/model/app_image_data.dart';
-import '../../../wallet_core/wallet_core.dart';
 import '../mapper.dart';
 
 class ImageMapper extends Mapper<Image, AppImageData> {

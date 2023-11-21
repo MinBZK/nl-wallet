@@ -16,6 +16,8 @@ import '../data/repository/disclosure/core/core_disclosure_request_repository.da
 import '../data/repository/disclosure/disclosure_repository.dart';
 import '../data/repository/disclosure/disclosure_request_repository.dart';
 import '../data/repository/disclosure/mock/mock_disclosure_request_repository.dart';
+import '../data/repository/history/core/core_history_repository.dart';
+import '../data/repository/history/history_repository.dart';
 import '../data/repository/issuance/core/core_issuance_response_repository.dart';
 import '../data/repository/issuance/issuance_response_repository.dart';
 import '../data/repository/issuance/mock/mock_issuance_response_repository.dart';
@@ -64,7 +66,9 @@ class WalletRepositoryProvider extends StatelessWidget {
           create: (context) => DataAttributeRepositoryImpl(context.read()),
         ),
         RepositoryProvider<TimelineAttributeRepository>(
-          create: (context) => TimelineAttributeRepositoryImpl(context.read()),
+          create: (context) => provideMocks
+              ? TimelineAttributeRepositoryImpl(context.read())
+              : CoreHistoryRepository(context.read(), context.read()),
         ),
         RepositoryProvider<DisclosureRequestRepository>(
           create: (context) =>
@@ -104,6 +108,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<UriRepository>(
           create: (context) => provideMocks ? MockUriRepository() : CoreUriRepository(context.read()),
+        ),
+        RepositoryProvider<HistoryRepository>(
+          create: (context) => CoreHistoryRepository(context.read(), context.read()),
         ),
       ],
       child: child,

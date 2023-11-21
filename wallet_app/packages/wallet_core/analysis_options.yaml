@@ -1,0 +1,5 @@
+include: package:lints/core.yaml
+
+# analyzer:
+exclude:
+  - lib/src/bridge_generated.dart

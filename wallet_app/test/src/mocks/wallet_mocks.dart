@@ -1,3 +1,4 @@
+import 'package:wallet_core/core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -21,7 +22,6 @@ import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dar
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
-import 'package:wallet/src/wallet_core/wallet_core.dart';
 
 import 'wallet_mocks.mocks.dart';
 

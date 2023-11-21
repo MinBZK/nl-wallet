@@ -1,0 +1,1 @@
+This package provides a mock implementation for the `wallet_app` <---> `wallet_core` rust api.

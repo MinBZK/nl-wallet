@@ -11,7 +11,7 @@ class Organization extends Equatable {
   final LocalizedText? description;
   final AppImageData logo;
   final String? webUrl;
-  final LocalizedText? country;
+  final String? countryCode;
   final LocalizedText? city;
   final LocalizedText? department;
   final String? kvk;
@@ -24,7 +24,7 @@ class Organization extends Equatable {
     required this.description,
     required this.logo,
     this.webUrl,
-    this.country,
+    this.countryCode,
     this.city,
     this.department,
     this.kvk,
@@ -40,7 +40,7 @@ class Organization extends Equatable {
         logo,
         webUrl,
         city,
-        country,
+        countryCode,
         department,
         kvk,
       ];

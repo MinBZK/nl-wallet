@@ -15,7 +15,6 @@ mod wallet;
 pub mod errors;
 
 pub use crate::{
-    config::{AccountServerConfiguration, Configuration, LockTimeoutConfiguration, PidIssuanceConfiguration},
     document::{
         Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, Document,
         DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue, MissingDisclosureAttributes,
@@ -31,6 +30,9 @@ pub mod mdoc {
         SharingPolicy,
     };
 }
+
+pub use wallet_common::config::wallet_config::WalletConfiguration;
+
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
     pub use crate::{
@@ -46,7 +48,7 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_provider::MockAccountProviderClient, digid::MockDigidSession, disclosure::MockMdocDisclosureSession,
-        pid_issuer::MockPidIssuerClient, storage::MockStorage,
+        account_provider::MockAccountProviderClient, config::default_configuration, digid::MockDigidSession,
+        disclosure::MockMdocDisclosureSession, pid_issuer::MockPidIssuerClient, storage::MockStorage,
     };
 }

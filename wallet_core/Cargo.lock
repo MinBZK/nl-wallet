@@ -2549,7 +2549,7 @@ dependencies = [
  "rcgen",
  "regex",
  "reqwest",
- "ring 0.17.2",
+ "ring 0.17.5",
  "rstest",
  "rustls-webpki",
  "serde",
@@ -3392,9 +3392,9 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.2"
+version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "911b295d2d302948838c8ac142da1ee09fa7863163b44e6715bc9357905878b8"
+checksum = "fb0205304757e5d899b9c2e448b867ffd03ae7f988002e47cd24954391394d0b"
 dependencies = [
  "cc",
  "getrandom 0.2.10",
@@ -4424,18 +4424,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
+checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
+checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5047,7 +5047,7 @@ dependencies = [
  "p256",
  "platform_support",
  "reqwest",
- "ring 0.17.2",
+ "ring 0.17.5",
  "rstest",
  "sea-orm",
  "serde",
@@ -5097,12 +5097,14 @@ dependencies = [
  "p256",
  "rand 0.8.5",
  "rand_core 0.6.4",
- "ring 0.17.2",
+ "ring 0.17.5",
+ "rustls-webpki",
  "serde",
  "serde_json",
  "sha2",
  "thiserror",
  "tokio",
+ "url",
  "wallet_common",
 ]
 

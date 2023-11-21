@@ -7,7 +7,7 @@ const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api/sr
 /// Path of output generated Dart code
 const DART_OUTPUT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../wallet_app/lib/bridge_generated.dart"
+    "/../../wallet_app/packages/wallet_core/lib/src/bridge_generated.dart"
 );
 /// Path where Rust crate can be found
 const RUST_CRATE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api");

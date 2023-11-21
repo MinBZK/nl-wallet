@@ -1,7 +1,6 @@
 use wallet::{
-    errors::DisclosureError,
-    mdoc::{Organization, ReaderRegistration},
-    DisclosureProposal, MissingDisclosureAttributes, ProposedDisclosureDocument,
+    errors::DisclosureError, mdoc::ReaderRegistration, DisclosureProposal, MissingDisclosureAttributes,
+    ProposedDisclosureDocument,
 };
 
 use super::card::{CardAttribute, LocalizedString};
@@ -12,7 +11,7 @@ pub enum Image {
     Jpg { base64: String },
 }
 
-pub struct RelyingParty {
+pub struct Organization {
     pub legal_name: Vec<LocalizedString>,
     pub display_name: Vec<LocalizedString>,
     pub description: Vec<LocalizedString>,
@@ -41,14 +40,14 @@ pub struct RequestedCard {
 
 pub enum StartDisclosureResult {
     Request {
-        relying_party: RelyingParty,
+        relying_party: Organization,
         policy: RequestPolicy,
         requested_cards: Vec<RequestedCard>,
         is_first_interaction_with_relying_party: bool,
         request_purpose: Vec<LocalizedString>,
     },
     RequestAttributesMissing {
-        relying_party: RelyingParty,
+        relying_party: Organization,
         missing_attributes: Vec<MissingAttribute>,
         is_first_interaction_with_relying_party: bool,
         request_purpose: Vec<LocalizedString>,
@@ -85,9 +84,9 @@ impl From<wallet::mdoc::Image> for Image {
     }
 }
 
-impl From<Organization> for RelyingParty {
-    fn from(value: Organization) -> Self {
-        RelyingParty {
+impl From<wallet::mdoc::Organization> for Organization {
+    fn from(value: wallet::mdoc::Organization) -> Self {
+        Organization {
             legal_name: RPLocalizedStrings(value.legal_name).into(),
             display_name: RPLocalizedStrings(value.display_name).into(),
             description: RPLocalizedStrings(value.description).into(),

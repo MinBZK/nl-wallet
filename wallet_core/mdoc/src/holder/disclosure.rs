@@ -844,6 +844,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use serde::{de::DeserializeOwned, Serialize};
     use tokio::sync::mpsc;
+    use wallet_common::trust_anchor::DerTrustAnchor;
 
     use crate::{
         examples::{Example, Examples},
@@ -853,7 +854,6 @@ mod tests {
             cose::{self, CoseError, MdocCose},
             reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
             serialization::CborError,
-            x509::OwnedTrustAnchor,
         },
     };
 
@@ -1033,7 +1033,7 @@ mod tests {
         session_type: SessionType,
         return_url: Option<Url>,
         reader_registration: ReaderRegistration,
-        trust_anchors: Vec<OwnedTrustAnchor>,
+        trust_anchors: Vec<DerTrustAnchor>,
         private_key: PrivateKey,
         reader_engagement: ReaderEngagement,
         reader_ephemeral_key: SecretKey,
@@ -1072,7 +1072,7 @@ mod tests {
         ) -> Self {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
             let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-            let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
+            let trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
             let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone());
 
             // Generate the `ReaderEngagement` that would be be sent in the UL.
@@ -1104,7 +1104,10 @@ mod tests {
         }
 
         fn trust_anchors(&self) -> Vec<TrustAnchor> {
-            self.trust_anchors.iter().map(|anchor| anchor.into()).collect()
+            self.trust_anchors
+                .iter()
+                .map(|anchor| (&anchor.owned_trust_anchor).into())
+                .collect()
         }
 
         // Generate the `SessionData` response containing the `DeviceRequest`,
@@ -1817,7 +1820,7 @@ mod tests {
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let owned_trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
+        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::default();
         let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
         let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
@@ -1837,9 +1840,9 @@ mod tests {
         };
 
         // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
-        let trust_anchors = owned_trust_anchors
+        let trust_anchors = der_trust_anchors
             .iter()
-            .map(|anchor| anchor.into())
+            .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect::<Vec<TrustAnchor>>();
 
         let verified_reader_registration = device_request
@@ -1880,11 +1883,6 @@ mod tests {
         };
 
         // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
-        let trust_anchors = owned_trust_anchors
-            .iter()
-            .map(|anchor| anchor.into())
-            .collect::<Vec<TrustAnchor>>();
-
         let error = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect_err("Verifying DeviceRequest should have resulted in an error");

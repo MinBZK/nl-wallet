@@ -106,7 +106,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert
-            .parse_and_verify(&certificate_public_key)
+            .parse_and_verify(&certificate_public_key.into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);

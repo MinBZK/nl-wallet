@@ -1,6 +1,6 @@
 import 'package:fimber/fimber.dart';
+import 'package:wallet_core/core.dart';
 
-import '../../../../../bridge_generated.dart';
 import '../../../../domain/model/attribute/data_attribute.dart';
 import '../pid_repository.dart';
 

@@ -24,7 +24,7 @@ use wallet_provider_service::{
 
 use crate::{errors::WalletProviderError, settings::Settings};
 
-pub struct AppDependencies {
+pub struct RouterState {
     pub account_server: AccountServer,
     pub pin_policy: PinPolicy,
     pub repositories: Repositories,
@@ -33,8 +33,8 @@ pub struct AppDependencies {
     pub instruction_result_signing_key: InstructionResultSigning,
 }
 
-impl AppDependencies {
-    pub async fn new_from_settings(settings: Settings) -> Result<AppDependencies, Box<dyn Error>> {
+impl RouterState {
+    pub async fn new_from_settings(settings: Settings) -> Result<RouterState, Box<dyn Error>> {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
@@ -86,7 +86,7 @@ impl AppDependencies {
 
         let repositories = Repositories::new(db);
 
-        let dependencies = AppDependencies {
+        let state = RouterState {
             account_server,
             repositories,
             pin_policy,
@@ -95,7 +95,7 @@ impl AppDependencies {
             instruction_result_signing_key,
         };
 
-        Ok(dependencies)
+        Ok(state)
     }
 
     pub async fn handle_instruction<I, R>(
@@ -124,13 +124,13 @@ impl AppDependencies {
     }
 }
 
-impl Generator<uuid::Uuid> for AppDependencies {
+impl Generator<uuid::Uuid> for RouterState {
     fn generate(&self) -> Uuid {
         Uuid::new_v4()
     }
 }
 
-impl Generator<DateTime<Local>> for AppDependencies {
+impl Generator<DateTime<Local>> for RouterState {
     fn generate(&self) -> DateTime<Local> {
         Local::now()
     }

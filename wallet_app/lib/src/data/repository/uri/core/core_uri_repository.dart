@@ -1,4 +1,5 @@
-import '../../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../../../domain/model/navigation/navigation_request.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../uri_repository.dart';
