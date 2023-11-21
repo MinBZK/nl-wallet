@@ -50,49 +50,6 @@ pub enum CertificateError {
 
 pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 
-/// A version of [`TrustAnchor`] that can more easily be used as a field
-/// in another struct, as it does not require a liftetime annotation.
-///
-/// Can be converted from a reference to a [`TrustAnchor`] or a byte-slice
-/// reference `&[u8]` using the `From<>` trait. Conversely a [`TrustAnchor`]
-/// may be created from a reference to [`OwnedTrustAnchor`].
-#[derive(Debug, Clone)]
-pub struct OwnedTrustAnchor {
-    subject: Vec<u8>,
-    spki: Vec<u8>,
-    name_constraints: Option<Vec<u8>>,
-}
-
-impl From<&TrustAnchor<'_>> for OwnedTrustAnchor {
-    fn from(value: &TrustAnchor) -> Self {
-        OwnedTrustAnchor {
-            subject: value.subject.to_vec(),
-            spki: value.spki.to_vec(),
-            name_constraints: value.name_constraints.map(|nc| nc.to_vec()),
-        }
-    }
-}
-
-impl TryFrom<&[u8]> for OwnedTrustAnchor {
-    type Error = CertificateError;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let anchor = TrustAnchor::try_from_cert_der(value).map(|anchor| (&anchor).into())?;
-
-        Ok(anchor)
-    }
-}
-
-impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
-    fn from(value: &'a OwnedTrustAnchor) -> Self {
-        TrustAnchor {
-            subject: &value.subject,
-            spki: &value.spki,
-            name_constraints: value.name_constraints.as_deref(),
-        }
-    }
-}
-
 /// An x509 certificate, unifying functionality from the following crates:
 ///
 /// - parsing data: `x509_parser`
@@ -120,6 +77,15 @@ impl<'a> TryInto<X509Certificate<'a>> for &'a Certificate {
     fn try_into(self) -> Result<X509Certificate<'a>, Self::Error> {
         let (_, parsed) = X509Certificate::from_der(self.as_bytes())?;
         Ok(parsed)
+    }
+}
+
+#[cfg(feature = "mock")]
+impl<'a> TryInto<wallet_common::trust_anchor::DerTrustAnchor> for &'a Certificate {
+    type Error = CertificateError;
+
+    fn try_into(self) -> Result<wallet_common::trust_anchor::DerTrustAnchor, Self::Error> {
+        Ok(wallet_common::trust_anchor::DerTrustAnchor::from_der(self.0.to_vec())?)
     }
 }
 

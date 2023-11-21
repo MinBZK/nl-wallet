@@ -1,8 +1,10 @@
-use crate::config::{Configuration, ConfigurationRepository};
+use wallet_common::config::wallet_config::WalletConfiguration;
+
+use crate::config::ConfigurationRepository;
 
 use super::Wallet;
 
-pub type ConfigurationCallback = Box<dyn FnMut(&Configuration) + Send + Sync>;
+pub type ConfigurationCallback = Box<dyn FnMut(&WalletConfiguration) + Send + Sync>;
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
@@ -10,7 +12,7 @@ where
 {
     pub fn set_config_callback<F>(&mut self, mut callback: F)
     where
-        F: FnMut(&Configuration) + Send + Sync + 'static,
+        F: FnMut(&WalletConfiguration) + Send + Sync + 'static,
     {
         callback(self.config_repository.config());
         // TODO: Once configuration fetching from the Wallet Provider is implemented,
@@ -27,6 +29,8 @@ where
 mod tests {
     use std::sync::{Arc, Mutex};
 
+    use crate::config::default_configuration;
+
     use super::{super::tests::WalletWithMocks, *};
 
     // Tests both setting and clearing the configuration callback.
@@ -37,7 +41,7 @@ mod tests {
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
-        let configs = Arc::new(Mutex::new(Vec::<Configuration>::with_capacity(1)));
+        let configs = Arc::new(Mutex::new(Vec::<WalletConfiguration>::with_capacity(1)));
         let callback_configs = Arc::clone(&configs);
 
         // Set the configuration callback on the `Wallet`,
@@ -54,7 +58,7 @@ mod tests {
             assert_eq!(configs.len(), 1);
             assert_eq!(
                 configs.first().unwrap().account_server.base_url,
-                Configuration::default().account_server.base_url
+                default_configuration().account_server.base_url
             );
         }
 
