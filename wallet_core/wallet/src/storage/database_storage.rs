@@ -283,7 +283,7 @@ where
             id: ActiveValue::Set(Uuid::new_v4()),
             event_type: ActiveValue::Set(event.event_type),
             timestamp: ActiveValue::Set(event.timestamp),
-            remote_party_certificate: ActiveValue::Set(event.remote_party_certificate),
+            remote_party_certificate: ActiveValue::Set(event.remote_party_certificate.map(|c| c.as_bytes().to_owned())),
             status: ActiveValue::Set(event.status),
         };
         tr.insert(self.database()?.connection()).await?;
