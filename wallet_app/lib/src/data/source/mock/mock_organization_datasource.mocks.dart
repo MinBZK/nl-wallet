@@ -98,7 +98,7 @@ final _kMarketPlaceOrganization = Organization(
   logo: const AppAssetImage(WalletAssets.logo_ecommerce),
   department: 'Afdeling online marketing'.untranslated,
   city: 'Utrecht'.untranslated,
-  country: 'Nederland'.untranslated,
+  countryCode: 'nl',
   webUrl: 'https://online-marketplace.nl',
 );
 
@@ -130,7 +130,7 @@ final _kHousingCorporationOrganization = Organization(
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_housing_corp),
   webUrl: 'https://beterwonen.nl',
-  country: 'Nederland'.untranslated,
+  countryCode: 'nl',
   city: 'Den Haag'.untranslated,
   department: 'Secretariaat'.untranslated,
 );
@@ -166,7 +166,7 @@ final _kMunicipalityDelftOrganization = Organization(
   logo: const AppAssetImage(WalletAssets.logo_den_haag),
   department: 'Parkeren'.untranslated,
   city: 'Den Haag'.untranslated,
-  country: 'Nederland'.untranslated,
+  countryCode: 'nl',
   webUrl: 'https://www.denhaag.nl',
 );
 
@@ -178,7 +178,7 @@ final _kBankOrganization = Organization(
   description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_bank),
   department: 'Klantenservice'.untranslated,
-  country: 'Nederland'.untranslated,
+  countryCode: 'nl',
   city: 'Amsterdam'.untranslated,
   webUrl: 'https://jouwbank.nl',
 );
@@ -191,7 +191,7 @@ final _kMonkeyBikeOrganization = Organization(
   description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_monkeybike),
   department: 'Online marketing'.untranslated,
-  country: 'Land'.untranslated,
+  countryCode: 'nl',
   city: 'Groningen'.untranslated,
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   //companyInfo: 'KVK: 3945-2932',
@@ -206,6 +206,6 @@ final _kPharmacyOrganization = Organization(
   logo: const AppAssetImage(WalletAssets.logo_zorgverzekeraar_z),
   department: 'KVK: 1234-1234'.untranslated,
   city: 'Den Haag'.untranslated,
-  country: 'Nederland'.untranslated,
+  countryCode: 'nl',
   webUrl: 'https://denoordapotheek.nl',
 );
