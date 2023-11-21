@@ -1,4 +1,4 @@
-use chrono::Local;
+use chrono::Utc;
 use entity::event_log::{EventStatus, EventType};
 use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
@@ -186,7 +186,7 @@ where
             .get_mut()
             .insert_wallet_event(WalletEvent::new(
                 EventType::PidIssuance,
-                Local::now(),
+                Utc::now(),
                 None,
                 EventStatus::Cancelled,
             ))
@@ -265,7 +265,7 @@ where
             .get_mut()
             .insert_wallet_event(WalletEvent::new(
                 EventType::PidIssuance,
-                Local::now(),
+                Utc::now(),
                 None,
                 EventStatus::Success,
             ))

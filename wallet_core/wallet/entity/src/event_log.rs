@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
@@ -28,7 +28,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_name = "type")]
     pub event_type: EventType,
-    pub timestamp: DateTime<Local>,
+    pub timestamp: DateTime<Utc>,
     pub remote_party_certificate: Option<Vec<u8>>,
     pub status: EventStatus,
 }
