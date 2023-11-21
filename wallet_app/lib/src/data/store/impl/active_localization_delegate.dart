@@ -17,6 +17,9 @@ class ActiveLocalizationDelegate extends LocalizationsDelegate<void> implements 
   Stream<Locale> observe() => _activeLocaleStream.stream;
 
   @override
+  Locale get activeLocale => _activeLocaleStream.value;
+
+  @override
   bool isSupported(Locale locale) => true;
 
   @override

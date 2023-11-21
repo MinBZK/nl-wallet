@@ -67,6 +67,8 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
 
         let config = self.config_repository.config();
 
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
@@ -74,7 +76,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
             &self.account_provider_client,
             registration_data,
             &config.account_server.base_url,
-            &config.account_server.instruction_result_public_key,
+            &instruction_result_public_key,
         );
 
         info!("Sending unlock instruction to Wallet Provider");

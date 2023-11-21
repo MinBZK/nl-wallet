@@ -14,6 +14,7 @@ use webpki::TrustAnchor;
 use wallet_common::{
     account::serialization::DerSecretKey,
     generator::{Generator, TimeGenerator},
+    trust_anchor::OwnedTrustAnchor,
 };
 
 use crate::{
@@ -26,7 +27,7 @@ use crate::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
         serialization::{cbor_deserialize, cbor_hex, cbor_serialize, CborSeq, TaggedBytes},
-        x509::{CertificateUsage, OwnedTrustAnchor},
+        x509::CertificateUsage,
     },
     Error, Result, SessionData,
 };
@@ -858,6 +859,8 @@ mod tests {
     use indexmap::IndexMap;
     use rstest::rstest;
 
+    use wallet_common::trust_anchor::DerTrustAnchor;
+
     use crate::{
         examples::Example,
         identifiers::AttributeIdentifierHolder,
@@ -866,7 +869,7 @@ mod tests {
         utils::{
             crypto::{SessionKey, SessionKeyUser},
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateType, OwnedTrustAnchor},
+            x509::{Certificate, CertificateType},
         },
         verifier::{
             SessionType, ValidityError,
@@ -942,7 +945,11 @@ mod tests {
     async fn disclosure() {
         // Initialize server state
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let trust_anchors = vec![OwnedTrustAnchor::try_from(ca.as_bytes()).unwrap()];
+        let trust_anchors = vec![
+            DerTrustAnchor::from_der(ca.as_bytes().to_vec())
+                .unwrap()
+                .owned_trust_anchor,
+        ];
         let (rp_cert, rp_privkey) = Certificate::new(
             &ca,
             &ca_privkey,

@@ -1,4 +1,5 @@
-import '../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../util/mapper/mapper.dart';
 

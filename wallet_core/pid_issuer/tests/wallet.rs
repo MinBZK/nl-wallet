@@ -9,7 +9,7 @@ use url::Url;
 use wallet::{
     mock::{MockAccountProviderClient, MockStorage},
     wallet_deps::{DigidSession, HttpDigidSession, HttpPidIssuerClient, LocalConfigurationRepository},
-    Configuration, Wallet,
+    Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
@@ -20,13 +20,14 @@ use pid_issuer::{
     server,
     settings::Settings,
 };
+use wallet::mock::default_configuration;
 
 fn local_base_url(port: u16) -> Url {
     Url::parse(&format!("http://localhost:{}/", port)).expect("Could not create url")
 }
 
 fn test_wallet_config(base_url: Url) -> LocalConfigurationRepository {
-    let mut config = Configuration::default();
+    let mut config = default_configuration();
     config.pid_issuance.pid_issuer_url = base_url;
 
     LocalConfigurationRepository::new(config)
@@ -105,7 +106,7 @@ async fn test_pid_issuance_digid_bridge() {
         .expect("failed to get digid url");
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(&authorization_url, &Configuration::default().pid_issuance.digid_url).await;
+    let redirect_url = fake_digid_auth(&authorization_url, &default_configuration().pid_issuance.digid_url).await;
 
     // Use the redirect URL to do PID issuance
     wallet

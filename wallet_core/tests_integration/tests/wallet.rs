@@ -23,20 +23,24 @@ use pid_issuer::{
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet::{
     errors::{InstructionError, WalletUnlockError},
-    mock::{MockDigidSession, MockPidIssuerClient, MockStorage},
+    mock::{default_configuration, MockDigidSession, MockPidIssuerClient, MockStorage},
     wallet_deps::{
         AccountProviderClient, ConfigurationRepository, HttpAccountProviderClient, HttpPidIssuerClient,
         LocalConfigurationRepository, PidIssuerClient, Storage,
     },
-    AttributeValue, Configuration, Document, Wallet,
+    AttributeValue, Document, Wallet,
 };
-use wallet_common::{account::jwt::EcdsaDecodingKey, keys::software::SoftwareEcdsaKey};
+use wallet_common::{
+    account::{jwt::EcdsaDecodingKey, serialization::DerVerifyingKey},
+    config::wallet_config::WalletConfiguration,
+    keys::software::SoftwareEcdsaKey,
+};
 use wallet_provider::{server, settings::Settings};
 use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 
-async fn public_key_from_settings(settings: &Settings) -> (EcdsaDecodingKey, EcdsaDecodingKey) {
+async fn public_key_from_settings(settings: &Settings) -> (DerVerifyingKey, DerVerifyingKey) {
     let hsm = Pkcs11Hsm::new(
         settings.hsm.library_path.clone(),
         settings.hsm.user_pin.clone(),
@@ -72,8 +76,8 @@ async fn database_connection(settings: &Settings) -> DatabaseConnection {
 async fn create_test_wallet(
     base_url: Url,
     pid_base_url: Option<Url>,
-    public_key: EcdsaDecodingKey,
-    instruction_result_public_key: EcdsaDecodingKey,
+    public_key: DerVerifyingKey,
+    instruction_result_public_key: DerVerifyingKey,
     pid_issuer_client: impl PidIssuerClient,
 ) -> Wallet<
     LocalConfigurationRepository,
@@ -84,7 +88,7 @@ async fn create_test_wallet(
     impl PidIssuerClient,
 > {
     // Create mock Wallet from settings
-    let mut config = Configuration::default();
+    let mut config = default_configuration();
     config.account_server.base_url = base_url;
     config.account_server.certificate_public_key = public_key;
     config.account_server.instruction_result_public_key = instruction_result_public_key;
@@ -118,17 +122,25 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn settings() -> (Settings, u16) {
+fn settings() -> (Settings, WalletConfiguration, u16) {
     let mut settings = Settings::new().expect("Could not read settings");
     let port = find_listener_port();
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.webserver.port = port;
     settings.pin_policy.timeouts_in_ms = vec![200, 400, 600];
-    (settings, port)
+
+    let mut wallet_config = default_configuration();
+    wallet_config.account_server.base_url = local_base_url(port);
+
+    (settings, wallet_config, port)
 }
 
-fn start_wallet_provider(settings: Settings) {
-    tokio::spawn(async move { server::serve(settings).await.expect("Could not start server") });
+fn start_wallet_provider(settings: Settings, wallet_config: WalletConfiguration) {
+    tokio::spawn(async move {
+        server::serve(settings, wallet_config)
+            .await
+            .expect("Could not start server")
+    });
 
     let _ = tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
@@ -194,11 +206,11 @@ where
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_registration_in_process() {
-    let (settings, port) = settings();
+    let (settings, wallet_config, port) = settings();
     let (certificate_public_key, instruction_result_public_key) = public_key_from_settings(&settings).await;
     let connection = database_connection(&settings).await;
 
-    start_wallet_provider(settings);
+    start_wallet_provider(settings, wallet_config);
     let wallet = create_test_wallet(
         local_base_url(port),
         None,
@@ -219,8 +231,8 @@ async fn test_wallet_registration_in_process() {
 #[cfg_attr(not(feature = "live_test"), ignore)]
 async fn test_wallet_registration_live() {
     let base_url = Url::parse("http://localhost:3000/api/v1/").unwrap();
-    let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
-    let instr_pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap());
+    let pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()).into();
+    let instr_pub_key = EcdsaDecodingKey::from_sec1(&STANDARD.decode("").unwrap()).into();
     let wallet = create_test_wallet(base_url, None, pub_key, instr_pub_key, MockPidIssuerClient::default()).await;
 
     test_wallet_registration(wallet).await;
@@ -230,10 +242,10 @@ async fn test_wallet_registration_live() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_ok() {
-    let (settings, port) = settings();
+    let (settings, wallet_config, port) = settings();
     let (certificate_public_key, instruction_result_public_key) = public_key_from_settings(&settings).await;
 
-    start_wallet_provider(settings);
+    start_wallet_provider(settings, wallet_config);
     let mut wallet = create_test_wallet(
         local_base_url(port),
         None,
@@ -267,13 +279,13 @@ async fn test_unlock_ok() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_block() {
-    let (mut settings, port) = settings();
+    let (mut settings, wallet_config, port) = settings();
     settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts_in_ms = vec![];
 
     let (certificate_public_key, instruction_result_public_key) = public_key_from_settings(&settings).await;
-    start_wallet_provider(settings);
+    start_wallet_provider(settings, wallet_config);
     let mut wallet = create_test_wallet(
         local_base_url(port),
         None,
@@ -325,10 +337,10 @@ async fn test_block() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_error() {
-    let (settings, port) = settings();
+    let (settings, wallet_config, port) = settings();
     let (certificate_public_key, instruction_result_public_key) = public_key_from_settings(&settings).await;
 
-    start_wallet_provider(settings);
+    start_wallet_provider(settings, wallet_config);
     let mut wallet = create_test_wallet(
         local_base_url(port),
         None,
@@ -468,7 +480,7 @@ async fn test_unlock_error() {
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (settings, port) = settings();
+    let (settings, wallet_config, port) = settings();
     let (pid_settings, pid_port) = pid_issuer_settings();
     let (certificate_public_key, instruction_result_public_key) = public_key_from_settings(&settings).await;
 
@@ -481,7 +493,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         attributes_lookup = MockAttributesLookup::default();
         bsn_lookup = MockBsnLookup::default();
     }
-    start_wallet_provider(settings);
+    start_wallet_provider(settings, wallet_config);
     start_pid_issuer(pid_settings, attributes_lookup, bsn_lookup);
 
     let start_context = MockDigidSession::start_context();

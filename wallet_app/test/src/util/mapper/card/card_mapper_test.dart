@@ -1,6 +1,6 @@
+import 'package:wallet_core/core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
@@ -43,11 +43,10 @@ void main() {
       expect(mapper.map(input).id, 'id-987');
     });
 
-    test('card with multiple `attributes` should call mocked `mockCardAttributeMapper` multiple times', () {
+    test('all card attributes should be mapped by the attributeMapper', () {
       mapper.map(_kSampleCard);
 
-      verify(mockCardAttributeMapper.map(_kSampleCardAttributeName)).called(1);
-      verify(mockCardAttributeMapper.map(_kSampleCardAttributeCity)).called(1);
+      verify(mockCardAttributeMapper.mapList(_kSampleCard.attributes)).called(1);
     });
 
     test('card with `pid_id` docType should call `mockCardFrontMapper` once', () {

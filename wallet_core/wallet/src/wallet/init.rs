@@ -7,7 +7,10 @@ use platform_support::{
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::LocalConfigurationRepository,
+    config::{
+        ConfigServerConfiguration, LocalConfigurationRepository, PreloadConfigurationRepository,
+        RemoteConfigurationRepository,
+    },
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
@@ -30,8 +33,13 @@ impl Wallet {
 
         let storage = DatabaseStorage::<HardwareEncryptionKey>::init::<HardwareUtilities>().await?;
 
-        Self::init_registration(
+        let config_repo = PreloadConfigurationRepository::new(
+            RemoteConfigurationRepository::new(ConfigServerConfiguration::default()),
             LocalConfigurationRepository::default(),
+        );
+
+        Self::init_registration(
+            config_repo,
             storage,
             HttpAccountProviderClient::default(),
             HttpPidIssuerClient::default(),

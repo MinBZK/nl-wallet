@@ -1,4 +1,5 @@
-import '../../../../bridge_generated.dart';
+import 'package:wallet_core/core.dart';
+
 import '../../../domain/model/attribute/data_attribute.dart';
 
 export '../../../domain/model/pid/pid_issuance_status.dart';

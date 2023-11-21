@@ -1,6 +1,6 @@
+import 'package:wallet_core/core.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
-import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/uri/core/core_uri_repository.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';

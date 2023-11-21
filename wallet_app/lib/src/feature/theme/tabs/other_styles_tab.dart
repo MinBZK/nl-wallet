@@ -226,7 +226,7 @@ class OtherStylesTab extends StatelessWidget {
               deletionCanBeRequested: true,
               privacyPolicyUrl: 'https://www.example.org',
             ),
-            requestPurpose: 'Kaart uitgifte',
+            requestPurpose: 'Kaart uitgifte'.untranslated,
           ),
           onPressed: () {},
         ),

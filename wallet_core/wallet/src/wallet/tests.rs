@@ -8,12 +8,7 @@ use p256::{
 };
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
-    holder::{Mdoc, TrustAnchor},
-    mock as mdoc_mock,
-    server_keys::PrivateKey,
-    utils::x509::OwnedTrustAnchor,
-    IssuerSigned,
+    basic_sa_ext::UnsignedMdoc, holder::Mdoc, mock as mdoc_mock, server_keys::PrivateKey, IssuerSigned,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
@@ -23,19 +18,19 @@ use wallet_common::{
     },
     generator::TimeGenerator,
     keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    trust_anchor::DerTrustAnchor,
     utils,
 };
 
 use crate::{
     account_provider::MockAccountProviderClient,
-    config::LocalConfigurationRepository,
+    config::{default_configuration, LocalConfigurationRepository},
     digid::MockDigidSession,
     disclosure::MockMdocDisclosureSession,
     document,
     pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
-    Configuration,
 };
 
 use super::{Wallet, WalletInitError};
@@ -49,7 +44,7 @@ pub struct AccountServerKeys {
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
     pub issuance_key: PrivateKey,
-    pub trust_anchor: OwnedTrustAnchor,
+    pub trust_anchor: DerTrustAnchor,
 }
 
 /// This is used as a mock for `PlatformEcdsaKey`, so we can introduce failure conditions.
@@ -81,11 +76,10 @@ pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountSe
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
     let (issuance_key, ca) = mdoc_mock::generate_issuance_key_and_ca().unwrap();
-    let trust_anchor: TrustAnchor<'_> = (&ca).try_into().unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: (&trust_anchor).into(),
+        trust_anchor: (&ca).try_into().unwrap(),
     }
 });
 
@@ -110,7 +104,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: Str
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&ISSUER_KEY.trust_anchor).into()],
+        &[(&ISSUER_KEY.trust_anchor.owned_trust_anchor).into()],
     )
     .unwrap()
 }
@@ -236,7 +230,7 @@ impl Default for WalletWithMocks {
 
         // Override public key material in the `Configuration`.
         let config = {
-            let mut config = Configuration::default();
+            let mut config = default_configuration();
 
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
             config.account_server.instruction_result_public_key =

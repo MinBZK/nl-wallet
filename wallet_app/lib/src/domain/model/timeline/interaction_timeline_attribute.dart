@@ -1,3 +1,4 @@
+import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
 import '../policy/policy.dart';
 import 'timeline_attribute.dart';
@@ -5,7 +6,7 @@ import 'timeline_attribute.dart';
 class InteractionTimelineAttribute extends TimelineAttribute {
   final InteractionStatus status;
   final Policy policy;
-  final String requestPurpose;
+  final LocalizedText requestPurpose;
 
   const InteractionTimelineAttribute({
     required this.status,

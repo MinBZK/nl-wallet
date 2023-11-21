@@ -21,13 +21,11 @@ use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::{KeyRing, PrivateKey},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
-    utils::{
-        serialization::cbor_serialize,
-        x509::{Certificate, OwnedTrustAnchor},
-    },
+    utils::{serialization::cbor_serialize, x509::Certificate},
     verifier::{DisclosureData, ItemsRequests, SessionType, StatusResponse, VerificationError, Verifier},
     SessionData,
 };
+use wallet_common::trust_anchor::OwnedTrustAnchor;
 
 lazy_static! {
     static ref UL_ENGAGEMENT: Url =

@@ -7,6 +7,7 @@ import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/formatter/country_code_formatter.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
@@ -198,6 +199,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context, Organization organization) {
+    final country = CountryCodeFormatter.format(organization.countryCode);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -225,10 +227,16 @@ class OrganizationDetailScreen extends StatelessWidget {
             text: Text(context.l10n.organizationDetailScreenKvk(organization.kvk!)),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
-        if (organization.country != null || organization.city != null)
+        if (organization.kvk != null)
+          IconRow(
+            icon: const Icon(Icons.storefront_outlined),
+            text: Text(context.l10n.organizationDetailScreenKvk(organization.kvk!)),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+          ),
+        if (country != null || organization.city != null)
           IconRow(
             icon: const Icon(Icons.location_on_outlined),
-            text: Text(_generateLocationLabel(context, organization.country, organization.city)),
+            text: Text(_generateLocationLabel(context, country, organization.city)),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
         if (organization.webUrl != null)
@@ -309,12 +317,11 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  String _generateLocationLabel(BuildContext context, LocalizedText? country, LocalizedText? city) {
+  String _generateLocationLabel(BuildContext context, String? country, LocalizedText? city) {
     assert(country != null || city != null, 'At least one of [country, city] needs to be provided');
-    final countryLabel = country?.l10nValue(context);
     final cityLabel = city?.l10nValue(context);
-    if (cityLabel == null) return countryLabel!;
-    if (countryLabel == null) return cityLabel;
-    return '$cityLabel, $countryLabel';
+    if (cityLabel == null) return country!;
+    if (country == null) return cityLabel;
+    return '$cityLabel, $country';
   }
 }

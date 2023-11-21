@@ -1,4 +1,5 @@
 import '../../../../data/repository/card/timeline_attribute_repository.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../model/attribute/data_attribute.dart';
 import '../../../model/policy/policy.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
@@ -23,7 +24,7 @@ class LogCardInteractionUseCaseImpl implements LogCardInteractionUseCase {
       dateTime: DateTime.now(),
       organization: organization,
       dataAttributes: resolvedAttributes,
-      requestPurpose: requestPurpose,
+      requestPurpose: requestPurpose.untranslated,
     );
     await timelineAttributeRepository.create(interaction);
   }

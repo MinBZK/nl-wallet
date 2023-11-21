@@ -1411,35 +1411,35 @@ abstract class Image_Jpg implements Image {
 
 /// @nodoc
 mixin _$StartDisclosureResult {
-  RelyingParty get relyingParty => throw _privateConstructorUsedError;
+  Organization get relyingParty => throw _privateConstructorUsedError;
   bool get isFirstInteractionWithRelyingParty => throw _privateConstructorUsedError;
   List<LocalizedString> get requestPurpose => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
     required TResult orElse(),
@@ -1474,7 +1474,7 @@ abstract class $StartDisclosureResultCopyWith<$Res> {
   factory $StartDisclosureResultCopyWith(StartDisclosureResult value, $Res Function(StartDisclosureResult) then) =
       _$StartDisclosureResultCopyWithImpl<$Res, StartDisclosureResult>;
   @useResult
-  $Res call({RelyingParty relyingParty, bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose});
+  $Res call({Organization relyingParty, bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose});
 }
 
 /// @nodoc
@@ -1498,7 +1498,7 @@ class _$StartDisclosureResultCopyWithImpl<$Res, $Val extends StartDisclosureResu
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
-              as RelyingParty,
+              as Organization,
       isFirstInteractionWithRelyingParty: null == isFirstInteractionWithRelyingParty
           ? _value.isFirstInteractionWithRelyingParty
           : isFirstInteractionWithRelyingParty // ignore: cast_nullable_to_non_nullable
@@ -1519,7 +1519,7 @@ abstract class _$$StartDisclosureResult_RequestImplCopyWith<$Res> implements $St
   @override
   @useResult
   $Res call(
-      {RelyingParty relyingParty,
+      {Organization relyingParty,
       RequestPolicy policy,
       List<RequestedCard> requestedCards,
       bool isFirstInteractionWithRelyingParty,
@@ -1547,7 +1547,7 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
-              as RelyingParty,
+              as Organization,
       policy: null == policy
           ? _value.policy
           : policy // ignore: cast_nullable_to_non_nullable
@@ -1581,7 +1581,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
         _requestPurpose = requestPurpose;
 
   @override
-  final RelyingParty relyingParty;
+  final Organization relyingParty;
   @override
   final RequestPolicy policy;
   final List<RequestedCard> _requestedCards;
@@ -1638,10 +1638,10 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) {
@@ -1651,10 +1651,10 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
   }) {
@@ -1664,10 +1664,10 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
     required TResult orElse(),
@@ -1712,14 +1712,14 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
 
 abstract class StartDisclosureResult_Request implements StartDisclosureResult {
   const factory StartDisclosureResult_Request(
-      {required final RelyingParty relyingParty,
+      {required final Organization relyingParty,
       required final RequestPolicy policy,
       required final List<RequestedCard> requestedCards,
       required final bool isFirstInteractionWithRelyingParty,
       required final List<LocalizedString> requestPurpose}) = _$StartDisclosureResult_RequestImpl;
 
   @override
-  RelyingParty get relyingParty;
+  Organization get relyingParty;
   RequestPolicy get policy;
   List<RequestedCard> get requestedCards;
   @override
@@ -1742,7 +1742,7 @@ abstract class _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<$Re
   @override
   @useResult
   $Res call(
-      {RelyingParty relyingParty,
+      {Organization relyingParty,
       List<MissingAttribute> missingAttributes,
       bool isFirstInteractionWithRelyingParty,
       List<LocalizedString> requestPurpose});
@@ -1769,7 +1769,7 @@ class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
       relyingParty: null == relyingParty
           ? _value.relyingParty
           : relyingParty // ignore: cast_nullable_to_non_nullable
-              as RelyingParty,
+              as Organization,
       missingAttributes: null == missingAttributes
           ? _value._missingAttributes
           : missingAttributes // ignore: cast_nullable_to_non_nullable
@@ -1798,7 +1798,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
         _requestPurpose = requestPurpose;
 
   @override
-  final RelyingParty relyingParty;
+  final Organization relyingParty;
   final List<MissingAttribute> _missingAttributes;
   @override
   List<MissingAttribute> get missingAttributes {
@@ -1848,10 +1848,10 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         request,
-    required TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)
         requestAttributesMissing,
   }) {
@@ -1862,10 +1862,10 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult? Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
   }) {
@@ -1876,10 +1876,10 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(RelyingParty relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         request,
-    TResult Function(RelyingParty relyingParty, List<MissingAttribute> missingAttributes,
+    TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose)?
         requestAttributesMissing,
     required TResult orElse(),
@@ -1925,13 +1925,13 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
 
 abstract class StartDisclosureResult_RequestAttributesMissing implements StartDisclosureResult {
   const factory StartDisclosureResult_RequestAttributesMissing(
-      {required final RelyingParty relyingParty,
+      {required final Organization relyingParty,
       required final List<MissingAttribute> missingAttributes,
       required final bool isFirstInteractionWithRelyingParty,
       required final List<LocalizedString> requestPurpose}) = _$StartDisclosureResult_RequestAttributesMissingImpl;
 
   @override
-  RelyingParty get relyingParty;
+  Organization get relyingParty;
   List<MissingAttribute> get missingAttributes;
   @override
   bool get isFirstInteractionWithRelyingParty;
@@ -1941,6 +1941,470 @@ abstract class StartDisclosureResult_RequestAttributesMissing implements StartDi
   @JsonKey(ignore: true)
   _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>
       get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$WalletEvent {
+  String get dateTime => throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+        disclosure,
+    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletEvent_Disclosure value) disclosure,
+    required TResult Function(WalletEvent_Issuance value) issuance,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletEvent_Disclosure value)? disclosure,
+    TResult? Function(WalletEvent_Issuance value)? issuance,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletEvent_Disclosure value)? disclosure,
+    TResult Function(WalletEvent_Issuance value)? issuance,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $WalletEventCopyWith<WalletEvent> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $WalletEventCopyWith<$Res> {
+  factory $WalletEventCopyWith(WalletEvent value, $Res Function(WalletEvent) then) =
+      _$WalletEventCopyWithImpl<$Res, WalletEvent>;
+  @useResult
+  $Res call({String dateTime});
+}
+
+/// @nodoc
+class _$WalletEventCopyWithImpl<$Res, $Val extends WalletEvent> implements $WalletEventCopyWith<$Res> {
+  _$WalletEventCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? dateTime = null,
+  }) {
+    return _then(_value.copyWith(
+      dateTime: null == dateTime
+          ? _value.dateTime
+          : dateTime // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEventCopyWith<$Res> {
+  factory _$$WalletEvent_DisclosureImplCopyWith(
+          _$WalletEvent_DisclosureImpl value, $Res Function(_$WalletEvent_DisclosureImpl) then) =
+      __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String dateTime,
+      Organization relyingParty,
+      List<LocalizedString> purpose,
+      List<RequestedCard> requestedCards,
+      RequestPolicy requestPolicy,
+      DisclosureStatus status});
+}
+
+/// @nodoc
+class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
+    extends _$WalletEventCopyWithImpl<$Res, _$WalletEvent_DisclosureImpl>
+    implements _$$WalletEvent_DisclosureImplCopyWith<$Res> {
+  __$$WalletEvent_DisclosureImplCopyWithImpl(
+      _$WalletEvent_DisclosureImpl _value, $Res Function(_$WalletEvent_DisclosureImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? dateTime = null,
+    Object? relyingParty = null,
+    Object? purpose = null,
+    Object? requestedCards = null,
+    Object? requestPolicy = null,
+    Object? status = null,
+  }) {
+    return _then(_$WalletEvent_DisclosureImpl(
+      dateTime: null == dateTime
+          ? _value.dateTime
+          : dateTime // ignore: cast_nullable_to_non_nullable
+              as String,
+      relyingParty: null == relyingParty
+          ? _value.relyingParty
+          : relyingParty // ignore: cast_nullable_to_non_nullable
+              as Organization,
+      purpose: null == purpose
+          ? _value._purpose
+          : purpose // ignore: cast_nullable_to_non_nullable
+              as List<LocalizedString>,
+      requestedCards: null == requestedCards
+          ? _value._requestedCards
+          : requestedCards // ignore: cast_nullable_to_non_nullable
+              as List<RequestedCard>,
+      requestPolicy: null == requestPolicy
+          ? _value.requestPolicy
+          : requestPolicy // ignore: cast_nullable_to_non_nullable
+              as RequestPolicy,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as DisclosureStatus,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
+  const _$WalletEvent_DisclosureImpl(
+      {required this.dateTime,
+      required this.relyingParty,
+      required final List<LocalizedString> purpose,
+      required final List<RequestedCard> requestedCards,
+      required this.requestPolicy,
+      required this.status})
+      : _purpose = purpose,
+        _requestedCards = requestedCards;
+
+  @override
+  final String dateTime;
+  @override
+  final Organization relyingParty;
+  final List<LocalizedString> _purpose;
+  @override
+  List<LocalizedString> get purpose {
+    if (_purpose is EqualUnmodifiableListView) return _purpose;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_purpose);
+  }
+
+  final List<RequestedCard> _requestedCards;
+  @override
+  List<RequestedCard> get requestedCards {
+    if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_requestedCards);
+  }
+
+  @override
+  final RequestPolicy requestPolicy;
+  @override
+  final DisclosureStatus status;
+
+  @override
+  String toString() {
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletEvent_DisclosureImpl &&
+            (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
+            (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
+            const DeepCollectionEquality().equals(other._purpose, _purpose) &&
+            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
+            (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
+            (identical(other.status, status) || other.status == status));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
+      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
+      __$$WalletEvent_DisclosureImplCopyWithImpl<_$WalletEvent_DisclosureImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+        disclosure,
+    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+  }) {
+    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+  }) {
+    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    required TResult orElse(),
+  }) {
+    if (disclosure != null) {
+      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletEvent_Disclosure value) disclosure,
+    required TResult Function(WalletEvent_Issuance value) issuance,
+  }) {
+    return disclosure(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletEvent_Disclosure value)? disclosure,
+    TResult? Function(WalletEvent_Issuance value)? issuance,
+  }) {
+    return disclosure?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletEvent_Disclosure value)? disclosure,
+    TResult Function(WalletEvent_Issuance value)? issuance,
+    required TResult orElse(),
+  }) {
+    if (disclosure != null) {
+      return disclosure(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletEvent_Disclosure implements WalletEvent {
+  const factory WalletEvent_Disclosure(
+      {required final String dateTime,
+      required final Organization relyingParty,
+      required final List<LocalizedString> purpose,
+      required final List<RequestedCard> requestedCards,
+      required final RequestPolicy requestPolicy,
+      required final DisclosureStatus status}) = _$WalletEvent_DisclosureImpl;
+
+  @override
+  String get dateTime;
+  Organization get relyingParty;
+  List<LocalizedString> get purpose;
+  List<RequestedCard> get requestedCards;
+  RequestPolicy get requestPolicy;
+  DisclosureStatus get status;
+  @override
+  @JsonKey(ignore: true)
+  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res> implements $WalletEventCopyWith<$Res> {
+  factory _$$WalletEvent_IssuanceImplCopyWith(
+          _$WalletEvent_IssuanceImpl value, $Res Function(_$WalletEvent_IssuanceImpl) then) =
+      __$$WalletEvent_IssuanceImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String dateTime, Organization issuer, Card card});
+}
+
+/// @nodoc
+class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWithImpl<$Res, _$WalletEvent_IssuanceImpl>
+    implements _$$WalletEvent_IssuanceImplCopyWith<$Res> {
+  __$$WalletEvent_IssuanceImplCopyWithImpl(
+      _$WalletEvent_IssuanceImpl _value, $Res Function(_$WalletEvent_IssuanceImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? dateTime = null,
+    Object? issuer = null,
+    Object? card = null,
+  }) {
+    return _then(_$WalletEvent_IssuanceImpl(
+      dateTime: null == dateTime
+          ? _value.dateTime
+          : dateTime // ignore: cast_nullable_to_non_nullable
+              as String,
+      issuer: null == issuer
+          ? _value.issuer
+          : issuer // ignore: cast_nullable_to_non_nullable
+              as Organization,
+      card: null == card
+          ? _value.card
+          : card // ignore: cast_nullable_to_non_nullable
+              as Card,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
+  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.issuer, required this.card});
+
+  @override
+  final String dateTime;
+  @override
+  final Organization issuer;
+  @override
+  final Card card;
+
+  @override
+  String toString() {
+    return 'WalletEvent.issuance(dateTime: $dateTime, issuer: $issuer, card: $card)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletEvent_IssuanceImpl &&
+            (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
+            (identical(other.issuer, issuer) || other.issuer == issuer) &&
+            (identical(other.card, card) || other.card == card));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, dateTime, issuer, card);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith =>
+      __$$WalletEvent_IssuanceImplCopyWithImpl<_$WalletEvent_IssuanceImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+        disclosure,
+    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+  }) {
+    return issuance(dateTime, issuer, card);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+  }) {
+    return issuance?.call(dateTime, issuer, card);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
+            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+        disclosure,
+    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    required TResult orElse(),
+  }) {
+    if (issuance != null) {
+      return issuance(dateTime, issuer, card);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletEvent_Disclosure value) disclosure,
+    required TResult Function(WalletEvent_Issuance value) issuance,
+  }) {
+    return issuance(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletEvent_Disclosure value)? disclosure,
+    TResult? Function(WalletEvent_Issuance value)? issuance,
+  }) {
+    return issuance?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletEvent_Disclosure value)? disclosure,
+    TResult Function(WalletEvent_Issuance value)? issuance,
+    required TResult orElse(),
+  }) {
+    if (issuance != null) {
+      return issuance(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletEvent_Issuance implements WalletEvent {
+  const factory WalletEvent_Issuance(
+      {required final String dateTime,
+      required final Organization issuer,
+      required final Card card}) = _$WalletEvent_IssuanceImpl;
+
+  @override
+  String get dateTime;
+  Organization get issuer;
+  Card get card;
+  @override
+  @JsonKey(ignore: true)
+  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc

@@ -1,0 +1,7 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    prefer_relative_imports: true
+    depend_on_referenced_packages: false

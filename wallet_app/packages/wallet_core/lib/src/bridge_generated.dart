@@ -102,6 +102,14 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta;
 
+  Future<List<WalletEvent>> getHistory({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta;
+
+  Future<List<WalletEvent>> getHistoryForCard({required String docType, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta;
+
   Future<void> resetWallet({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta;
@@ -153,6 +161,12 @@ class CardValue with _$CardValue {
   const factory CardValue.gender({
     required GenderCardValue value,
   }) = CardValue_Gender;
+}
+
+enum DisclosureStatus {
+  Success,
+  Cancelled,
+  Error,
 }
 
 class FlutterConfiguration {
@@ -208,14 +222,7 @@ class MissingAttribute {
   });
 }
 
-enum PinValidationResult {
-  Ok,
-  TooFewUniqueDigits,
-  SequentialDigits,
-  OtherIssue,
-}
-
-class RelyingParty {
+class Organization {
   final List<LocalizedString> legalName;
   final List<LocalizedString> displayName;
   final List<LocalizedString> description;
@@ -225,7 +232,7 @@ class RelyingParty {
   final List<LocalizedString>? city;
   final String? countryCode;
 
-  const RelyingParty({
+  const Organization({
     required this.legalName,
     required this.displayName,
     required this.description,
@@ -235,6 +242,13 @@ class RelyingParty {
     this.city,
     this.countryCode,
   });
+}
+
+enum PinValidationResult {
+  Ok,
+  TooFewUniqueDigits,
+  SequentialDigits,
+  OtherIssue,
 }
 
 class RequestPolicy {
@@ -264,18 +278,35 @@ class RequestedCard {
 @freezed
 class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
-    required RelyingParty relyingParty,
+    required Organization relyingParty,
     required RequestPolicy policy,
     required List<RequestedCard> requestedCards,
     required bool isFirstInteractionWithRelyingParty,
     required List<LocalizedString> requestPurpose,
   }) = StartDisclosureResult_Request;
   const factory StartDisclosureResult.requestAttributesMissing({
-    required RelyingParty relyingParty,
+    required Organization relyingParty,
     required List<MissingAttribute> missingAttributes,
     required bool isFirstInteractionWithRelyingParty,
     required List<LocalizedString> requestPurpose,
   }) = StartDisclosureResult_RequestAttributesMissing;
+}
+
+@freezed
+class WalletEvent with _$WalletEvent {
+  const factory WalletEvent.disclosure({
+    required String dateTime,
+    required Organization relyingParty,
+    required List<LocalizedString> purpose,
+    required List<RequestedCard> requestedCards,
+    required RequestPolicy requestPolicy,
+    required DisclosureStatus status,
+  }) = WalletEvent_Disclosure;
+  const factory WalletEvent.issuance({
+    required String dateTime,
+    required Organization issuer,
+    required Card card,
+  }) = WalletEvent_Issuance;
 }
 
 @freezed
@@ -658,6 +689,39 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
+  Future<List<WalletEvent>> getHistory({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_get_history(port_),
+      parseSuccessData: _wire2api_list_wallet_event,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kGetHistoryConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "get_history",
+        argNames: [],
+      );
+
+  Future<List<WalletEvent>> getHistoryForCard({required String docType, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(docType);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_get_history_for_card(port_, arg0),
+      parseSuccessData: _wire2api_list_wallet_event,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kGetHistoryForCardConstMeta,
+      argValues: [docType],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "get_history_for_card",
+        argNames: ["docType"],
+      );
+
   Future<void> resetWallet({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_reset_wallet(port_),
@@ -691,12 +755,16 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  Card _wire2api_box_autoadd_card(dynamic raw) {
+    return _wire2api_card(raw);
+  }
+
   Image _wire2api_box_autoadd_image(dynamic raw) {
     return _wire2api_image(raw);
   }
 
-  RelyingParty _wire2api_box_autoadd_relying_party(dynamic raw) {
-    return _wire2api_relying_party(raw);
+  Organization _wire2api_box_autoadd_organization(dynamic raw) {
+    return _wire2api_organization(raw);
   }
 
   RequestPolicy _wire2api_box_autoadd_request_policy(dynamic raw) {
@@ -763,6 +831,10 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
+  DisclosureStatus _wire2api_disclosure_status(dynamic raw) {
+    return DisclosureStatus.values[raw as int];
+  }
+
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -823,6 +895,10 @@ class WalletCoreImpl implements WalletCore {
     return (raw as List<dynamic>).map(_wire2api_requested_card).toList();
   }
 
+  List<WalletEvent> _wire2api_list_wallet_event(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_wallet_event).toList();
+  }
+
   LocalizedString _wire2api_localized_string(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -856,14 +932,10 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_list_localized_string(raw);
   }
 
-  PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
-    return PinValidationResult.values[raw as int];
-  }
-
-  RelyingParty _wire2api_relying_party(dynamic raw) {
+  Organization _wire2api_organization(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
-    return RelyingParty(
+    return Organization(
       legalName: _wire2api_list_localized_string(arr[0]),
       displayName: _wire2api_list_localized_string(arr[1]),
       description: _wire2api_list_localized_string(arr[2]),
@@ -873,6 +945,10 @@ class WalletCoreImpl implements WalletCore {
       city: _wire2api_opt_list_localized_string(arr[6]),
       countryCode: _wire2api_opt_String(arr[7]),
     );
+  }
+
+  PinValidationResult _wire2api_pin_validation_result(dynamic raw) {
+    return PinValidationResult.values[raw as int];
   }
 
   RequestPolicy _wire2api_request_policy(dynamic raw) {
@@ -899,7 +975,7 @@ class WalletCoreImpl implements WalletCore {
     switch (raw[0]) {
       case 0:
         return StartDisclosureResult_Request(
-          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          relyingParty: _wire2api_box_autoadd_organization(raw[1]),
           policy: _wire2api_box_autoadd_request_policy(raw[2]),
           requestedCards: _wire2api_list_requested_card(raw[3]),
           isFirstInteractionWithRelyingParty: _wire2api_bool(raw[4]),
@@ -907,7 +983,7 @@ class WalletCoreImpl implements WalletCore {
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
-          relyingParty: _wire2api_box_autoadd_relying_party(raw[1]),
+          relyingParty: _wire2api_box_autoadd_organization(raw[1]),
           missingAttributes: _wire2api_list_missing_attribute(raw[2]),
           isFirstInteractionWithRelyingParty: _wire2api_bool(raw[3]),
           requestPurpose: _wire2api_list_localized_string(raw[4]),
@@ -935,6 +1011,28 @@ class WalletCoreImpl implements WalletCore {
 
   void _wire2api_unit(dynamic raw) {
     return;
+  }
+
+  WalletEvent _wire2api_wallet_event(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return WalletEvent_Disclosure(
+          dateTime: _wire2api_String(raw[1]),
+          relyingParty: _wire2api_box_autoadd_organization(raw[2]),
+          purpose: _wire2api_list_localized_string(raw[3]),
+          requestedCards: _wire2api_list_requested_card(raw[4]),
+          requestPolicy: _wire2api_box_autoadd_request_policy(raw[5]),
+          status: _wire2api_disclosure_status(raw[6]),
+        );
+      case 1:
+        return WalletEvent_Issuance(
+          dateTime: _wire2api_String(raw[1]),
+          issuer: _wire2api_box_autoadd_organization(raw[2]),
+          card: _wire2api_box_autoadd_card(raw[3]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   WalletInstructionResult _wire2api_wallet_instruction_result(dynamic raw) {
@@ -1352,6 +1450,33 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
           'wire_accept_disclosure');
   late final _wire_accept_disclosure =
       _wire_accept_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_get_history(
+    int port_,
+  ) {
+    return _wire_get_history(
+      port_,
+    );
+  }
+
+  late final _wire_get_historyPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_get_history');
+  late final _wire_get_history = _wire_get_historyPtr.asFunction<void Function(int)>();
+
+  void wire_get_history_for_card(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> doc_type,
+  ) {
+    return _wire_get_history_for_card(
+      port_,
+      doc_type,
+    );
+  }
+
+  late final _wire_get_history_for_cardPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>(
+          'wire_get_history_for_card');
+  late final _wire_get_history_for_card =
+      _wire_get_history_for_cardPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   void wire_reset_wallet(
     int port_,

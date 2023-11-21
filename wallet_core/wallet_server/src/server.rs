@@ -2,12 +2,13 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
+use tokio;
+use tracing::debug;
+
 use nl_wallet_mdoc::{
     server_state::{SessionState, SessionStore},
     verifier::DisclosureData,
 };
-use tokio;
-use tracing::debug;
 
 use crate::{settings::Settings, verifier::create_routers};
 

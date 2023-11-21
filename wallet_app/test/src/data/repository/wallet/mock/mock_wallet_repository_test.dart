@@ -1,5 +1,5 @@
+import 'package:wallet_core/core.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/wallet/mock/mock_wallet_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/source/mock/mock_wallet_datasource.dart';

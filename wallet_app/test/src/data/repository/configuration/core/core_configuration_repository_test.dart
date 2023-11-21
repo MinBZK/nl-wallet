@@ -1,6 +1,6 @@
+import 'package:wallet_core/core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/bridge_generated.dart';
 import 'package:wallet/src/data/repository/configuration/core/core_configuration_repository.dart';
 import 'package:wallet/src/data/repository/configuration/mock/mock_configuration_repository.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
