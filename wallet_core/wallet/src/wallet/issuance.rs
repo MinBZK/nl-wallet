@@ -204,6 +204,8 @@ where
 
         let config = self.config_repository.config();
 
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
@@ -211,7 +213,7 @@ where
             &self.account_provider_client,
             registration_data,
             &config.account_server.base_url,
-            &config.account_server.instruction_result_public_key,
+            &instruction_result_public_key,
         );
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 

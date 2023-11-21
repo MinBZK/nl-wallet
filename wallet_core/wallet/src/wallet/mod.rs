@@ -17,7 +17,7 @@ use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncrypti
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::LocalConfigurationRepository,
+    config::PreloadConfigurationRepository,
     digid::HttpDigidSession,
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
@@ -36,7 +36,7 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    CR = LocalConfigurationRepository,          // ConfigurationRepository
+    CR = PreloadConfigurationRepository,        // ConfigurationRepository
     S = DatabaseStorage<HardwareEncryptionKey>, // Storage
     PEK = HardwareEcdsaKey,                     // PlatformEcdsaKey
     APC = HttpAccountProviderClient,            // AccountProviderClient

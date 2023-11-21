@@ -1,21 +1,30 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::Json, routing::post, Router};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::Json,
+    routing::{get, post},
+    Router,
+};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-use wallet_common::account::{
-    messages::{
-        auth::{Certificate, Challenge, Registration},
-        instructions::{
-            CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
-            InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
+use wallet_common::{
+    account::{
+        messages::{
+            auth::{Certificate, Challenge, Registration},
+            instructions::{
+                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
+                InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
+            },
         },
+        signed::SignedDouble,
     },
-    signed::SignedDouble,
+    config::wallet_config::WalletConfiguration,
 };
 
-use crate::{app_dependencies::AppDependencies, errors::WalletProviderError};
+use crate::{errors::WalletProviderError, router_state::RouterState};
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
 /// a [`StatusCode`] and JSON body, all top-level errors should be convertable
@@ -30,22 +39,27 @@ use crate::{app_dependencies::AppDependencies, errors::WalletProviderError};
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
-pub fn router(dependencies: Arc<AppDependencies>) -> Router {
-    Router::new().nest(
-        "/api/v1",
-        Router::new()
-            .route("/enroll", post(enroll))
-            .route("/createwallet", post(create_wallet))
-            .route("/instructions/challenge", post(instruction_challenge))
-            .route(&format!("/instructions/{}", CheckPin::ENDPOINT), post(check_pin))
-            .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
-            .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
-            .layer(TraceLayer::new_for_http())
-            .with_state(dependencies),
-    )
+pub fn router(dependencies: Arc<RouterState>, wallet_config: WalletConfiguration) -> Router {
+    Router::new()
+        .nest(
+            "/api/v1",
+            Router::new()
+                .route("/enroll", post(enroll))
+                .route("/createwallet", post(create_wallet))
+                .route("/instructions/challenge", post(instruction_challenge))
+                .route(&format!("/instructions/{}", CheckPin::ENDPOINT), post(check_pin))
+                .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
+                .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
+                .layer(TraceLayer::new_for_http())
+                .with_state(dependencies),
+        )
+        .nest(
+            "/config/v1",
+            Router::new().route("/", get(configuration)).with_state(wallet_config),
+        )
 }
 
-async fn enroll(State(state): State<Arc<AppDependencies>>) -> Result<(StatusCode, Json<Challenge>)> {
+async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received enroll request, creating registration challenge");
 
     let challenge = state
@@ -63,7 +77,7 @@ async fn enroll(State(state): State<Arc<AppDependencies>>) -> Result<(StatusCode
 }
 
 async fn create_wallet(
-    State(state): State<Arc<AppDependencies>>,
+    State(state): State<Arc<RouterState>>,
     Json(payload): Json<SignedDouble<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)> {
     info!("Received create wallet request, registering with account server");
@@ -87,7 +101,7 @@ async fn create_wallet(
 }
 
 async fn instruction_challenge(
-    State(state): State<Arc<AppDependencies>>,
+    State(state): State<Arc<RouterState>>,
     Json(payload): Json<InstructionChallengeRequestMessage>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received challenge request, creating challenge");
@@ -107,7 +121,7 @@ async fn instruction_challenge(
 }
 
 async fn check_pin(
-    State(state): State<Arc<AppDependencies>>,
+    State(state): State<Arc<RouterState>>,
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
@@ -116,7 +130,7 @@ async fn check_pin(
 }
 
 async fn generate_key(
-    State(state): State<Arc<AppDependencies>>,
+    State(state): State<Arc<RouterState>>,
     Json(payload): Json<Instruction<GenerateKey>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
     info!("Received generate key request, handling the GenerateKey instruction");
@@ -125,10 +139,20 @@ async fn generate_key(
 }
 
 async fn sign(
-    State(state): State<Arc<AppDependencies>>,
+    State(state): State<Arc<RouterState>>,
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
     let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn configuration(State(config): State<WalletConfiguration>) -> Result<(StatusCode, Json<WalletConfiguration>)> {
+    info!("Received configuration request");
+
+    let body = config;
+
+    info!("Replying with the configuration");
+
     Ok((StatusCode::OK, body.into()))
 }

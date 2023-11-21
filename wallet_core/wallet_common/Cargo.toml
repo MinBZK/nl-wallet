@@ -6,7 +6,7 @@ rust-version.workspace = true
 
 [features]
 mock = []
-software-keys = ["dep:aes-gcm", "dep:once_cell", "dep:rand_core"]
+software-keys = ["dep:aes-gcm", "dep:rand_core"]
 integration-test = []
 
 [dependencies]
@@ -16,17 +16,19 @@ chrono = { workspace = true, features = ["std", "clock"] }
 futures.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+once_cell.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand.workspace = true
 ring.workspace = true
+rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 sha2.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt"] }
+url = { workspace = true, features = ["serde"] }
 
 aes-gcm = { workspace = true, optional = true, features = ["std"] }
-once_cell = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
 [dev-dependencies]

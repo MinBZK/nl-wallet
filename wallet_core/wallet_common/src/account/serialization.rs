@@ -1,8 +1,6 @@
-use crate::errors::Error;
-use base64::{
-    engine::general_purpose::{STANDARD, STANDARD_NO_PAD},
-    Engine,
-};
+use std::fmt::{Display, Formatter};
+
+use base64::{engine::general_purpose::STANDARD, Engine};
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey},
@@ -10,7 +8,8 @@ use p256::{
 };
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
-use std::fmt::{Display, Formatter};
+
+use crate::{account::jwt::EcdsaDecodingKey, errors::Error};
 
 use super::signed::{SignedDouble, SignedInner};
 
@@ -46,12 +45,12 @@ impl TryFrom<&SigningKey> for Base64Bytes {
 
 impl Serialize for Base64Bytes {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        String::serialize(&STANDARD_NO_PAD.encode(&self.0), serializer)
+        String::serialize(&STANDARD.encode(&self.0), serializer)
     }
 }
 impl<'de> Deserialize<'de> for Base64Bytes {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bts = STANDARD_NO_PAD
+        let bts = STANDARD
             .decode(String::deserialize(deserializer)?.as_bytes())
             .map_err(serde::de::Error::custom)?;
         Ok(bts.into())
@@ -157,6 +156,12 @@ pub struct DerVerifyingKey(pub VerifyingKey);
 impl From<VerifyingKey> for DerVerifyingKey {
     fn from(val: VerifyingKey) -> Self {
         DerVerifyingKey(val)
+    }
+}
+
+impl From<EcdsaDecodingKey> for DerVerifyingKey {
+    fn from(value: EcdsaDecodingKey) -> Self {
+        value.into()
     }
 }
 

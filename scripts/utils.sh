@@ -55,14 +55,6 @@ function render_template {
     envsubst < "$1" > "$2"
 }
 
-# Return the body of a pem file.
-# NOTE: This function will only work reliably on PEM files that contain a single object.
-#
-# $1 FILENAME of pem file
-function get_pem_body {
-    grep -v "\-\-\-\-\-" < "$1" | tr -d "\n"
-}
-
 # Generate n random bytes.
 #
 # $1 n: how many random bytes to generate
@@ -91,6 +83,7 @@ function generate_ssl_key_pair_with_san {
             -keyout "$1/$2.key" \
             -out "$1/$2.csr" \
             -config "${DEVENV}/openssl-san.cfg" 2>/dev/null
+
     echo -e "${INFO}Generating SSL CERT from CSR${NC}"
     openssl x509 \
             -req \
@@ -102,6 +95,7 @@ function generate_ssl_key_pair_with_san {
             -out "$1/$2.crt" \
             -extensions req_ext \
             -extfile "${DEVENV}/openssl-san.cfg" 2>/dev/null
+
     echo -e "${INFO}Exporting SSL public key${NC}"
     openssl rsa \
             -in "$1/$2.key" \
@@ -153,6 +147,9 @@ function generate_pid_issuer_root_ca {
             -days 365 \
             -addext keyUsage=keyCertSign,cRLSign \
             -subj '/CN=ca.example.com'
+
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
+            -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 }
 
 # Generate an EC key pair for the pid_issuer
@@ -165,6 +162,7 @@ function generate_pid_issuer_key_pair {
             -keyout "${TARGET_DIR}/pid_issuer/issuer_key.pem" \
             -out "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
             -subj "/CN=pid.example.com"
+
     echo -e "${INFO}Generate EC certificate from CSR using EC root CA${NC}"
     openssl x509 -req \
             -extfile <(printf "keyUsage=digitalSignature\nextendedKeyUsage=1.0.18013.5.1.2\nbasicConstraints=CA:FALSE") \
@@ -173,20 +171,35 @@ function generate_pid_issuer_key_pair {
             -CA "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
             -CAkey "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
             -out "${TARGET_DIR}/pid_issuer/issuer_crt.pem"
+
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/pid_issuer/issuer_key.pem" -out "${TARGET_DIR}/pid_issuer/issuer_key.der" -nocrypt
+
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/issuer_crt.pem" \
+        -outform der -out "${TARGET_DIR}/pid_issuer/issuer_crt.der"
 }
 
 # Generate an EC key pair for the mock_relying_party
 function generate_mock_relying_party_key_pair {
-    cargo run --manifest-path ${BASE_DIR}/wallet_core/Cargo.toml --bin wallet_ca ca \
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
         --common-name "ca.example.com" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
         --force
 
-    cargo run --manifest-path ${BASE_DIR}/wallet_core/Cargo.toml --bin wallet_ca reader-auth-cert \
+    openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
+
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca reader-auth-cert \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
         --common-name "rp.example.com" \
         --reader-auth-file "${DEVENV}/reader_auth.json" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/rp" \
         --force
+
+    openssl x509 -in "${TARGET_DIR}/mock_relying_party/rp.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/rp.crt.der"
+
+    openssl pkey -in "${TARGET_DIR}/mock_relying_party/rp.key.pem" -outform der \
+        -out "${TARGET_DIR}/mock_relying_party/rp.key.der"
 }
