@@ -145,8 +145,10 @@ impl Storage for MockStorage {
         Ok(mdocs)
     }
 
-    async fn insert_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        self.event_log.push(event);
+    async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()> {
+        for event in events.into_iter() {
+            self.event_log.push(event);
+        }
         Ok(())
     }
 }

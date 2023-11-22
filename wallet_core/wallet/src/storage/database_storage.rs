@@ -6,6 +6,7 @@ use sea_orm::{
     TransactionTrait,
 };
 use tokio::fs;
+use tracing::info;
 use uuid::Uuid;
 
 use entity::{event_log, keyed_data, mdoc, mdoc_copy};
@@ -278,15 +279,28 @@ where
         .await
     }
 
-    async fn insert_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        let tr = event_log::ActiveModel {
-            id: ActiveValue::Set(Uuid::new_v4()),
-            event_type: ActiveValue::Set(event.event_type),
-            timestamp: ActiveValue::Set(event.timestamp),
-            remote_party_certificate: ActiveValue::Set(event.remote_party_certificate.map(|c| c.as_bytes().to_owned())),
-            status: ActiveValue::Set(event.status),
-        };
-        tr.insert(self.database()?.connection()).await?;
+    async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()> {
+        let entities: Vec<_> = events
+            .into_iter()
+            .map(|event| {
+                // log mdoc subject
+                if let Some(issuer_certificate) = &event.remote_party_certificate {
+                    let subject = issuer_certificate.to_x509().unwrap().subject().to_string();
+                    info!("Logging PID issued by: {}", subject);
+                }
+                use ActiveValue::Set;
+                event_log::ActiveModel {
+                    id: Set(Uuid::new_v4()),
+                    event_type: Set(event.event_type),
+                    timestamp: Set(event.timestamp),
+                    remote_party_certificate: Set(event.remote_party_certificate.map(|c| c.as_bytes().to_owned())),
+                    status: Set(event.status),
+                }
+            })
+            .collect();
+        event_log::Entity::insert_many(entities)
+            .exec(self.database()?.connection())
+            .await?;
         Ok(())
     }
 }

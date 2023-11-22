@@ -182,16 +182,6 @@ where
             .await
             .map_err(PidIssuanceError::PidIssuer)?;
 
-        self.storage
-            .get_mut()
-            .insert_wallet_event(WalletEvent::new(
-                EventType::PidIssuance,
-                Utc::now(),
-                None,
-                EventStatus::Cancelled,
-            ))
-            .await?;
-
         Ok(())
     }
 
@@ -256,20 +246,26 @@ where
                 }
             })?;
 
+        // Prepare events before storing mdocs, to avoid cloning mdocs
+        let events = mdocs
+            .iter()
+            .flat_map(|mdoc| mdoc.cred_copies.first())
+            .map(|mdoc| {
+                WalletEvent::new(
+                    EventType::PidIssuance,
+                    Utc::now(),
+                    mdoc.issuer_certificate().ok(), // TODO log error?
+                    EventStatus::Success,
+                )
+            })
+            .collect::<Vec<_>>();
+
         info!("PID accepted, storing mdoc in database");
-
         self.storage.get_mut().insert_mdocs(mdocs).await?;
-        self.emit_documents().await?;
 
-        self.storage
-            .get_mut()
-            .insert_wallet_event(WalletEvent::new(
-                EventType::PidIssuance,
-                Utc::now(),
-                None,
-                EventStatus::Success,
-            ))
-            .await?;
+        self.storage.get_mut().log_wallet_events(events).await?;
+
+        self.emit_documents().await?;
 
         Ok(())
     }
