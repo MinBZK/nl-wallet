@@ -31,6 +31,7 @@ pub struct Model {
     pub timestamp: DateTime<Utc>,
     pub remote_party_certificate: Vec<u8>,
     pub status: EventStatus,
+    pub status_description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

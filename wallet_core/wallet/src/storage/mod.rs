@@ -23,7 +23,7 @@ use platform_support::utils::UtilitiesError;
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::WalletEvent,
+    event_log::{Status, WalletEvent},
     key_file::KeyFileError,
 };
 

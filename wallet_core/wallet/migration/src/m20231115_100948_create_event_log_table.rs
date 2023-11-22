@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(EventLog::Timestamp).timestamp().not_null())
                     .col(ColumnDef::new(EventLog::RemotePartyCertificate).string().not_null())
                     .col(ColumnDef::new(EventLog::Status).string().not_null())
+                    .col(ColumnDef::new(EventLog::StatusDescription).string().null())
                     .to_owned(),
             )
             .await
@@ -36,4 +37,5 @@ enum EventLog {
     Timestamp,
     RemotePartyCertificate,
     Status,
+    StatusDescription,
 }

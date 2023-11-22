@@ -1,5 +1,5 @@
 use chrono::Utc;
-use entity::event_log::{EventStatus, EventType};
+use entity::event_log::EventType;
 use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
@@ -14,7 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{Storage, StorageError, WalletEvent},
+    storage::{Status, Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -250,7 +250,7 @@ where
                     EventType::Issuance,
                     Utc::now(),
                     mdoc.issuer_certificate().unwrap(), // This should never fail
-                    EventStatus::Success,
+                    Status::Success,
                 )
             })
             .collect::<Vec<_>>();

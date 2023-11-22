@@ -289,13 +289,14 @@ where
                     info!("Logging PID issued by: {}", subject);
                 }
 
-                use ActiveValue::Set;
+                use ActiveValue::*;
                 event_log::ActiveModel {
                     id: Set(Uuid::new_v4()),
                     event_type: Set(event.event_type),
                     timestamp: Set(event.timestamp),
                     remote_party_certificate: Set(event.remote_party_certificate.as_bytes().to_owned()),
-                    status: Set(event.status),
+                    status_description: event.status.description().map(|d| Set(Some(d))).unwrap_or(NotSet),
+                    status: Set(event.status.into()),
                 }
             })
             .collect();
