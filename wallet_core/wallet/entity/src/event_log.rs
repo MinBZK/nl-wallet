@@ -4,8 +4,8 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum EventType {
-    #[sea_orm(string_value = "PidIssuance")]
-    PidIssuance,
+    #[sea_orm(string_value = "Issuance")]
+    Issuance,
     #[sea_orm(string_value = "Disclosure")]
     Disclosure,
 }

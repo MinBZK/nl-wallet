@@ -252,7 +252,7 @@ where
             .flat_map(|mdoc| mdoc.cred_copies.first())
             .map(|mdoc| {
                 WalletEvent::new(
-                    EventType::PidIssuance,
+                    EventType::Issuance,
                     Utc::now(),
                     mdoc.issuer_certificate().ok(), // TODO log error?
                     EventStatus::Success,
