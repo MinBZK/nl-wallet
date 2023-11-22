@@ -5,6 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono.workspace = true
 sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid", "with-chrono"] }
 uuid.workspace = true
