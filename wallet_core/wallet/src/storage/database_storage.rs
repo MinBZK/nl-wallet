@@ -283,17 +283,18 @@ where
         let entities: Vec<_> = events
             .into_iter()
             .map(|event| {
-                // log mdoc subject
-                if let Some(issuer_certificate) = &event.remote_party_certificate {
-                    let subject = issuer_certificate.to_x509().unwrap().subject().to_string();
+                // log mdoc subject, when conversion to X509Certificate succeeds
+                if let Ok(certificate) = event.remote_party_certificate.to_x509() {
+                    let subject = certificate.subject().to_string();
                     info!("Logging PID issued by: {}", subject);
                 }
+
                 use ActiveValue::Set;
                 event_log::ActiveModel {
                     id: Set(Uuid::new_v4()),
                     event_type: Set(event.event_type),
                     timestamp: Set(event.timestamp),
-                    remote_party_certificate: Set(event.remote_party_certificate.map(|c| c.as_bytes().to_owned())),
+                    remote_party_certificate: Set(event.remote_party_certificate.as_bytes().to_owned()),
                     status: Set(event.status),
                 }
             })

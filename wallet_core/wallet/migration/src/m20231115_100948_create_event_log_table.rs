@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(EventLog::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(EventLog::Type).string().not_null())
                     .col(ColumnDef::new(EventLog::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(EventLog::RemotePartyCertificate).string().null())
+                    .col(ColumnDef::new(EventLog::RemotePartyCertificate).string().not_null())
                     .col(ColumnDef::new(EventLog::Status).string().not_null())
                     .to_owned(),
             )

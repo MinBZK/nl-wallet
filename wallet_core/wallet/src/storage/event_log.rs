@@ -7,7 +7,7 @@ use nl_wallet_mdoc::utils::x509::Certificate;
 pub struct WalletEvent {
     pub(crate) event_type: EventType,
     pub(crate) timestamp: DateTime<Utc>,
-    pub(crate) remote_party_certificate: Option<Certificate>,
+    pub(crate) remote_party_certificate: Certificate,
     pub(crate) status: EventStatus,
 }
 
@@ -15,7 +15,7 @@ impl WalletEvent {
     pub fn new(
         event_type: EventType,
         timestamp: DateTime<Utc>,
-        remote_party_certificate: Option<Certificate>,
+        remote_party_certificate: Certificate,
         status: EventStatus,
     ) -> Self {
         Self {

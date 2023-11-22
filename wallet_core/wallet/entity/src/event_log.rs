@@ -29,7 +29,7 @@ pub struct Model {
     #[sea_orm(column_name = "type")]
     pub event_type: EventType,
     pub timestamp: DateTime<Utc>,
-    pub remote_party_certificate: Option<Vec<u8>>,
+    pub remote_party_certificate: Vec<u8>,
     pub status: EventStatus,
 }
 

@@ -249,7 +249,7 @@ where
                 WalletEvent::new(
                     EventType::Issuance,
                     Utc::now(),
-                    mdoc.issuer_certificate().ok(), // TODO log error?
+                    mdoc.issuer_certificate().unwrap(), // This should never fail
                     EventStatus::Success,
                 )
             })
