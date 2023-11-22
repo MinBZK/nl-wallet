@@ -177,12 +177,7 @@ where
         }
 
         info!("Rejecting any PID held in memory");
-        self.pid_issuer
-            .reject_pid()
-            .await
-            .map_err(PidIssuanceError::PidIssuer)?;
-
-        Ok(())
+        self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
     }
 
     #[instrument(skip_all)]
