@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lib]
+doctest = false
+
 [dependencies]
 config = { workspace = true, features = ["toml"] }
 serde = { workspace = true, features = ["derive"] }

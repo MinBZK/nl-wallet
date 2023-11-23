@@ -6,6 +6,7 @@ rust-version.workspace = true
 
 [lib]
 proc-macro = true
+doctest = false
 
 [dependencies]
 proc-macro2.workspace = true
