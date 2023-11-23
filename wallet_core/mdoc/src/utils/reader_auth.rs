@@ -21,7 +21,6 @@ const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
 #[serde(rename_all = "camelCase")]
 pub struct ReaderRegistration {
     pub id: String,
-    pub name: LocalizedStrings,
     pub purpose_statement: LocalizedStrings,
     pub retention_policy: RetentionPolicy,
     pub sharing_policy: SharingPolicy,

@@ -56,7 +56,6 @@ fn get_my_reader_auth() -> ReaderRegistration {
     };
     ReaderRegistration {
         id: "some-service-id".to_owned(),
-        name: vec![("nl", "Naam van mijn dienst"), ("en", "My Service Name")].into(),
         purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
         retention_policy: RetentionPolicy {
             intent_to_retain: true,

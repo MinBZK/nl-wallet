@@ -11,7 +11,12 @@ pub fn wallet_configuration() -> Result<WalletConfiguration, ConfigError> {
 
     Config::builder()
         .add_source(File::from(config_path.join("wallet.toml")).required(false))
-        .add_source(Environment::with_prefix("wallet").separator("__").prefix_separator("_"))
+        .add_source(
+            Environment::with_prefix("wallet")
+                .separator("__")
+                .prefix_separator("_")
+                .list_separator("|"),
+        )
         .build()?
         .try_deserialize()
 }
