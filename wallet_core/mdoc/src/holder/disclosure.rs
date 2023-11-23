@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    convert::identity,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -253,7 +250,7 @@ where
             // Fetch documents from the database, calculate which ones satisfy the request and
             // formulate proposals for those documents. If there is a mismatch, return an error.
             let candidates_by_doc_type = match device_request
-                .match_stored_documents(mdoc_data_source, transcript)
+                .match_stored_documents(mdoc_data_source, &transcript)
                 .await?
             {
                 DeviceRequestMatch::Candidates(candidates) => candidates,
@@ -492,8 +489,7 @@ impl DeviceRequest {
         self.doc_requests
             .iter()
             .flat_map(|doc_request| doc_request.items_request.0.name_spaces.values())
-            .map(|name_space| !name_space.is_empty())
-            .any(identity)
+            .any(|name_space| !name_space.is_empty())
     }
 
     /// Verify reader authentication, if present.
@@ -554,7 +550,7 @@ impl DeviceRequest {
     async fn match_stored_documents(
         &self,
         mdoc_data_source: &impl MdocDataSource,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
     ) -> Result<DeviceRequestMatch> {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
@@ -619,20 +615,9 @@ impl DeviceRequest {
             .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
             .collect::<Vec<_>>();
 
-        // Clone exactly as many `SessionTranscript`s as necessary.
-        let session_transcripts = {
-            let length = mdocs.len();
-
-            let mut session_transcripts = Vec::with_capacity(mdocs.len());
-            session_transcripts.resize(length, session_transcript);
-
-            session_transcripts
-        };
-
         let candidates_by_doc_type = mdocs
             .into_iter()
-            .zip(session_transcripts)
-            .map(|(doc_type_mdocs, session_transcript)| {
+            .map(|doc_type_mdocs| {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
@@ -836,7 +821,7 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt, iter, sync::Arc};
+    use std::{convert::identity, fmt, iter, sync::Arc};
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
@@ -1127,21 +1112,10 @@ mod tests {
             )
             .unwrap();
 
-            // Clone enough `SessionTranscript` instances for each `ItemRequest`.
-            let session_transcripts = {
-                let count = self.items_requests.len();
-                let mut session_transcripts = Vec::with_capacity(count);
-                session_transcripts.resize(count, session_transcript);
-
-                session_transcripts
-            };
-
             // Create a `DocRequest` for every `ItemRequest`.
-            let doc_requests = join_all(self.items_requests.iter().cloned().zip(session_transcripts).map(
-                |(items_request, session_transcript)| async {
-                    create_doc_request(items_request, session_transcript, &self.private_key).await
-                },
-            ))
+            let doc_requests = join_all(self.items_requests.iter().cloned().map(|items_request| async {
+                create_doc_request(items_request, session_transcript.clone(), &self.private_key).await
+            }))
             .await;
 
             let device_request = (self.transform_device_request)(DeviceRequest {
@@ -1904,7 +1878,7 @@ mod tests {
 
         // An empty `DeviceRequest` should result in an empty set of candidates.
         let match_result = empty_device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -1979,7 +1953,7 @@ mod tests {
         // Only two of the `Mdoc` should match and be returned as a `DocumentProposal`,
         // which should contain only the requested attributes.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -2006,7 +1980,7 @@ mod tests {
 
         // Now there should not be a match, one of the attributes should be reported as missing.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
