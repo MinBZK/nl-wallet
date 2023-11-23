@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    convert::identity,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -434,8 +431,7 @@ impl DeviceRequest {
         self.doc_requests
             .iter()
             .flat_map(|doc_request| doc_request.items_request.0.name_spaces.values())
-            .map(|name_space| !name_space.is_empty())
-            .any(identity)
+            .any(|name_space| !name_space.is_empty())
     }
 
     /// Verify reader authentication, if present.
@@ -778,7 +774,7 @@ impl DeviceAuthentication {
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt, iter, sync::Arc};
+    use std::{convert::identity, fmt, iter, sync::Arc};
 
     use assert_matches::assert_matches;
     use futures::future::join_all;
