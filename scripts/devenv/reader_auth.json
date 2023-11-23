@@ -1,9 +1,5 @@
 {
   "id": "some-service-id",
-  "name": {
-    "nl": "Naam van mijn dienst",
-    "en": "My Service Name"
-  },
   "purposeStatement": {
     "nl": "Reden voor dit verzoek",
     "en": "Purpose of this request"
