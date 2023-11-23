@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lib]
+doctest = false
+
 [features]
 mock = ["wallet_provider_domain/mock", "dashmap", "hmac"]
 db_test = []
