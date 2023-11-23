@@ -478,7 +478,7 @@ impl DeviceRequest {
 
         // Extract `ReaderRegistration` from the one certificate.
         let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
-            Some(CertificateType::ReaderAuth(reader_registration)) => *reader_registration,
+            CertificateType::ReaderAuth(Some(reader_registration)) => *reader_registration,
             _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
         };
 
@@ -866,7 +866,7 @@ mod tests {
             ca,
             ca_signing_key,
             RP_CERT_CN,
-            CertificateType::ReaderAuth(reader_registration.into()),
+            CertificateType::ReaderAuth(Box::new(reader_registration).into()),
         )
         .unwrap();
 
