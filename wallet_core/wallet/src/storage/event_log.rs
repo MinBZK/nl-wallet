@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use entity::event_log::{EventStatus, EventType, Model};
+use uuid::Uuid;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
 
@@ -42,10 +43,11 @@ impl From<&Model> for Status {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WalletEvent {
-    pub(crate) event_type: EventType,
-    pub(crate) timestamp: DateTime<Utc>,
-    pub(crate) remote_party_certificate: Certificate,
-    pub(crate) status: Status,
+    pub id: Uuid,
+    pub event_type: EventType,
+    pub timestamp: DateTime<Utc>,
+    pub remote_party_certificate: Certificate,
+    pub status: Status,
 }
 
 impl WalletEvent {
@@ -56,6 +58,7 @@ impl WalletEvent {
         status: Status,
     ) -> Self {
         Self {
+            id: Uuid::new_v4(),
             event_type,
             timestamp,
             remote_party_certificate,
@@ -67,10 +70,24 @@ impl WalletEvent {
 impl From<Model> for WalletEvent {
     fn from(source: Model) -> Self {
         Self {
+            id: source.id,
             status: Status::from(&source),
             event_type: source.event_type,
             timestamp: source.timestamp,
             remote_party_certificate: source.remote_party_certificate.into(),
+        }
+    }
+}
+
+impl From<WalletEvent> for Model {
+    fn from(source: WalletEvent) -> Self {
+        Self {
+            id: source.id,
+            event_type: source.event_type,
+            timestamp: source.timestamp,
+            remote_party_certificate: source.remote_party_certificate.as_bytes().to_owned(),
+            status_description: source.status.description(),
+            status: source.status.into(),
         }
     }
 }

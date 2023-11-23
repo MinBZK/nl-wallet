@@ -2,14 +2,17 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
     TransactionTrait,
 };
 use tokio::fs;
 use tracing::info;
 use uuid::Uuid;
 
-use entity::{event_log, keyed_data, mdoc, mdoc_copy};
+use entity::{
+    event_log::{self, Model},
+    keyed_data, mdoc, mdoc_copy,
+};
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::serialization::CborError,
@@ -280,7 +283,7 @@ where
     }
 
     async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()> {
-        let entities: Vec<_> = events
+        let entities: Vec<event_log::ActiveModel> = events
             .into_iter()
             .map(|event| {
                 // log mdoc subject, when conversion to X509Certificate succeeds
@@ -288,16 +291,7 @@ where
                     let subject = certificate.subject().to_string();
                     info!("Logging PID issued by: {}", subject);
                 }
-
-                use ActiveValue::*;
-                event_log::ActiveModel {
-                    id: Set(Uuid::new_v4()),
-                    event_type: Set(event.event_type),
-                    timestamp: Set(event.timestamp),
-                    remote_party_certificate: Set(event.remote_party_certificate.as_bytes().to_owned()),
-                    status_description: event.status.description().map(|d| Set(Some(d))).unwrap_or(NotSet),
-                    status: Set(event.status.into()),
-                }
+                Model::from(event).into()
             })
             .collect();
         event_log::Entity::insert_many(entities)

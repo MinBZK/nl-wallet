@@ -742,12 +742,13 @@ mod tests {
             .await
             .expect("Could not accept PID issuance");
 
-        // An event must be logged
+        // Test that one successful issuance event is logged
         let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
             events.first().unwrap(),
             WalletEvent {
+                id: _,
                 event_type: EventType::Issuance,
                 timestamp: _,
                 remote_party_certificate: _,
