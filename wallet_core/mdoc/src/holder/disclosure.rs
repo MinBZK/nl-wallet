@@ -369,7 +369,7 @@ impl Mdoc {
                     device_authentication: Default::default(),
                     session_transcript: session_transcript.clone(),
                     doc_type: self.doc_type.clone(),
-                    device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+                    device_name_spaces_bytes: Default::default(),
                 })))?,
             )
             .await,
@@ -755,7 +755,7 @@ impl DeviceAuthentication {
             device_authentication: Default::default(),
             session_transcript,
             doc_type,
-            device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+            device_name_spaces_bytes: Default::default(),
         }
         .into()
     }
