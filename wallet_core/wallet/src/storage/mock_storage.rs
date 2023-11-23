@@ -151,6 +151,10 @@ impl Storage for MockStorage {
         }
         Ok(())
     }
+
+    async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        Ok(self.event_log.to_vec())
+    }
 }
 
 #[cfg(test)]

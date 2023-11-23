@@ -82,4 +82,5 @@ pub trait Storage {
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>>;
 
     async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()>;
+    async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
 }

@@ -276,6 +276,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use entity::event_log::EventType;
     use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::HolderError, issuer_shared::IssuanceError, Tdate};
 
     use crate::{
@@ -740,6 +741,19 @@ mod tests {
             .accept_pid_issuance(PIN.to_string())
             .await
             .expect("Could not accept PID issuance");
+
+        // An event must be logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            events.first().unwrap(),
+            WalletEvent {
+                event_type: EventType::Issuance,
+                timestamp: _,
+                remote_party_certificate: _,
+                status: Status::Success,
+            }
+        );
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();

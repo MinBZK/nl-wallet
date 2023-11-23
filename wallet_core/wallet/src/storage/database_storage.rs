@@ -305,19 +305,26 @@ where
             .await?;
         Ok(())
     }
+
+    async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        let events = event_log::Entity::find().all(self.database()?.connection()).await?;
+        Ok(events.into_iter().map(|e| e.into()).collect())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use nl_wallet_mdoc::{examples::Examples, mock as mdoc_mock};
-    use platform_support::utils::software::SoftwareUtilities;
+    use chrono::Utc;
     use tokio::fs;
 
+    use entity::event_log::EventType;
+    use nl_wallet_mdoc::{examples::Examples, mock as mdoc_mock, utils::x509::Certificate};
+    use platform_support::utils::software::SoftwareUtilities;
     use wallet_common::{
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
 
-    use crate::storage::data::RegistrationData;
+    use crate::storage::{data::RegistrationData, Status};
 
     use super::*;
 
@@ -493,5 +500,29 @@ mod tests {
 
         // No entries should be returned
         assert!(fetched_unique_doctype_mismatch.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_event_log_storage() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+
+        let events = vec![WalletEvent::new(
+            EventType::Issuance,
+            Utc::now(),
+            certificate,
+            Status::Success,
+        )];
+
+        // Insert events
+        storage.log_wallet_events(events.clone()).await.unwrap();
+
+        // Fetch and verify events
+        assert_eq!(storage.fetch_wallet_events().await.unwrap(), events);
     }
 }
