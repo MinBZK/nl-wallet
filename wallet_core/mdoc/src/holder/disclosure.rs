@@ -462,7 +462,9 @@ impl DeviceRequest {
             .iter()
             .try_fold(None, {
                 |result_cert, doc_request| -> Result<_> {
-                    let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
+                    let doc_request_cert = doc_request
+                        .verify(session_transcript.clone(), time, trust_anchors)?
+                        .unwrap();
 
                     // If there is a certificate from a previous iteration, compare our certificate to that.
                     if let Some(result_cert) = result_cert {
@@ -684,7 +686,7 @@ impl ReaderEngagement {
 impl DocRequest {
     pub fn verify(
         &self,
-        session_transcript: &SessionTranscript,
+        session_transcript: SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<Certificate>> {
@@ -696,7 +698,7 @@ impl DocRequest {
                 // based on the item requests and session transcript.
                 let reader_auth_payload = ReaderAuthenticationKeyed {
                     reader_auth_string: Default::default(),
-                    session_transcript: session_transcript.clone(),
+                    session_transcript,
                     items_request_bytes: self.items_request.clone(),
                 };
                 let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));

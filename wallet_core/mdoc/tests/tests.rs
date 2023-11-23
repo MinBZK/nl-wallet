@@ -146,7 +146,7 @@ async fn do_and_verify_iso_example_disclosure() {
         .doc_requests
         .first()
         .unwrap()
-        .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
+        .verify(session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
         .unwrap();
     let reader_x509_subject = certificate.unwrap().subject();
 
