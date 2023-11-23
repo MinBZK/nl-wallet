@@ -28,6 +28,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_name = "type")]
     pub event_type: EventType,
+    pub doc_type: String,
     pub timestamp: DateTime<Utc>,
     pub remote_party_certificate: Vec<u8>,
     pub status: EventStatus,

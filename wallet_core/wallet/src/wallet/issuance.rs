@@ -248,6 +248,7 @@ where
             .map(|mdoc| {
                 WalletEvent::new(
                     EventType::Issuance,
+                    mdoc.doc_type.to_owned(),
                     Utc::now(),
                     mdoc.issuer_certificate().unwrap(), // This should never fail
                     Status::Success,
@@ -750,11 +751,11 @@ mod tests {
             WalletEvent {
                 id: _,
                 event_type: EventType::Issuance,
+                doc_type,
                 timestamp: _,
                 remote_party_certificate: _,
                 status: Status::Success,
-            }
-        );
+            } if doc_type == "com.example.pid");
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();

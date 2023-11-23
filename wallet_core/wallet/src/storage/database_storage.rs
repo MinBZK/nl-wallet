@@ -508,6 +508,7 @@ mod tests {
 
         let events = vec![WalletEvent::new(
             EventType::Issuance,
+            "some-doc-type".to_string(),
             Utc::now(),
             certificate,
             Status::Success,
