@@ -36,7 +36,7 @@ variables:
 .default-sonar:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli@sha256:4ec8e00440c58ce4c898bea35439a0542b2ce7767fe207cf0935a553ab4c90db" # 4.8.0
+    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli:4.8.1"
 
 .default-branch:
   rules:
