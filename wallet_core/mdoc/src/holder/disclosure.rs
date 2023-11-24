@@ -47,21 +47,49 @@ pub trait MdocDataSource {
     async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
 }
 
-#[allow(dead_code)]
+/// This represents a started disclosure session, which can be in one of two states.
+/// Regardless of which state it is in, it provides the `ReaderRegistration` through
+/// a method and allows the session to be terminated through the `terminate()` method.
+///
+/// The `MissingAttributes` state represents a session where not all attributes
+/// requested by the verifier can be satisfied by the `Mdoc` instances stored by
+/// the holder. The associated `DisclosureMissingAttributes` type only provides
+/// the `missing_attributes()` method. The only thing a consumer can do in this state
+/// is terminate the session, which requires user input to prevent the verifier gleaning
+/// information about the holder missing the requested attributes.
+///
+/// The `Proposal` state represents a session where `Mdoc` candidates were selected
+/// based on the requested attributes and we are waiting for user approval to disclose
+/// these attributes to the verifier using the `disclose()` method. Information about
+/// the proposal can be retrieved from the `DisclosureProposal` type using the
+/// `proposed_attributes()` method.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
-pub struct DisclosureSession<H> {
-    pub return_url: Option<Url>,
-    client: H,
-    verifier_url: Url,
-    device_key: SessionKey,
-    pub reader_registration: ReaderRegistration,
-    state: DisclosureSessionState,
+pub enum DisclosureSession<H> {
+    MissingAttributes(DisclosureMissingAttributes<H>),
+    Proposal(DisclosureProposal<H>),
 }
 
 #[derive(Debug)]
-enum DisclosureSessionState {
-    MissingAttributes(Vec<AttributeIdentifier>),
-    Proposal(Vec<ProposedDocument>),
+pub struct DisclosureMissingAttributes<H> {
+    endpoint: DisclosureEndpoint<H>,
+    missing_attributes: Vec<AttributeIdentifier>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct DisclosureProposal<H> {
+    return_url: Option<Url>,
+    endpoint: DisclosureEndpoint<H>,
+    device_key: SessionKey,
+    proposed_documents: Vec<ProposedDocument>,
+}
+
+#[derive(Debug)]
+struct DisclosureEndpoint<H> {
+    client: H,
+    verifier_url: Url,
+    reader_registration: ReaderRegistration,
 }
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
@@ -229,10 +257,10 @@ where
             })
             .await?;
 
-        // After having receveid the `SessionData` from the verifier, we should end
+        // After having received the `SessionData` from the verifier, we should end
         // the session by sending our own `SessionData` to the verifier to report errors.
         // In order to do that we start a new async context to catch any errors that occur.
-        let (state, reader_registration) = (async {
+        let (missing_attributes, proposed_documents, reader_registration) = (async {
             // Decrypt the received `DeviceRequest`.
             let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
 
@@ -255,11 +283,8 @@ where
             {
                 DeviceRequestMatch::Candidates(candidates) => candidates,
                 DeviceRequestMatch::MissingAttributes(missing_attributes) => {
-                    // Attributes are missing, the type of state is `DisclosureSessionMissingAttributes`.
-                    return Ok((
-                        DisclosureSessionState::MissingAttributes(missing_attributes),
-                        reader_registration,
-                    ));
+                    // Attributes are missing, return these.
+                    return Ok((missing_attributes.into(), None, reader_registration));
                 }
             };
 
@@ -277,12 +302,9 @@ where
 
             // Now that we know that we have exactly one candidate for every `doc_type`,
             // we can flatten these candidates to a 1-dimensional `Vec`.
-            let proposed_documents = candidates_by_doc_type.into_values().flatten().collect();
+            let proposed_documents = candidates_by_doc_type.into_values().flatten().collect::<Vec<_>>();
 
-            Ok((
-                DisclosureSessionState::Proposal(proposed_documents),
-                reader_registration,
-            ))
+            Ok((None, proposed_documents.into(), reader_registration))
         })
         .or_else(|error| async {
             // Determine the category of the error, so we can report on it.
@@ -298,48 +320,86 @@ where
         })
         .await?;
 
-        // Retain all the necessary information to either abort or finish the disclosure session later.
-        let session = DisclosureSession {
+        let endpoint = DisclosureEndpoint {
             client,
-            return_url,
             verifier_url: verifier_url.clone(),
-            device_key,
-            state,
             reader_registration,
+        };
+
+        // Create the appropriate `DisclosureSession` invariant, which contains
+        // all of the information needed to either abort of finish the session.
+        let session = match (missing_attributes, proposed_documents) {
+            (Some(missing_attributes), None) => DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+                endpoint,
+                missing_attributes,
+            }),
+            (None, Some(proposed_documents)) => DisclosureSession::Proposal(DisclosureProposal {
+                return_url,
+                endpoint,
+                device_key,
+                proposed_documents,
+            }),
+            _ => unreachable!(),
         };
 
         Ok(session)
     }
 
-    pub fn has_missing_attributes(&self) -> bool {
-        match self.state {
-            DisclosureSessionState::MissingAttributes(_) => true,
-            DisclosureSessionState::Proposal(_) => false,
+    fn endpoint(&self) -> &DisclosureEndpoint<H> {
+        match self {
+            DisclosureSession::MissingAttributes(session) => &session.endpoint,
+            DisclosureSession::Proposal(session) => &session.endpoint,
         }
     }
 
-    pub fn missing_attributes(&self) -> Vec<AttributeIdentifier> {
-        match self.state {
-            DisclosureSessionState::MissingAttributes(ref missing_attributes) => missing_attributes.clone(),
-            DisclosureSessionState::Proposal(_) => Default::default(),
-        }
+    pub fn reader_registration(&self) -> &ReaderRegistration {
+        &self.endpoint().reader_registration
+    }
+
+    pub async fn terminate(self) -> Result<()> {
+        _ = self.endpoint().terminate().await?;
+
+        Ok(())
+    }
+}
+
+impl<H> DisclosureMissingAttributes<H> {
+    pub fn missing_attributes(&self) -> &[AttributeIdentifier] {
+        &self.missing_attributes
+    }
+}
+
+impl<H> DisclosureProposal<H>
+where
+    H: HttpClient,
+{
+    pub fn return_url(&self) -> Option<&Url> {
+        self.return_url.as_ref()
     }
 
     pub fn proposed_attributes(&self) -> ProposedAttributes {
-        match self.state {
-            DisclosureSessionState::MissingAttributes(_) => Default::default(),
-            DisclosureSessionState::Proposal(ref proposed_documents) => {
-                // Get all of the attributes to be disclosed from the
-                // prepared `IssuerSigned` on the `ProposedDocument`s.
-                proposed_documents
-                    .iter()
-                    .map(|document| (document.doc_type.clone(), document.name_spaces()))
-                    .collect()
-            }
-        }
+        // Get all of the attributes to be disclosed from the
+        // prepared `IssuerSigned` on the `ProposedDocument`s.
+        self.proposed_documents
+            .iter()
+            .map(|document| (document.doc_type.clone(), document.name_spaces()))
+            .collect()
     }
 
-    // TODO: Implement terminate and disclose methods.
+    // TODO: Implement disclose method.
+}
+
+impl<H> DisclosureEndpoint<H>
+where
+    H: HttpClient,
+{
+    async fn send_session_data(&self, session_data: &SessionData) -> Result<SessionData> {
+        self.client.post(&self.verifier_url, &session_data).await
+    }
+
+    async fn terminate(&self) -> Result<SessionData> {
+        self.send_session_data(&SessionData::new_termination()).await
+    }
 }
 
 impl<H: HttpClient> Wallet<H> {
@@ -1305,22 +1365,26 @@ mod tests {
         .await
         .expect("Could not start disclosure session");
 
+        // Check that the correct session type is returned.
+        let proposal_session = match disclosure_session {
+            DisclosureSession::MissingAttributes(_) => panic!("Disclosure session should not have missing attributes"),
+            DisclosureSession::Proposal(ref session) => session,
+        };
+
         // Test if the return `Url` and `ReaderRegistration` match the input.
-        assert_eq!(disclosure_session.return_url, verifier_session.return_url);
+        assert_eq!(proposal_session.return_url(), verifier_session.return_url.as_ref());
         assert_eq!(
-            &disclosure_session.reader_registration,
+            disclosure_session.reader_registration(),
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        // Test that there are no missing attributes and that a `DeviceEngagement` was sent.
-        assert!(!disclosure_session.has_missing_attributes());
-        assert!(disclosure_session.missing_attributes().is_empty());
+        // Test that a `DeviceEngagement` was sent.
         assert_eq!(payloads.len(), 1);
         let _device_engagement: DeviceEngagement =
             cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
 
         // Test that the proposal for disclosure contains the example attributes, in order.
-        let entry_keys = disclosure_session
+        let entry_keys = proposal_session
             .proposed_attributes()
             .remove(EXAMPLE_DOC_TYPE)
             .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
@@ -1334,7 +1398,7 @@ mod tests {
     async fn test_disclosure_session_start_missing_attributes_one() {
         // Starting a disclosure session should succeed with missing attributes.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, _) = disclosure_session_start(
+        let (disclosure_session, verifier_session) = disclosure_session_start(
             SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
@@ -1361,9 +1425,19 @@ mod tests {
         .await
         .expect("Could not start disclosure session");
 
-        // Test that there are no proposed documents and that a `DeviceEngagement` was sent.
-        assert!(disclosure_session.has_missing_attributes());
-        assert!(disclosure_session.proposed_attributes().is_empty());
+        // Check that the correct session type is returned.
+        let missing_attr_session = match disclosure_session {
+            DisclosureSession::MissingAttributes(ref session) => session,
+            DisclosureSession::Proposal(_) => panic!("Disclosure session should have missing attributes"),
+        };
+
+        // Test if `ReaderRegistration` matches the input.
+        assert_eq!(
+            disclosure_session.reader_registration(),
+            verifier_session.reader_registration.as_ref().unwrap()
+        );
+
+        // Test that a `DeviceEngagement` was sent.
         assert_eq!(payloads.len(), 1);
         let _device_engagement: DeviceEngagement =
             cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
@@ -1373,14 +1447,14 @@ mod tests {
                 .parse()
                 .unwrap()];
 
-        assert_eq!(disclosure_session.missing_attributes(), expected_missing_attributes);
+        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
     }
 
     #[tokio::test]
     async fn test_disclosure_session_start_missing_attributes_all() {
         // Starting a disclosure session should succeed with missing attributes.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, _) = disclosure_session_start(
+        let (disclosure_session, verifier_session) = disclosure_session_start(
             SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
@@ -1395,9 +1469,19 @@ mod tests {
         .await
         .expect("Could not start disclosure session");
 
-        // Test that there are no proposed documents and that a `DeviceEngagement` was sent.
-        assert!(disclosure_session.has_missing_attributes());
-        assert!(disclosure_session.proposed_attributes().is_empty());
+        // Check that the correct session type is returned.
+        let missing_attr_session = match disclosure_session {
+            DisclosureSession::MissingAttributes(ref session) => session,
+            DisclosureSession::Proposal(_) => panic!("Disclosure session should have missing attributes"),
+        };
+
+        // Test if `ReaderRegistration` matches the input.
+        assert_eq!(
+            disclosure_session.reader_registration(),
+            verifier_session.reader_registration.as_ref().unwrap()
+        );
+
+        // Test that a `DeviceEngagement` was sent.
         assert_eq!(payloads.len(), 1);
         let _device_engagement: DeviceEngagement =
             cbor_deserialize(payloads.first().unwrap().as_slice()).expect("Sent message is not DeviceEngagement");
@@ -1413,7 +1497,7 @@ mod tests {
         .map(|attribute| attribute.parse().unwrap())
         .collect();
 
-        assert_eq!(disclosure_session.missing_attributes(), expected_missing_attributes);
+        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
     }
 
     #[tokio::test]
