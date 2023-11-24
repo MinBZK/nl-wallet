@@ -2,7 +2,7 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
 use async_trait::async_trait;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Select, Set,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Select, Set,
     TransactionTrait,
 };
 use tokio::fs;
@@ -302,6 +302,15 @@ where
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let events = event_log::Entity::find().all(self.database()?.connection()).await?;
+        Ok(events.into_iter().map(|e| e.into()).collect())
+    }
+
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: String) -> StorageResult<Vec<WalletEvent>> {
+        let events = event_log::Entity::find()
+            .filter(event_log::Column::DocType.eq(doc_type))
+            .order_by_asc(event_log::Column::Timestamp)
+            .all(self.database()?.connection())
+            .await?;
         Ok(events.into_iter().map(|e| e.into()).collect())
     }
 }

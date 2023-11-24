@@ -1,6 +1,7 @@
 mod config;
 mod disclosure;
 mod documents;
+mod history;
 mod init;
 mod issuance;
 mod lock;

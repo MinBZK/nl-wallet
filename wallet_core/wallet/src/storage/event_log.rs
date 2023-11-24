@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use entity::event_log::{EventStatus, EventType, Model};
+pub use entity::event_log::EventType;
+use entity::event_log::{EventStatus, Model};
 use nl_wallet_mdoc::{utils::x509::Certificate, DocType};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
