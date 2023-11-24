@@ -1111,12 +1111,17 @@ mod tests {
         }
     }
 
+    enum ReaderCertificateKind {
+        NoReaderRegistration,
+        WithReaderRegistration,
+    }
+
     /// Perform a [`DisclosureSession`] start with test defaults.
     /// This function takes several closures for modifying these
     /// defaults just before they are actually used.
     async fn disclosure_session_start<FS, FM, FD>(
         session_type: SessionType,
-        has_reader_registration: bool,
+        certificate_kind: ReaderCertificateKind,
         transform_verfier_session: FS,
         transform_mdoc: FM,
         transform_device_request: FD,
@@ -1131,8 +1136,9 @@ mod tests {
     {
         // Create a reader registration with all of the example attributes,
         // if we should have a reader registration at all.
-        let reader_registration = match has_reader_registration {
-            true => ReaderRegistration {
+        let reader_registration = match certificate_kind {
+            ReaderCertificateKind::NoReaderRegistration => None,
+            ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
                 attributes: reader_registration_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
                     EXAMPLE_NAMESPACE.to_string(),
@@ -1141,7 +1147,6 @@ mod tests {
                 ..Default::default()
             }
             .into(),
-            false => None,
         };
 
         // Create a mock session and call the transform callback.
@@ -1173,10 +1178,15 @@ mod tests {
     #[tokio::test]
     async fn test_disclosure_session_start() {
         // Starting a disclosure session should succeed.
-        let (disclosure_session, verifier_session) =
-            disclosure_session_start(SessionType::SameDevice, true, identity, identity, identity)
-                .await
-                .expect("Could not start disclosure session");
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
 
         // Test if the return `Url` and `ReaderRegistration` match the input.
         assert_eq!(disclosure_session.return_url, verifier_session.return_url);
@@ -1202,7 +1212,7 @@ mod tests {
         // bytes should result in a `Error::Cbor` error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session.reader_engagement_bytes_override = vec![].into();
 
@@ -1223,7 +1233,7 @@ mod tests {
         // does not contain a verifier URL should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
                     methods.clear()
@@ -1246,7 +1256,7 @@ mod tests {
         // contain an ephemeral verifier public key should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session.reader_engagement.0.security = None;
 
@@ -1265,9 +1275,15 @@ mod tests {
     async fn test_disclosure_session_start_error_session_type() {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let error = disclosure_session_start(SessionType::CrossDevice, true, identity, identity, identity)
-            .await
-            .expect_err("Starting disclosure session should have resulted in an error");
+        let error = disclosure_session_start(
+            SessionType::CrossDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Crypto(_));
     }
@@ -1278,7 +1294,7 @@ mod tests {
         // `DocRequest` entries is received should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session.items_requests.clear();
 
@@ -1296,7 +1312,7 @@ mod tests {
         // empty `DocRequest` entry is received should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session.items_requests = vec![emtpy_items_request()];
 
@@ -1317,7 +1333,7 @@ mod tests {
         // does not have reader auth should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             identity,
             |mut device_request| {
@@ -1338,7 +1354,7 @@ mod tests {
         // received `DeviceRequest` contain reader auth should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             identity,
             |mut device_request| {
@@ -1360,7 +1376,7 @@ mod tests {
         // Starting a `DisclosureSession` without trust anchors should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session.trust_anchors.clear();
 
@@ -1381,7 +1397,7 @@ mod tests {
         // that is not in the `ReaderRegistration` should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             |mut verifier_session| {
                 verifier_session
                     .items_requests
@@ -1409,7 +1425,7 @@ mod tests {
         // an error should result in that error being forwarded.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             |mut mdoc_source| {
                 mdoc_source.has_error = true;
@@ -1433,7 +1449,7 @@ mod tests {
         // candidates for the same `doc_type` should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.push(mdoc_source.mdocs.first().unwrap().clone());
@@ -1457,7 +1473,7 @@ mod tests {
         // requests a `doc_type` that is not in the database should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.clear();
@@ -1492,7 +1508,7 @@ mod tests {
         // requests an attribute that is not in the database should result in an error.
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             identity,
             |mut mdoc_source| {
                 // Remove the last attribute.
@@ -1535,9 +1551,15 @@ mod tests {
     async fn test_disclosure_session_start_error_no_reader_registration() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that contains a valid
         // reader certificate but no `ReaderRegistration` should result in an error.
-        let error = disclosure_session_start(SessionType::SameDevice, false, identity, identity, identity)
-            .await
-            .expect_err("Starting disclosure session should have resulted in an error");
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::NoReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::NoReaderRegistration(_)));
     }
