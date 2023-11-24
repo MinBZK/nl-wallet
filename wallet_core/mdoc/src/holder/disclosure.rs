@@ -88,7 +88,7 @@ impl ProposedDocument {
         mdocs: Vec<Mdoc>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
+    ) -> (Vec<Self>, Vec<Vec<AttributeIdentifier>>) {
         let mut all_missing_attributes = Vec::new();
 
         // Collect all `ProposedDocument`s for this `doc_type`,
@@ -116,7 +116,7 @@ impl ProposedDocument {
             .map(|mdoc| ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge.clone()))
             .collect::<Vec<_>>();
 
-        Ok((proposed_documents, all_missing_attributes))
+        (proposed_documents, all_missing_attributes)
     }
 
     /// Create a [`ProposedDocument`] from an [`Mdoc`], containing only those
@@ -427,7 +427,7 @@ impl Mdoc {
                     device_authentication: Default::default(),
                     session_transcript: session_transcript.clone(),
                     doc_type: self.doc_type.clone(),
-                    device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+                    device_name_spaces_bytes: Default::default(),
                 })))?,
             )
             .await,
@@ -520,7 +520,9 @@ impl DeviceRequest {
             .iter()
             .try_fold(None, {
                 |result_cert, doc_request| -> Result<_> {
-                    let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
+                    let doc_request_cert = doc_request
+                        .verify(session_transcript.clone(), time, trust_anchors)?
+                        .unwrap();
 
                     // If there is a certificate from a previous iteration, compare our certificate to that.
                     if let Some(result_cert) = result_cert {
@@ -536,7 +538,7 @@ impl DeviceRequest {
 
         // Extract `ReaderRegistration` from the one certificate.
         let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
-            Some(CertificateType::ReaderAuth(reader_registration)) => *reader_registration,
+            CertificateType::ReaderAuth(Some(reader_registration)) => *reader_registration,
             _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
         };
 
@@ -645,7 +647,7 @@ impl DeviceRequest {
                     doc_type_mdocs,
                     &requested_attributes,
                     device_signed_challenge,
-                )?;
+                );
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
                 // TODO: Report on missing attributes for multiple `Mdoc` candidates.
@@ -742,7 +744,7 @@ impl ReaderEngagement {
 impl DocRequest {
     pub fn verify(
         &self,
-        session_transcript: &SessionTranscript,
+        session_transcript: SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<Certificate>> {
@@ -754,7 +756,7 @@ impl DocRequest {
                 // based on the item requests and session transcript.
                 let reader_auth_payload = ReaderAuthenticationKeyed {
                     reader_auth_string: Default::default(),
-                    session_transcript: session_transcript.clone(),
+                    session_transcript,
                     items_request_bytes: self.items_request.clone(),
                 };
                 let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
@@ -813,7 +815,7 @@ impl DeviceAuthentication {
             device_authentication: Default::default(),
             session_transcript,
             doc_type,
-            device_name_spaces_bytes: TaggedBytes(IndexMap::new()),
+            device_name_spaces_bytes: Default::default(),
         }
         .into()
     }
@@ -921,13 +923,13 @@ mod tests {
     fn create_private_key(
         ca: &Certificate,
         ca_signing_key: &SigningKey,
-        reader_registration: ReaderRegistration,
+        reader_registration: Option<ReaderRegistration>,
     ) -> PrivateKey {
         let (certificate, signing_key) = Certificate::new(
             ca,
             ca_signing_key,
             RP_CERT_CN,
-            CertificateType::ReaderAuth(reader_registration.into()),
+            CertificateType::ReaderAuth(reader_registration.map(Box::new)),
         )
         .unwrap();
 
@@ -1017,7 +1019,7 @@ mod tests {
     struct MockVerifierSession<F> {
         session_type: SessionType,
         return_url: Option<Url>,
-        reader_registration: ReaderRegistration,
+        reader_registration: Option<ReaderRegistration>,
         trust_anchors: Vec<DerTrustAnchor>,
         private_key: PrivateKey,
         reader_engagement: ReaderEngagement,
@@ -1052,13 +1054,13 @@ mod tests {
             session_type: SessionType,
             session_url: Url,
             return_url: Option<Url>,
-            reader_registration: ReaderRegistration,
+            reader_registration: Option<ReaderRegistration>,
             transform_device_request: F,
         ) -> Self {
             // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
             let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
             let trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
-            let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone());
+            let private_key = create_private_key(&ca, &ca_privkey, reader_registration.as_ref().cloned());
 
             // Generate the `ReaderEngagement` that would be be sent in the UL.
             let (reader_engagement, reader_ephemeral_key) =
@@ -1208,6 +1210,7 @@ mod tests {
     /// defaults just before they are actually used.
     async fn disclosure_session_start<FS, FM, FD>(
         session_type: SessionType,
+        has_reader_registration: bool,
         payloads: &mut Vec<Vec<u8>>,
         transform_verfier_session: FS,
         transform_mdoc: FM,
@@ -1221,14 +1224,19 @@ mod tests {
         FM: FnOnce(MockMdocDataSource) -> MockMdocDataSource,
         FD: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
     {
-        // Create a reader registration with all of the example attributes.
-        let reader_registration = ReaderRegistration {
-            attributes: reader_registration_attributes(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-                EXAMPLE_ATTRIBUTES.iter().copied(),
-            ),
-            ..Default::default()
+        // Create a reader registration with all of the example attributes,
+        // if we should have a reader registration at all.
+        let reader_registration = match has_reader_registration {
+            true => ReaderRegistration {
+                attributes: reader_registration_attributes(
+                    EXAMPLE_DOC_TYPE.to_string(),
+                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_ATTRIBUTES.iter().copied(),
+                ),
+                ..Default::default()
+            }
+            .into(),
+            false => None,
         };
 
         // Create a mock session and call the transform callback.
@@ -1281,16 +1289,22 @@ mod tests {
     async fn test_disclosure_session_start_proposal() {
         // Starting a disclosure session should succeed with a disclosure proposal.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, verifier_session) =
-            disclosure_session_start(SessionType::SameDevice, &mut payloads, identity, identity, identity)
-                .await
-                .expect("Could not start disclosure session");
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            true,
+            &mut payloads,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
 
         // Test if the return `Url` and `ReaderRegistration` match the input.
         assert_eq!(disclosure_session.return_url, verifier_session.return_url);
         assert_eq!(
-            disclosure_session.reader_registration,
-            verifier_session.reader_registration
+            &disclosure_session.reader_registration,
+            verifier_session.reader_registration.as_ref().unwrap()
         );
 
         // Test that there are no missing attributes and that a `DeviceEngagement` was sent.
@@ -1317,6 +1331,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, _) = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1362,6 +1377,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, _) = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1402,6 +1418,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement_bytes_override = vec![].into();
@@ -1425,6 +1442,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
@@ -1450,6 +1468,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement.0.security = None;
@@ -1471,9 +1490,16 @@ mod tests {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
         let mut payloads = Vec::with_capacity(2);
-        let error = disclosure_session_start(SessionType::CrossDevice, &mut payloads, identity, identity, identity)
-            .await
-            .expect_err("Starting disclosure session should have resulted in an error");
+        let error = disclosure_session_start(
+            SessionType::CrossDevice,
+            true,
+            &mut payloads,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Crypto(_));
         assert_eq!(payloads.len(), 2);
@@ -1574,6 +1600,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests.clear();
@@ -1596,6 +1623,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests = vec![emtpy_items_request()];
@@ -1621,6 +1649,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             identity,
@@ -1646,6 +1675,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             identity,
@@ -1672,6 +1702,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.trust_anchors.clear();
@@ -1697,6 +1728,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session
@@ -1729,6 +1761,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1757,6 +1790,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            true,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1778,7 +1812,28 @@ mod tests {
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
-    // TODO: Test `HolderError::NoReaderRegistration` error result.
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_no_reader_registration() {
+        // Starting a `DisclosureSession` with a `ReaderEngagement` that contains a valid
+        // reader certificate but no `ReaderRegistration` should result in an error.
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            false,
+            &mut payloads,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::NoReaderRegistration(_)));
+
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+    }
 
     /// Create a basic `SessionTranscript` we can use for testing.
     fn create_basic_session_transcript() -> SessionTranscript {
@@ -1790,14 +1845,150 @@ mod tests {
         SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap()
     }
 
+    #[test]
+    fn test_proposed_document_from_mdoc() {
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+
+        let doc_type = mdoc.doc_type.clone();
+        let private_key_id = mdoc.private_key_id.clone();
+        let issuer_auth = mdoc.issuer_signed.issuer_auth.clone();
+
+        let requested_attributes = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        let proposed_document = ProposedDocument::from_mdoc(mdoc, &requested_attributes, b"foobar".to_vec());
+
+        assert_eq!(proposed_document.doc_type, doc_type);
+        assert_eq!(proposed_document.private_key_id, private_key_id);
+        assert_eq!(proposed_document.device_signed_challenge, b"foobar");
+
+        let attributes_identifiers = proposed_document
+            .issuer_signed
+            .name_spaces
+            .as_ref()
+            .and_then(|name_spaces| name_spaces.get("org.iso.18013.5.1"))
+            .map(|attributes| {
+                attributes
+                    .0
+                    .iter()
+                    .map(|attribute| attribute.0.element_identifier.as_str())
+                    .collect::<Vec<_>>()
+            })
+            .expect("Could not get expected attributes from proposed document");
+
+        assert_eq!(
+            attributes_identifiers,
+            ["family_name", "document_number", "driving_privileges"]
+        );
+        assert_eq!(proposed_document.issuer_signed.issuer_auth, issuer_auth);
+    }
+
+    #[test]
+    fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
+        let trust_anchors = Examples::iaca_trust_anchors();
+
+        let mdoc1 = mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc2 = {
+            let mut mdoc = mdoc1.clone();
+            let attributes = &mut mdoc
+                .issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .get_mut("org.iso.18013.5.1")
+                .unwrap()
+                .0;
+
+            // Remove `issue_date` and `expiry_date`.
+            attributes.remove(1);
+            attributes.remove(1);
+
+            mdoc
+        };
+        let mdoc3 = mdoc1.clone();
+        let mdoc4 = {
+            let mut mdoc = mdoc1.clone();
+            let attributes = &mut mdoc
+                .issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .get_mut("org.iso.18013.5.1")
+                .unwrap()
+                .0;
+
+            attributes.clear();
+
+            mdoc
+        };
+
+        let doc_type = mdoc1.doc_type.clone();
+        let private_key_id = mdoc1.private_key_id.clone();
+
+        let requested_attributes = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        let (proposed_documents, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
+            vec![mdoc1, mdoc2, mdoc3, mdoc4],
+            &requested_attributes,
+            b"challenge".to_vec(),
+        );
+
+        assert_eq!(proposed_documents.len(), 2);
+        proposed_documents.into_iter().for_each(|proposed_document| {
+            assert_eq!(proposed_document.doc_type, doc_type);
+            assert_eq!(proposed_document.private_key_id, private_key_id);
+            assert_eq!(
+                proposed_document
+                    .issuer_signed
+                    .name_spaces
+                    .unwrap()
+                    .get("org.iso.18013.5.1")
+                    .unwrap()
+                    .0
+                    .len(),
+                3
+            );
+        });
+
+        assert_eq!(missing_attributes.len(), 2);
+        assert_eq!(
+            missing_attributes[0]
+                .iter()
+                .map(|attribute| attribute.attribute.as_str())
+                .collect::<Vec<_>>(),
+            ["issue_date", "expiry_date"]
+        );
+        assert_eq!(
+            missing_attributes[1]
+                .iter()
+                .map(|attribute| attribute.attribute.as_str())
+                .collect::<Vec<_>>(),
+            ["driving_privileges", "issue_date", "expiry_date"]
+        );
+    }
+
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
         let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::default();
-        let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
-        let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone());
+        let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
+        let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
 
         let session_transcript = create_basic_session_transcript();
 
@@ -1817,7 +2008,7 @@ mod tests {
         let trust_anchors = der_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect::<Vec<TrustAnchor>>();
+            .collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
@@ -1992,6 +2183,59 @@ mod tests {
             DeviceRequestMatch::MissingAttributes(missing_attributes)
                 if missing_attributes == expected_missing_attributes
         );
+    }
+
+    #[tokio::test]
+    async fn test_doc_request_verify() {
+        // Create a CA, certificate and private key and trust anchors.
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let reader_registration = ReaderRegistration::default();
+        let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
+        let der_trust_anchor = DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap();
+
+        // Create a basic session transcript, item request and a `DocRequest`.
+        let session_transcript = create_basic_session_transcript();
+        let items_request = emtpy_items_request();
+        let doc_request = create_doc_request(items_request.clone(), session_transcript.clone(), &private_key).await;
+
+        // Verification of the `DocRequest` should succeed and return the certificate contained within it.
+        let certificate = doc_request
+            .verify(
+                session_transcript.clone(),
+                &TimeGenerator,
+                &[(&der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect("Could not verify DeviceRequest");
+
+        assert_matches!(certificate, Some(cert) if cert == private_key.cert_bts);
+
+        let (other_ca, _) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.as_bytes().to_vec()).unwrap();
+        let error = doc_request
+            .verify(
+                session_transcript.clone(),
+                &TimeGenerator,
+                &[(&other_der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect_err("Verifying DeviceRequest should have resulted in an error");
+
+        assert_matches!(error, Error::Cose(_));
+
+        // Verifying a `DocRequest` that has no reader auth should succeed and return `None`.
+        let doc_request = DocRequest {
+            items_request: items_request.into(),
+            reader_auth: None,
+        };
+
+        let no_certificate = doc_request
+            .verify(
+                session_transcript,
+                &TimeGenerator,
+                &[(&der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect("Could not verify DeviceRequest");
+
+        assert!(no_certificate.is_none());
     }
 
     #[test]

@@ -13,7 +13,7 @@ use wallet_common::{
 // Each of these values can be overridden from environment variables at compile time
 // when the `env_config` feature is enabled. Additionally, environment variables can
 // be added to using a file named `.env` in root directory of this crate.
-const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
+const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1";
 
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 

@@ -54,6 +54,15 @@ impl<T> From<T> for TaggedBytes<T> {
     }
 }
 
+impl<T> Default for TaggedBytes<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        TaggedBytes(T::default())
+    }
+}
+
 impl<T> Serialize for TaggedBytes<T>
 where
     T: Serialize,
