@@ -1205,12 +1205,17 @@ mod tests {
         }
     }
 
+    enum ReaderCertificateKind {
+        NoReaderRegistration,
+        WithReaderRegistration,
+    }
+
     /// Perform a [`DisclosureSession`] start with test defaults.
     /// This function takes several closures for modifying these
     /// defaults just before they are actually used.
     async fn disclosure_session_start<FS, FM, FD>(
         session_type: SessionType,
-        has_reader_registration: bool,
+        certificate_kind: ReaderCertificateKind,
         payloads: &mut Vec<Vec<u8>>,
         transform_verfier_session: FS,
         transform_mdoc: FM,
@@ -1226,8 +1231,9 @@ mod tests {
     {
         // Create a reader registration with all of the example attributes,
         // if we should have a reader registration at all.
-        let reader_registration = match has_reader_registration {
-            true => ReaderRegistration {
+        let reader_registration = match certificate_kind {
+            ReaderCertificateKind::NoReaderRegistration => None,
+            ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
                 attributes: reader_registration_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
                     EXAMPLE_NAMESPACE.to_string(),
@@ -1236,7 +1242,6 @@ mod tests {
                 ..Default::default()
             }
             .into(),
-            false => None,
         };
 
         // Create a mock session and call the transform callback.
@@ -1291,7 +1296,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session) = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             identity,
@@ -1331,7 +1336,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, _) = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1377,7 +1382,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, _) = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1418,7 +1423,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement_bytes_override = vec![].into();
@@ -1442,7 +1447,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 if let Some(methods) = verifier_session.reader_engagement.0.connection_methods.as_mut() {
@@ -1468,7 +1473,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.reader_engagement.0.security = None;
@@ -1492,7 +1497,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::CrossDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             identity,
@@ -1600,7 +1605,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests.clear();
@@ -1623,7 +1628,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.items_requests = vec![emtpy_items_request()];
@@ -1649,7 +1654,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             identity,
@@ -1675,7 +1680,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             identity,
@@ -1702,7 +1707,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session.trust_anchors.clear();
@@ -1728,7 +1733,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
                 verifier_session
@@ -1761,7 +1766,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1790,7 +1795,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            true,
+            ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
             |mut mdoc_source| {
@@ -1819,7 +1824,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            false,
+            ReaderCertificateKind::NoReaderRegistration,
             &mut payloads,
             identity,
             identity,
