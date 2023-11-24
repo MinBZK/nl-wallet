@@ -1756,6 +1756,59 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn test_doc_request_verify() {
+        // Create a CA, certificate and private key and trust anchors.
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let reader_registration = ReaderRegistration::default();
+        let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
+        let der_trust_anchor = DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap();
+
+        // Create a basic session transcript, item request and a `DocRequest`.
+        let session_transcript = create_basic_session_transcript();
+        let items_request = emtpy_items_request();
+        let doc_request = create_doc_request(items_request.clone(), session_transcript.clone(), &private_key).await;
+
+        // Verification of the `DocRequest` should succeed and return the certificate contained within it.
+        let certificate = doc_request
+            .verify(
+                session_transcript.clone(),
+                &TimeGenerator,
+                &[(&der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect("Could not verify DeviceRequest");
+
+        assert_matches!(certificate, Some(cert) if cert == private_key.cert_bts);
+
+        let (other_ca, _) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.as_bytes().to_vec()).unwrap();
+        let error = doc_request
+            .verify(
+                session_transcript.clone(),
+                &TimeGenerator,
+                &[(&other_der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect_err("Verifying DeviceRequest should have resulted in an error");
+
+        assert_matches!(error, Error::Cose(_));
+
+        // Verifying a `DocRequest` that has no reader auth should succeed and return `None`.
+        let doc_request = DocRequest {
+            items_request: items_request.into(),
+            reader_auth: None,
+        };
+
+        let no_certificate = doc_request
+            .verify(
+                session_transcript,
+                &TimeGenerator,
+                &[(&der_trust_anchor.owned_trust_anchor).into()],
+            )
+            .expect("Could not verify DeviceRequest");
+
+        assert!(no_certificate.is_none());
+    }
+
     #[test]
     fn test_device_authentication_bytes_from_session_transcript() {
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
