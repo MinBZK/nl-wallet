@@ -84,7 +84,7 @@ impl ProposedDocument {
         mdocs: Vec<Mdoc>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
+    ) -> (Vec<Self>, Vec<Vec<AttributeIdentifier>>) {
         let mut all_missing_attributes = Vec::new();
 
         // Collect all `ProposedDocument`s for this `doc_type`,
@@ -112,7 +112,7 @@ impl ProposedDocument {
             .map(|mdoc| ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge.clone()))
             .collect::<Vec<_>>();
 
-        Ok((proposed_documents, all_missing_attributes))
+        (proposed_documents, all_missing_attributes)
     }
 
     /// Create a [`ProposedDocument`] from an [`Mdoc`], containing only those
@@ -589,7 +589,7 @@ impl DeviceRequest {
                     doc_type_mdocs,
                     &requested_attributes,
                     device_signed_challenge,
-                )?;
+                );
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
                 // TODO: Report on missing attributes for multiple `Mdoc` candidates.
@@ -1552,6 +1552,142 @@ mod tests {
         SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap()
     }
 
+    #[test]
+    fn test_proposed_document_from_mdoc() {
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+
+        let doc_type = mdoc.doc_type.clone();
+        let private_key_id = mdoc.private_key_id.clone();
+        let issuer_auth = mdoc.issuer_signed.issuer_auth.clone();
+
+        let requested_attributes = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        let proposed_document = ProposedDocument::from_mdoc(mdoc, &requested_attributes, b"foobar".to_vec());
+
+        assert_eq!(proposed_document.doc_type, doc_type);
+        assert_eq!(proposed_document.private_key_id, private_key_id);
+        assert_eq!(proposed_document.device_signed_challenge, b"foobar");
+
+        let attributes_identifiers = proposed_document
+            .issuer_signed
+            .name_spaces
+            .as_ref()
+            .and_then(|name_spaces| name_spaces.get("org.iso.18013.5.1"))
+            .map(|attributes| {
+                attributes
+                    .0
+                    .iter()
+                    .map(|attribute| attribute.0.element_identifier.as_str())
+                    .collect::<Vec<_>>()
+            })
+            .expect("Could not get expected attributes from proposed document");
+
+        assert_eq!(
+            attributes_identifiers,
+            ["family_name", "document_number", "driving_privileges"]
+        );
+        assert_eq!(proposed_document.issuer_signed.issuer_auth, issuer_auth);
+    }
+
+    #[test]
+    fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
+        let trust_anchors = Examples::iaca_trust_anchors();
+
+        let mdoc1 = mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc2 = {
+            let mut mdoc = mdoc1.clone();
+            let attributes = &mut mdoc
+                .issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .get_mut("org.iso.18013.5.1")
+                .unwrap()
+                .0;
+
+            // Remove `issue_date` and `expiry_date`.
+            attributes.remove(1);
+            attributes.remove(1);
+
+            mdoc
+        };
+        let mdoc3 = mdoc1.clone();
+        let mdoc4 = {
+            let mut mdoc = mdoc1.clone();
+            let attributes = &mut mdoc
+                .issuer_signed
+                .name_spaces
+                .as_mut()
+                .unwrap()
+                .get_mut("org.iso.18013.5.1")
+                .unwrap()
+                .0;
+
+            attributes.clear();
+
+            mdoc
+        };
+
+        let doc_type = mdoc1.doc_type.clone();
+        let private_key_id = mdoc1.private_key_id.clone();
+
+        let requested_attributes = vec![
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
+            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
+        ]
+        .into_iter()
+        .map(|attribute| attribute.parse().unwrap())
+        .collect();
+
+        let (proposed_documents, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
+            vec![mdoc1, mdoc2, mdoc3, mdoc4],
+            &requested_attributes,
+            b"challenge".to_vec(),
+        );
+
+        assert_eq!(proposed_documents.len(), 2);
+        proposed_documents.into_iter().for_each(|proposed_document| {
+            assert_eq!(proposed_document.doc_type, doc_type);
+            assert_eq!(proposed_document.private_key_id, private_key_id);
+            assert_eq!(
+                proposed_document
+                    .issuer_signed
+                    .name_spaces
+                    .unwrap()
+                    .get("org.iso.18013.5.1")
+                    .unwrap()
+                    .0
+                    .len(),
+                3
+            );
+        });
+
+        assert_eq!(missing_attributes.len(), 2);
+        assert_eq!(
+            missing_attributes[0]
+                .iter()
+                .map(|attribute| attribute.attribute.as_str())
+                .collect::<Vec<_>>(),
+            ["issue_date", "expiry_date"]
+        );
+        assert_eq!(
+            missing_attributes[1]
+                .iter()
+                .map(|attribute| attribute.attribute.as_str())
+                .collect::<Vec<_>>(),
+            ["driving_privileges", "issue_date", "expiry_date"]
+        );
+    }
+
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
@@ -1579,7 +1715,7 @@ mod tests {
         let trust_anchors = der_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect::<Vec<TrustAnchor>>();
+            .collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
