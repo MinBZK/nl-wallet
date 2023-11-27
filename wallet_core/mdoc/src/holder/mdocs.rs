@@ -9,7 +9,10 @@ use wallet_common::generator::Generator;
 use crate::{
     basic_sa_ext::Entry,
     iso::*,
-    utils::keys::{MdocEcdsaKey, MdocKeyType},
+    utils::{
+        keys::{MdocEcdsaKey, MdocKeyType},
+        x509::Certificate,
+    },
     verifier::ValidityRequirement,
     Result,
 };
@@ -110,5 +113,9 @@ impl Mdoc {
             .0
             .device_key_info
             .try_into()
+    }
+
+    pub fn issuer_certificate(&self) -> Result<Certificate> {
+        self.issuer_signed.issuer_auth.signing_cert()
     }
 }
