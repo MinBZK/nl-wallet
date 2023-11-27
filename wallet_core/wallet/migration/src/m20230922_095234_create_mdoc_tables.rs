@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(Mdoc::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Mdoc::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(Mdoc::DocType).string().not_null())
+                    .col(ColumnDef::new(Mdoc::DocType).text().not_null())
                     .to_owned(),
             )
             .await?;
@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(MdocCopy::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(MdocCopy::MdocId).uuid().not_null())
-                    .col(ColumnDef::new(MdocCopy::Mdoc).string().not_null())
+                    .col(ColumnDef::new(MdocCopy::Mdoc).binary().not_null())
                     // In sqlite/sqlcipher foreign keys can only be created as part of the create table statement.
                     .foreign_key(
                         ForeignKey::create()

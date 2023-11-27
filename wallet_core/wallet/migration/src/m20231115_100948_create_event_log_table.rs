@@ -12,11 +12,11 @@ impl MigrationTrait for Migration {
                     .table(EventLog::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(EventLog::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(EventLog::Type).string().not_null())
+                    .col(ColumnDef::new(EventLog::Type).text().not_null())
                     .col(ColumnDef::new(EventLog::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(EventLog::RemotePartyCertificate).string().not_null())
-                    .col(ColumnDef::new(EventLog::Status).string().not_null())
-                    .col(ColumnDef::new(EventLog::StatusDescription).string().null())
+                    .col(ColumnDef::new(EventLog::RemotePartyCertificate).binary().not_null())
+                    .col(ColumnDef::new(EventLog::Status).text().not_null())
+                    .col(ColumnDef::new(EventLog::StatusDescription).text().null())
                     .to_owned(),
             )
             .await

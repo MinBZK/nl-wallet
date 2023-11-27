@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(KeyedData::Table)
-                    .col(ColumnDef::new(KeyedData::Key).string().not_null().primary_key())
+                    .col(ColumnDef::new(KeyedData::Key).text().not_null().primary_key())
                     .col(ColumnDef::new(KeyedData::Data).json().not_null())
                     .to_owned(),
             )
