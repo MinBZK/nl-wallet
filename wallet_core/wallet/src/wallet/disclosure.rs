@@ -14,7 +14,7 @@ use crate::{
     config::ConfigurationRepository,
     disclosure::{
         DisclosureUriData, DisclosureUriError, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
-        MdocDisclosureSession, MdocDisclosureSessionType,
+        MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     storage::{Storage, StorageError},
@@ -82,8 +82,8 @@ where
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
 
-        let proposal_session = match session.session_type() {
-            MdocDisclosureSessionType::MissingAttributes(missing_attr_session) => {
+        let proposal_session = match session.session_state() {
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
                 // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
                 // If this fails, return `DisclosureError::AttributeMdoc` instead.
                 let missing_attributes = missing_attr_session.missing_attributes().to_vec();
@@ -97,7 +97,7 @@ where
 
                 return Err(error);
             }
-            MdocDisclosureSessionType::Proposal(proposal_session) => proposal_session,
+            MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
         };
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
@@ -214,7 +214,7 @@ mod tests {
 
         MockMdocDisclosureSession::next_fields(
             reader_registration,
-            MdocDisclosureSessionType::Proposal(proposal_session),
+            MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
         // Starting disclosure should not fail.
@@ -344,7 +344,7 @@ mod tests {
 
         MockMdocDisclosureSession::next_fields(
             Default::default(),
-            MdocDisclosureSessionType::MissingAttributes(missing_attr_session),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -378,7 +378,7 @@ mod tests {
 
         MockMdocDisclosureSession::next_fields(
             Default::default(),
-            MdocDisclosureSessionType::MissingAttributes(missing_attr_session),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
         // Starting disclosure where an attribute that is both unavailable
@@ -423,7 +423,7 @@ mod tests {
 
         MockMdocDisclosureSession::next_fields(
             Default::default(),
-            MdocDisclosureSessionType::Proposal(proposal_session),
+            MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
         // Starting disclosure where unknown attributes are requested should result in an error.

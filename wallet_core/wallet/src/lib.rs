@@ -40,7 +40,7 @@ pub mod wallet_deps {
         config::{ConfigurationRepository, LocalConfigurationRepository},
         digid::{DigidSession, HttpDigidSession},
         disclosure::{
-            MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionType,
+            MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
         pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
         storage::Storage,

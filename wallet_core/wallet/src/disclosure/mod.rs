@@ -20,7 +20,7 @@ pub use self::uri::{DisclosureUriData, DisclosureUriError};
 pub use self::mock::MockMdocDisclosureSession;
 
 #[derive(Debug)]
-pub enum MdocDisclosureSessionType<M, P> {
+pub enum MdocDisclosureSessionState<M, P> {
     MissingAttributes(M),
     Proposal(P),
 }
@@ -39,7 +39,7 @@ pub trait MdocDisclosureSession<D> {
         Self: Sized;
 
     fn reader_registration(&self) -> &ReaderRegistration;
-    fn session_type(&self) -> MdocDisclosureSessionType<&Self::MissingAttributes, &Self::Proposal>;
+    fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
 
     async fn terminate(self) -> nl_wallet_mdoc::Result<()>;
 }
@@ -88,13 +88,13 @@ where
         self.reader_registration()
     }
 
-    fn session_type(
+    fn session_state(
         &self,
-    ) -> MdocDisclosureSessionType<&DisclosureMissingAttributes<CborHttpClient>, &DisclosureProposal<CborHttpClient>>
+    ) -> MdocDisclosureSessionState<&DisclosureMissingAttributes<CborHttpClient>, &DisclosureProposal<CborHttpClient>>
     {
         match self {
-            DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionType::MissingAttributes(session),
-            DisclosureSession::Proposal(session) => MdocDisclosureSessionType::Proposal(session),
+            DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
+            DisclosureSession::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
         }
     }
 
@@ -128,17 +128,16 @@ mod mock {
 
     use super::*;
 
-    type DisclosureSessionType =
-        MdocDisclosureSessionType<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
-    type MockFields = (ReaderRegistration, DisclosureSessionType);
+    type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
+    type MockFields = (ReaderRegistration, SessionState);
 
     pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
-    // For convenience, the default `DisclosureSessionType` is a proposal.
-    impl Default for DisclosureSessionType {
+    // For convenience, the default `SessionState` is a proposal.
+    impl Default for SessionState {
         fn default() -> Self {
-            MdocDisclosureSessionType::Proposal(MockMdocDisclosureProposal::default())
+            MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal::default())
         }
     }
 
@@ -146,15 +145,15 @@ mod mock {
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
-        pub session_type: DisclosureSessionType,
+        pub session_state: SessionState,
     }
 
     impl MockMdocDisclosureSession {
-        pub fn next_fields(reader_registration: ReaderRegistration, session_type: DisclosureSessionType) {
+        pub fn next_fields(reader_registration: ReaderRegistration, session_state: SessionState) {
             NEXT_MOCK_FIELDS
                 .lock()
                 .unwrap()
-                .replace((reader_registration, session_type));
+                .replace((reader_registration, session_state));
         }
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
@@ -171,7 +170,7 @@ mod mock {
                     session_type: SessionType::CrossDevice,
                 },
                 reader_registration: ReaderRegistration::default(),
-                session_type: DisclosureSessionType::default(),
+                session_state: SessionState::default(),
             }
         }
     }
@@ -190,23 +189,23 @@ mod mock {
                 return Err(error);
             }
 
-            let (reader_registration, session_type) = NEXT_MOCK_FIELDS.lock().unwrap().take().unwrap_or_default();
+            let (reader_registration, session_state) = NEXT_MOCK_FIELDS.lock().unwrap().take().unwrap_or_default();
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
                 reader_registration,
-                session_type,
+                session_state,
             };
 
             Ok(session)
         }
 
-        fn session_type(&self) -> MdocDisclosureSessionType<&Self::MissingAttributes, &Self::Proposal> {
-            match self.session_type {
-                MdocDisclosureSessionType::MissingAttributes(ref session) => {
-                    MdocDisclosureSessionType::MissingAttributes(session)
+        fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal> {
+            match self.session_state {
+                MdocDisclosureSessionState::MissingAttributes(ref session) => {
+                    MdocDisclosureSessionState::MissingAttributes(session)
                 }
-                MdocDisclosureSessionType::Proposal(ref session) => MdocDisclosureSessionType::Proposal(session),
+                MdocDisclosureSessionState::Proposal(ref session) => MdocDisclosureSessionState::Proposal(session),
             }
         }
 
