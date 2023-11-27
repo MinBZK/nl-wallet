@@ -6,7 +6,6 @@ use url::Url;
 use nl_wallet_mdoc::{
     holder::{CborHttpClient, DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor},
     utils::reader_auth::ReaderRegistration,
-    verifier::SessionType,
 };
 
 use crate::utils;
@@ -49,7 +48,7 @@ where
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
             disclosure_uri.return_url,
-            SessionType::SameDevice, // TODO: Distinguish between same device and cross device flows.
+            disclosure_uri.session_type,
             mdoc_data_source,
             trust_anchors,
         )
@@ -73,6 +72,7 @@ where
 mod mock {
     use std::sync::Mutex;
 
+    use nl_wallet_mdoc::verifier::SessionType;
     use once_cell::sync::Lazy;
 
     use super::*;
@@ -82,7 +82,7 @@ mod mock {
     pub static READER_REGISTRATION_DISCLOSED_ATTRIBUTES: Lazy<Mutex<Option<(ReaderRegistration, ProposedAttributes)>>> =
         Lazy::new(|| Mutex::new(None));
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
@@ -102,6 +102,20 @@ mod mock {
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
             READER_REGISTRATION_NEXT_START_ERROR.lock().unwrap().replace(error);
+        }
+    }
+
+    impl Default for MockMdocDisclosureSession {
+        fn default() -> Self {
+            Self {
+                disclosure_uri: DisclosureUriData {
+                    reader_engagement_bytes: Vec::<u8>::default(),
+                    return_url: None,
+                    session_type: SessionType::CrossDevice,
+                },
+                reader_registration: ReaderRegistration::default(),
+                proposed_attributes: ProposedAttributes::default(),
+            }
         }
     }
 

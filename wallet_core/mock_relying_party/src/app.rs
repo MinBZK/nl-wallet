@@ -10,6 +10,7 @@ use axum::{
 };
 use axum_extra::response::{Css, JavaScript, Wasm};
 use serde::{Deserialize, Serialize};
+use serde_urlencoded;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
@@ -111,7 +112,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
     let engagement_url = engagement_url
         .join(&format!(
             "?{}#{}",
-            serde_url_params::to_string(&EngageUrlparams {
+            serde_urlencoded::ser::to_string(EngageUrlparams {
                 session_type: selected.session_type,
                 return_url: state.public_url.clone(),
             })

@@ -25,7 +25,7 @@ config.workspace = true
 dashmap.workspace = true
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_url_params.workspace = true
+serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
@@ -40,4 +40,3 @@ url = { workspace = true, features = ["serde"] }
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
 wallet_server.path = "../wallet_server"
-
