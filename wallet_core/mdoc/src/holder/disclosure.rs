@@ -210,6 +210,11 @@ impl ProposedDocument {
     }
 }
 
+enum VerifierSessionDataCheckResult {
+    MissingAttributes(Vec<AttributeIdentifier>),
+    ProposedDocuments(Vec<ProposedDocument>),
+}
+
 pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
 
 impl<H> DisclosureSession<H>
@@ -259,66 +264,21 @@ where
 
         // After having received the `SessionData` from the verifier, we should end
         // the session by sending our own `SessionData` to the verifier to report errors.
-        // In order to do that we start a new async context to catch any errors that occur.
-        let (missing_attributes, proposed_documents, reader_registration) = (async {
-            // Decrypt the received `DeviceRequest`.
-            let device_request: DeviceRequest = session_data.decrypt_and_deserialize(&reader_key)?;
+        let (check_result, reader_registration) =
+            Self::check_verifier_session_data(session_data, &transcript, &reader_key, mdoc_data_source, trust_anchors)
+                .or_else(|error| async {
+                    // Determine the category of the error, so we can report on it.
+                    let error_session_data = match error {
+                        Error::Cbor(CborError::Deserialization(_)) => SessionData::new_decoding_error(),
+                        Error::Crypto(_) => SessionData::new_encryption_error(),
+                        _ => SessionData::new_termination(),
+                    };
 
-            // A device request without any attributes is useless, so return an error.
-            if !device_request.has_attributes() {
-                return Err(HolderError::NoAttributesRequested.into());
-            }
+                    let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
 
-            // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
-            // Reader authentication is required to be present at this time.
-            let reader_registration = device_request
-                .verify(&transcript, &TimeGenerator, trust_anchors)?
-                .ok_or(HolderError::ReaderAuthMissing)?;
-
-            // Fetch documents from the database, calculate which ones satisfy the request and
-            // formulate proposals for those documents. If there is a mismatch, return an error.
-            let candidates_by_doc_type = match device_request
-                .match_stored_documents(mdoc_data_source, &transcript)
-                .await?
-            {
-                DeviceRequestMatch::Candidates(candidates) => candidates,
-                DeviceRequestMatch::MissingAttributes(missing_attributes) => {
-                    // Attributes are missing, return these.
-                    return Ok((missing_attributes.into(), None, reader_registration));
-                }
-            };
-
-            // If we have multiple candidates for any of the doc types, return an error.
-            // TODO: Support having the user a choose between multiple candidates.
-            if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
-                let duplicate_doc_types = candidates_by_doc_type
-                    .into_iter()
-                    .filter(|(_, candidates)| candidates.len() > 1)
-                    .map(|(doc_type, _)| doc_type)
-                    .collect();
-
-                return Err(HolderError::MultipleCandidates(duplicate_doc_types).into());
-            }
-
-            // Now that we know that we have exactly one candidate for every `doc_type`,
-            // we can flatten these candidates to a 1-dimensional `Vec`.
-            let proposed_documents = candidates_by_doc_type.into_values().flatten().collect::<Vec<_>>();
-
-            Ok((None, proposed_documents.into(), reader_registration))
-        })
-        .or_else(|error| async {
-            // Determine the category of the error, so we can report on it.
-            let error_session_data = match error {
-                Error::Cbor(CborError::Deserialization(_)) => SessionData::new_decoding_error(),
-                Error::Crypto(_) => SessionData::new_encryption_error(),
-                _ => SessionData::new_termination(),
-            };
-
-            let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
-
-            Err(error)
-        })
-        .await?;
+                    Err(error)
+                })
+                .await?;
 
         let endpoint = DisclosureEndpoint {
             client,
@@ -328,21 +288,83 @@ where
 
         // Create the appropriate `DisclosureSession` invariant, which contains
         // all of the information needed to either abort of finish the session.
-        let session = match (missing_attributes, proposed_documents) {
-            (Some(missing_attributes), None) => DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-                endpoint,
-                missing_attributes,
-            }),
-            (None, Some(proposed_documents)) => DisclosureSession::Proposal(DisclosureProposal {
-                return_url,
-                endpoint,
-                device_key,
-                proposed_documents,
-            }),
-            _ => unreachable!(),
+        let session = match check_result {
+            VerifierSessionDataCheckResult::MissingAttributes(missing_attributes) => {
+                DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+                    endpoint,
+                    missing_attributes,
+                })
+            }
+            VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
+                DisclosureSession::Proposal(DisclosureProposal {
+                    return_url,
+                    endpoint,
+                    device_key,
+                    proposed_documents,
+                })
+            }
         };
 
         Ok(session)
+    }
+
+    /// Internal helper function for processing and checking the contents of a
+    /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
+    async fn check_verifier_session_data<'a>(
+        verifier_session_data: SessionData,
+        session_transcript: &SessionTranscript,
+        reader_key: &SessionKey,
+        mdoc_data_source: &impl MdocDataSource,
+        trust_anchors: &[TrustAnchor<'a>],
+    ) -> Result<(VerifierSessionDataCheckResult, ReaderRegistration)> {
+        // Decrypt the received `DeviceRequest`.
+        let device_request: DeviceRequest = verifier_session_data.decrypt_and_deserialize(reader_key)?;
+
+        // A device request without any attributes is useless, so return an error.
+        if !device_request.has_attributes() {
+            return Err(HolderError::NoAttributesRequested.into());
+        }
+
+        // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
+        // Reader authentication is required to be present at this time.
+        let reader_registration = device_request
+            .verify(session_transcript, &TimeGenerator, trust_anchors)?
+            .ok_or(HolderError::ReaderAuthMissing)?;
+
+        // Fetch documents from the database, calculate which ones satisfy the request and
+        // formulate proposals for those documents. If there is a mismatch, return an error.
+        let candidates_by_doc_type = match device_request
+            .match_stored_documents(mdoc_data_source, session_transcript)
+            .await?
+        {
+            DeviceRequestMatch::Candidates(candidates) => candidates,
+            DeviceRequestMatch::MissingAttributes(missing_attributes) => {
+                // Attributes are missing, return these.
+                let result = VerifierSessionDataCheckResult::MissingAttributes(missing_attributes);
+
+                return Ok((result, reader_registration));
+            }
+        };
+
+        // If we have multiple candidates for any of the doc types, return an error.
+        // TODO: Support having the user a choose between multiple candidates.
+        if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
+            let duplicate_doc_types = candidates_by_doc_type
+                .into_iter()
+                .filter(|(_, candidates)| candidates.len() > 1)
+                .map(|(doc_type, _)| doc_type)
+                .collect();
+
+            return Err(HolderError::MultipleCandidates(duplicate_doc_types).into());
+        }
+
+        // Now that we know that we have exactly one candidate for every `doc_type`,
+        // we can flatten these candidates to a 1-dimensional `Vec`.
+        let proposed_documents = candidates_by_doc_type.into_values().flatten().collect::<Vec<_>>();
+
+        let result = VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents);
+
+        Ok((result, reader_registration))
     }
 
     fn endpoint(&self) -> &DisclosureEndpoint<H> {
