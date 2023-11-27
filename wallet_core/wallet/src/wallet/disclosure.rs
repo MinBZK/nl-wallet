@@ -37,13 +37,13 @@ pub enum DisclosureError {
     DisclosureUri(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
     DisclosureSession(#[source] nl_wallet_mdoc::Error),
-    #[error("could not interpret mdoc attributes: {0}")]
-    AttributeMdoc(#[from] DocumentMdocError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: Vec<MissingDisclosureAttributes>,
     },
+    #[error("could not interpret (missing) mdoc attributes: {0}")]
+    MdocAttributes(#[from] DocumentMdocError),
 }
 
 // Promote an `AttributesNotAvailable` error to a top-level error.
@@ -168,10 +168,11 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use mockall::predicate::*;
     use serial_test::serial;
 
-    use crate::disclosure::MockMdocDisclosureSession;
+    use nl_wallet_mdoc::{basic_sa_ext::Entry, examples::Examples, mock as mdoc_mock, DataElementValue};
+
+    use crate::{disclosure::MockMdocDisclosureSession, Attribute, AttributeValue};
 
     use super::{super::tests::WalletWithMocks, *};
 
@@ -184,8 +185,29 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
+        // Set up an `MdocDisclosureSession` to be returned with the following values.
+        let reader_registration = ReaderRegistration {
+            id: "1234".to_string(),
+            ..Default::default()
+        };
+        let proposed_attributes = IndexMap::from([(
+            "com.example.pid".to_string(),
+            IndexMap::from([(
+                "com.example.pid".to_string(),
+                vec![Entry {
+                    name: "age_over_18".to_string(),
+                    value: DataElementValue::Bool(true),
+                }],
+            )]),
+        )]);
+
+        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
+            reader_registration,
+            proposed_attributes,
+        );
+
         // Starting disclosure should not fail.
-        wallet
+        let proposal = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
             .await
             .expect("Could not start disclosure");
@@ -197,7 +219,24 @@ mod tests {
             return_url: Url::parse("https://example.com").unwrap().into(),
         });
 
-        // TODO: Test returned `DisclosureProposal`.
+        // Test that the returned `DisclosureProposal` contains the
+        // `ReaderRegistration` we set up earlier, as well as the
+        // proposed attributes converted to a `ProposedDisclosureDocument`.
+        assert_eq!(proposal.reader_registration.id, "1234");
+        assert_eq!(proposal.documents.len(), 1);
+        let document = proposal.documents.first().unwrap();
+        assert_eq!(document.doc_type, "com.example.pid");
+        assert_eq!(document.attributes.len(), 1);
+        assert_matches!(
+            document.attributes.first().unwrap(),
+            (
+                &"age_over_18",
+                Attribute {
+                    key_labels: _,
+                    value: AttributeValue::Boolean(true)
+                }
+            )
+        );
     }
 
     #[tokio::test]
@@ -246,5 +285,211 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
     }
 
-    // TODO: Test for `DisclosureSessionError`.
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_error_disclosure_uri() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
+        let error = wallet
+            .start_disclosure(&Url::parse("http://example.com").unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureUri(_));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_start_disclosure_error_disclosure_session() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Set up an `MdocDisclosureSession` start to return the following error.
+        MockMdocDisclosureSession::next_start_error(HolderError::NoAttributesRequested.into());
+
+        // Starting disclosure with a malformed disclosure URI should result in an error.
+        let error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureSession(_));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_start_disclosure_error_attributes_not_available() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Set up an `MdocDisclosureSession` start to return the following error.
+        MockMdocDisclosureSession::next_start_error(
+            HolderError::AttributesNotAvailable {
+                reader_registration: Default::default(),
+                missing_attributes: vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()],
+            }
+            .into(),
+        );
+
+        // Starting disclosure where an unavailable attribute is requested should result in an error.
+        let error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureError::AttributesNotAvailable {
+                reader_registration: _,
+                missing_attributes
+            } if missing_attributes[0].doc_type == "com.example.pid" &&
+                 *missing_attributes[0].attributes.first().unwrap().0 == "age_over_18"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_start_disclosure_error_mdoc_attributes_not_available() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Set up an `MdocDisclosureSession` start to return the following error.
+        MockMdocDisclosureSession::next_start_error(
+            HolderError::AttributesNotAvailable {
+                reader_registration: Default::default(),
+                missing_attributes: vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()],
+            }
+            .into(),
+        );
+
+        // Starting disclosure where an attribute that is both unavailable
+        // and unknown is requested should result in an error.
+        let error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureError::MdocAttributes(DocumentMdocError::UnknownAttribute {
+                doc_type,
+                name_space,
+                name,
+                value: None,
+            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foobar"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_start_disclosure_error_mdoc_attributes() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Set up an `MdocDisclosureSession` to be returned with the following values.
+        let proposed_attributes = IndexMap::from([(
+            "com.example.pid".to_string(),
+            IndexMap::from([(
+                "com.example.pid".to_string(),
+                vec![Entry {
+                    name: "foo".to_string(),
+                    value: DataElementValue::Text("bar".to_string()),
+                }],
+            )]),
+        )]);
+
+        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
+            Default::default(),
+            proposed_attributes,
+        );
+
+        // Starting disclosure where unknown attributes are requested should result in an error.
+        let error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureError::MdocAttributes(DocumentMdocError::UnknownAttribute {
+                doc_type,
+                name_space,
+                name,
+                value: Some(DataElementValue::Text(value)),
+            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foo" && value == "bar"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Create some fake `Mdoc` entries to place into wallet storage.
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let mdoc1 = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc2 = {
+            let mut mdoc2 = mdoc1.clone();
+
+            mdoc2.doc_type = "com.example.doc_type".to_string();
+
+            mdoc2
+        };
+
+        // Place 3 copies of each `Mdoc` into `MockStorage`.
+        wallet
+            .storage
+            .write()
+            .await
+            .insert_mdocs(vec![
+                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].into(),
+                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].into(),
+            ])
+            .await
+            .unwrap();
+
+        // Call the `MdocDataSource.mdoc_by_doc_types()` method on the `Wallet`.
+        let mdoc_by_doc_types = wallet
+            .mdoc_by_doc_types(&["com.example.doc_type", "org.iso.18013.5.1.mDL"].into())
+            .await
+            .expect("Could not get mdocs by doc types from wallet");
+
+        // The result should be one copy of each distinct `Mdoc`,
+        // while retaining the original insertion order.
+        assert_eq!(mdoc_by_doc_types, vec![vec![mdoc1], vec![mdoc2]]);
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types_empty() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Calling the `MdocDataSource.mdoc_by_doc_types()` method
+        // on the `Wallet` should return an empty result.
+        let mdoc_by_doc_types = wallet
+            .mdoc_by_doc_types(&Default::default())
+            .await
+            .expect("Could not get mdocs by doc types from wallet");
+
+        assert!(mdoc_by_doc_types.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_by_doc_types_error() {
+        // Prepare a wallet in initial state.
+        let wallet = WalletWithMocks::default();
+
+        // Set up `MockStorage` to return an error when performing a query.
+        wallet.storage.write().await.has_query_error = true;
+
+        // Calling the `MdocDataSource.mdoc_by_doc_types()` method
+        // on the `Wallet` should forward the `StorageError`.
+        let error = wallet
+            .mdoc_by_doc_types(&Default::default())
+            .await
+            .expect_err("Getting mdocs by doc types from wallet should result in an error");
+
+        assert_matches!(error, StorageError::Database(_));
+    }
 }

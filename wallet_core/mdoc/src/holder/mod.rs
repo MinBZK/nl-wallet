@@ -48,7 +48,7 @@ pub enum HolderError {
     #[error("verifier ephemeral key not present in reader engagement")]
     VerifierEphemeralKeyMissing,
     #[error("no document requests are present in device request")]
-    NoDocumentRequests,
+    NoAttributesRequested,
     #[error("no reader registration present in certificate")]
     NoReaderRegistration(Certificate),
     #[error("reader registration attribute validation failed: {0}")]

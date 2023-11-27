@@ -92,7 +92,7 @@ fn wallet_server_settings() -> Settings {
         &ca,
         &ca_privkey,
         "cert.example.com",
-        CertificateType::ReaderAuth(Box::new(get_my_reader_auth())),
+        CertificateType::ReaderAuth(Box::new(get_my_reader_auth()).into()),
     )
     .unwrap();
 

@@ -189,22 +189,32 @@ const fn oid_from_bytes(bytes: &'static [u8]) -> Oid {
 }
 
 impl CertificateUsage {
-    pub fn from_certificate(cert: &Certificate) -> Result<Option<Self>, CertificateError> {
+    pub fn from_certificate(cert: &Certificate) -> Result<Self, CertificateError> {
         let usage = cert
             .to_x509()?
             .extended_key_usage()?
-            .and_then(|eku| Self::from_key_usage(eku.value));
+            .map(|eku| Self::from_key_usage(eku.value))
+            .transpose()?
+            .ok_or_else(|| CertificateError::IncorrectEkuCount(0))?;
+
         Ok(usage)
     }
 
-    fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Option<Self> {
-        if ext_key_usage.other.contains(&EKU_MDL_OID) {
-            Some(Self::Mdl)
-        } else if ext_key_usage.other.contains(&EKU_READER_AUTH_OID) {
-            Some(Self::ReaderAuth)
-        } else {
-            None
+    fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Result<Self, CertificateError> {
+        if ext_key_usage.other.len() != 1 {
+            return Err(CertificateError::IncorrectEkuCount(ext_key_usage.other.len()));
         }
+
+        let key_usage_oid = ext_key_usage.other.first().unwrap();
+
+        // Unfortunately we cannot use a match statement here.
+        if key_usage_oid == &EKU_MDL_OID {
+            return Ok(Self::Mdl);
+        } else if key_usage_oid == &EKU_READER_AUTH_OID {
+            return Ok(Self::ReaderAuth);
+        }
+
+        Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
     }
 
     fn to_eku(&self) -> &'static [u8] {
@@ -219,20 +229,21 @@ impl CertificateUsage {
 #[derive(Debug, Clone, PartialEq)]
 pub enum CertificateType {
     Mdl,
-    ReaderAuth(Box<ReaderRegistration>),
+    ReaderAuth(Option<Box<ReaderRegistration>>),
 }
 
 impl CertificateType {
-    pub fn from_certificate(cert: &Certificate) -> Result<Option<Self>, CertificateError> {
+    pub fn from_certificate(cert: &Certificate) -> Result<Self, CertificateError> {
         let usage = CertificateUsage::from_certificate(cert)?;
         let result = match usage {
-            Some(CertificateUsage::Mdl) => Some(CertificateType::Mdl),
-            Some(CertificateUsage::ReaderAuth) => {
+            CertificateUsage::Mdl => CertificateType::Mdl,
+            CertificateUsage::ReaderAuth => {
                 let registration: Option<ReaderRegistration> = ReaderRegistration::from_certificate(cert)?;
-                registration.map(|r| Self::ReaderAuth(Box::new(r)))
+
+                CertificateType::ReaderAuth(registration.map(Box::new))
             }
-            None => None,
         };
+
         Ok(result)
     }
 }
@@ -258,10 +269,7 @@ mod generate {
     };
     use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
 
-    use crate::utils::{
-        reader_auth::ReaderRegistration,
-        x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE},
-    };
+    use crate::utils::x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE};
 
     impl Certificate {
         /// Generate a new self-signed CA certificate.
@@ -329,9 +337,8 @@ mod generate {
             let usage: CertificateUsage = self.into();
             let mut extensions = vec![usage.to_custom_ext()];
 
-            if let Self::ReaderAuth(auth) = self {
-                let registration: &ReaderRegistration = auth;
-                let ext_reader_auth = registration.to_custom_ext()?;
+            if let Self::ReaderAuth(Some(reader_registration)) = self {
+                let ext_reader_auth = reader_registration.to_custom_ext()?;
                 extensions.push(ext_reader_auth);
             }
 
@@ -374,7 +381,7 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let reader_auth = CertificateType::ReaderAuth(Box::new(get_my_reader_auth()));
+        let reader_auth = CertificateType::ReaderAuth(Box::new(get_my_reader_auth()).into());
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
 
@@ -382,7 +389,7 @@ mod test {
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_usage = CertificateType::from_certificate(&cert).unwrap().unwrap();
+        let cert_usage = CertificateType::from_certificate(&cert).unwrap();
         assert_eq!(cert_usage, reader_auth);
     }
 
