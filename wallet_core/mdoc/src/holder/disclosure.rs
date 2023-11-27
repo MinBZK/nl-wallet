@@ -262,8 +262,10 @@ where
             })
             .await?;
 
-        // After having received the `SessionData` from the verifier, we should end
-        // the session by sending our own `SessionData` to the verifier to report errors.
+        // Check the `SessionData` after having received it from the verifier
+        // by calling our helper method. From this point onwards, we should end
+        // the session by sending our own `SessionData` to the verifier if we
+        // encounter an error.
         let (check_result, reader_registration) =
             Self::check_verifier_session_data(session_data, &transcript, &reader_key, mdoc_data_source, trust_anchors)
                 .or_else(|error| async {
@@ -274,6 +276,7 @@ where
                         _ => SessionData::new_termination(),
                     };
 
+                    // Ignore the response or any errors.
                     let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
 
                     Err(error)
