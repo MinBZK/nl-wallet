@@ -118,6 +118,7 @@ do
         --default)
             DIGID_CONNECTOR=0
             PID_ISSUER=0
+            MOCK_RELYING_PARTY=0
             WALLET_PROVIDER=0
             WALLET=0
             shift # past argument
@@ -125,6 +126,7 @@ do
         --all)
             DIGID_CONNECTOR=0
             DOCKER=0
+            MOCK_RELYING_PARTY=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
