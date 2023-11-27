@@ -12,9 +12,9 @@ pub enum Status {
 }
 
 impl Status {
-    pub fn description(&self) -> Option<String> {
+    pub fn description(&self) -> Option<&str> {
         if let Status::Error(description) = self {
-            Some(description.to_owned())
+            Some(description)
         } else {
             None
         }
@@ -35,7 +35,10 @@ impl From<&Model> for Status {
     fn from(source: &Model) -> Self {
         match source.status {
             EventStatus::Success => Self::Success,
-            EventStatus::Error => Self::Error(source.status_description.as_ref().unwrap().to_owned()),
+            EventStatus::Error => {
+                // unwrap is safe here, assuming the data has been inserted using [Status]
+                Self::Error(source.status_description.as_ref().unwrap().to_owned())
+            }
             EventStatus::Cancelled => Self::Cancelled,
         }
     }
@@ -86,7 +89,7 @@ impl From<WalletEvent> for Model {
             event_type: source.event_type,
             timestamp: source.timestamp,
             remote_party_certificate: source.remote_party_certificate.as_bytes().to_owned(),
-            status_description: source.status.description(),
+            status_description: source.status.description().map(|d| d.to_owned()),
             status: source.status.into(),
         }
     }
