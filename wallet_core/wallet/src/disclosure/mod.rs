@@ -10,7 +10,6 @@ use nl_wallet_mdoc::{
     },
     identifiers::AttributeIdentifier,
     utils::reader_auth::ReaderRegistration,
-    verifier::SessionType,
 };
 
 use crate::utils;
@@ -78,7 +77,7 @@ where
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
             disclosure_uri.return_url,
-            SessionType::SameDevice, // TODO: Distinguish between same device and cross device flows.
+            disclosure_uri.session_type,
             mdoc_data_source,
             trust_anchors,
         )
@@ -124,32 +123,34 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
 mod mock {
     use std::sync::Mutex;
 
+    use nl_wallet_mdoc::verifier::SessionType;
     use once_cell::sync::Lazy;
 
     use super::*;
 
-    type SessionType = MdocDisclosureSessionType<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
-    type MockFields = (ReaderRegistration, SessionType);
+    type DisclosureSessionType =
+        MdocDisclosureSessionType<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
+    type MockFields = (ReaderRegistration, DisclosureSessionType);
 
     pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
-    // For convenience, the default `SessionType` is a proposal.
-    impl Default for SessionType {
+    // For convenience, the default `DisclosureSessionType` is a proposal.
+    impl Default for DisclosureSessionType {
         fn default() -> Self {
             MdocDisclosureSessionType::Proposal(MockMdocDisclosureProposal::default())
         }
     }
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
-        pub session_type: SessionType,
+        pub session_type: DisclosureSessionType,
     }
 
     impl MockMdocDisclosureSession {
-        pub fn next_fields(reader_registration: ReaderRegistration, session_type: SessionType) {
+        pub fn next_fields(reader_registration: ReaderRegistration, session_type: DisclosureSessionType) {
             NEXT_MOCK_FIELDS
                 .lock()
                 .unwrap()
@@ -158,6 +159,20 @@ mod mock {
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
             NEXT_START_ERROR.lock().unwrap().replace(error);
+        }
+    }
+
+    impl Default for MockMdocDisclosureSession {
+        fn default() -> Self {
+            Self {
+                disclosure_uri: DisclosureUriData {
+                    reader_engagement_bytes: Vec::<u8>::default(),
+                    return_url: None,
+                    session_type: SessionType::CrossDevice,
+                },
+                reader_registration: ReaderRegistration::default(),
+                session_type: DisclosureSessionType::default(),
+            }
         }
     }
 

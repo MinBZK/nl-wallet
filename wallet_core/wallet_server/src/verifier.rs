@@ -97,8 +97,8 @@ where
                         Ok((
                             usecase,
                             PrivateKey::new(
-                                SigningKey::from_pkcs8_der(&BASE64_STANDARD.decode(&keypair.private_key)?)?,
-                                Certificate::from(BASE64_STANDARD.decode(&keypair.certificate)?),
+                                SigningKey::from_pkcs8_der(&keypair.private_key.0)?,
+                                Certificate::from(&keypair.certificate.0),
                             ),
                         ))
                     })

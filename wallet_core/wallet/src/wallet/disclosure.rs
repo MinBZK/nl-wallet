@@ -168,10 +168,12 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use mockall::predicate::*;
     use serial_test::serial;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry, examples::Examples, holder::HolderError, mock as mdoc_mock, DataElementValue,
+        basic_sa_ext::Entry, examples::Examples, holder::HolderError, mock as mdoc_mock, verifier::SessionType,
+        DataElementValue,
     };
 
     use crate::{
@@ -182,7 +184,7 @@ mod tests {
     use super::{super::tests::WalletWithMocks, *};
 
     const DISCLOSURE_URI: &str =
-        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com";
+        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
 
     #[tokio::test]
     #[serial]
@@ -225,7 +227,8 @@ mod tests {
         // with the items parsed from the disclosure URI.
         assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
-            return_url: Url::parse("https://example.com").unwrap().into(),
+            return_url: Some(Url::parse("https://example.com").unwrap()),
+            session_type: SessionType::SameDevice,
         });
 
         // Test that the returned `DisclosureProposal` contains the
