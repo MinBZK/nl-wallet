@@ -8,5 +8,6 @@ rust-version.workspace = true
 doctest = false
 
 [dependencies]
-sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid"] }
+chrono.workspace = true
+sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid", "with-chrono"] }
 uuid.workspace = true

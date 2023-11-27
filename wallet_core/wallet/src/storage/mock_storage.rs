@@ -11,6 +11,7 @@ use nl_wallet_mdoc::{
 
 use super::{
     data::{KeyedData, RegistrationData},
+    event_log::WalletEvent,
     Storage, StorageResult, StorageState,
 };
 
@@ -20,6 +21,7 @@ pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
+    pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
 }
 
@@ -37,6 +39,7 @@ impl MockStorage {
             state,
             data,
             mdocs,
+            event_log: vec![],
             has_query_error: false,
         }
     }
@@ -140,6 +143,17 @@ impl Storage for MockStorage {
             .collect();
 
         Ok(mdocs)
+    }
+
+    async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()> {
+        for event in events.into_iter() {
+            self.event_log.push(event);
+        }
+        Ok(())
+    }
+
+    async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        Ok(self.event_log.to_vec())
     }
 }
 
