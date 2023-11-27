@@ -1,10 +1,10 @@
 use chrono::Utc;
-use entity::event_log::EventType;
-use nl_wallet_mdoc::server_keys::KeysError;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
+use entity::event_log::EventType;
+use nl_wallet_mdoc::server_keys::KeysError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
 use crate::{
