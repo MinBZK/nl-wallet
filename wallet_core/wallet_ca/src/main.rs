@@ -112,7 +112,7 @@ impl Command {
                     &ca_crt,
                     &ca_key,
                     &common_name,
-                    CertificateType::ReaderAuth(Box::new(reader_registration)),
+                    CertificateType::ReaderAuth(Box::new(reader_registration).into()),
                 )?;
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())

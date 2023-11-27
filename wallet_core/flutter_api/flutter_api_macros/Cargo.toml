@@ -7,6 +7,7 @@ rust-version.workspace = true
 
 [lib]
 proc-macro = true
+doctest = false
 
 [dependencies]
 quote.workspace = true

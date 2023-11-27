@@ -73,7 +73,8 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
-                    .prefix_separator("_"),
+                    .prefix_separator("_")
+                    .list_separator("|"),
             )
             .build()?
             .try_deserialize()

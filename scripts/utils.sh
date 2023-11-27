@@ -200,6 +200,6 @@ function generate_mock_relying_party_key_pair {
     openssl x509 -in "${TARGET_DIR}/mock_relying_party/rp.crt.pem" \
         -outform der -out "${TARGET_DIR}/mock_relying_party/rp.crt.der"
 
-    openssl pkey -in "${TARGET_DIR}/mock_relying_party/rp.key.pem" -outform der \
-        -out "${TARGET_DIR}/mock_relying_party/rp.key.der"
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/mock_relying_party/rp.key.pem" -out "${TARGET_DIR}/mock_relying_party/rp.key.der" -nocrypt
 }
