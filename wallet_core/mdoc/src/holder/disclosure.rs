@@ -266,7 +266,7 @@ where
 
             // A device request without any attributes is useless, so return an error.
             if !device_request.has_attributes() {
-                return Result::Err(HolderError::NoAttributesRequested.into());
+                return Err(HolderError::NoAttributesRequested.into());
             }
 
             // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
