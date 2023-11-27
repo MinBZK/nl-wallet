@@ -99,13 +99,13 @@ fn wallet_server_settings() -> Settings {
     settings.usecases.insert(
         "example_usecase".to_owned(),
         KeyPair {
-            certificate: BASE64_STANDARD.encode(cert.as_bytes()),
-            private_key: BASE64_STANDARD.encode(
-                cert_privkey
-                    .to_pkcs8_der()
-                    .expect("could not serialize private key")
-                    .as_bytes(),
-            ),
+            certificate: cert.as_bytes().to_vec().into(),
+            private_key: cert_privkey
+                .to_pkcs8_der()
+                .expect("could not serialize private key")
+                .as_bytes()
+                .to_vec()
+                .into(),
         },
     );
 
