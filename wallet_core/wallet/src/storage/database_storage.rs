@@ -305,7 +305,7 @@ where
         Ok(events.into_iter().map(|e| e.into()).collect())
     }
 
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: String) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let events = event_log::Entity::find()
             .filter(event_log::Column::DocType.eq(doc_type))
             .order_by_asc(event_log::Column::Timestamp)
@@ -528,5 +528,18 @@ mod tests {
 
         // Fetch and verify events
         assert_eq!(storage.fetch_wallet_events().await.unwrap(), events);
+        // Fetch event by doc_type
+        assert_eq!(
+            storage.fetch_wallet_events_by_doc_type("some-doc-type").await.unwrap(),
+            events
+        );
+        // Fetching for unknown doc-type returns empty Vec
+        assert_eq!(
+            storage
+                .fetch_wallet_events_by_doc_type("unknown-doc-type")
+                .await
+                .unwrap(),
+            vec![]
+        );
     }
 }

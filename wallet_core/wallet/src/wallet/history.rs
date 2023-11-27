@@ -1,3 +1,5 @@
+use nl_wallet_mdoc::DocType;
+
 use crate::{
     errors::StorageError,
     storage::{Storage, WalletEvent},
@@ -23,7 +25,7 @@ where
         Ok(events)
     }
 
-    pub async fn get_history_for_card(&self, doc_type: String) -> Result<Vec<WalletEvent>> {
+    pub async fn get_history_for_card(&self, doc_type: &DocType) -> Result<Vec<WalletEvent>> {
         let storage = self.storage.read().await;
         let events = storage.fetch_wallet_events_by_doc_type(doc_type).await?;
         Ok(events)

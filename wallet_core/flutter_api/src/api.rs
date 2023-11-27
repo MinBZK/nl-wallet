@@ -322,10 +322,13 @@ fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     // at the moment there are no disclosure events yet, so add one here
     // TODO remove when disclosure events are implemented
-    let mut hardcoded_history = get_hardcoded_disclosure_events();
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
     let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+
+    // at the moment there are no disclosure events yet, so add one here
+    // TODO remove when disclosure events are implemented
+    let mut hardcoded_history = get_hardcoded_disclosure_events();
     history.append(&mut hardcoded_history);
     Ok(history)
 }
@@ -338,12 +341,13 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
         return Err(WalletUnlockError::NotRegistered.into());
     }
 
+    let wallet = wallet().read().await;
+    let history = wallet.get_history_for_card(&doc_type).await?;
+    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+
     // at the moment there are no disclosure events yet, so add one here
     // TODO remove when disclosure events are implemented
     let mut hardcoded_history = get_hardcoded_disclosure_events();
-    let wallet = wallet().read().await;
-    let history = wallet.get_history_for_card(doc_type).await?;
-    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
     history.append(&mut hardcoded_history);
     Ok(history)
 }

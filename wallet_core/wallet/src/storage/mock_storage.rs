@@ -156,7 +156,7 @@ impl Storage for MockStorage {
         Ok(self.event_log.to_vec())
     }
 
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: String) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let events = self
             .event_log
             .iter()

@@ -83,5 +83,5 @@ pub trait Storage {
 
     async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: String) -> StorageResult<Vec<WalletEvent>>;
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
 }
