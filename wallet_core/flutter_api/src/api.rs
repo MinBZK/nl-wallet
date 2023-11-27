@@ -11,7 +11,7 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::{Card, CardPersistence, LocalizedString},
+        card::{Card, LocalizedString},
         card::{CardAttribute, CardValue},
         config::FlutterConfiguration,
         disclosure::RequestedCard,
@@ -264,101 +264,10 @@ pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
     Ok(WalletInstructionResult::Ok)
 }
 
-#[async_runtime]
-#[flutter_api_error]
-pub async fn get_history() -> Result<Vec<WalletEvent>> {
-    Ok(vec![
-        WalletEvent::Disclosure {
-            relying_party: Organization {
-                legal_name: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Legal Name".to_owned(),
-                }],
-                display_name: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Display Name".to_owned(),
-                }],
-                description: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Description".to_owned(),
-                }],
-                image: None,
-                web_url: Some("https://example.org".to_owned()),
-                kvk: Some("1234 5678".to_owned()),
-                city: Some(vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP City".to_owned(),
-                }]),
-                country_code: Some("nl".to_owned()),
-            },
-            purpose: vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "RP Purpose".to_owned(),
-            }],
-            requested_cards: vec![RequestedCard {
-                doc_type: "com.example.pid".to_string(),
-                attributes: vec![CardAttribute {
-                    key: "sample".to_string(),
-                    labels: vec![LocalizedString {
-                        language: "en".to_string(),
-                        value: "Sample label".to_string(),
-                    }],
-                    value: CardValue::String {
-                        value: "Sample value".to_string(),
-                    },
-                }],
-            }],
-            date_time: "2023-11-06T15:19:30+0100".to_string(),
-            status: DisclosureStatus::Success,
-            request_policy: RequestPolicy {
-                data_storage_duration_in_minutes: Some(60 * 24 * 365),
-                data_shared_with_third_parties: false,
-                data_deletion_possible: false,
-                policy_url: "".to_string(),
-            },
-        },
-        WalletEvent::Issuance {
-            issuer: Organization {
-                legal_name: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Legal Name".to_owned(),
-                }],
-                display_name: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Display Name".to_owned(),
-                }],
-                description: vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP Description".to_owned(),
-                }],
-                image: None,
-                web_url: Some("https://example.org".to_owned()),
-                kvk: Some("1234 5678".to_owned()),
-                city: Some(vec![LocalizedString {
-                    language: "nl".to_owned(),
-                    value: "RP City".to_owned(),
-                }]),
-                country_code: Some("nl".to_owned()),
-            },
-            date_time: "2023-11-06T14:19:30+0100".to_string(),
-            card: Card {
-                persistence: CardPersistence::InMemory,
-                doc_type: "com.example.pid".to_string(),
-                attributes: vec![],
-            },
-        },
-    ])
-}
-
-#[async_runtime]
-#[flutter_api_error]
-pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
-    if doc_type.is_empty() {
-        // Return a placeholder error until get_history_for_card is implemented.
-        return Err(WalletUnlockError::NotRegistered.into());
-    }
-    Ok(vec![WalletEvent::Issuance {
-        issuer: Organization {
+// TODO remove when events for disclosure are sent
+fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
+    vec![WalletEvent::Disclosure {
+        relying_party: Organization {
             legal_name: vec![LocalizedString {
                 language: "nl".to_owned(),
                 value: "RP Legal Name".to_owned(),
@@ -380,13 +289,63 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
             }]),
             country_code: Some("nl".to_owned()),
         },
-        date_time: "2023-11-06T14:19:30+0100".to_string(),
-        card: Card {
-            persistence: CardPersistence::InMemory,
-            doc_type,
-            attributes: vec![],
+        purpose: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP Purpose".to_owned(),
+        }],
+        requested_cards: vec![RequestedCard {
+            doc_type: "com.example.pid".to_string(),
+            attributes: vec![CardAttribute {
+                key: "sample".to_string(),
+                labels: vec![LocalizedString {
+                    language: "en".to_string(),
+                    value: "Sample label".to_string(),
+                }],
+                value: CardValue::String {
+                    value: "Sample value".to_string(),
+                },
+            }],
+        }],
+        date_time: "2023-11-06T15:19:30+0100".to_string(),
+        status: DisclosureStatus::Success,
+        request_policy: RequestPolicy {
+            data_storage_duration_in_minutes: Some(60 * 24 * 365),
+            data_shared_with_third_parties: false,
+            data_deletion_possible: false,
+            policy_url: "".to_string(),
         },
-    }])
+    }]
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn get_history() -> Result<Vec<WalletEvent>> {
+    // at the moment there are no disclosure events yet, so add one here
+    // TODO remove when disclosure events are implemented
+    let mut hardcoded_history = get_hardcoded_disclosure_events();
+    let wallet = wallet().read().await;
+    let history = wallet.get_history().await?;
+    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+    history.append(&mut hardcoded_history);
+    Ok(history)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
+    if doc_type.is_empty() {
+        // Return a placeholder error until get_history_for_card is implemented.
+        return Err(WalletUnlockError::NotRegistered.into());
+    }
+
+    // at the moment there are no disclosure events yet, so add one here
+    // TODO remove when disclosure events are implemented
+    let mut hardcoded_history = get_hardcoded_disclosure_events();
+    let wallet = wallet().read().await;
+    let history = wallet.get_history_for_card(doc_type).await?;
+    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+    history.append(&mut hardcoded_history);
+    Ok(history)
 }
 
 #[async_runtime]

@@ -21,6 +21,7 @@ pub use crate::{
         ProposedDisclosureDocument,
     },
     pin::validation::validate_pin,
+    storage::{EventType, Status as EventStatus, WalletEvent},
     wallet::{DisclosureProposal, UriType, Wallet},
 };
 
@@ -29,6 +30,9 @@ pub mod mdoc {
         DeletionPolicy, Image, ImageType, LocalizedStrings, Organization, ReaderRegistration, RetentionPolicy,
         SharingPolicy,
     };
+}
+pub mod x509 {
+    pub use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError, CertificateType};
 }
 
 pub use wallet_common::config::wallet_config::WalletConfiguration;
