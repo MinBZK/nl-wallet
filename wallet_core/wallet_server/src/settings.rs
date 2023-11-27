@@ -4,6 +4,8 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use url::Url;
 
+use wallet_common::account::serialization::Base64Bytes;
+
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     // used by the wallet
@@ -28,8 +30,8 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct KeyPair {
-    pub certificate: String,
-    pub private_key: String,
+    pub certificate: Base64Bytes,
+    pub private_key: Base64Bytes,
 }
 
 impl Settings {
