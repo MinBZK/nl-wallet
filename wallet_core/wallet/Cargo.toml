@@ -37,6 +37,7 @@ sea-orm = { workspace = true, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
