@@ -6,13 +6,16 @@ use tracing::{info, instrument};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    holder::{HolderError, Mdoc, MdocDataSource},
+    holder::{Mdoc, MdocDataSource},
     utils::reader_auth::ReaderRegistration,
 };
 
 use crate::{
     config::ConfigurationRepository,
-    disclosure::{DisclosureUriData, DisclosureUriError, MdocDisclosureSession},
+    disclosure::{
+        DisclosureUriData, DisclosureUriError, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
+        MdocDisclosureSession, MdocDisclosureSessionState,
+    },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     storage::{Storage, StorageError},
 };
@@ -36,7 +39,7 @@ pub enum DisclosureError {
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[from] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
-    DisclosureSession(#[source] nl_wallet_mdoc::Error),
+    DisclosureSession(#[from] nl_wallet_mdoc::Error),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
@@ -44,29 +47,6 @@ pub enum DisclosureError {
     },
     #[error("could not interpret (missing) mdoc attributes: {0}")]
     MdocAttributes(#[from] DocumentMdocError),
-}
-
-// Promote an `AttributesNotAvailable` error to a top-level error.
-impl From<nl_wallet_mdoc::Error> for DisclosureError {
-    fn from(value: nl_wallet_mdoc::Error) -> Self {
-        match value {
-            nl_wallet_mdoc::Error::Holder(HolderError::AttributesNotAvailable {
-                reader_registration,
-                missing_attributes,
-            }) => {
-                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
-                // If this fails, return `DisclosureError::AttributeMdoc` instead.
-                match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
-                    Ok(attributes) => DisclosureError::AttributesNotAvailable {
-                        reader_registration,
-                        missing_attributes: attributes,
-                    },
-                    Err(error) => error.into(),
-                }
-            }
-            error => DisclosureError::DisclosureSession(error),
-        }
-    }
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -102,8 +82,26 @@ where
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
 
+        let proposal_session = match session.session_state() {
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
+                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
+                // If this fails, return `DisclosureError::AttributeMdoc` instead.
+                let missing_attributes = missing_attr_session.missing_attributes().to_vec();
+                let error = match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
+                    Ok(attributes) => DisclosureError::AttributesNotAvailable {
+                        reader_registration: session.reader_registration().clone().into(),
+                        missing_attributes: attributes,
+                    },
+                    Err(error) => error.into(),
+                };
+
+                return Err(error);
+            }
+            MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
+        };
+
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
-        let documents = session
+        let documents = proposal_session
             .proposed_attributes()
             .into_iter()
             .map(|(doc_type, attributes)| ProposedDisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
@@ -120,6 +118,8 @@ where
 
         Ok(proposal)
     }
+
+    // TODO: Implement termination and disclosure methods.
 }
 
 #[async_trait]
@@ -171,11 +171,17 @@ mod tests {
     use mockall::predicate::*;
     use serial_test::serial;
 
-    use super::{super::tests::WalletWithMocks, *};
-    use crate::{disclosure::MockMdocDisclosureSession, Attribute, AttributeValue};
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry, examples::Examples, mock as mdoc_mock, verifier::SessionType, DataElementValue,
+        basic_sa_ext::Entry, examples::Examples, holder::HolderError, mock as mdoc_mock, verifier::SessionType,
+        DataElementValue,
     };
+
+    use crate::{
+        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
+        Attribute, AttributeValue,
+    };
+
+    use super::{super::tests::WalletWithMocks, *};
 
     const DISCLOSURE_URI: &str =
         "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
@@ -201,10 +207,14 @@ mod tests {
                 }],
             )]),
         )]);
+        let mut proposal_session = MockMdocDisclosureProposal::default();
+        proposal_session
+            .expect_proposed_attributes()
+            .return_const(proposed_attributes);
 
-        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
+        MockMdocDisclosureSession::next_fields(
             reader_registration,
-            proposed_attributes,
+            MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
         // Starting disclosure should not fail.
@@ -325,13 +335,16 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
-        // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(
-            HolderError::AttributesNotAvailable {
-                reader_registration: Default::default(),
-                missing_attributes: vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()],
-            }
-            .into(),
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        let missing_attributes = vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()];
+        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        missing_attr_session
+            .expect_missing_attributes()
+            .return_const(missing_attributes);
+
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -356,13 +369,16 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::registered().await;
 
-        // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(
-            HolderError::AttributesNotAvailable {
-                reader_registration: Default::default(),
-                missing_attributes: vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()],
-            }
-            .into(),
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        let missing_attributes = vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()];
+        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        missing_attr_session
+            .expect_missing_attributes()
+            .return_const(missing_attributes);
+
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
         // Starting disclosure where an attribute that is both unavailable
@@ -400,10 +416,14 @@ mod tests {
                 }],
             )]),
         )]);
+        let mut proposal_session = MockMdocDisclosureProposal::default();
+        proposal_session
+            .expect_proposed_attributes()
+            .return_const(proposed_attributes);
 
-        MockMdocDisclosureSession::next_reader_registration_and_proposed_attributes(
+        MockMdocDisclosureSession::next_fields(
             Default::default(),
-            proposed_attributes,
+            MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
         // Starting disclosure where unknown attributes are requested should result in an error.

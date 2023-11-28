@@ -39,7 +39,9 @@ pub mod wallet_deps {
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{ConfigurationRepository, LocalConfigurationRepository},
         digid::{DigidSession, HttpDigidSession},
-        disclosure::MdocDisclosureSession,
+        disclosure::{
+            MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
+        },
         pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
         storage::Storage,
     };

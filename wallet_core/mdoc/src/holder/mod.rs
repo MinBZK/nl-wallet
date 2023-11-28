@@ -4,10 +4,9 @@
 use std::error::Error;
 
 use crate::{
-    identifiers::AttributeIdentifier,
     iso::*,
     utils::{
-        reader_auth::{self, ReaderRegistration},
+        reader_auth,
         x509::{Certificate, CertificateError},
     },
 };
@@ -57,9 +56,4 @@ pub enum HolderError {
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
     MultipleCandidates(Vec<DocType>),
-    #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
-    AttributesNotAvailable {
-        reader_registration: Box<ReaderRegistration>,
-        missing_attributes: Vec<AttributeIdentifier>,
-    },
 }
