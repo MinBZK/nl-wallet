@@ -19,11 +19,17 @@ function is_macos() {
 }
 
 function detect_softhsm() {
-  if is_macos; then
-    find "${HOMEBREW_CELLAR}"/softhsm -name "libsofthsm2.so" | head -n 1
-  else
-    find "/usr/lib/" -name "libsofthsm2.so" | head -n 1
-  fi
+  # shellcheck disable=SC2206
+  local locations=("/usr/local/lib" $NIX_PROFILES "/usr/lib" "${HOMEBREW_PREFIX}/lib")
+
+  for location in "${locations[@]}"; do
+      local library_path
+      library_path=$(find -L "$location" -name "libsofthsm2.so" | head -n 1)
+      if [ -n "$library_path" ]; then
+          echo "$library_path"
+          return
+      fi
+  done
 }
 
 function check_openssl() {
