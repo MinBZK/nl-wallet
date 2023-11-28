@@ -517,8 +517,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_locked() {
-        // Prepare a registered and locked wallet.
+        // Prepare a registered and locked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
         wallet.lock();
 
@@ -529,6 +531,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
+        assert!(wallet.disclosure_session.is_some());
     }
 
     #[tokio::test]
@@ -543,6 +546,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -558,6 +562,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
