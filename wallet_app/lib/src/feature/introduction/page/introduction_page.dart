@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/bullet_list.dart';
+import '../../common/widget/utility/limit_font_scaling.dart';
 
 const _kCoverHeaderImageDesiredHeight = 250.0;
 
@@ -134,11 +135,13 @@ class IntroductionPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: context.textTheme.displayLarge,
-            textAlign: TextAlign.start,
-            textScaleFactor: 1,
+          LimitFontScaling(
+            maxScaleFactor: 1.0,
+            child: Text(
+              title,
+              style: context.textTheme.displayLarge,
+              textAlign: TextAlign.start,
+            ),
           ),
           SizedBox(height: subtitle == null ? 0 : 8),
           if (subtitle != null)

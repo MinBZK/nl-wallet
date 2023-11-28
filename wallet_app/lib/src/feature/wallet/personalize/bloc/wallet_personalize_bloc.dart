@@ -39,8 +39,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeOfferingAccepted>(_onOfferingVerified);
     on<WalletPersonalizeOfferingRejected>(_onOfferingRejected);
     on<WalletPersonalizePinConfirmed>(_onPinConfirmed);
-    on<WalletPersonalizeOnBackPressed>(_onBackPressed);
-    on<WalletPersonalizeOnRetryClicked>(_onRetryClicked);
+    on<WalletPersonalizeBackPressed>(_onBackPressed);
+    on<WalletPersonalizeRetryPressed>(_onRetryPressed);
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
 
     if (pidIssuanceUri != null) {
@@ -112,7 +112,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onRetryClicked(event, emit) async => emit(const WalletPersonalizeInitial());
+  void _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
 
   void _onAuthInProgress(event, emit) async => emit(const WalletPersonalizeAuthenticating());
 
@@ -120,9 +120,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {
-        emit(
-          WalletPersonalizeCheckData(didGoBack: true, availableAttributes: state.attributes),
-        );
+        emit(WalletPersonalizeCheckData(didGoBack: true, availableAttributes: state.attributes));
       }
     }
   }

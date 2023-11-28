@@ -84,7 +84,7 @@ class PinKeyboard extends StatelessWidget {
   }
 
   double _maxKeyboardHeight(BuildContext context) {
-    final mq = MediaQuery.of(context);
+    final mq = context.mediaQuery;
     if (mq.orientation == Orientation.portrait) {
       return min(_maxHeight, mq.size.height * _maxHeightAsFractionOfScreen);
     } else {

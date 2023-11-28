@@ -62,7 +62,7 @@ class HomeScreen extends StatelessWidget {
       BottomNavigationBarItem(icon: const Icon(Icons.menu), label: context.l10n.homeScreenBottomNavBarMenuCta),
     ];
 
-    final indicatorWidth = MediaQuery.of(context).size.width / items.length;
+    final indicatorWidth = context.mediaQuery.size.width / items.length;
     const indicatorHeight = 2.0;
     const dividerHeight = 1.0;
 
