@@ -4,7 +4,6 @@ use tokio::sync::{OnceCell, RwLock};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::errors::WalletUnlockError;
 use wallet::{self, errors::WalletInitError, Wallet};
 
 use crate::{
@@ -320,8 +319,6 @@ fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
-    // at the moment there are no disclosure events yet, so add one here
-    // TODO remove when disclosure events are implemented
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
     let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
@@ -336,11 +333,6 @@ pub async fn get_history() -> Result<Vec<WalletEvent>> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
-    if doc_type.is_empty() {
-        // Return a placeholder error until get_history_for_card is implemented.
-        return Err(WalletUnlockError::NotRegistered.into());
-    }
-
     let wallet = wallet().read().await;
     let history = wallet.get_history_for_card(&doc_type).await?;
     let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
