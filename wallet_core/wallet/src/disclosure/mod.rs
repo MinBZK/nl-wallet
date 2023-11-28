@@ -121,7 +121,10 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use std::sync::Mutex;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    };
 
     use nl_wallet_mdoc::verifier::SessionType;
     use once_cell::sync::Lazy;
@@ -146,6 +149,7 @@ mod mock {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
+        pub was_terminated: Arc<AtomicBool>,
     }
 
     impl MockMdocDisclosureSession {
@@ -171,6 +175,7 @@ mod mock {
                 },
                 reader_registration: ReaderRegistration::default(),
                 session_state: SessionState::default(),
+                was_terminated: Default::default(),
             }
         }
     }
@@ -195,6 +200,7 @@ mod mock {
                 disclosure_uri,
                 reader_registration,
                 session_state,
+                was_terminated: Default::default(),
             };
 
             Ok(session)
@@ -214,6 +220,8 @@ mod mock {
         }
 
         async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
+            self.was_terminated.store(true, Ordering::Relaxed);
+
             Ok(())
         }
     }

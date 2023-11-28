@@ -119,7 +119,28 @@ where
         Ok(proposal)
     }
 
-    // TODO: Implement termination and disclosure methods.
+    pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
+        info!("Cancelling disclosure");
+
+        info!("Checking if registered");
+        if self.registration.is_none() {
+            return Err(DisclosureError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        info!("Checking if a disclosure session is present");
+        let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
+
+        session.terminate().await?;
+
+        Ok(())
+    }
+
+    // TODO: Implement disclosure method.
 }
 
 #[async_trait]
@@ -167,6 +188,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{atomic::Ordering, Arc};
+
     use assert_matches::assert_matches;
     use mockall::predicate::*;
     use serial_test::serial;
@@ -441,6 +464,73 @@ mod tests {
                 value: Some(DataElementValue::Text(value)),
             }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foo" && value == "bar"
         );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_cancel_disclosure() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Create a `MockMdocDisclosureSession` and store it on the `Wallet`.
+        // Save and check its `was_terminated` value.
+        let disclosure_session = MockMdocDisclosureSession::default();
+        let was_terminated = Arc::clone(&disclosure_session.was_terminated);
+
+        assert!(!was_terminated.load(Ordering::Relaxed));
+
+        // Cancelling disclosure should result in a `Wallet` without a disclosure
+        // session, while the session that was there should be terminated.
+        wallet.disclosure_session = disclosure_session.into();
+        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        assert!(wallet.disclosure_session.is_none());
+        assert!(was_terminated.load(Ordering::Relaxed));
+    }
+
+    #[tokio::test]
+    async fn test_wallet_cancel_disclosure_error_locked() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        wallet.lock();
+
+        // Cancelling disclosure on a locked wallet should result in an error.
+        let error = wallet
+            .cancel_disclosure()
+            .await
+            .expect_err("Cancelling disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::Locked);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_cancel_disclosure_error_unregistered() {
+        // Prepare an unregistered wallet.
+        let mut wallet = WalletWithMocks::default();
+
+        // Cancelling disclosure on an unregistered wallet should result in an error.
+        let error = wallet
+            .cancel_disclosure()
+            .await
+            .expect_err("Cancelling disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::NotRegistered);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_cancel_disclosure_error_session_state() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::registered().await;
+
+        // Cancelling disclosure on a wallet without an active
+        // disclosure session should result in an error.
+        let error = wallet
+            .cancel_disclosure()
+            .await
+            .expect_err("Cancelling disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::SessionState);
     }
 
     #[tokio::test]
