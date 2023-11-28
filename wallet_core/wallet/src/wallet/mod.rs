@@ -27,6 +27,7 @@ use crate::{
 
 pub use self::{
     disclosure::{DisclosureError, DisclosureProposal},
+    history::HistoryError,
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::WalletUnlockError,
