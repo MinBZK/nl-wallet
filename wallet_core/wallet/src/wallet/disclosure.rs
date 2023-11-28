@@ -86,12 +86,28 @@ where
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
                 // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
                 // If this fails, return `DisclosureError::AttributeMdoc` instead.
+                info!(
+                    "At least one attribute is missing in order to satisfy the disclosure request, \
+                    attempting to translate to MissingDisclosureAttributes"
+                );
+
                 let missing_attributes = missing_attr_session.missing_attributes().to_vec();
                 let error = match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
-                    Ok(attributes) => DisclosureError::AttributesNotAvailable {
-                        reader_registration: session.reader_registration().clone().into(),
-                        missing_attributes: attributes,
-                    },
+                    Ok(attributes) => {
+                        // If the missing attributes can be translated and shown to the user,
+                        // store the session so that it will only be terminated on user interaction.
+                        // This prevents gleaning of missing attributes by a verifier.
+                        let reader_registration = session.reader_registration().clone().into();
+                        self.disclosure_session.replace(session);
+
+                        DisclosureError::AttributesNotAvailable {
+                            reader_registration,
+                            missing_attributes: attributes,
+                        }
+                    }
+                    // TODO: What to do when the missing attributes could not be translated?
+                    //       In that case there is no way we can terminate the session with
+                    //       user interaction, since the missing attributes cannot be presented.
                     Err(error) => error.into(),
                 };
 
@@ -99,6 +115,8 @@ where
             }
             MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
         };
+
+        info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = proposal_session
@@ -288,6 +306,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -302,6 +321,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
+        assert!(wallet.digid_session.is_none());
     }
 
     #[tokio::test]
@@ -318,6 +338,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
+        assert!(wallet.digid_session.is_none());
     }
 
     #[tokio::test]
@@ -332,6 +353,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::DisclosureUri(_));
+        assert!(wallet.digid_session.is_none());
     }
 
     #[tokio::test]
@@ -350,6 +372,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -371,6 +394,7 @@ mod tests {
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
+        // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let error = wallet
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
             .await
@@ -384,6 +408,7 @@ mod tests {
             } if missing_attributes[0].doc_type == "com.example.pid" &&
                  *missing_attributes[0].attributes.first().unwrap().0 == "age_over_18"
         );
+        assert!(wallet.disclosure_session.is_some());
     }
 
     #[tokio::test]
@@ -420,6 +445,7 @@ mod tests {
                 value: None,
             }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foobar"
         );
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -464,6 +490,7 @@ mod tests {
                 value: Some(DataElementValue::Text(value)),
             }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foo" && value == "bar"
         );
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
