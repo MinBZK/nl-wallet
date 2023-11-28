@@ -23,7 +23,7 @@ class QrScanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = context.mediaQuery.size.width;
     return BlocListener<QrScanBloc, QrScanState>(
       listenWhen: (prev, current) => current is QrScanSuccess,
       listener: (context, state) {

@@ -19,7 +19,7 @@ class ShowDetailsCta extends StatelessWidget {
           Icon(
             Icons.arrow_forward,
             color: context.textTheme.labelLarge?.color,
-            size: 16 * MediaQuery.of(context).textScaleFactor,
+            size: context.textScaler.scale(16),
           ),
         ],
       ),

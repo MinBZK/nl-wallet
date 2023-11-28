@@ -12,12 +12,12 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const MediaQuery(
-            data: MediaQueryData(textScaleFactor: 3.0),
+            data: MediaQueryData(textScaler: TextScaler.linear(3.0)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Not limited (3.0)'),
-                LimitFontScaling(maxTextScaleFactor: 1.0, child: Text('Limited (1.0)')),
+                LimitFontScaling(maxScaleFactor: 1.0, child: Text('Limited (1.0)')),
               ],
             ),
           ),

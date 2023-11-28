@@ -49,15 +49,18 @@ class DisclosureScreen extends StatelessWidget {
         leading: _buildBackButton(context),
         actions: [_buildCloseButton(context)],
       ),
-      body: WillPopScope(
-        onWillPop: () async {
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            return;
+          }
           final bloc = context.read<DisclosureBloc>();
           if (bloc.state.canGoBack) {
             bloc.add(const DisclosureBackPressed());
           } else {
             _stopDisclosure(context);
           }
-          return false;
         },
         child: Column(
           children: [

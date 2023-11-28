@@ -151,7 +151,7 @@ class DigidPinPage extends StatelessWidget {
   }
 
   Widget _buildPinField(BuildContext context, bool selected, bool filled) {
-    final maxWidth = (MediaQuery.of(context).size.width - 32) / _kDigidPinCount;
+    final maxWidth = (context.mediaQuery.size.width - 32) / _kDigidPinCount;
     return AnimatedContainer(
       duration: kDefaultAnimationDuration,
       height: min(60, maxWidth),

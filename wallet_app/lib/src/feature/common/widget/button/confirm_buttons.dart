@@ -189,7 +189,7 @@ class ConfirmButtons extends StatelessWidget {
   }
 
   bool _isExceedingMaxWidth(BuildContext context, ConfirmButtonType type, bool hasIcon, String text) {
-    final double screenWidth = MediaQuery.of(context).size.width.roundToDouble();
+    final double screenWidth = context.mediaQuery.size.width.roundToDouble();
     final double buttonWidth = (screenWidth - (_kHorizontalPadding * 2) - _kButtonSpacing) / 2;
     final double buttonContentWidth = buttonWidth - (_kButtonTextHorizontalPadding * 2);
     final double buttonTextMaxWidth = buttonContentWidth - (hasIcon ? _kButtonIconHorizontalSpace : 0);
@@ -206,7 +206,7 @@ class ConfirmButtons extends StatelessWidget {
       text: textSpan,
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
-      textScaleFactor: MediaQuery.of(context).textScaleFactor,
+      textScaler: context.textScaler,
     );
 
     painter.layout(maxWidth: buttonTextMaxWidth);

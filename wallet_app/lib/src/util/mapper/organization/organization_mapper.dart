@@ -1,5 +1,5 @@
-import 'package:wallet_core/core.dart' hide Organization;
 import 'package:wallet_core/core.dart' as core show Organization;
+import 'package:wallet_core/core.dart' hide Organization;
 
 import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/app_image_data.dart';
