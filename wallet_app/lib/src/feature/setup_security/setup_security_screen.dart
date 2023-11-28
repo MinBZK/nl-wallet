@@ -34,11 +34,10 @@ class SetupSecurityScreen extends StatelessWidget {
           _buildAboutAction(context),
         ],
       ),
-      body: WillPopScope(
-        onWillPop: () async {
-          final bloc = context.read<SetupSecurityBloc>();
-          if (bloc.state.canGoBack) bloc.add(SetupSecurityBackPressed());
-          return !bloc.state.canGoBack;
+      body: PopScope(
+        canPop: !context.bloc.state.canGoBack,
+        onPopInvoked: (didPop) {
+          if (!didPop) context.bloc.add(SetupSecurityBackPressed());
         },
         child: Column(
           children: [
@@ -86,7 +85,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
-    if (!MediaQuery.of(context).accessibleNavigation) return;
+    if (!context.mediaQuery.accessibleNavigation) return;
     final locale = context.l10n;
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
@@ -300,4 +299,8 @@ class SetupSecurityScreen extends StatelessWidget {
       TextDirection.ltr,
     );
   }
+}
+
+extension _SetupSecurityScreenExtension on BuildContext {
+  SetupSecurityBloc get bloc => read<SetupSecurityBloc>();
 }

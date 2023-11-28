@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../pin/widget/pin_field.dart';
@@ -44,8 +45,10 @@ class SetupSecurityPinPage extends StatelessWidget {
       children: [
         Expanded(
           child: LayoutBuilder(builder: (context, constraints) {
-            final mq = MediaQuery.of(context);
-            final fitsLogoAndText = constraints.maxHeight > (_requiredHeightToShowLogo * mq.textScaleFactor);
+            final textScaler = context.textScaler;
+            //TODO: Remove (and refactor + test) deprecated_member_use once Flutter supports non-linear font scaling
+            // ignore: deprecated_member_use
+            final fitsLogoAndText = constraints.maxHeight > (_requiredHeightToShowLogo * textScaler.textScaleFactor);
             return Column(
               children: [
                 const SizedBox(height: 48),

@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 extension BuildContextExtension on BuildContext {
+  MediaQueryData get mediaQuery => MediaQuery.of(this);
+
+  TextScaler get textScaler => mediaQuery.textScaler;
+
   /// Checks whether the device is currently rendering the app in landscape mode
   ///
   /// Test note: When running tests with the deviceBuilder this returns true! Because the canvas to place
   /// all the devices on is used to check the orientation (and it's wide).
-  bool get isLandscape => MediaQuery.of(this).orientation == Orientation.landscape;
+  bool get isLandscape => mediaQuery.orientation == Orientation.landscape;
 
   ThemeData get theme => Theme.of(this);
 
@@ -16,5 +20,5 @@ extension BuildContextExtension on BuildContext {
 
   AppLocalizations get l10n => AppLocalizations.of(this);
 
-  String get locale => AppLocalizations.of(this).localeName;
+  String get locale => l10n.localeName;
 }

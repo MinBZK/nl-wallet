@@ -54,7 +54,7 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   Widget _buildCards(BuildContext context, List<WalletCard> cards) {
-    final crossAxisCount = max(1, (MediaQuery.of(context).size.width / _kCardBreakPointWidth).floor());
+    final crossAxisCount = max(1, (context.mediaQuery.size.width / _kCardBreakPointWidth).floor());
     return MasonryGridView.count(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       crossAxisCount: crossAxisCount,

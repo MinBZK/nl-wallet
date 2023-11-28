@@ -15,11 +15,11 @@ final _timelineSectionTextHeight = timelineSectionHeaderExtent - _padding.vertic
 class TimelineSectionHeader extends SliverPersistentHeaderDelegate {
   final DateTime dateTime;
 
-  /// The current [textScaleFactor], had to be provided up front to make the widget scale
+  /// The current [textScaler], had to be provided up front to make the widget scale
   /// properly, since we don't have access to the context when resolving [minExtent].
-  final double textScaleFactor;
+  final TextScaler textScaler;
 
-  TimelineSectionHeader({required this.dateTime, this.textScaleFactor = 1.0, Key? key});
+  TimelineSectionHeader({required this.dateTime, this.textScaler = TextScaler.noScaling, Key? key});
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -45,7 +45,7 @@ class TimelineSectionHeader extends SliverPersistentHeaderDelegate {
   double get maxExtent => minExtent;
 
   @override
-  double get minExtent => timelineSectionHeaderExtent + ((textScaleFactor - 1.0) * _timelineSectionTextHeight);
+  double get minExtent => timelineSectionHeaderExtent + (textScaler.scale(_timelineSectionTextHeight));
 
   @override
   bool shouldRebuild(covariant TimelineSectionHeader oldDelegate) => oldDelegate.dateTime != dateTime;
