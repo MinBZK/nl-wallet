@@ -225,8 +225,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_already_registered() {
-        // Create a wallet that is registered, then try to register.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         let error = wallet
             .register(PIN.to_string())

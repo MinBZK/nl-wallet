@@ -162,7 +162,7 @@ impl EcdsaKey for FallibleSoftwareEcdsaKey {
 // Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
 impl WalletWithMocks {
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
-    pub async fn registered() -> Self {
+    pub async fn new_registered_and_unlocked() -> Self {
         let mut wallet = Self::default();
 
         // Generate registration data.

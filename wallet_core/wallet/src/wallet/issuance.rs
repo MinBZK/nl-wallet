@@ -293,8 +293,7 @@ mod tests {
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         assert!(wallet.digid_session.is_none());
 
@@ -320,8 +319,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_locked() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -352,8 +350,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_session_state() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an active `DigidSession`.
         wallet.digid_session = MockDigidSession::default().into();
@@ -367,8 +364,8 @@ mod tests {
 
         assert_matches!(error, PidIssuanceError::SessionState);
 
-        // Prepare another registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        // Prepare another wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` report that it has an active session.
         wallet.pid_issuer.has_session = true;
@@ -386,8 +383,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up `DigidSession` to have `start()` return an error.
         let session_start_context = MockDigidSession::start_context();
@@ -406,8 +402,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_pid_issuance() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an active `DigidSession`.
         wallet.digid_session = MockDigidSession::default().into();
@@ -423,7 +418,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -451,7 +446,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Cancelling PID issuance on a wallet with no
         // active DigiD session should result in an error.
@@ -468,7 +463,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a `DigidSession` that returns an access token.
         wallet.digid_session = {
@@ -499,7 +494,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -529,7 +524,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_session_state() {
         // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
         let error = wallet
@@ -543,7 +538,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_digid_session_finish() {
         // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a `DigidSession` that returns an error when requesting an access token.
         wallet.digid_session = {
@@ -570,7 +565,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a `DigidSession` that returns an access token.
         wallet.digid_session = {
@@ -601,7 +596,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_document() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a `DigidSession` that returns an access token.
         wallet.digid_session = {
@@ -637,7 +632,7 @@ mod tests {
     #[tokio::test]
     async fn test_reject_pid_issuance() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up the `PidIssuerClient` to report having a session
         wallet.pid_issuer.has_session = true;
@@ -652,7 +647,7 @@ mod tests {
     #[tokio::test]
     async fn test_reject_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -682,7 +677,7 @@ mod tests {
     #[tokio::test]
     async fn test_reject_pid_issuance_error_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Rejecting PID issuance on a `Wallet` that has a
         // `PidIssuerClient` with no session should return an error.
@@ -697,7 +692,7 @@ mod tests {
     #[tokio::test]
     async fn test_reject_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up the `PidIssuerClient` to report having a session, then return an error.
         wallet.pid_issuer.has_session = true;
@@ -718,7 +713,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -774,7 +769,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -804,7 +799,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
@@ -818,7 +813,7 @@ mod tests {
 
     async fn test_accept_pid_issuance_error_remote_key(key_error: RemoteEcdsaKeyError) -> PidIssuanceError {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` return a particular `RemoteEcdsaKeyError`.
         wallet.pid_issuer.has_session = true;
@@ -864,7 +859,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` return an error.
         wallet.pid_issuer.has_session = true;
@@ -883,7 +878,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_error_storage() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` report a a session
         // and have the database return an error on query.

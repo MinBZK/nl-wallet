@@ -124,8 +124,7 @@ mod tests {
     // Tests both setting and clearing the documents callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback_registered() {
-        // Prepare a registered wallet.
-        let mut wallet = Wallet::registered().await;
+        let mut wallet = Wallet::new_registered_and_unlocked().await;
 
         // The database contains a single `Mdoc`.
         let mdoc = tests::create_full_pid_mdoc().await;
@@ -168,8 +167,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_set_documents_callback_error() {
-        // Prepare a registered wallet.
-        let mut wallet = Wallet::registered().await;
+        let mut wallet = Wallet::new_registered_and_unlocked().await;
 
         // Have the database return an error on query.
         wallet.storage.get_mut().has_query_error = true;
