@@ -20,7 +20,7 @@ function is_macos() {
 
 function detect_softhsm() {
   # shellcheck disable=SC2206
-  local locations=("/usr/local/lib" ${NIX_PROFILES:-} "/usr/lib/" "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}")
+  local locations=("/usr/local/lib" ${NIX_PROFILES:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib/")
 
   for location in "${locations[@]}"; do
       local library_path
