@@ -1,31 +1,41 @@
-use std::{fmt, iter, sync::Arc};
+use std::{collections::HashSet, fmt, iter, sync::Arc};
 
+use async_trait::async_trait;
 use futures::future;
 use indexmap::IndexMap;
-use p256::ecdsa::SigningKey;
+use p256::{ecdsa::SigningKey, SecretKey};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
 use url::Url;
-
-use wallet_common::trust_anchor::DerTrustAnchor;
 use webpki::TrustAnchor;
 
+use wallet_common::trust_anchor::DerTrustAnchor;
+
 use crate::{
+    errors::{Error, Result},
     examples::Examples,
-    iso::device_retrieval::{ItemsRequest, ReaderAuthenticationBytes},
+    holder::{HttpClient, Mdoc},
+    iso::{
+        device_retrieval::{
+            DeviceRequest, DeviceRequestVersion, DocRequest, ItemsRequest, ReaderAuthenticationBytes,
+            ReaderAuthenticationKeyed,
+        },
+        disclosure::SessionData,
+        engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
+    },
     mock,
     server_keys::PrivateKey,
     utils::{
         cose::{self, MdocCose},
         crypto::{SessionKey, SessionKeyUser},
         reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace, ReaderRegistration},
-        serialization,
+        serialization::{self, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType},
     },
     verifier::SessionType,
 };
 
-use super::*;
+use super::{DisclosureSession, MdocDataSource};
 
 // Constants for testing.
 pub const RP_CA_CN: &str = "ca.rp.example.com";
@@ -181,7 +191,10 @@ where
         R: DeserializeOwned,
     {
         // Serialize the payload and give it to the sender.
-        _ = self.payload_sender.send(cbor_serialize(val).unwrap()).await;
+        _ = self
+            .payload_sender
+            .send(serialization::cbor_serialize(val).unwrap())
+            .await;
 
         Err((self.error_factory)())
     }
@@ -304,7 +317,7 @@ where
         self.reader_engagement_bytes_override
             .as_ref()
             .cloned()
-            .unwrap_or(cbor_serialize(&self.reader_engagement).unwrap())
+            .unwrap_or(serialization::cbor_serialize(&self.reader_engagement).unwrap())
     }
 
     fn trust_anchors(&self) -> Vec<TrustAnchor> {
@@ -375,7 +388,7 @@ where
         assert_eq!(url, self.session.reader_engagement.verifier_url().unwrap());
 
         // Serialize the payload and give a copy of it to the sender.
-        let payload = cbor_serialize(val).unwrap();
+        let payload = serialization::cbor_serialize(val).unwrap();
         _ = self.payload_sender.send(payload.clone()).await;
 
         // Serialize and deserialize both the request and response
@@ -386,7 +399,8 @@ where
             Err(_) => SessionData::new_termination(),
         };
 
-        let result = serialization::cbor_deserialize(cbor_serialize(&session_data).unwrap().as_slice()).unwrap();
+        let result =
+            serialization::cbor_deserialize(serialization::cbor_serialize(&session_data).unwrap().as_slice()).unwrap();
 
         Ok(result)
     }
