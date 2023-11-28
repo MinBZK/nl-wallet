@@ -167,23 +167,24 @@ pub async fn create_doc_request(
     }
 }
 
-/// An implementor of `HttpClient` that just returns errors. Messages
-/// sent through this `HttpClient` can be inspected through a `mpsc` channel.
-pub struct ErrorHttpClient<F> {
+/// An implementor of `HttpClient` that returns `SessionData` which
+/// terminates the session and possibly returns errors. Messages sent
+/// through this `HttpClient` can be inspected through a `mpsc` channel.
+pub struct TerminatingHttpClient<F> {
     pub error_factory: F,
     pub payload_sender: mpsc::Sender<Vec<u8>>,
 }
 
-impl<F> fmt::Debug for ErrorHttpClient<F> {
+impl<F> fmt::Debug for TerminatingHttpClient<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ErrorHttpClient").finish_non_exhaustive()
+        f.debug_struct("TerminatingHttpClient").finish_non_exhaustive()
     }
 }
 
 #[async_trait]
-impl<F> HttpClient for ErrorHttpClient<F>
+impl<F> HttpClient for TerminatingHttpClient<F>
 where
-    F: Fn() -> Error + Send + Sync,
+    F: Fn() -> Option<Error> + Send + Sync,
 {
     async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
     where
@@ -196,7 +197,18 @@ where
             .send(serialization::cbor_serialize(val).unwrap())
             .await;
 
-        Err((self.error_factory)())
+        if let Some(error) = (self.error_factory)() {
+            return Err(error);
+        }
+
+        let response = serialization::cbor_deserialize(
+            serialization::cbor_serialize(&SessionData::new_termination())
+                .unwrap()
+                .as_slice(),
+        )
+        .unwrap();
+
+        Ok(response)
     }
 }
 
