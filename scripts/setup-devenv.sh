@@ -70,8 +70,10 @@ if is_macos
 then
     expect_command gsed "Missing binary 'gsed', please install gnu-sed"
     GNUSED="gsed"
+    BASE64="base64"
 else
     GNUSED="sed"
+    BASE64="base64 --wrap=0"
 fi
 
 ########################################################################
@@ -146,11 +148,11 @@ generate_pid_issuer_root_ca
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
 
-PID_CA_CRT=$(< "${TARGET_DIR}/pid_issuer/ca_cert.der" base64 --wrap=0)
+PID_CA_CRT=$(< "${TARGET_DIR}/pid_issuer/ca_cert.der" ${BASE64})
 export PID_CA_CRT
-PID_ISSUER_KEY=$(< "${TARGET_DIR}/pid_issuer/issuer_key.der" base64 --wrap=0)
+PID_ISSUER_KEY=$(< "${TARGET_DIR}/pid_issuer/issuer_key.der" ${BASE64})
 export PID_ISSUER_KEY
-PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer_crt.der" base64 --wrap=0)
+PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer_crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
 render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
@@ -167,11 +169,11 @@ cd "${BASE_DIR}"
 # Generate relying party key and cert
 generate_mock_relying_party_key_pair
 
-RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" base64 --wrap=0)
+RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
-MOCK_RELYING_PARTY_KEY=$(< "${TARGET_DIR}/mock_relying_party/rp.key.der" base64 --wrap=0)
+MOCK_RELYING_PARTY_KEY=$(< "${TARGET_DIR}/mock_relying_party/rp.key.der" ${BASE64})
 export MOCK_RELYING_PARTY_KEY
-MOCK_RELYING_PARTY_CRT=$(< "${TARGET_DIR}/mock_relying_party/rp.crt.der" base64 --wrap=0)
+MOCK_RELYING_PARTY_CRT=$(< "${TARGET_DIR}/mock_relying_party/rp.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
@@ -191,13 +193,13 @@ echo -e "${SECTION}Configure wallet_provider${NC}"
 generate_wp_signing_key certificate_signing
 WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
 export WP_CERTIFICATE_SIGNING_KEY_PATH
-WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" base64 --wrap=0)
+WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
-WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" base64 --wrap=0)
+WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
 generate_wp_random_key attestation_wrapping
