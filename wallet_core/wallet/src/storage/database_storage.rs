@@ -301,14 +301,17 @@ where
     }
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
-        let events = event_log::Entity::find().all(self.database()?.connection()).await?;
+        let events = event_log::Entity::find()
+            .order_by_desc(event_log::Column::Timestamp)
+            .all(self.database()?.connection())
+            .await?;
         Ok(events.into_iter().map(|e| e.into()).collect())
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let events = event_log::Entity::find()
             .filter(event_log::Column::DocType.eq(doc_type))
-            .order_by_asc(event_log::Column::Timestamp)
+            .order_by_desc(event_log::Column::Timestamp)
             .all(self.database()?.connection())
             .await?;
         Ok(events.into_iter().map(|e| e.into()).collect())
@@ -317,7 +320,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{TimeZone, Utc};
     use tokio::fs;
 
     use entity::event_log::EventType;
@@ -327,7 +330,7 @@ mod tests {
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
 
-    use crate::storage::{data::RegistrationData, Status};
+    use crate::storage::{data::RegistrationData, EventStatus};
 
     use super::*;
 
@@ -515,25 +518,65 @@ mod tests {
 
         let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
 
-        let events = vec![WalletEvent::new(
+        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
+        let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
+
+        let disclosure_at_timestamp = WalletEvent::new(
+            EventType::Disclosure,
+            "some-doc-type".to_string(),
+            timestamp,
+            certificate.clone(),
+            EventStatus::Success,
+        );
+        let issuance_at_older_timestamp = WalletEvent::new(
+            EventType::Issuance,
+            "another-doc-type".to_string(),
+            timestamp_older,
+            certificate.clone(),
+            EventStatus::Success,
+        );
+        let issuance_at_even_older_timestamp = WalletEvent::new(
             EventType::Issuance,
             "some-doc-type".to_string(),
-            Utc::now(),
-            certificate,
-            Status::Success,
-        )];
-
-        // Insert events
+            timestamp_even_older,
+            certificate.clone(),
+            EventStatus::Success,
+        );
+        // Insert events, from older to newer
+        let events = vec![
+            issuance_at_even_older_timestamp.clone(),
+            issuance_at_older_timestamp.clone(),
+            disclosure_at_timestamp.clone(),
+        ];
         storage.log_wallet_events(events.clone()).await.unwrap();
 
-        // Fetch and verify events
-        assert_eq!(storage.fetch_wallet_events().await.unwrap(), events);
-        // Fetch event by doc_type
+        // Fetch and verify events are sorted descending by timestamp
+        assert_eq!(
+            storage.fetch_wallet_events().await.unwrap(),
+            vec![
+                disclosure_at_timestamp.clone(),
+                issuance_at_older_timestamp.clone(),
+                issuance_at_even_older_timestamp.clone()
+            ]
+        );
+        // Fetch event by some-doc-type and verify events are sorted descending by timestamp
         assert_eq!(
             storage.fetch_wallet_events_by_doc_type("some-doc-type").await.unwrap(),
-            events
+            vec![
+                disclosure_at_timestamp.clone(),
+                issuance_at_even_older_timestamp.clone()
+            ]
         );
-        // Fetching for unknown doc-type returns empty Vec
+        // Fetch event by another-doc-type
+        assert_eq!(
+            storage
+                .fetch_wallet_events_by_doc_type("another-doc-type")
+                .await
+                .unwrap(),
+            vec![issuance_at_older_timestamp]
+        );
+        // Fetching for unknown-doc-type returns empty Vec
         assert_eq!(
             storage
                 .fetch_wallet_events_by_doc_type("unknown-doc-type")

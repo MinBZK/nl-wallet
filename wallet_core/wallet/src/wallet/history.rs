@@ -1,7 +1,5 @@
 use tracing::info;
 
-use nl_wallet_mdoc::DocType;
-
 use crate::{
     errors::StorageError,
     storage::{Storage, WalletEvent},
@@ -44,7 +42,7 @@ where
         Ok(events)
     }
 
-    pub async fn get_history_for_card(&self, doc_type: &DocType) -> Result<Vec<WalletEvent>> {
+    pub async fn get_history_for_card(&self, doc_type: &str) -> Result<Vec<WalletEvent>> {
         info!("Retrieving Card history");
 
         info!("Checking if registered");
@@ -86,7 +84,7 @@ mod tests {
         assert_matches!(error, HistoryError::NotRegistered);
 
         let error = wallet
-            .get_history_for_card(&"some-doc-type".to_owned())
+            .get_history_for_card("some-doc-type")
             .await
             .expect_err("Expect error when Wallet is not registered");
         assert_matches!(error, HistoryError::NotRegistered);
@@ -105,7 +103,7 @@ mod tests {
         assert_matches!(error, HistoryError::Locked);
 
         let error = wallet
-            .get_history_for_card(&"some-doc-type".to_owned())
+            .get_history_for_card("some-doc-type")
             .await
             .expect_err("Expect error when Wallet is locked");
         assert_matches!(error, HistoryError::Locked);

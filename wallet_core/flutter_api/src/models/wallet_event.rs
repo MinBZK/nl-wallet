@@ -3,8 +3,10 @@ use wallet::{
     EventStatus,
 };
 
-use crate::models::card::{Card, CardAttribute, CardPersistence, CardValue, LocalizedString};
-use crate::models::disclosure::{Organization, RPLocalizedStrings, RequestPolicy, RequestedCard};
+use crate::models::{
+    card::{Card, CardAttribute, CardPersistence, CardValue, LocalizedString},
+    disclosure::{Organization, RPLocalizedStrings, RequestPolicy, RequestedCard},
+};
 
 pub enum WalletEvent {
     Disclosure {
@@ -40,42 +42,79 @@ impl From<EventStatus> for DisclosureStatus {
     }
 }
 
+/// Hardcoded organization info for PID Issuer.
+fn pid_issuer_organization() -> Organization {
+    Organization {
+        legal_name: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RvIG".to_owned(),
+        }],
+        display_name: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "Rijksdienst voor Identiteitsgegevens".to_owned(),
+        }],
+        description: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "Opvragen van PID (Person Identification Data)".to_owned(),
+        }],
+        image: None,
+        web_url: Some("https://www.rvig.nl".to_owned()),
+        kvk: Some(" 27373207".to_owned()),
+        city: Some(vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "Bilthoven".to_owned(),
+        }]),
+        country_code: Some("nl".to_owned()),
+    }
+}
+
+/// Mock issuer
+// TODO remove when issuer organization if can be retrieved from event_log
+fn mock_issuer_organization() -> Organization {
+    Organization {
+        legal_name: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP Legal Name".to_owned(),
+        }],
+        display_name: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP Display Name".to_owned(),
+        }],
+        description: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP Description".to_owned(),
+        }],
+        image: None,
+        web_url: Some("https://example.org".to_owned()),
+        kvk: Some("1234 5678".to_owned()),
+        city: Some(vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP City".to_owned(),
+        }]),
+        country_code: Some("nl".to_owned()),
+    }
+}
+
 impl TryFrom<wallet::WalletEvent> for WalletEvent {
     type Error = CertificateError;
     fn try_from(source: wallet::WalletEvent) -> Result<Self, Self::Error> {
-        match source.event_type {
-            wallet::EventType::Issuance => Ok(WalletEvent::Issuance {
+        let result = match source.event_type {
+            wallet::EventType::Issuance => WalletEvent::Issuance {
                 date_time: source.timestamp.to_rfc3339(),
-                // issuer: Organization::from(reader_registration.organization),
-                issuer: Organization {
-                    legal_name: vec![LocalizedString {
-                        language: "nl".to_owned(),
-                        value: "RP Legal Name".to_owned(),
-                    }],
-                    display_name: vec![LocalizedString {
-                        language: "nl".to_owned(),
-                        value: "RP Display Name".to_owned(),
-                    }],
-                    description: vec![LocalizedString {
-                        language: "nl".to_owned(),
-                        value: "RP Description".to_owned(),
-                    }],
-                    image: None,
-                    web_url: Some("https://example.org".to_owned()),
-                    kvk: Some("1234 5678".to_owned()),
-                    city: Some(vec![LocalizedString {
-                        language: "nl".to_owned(),
-                        value: "RP City".to_owned(),
-                    }]),
-                    country_code: Some("nl".to_owned()),
+                // TODO How to properly detect PID issuer
+                issuer: if "com.example.pid" == &source.doc_type {
+                    pid_issuer_organization()
+                } else {
+                    // TODO How to retrieve organization information for issuance
+                    mock_issuer_organization()
                 },
-
+                // TODO extract from WalletEvent after event_log table stores mdoc
                 card: Card {
                     persistence: CardPersistence::InMemory,
                     doc_type: "com.example.pid".to_string(),
                     attributes: vec![],
                 },
-            }),
+            },
             wallet::EventType::Disclosure => {
                 let certificate_type = CertificateType::from_certificate(&source.remote_party_certificate)?;
                 let reader_registration = match certificate_type {
@@ -83,11 +122,12 @@ impl TryFrom<wallet::WalletEvent> for WalletEvent {
                     _ => None,
                 }
                 .unwrap();
-                Ok(WalletEvent::Disclosure {
+                WalletEvent::Disclosure {
                     date_time: source.timestamp.to_rfc3339(),
                     request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
+                    // TODO extract from WalletEvent after event_log table stores mdoc
                     requested_cards: vec![RequestedCard {
                         doc_type: "com.example.pid".to_string(),
                         attributes: vec![CardAttribute {
@@ -102,8 +142,9 @@ impl TryFrom<wallet::WalletEvent> for WalletEvent {
                         }],
                     }],
                     status: source.status.into(),
-                })
+                }
             }
-        }
+        };
+        Ok(result)
     }
 }

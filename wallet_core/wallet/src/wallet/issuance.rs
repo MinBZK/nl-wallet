@@ -14,7 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{Status, Storage, StorageError, WalletEvent},
+    storage::{EventStatus, Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -251,7 +251,7 @@ where
                     mdoc.doc_type.to_owned(),
                     Utc::now(),
                     mdoc.issuer_certificate().unwrap(), // This should never fail
-                    Status::Success,
+                    EventStatus::Success,
                 )
             })
             .collect::<Vec<_>>();
@@ -749,7 +749,7 @@ mod tests {
                 doc_type,
                 timestamp: _,
                 remote_party_certificate: _,
-                status: Status::Success,
+                status: EventStatus::Success,
             } if doc_type == "com.example.pid");
 
         // Test which `Document` instances we have received through the callback.

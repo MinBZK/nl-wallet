@@ -21,7 +21,7 @@ pub use crate::{
         ProposedDisclosureDocument,
     },
     pin::validation::validate_pin,
-    storage::{EventType, Status as EventStatus, WalletEvent},
+    storage::{EventStatus, EventType, WalletEvent},
     wallet::{DisclosureProposal, UriType, Wallet},
 };
 

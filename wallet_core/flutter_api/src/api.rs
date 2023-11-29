@@ -4,7 +4,7 @@ use tokio::sync::{OnceCell, RwLock};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
-use wallet::{self, errors::WalletInitError, Wallet};
+use wallet::{self, errors::WalletInitError, x509::CertificateError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -321,7 +321,10 @@ fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+    let mut history = history
+        .into_iter()
+        .map(WalletEvent::try_from)
+        .collect::<Result<Vec<_>, CertificateError>>()?;
 
     // at the moment there are no disclosure events yet, so add one here
     // TODO remove when disclosure events are implemented
@@ -335,7 +338,10 @@ pub async fn get_history() -> Result<Vec<WalletEvent>> {
 pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history_for_card(&doc_type).await?;
-    let mut history: Vec<_> = history.into_iter().map(|e| WalletEvent::try_from(e).unwrap()).collect();
+    let mut history = history
+        .into_iter()
+        .map(WalletEvent::try_from)
+        .collect::<Result<Vec<_>, CertificateError>>()?;
 
     // at the moment there are no disclosure events yet, so add one here
     // TODO remove when disclosure events are implemented
