@@ -5,7 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
-use futures::future;
+use futures::{executor, future};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, VerifyingKey};
@@ -58,8 +58,14 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, _public_key: VerifyingKey) -> Self::Key {
-        SoftwareEcdsaKey::new(&identifier.into())
+    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+        let key = SoftwareEcdsaKey::new(&identifier.into());
+
+        // If the provided public key does not match the key fetched
+        // using the identifier, this is programmer error.
+        assert_eq!(executor::block_on(key.verifying_key()).unwrap(), public_key);
+
+        key
     }
 
     async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
