@@ -227,12 +227,6 @@ class OrganizationDetailScreen extends StatelessWidget {
             text: Text(context.l10n.organizationDetailScreenKvk(organization.kvk!)),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
-        if (organization.kvk != null)
-          IconRow(
-            icon: const Icon(Icons.storefront_outlined),
-            text: Text(context.l10n.organizationDetailScreenKvk(organization.kvk!)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
         if (country != null || organization.city != null)
           IconRow(
             icon: const Icon(Icons.location_on_outlined),
@@ -255,25 +249,6 @@ class OrganizationDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
       ],
-    );
-  }
-
-  static Future<void> show(
-    BuildContext context,
-    String organizationId, {
-    VoidCallback? onReportIssuePressed,
-  }) {
-    return Navigator.push(
-      context,
-      SecuredPageRoute(
-        builder: (context) {
-          return BlocProvider<OrganizationDetailBloc>(
-            create: (BuildContext context) => OrganizationDetailBloc(context.read(), context.read())
-              ..add(OrganizationLoadTriggered(organizationId: organizationId)),
-            child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
-          );
-        },
-      ),
     );
   }
 

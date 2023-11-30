@@ -54,6 +54,18 @@ class NavigationService {
           ModalRoute.withName(WalletRoutes.homeRoute),
           arguments: request.argument,
         );
+      case IssuanceNavigationRequest():
+        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          request.destination,
+          ModalRoute.withName(WalletRoutes.homeRoute),
+          arguments: request.argument,
+        );
+      case SignNavigationRequest():
+        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          request.destination,
+          ModalRoute.withName(WalletRoutes.homeRoute),
+          arguments: request.argument,
+        );
       case GenericNavigationRequest():
         _navigatorKey.currentState?.pushNamed(
           request.destination,

@@ -14,15 +14,6 @@ abstract class WalletDataSource {
 
   Future<void> createTimelineAttribute(TimelineAttribute attribute);
 
-  /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
-  Future<List<TimelineAttribute>> readTimelineAttributes();
-
-  /// Returns all card specific [TimelineAttribute] sorted by date ASC (oldest first)
-  Future<List<TimelineAttribute>> readTimelineAttributesByCardId({required String cardId});
-
-  /// Returns single [TimelineAttribute] by [timelineAttributeId]
-  Future<TimelineAttribute> readTimelineAttributeById({required String timelineAttributeId, String? cardId});
-
   Stream<List<WalletCard>> observeCards();
 
   /// Removes all in-memory data; both [WalletCard]s and [TimelineAttribute]s

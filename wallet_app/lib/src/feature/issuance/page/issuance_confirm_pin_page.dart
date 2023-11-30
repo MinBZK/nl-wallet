@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/usecase/pin/confirm_transaction_usecase.dart';
+import '../../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/pin_header.dart';
 import '../../pin/bloc/pin_bloc.dart';
@@ -22,7 +22,7 @@ class IssuanceConfirmPinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PinBloc>(
-      create: (BuildContext context) => bloc ?? PinBloc(context.read<ConfirmTransactionUseCase>()),
+      create: (BuildContext context) => bloc ?? PinBloc(context.read<DiscloseForIssuanceUseCase>()),
       child: PinPage(
         headerBuilder: (context, attempts, isFinalAttempt) {
           final hasError = attempts != null;

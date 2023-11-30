@@ -4,16 +4,15 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/trust_provider.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
+import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
-import 'package:wallet/src/feature/sign/model/sign_flow.dart';
 import 'package:wallet/src/feature/sign/sign_screen.dart';
-import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';
@@ -26,18 +25,6 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 }
 
 void main() {
-  SignFlow mockFlow = SignFlow(
-    id: 'id',
-    organization: WalletMockData.organization,
-    attributes: [WalletMockData.textDataAttribute],
-    document: WalletMockData.document,
-    policy: WalletMockData.policy,
-    trustProvider: const TrustProvider(
-      name: 'trust provider',
-      logoUrl: WalletAssets.logo_sign_provider,
-    ),
-  );
-
   group('goldens', () {
     testGoldens('SignInitial Light', (tester) async {
       await tester.pumpDeviceBuilder(
@@ -60,7 +47,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignLoadInProgress(mockFlow),
+              const SignLoadInProgress(),
             ),
             name: 'load_in_progress',
           ),
@@ -75,7 +62,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignCheckOrganization(mockFlow),
+              SignCheckOrganization(organization: WalletMockData.organization),
             ),
             name: 'check_organization',
           ),
@@ -90,7 +77,11 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignCheckAgreement(mockFlow),
+              SignCheckAgreement(
+                organization: WalletMockData.organization,
+                trustProvider: WalletMockData.organization,
+                document: WalletMockData.document,
+              ),
             ),
             name: 'check_agreement',
           ),
@@ -103,12 +94,12 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: RepositoryProvider<ConfirmTransactionUseCase>.value(
-              value: MockConfirmTransactionUseCase(),
+            widget: RepositoryProvider<AcceptSignAgreementUseCase>.value(
+              value: MockAcceptSignAgreementUseCase(),
               child: const SignScreen()
                   .withState<SignBloc, SignState>(
                     MockSignBloc(),
-                    SignConfirmPin(mockFlow),
+                    const SignConfirmPin(),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),
@@ -128,7 +119,12 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignConfirmAgreement(mockFlow),
+              SignConfirmAgreement(
+                document: WalletMockData.document,
+                trustProvider: WalletMockData.organization,
+                policy: WalletMockData.policy,
+                requestedAttributes: [WalletMockData.textDataAttribute],
+              ),
             ),
             name: 'confirm_agreement',
           ),
@@ -143,7 +139,12 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignConfirmAgreement(mockFlow),
+              SignConfirmAgreement(
+                requestedAttributes: [WalletMockData.textDataAttribute],
+                policy: WalletMockData.policy,
+                trustProvider: WalletMockData.organization,
+                document: WalletMockData.document,
+              ),
             ),
             name: 'confirm_agreement',
           ),
@@ -158,7 +159,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignSuccess(mockFlow),
+              SignSuccess(organization: WalletMockData.organization),
             ),
             name: 'success',
           ),
@@ -173,7 +174,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignError(mockFlow),
+              const SignError(),
             ),
             name: 'sign_error',
           ),
@@ -188,7 +189,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignStopped(mockFlow),
+              const SignStopped(),
             ),
             name: 'stopped',
           ),
@@ -203,7 +204,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
-          SignSuccess(mockFlow),
+          SignSuccess(organization: WalletMockData.organization),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

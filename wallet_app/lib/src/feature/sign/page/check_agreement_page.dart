@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/document.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
+import '../../common/widget/app_image.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../model/sign_flow.dart';
 
 class CheckAgreementPage extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
-  final SignFlow flow;
+  final Organization organization;
+  final Organization trustProvider;
+  final Document document;
 
   const CheckAgreementPage({
     required this.onDecline,
     required this.onAccept,
-    required this.flow,
+    required this.organization,
+    required this.trustProvider,
+    required this.document,
     Key? key,
   }) : super(key: key);
 
@@ -32,8 +38,8 @@ class CheckAgreementPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverToBoxAdapter(
             child: DocumentSection(
-              document: flow.document,
-              organization: flow.organization,
+              document: document,
+              organization: organization,
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
             ),
           ),
@@ -106,13 +112,13 @@ class CheckAgreementPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Image.asset(flow.trustProvider.logoUrl),
+          AppImage(asset: trustProvider.logo),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               context.l10n.checkAgreementPageSignProvider(
-                flow.organization.displayName.l10nValue(context),
-                flow.trustProvider.name,
+                organization.displayName.l10nValue(context),
+                trustProvider.displayName.l10nValue(context),
               ),
               style: context.textTheme.bodyLarge,
             ),

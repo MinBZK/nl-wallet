@@ -19,7 +19,7 @@ abstract class TimelineAttribute extends Equatable {
     required this.dataAttributes,
   });
 
-  Map<String, List<DataAttribute>> get attributesByCardId => groupBy(dataAttributes, (attr) => attr.sourceCardId);
+  Map<String, List<DataAttribute>> get attributesByDocType => groupBy(dataAttributes, (attr) => attr.sourceCardDocType);
 
   @override
   List<Object?> get props => [type, dateTime, organization, dataAttributes];

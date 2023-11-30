@@ -20,7 +20,7 @@ void main() {
   late Mapper<List<LocalizedString>, LocalizedText> mockLabelMapper;
   late Mapper<CardValue, AttributeValue> mockValueMapper;
 
-  late Mapper<CardAttribute, DataAttribute> mapper;
+  late Mapper<CardAttributeWithDocType, DataAttribute> mapper;
 
   setUp(() {
     mockLabelMapper = MockMapper();
@@ -38,15 +38,15 @@ void main() {
         key: 'card.key',
         label: {'nl': 'Test'},
         value: StringValue('John Doe'),
-        sourceCardId: '',
+        sourceCardDocType: 'docType',
       );
 
-      final actual = mapper.map(_kSampleCardAttribute);
+      final actual = mapper.map(const CardAttributeWithDocType('docType', _kSampleCardAttribute));
       expect(actual, expected);
     });
 
     test('should call `map` once on all class dependencies', () {
-      mapper.map(_kSampleCardAttribute);
+      mapper.map(const CardAttributeWithDocType('docType', _kSampleCardAttribute));
 
       verify(mockLabelMapper.map(_kSampleCardAttributeLabels)).called(1);
       verify(mockValueMapper.map(_kSampleCardValue)).called(1);

@@ -951,6 +951,7 @@ mixin _$Image {
     required TResult Function(String xml) svg,
     required TResult Function(String base64) png,
     required TResult Function(String base64) jpg,
+    required TResult Function(String path) asset,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -958,6 +959,7 @@ mixin _$Image {
     TResult? Function(String xml)? svg,
     TResult? Function(String base64)? png,
     TResult? Function(String base64)? jpg,
+    TResult? Function(String path)? asset,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -965,6 +967,7 @@ mixin _$Image {
     TResult Function(String xml)? svg,
     TResult Function(String base64)? png,
     TResult Function(String base64)? jpg,
+    TResult Function(String path)? asset,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -973,6 +976,7 @@ mixin _$Image {
     required TResult Function(Image_Svg value) svg,
     required TResult Function(Image_Png value) png,
     required TResult Function(Image_Jpg value) jpg,
+    required TResult Function(Image_Asset value) asset,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -980,6 +984,7 @@ mixin _$Image {
     TResult? Function(Image_Svg value)? svg,
     TResult? Function(Image_Png value)? png,
     TResult? Function(Image_Jpg value)? jpg,
+    TResult? Function(Image_Asset value)? asset,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -987,6 +992,7 @@ mixin _$Image {
     TResult Function(Image_Svg value)? svg,
     TResult Function(Image_Png value)? png,
     TResult Function(Image_Jpg value)? jpg,
+    TResult Function(Image_Asset value)? asset,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -1070,6 +1076,7 @@ class _$Image_SvgImpl implements Image_Svg {
     required TResult Function(String xml) svg,
     required TResult Function(String base64) png,
     required TResult Function(String base64) jpg,
+    required TResult Function(String path) asset,
   }) {
     return svg(xml);
   }
@@ -1080,6 +1087,7 @@ class _$Image_SvgImpl implements Image_Svg {
     TResult? Function(String xml)? svg,
     TResult? Function(String base64)? png,
     TResult? Function(String base64)? jpg,
+    TResult? Function(String path)? asset,
   }) {
     return svg?.call(xml);
   }
@@ -1090,6 +1098,7 @@ class _$Image_SvgImpl implements Image_Svg {
     TResult Function(String xml)? svg,
     TResult Function(String base64)? png,
     TResult Function(String base64)? jpg,
+    TResult Function(String path)? asset,
     required TResult orElse(),
   }) {
     if (svg != null) {
@@ -1104,6 +1113,7 @@ class _$Image_SvgImpl implements Image_Svg {
     required TResult Function(Image_Svg value) svg,
     required TResult Function(Image_Png value) png,
     required TResult Function(Image_Jpg value) jpg,
+    required TResult Function(Image_Asset value) asset,
   }) {
     return svg(this);
   }
@@ -1114,6 +1124,7 @@ class _$Image_SvgImpl implements Image_Svg {
     TResult? Function(Image_Svg value)? svg,
     TResult? Function(Image_Png value)? png,
     TResult? Function(Image_Jpg value)? jpg,
+    TResult? Function(Image_Asset value)? asset,
   }) {
     return svg?.call(this);
   }
@@ -1124,6 +1135,7 @@ class _$Image_SvgImpl implements Image_Svg {
     TResult Function(Image_Svg value)? svg,
     TResult Function(Image_Png value)? png,
     TResult Function(Image_Jpg value)? jpg,
+    TResult Function(Image_Asset value)? asset,
     required TResult orElse(),
   }) {
     if (svg != null) {
@@ -1204,6 +1216,7 @@ class _$Image_PngImpl implements Image_Png {
     required TResult Function(String xml) svg,
     required TResult Function(String base64) png,
     required TResult Function(String base64) jpg,
+    required TResult Function(String path) asset,
   }) {
     return png(base64);
   }
@@ -1214,6 +1227,7 @@ class _$Image_PngImpl implements Image_Png {
     TResult? Function(String xml)? svg,
     TResult? Function(String base64)? png,
     TResult? Function(String base64)? jpg,
+    TResult? Function(String path)? asset,
   }) {
     return png?.call(base64);
   }
@@ -1224,6 +1238,7 @@ class _$Image_PngImpl implements Image_Png {
     TResult Function(String xml)? svg,
     TResult Function(String base64)? png,
     TResult Function(String base64)? jpg,
+    TResult Function(String path)? asset,
     required TResult orElse(),
   }) {
     if (png != null) {
@@ -1238,6 +1253,7 @@ class _$Image_PngImpl implements Image_Png {
     required TResult Function(Image_Svg value) svg,
     required TResult Function(Image_Png value) png,
     required TResult Function(Image_Jpg value) jpg,
+    required TResult Function(Image_Asset value) asset,
   }) {
     return png(this);
   }
@@ -1248,6 +1264,7 @@ class _$Image_PngImpl implements Image_Png {
     TResult? Function(Image_Svg value)? svg,
     TResult? Function(Image_Png value)? png,
     TResult? Function(Image_Jpg value)? jpg,
+    TResult? Function(Image_Asset value)? asset,
   }) {
     return png?.call(this);
   }
@@ -1258,6 +1275,7 @@ class _$Image_PngImpl implements Image_Png {
     TResult Function(Image_Svg value)? svg,
     TResult Function(Image_Png value)? png,
     TResult Function(Image_Jpg value)? jpg,
+    TResult Function(Image_Asset value)? asset,
     required TResult orElse(),
   }) {
     if (png != null) {
@@ -1338,6 +1356,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     required TResult Function(String xml) svg,
     required TResult Function(String base64) png,
     required TResult Function(String base64) jpg,
+    required TResult Function(String path) asset,
   }) {
     return jpg(base64);
   }
@@ -1348,6 +1367,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     TResult? Function(String xml)? svg,
     TResult? Function(String base64)? png,
     TResult? Function(String base64)? jpg,
+    TResult? Function(String path)? asset,
   }) {
     return jpg?.call(base64);
   }
@@ -1358,6 +1378,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     TResult Function(String xml)? svg,
     TResult Function(String base64)? png,
     TResult Function(String base64)? jpg,
+    TResult Function(String path)? asset,
     required TResult orElse(),
   }) {
     if (jpg != null) {
@@ -1372,6 +1393,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     required TResult Function(Image_Svg value) svg,
     required TResult Function(Image_Png value) png,
     required TResult Function(Image_Jpg value) jpg,
+    required TResult Function(Image_Asset value) asset,
   }) {
     return jpg(this);
   }
@@ -1382,6 +1404,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     TResult? Function(Image_Svg value)? svg,
     TResult? Function(Image_Png value)? png,
     TResult? Function(Image_Jpg value)? jpg,
+    TResult? Function(Image_Asset value)? asset,
   }) {
     return jpg?.call(this);
   }
@@ -1392,6 +1415,7 @@ class _$Image_JpgImpl implements Image_Jpg {
     TResult Function(Image_Svg value)? svg,
     TResult Function(Image_Png value)? png,
     TResult Function(Image_Jpg value)? jpg,
+    TResult Function(Image_Asset value)? asset,
     required TResult orElse(),
   }) {
     if (jpg != null) {
@@ -1407,6 +1431,147 @@ abstract class Image_Jpg implements Image {
   String get base64;
   @JsonKey(ignore: true)
   _$$Image_JpgImplCopyWith<_$Image_JpgImpl> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$Image_AssetImplCopyWith<$Res> {
+  factory _$$Image_AssetImplCopyWith(_$Image_AssetImpl value, $Res Function(_$Image_AssetImpl) then) =
+      __$$Image_AssetImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String path});
+}
+
+/// @nodoc
+class __$$Image_AssetImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Image_AssetImpl>
+    implements _$$Image_AssetImplCopyWith<$Res> {
+  __$$Image_AssetImplCopyWithImpl(_$Image_AssetImpl _value, $Res Function(_$Image_AssetImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? path = null,
+  }) {
+    return _then(_$Image_AssetImpl(
+      path: null == path
+          ? _value.path
+          : path // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$Image_AssetImpl implements Image_Asset {
+  const _$Image_AssetImpl({required this.path});
+
+  @override
+  final String path;
+
+  @override
+  String toString() {
+    return 'Image.asset(path: $path)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$Image_AssetImpl &&
+            (identical(other.path, path) || other.path == path));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, path);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$Image_AssetImplCopyWith<_$Image_AssetImpl> get copyWith =>
+      __$$Image_AssetImplCopyWithImpl<_$Image_AssetImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String xml) svg,
+    required TResult Function(String base64) png,
+    required TResult Function(String base64) jpg,
+    required TResult Function(String path) asset,
+  }) {
+    return asset(path);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String xml)? svg,
+    TResult? Function(String base64)? png,
+    TResult? Function(String base64)? jpg,
+    TResult? Function(String path)? asset,
+  }) {
+    return asset?.call(path);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String xml)? svg,
+    TResult Function(String base64)? png,
+    TResult Function(String base64)? jpg,
+    TResult Function(String path)? asset,
+    required TResult orElse(),
+  }) {
+    if (asset != null) {
+      return asset(path);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(Image_Svg value) svg,
+    required TResult Function(Image_Png value) png,
+    required TResult Function(Image_Jpg value) jpg,
+    required TResult Function(Image_Asset value) asset,
+  }) {
+    return asset(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(Image_Svg value)? svg,
+    TResult? Function(Image_Png value)? png,
+    TResult? Function(Image_Jpg value)? jpg,
+    TResult? Function(Image_Asset value)? asset,
+  }) {
+    return asset?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(Image_Svg value)? svg,
+    TResult Function(Image_Png value)? png,
+    TResult Function(Image_Jpg value)? jpg,
+    TResult Function(Image_Asset value)? asset,
+    required TResult orElse(),
+  }) {
+    if (asset != null) {
+      return asset(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class Image_Asset implements Image {
+  const factory Image_Asset({required final String path}) = _$Image_AssetImpl;
+
+  String get path;
+  @JsonKey(ignore: true)
+  _$$Image_AssetImplCopyWith<_$Image_AssetImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc

@@ -122,7 +122,7 @@ class OtherStylesTab extends StatelessWidget {
           attribute: DataAttribute.untranslated(
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
-            sourceCardId: 'id',
+            sourceCardDocType: 'id',
             key: 'mock.other',
           ),
         ),
@@ -145,24 +145,24 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'CardAttributeRow'),
         CardAttributeRow(
           entry: MapEntry(
-            WalletCard(id: 'id', front: _kSampleCardFront, attributes: const [], issuerId: ''),
+            WalletCard(id: 'id', docType: 'docType', front: _kSampleCardFront, attributes: const [], issuerId: ''),
             [
               DataAttribute.untranslated(
                 label: 'Voornaam',
                 value: const StringValue(''),
-                sourceCardId: '',
+                sourceCardDocType: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Achternaam',
                 value: const StringValue(''),
-                sourceCardId: '',
+                sourceCardDocType: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Postcode',
                 value: const StringValue(''),
-                sourceCardId: '',
+                sourceCardDocType: '',
                 key: '',
               ),
             ],
@@ -190,8 +190,10 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
-          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
-          WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          WalletCard(
+              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          WalletCard(
+              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
         ]),
       ],
     );
@@ -279,7 +281,8 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: WalletCard(id: 'id', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          card: WalletCard(
+              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
           isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

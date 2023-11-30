@@ -8,6 +8,7 @@ part of 'wallet_card.dart';
 
 WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => WalletCard(
       id: json['id'] as String,
+      docType: json['docType'] as String,
       issuerId: json['issuerId'] as String,
       front: CardFront.fromJson(json['front'] as Map<String, dynamic>),
       attributes:
@@ -17,6 +18,7 @@ WalletCard _$WalletCardFromJson(Map<String, dynamic> json) => WalletCard(
 
 Map<String, dynamic> _$WalletCardToJson(WalletCard instance) => <String, dynamic>{
       'id': instance.id,
+      'docType': instance.docType,
       'issuerId': instance.issuerId,
       'front': instance.front.toJson(),
       'attributes': instance.attributes.map((e) => e.toJson()).toList(),

@@ -16,7 +16,7 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
 
   @override
   Organization map(core.Organization input) => Organization(
-        id: 'id (missing from core)',
+        id: input.hashCode.toString(),
         legalName: _localizedStringMapper.map(input.legalName),
         displayName: _localizedStringMapper.map(input.displayName),
         description: _localizedStringMapper.map(input.description),

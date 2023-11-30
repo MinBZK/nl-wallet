@@ -1,40 +1,48 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/store/active_locale_provider.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/issuance_flow.dart';
+import '../../../domain/model/attribute/missing_attribute.dart';
+import '../../../domain/model/issuance/continue_issuance_result.dart';
+import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/multiple_cards_flow.dart';
-import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
+import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/card/log_card_interaction_usecase.dart';
 import '../../../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
-import '../../../domain/usecase/issuance/get_issuance_response_usecase.dart';
-import '../../../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
+import '../../../domain/usecase/issuance/accept_issuance_usecase.dart';
+import '../../../domain/usecase/issuance/cancel_issuance_usecase.dart';
+import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
+import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../../../util/extension/set_extension.dart';
 
 part 'issuance_event.dart';
 part 'issuance_state.dart';
 
 class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
-  final GetIssuanceResponseUseCase getIssuanceResponseUseCase;
-  final GetRequestedAttributesFromWalletUseCase getRequestedAttributesFromWalletUseCase;
-  final WalletAddIssuedCardsUseCase walletAddIssuedCardsUseCase;
-  final LogCardInteractionUseCase logCardInteractionUseCase;
-  final ActiveLocaleProvider localeProvider;
+  final StartIssuanceUseCase startIssuanceUseCase;
+  final ContinueIssuanceUseCase continueIssuanceUseCase;
+  final AcceptIssuanceUseCase acceptIssuanceUseCase;
+  final CancelIssuanceUseCase cancelIssuanceUseCase;
 
-  bool _userSharedData = false;
+  bool isRefreshFlow;
+  StartIssuanceResult? _startIssuanceResult;
+  ContinueIssuanceResult? _continueIssuanceResult;
+
+  Organization? get organization => _startIssuanceResult?.relyingParty;
 
   IssuanceBloc(
-    this.getIssuanceResponseUseCase,
-    this.walletAddIssuedCardsUseCase,
-    this.getRequestedAttributesFromWalletUseCase,
-    this.logCardInteractionUseCase,
-    this.localeProvider,
-  ) : super(const IssuanceInitial(false)) {
-    on<IssuanceLoadTriggered>(_onIssuanceLoadTriggered);
+    String issuanceUri,
+    this.isRefreshFlow,
+    this.startIssuanceUseCase,
+    this.continueIssuanceUseCase,
+    this.acceptIssuanceUseCase,
+    this.cancelIssuanceUseCase,
+  ) : super(const IssuanceInitial()) {
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
@@ -46,29 +54,70 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceCardDeclined>(_onIssuanceCardDeclined);
     on<IssuanceCardApproved>(_onIssuanceCardApproved);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
+    on<IssuanceUpdateState>((state, emit) => emit(state.state));
+
+    _initIssuance(issuanceUri);
+  }
+
+  void _initIssuance(String issuanceUri) async {
+    try {
+      _startIssuanceResult = await startIssuanceUseCase.invoke(issuanceUri);
+      if (isRefreshFlow) {
+        //FIXME: Is there a usecase where we refresh and do not have all the attributes? I.e. this cast fails?
+        final attributes = (_startIssuanceResult as StartIssuanceReadyToDisclose).requestedAttributes;
+        add(
+          IssuanceUpdateState(
+            IssuanceProofIdentity(
+              organization: _startIssuanceResult!.relyingParty,
+              policy: _startIssuanceResult!.policy,
+              requestedAttributes: attributes.values.flattened.toList(),
+              isRefreshFlow: isRefreshFlow,
+            ),
+          ),
+        );
+      } else {
+        add(IssuanceUpdateState(IssuanceCheckOrganization(organization: _startIssuanceResult!.relyingParty)));
+      }
+    } catch (ex) {
+      Fimber.e('Failed to start issuance', ex: ex);
+      add(IssuanceUpdateState(IssuanceGenericError(isRefreshFlow: isRefreshFlow)));
+    }
   }
 
   void _onIssuanceBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is IssuanceProofIdentity) {
-        emit(IssuanceCheckOrganization(state.isRefreshFlow, state.flow, afterBackPressed: true));
+        emit(IssuanceCheckOrganization(
+          organization: _startIssuanceResult!.relyingParty,
+          afterBackPressed: true,
+        ));
       }
       if (state is IssuanceProvidePin) {
-        emit(IssuanceProofIdentity(state.isRefreshFlow, state.flow, afterBackPressed: true));
+        emit(
+          IssuanceProofIdentity(
+            isRefreshFlow: isRefreshFlow,
+            afterBackPressed: true,
+            organization: _startIssuanceResult!.relyingParty,
+            policy: _startIssuanceResult!.policy,
+            requestedAttributes:
+                (_startIssuanceResult as StartIssuanceReadyToDisclose).requestedAttributes.values.flattened.toList(),
+          ),
+        );
       }
       if (state is IssuanceCheckCards && state.multipleCardsFlow.isAtFirstCard) {
-        emit(IssuanceSelectCards(
-          state.isRefreshFlow,
-          state.flow,
-          state.multipleCardsFlow,
-          didGoBack: true,
-        ));
+        emit(
+          IssuanceSelectCards(
+            isRefreshFlow: isRefreshFlow,
+            multipleCardsFlow: state.multipleCardsFlow,
+            showNoSelectionError: false,
+            didGoBack: true,
+          ),
+        );
       }
       if (state is IssuanceCheckCards && !state.multipleCardsFlow.isAtFirstCard) {
         emit(IssuanceCheckCards(
-          state.isRefreshFlow,
-          flow: state.flow,
+          isRefreshFlow: isRefreshFlow,
           multipleCardsFlow: state.multipleCardsFlow.previous(),
           didGoBack: true,
         ));
@@ -76,83 +125,78 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  void _onIssuanceLoadTriggered(IssuanceLoadTriggered event, emit) async {
-    emit(IssuanceLoadInProgress(event.isRefreshFlow));
-
-    final response = await getIssuanceResponseUseCase.invoke(event.sessionId);
-    final attributes = await getRequestedAttributesFromWalletUseCase.invoke(response.requestedAttributes);
-    final IssuanceFlow flow = IssuanceFlow(
-      organization: response.organization,
-      attributes: attributes,
-      requestPurpose: response.requestPurpose,
-      policy: response.policy,
-      cards: response.cards,
-    );
-
-    if (event.isRefreshFlow) {
-      emit(IssuanceProofIdentity(event.isRefreshFlow, flow));
-    } else {
-      emit(IssuanceCheckOrganization(event.isRefreshFlow, flow));
-    }
-  }
-
   void _onIssuanceOrganizationApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckOrganization) throw UnsupportedError('Incorrect state to $state');
-    emit(IssuanceProofIdentity(state.isRefreshFlow, state.flow));
+    final result = _startIssuanceResult;
+    if (result == null) throw UnsupportedError('Bloc in incorrect state (no data loaded)');
+    switch (result) {
+      case StartIssuanceReadyToDisclose():
+        emit(
+          IssuanceProofIdentity(
+            isRefreshFlow: false,
+            organization: _startIssuanceResult!.relyingParty,
+            policy: _startIssuanceResult!.policy,
+            requestedAttributes: result.requestedAttributes.values.flattened.toList(),
+          ),
+        );
+      case StartIssuanceMissingAttributes():
+        emit(
+          IssuanceMissingAttributes(
+            isRefreshFlow: false,
+            organization: _startIssuanceResult!.relyingParty,
+            policy: _startIssuanceResult!.policy,
+            missingAttributes: result.missingAttributes,
+          ),
+        );
+    }
   }
 
   void _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
-    emit(IssuanceStopped(state.isRefreshFlow));
+    await cancelIssuanceUseCase.invoke();
+    emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
   }
 
   void _onIssuanceShareRequestedAttributesApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProofIdentity) throw UnsupportedError('Incorrect state to $state');
-    emit(IssuanceProvidePin(state.isRefreshFlow, state.flow));
+    emit(IssuanceProvidePin(isRefreshFlow: isRefreshFlow));
   }
 
   void _onIssuancePinConfirmed(event, emit) async {
-    final state = this.state;
+    final issuance = _startIssuanceResult;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
-    _userSharedData = true;
-    if (state.flow.cards.length > 1) {
+    if (issuance == null) throw UnsupportedError('Can not move to select cards state without date');
+    final result = _continueIssuanceResult = await continueIssuanceUseCase.invoke();
+    if (result.cards.length > 1) {
       emit(
         IssuanceSelectCards(
-          state.isRefreshFlow,
-          state.flow,
-          MultipleCardsFlow.fromCards(state.flow.cards, state.flow.organization),
+          isRefreshFlow: isRefreshFlow,
+          multipleCardsFlow: MultipleCardsFlow.fromCards(
+            result.cards,
+            issuance.relyingParty,
+          ),
         ),
       );
     } else {
-      emit(IssuanceCheckDataOffering(state.isRefreshFlow, state.flow));
+      emit(IssuanceCheckDataOffering(
+        isRefreshFlow: isRefreshFlow,
+        card: result.cards.first,
+      ));
     }
   }
 
   void _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
-    _logCardInteraction(state.flow, InteractionStatus.success);
-    await walletAddIssuedCardsUseCase.invoke(state.flow.cards, state.flow.organization);
-    emit(IssuanceCompleted(state.isRefreshFlow, state.flow, state.flow.cards));
+
+    await acceptIssuanceUseCase.invoke([_continueIssuanceResult!.cards.first.docType]);
+    emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: _continueIssuanceResult!.cards));
   }
 
   void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
-    if (event.flow != null) {
-      _logCardInteraction(event.flow!, _userSharedData ? InteractionStatus.success : InteractionStatus.rejected);
-    }
-    emit(IssuanceStopped(state.isRefreshFlow));
-  }
-
-  void _logCardInteraction(IssuanceFlow flow, InteractionStatus status) async {
-    final activeLocale = await localeProvider.observe().first;
-    logCardInteractionUseCase.invoke(
-      status: status,
-      policy: flow.policy,
-      requestPurpose: flow.requestPurpose.l10nValueFromLocale(activeLocale.languageCode),
-      organization: flow.organization,
-      resolvedAttributes: flow.resolvedAttributes,
-    );
+    await cancelIssuanceUseCase.invoke();
+    emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
   }
 
   FutureOr<void> _onIssuanceCardToggled(IssuanceCardToggled event, emit) {
@@ -167,11 +211,12 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     if (state.selectedCards.isEmpty) {
       emit(state.copyWith(showNoSelectionError: true));
     } else {
-      emit(IssuanceCheckCards(
-        state.isRefreshFlow,
-        flow: state.flow,
-        multipleCardsFlow: state.multipleCardsFlow,
-      ));
+      emit(
+        IssuanceCheckCards(
+          isRefreshFlow: isRefreshFlow,
+          multipleCardsFlow: state.multipleCardsFlow,
+        ),
+      );
     }
   }
 
@@ -179,13 +224,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = this.state;
     if (state is! IssuanceCheckCards) throw UnsupportedError('Incorrect state to $state');
     if (state.multipleCardsFlow.hasMoreCards) {
-      emit(IssuanceCheckCards(
-        state.isRefreshFlow,
-        flow: state.flow,
-        multipleCardsFlow: state.multipleCardsFlow.next(),
-      ));
+      emit(
+        IssuanceCheckCards(
+          isRefreshFlow: isRefreshFlow,
+          multipleCardsFlow: state.multipleCardsFlow.next(),
+        ),
+      );
     } else {
-      await _addCardsAndEmitCompleted(state.flow, state.multipleCardsFlow.selectedCards, emit);
+      await _addCardsAndEmitCompleted(state.multipleCardsFlow.selectedCards, emit);
     }
   }
 
@@ -197,21 +243,21 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final updatedMultipleCardFlow = state.multipleCardsFlow.copyWith(selectedCardIds: selectedCardIds);
     if (state.multipleCardsFlow.hasMoreCards) {
       //activeIndex is maintained, but since the selected set is now shorter the next card is now the activeCard.
-      emit(IssuanceCheckCards(state.isRefreshFlow, flow: state.flow, multipleCardsFlow: updatedMultipleCardFlow));
+      emit(IssuanceCheckCards(isRefreshFlow: isRefreshFlow, multipleCardsFlow: updatedMultipleCardFlow));
     } else {
       if (updatedMultipleCardFlow.selectedCardIds.isEmpty) {
         //All cards are declined, show stopped.
-        emit(IssuanceStopped(state.isRefreshFlow));
+        await cancelIssuanceUseCase.invoke();
+        emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
       } else {
         //No more cards to check, add the selected ones and show completed state
-        await _addCardsAndEmitCompleted(state.flow, updatedMultipleCardFlow.selectedCards, emit);
+        await _addCardsAndEmitCompleted(updatedMultipleCardFlow.selectedCards, emit);
       }
     }
   }
 
-  Future<void> _addCardsAndEmitCompleted(IssuanceFlow flow, List<WalletCard> selectedCards, emit) async {
-    _logCardInteraction(flow, InteractionStatus.success);
-    await walletAddIssuedCardsUseCase.invoke(selectedCards, flow.organization);
-    emit(IssuanceCompleted(state.isRefreshFlow, flow, selectedCards));
+  Future<void> _addCardsAndEmitCompleted(List<WalletCard> selectedCards, emit) async {
+    await acceptIssuanceUseCase.invoke(selectedCards.map((e) => e.docType));
+    emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: selectedCards));
   }
 }

@@ -1,20 +1,22 @@
-import 'package:wallet_core/core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/data/repository/card/timeline_attribute_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
 import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
@@ -22,6 +24,7 @@ import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dar
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
+import 'package:wallet_core/core.dart';
 
 import 'wallet_mocks.mocks.dart';
 
@@ -49,9 +52,12 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckHasInternetUseCase>()])
-@GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
 @GenerateNiceMocks([MockSpec<PerformPreNavigationActionsUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckNavigationPrerequisitesUseCase>()])
+@GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
+@GenerateNiceMocks([MockSpec<AcceptSignAgreementUseCase>()])
+@GenerateNiceMocks([MockSpec<AcceptDisclosureUseCase>()])
+@GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])

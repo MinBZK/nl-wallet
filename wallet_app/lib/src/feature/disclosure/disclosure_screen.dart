@@ -2,9 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../environment.dart';
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
-import '../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -169,11 +167,8 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
-    CheckPinUseCase checkPinUseCase = Environment.mockRepositories
-        ? context.read<ConfirmTransactionUseCase>()
-        : context.read<AcceptDisclosureUseCase>();
     return DisclosureConfirmPinPage(
-      bloc: PinBloc(checkPinUseCase),
+      bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
       onPinValidated: () => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(state.flow)),
     );
   }

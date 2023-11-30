@@ -2,14 +2,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_core/core.dart'
-    show Card, CardAttribute, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
+    show Card, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
+import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../data/repository/organization/organization_repository.dart';
 import '../domain/model/app_image_data.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/attribute/data_attribute.dart';
 import '../domain/model/attribute/missing_attribute.dart';
+import '../domain/model/card_config.dart';
 import '../domain/model/card_front.dart';
+import '../domain/model/document.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/model/timeline/timeline_attribute.dart';
@@ -18,10 +21,12 @@ import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import '../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
+import '../util/mapper/card/card_config_mapper.dart';
 import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/requested_card_mapper.dart';
+import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/history/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
@@ -59,7 +64,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<CardValue, AttributeValue>>(
           create: (context) => CardAttributeValueMapper(),
         ),
-        RepositoryProvider<Mapper<CardAttribute, DataAttribute>>(
+        RepositoryProvider<Mapper<CardAttributeWithDocType, DataAttribute>>(
           create: (context) => CardAttributeMapper(context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<core.MissingAttribute, MissingAttribute>>(
@@ -73,8 +78,11 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<Card, CardFront>>(
           create: (context) => CardFrontMapper(context.read()),
         ),
+        RepositoryProvider<Mapper<String, CardConfig>>(
+          create: (context) => CardConfigMapper(),
+        ),
         RepositoryProvider<Mapper<Card, WalletCard>>(
-          create: (context) => CardMapper(context.read(), context.read()),
+          create: (context) => CardMapper(context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<RequestedCard, WalletCard>>(
           create: (context) => RequestedCardMapper(context.read()),
@@ -88,6 +96,11 @@ class WalletMapperProvider extends StatelessWidget {
         /// Policy
         RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
           create: (context) => RequestPolicyMapper(),
+        ),
+
+        /// Policy
+        RepositoryProvider<Mapper<core.Document, Document>>(
+          create: (context) => DocumentMapper(),
         ),
 
         /// Pid mappers

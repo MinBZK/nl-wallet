@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../environment.dart';
 import '../data/service/navigation_service.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/policy/policy.dart';
@@ -19,9 +18,7 @@ import '../feature/card/overview/bloc/card_overview_bloc.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
-import '../feature/disclosure/bloc/core_disclosure_bloc.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
-import '../feature/disclosure/bloc/mock_disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
 import '../feature/history/detail/bloc/history_detail_bloc.dart';
@@ -268,9 +265,9 @@ WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
   return (context) {
-    final String cardId = CardHistoryScreen.getArguments(settings);
+    final String docType = CardHistoryScreen.getArguments(settings);
     return BlocProvider<CardHistoryBloc>(
-      create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(cardId)),
+      create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(docType)),
       child: const CardHistoryScreen(),
     );
   };
@@ -280,28 +277,16 @@ Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
 WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
-  if (Environment.mockRepositories) {
-    return (context) {
-      return BlocProvider<DisclosureBloc>(
-        create: (BuildContext context) {
-          return MockDisclosureBloc(context.read(), context.read(), context.read(), context.read())
-            ..add(DisclosureLoadRequested(args.mockSessionId!));
-        },
-        child: const DisclosureScreen(),
-      );
-    };
-  } else {
-    return (context) {
-      return BlocProvider<DisclosureBloc>(
-        create: (BuildContext context) => CoreDisclosureBloc(
-          args.uri!,
-          context.read(),
-          context.read(),
-        ),
-        child: const DisclosureScreen(),
-      );
-    };
-  }
+  return (context) {
+    return BlocProvider<DisclosureBloc>(
+      create: (BuildContext context) => DisclosureBloc(
+        args.uri!,
+        context.read(),
+        context.read(),
+      ),
+      child: const DisclosureScreen(),
+    );
+  };
 }
 
 WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
@@ -316,8 +301,14 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
     IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
-        return IssuanceBloc(context.read(), context.read(), context.read(), context.read(), context.read())
-          ..add(IssuanceLoadTriggered(argument.mockSessionId!, argument.isRefreshFlow));
+        return IssuanceBloc(
+          argument.uri!,
+          argument.isRefreshFlow,
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
       },
       child: const IssuanceScreen(),
     );
@@ -329,8 +320,11 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
     final arguments = SignScreen.getArgument(settings);
     return BlocProvider<SignBloc>(
       create: (BuildContext context) {
-        return SignBloc(context.read(), context.read(), context.read())
-          ..add(SignLoadTriggered(arguments.mockSessionId!));
+        return SignBloc(
+          arguments.uri!,
+          context.read(),
+          context.read(),
+        );
       },
       child: const SignScreen(),
     );
@@ -369,7 +363,7 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
       create: (BuildContext context) => HistoryDetailBloc(context.read(), context.read())
         ..add(HistoryDetailLoadTriggered(
           attributeId: argument.timelineAttributeId,
-          cardId: argument.cardId,
+          docType: argument.docType,
         )),
       child: const HistoryDetailScreen(),
     );
@@ -397,11 +391,14 @@ WidgetBuilder _createPinBlockedScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
+    assert(argument.organization != null, 'Currently only navigation with organization is supported');
     return BlocProvider<OrganizationDetailBloc>(
-      create: (BuildContext context) => OrganizationDetailBloc(context.read(), context.read())
-        ..add(
-          OrganizationLoadTriggered(organizationId: argument.organizationId),
-        ),
+      create: (BuildContext context) => OrganizationDetailBloc.forOrganization(
+        context.read(),
+        context.read(),
+        organization: argument.organization!,
+        isFirstInteractionWithOrganization: false,
+      ),
       child: const OrganizationDetailScreen(),
     );
   };

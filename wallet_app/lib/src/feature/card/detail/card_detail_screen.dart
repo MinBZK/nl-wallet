@@ -2,12 +2,13 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/service/navigation_service.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
-import '../../../domain/usecase/card/get_wallet_card_update_issuance_request_id_usecase.dart';
+import '../../../domain/usecase/card/get_wallet_card_update_request_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -22,7 +23,6 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
-import '../../issuance/argument/issuance_screen_argument.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
@@ -163,7 +163,7 @@ class CardDetailScreen extends StatelessWidget {
                   icon: Icons.history_outlined,
                   title: Text(context.l10n.cardDetailScreenCardHistoryCta),
                   subtitle: Text(_createInteractionText(context, detail.latestSuccessInteraction)),
-                  onTap: () => _onCardHistoryPressed(context, card.id),
+                  onTap: () => _onCardHistoryPressed(context, card.docType),
                 ),
                 const Divider(height: 1),
                 if (card.config.updatable) ...[
@@ -258,9 +258,9 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  void _onCardHistoryPressed(BuildContext context, String cardId) {
+  void _onCardHistoryPressed(BuildContext context, String docType) {
     if (WalletFeatureFlags.enableCardHistoryOverview) {
-      Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: cardId);
+      Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: docType);
     } else {
       PlaceholderScreen.show(context);
     }
@@ -269,17 +269,11 @@ class CardDetailScreen extends StatelessWidget {
   /// Temporary async logic inside [CardDetailScreen] class;
   /// This async flow isn't designed (happy & unhappy paths); it's to do for after demo day.
   void _onCardUpdatePressed(BuildContext context, WalletCard card) {
-    GetWalletCardUpdateIssuanceRequestIdUseCase useCase = context.read();
-    useCase.invoke(card).then((issuanceRequestId) {
-      if (issuanceRequestId != null) {
-        Navigator.restorablePushNamed(
-          context,
-          WalletRoutes.issuanceRoute,
-          arguments: IssuanceScreenArgument(
-            mockSessionId: issuanceRequestId,
-            isRefreshFlow: true,
-          ).toMap(),
-        );
+    GetWalletCardUpdateRequestUseCase useCase = context.read();
+    useCase.invoke(card).then((navRequest) {
+      if (navRequest != null) {
+        NavigationService service = context.read();
+        service.handleNavigationRequest(navRequest);
       } else {
         _showNoUpdateAvailableSheet(context);
       }

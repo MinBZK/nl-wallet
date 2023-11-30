@@ -1,4 +1,4 @@
-import '../../../../data/repository/card/timeline_attribute_repository.dart';
+import '../../../../data/repository/history/timeline_attribute_repository.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../model/attribute/data_attribute.dart';
 import '../../../model/policy/policy.dart';

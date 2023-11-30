@@ -95,7 +95,7 @@ void main() {
               attribute: DataAttribute.untranslated(
                 label: 'Label',
                 value: const StringValue('Value'),
-                sourceCardId: '',
+                sourceCardDocType: '',
                 key: 'mock.other',
               ),
             ),

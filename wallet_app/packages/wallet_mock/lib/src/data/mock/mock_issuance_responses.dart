@@ -1,0 +1,450 @@
+import 'package:wallet_core/core.dart';
+
+import '../../../mock.dart';
+import '../model/issuance_response.dart';
+import '../model/requested_attribute.dart';
+import 'mock_organizations.dart';
+
+final _kMockBirthDate = CardValue.date(value: DateTime(1997, 3, 10).toIso8601String());
+const _kMockBirthPlace = CardValue.string(value: 'Delft');
+const _kMockFirstNames = CardValue.string(value: 'Willeke Liselotte');
+const _kMockFullName = CardValue.string(value: 'Willeke De Bruijn');
+const _kMockLastName = CardValue.string(value: 'De Bruijn');
+const _kMockGender = CardValue.string(value: 'Vrouw');
+
+const _kMockRequestPurpose = 'Kaart uitgifte';
+
+final kIssuanceResponses = [
+  IssuanceResponse(
+    id: _kPidId,
+    organization: kOrganizations[kRvigId]!,
+    requestedAttributes: [],
+    requestPurpose: [LocalizedString(language: 'nl', value: '')],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockPidWalletCard, _kMockAddressWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kDiplomaId,
+    organization: kOrganizations[kDuoId]!,
+    requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockDiplomaWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kMultiDiplomaId,
+    organization: kOrganizations[kDuoId]!,
+    requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockDiplomaWalletCard, _kMockMasterDiplomaWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kDrivingLicenseId,
+    organization: kOrganizations[kRdwId]!,
+    requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockDrivingLicenseWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kDrivingLicenseRenewedId,
+    organization: kOrganizations[kRdwId]!,
+    requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockDrivingLicenseRenewedWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kHealthInsuranceId,
+    organization: kOrganizations[kHealthInsuranceId]!,
+    requestedAttributes: _kMockHealthInsuranceRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockHealthInsuranceWalletCard],
+  ),
+  IssuanceResponse(
+    id: _kVOGId,
+    organization: kOrganizations[kJusticeId]!,
+    requestedAttributes: _kMockGovernmentOrganizationRequestedAttributes,
+    requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
+    policy: _kMockIssuancePolicy,
+    cards: [_kMockVOGWalletCard],
+  )
+];
+
+// region WalletCards
+const _kPidId = 'PID_1';
+final _kMockPidWalletCard = Card(
+  docType: kPidDocType,
+  persistence: CardPersistence.inMemory(),
+  attributes: _kMockPidDataAttributes,
+);
+
+final _kMockAddressWalletCard = Card(
+  docType: kAddressDocType,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockAddressCardFront,
+  attributes: _kMockAddressDataAttributes,
+);
+
+const _kDiplomaId = 'DIPLOMA_1';
+final _kMockDiplomaWalletCard = Card(
+  docType: _kDiplomaId,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockDiplomaCardFront,
+  attributes: _kMockDiplomaDataAttributes,
+);
+
+const _kMultiDiplomaId = 'MULTI_DIPLOMA';
+const _kMasterDiplomaId = 'DIPLOMA_2';
+final _kMockMasterDiplomaWalletCard = Card(
+  docType: _kMasterDiplomaId,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockMasterDiplomaCardFront,
+  attributes: _kMockMasterDiplomaDataAttributes,
+);
+
+const _kDrivingLicenseId = 'DRIVING_LICENSE';
+final _kMockDrivingLicenseWalletCard = Card(
+  docType: kDrivingLicenseDocType,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockDrivingLicenseCardFront,
+  attributes: _kMockDrivingLicenseDataAttributes,
+);
+
+const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
+final _kMockDrivingLicenseRenewedWalletCard = Card(
+  docType: kDrivingLicenseDocType,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockDrivingLicenseRenewedCardFront,
+  attributes: _kMockDrivingLicenseRenewedDataAttributes,
+);
+
+const _kHealthInsuranceId = 'HEALTH_INSURANCE';
+final _kMockHealthInsuranceWalletCard = Card(
+  docType: _kHealthInsuranceId,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockHealthInsuranceCardFront,
+  attributes: _kMockHealthInsuranceDataAttributes,
+);
+
+const _kVOGId = 'VOG';
+final _kMockVOGWalletCard = Card(
+  docType: _kVOGId,
+  persistence: CardPersistence.inMemory(),
+  // front: _kMockVOGCardFront,
+  attributes: _kMockVOGDataAttributes,
+);
+
+// endregion
+
+// region DataAttributes
+final _kMockPidDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Voornamen')],
+    value: _kMockFirstNames,
+    key: 'mock.firstNames',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Achternaam')],
+    value: _kMockLastName,
+    key: 'mock.lastName',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Naam bij geboorte')],
+    value: const CardValue.string(value: 'Molenaar'),
+    key: 'mock.birthName',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geslacht')],
+    value: _kMockGender,
+    key: 'mock.gender',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
+    value: _kMockBirthDate,
+    key: 'mock.birthDate',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Ouder dan 18')],
+    value: CardValue.boolean(value: true),
+    key: 'mock.olderThan18',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geboorteplaats')],
+    value: _kMockBirthPlace,
+    key: 'mock.birthPlace',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geboorteland')],
+    value: const CardValue.string(value: 'Nederland'),
+    key: 'mock.birthCountry',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Burgerservicenummer (BSN)')],
+    value: const CardValue.string(value: '******999'),
+    key: 'mock.citizenshipNumber',
+    // sourceCardId: _kPidId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Nationaliteit')],
+    value: const CardValue.string(value: 'Nederlands'),
+    key: 'mock.nationality',
+    // sourceCardId: _kPidId,
+  ),
+];
+
+final _kMockAddressDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Straatnaam')],
+    value: const CardValue.string(value: 'Turfmarkt'),
+    key: 'mock.streetName',
+    // sourceCardId: _kAddressId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Huisnummer')],
+    value: const CardValue.string(value: '147'),
+    key: 'mock.houseNumber',
+    // sourceCardId: _kAddressId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Postcode')],
+    value: const CardValue.string(value: '2511 DP'),
+    key: 'mock.postalCode',
+    // sourceCardId: _kAddressId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Woonplaats')],
+    value: const CardValue.string(value: 'Den Haag'),
+    key: 'mock.city',
+    // sourceCardId: _kAddressId,
+  ),
+];
+
+final _kMockDiplomaDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Onderwijsinstelling')],
+    value: const CardValue.string(value: 'Universiteit X'),
+    key: 'mock.university',
+    // sourceCardId: _kDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Opleiding')],
+    value: const CardValue.string(value: 'WO Bachelor Bedrijfskunde'),
+    key: 'mock.education',
+    // sourceCardId: _kDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Niveau')],
+    value: const CardValue.string(value: 'WO'),
+    key: 'mock.educationLevel',
+    // sourceCardId: _kDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Type')],
+    value: const CardValue.string(value: 'Getuigschrift'),
+    // sourceCardId: _kDiplomaId,
+    key: 'mock.other',
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
+    value: CardValue.date(value: DateTime(2013, 1, 1).toIso8601String()),
+    key: 'mock.issuanceDate',
+    // sourceCardId: _kDiplomaId,
+  ),
+];
+
+final _kMockMasterDiplomaDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Onderwijsinstelling')],
+    value: const CardValue.string(value: 'Universiteit X'),
+    key: 'mock.university',
+    // sourceCardId: _kMasterDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Opleiding')],
+    value: const CardValue.string(value: 'WO Master Bedrijfskunde'),
+    key: 'mock.education',
+    // sourceCardId: _kMasterDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Niveau')],
+    value: const CardValue.string(value: 'WO'),
+    key: 'mock.educationLevel',
+    // sourceCardId: _kMasterDiplomaId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Type')],
+    value: const CardValue.string(value: 'Getuigschrift'),
+    // sourceCardId: _kMasterDiplomaId,
+    key: 'mock.other',
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
+    value: CardValue.date(value: DateTime(2015, 1, 1).toIso8601String()),
+    key: 'mock.issuanceDate',
+    // sourceCardId: _kMasterDiplomaId,
+  ),
+];
+
+final _kMockDrivingLicenseDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, BE');
+final _kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, C1, BE');
+
+List<CardAttribute> _buildDrivingLicenseDataAttributes({required String category}) {
+  return [
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Voornamen')],
+      value: _kMockFirstNames,
+      key: 'mock.firstNames',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Naam')],
+      value: _kMockLastName,
+      key: 'mock.lastName',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
+      value: _kMockBirthDate,
+      key: 'mock.birthDate',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Geboorteplaats')],
+      value: _kMockBirthPlace,
+      key: 'mock.birthPlace',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Afgiftedatum')],
+      value: CardValue.date(value: DateTime(2018, 4, 23).toIso8601String()),
+      key: 'mock.issuanceDate',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Datum geldig tot')],
+      value: CardValue.date(value: DateTime(2028, 4, 23).toIso8601String()),
+      key: 'mock.expiryDate',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Rijbewijsnummer')],
+      value: const CardValue.string(value: '99999999999'),
+      // sourceCardId: _kDrivingLicenseId,
+      key: 'mock.other',
+    ),
+    CardAttribute(
+      labels: [LocalizedString(language: 'nl', value: 'Rijbewijscategorieën')],
+      value: CardValue.string(value: category),
+      key: 'mock.drivingLicenseCategories',
+      // sourceCardId: _kDrivingLicenseId,
+    ),
+  ];
+}
+
+final _kMockHealthInsuranceDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Naam')],
+    value: _kMockFullName,
+    key: 'mock.fullName',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geslacht')],
+    value: _kMockGender,
+    key: 'mock.gender',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
+    value: _kMockBirthDate,
+    key: 'mock.birthDate',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Klantnummer')],
+    value: const CardValue.string(value: '12345678'),
+    key: 'mock.healthIssuerClientId',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Kaartnummer')],
+    value: const CardValue.string(value: '9999999999'),
+    key: 'mock.documentNr',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'UZOVI')],
+    value: const CardValue.string(value: 'XXXX - 9999'),
+    key: 'mock.healthIssuerId',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Verloopdatum')],
+    value: CardValue.date(value: DateTime(2024, 1, 1).toIso8601String()),
+    key: 'mock.healthInsuranceExpiryDate',
+    // sourceCardId: _kHealthInsuranceId,
+  ),
+];
+
+final _kMockVOGDataAttributes = [
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Type')],
+    value: const CardValue.string(value: '1'),
+    key: 'mock.certificateOfConduct',
+    // sourceCardId: _kVOGId,
+  ),
+  CardAttribute(
+    labels: [LocalizedString(language: 'nl', value: 'Datum geldig tot')],
+    value: CardValue.date(value: DateTime(2023, 2, 5).toIso8601String()),
+    key: 'mock.expiryDate',
+    // sourceCardId: _kVOGId,
+  ),
+];
+
+// endregion
+
+// region RequestedAttributes
+final _kMockGovernmentOrganizationRequestedAttributes = [
+  RequestedAttribute(
+    label: 'BSN',
+    key: 'mock.citizenshipNumber',
+  ),
+];
+
+final _kMockHealthInsuranceRequestedAttributes = [
+  RequestedAttribute(
+    label: 'Voornamen',
+    key: 'mock.firstNames',
+  ),
+  RequestedAttribute(
+    label: 'Achternaam',
+    key: 'mock.lastName',
+  ),
+  RequestedAttribute(
+    label: 'Geboortedatum',
+    key: 'mock.birthDate',
+  ),
+];
+// endregion
+
+// region Policies
+
+const _kMockIssuancePolicy = RequestPolicy(
+  dataStorageDurationInMinutes: 60 * 24 * 90,
+  dataSharedWithThirdParties: false,
+  dataDeletionPossible: true,
+  policyUrl: 'https://www.example.org',
+);
+
+// endregion

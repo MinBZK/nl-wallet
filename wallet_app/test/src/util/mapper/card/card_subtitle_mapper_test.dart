@@ -39,10 +39,10 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('card with `pid_id` docType should return `name` attribute string', () {
+    test('card with `com.example.pid` docType should return `name` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleCardAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      Card input = createSampleCard('pid_id', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
+      Card input = createSampleCard('com.example.pid', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -50,8 +50,8 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`pid_id` card without `name` attribute should not return any subtitle', () {
-      Card input = createSampleCard('pid_id', [_kSampleCardAttributeCity]);
+    test('`com.example.pid` card without `name` attribute should not return any subtitle', () {
+      Card input = createSampleCard('com.example.pid', [_kSampleCardAttributeCity]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleCardAttributeName.value));
@@ -68,19 +68,8 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`pid_address` card with `city` attribute should return `city` attribute string', () {
-      when(mockAttributeValueMapper.map(_kSampleCardAttributeCity.value)).thenReturn(const StringValue('Den Haag'));
-
-      Card input = createSampleCard('pid_address', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
-      expect(mapper.map(input), _kSampleCitySubtitle);
-
-      // Check if every supported locale is mapped to a value
-      verify(mockAttributeValueMapper.map(_kSampleCardAttributeCity.value))
-          .called(AppLocalizations.supportedLocales.length);
-    });
-
-    test('`pid_address` card without `city` attribute should not return any subtitle', () {
-      Card input = createSampleCard('pid_address', [_kSampleCardAttributeName]);
+    test('`com.example.address` card without `city` attribute should not return any subtitle', () {
+      Card input = createSampleCard('com.example.address', [_kSampleCardAttributeName]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleCardAttributeName.value));

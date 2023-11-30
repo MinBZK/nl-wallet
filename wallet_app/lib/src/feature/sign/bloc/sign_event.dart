@@ -39,3 +39,9 @@ class SignPinConfirmed extends SignEvent {
 class SignStopRequested extends SignEvent {
   const SignStopRequested();
 }
+
+class SignUpdateState extends SignEvent {
+  final SignState state;
+
+  const SignUpdateState(this.state);
+}

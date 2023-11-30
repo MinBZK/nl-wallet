@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:wallet/src/data/repository/card/timeline_attribute_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
 import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
@@ -52,7 +52,7 @@ void main() {
 
       verify(mockWalletCardRepository.read(mockCard.id)).called(1);
       verify(mockOrganizationRepository.read(mockCard.id)).called(1);
-      verify(mockTimelineAttributeRepository.readFiltered(cardId: mockCard.id)).called(1);
+      verify(mockTimelineAttributeRepository.readFiltered(docType: mockCard.docType)).called(1);
     });
   });
 }

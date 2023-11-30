@@ -9,6 +9,7 @@ pub enum Image {
     Svg { xml: String },
     Png { base64: String },
     Jpg { base64: String },
+    Asset { path: String },
 }
 
 pub struct Organization {

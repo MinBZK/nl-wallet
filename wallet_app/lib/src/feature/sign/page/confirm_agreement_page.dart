@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/repository/organization/organization_repository.dart';
+import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
+import '../../common/widget/app_image.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../model/sign_flow.dart';
 
 class ConfirmAgreementPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final SignFlow flow;
+  final Policy policy;
+  final Organization trustProvider;
+  final List<DataAttribute> requestedAttributes;
 
   const ConfirmAgreementPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    required this.flow,
+    required this.policy,
+    required this.trustProvider,
+    required this.requestedAttributes,
     Key? key,
   }) : super(key: key);
 
@@ -32,7 +40,7 @@ class ConfirmAgreementPage extends StatelessWidget {
           SliverList(delegate: _getDataAttributesDelegate()),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
-          SliverToBoxAdapter(child: PolicySection(flow.policy)),
+          SliverToBoxAdapter(child: PolicySection(policy)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
@@ -80,9 +88,9 @@ class ConfirmAgreementPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: DataAttributeRow(attribute: flow.resolvedAttributes[index]),
+        child: DataAttributeRow(attribute: requestedAttributes[index]),
       ),
-      childCount: flow.resolvedAttributes.length,
+      childCount: requestedAttributes.length,
     );
   }
 
@@ -104,11 +112,11 @@ class ConfirmAgreementPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Image.asset(flow.trustProvider.logoUrl),
+          AppImage(asset: trustProvider.logo),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              context.l10n.confirmAgreementPageSignProvider(flow.trustProvider.name),
+              context.l10n.confirmAgreementPageSignProvider(trustProvider.displayName.l10nValue(context)),
               style: context.textTheme.bodyLarge,
             ),
           )

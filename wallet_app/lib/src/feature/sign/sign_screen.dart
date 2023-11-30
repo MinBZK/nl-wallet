@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/model/attribute/data_attribute.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -138,25 +139,29 @@ class SignScreen extends StatelessWidget {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopSigning(context),
       onAcceptPressed: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
-      organization: state.flow.organization,
+      organization: state.organization,
       purpose: ApprovalPurpose.sign,
     );
   }
 
   Widget _buildCheckAgreement(BuildContext context, SignCheckAgreement state) {
     return CheckAgreementPage(
-      flow: state.flow,
       onDecline: () => _stopSigning(context),
       onAccept: () => context.read<SignBloc>().add(const SignAgreementChecked()),
+      organization: state.organization,
+      trustProvider: state.trustProvider,
+      document: state.document,
     );
   }
 
   Widget _buildConfirmAgreement(BuildContext context, SignConfirmAgreement state) {
-    if (state.flow.hasMissingAttributes) {
+    if (state.requestedAttributes.any((attribute) => attribute is! DataAttribute)) {
       throw UnimplementedError('Not supported, mocks are solely based on data in PID atm.');
     }
     return ConfirmAgreementPage(
-      flow: state.flow,
+      requestedAttributes: state.requestedAttributes.whereType<DataAttribute>().toList(),
+      policy: state.policy,
+      trustProvider: state.trustProvider,
       onDeclinePressed: () => _stopSigning(context),
       onAcceptPressed: () => context.read<SignBloc>().add(const SignAgreementApproved()),
     );
@@ -194,7 +199,7 @@ class SignScreen extends StatelessWidget {
 
   Widget _buildSuccess(BuildContext context, SignSuccess state) {
     return SignSuccessPage(
-      organizationName: state.flow.organization.displayName,
+      organizationName: state.organization.displayName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(
         context,

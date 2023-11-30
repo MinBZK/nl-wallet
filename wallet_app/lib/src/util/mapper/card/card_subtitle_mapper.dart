@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
-import 'package:wallet_core/core.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../formatter/attribute_value_formatter.dart';
@@ -14,8 +14,7 @@ class CardSubtitleMapper extends Mapper<Card, LocalizedText?> {
   @override
   LocalizedText? map(Card input) {
     switch (input.docType) {
-      case 'pid_id':
-      case 'com.example.pid':
+      case kPidDocType:
         final nameAttribute =
             input.attributes.firstWhereOrNull((attribute) => attribute.key.toLowerCase().contains('name'));
         if (nameAttribute == null) return null;
@@ -26,8 +25,7 @@ class CardSubtitleMapper extends Mapper<Card, LocalizedText?> {
             return MapEntry(locale.languageCode, formattedValue);
           },
         );
-      case 'pid_address':
-      case 'com.example.address':
+      case kAddressDocType:
         final cityAttribute =
             input.attributes.firstWhereOrNull((attribute) => attribute.key.toLowerCase().contains('city'));
         if (cityAttribute == null) return null;

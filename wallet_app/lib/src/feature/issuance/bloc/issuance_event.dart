@@ -4,16 +4,6 @@ abstract class IssuanceEvent extends Equatable {
   const IssuanceEvent();
 }
 
-class IssuanceLoadTriggered extends IssuanceEvent {
-  final String sessionId;
-  final bool isRefreshFlow;
-
-  const IssuanceLoadTriggered(this.sessionId, this.isRefreshFlow);
-
-  @override
-  List<Object?> get props => [sessionId, isRefreshFlow];
-}
-
 class IssuanceOrganizationApproved extends IssuanceEvent {
   const IssuanceOrganizationApproved();
 
@@ -91,10 +81,17 @@ class IssuanceCardApproved extends IssuanceEvent {
 }
 
 class IssuanceStopRequested extends IssuanceEvent {
-  final IssuanceFlow? flow;
-
-  const IssuanceStopRequested(this.flow);
+  const IssuanceStopRequested();
 
   @override
-  List<Object?> get props => [flow];
+  List<Object?> get props => [];
+}
+
+class IssuanceUpdateState extends IssuanceEvent {
+  final IssuanceState state;
+
+  const IssuanceUpdateState(this.state);
+
+  @override
+  List<Object?> get props => [state];
 }

@@ -22,7 +22,7 @@ class GetRequestedAttributesWithCardUseCaseImpl implements GetRequestedAttribute
     }
 
     return groupBy(foundAttributes, (attribute) {
-      return _findCardById(cards, attribute.sourceCardId);
+      return _findCardById(cards, attribute.sourceCardDocType);
     });
   }
 

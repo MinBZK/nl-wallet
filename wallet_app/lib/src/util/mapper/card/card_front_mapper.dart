@@ -1,9 +1,11 @@
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';
+import '../../extension/string_extension.dart';
 import '../mapper.dart';
 
 class CardFrontMapper extends Mapper<Card, CardFront> {
@@ -15,27 +17,102 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
   CardFront map(Card input) {
     final l10ns = AppLocalizations.supportedLocales.map((e) => lookupAppLocalizations(e)).toList();
     switch (input.docType) {
-      case 'pid_id':
-      case 'com.example.pid':
-        return CardFront(
-          title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidIdCardTitle)),
-          subtitle: _subtitleMapper.map(input),
-          logoImage: WalletAssets.logo_card_rijksoverheid,
-          holoImage: WalletAssets.svg_rijks_card_holo,
-          backgroundImage: WalletAssets.svg_rijks_card_bg_light,
-          theme: CardFrontTheme.light,
-        );
-      case 'pid_address':
-      case 'com.example.address':
-        return CardFront(
-          title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidAddressCardTitle)),
-          subtitle: _subtitleMapper.map(input),
-          logoImage: WalletAssets.logo_card_rijksoverheid,
-          holoImage: WalletAssets.svg_rijks_card_holo,
-          backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
-          theme: CardFrontTheme.dark,
-        );
+      case kPidDocType:
+        return _getPidCardFront(l10ns, input);
+      case kAddressDocType:
+        return _getAddressCardFront(l10ns, input);
+      case 'DIPLOMA_1':
+        return _kMockDiplomaCardFront;
+      case 'DIPLOMA_2':
+        return _kMockMasterDiplomaCardFront;
+      case kDrivingLicenseDocType:
+        if (isRenewedLicense(input)) return _kMockDrivingLicenseRenewedCardFront;
+        return _kMockDrivingLicenseCardFront;
+      case 'HEALTH_INSURANCE':
+        return _kMockHealthInsuranceCardFront;
+      case 'VOG':
+        return _kMockVOGCardFront;
     }
     throw Exception('Unknown docType: ${input.docType}');
   }
+
+  CardFront _getPidCardFront(List<AppLocalizations> l10ns, Card input) {
+    return CardFront(
+      title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidIdCardTitle)),
+      subtitle: _subtitleMapper.map(input),
+      logoImage: WalletAssets.logo_card_rijksoverheid,
+      holoImage: WalletAssets.svg_rijks_card_holo,
+      backgroundImage: WalletAssets.svg_rijks_card_bg_light,
+      theme: CardFrontTheme.light,
+    );
+  }
+
+  CardFront _getAddressCardFront(List<AppLocalizations> l10ns, Card input) {
+    return CardFront(
+      title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidAddressCardTitle)),
+      subtitle: _subtitleMapper.map(input),
+      logoImage: WalletAssets.logo_card_rijksoverheid,
+      holoImage: WalletAssets.svg_rijks_card_holo,
+      backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
+      theme: CardFrontTheme.dark,
+    );
+  }
+
+  /// Hacky way to figure out if the card is a renewed license, this will be removed once we properly implement
+  /// a way to get the [CardFront]s through the core.
+  bool isRenewedLicense(Card input) => input.attributes
+      .map((attribute) => attribute.value)
+      .whereType<CardValue_String>()
+      .any((value) => value.value.contains('C1'));
 }
+
+// region CardFronts. FIXME: Hardcoded for now.
+
+final _kMockDiplomaCardFront = CardFront(
+  title: 'BSc. Diploma'.untranslated,
+  info: 'Dienst Uitvoerend Onderwijs'.untranslated,
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
+  theme: CardFrontTheme.dark,
+);
+
+final _kMockMasterDiplomaCardFront = CardFront(
+  title: 'MSc. Diploma'.untranslated,
+  info: 'Dienst Uitvoerend Onderwijs'.untranslated,
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
+  theme: CardFrontTheme.dark,
+);
+
+final _kMockDrivingLicenseCardFront = CardFront(
+  title: 'Rijbewijs'.untranslated,
+  subtitle: 'Categorie AM, B, BE'.untranslated,
+  logoImage: WalletAssets.logo_nl_driving_license,
+  backgroundImage: WalletAssets.image_bg_nl_driving_license,
+  theme: CardFrontTheme.light,
+);
+
+final _kMockDrivingLicenseRenewedCardFront = CardFront(
+  title: 'Rijbewijs'.untranslated,
+  subtitle: 'Categorie AM, B, C1, BE'.untranslated,
+  logoImage: WalletAssets.logo_nl_driving_license,
+  backgroundImage: WalletAssets.image_bg_nl_driving_license,
+  theme: CardFrontTheme.light,
+);
+
+final _kMockHealthInsuranceCardFront = CardFront(
+  title: 'European Health Insurance Card'.untranslated,
+  subtitle: 'Zorgverzekeraar Z'.untranslated,
+  logoImage: WalletAssets.logo_nl_health_insurance,
+  backgroundImage: WalletAssets.image_bg_health_insurance,
+  theme: CardFrontTheme.dark,
+);
+
+final _kMockVOGCardFront = CardFront(
+  title: 'Verklaring Omtrent het Gedrag'.untranslated,
+  info: 'Justis'.untranslated,
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  backgroundImage: WalletAssets.image_bg_diploma,
+  theme: CardFrontTheme.dark,
+);
+// endregion

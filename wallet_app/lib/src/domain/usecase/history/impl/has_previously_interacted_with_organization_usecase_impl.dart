@@ -1,4 +1,4 @@
-import '../../../../data/repository/card/timeline_attribute_repository.dart';
+import '../../../../data/repository/history/timeline_attribute_repository.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
 import '../has_previously_interacted_with_organization_usecase.dart';
 

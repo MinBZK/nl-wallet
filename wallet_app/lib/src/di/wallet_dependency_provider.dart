@@ -9,7 +9,7 @@ import 'wallet_service_provider.dart';
 import 'wallet_usecase_provider.dart';
 
 /// Widget that provides all the Dependencies, i.e.
-/// Datasources, Repositories, Usecases, Services and Blocs
+/// DataSources, Repositories, UseCases, Services and BLoCs
 /// to the provided [child].
 class WalletDependencyProvider extends StatelessWidget {
   final Widget child;
@@ -28,9 +28,7 @@ class WalletDependencyProvider extends StatelessWidget {
       child: WalletDataSourceProvider(
         provideMocks: Environment.mockRepositories,
         child: WalletRepositoryProvider(
-          provideMocks: Environment.mockRepositories,
           child: WalletUseCaseProvider(
-            provideMocks: Environment.mockRepositories,
             child: WalletServiceProvider(
               navigatorKey: navigatorKey,
               child: WalletBlocProvider(child: child),
