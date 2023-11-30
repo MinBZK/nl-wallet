@@ -490,7 +490,7 @@ mod tests {
     #[serial]
     async fn test_wallet_cancel_disclosure() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Create a `MockMdocDisclosureSession` and store it on the `Wallet`.
         // Save and check its `was_terminated` value.
@@ -511,7 +511,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_locked() {
         // Prepare a registered and locked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
@@ -545,7 +545,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Cancelling disclosure on a wallet without an active
         // disclosure session should result in an error.
