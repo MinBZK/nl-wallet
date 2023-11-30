@@ -16,6 +16,7 @@ integration-test = []
 async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+config.workspace = true
 futures.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true

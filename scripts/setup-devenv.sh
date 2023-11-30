@@ -214,6 +214,7 @@ render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_prov
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
 render_template "${DEVENV}/wallet.toml.template" "${WP_DIR}/wallet.toml"
+render_template "${DEVENV}/wallet.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet.toml"
 
 ########################################################################
 # Configure HSM

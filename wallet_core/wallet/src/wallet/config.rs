@@ -1,10 +1,11 @@
+use std::sync::Arc;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::config::ConfigurationRepository;
 
 use super::Wallet;
 
-pub type ConfigurationCallback = Box<dyn FnMut(&WalletConfiguration) + Send + Sync>;
+pub type ConfigurationCallback = Box<dyn FnMut(Arc<WalletConfiguration>) + Send + Sync>;
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
@@ -12,9 +13,9 @@ where
 {
     pub fn set_config_callback<F>(&mut self, mut callback: F)
     where
-        F: FnMut(&WalletConfiguration) + Send + Sync + 'static,
+        F: FnMut(Arc<WalletConfiguration>) + Send + Sync + 'static,
     {
-        callback(self.config_repository.config());
+        callback(Arc::clone(&self.config_repository.config()));
         // TODO: Once configuration fetching from the Wallet Provider is implemented,
         //       this callback should be called every time the config updates.
         self.config_callback.replace(Box::new(callback));
@@ -41,12 +42,12 @@ mod tests {
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
-        let configs = Arc::new(Mutex::new(Vec::<WalletConfiguration>::with_capacity(1)));
+        let configs = Arc::new(Mutex::new(Vec::<Arc<WalletConfiguration>>::with_capacity(1)));
         let callback_configs = Arc::clone(&configs);
 
         // Set the configuration callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_config_callback(move |config| callback_configs.lock().unwrap().push(config.clone()));
+        wallet.set_config_callback(move |config| callback_configs.lock().unwrap().push(config));
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&configs), 2);

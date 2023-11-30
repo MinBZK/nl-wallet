@@ -13,23 +13,21 @@ use wallet_common::{
 // Each of these values can be overridden from environment variables at compile time
 // when the `env_config` feature is enabled. Additionally, environment variables can
 // be added to using a file named `.env` in root directory of this crate.
-const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1";
+const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
 
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 
-// todo: this is now a random public_key to ensure the accountserver configuration contains legal values. Can we actually have a default for this?
 const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
                                       oWZT/C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
 
 const DIGID_CLIENT_ID: &str = "";
 const DIGID_URL: &str = "https://localhost/8006/";
 
-// todo: this is now a random public_key to ensure the accountserver configuration contains legal values. Can we actually have a default for this?
 const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttyk\
                                              oP/iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
 
 const PID_ISSUER_URL: &str = "http://localhost:3003/";
-// TODO: Remove this hardcoded CA that is necessary for tests.
+
 const MDOC_TRUST_ANCHORS: &str = "MIIBlTCCATqgAwIBAgIURlVkuYVVlqtiuecbOwVySS9jdFwwCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwO\
                                   Y2EuZXhhbXBsZS5jb20wHhcNMjMxMTI3MDc1NDMyWhcNMjQxMTI2MDc1NDMyWjAZMRcwFQYDVQQDDA5j\
                                   YS5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABFPE9hj71n7dNJpV1lCBBExbCK1B\
@@ -37,7 +35,7 @@ const MDOC_TRUST_ANCHORS: &str = "MIIBlTCCATqgAwIBAgIURlVkuYVVlqtiuecbOwVySS9jdF
                                   7ArBe8g9qs+S0QVagvo1xhFd7TAfBgNVHSMEGDAWgBQv7ArBe8g9qs+S0QVagvo1xhFd7TAPBgNVHRMB\
                                   Af8EBTADAQH/MAsGA1UdDwQEAwIBBjAKBggqhkjOPQQDAgNJADBGAiEAuITZR9Rbj5zfzN39+PEymrnk\
                                   K8WVHjOID8jeajR4DC0CIQD9XnpbZLDYMCWqkVVeBMphwv8R3P1t3NSpXRQyLRIO2w==";
-// TODO: Remove this randomly generated CA.
+
 const RP_TRUST_ANCHORS: &str = "MIIBlDCCATqgAwIBAgIUMmfPjx+jkrbY6twjDTCNHtnoPB4wCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwO\
                                 Y2EuZXhhbXBsZS5jb20wHhcNMjMxMTA3MTA1NDEzWhcNMjQxMTA2MTA1NDEzWjAZMRcwFQYDVQQDDA5j\
                                 YS5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPD39ZBr4/cNp76DturjGWRtjjqU\
@@ -80,10 +78,7 @@ fn parse_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
 
 pub fn default_configuration() -> WalletConfiguration {
     WalletConfiguration {
-        lock_timeouts: LockTimeoutConfiguration {
-            inactive_timeout: 5 * 60,
-            background_timeout: 5 * 60,
-        },
+        lock_timeouts: LockTimeoutConfiguration::default(),
         account_server: AccountServerConfiguration {
             base_url: Url::parse(config_default!(WALLET_PROVIDER_BASE_URL)).unwrap(),
             certificate_public_key: VerifyingKey::from_public_key_der(

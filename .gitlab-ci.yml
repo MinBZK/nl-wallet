@@ -109,7 +109,7 @@ test-rust:
     paths:
       - wallet_core/lcov.info
 
-integration-test-rust:
+test-rust-integration:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
@@ -184,6 +184,19 @@ test-ios:
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios test
 
+test-codegen:
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:b9a900338f8f23289c9f136bc9d8c4928c024284e85f8cd89dc76949aa73d010"
+  script:
+    - set -euxo pipefail
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
+    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
+    - dart format wallet_app --line-length 120
+    - git diff
+    - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
+
 dependency-check:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
@@ -227,7 +240,7 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
-    - job: integration-test-rust
+    - job: test-rust-integration
       artifacts: true
   variables:
     GIT_STRATEGY: clone
@@ -291,26 +304,13 @@ sonar-android:
       -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
       -Dsonar.findbugs.allowuncompiledcode=true
 
-test-codegen:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:b9a900338f8f23289c9f136bc9d8c4928c024284e85f8cd89dc76949aa73d010"
-  script:
-    - set -euxo pipefail
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
-    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
-    - dart format wallet_app --line-length 120
-    - git diff
-    - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
-
 build-wp-image:
   extends: .kaniko
   rules: !reference [ .default-or-release, rules ]
   needs:
     - job: test-rust
       artifacts: false
-    - job: integration-test-rust
+    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
@@ -329,7 +329,7 @@ build-wp-migrations-image:
   needs:
     - job: test-rust
       artifacts: false
-    - job: integration-test-rust
+    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false

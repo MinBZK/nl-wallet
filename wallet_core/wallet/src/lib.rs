@@ -35,13 +35,16 @@ pub mod x509 {
     pub use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError, CertificateType};
 }
 
-pub use wallet_common::config::wallet_config::WalletConfiguration;
+pub use wallet_common::config::wallet_config::{LockTimeoutConfiguration, WalletConfiguration};
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {
     pub use crate::{
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
-        config::{ConfigurationRepository, LocalConfigurationRepository},
+        config::{
+            ConfigServerConfiguration, ConfigurationRepository, HttpConfigurationRepository,
+            LocalConfigurationRepository,
+        },
         digid::{DigidSession, HttpDigidSession},
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
