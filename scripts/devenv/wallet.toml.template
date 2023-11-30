@@ -6,8 +6,6 @@ background_timeout = 300
 
 [account_server]
 base_url = "http://${SERVICES_HOST}:3000/api/v1/"
-certificate_public_key = "${WP_CERTIFICATE_PUBLIC_KEY}"
-instruction_result_public_key = "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
 
 [pid_issuance]
 pid_issuer_url = "http://${SERVICES_HOST}:3003/"

@@ -39,7 +39,7 @@ use crate::{errors::WalletProviderError, router_state::RouterState};
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
-pub fn router(dependencies: Arc<RouterState>, wallet_config: WalletConfiguration) -> Router {
+pub fn router(router_state: RouterState, wallet_config: WalletConfiguration) -> Router {
     Router::new()
         .nest(
             "/api/v1",
@@ -51,11 +51,13 @@ pub fn router(dependencies: Arc<RouterState>, wallet_config: WalletConfiguration
                 .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
                 .layer(TraceLayer::new_for_http())
-                .with_state(dependencies),
+                .with_state(Arc::new(router_state)),
         )
         .nest(
             "/config/v1",
-            Router::new().route("/", get(configuration)).with_state(wallet_config),
+            Router::new()
+                .route("/wallet-config", get(configuration))
+                .with_state(wallet_config),
         )
 }
 

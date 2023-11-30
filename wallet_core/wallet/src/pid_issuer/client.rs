@@ -24,7 +24,7 @@ impl HttpPidIssuerClient {
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
-                HeaderValue::from_static("application/json"),
+                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");

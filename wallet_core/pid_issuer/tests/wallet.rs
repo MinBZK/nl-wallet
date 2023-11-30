@@ -82,7 +82,7 @@ where
     tokio::spawn(async {
         server::serve::<A, B>(settings, attributes_lookup, bsn_lookup)
             .await
-            .expect("Could not start server")
+            .expect("Could not start pid issuer")
     });
 
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());

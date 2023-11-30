@@ -8,8 +8,8 @@ use platform_support::{
 use crate::{
     account_provider::HttpAccountProviderClient,
     config::{
-        ConfigServerConfiguration, LocalConfigurationRepository, PreloadConfigurationRepository,
-        RemoteConfigurationRepository,
+        default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
+        HttpConfigurationRepository,
     },
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
@@ -22,6 +22,8 @@ const WALLET_KEY_ID: &str = "wallet";
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
+    #[error("wallet configuration error")]
+    Configuration(#[from] ConfigurationError),
     #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
 }
@@ -33,10 +35,9 @@ impl Wallet {
 
         let storage = DatabaseStorage::<HardwareEncryptionKey>::init::<HardwareUtilities>().await?;
 
-        let config_repo = PreloadConfigurationRepository::new(
-            RemoteConfigurationRepository::new(ConfigServerConfiguration::default()),
-            LocalConfigurationRepository::default(),
-        );
+        // todo: retrieve wallet_configuration from disk with fallback to default
+        let config_repo =
+            HttpConfigurationRepository::new(ConfigServerConfiguration::default(), default_configuration());
 
         Self::init_registration(
             config_repo,
@@ -50,6 +51,7 @@ impl Wallet {
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
+    CR: ConfigurationRepository,
     S: Storage,
     PEK: PlatformEcdsaKey,
 {
@@ -77,12 +79,13 @@ where
 
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
-        config_repository: CR,
+        mut config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
         pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
+        Self::fetch_configuration(&mut config_repository).await?;
 
         let wallet = Self::new(
             config_repository,
@@ -107,6 +110,10 @@ where
 
         // Finally, fetch the registration.
         storage.fetch_data::<RegistrationData>().await
+    }
+
+    async fn fetch_configuration(config_repository: &mut CR) -> Result<(), ConfigurationError> {
+        config_repository.fetch().await
     }
 }
 

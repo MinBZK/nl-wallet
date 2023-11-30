@@ -9,14 +9,14 @@ use crate::account::serialization::Base64Bytes;
 /// Can be converted from a reference to a [`TrustAnchor`] or a byte-slice
 /// reference `&[u8]` using the `From<>` trait. Conversely a [`TrustAnchor`]
 /// may be created from a reference to [`OwnedTrustAnchor`].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct OwnedTrustAnchor {
     subject: Vec<u8>,
     spki: Vec<u8>,
     name_constraints: Option<Vec<u8>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DerTrustAnchor {
     pub owned_trust_anchor: OwnedTrustAnchor,
     der_bytes: Base64Bytes,

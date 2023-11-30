@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
+use config::ValueKind;
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
     pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey},
@@ -14,16 +15,11 @@ use crate::{account::jwt::EcdsaDecodingKey, errors::Error};
 use super::signed::{SignedDouble, SignedInner};
 
 /// Bytes that (de)serialize to base64.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Base64Bytes(pub Vec<u8>);
 impl From<Vec<u8>> for Base64Bytes {
     fn from(val: Vec<u8>) -> Self {
         Base64Bytes(val)
-    }
-}
-impl PartialEq for Base64Bytes {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
     }
 }
 
@@ -150,7 +146,7 @@ impl Serialize for DerSigningKey {
 }
 
 /// ECDSA public key that (de)serializes from/to base64-encoded DER.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DerVerifyingKey(pub VerifyingKey);
 
 impl From<VerifyingKey> for DerVerifyingKey {
@@ -162,12 +158,6 @@ impl From<VerifyingKey> for DerVerifyingKey {
 impl From<EcdsaDecodingKey> for DerVerifyingKey {
     fn from(value: EcdsaDecodingKey) -> Self {
         value.into()
-    }
-}
-
-impl PartialEq for DerVerifyingKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
     }
 }
 
@@ -192,6 +182,15 @@ impl<'de> Deserialize<'de> for DerVerifyingKey {
     }
 }
 
+impl From<DerVerifyingKey> for ValueKind {
+    fn from(value: DerVerifyingKey) -> Self {
+        serde_json::to_value(value)
+            .expect("DerVerifyingKey should be serializable to String")
+            .as_str()
+            .into()
+    }
+}
+
 impl<T> Serialize for SignedDouble<T> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
@@ -211,5 +210,36 @@ impl<T> Serialize for SignedInner<T> {
 impl<'de, T> Deserialize<'de> for SignedInner<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::account::serialization::DerVerifyingKey;
+    use config::Config;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use serde::{Deserialize, Serialize};
+
+    #[test]
+    fn test_from_der_veriyfing_key_to_valuekind() {
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        struct TestConfig {
+            key1: DerVerifyingKey,
+        }
+
+        let signing_key = SigningKey::random(&mut OsRng);
+        let veriyfing_key = *signing_key.verifying_key();
+        let der_verifying_key: DerVerifyingKey = veriyfing_key.into();
+
+        let test_config: TestConfig = Config::builder()
+            .set_override("key1", der_verifying_key.clone())
+            .unwrap()
+            .build()
+            .unwrap()
+            .try_deserialize()
+            .unwrap();
+
+        assert_eq!(der_verifying_key.0, test_config.key1.0)
     }
 }

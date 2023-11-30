@@ -10,11 +10,9 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::{Card, LocalizedString},
-        card::{CardAttribute, CardValue},
+        card::{Card, CardAttribute, CardValue, LocalizedString},
         config::FlutterConfiguration,
-        disclosure::RequestedCard,
-        disclosure::{Organization, RequestPolicy, StartDisclosureResult},
+        disclosure::{Organization, RequestPolicy, RequestedCard, StartDisclosureResult},
         instruction::WalletInstructionResult,
         pin::PinValidationResult,
         uri::IdentifyUriResult,
@@ -98,7 +96,7 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     wallet()
         .write()
         .await
-        .set_config_callback(move |config| sink.add(config.into()));
+        .set_config_callback(move |config| sink.add((&config.lock_timeouts).into()));
 }
 
 #[async_runtime]

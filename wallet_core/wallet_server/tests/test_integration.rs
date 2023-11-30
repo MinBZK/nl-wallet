@@ -120,7 +120,7 @@ where
     tokio::spawn(async move {
         server::serve::<S>(&settings, sessions)
             .await
-            .expect("Could not start server");
+            .expect("Could not start wallet_server");
     });
 
     let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());

@@ -11,14 +11,14 @@ mod uri;
 #[cfg(test)]
 mod tests;
 
-use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use tokio::sync::RwLock;
 
+use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::PreloadConfigurationRepository,
+    config::HttpConfigurationRepository,
     digid::HttpDigidSession,
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
@@ -38,7 +38,7 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    CR = PreloadConfigurationRepository,        // ConfigurationRepository
+    CR = HttpConfigurationRepository,           // ConfigurationRepository
     S = DatabaseStorage<HardwareEncryptionKey>, // Storage
     PEK = HardwareEcdsaKey,                     // PlatformEcdsaKey
     APC = HttpAccountProviderClient,            // AccountProviderClient

@@ -11,7 +11,7 @@ use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAncho
 static UNIVERSAL_LINK_BASE: Lazy<Url> =
     Lazy::new(|| Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/").unwrap());
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct WalletConfiguration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
@@ -20,7 +20,7 @@ pub struct WalletConfiguration {
     pub mdoc_trust_anchors: Vec<DerTrustAnchor>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct LockTimeoutConfiguration {
     /// App inactivity lock timeout in seconds
     pub inactive_timeout: u16,
@@ -28,7 +28,16 @@ pub struct LockTimeoutConfiguration {
     pub background_timeout: u16,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+impl Default for LockTimeoutConfiguration {
+    fn default() -> Self {
+        Self {
+            inactive_timeout: 5 * 60,
+            background_timeout: 5 * 60,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccountServerConfiguration {
     // The base URL for the Account Server API
     pub base_url: Url,
@@ -37,7 +46,7 @@ pub struct AccountServerConfiguration {
     pub instruction_result_public_key: DerVerifyingKey,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
@@ -45,7 +54,7 @@ pub struct PidIssuanceConfiguration {
     pub digid_redirect_path: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct DisclosureConfiguration {
     pub uri_base_path: String,
     pub rp_trust_anchors: Vec<DerTrustAnchor>,
