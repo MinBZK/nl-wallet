@@ -1,14 +1,13 @@
 use core::fmt::Debug;
-use std::{iter, ops::Add, sync::Arc};
+use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
-use futures::{executor, future};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use p256::ecdsa::{Signature, VerifyingKey};
+use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
@@ -18,11 +17,10 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
-    mock::{self, IsoCertTimeGenerator},
+    mock::{self, IsoCertTimeGenerator, SoftwareKeyFactory},
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
-        keys::KeyFactory,
         mdocs_map::MdocsMap,
         serialization::{cbor_deserialize, cbor_serialize},
         x509::{Certificate, CertificateUsage},
@@ -30,11 +28,7 @@ use nl_wallet_mdoc::{
     verifier::DisclosedAttributes,
     Error,
 };
-use wallet_common::{
-    generator::TimeGenerator,
-    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, WithIdentifier},
-    utils::random_string,
-};
+use wallet_common::generator::TimeGenerator;
 
 const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -43,54 +37,6 @@ static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_strin
 
 type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>>;
 type MockServer = Issuer<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
-
-struct SoftwareKeyFactory {}
-
-#[async_trait]
-impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
-    type Key = SoftwareEcdsaKey;
-    type Error = Error;
-
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Error> {
-        let keys = iter::repeat_with(|| SoftwareEcdsaKey::new(&random_string(32)))
-            .take(count as usize)
-            .collect();
-        Ok(keys)
-    }
-
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-        let key = SoftwareEcdsaKey::new(&identifier.into());
-
-        // If the provided public key does not match the key fetched
-        // using the identifier, this is programmer error.
-        assert_eq!(executor::block_on(key.verifying_key()).unwrap(), public_key);
-
-        key
-    }
-
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
-        &'a self,
-        msg: T,
-        number_of_keys: u64,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let bytes = msg.into();
-        let keys = self.generate_new_multiple(number_of_keys).await?;
-
-        let signatures_by_identifier = future::join_all(keys.into_iter().map(|key| async {
-            let signature = SoftwareEcdsaKey::new(key.identifier())
-                .try_sign(bytes.as_slice())
-                .await
-                .unwrap();
-
-            (key, signature)
-        }))
-        .await
-        .into_iter()
-        .collect();
-
-        Ok(signatures_by_identifier)
-    }
-}
 
 /// Verify the example disclosure from the standard.
 #[tokio::test]
@@ -172,10 +118,10 @@ async fn do_and_verify_iso_example_disclosure() {
     let storage = MdocsMap::try_from([mdoc]).unwrap();
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
     let resp = wallet
-        .disclose::<SoftwareEcdsaKey>(
+        .disclose(
             &device_request,
             &session_transcript.clone(),
-            &SoftwareKeyFactory {},
+            &SoftwareKeyFactory::default(),
             &storage,
         )
         .await
@@ -218,7 +164,12 @@ async fn iso_examples_custom_disclosure() {
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
 
     let resp = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, &session_transcript.clone(), &SoftwareKeyFactory {}, &storage)
+        .disclose(
+            &request,
+            &session_transcript.clone(),
+            &SoftwareKeyFactory::default(),
+            &storage,
+        )
         .await
         .unwrap();
     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
@@ -419,7 +370,7 @@ async fn issuance_using_consent(
     }
 
     let mdocs = wallet
-        .finish_issuance::<SoftwareEcdsaKey>(&[ca.try_into().unwrap()], &SoftwareKeyFactory {})
+        .finish_issuance(&[ca.try_into().unwrap()], &SoftwareKeyFactory::default())
         .await
         .unwrap();
 
@@ -442,7 +393,12 @@ async fn custom_disclosure(wallet: MockWallet, ca: Certificate, mdocs: MdocsMap)
     // Do the disclosure and verify it
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
     let disclosed = wallet
-        .disclose::<SoftwareEcdsaKey>(&request, &session_transcript.clone(), &SoftwareKeyFactory {}, &mdocs)
+        .disclose(
+            &request,
+            &session_transcript.clone(),
+            &SoftwareKeyFactory::default(),
+            &mdocs,
+        )
         .await
         .unwrap();
     let disclosed_attrs = disclosed
