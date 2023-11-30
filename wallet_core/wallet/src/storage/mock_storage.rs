@@ -155,6 +155,16 @@ impl Storage for MockStorage {
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         Ok(self.event_log.to_vec())
     }
+
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
+        let events = self
+            .event_log
+            .iter()
+            .filter(|e| e.doc_type == doc_type)
+            .cloned()
+            .collect();
+        Ok(events)
+    }
 }
 
 #[cfg(test)]

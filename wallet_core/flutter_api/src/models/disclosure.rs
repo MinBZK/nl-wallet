@@ -54,13 +54,12 @@ pub enum StartDisclosureResult {
     },
 }
 
-struct RPLocalizedStrings(wallet::mdoc::LocalizedStrings);
+pub struct RPLocalizedStrings(pub wallet::mdoc::LocalizedStrings);
 
 impl From<RPLocalizedStrings> for Vec<LocalizedString> {
     fn from(value: RPLocalizedStrings) -> Self {
-        value
-            .0
-             .0
+        let RPLocalizedStrings(wallet::mdoc::LocalizedStrings(localized_strings)) = value;
+        localized_strings
             .iter()
             .map(|(language, value)| LocalizedString {
                 language: language.to_owned(),

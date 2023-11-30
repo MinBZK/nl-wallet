@@ -23,7 +23,7 @@ use platform_support::utils::UtilitiesError;
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::{Status, WalletEvent},
+    event_log::{EventStatus, EventType, WalletEvent},
     key_file::KeyFileError,
 };
 
@@ -83,4 +83,5 @@ pub trait Storage {
 
     async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
+    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
 }

@@ -130,8 +130,7 @@ mod tests {
     // Tests both setting and clearing the lock callback.
     #[tokio::test]
     async fn test_wallet_lock_unlock_callback() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Wrap a `Vec<bool>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -257,8 +256,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_not_locked() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Unlocking an already unlocked `Wallet` should result in an error.
         let error = wallet
@@ -271,8 +269,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_server_challenge_404() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -296,8 +293,7 @@ mod tests {
     async fn test_wallet_unlock_error_instruction_response(
         response_error: AccountProviderResponseError,
     ) -> WalletUnlockError {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -404,8 +400,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_signing() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -427,8 +422,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 
@@ -467,8 +461,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_store() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::registered().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.lock();
 

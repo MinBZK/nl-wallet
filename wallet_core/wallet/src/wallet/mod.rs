@@ -1,6 +1,7 @@
 mod config;
 mod disclosure;
 mod documents;
+mod history;
 mod init;
 mod issuance;
 mod lock;
@@ -26,6 +27,7 @@ use crate::{
 
 pub use self::{
     disclosure::{DisclosureError, DisclosureProposal},
+    history::HistoryError,
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::WalletUnlockError,

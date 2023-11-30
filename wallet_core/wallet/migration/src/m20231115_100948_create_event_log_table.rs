@@ -13,6 +13,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(EventLog::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(EventLog::Type).text().not_null())
+                    .col(ColumnDef::new(EventLog::DocType).text().not_null())
                     .col(ColumnDef::new(EventLog::Timestamp).timestamp().not_null())
                     .col(ColumnDef::new(EventLog::RemotePartyCertificate).binary().not_null())
                     .col(ColumnDef::new(EventLog::Status).text().not_null())
@@ -34,6 +35,7 @@ enum EventLog {
     Table,
     Id,
     Type,
+    DocType,
     Timestamp,
     RemotePartyCertificate,
     Status,
