@@ -239,12 +239,7 @@ impl<T> MdocCose<CoseSign1, T> {
     }
 }
 
-pub async fn sign_cose(
-    payload: &[u8],
-    unprotected_header: Header,
-    private_key: &(impl SecureEcdsaKey + Sync),
-    include_payload: bool,
-) -> Result<CoseSign1> {
+fn signature_data_and_header(payload: &[u8]) -> (Vec<u8>, ProtectedHeader) {
     let protected_header = ProtectedHeader {
         original_data: None,
         header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
@@ -258,6 +253,17 @@ pub async fn sign_cose(
         payload,
     );
 
+    (sig_data, protected_header)
+}
+
+pub async fn sign_cose(
+    payload: &[u8],
+    unprotected_header: Header,
+    private_key: &(impl SecureEcdsaKey + Sync),
+    include_payload: bool,
+) -> Result<CoseSign1> {
+    let (sig_data, protected_header) = signature_data_and_header(payload);
+
     let signature = private_key
         .try_sign(sig_data.as_ref())
         .await
@@ -266,11 +272,7 @@ pub async fn sign_cose(
 
     let signed = CoseSign1 {
         signature,
-        payload: if include_payload {
-            Some(Vec::from(payload))
-        } else {
-            None
-        },
+        payload: include_payload.then(|| payload.to_vec()),
         protected: protected_header,
         unprotected: unprotected_header,
     };
@@ -285,38 +287,27 @@ pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
     key_factory: &'a impl KeyFactory<'a, Key = K>,
     include_payload: bool,
 ) -> Result<Vec<(K, CoseSign1)>> {
-    let protected_header = ProtectedHeader {
-        original_data: None,
-        header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
-    };
-
-    let sig_data = sig_structure_data(
-        SignatureContext::CoseSign1,
-        protected_header.clone(),
-        None,
-        &[],
-        payload,
-    );
+    let (sig_data, protected_header) = signature_data_and_header(payload);
 
     let signatures = key_factory
         .sign_with_new_keys(sig_data, number_of_keys)
         .await
-        .map_err(|err| KeysError::KeyGeneration(Box::new(err)))?;
+        .map_err(|err| KeysError::KeyGeneration(err.into()))?;
 
     let coses = signatures
         .into_iter()
-        .map(|(key, signature)| {
+        .zip(itertools::repeat_n(
+            (protected_header, unprotected_header),
+            number_of_keys.try_into().unwrap(),
+        ))
+        .map(|((key, signature), (protected_header, unprotected_header))| {
             (
                 key,
                 CoseSign1 {
                     signature: signature.to_vec(),
-                    payload: if include_payload {
-                        Some(Vec::from(payload))
-                    } else {
-                        None
-                    },
-                    protected: protected_header.clone(),
-                    unprotected: unprotected_header.clone(),
+                    payload: include_payload.then(|| payload.to_vec()),
+                    protected: protected_header,
+                    unprotected: unprotected_header,
                 },
             )
         })
