@@ -239,7 +239,9 @@ pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn cancel_disclosure() -> Result<()> {
-    // TODO: implement.
+    let mut wallet = wallet().write().await;
+
+    wallet.cancel_disclosure().await?;
 
     Ok(())
 }

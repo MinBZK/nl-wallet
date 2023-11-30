@@ -32,6 +32,19 @@ use crate::{
 /// respectively. It is not otherwise included in other data structures.
 pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
 
+impl DeviceAuthentication {
+    /// Re-construct a [`DeviceAuthentication`] from a [`SessionTranscript`] and [`DocType`].
+    pub fn from_session_transcript(session_transcript: SessionTranscript, doc_type: DocType) -> Self {
+        DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript,
+            doc_type,
+            device_name_spaces_bytes: Default::default(),
+        }
+        .into()
+    }
+}
+
 /// See [`DeviceAuthentication`].
 pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 
@@ -195,3 +208,25 @@ pub struct RestApiOptionsKeyed {
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        examples::Example,
+        utils::serialization::{self, TaggedBytes},
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_device_authentication_bytes_from_session_transcript() {
+        let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
+        let device_authentication =
+            DeviceAuthentication::from_session_transcript(session_transcript, "org.iso.18013.5.1.mDL".to_string());
+
+        assert_eq!(
+            serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap(),
+            DeviceAuthenticationBytes::example_bts()
+        );
+    }
+}

@@ -31,9 +31,9 @@ class WalletPersonalizeOfferingAccepted extends WalletPersonalizeEvent {
 
 class WalletPersonalizeOfferingRejected extends WalletPersonalizeEvent {}
 
-class WalletPersonalizeOnRetryClicked extends WalletPersonalizeEvent {}
+class WalletPersonalizeRetryPressed extends WalletPersonalizeEvent {}
 
-class WalletPersonalizeOnBackPressed extends WalletPersonalizeEvent {}
+class WalletPersonalizeBackPressed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {}
 

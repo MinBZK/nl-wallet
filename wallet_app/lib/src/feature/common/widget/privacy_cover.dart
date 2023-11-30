@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
+import '../../../util/extension/build_context_extension.dart';
 import 'wallet_logo.dart';
 
 /// Covers all content of the app when the app enters the background. This only works on iOS.
@@ -55,7 +56,7 @@ class _PrivacyCoverState extends State<PrivacyCover> with WidgetsBindingObserver
   /// We can't simply use the [Theme] since this Widget can live above the
   /// [MaterialApp], which provides the [Theme] to all of it's children.
   Color _resolveBgColor(BuildContext context) {
-    final brightness = MediaQuery.of(context).platformBrightness;
+    final brightness = context.mediaQuery.platformBrightness;
     bool isDarkMode = brightness == Brightness.dark;
     return isDarkMode ? DarkWalletTheme.colorScheme.background : LightWalletTheme.colorScheme.background;
   }

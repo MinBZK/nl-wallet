@@ -58,11 +58,11 @@ variables:
 test-flutter:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:447d9a3087d980a5eb752eb82ce9b9d05a6591cd0ebe857232c8c6e7a79c8381"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:ad12b405fb6b67511a9677b237f66709b856585dc402db4853a1d57f76f2d0e3"
   script:
     - set -euxo pipefail
     - flutter --version
-    - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
   artifacts:
@@ -294,10 +294,10 @@ sonar-android:
 test-codegen:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:ec948ce194722c9dd49fbcb132f9526d04a064e5140b961aca366c1c1d7ee929"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:b9a900338f8f23289c9f136bc9d8c4928c024284e85f8cd89dc76949aa73d010"
   script:
     - set -euxo pipefail
-    - flutter pub get --directory $FLUTTER_APP_PROJECT_DIR
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
     - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
     - dart format wallet_app --line-length 120

@@ -4,7 +4,11 @@ use async_trait::async_trait;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    holder::{CborHttpClient, DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor},
+    holder::{
+        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, MdocDataSource,
+        ProposedAttributes, TrustAnchor,
+    },
+    identifiers::AttributeIdentifier,
     utils::reader_auth::ReaderRegistration,
 };
 
@@ -15,18 +19,40 @@ pub use self::uri::{DisclosureUriData, DisclosureUriError};
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockMdocDisclosureSession;
 
+#[derive(Debug)]
+pub enum MdocDisclosureSessionState<M, P> {
+    MissingAttributes(M),
+    Proposal(P),
+}
+
 #[async_trait]
 pub trait MdocDisclosureSession<D> {
+    type MissingAttributes: MdocDisclosureMissingAttributes;
+    type Proposal: MdocDisclosureProposal;
+
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self, nl_wallet_mdoc::Error>
+    ) -> nl_wallet_mdoc::Result<Self>
     where
         Self: Sized;
 
-    fn return_url(&self) -> Option<&Url>;
     fn reader_registration(&self) -> &ReaderRegistration;
+    fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
+
+    async fn terminate(self) -> nl_wallet_mdoc::Result<()>;
+}
+
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+pub trait MdocDisclosureMissingAttributes {
+    fn missing_attributes(&self) -> &[AttributeIdentifier];
+}
+
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+pub trait MdocDisclosureProposal {
+    #[allow(clippy::needless_lifetimes)]
+    fn return_url<'a>(&'a self) -> Option<&'a Url>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 }
 
@@ -35,11 +61,14 @@ impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient>
 where
     D: MdocDataSource + Sync,
 {
+    type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
+    type Proposal = DisclosureProposal<CborHttpClient>;
+
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self, nl_wallet_mdoc::Error> {
+    ) -> nl_wallet_mdoc::Result<Self> {
         let http_client = utils::reqwest::default_reqwest_client_builder()
             .build()
             .expect("Could not build reqwest HTTP client");
@@ -55,12 +84,34 @@ where
         .await
     }
 
-    fn return_url(&self) -> Option<&Url> {
-        self.return_url.as_ref()
+    fn reader_registration(&self) -> &ReaderRegistration {
+        self.reader_registration()
     }
 
-    fn reader_registration(&self) -> &ReaderRegistration {
-        &self.reader_registration
+    fn session_state(
+        &self,
+    ) -> MdocDisclosureSessionState<&DisclosureMissingAttributes<CborHttpClient>, &DisclosureProposal<CborHttpClient>>
+    {
+        match self {
+            DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
+            DisclosureSession::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
+        }
+    }
+
+    async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
+        self.terminate().await
+    }
+}
+
+impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpClient> {
+    fn missing_attributes(&self) -> &[AttributeIdentifier] {
+        self.missing_attributes()
+    }
+}
+
+impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
+    fn return_url(&self) -> Option<&Url> {
+        self.return_url()
     }
 
     fn proposed_attributes(&self) -> ProposedAttributes {
@@ -70,38 +121,47 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use std::sync::Mutex;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    };
 
     use nl_wallet_mdoc::verifier::SessionType;
     use once_cell::sync::Lazy;
 
     use super::*;
 
-    pub static READER_REGISTRATION_NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> =
-        Lazy::new(|| Mutex::new(None));
-    pub static READER_REGISTRATION_DISCLOSED_ATTRIBUTES: Lazy<Mutex<Option<(ReaderRegistration, ProposedAttributes)>>> =
-        Lazy::new(|| Mutex::new(None));
+    type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
+    type MockFields = (ReaderRegistration, SessionState);
+
+    pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
+    pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
+
+    // For convenience, the default `SessionState` is a proposal.
+    impl Default for SessionState {
+        fn default() -> Self {
+            MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal::default())
+        }
+    }
 
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
-        pub proposed_attributes: ProposedAttributes,
+        pub session_state: SessionState,
+        pub was_terminated: Arc<AtomicBool>,
     }
 
     impl MockMdocDisclosureSession {
-        pub fn next_reader_registration_and_proposed_attributes(
-            reader_registration: ReaderRegistration,
-            proposed_attributes: ProposedAttributes,
-        ) {
-            READER_REGISTRATION_DISCLOSED_ATTRIBUTES
+        pub fn next_fields(reader_registration: ReaderRegistration, session_state: SessionState) {
+            NEXT_MOCK_FIELDS
                 .lock()
                 .unwrap()
-                .replace((reader_registration, proposed_attributes));
+                .replace((reader_registration, session_state));
         }
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
-            READER_REGISTRATION_NEXT_START_ERROR.lock().unwrap().replace(error);
+            NEXT_START_ERROR.lock().unwrap().replace(error);
         }
     }
 
@@ -114,47 +174,55 @@ mod mock {
                     session_type: SessionType::CrossDevice,
                 },
                 reader_registration: ReaderRegistration::default(),
-                proposed_attributes: ProposedAttributes::default(),
+                session_state: SessionState::default(),
+                was_terminated: Default::default(),
             }
         }
     }
 
     #[async_trait]
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
+        type MissingAttributes = MockMdocDisclosureMissingAttributes;
+        type Proposal = MockMdocDisclosureProposal;
+
         async fn start<'a>(
             disclosure_uri: DisclosureUriData,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
-        ) -> Result<Self, nl_wallet_mdoc::Error> {
-            if let Some(error) = READER_REGISTRATION_NEXT_START_ERROR.lock().unwrap().take() {
+        ) -> nl_wallet_mdoc::Result<Self> {
+            if let Some(error) = NEXT_START_ERROR.lock().unwrap().take() {
                 return Err(error);
             }
 
-            let (reader_registration, proposed_attributes) = READER_REGISTRATION_DISCLOSED_ATTRIBUTES
-                .lock()
-                .unwrap()
-                .take()
-                .unwrap_or_default();
+            let (reader_registration, session_state) = NEXT_MOCK_FIELDS.lock().unwrap().take().unwrap_or_default();
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
                 reader_registration,
-                proposed_attributes,
+                session_state,
+                was_terminated: Default::default(),
             };
 
             Ok(session)
         }
 
-        fn return_url(&self) -> Option<&Url> {
-            self.disclosure_uri.return_url.as_ref()
+        fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal> {
+            match self.session_state {
+                MdocDisclosureSessionState::MissingAttributes(ref session) => {
+                    MdocDisclosureSessionState::MissingAttributes(session)
+                }
+                MdocDisclosureSessionState::Proposal(ref session) => MdocDisclosureSessionState::Proposal(session),
+            }
         }
 
         fn reader_registration(&self) -> &ReaderRegistration {
             &self.reader_registration
         }
 
-        fn proposed_attributes(&self) -> ProposedAttributes {
-            self.proposed_attributes.clone()
+        async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
+            self.was_terminated.store(true, Ordering::Relaxed);
+
+            Ok(())
         }
     }
 }

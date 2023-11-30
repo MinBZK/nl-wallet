@@ -120,6 +120,13 @@ pub enum SessionStatus {
 }
 
 impl SessionData {
+    pub fn new_encryption_error() -> Self {
+        SessionData {
+            data: None,
+            status: Some(SessionStatus::EncryptionError),
+        }
+    }
+
     pub fn new_decoding_error() -> Self {
         SessionData {
             data: None,

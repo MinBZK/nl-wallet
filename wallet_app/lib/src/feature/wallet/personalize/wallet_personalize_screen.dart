@@ -38,14 +38,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
         leading: _buildBackButton(context),
         title: Text(context.l10n.walletPersonalizeScreenTitle),
       ),
-      body: WillPopScope(
-        onWillPop: () async {
-          if (context.bloc.state.canGoBack) {
-            context.bloc.add(WalletPersonalizeOnBackPressed());
-          } else {
-            return _showExitSheet(context);
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            return;
           }
-          return false;
+          if (context.bloc.state.canGoBack) {
+            context.bloc.add(WalletPersonalizeBackPressed());
+          } else {
+            _showExitSheet(context);
+          }
         },
         child: Column(
           children: [
@@ -66,7 +69,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.bloc.add(WalletPersonalizeOnBackPressed()),
+          onPressed: () => context.bloc.add(WalletPersonalizeBackPressed()),
         );
       },
     );
@@ -231,7 +234,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       title: context.l10n.walletPersonalizeScreenErrorTitle,
       description: context.l10n.walletPersonalizeScreenErrorDescription,
       primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
-      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeOnRetryClicked()),
+      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
     );
   }
 
@@ -254,8 +257,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.
-  Future<bool> _showExitSheet(BuildContext context) {
-    return ConfirmActionSheet.show(
+  void _showExitSheet(BuildContext context) async {
+    final confirmed = await ConfirmActionSheet.show(
       context,
       title: context.l10n.walletPersonalizeScreenExitSheetTitle,
       description: context.l10n.walletPersonalizeScreenExitSheetDescription,
@@ -263,6 +266,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       confirmButtonText: context.l10n.walletPersonalizeScreenExitSheetConfirmCta,
       confirmButtonColor: context.colorScheme.error,
     );
+    if (confirmed && context.mounted) Navigator.pop(context);
   }
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {

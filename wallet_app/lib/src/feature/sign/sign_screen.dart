@@ -42,15 +42,18 @@ class SignScreen extends StatelessWidget {
         title: Text(context.l10n.signScreenTitle),
         actions: [_buildCloseButton(context)],
       ),
-      body: WillPopScope(
-        onWillPop: () async {
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            return;
+          }
           final bloc = context.read<SignBloc>();
           if (bloc.state.canGoBack) {
             bloc.add(const SignBackPressed());
           } else {
             _stopSigning(context);
           }
-          return false;
         },
         child: Column(
           children: [

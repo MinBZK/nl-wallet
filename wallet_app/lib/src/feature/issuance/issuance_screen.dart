@@ -50,15 +50,18 @@ class IssuanceScreen extends StatelessWidget {
         leading: _buildBackButton(context),
         actions: [_buildCloseButton(context)],
       ),
-      body: WillPopScope(
-        onWillPop: () async {
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (didPop) {
+            return;
+          }
           final bloc = context.bloc;
           if (bloc.state.canGoBack) {
             bloc.add(const IssuanceBackPressed());
           } else {
             _stopIssuance(context);
           }
-          return false;
         },
         child: Column(
           children: [

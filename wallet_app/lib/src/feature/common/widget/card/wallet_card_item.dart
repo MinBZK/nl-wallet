@@ -86,7 +86,7 @@ class WalletCardItem extends StatelessWidget {
       child: Builder(
         builder: (context) {
           return LimitFontScaling(
-            maxTextScaleFactor: _kMaxCardTextScale,
+            maxScaleFactor: _kMaxCardTextScale,
             child: FittedBox(
               child: Container(
                 constraints: BoxConstraints(

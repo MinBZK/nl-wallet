@@ -109,12 +109,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       restorationId: 'introduction_scaffold',
-      body: WillPopScope(
-        onWillPop: () async {
-          final canGoBack = _currentPage >= 1;
-          if (canGoBack) _onBackPressed(context);
-          return !canGoBack;
-        },
+      body: PopScope(
+        canPop: _currentPage == 0,
+        onPopInvoked: (didPop) => didPop ? null : _onPreviousPagePressed(context),
         child: _buildPager(context),
       ),
     );
@@ -288,7 +285,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   void _onSkipPressed(BuildContext context) =>
       Navigator.restorablePushNamed(context, WalletRoutes.introductionExpectationsRoute);
 
-  void _onBackPressed(BuildContext context) {
+  void _onPreviousPagePressed(BuildContext context) {
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
   }
 
