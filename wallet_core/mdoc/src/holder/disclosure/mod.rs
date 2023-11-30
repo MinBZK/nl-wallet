@@ -24,6 +24,7 @@ use super::{HolderError, HttpClient, Mdoc, MdocRetriever, Wallet};
 pub use session::{DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, ProposedAttributes};
 
 mod engagement;
+mod issuer_signed;
 mod proposed_document;
 mod request;
 mod session;
@@ -124,7 +125,7 @@ impl Mdoc {
                 issuer_auth: self.issuer_signed.issuer_auth.clone(),
             },
             device_signed: DeviceSigned::new_signature(
-                &key_factory.generate_existing(&self.private_key_id, self.public_key()?),
+                &key_factory.generate_existing(&self.private_key_id, self.issuer_signed.public_key()?),
                 &cbor_serialize(&TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                     device_authentication: Default::default(),
                     session_transcript: session_transcript.clone(),
