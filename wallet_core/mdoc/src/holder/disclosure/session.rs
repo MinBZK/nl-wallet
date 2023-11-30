@@ -291,9 +291,13 @@ mod tests {
 
     use assert_matches::assert_matches;
     use http::StatusCode;
+    use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
     use tokio::sync::mpsc;
 
-    use crate::{iso::disclosure::SessionStatus, utils::cose::CoseError};
+    use crate::{
+        iso::disclosure::SessionStatus,
+        utils::{cose::CoseError, crypto::SessionKeyUser},
+    };
 
     use super::{super::tests::*, *};
 
@@ -556,11 +560,11 @@ mod tests {
 
     async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
     where
-        F: Fn() -> Error + Send + Sync,
+        F: Fn() -> Option<Error> + Send + Sync,
     {
-        // Set up a `ErrorHttpClient` with the receiver `error_factory`.
+        // Set up a `TerminatingHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
-        let client = ErrorHttpClient {
+        let client = TerminatingHttpClient {
             error_factory,
             payload_sender,
         };
@@ -592,9 +596,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_data_serialization() {
-        // Set up the `ErrorHttpClient` to return a `CborError::Serialization`.
+        // Set up the `TerminatingHttpClient` to return a `CborError::Serialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
-            CborError::from(ciborium::ser::Error::Value("".to_string())).into()
+            Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into()
         })
         .await;
 
@@ -606,7 +610,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_request() {
-        // Set up the `ErrorHttpClient` to return a `HolderError::Serialization`.
+        // Set up the `TerminatingHttpClient` to return a `HolderError::Serialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
             let response = http::Response::builder()
                 .status(StatusCode::NOT_FOUND)
@@ -614,7 +618,7 @@ mod tests {
                 .unwrap();
             let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
 
-            HolderError::from(reqwest_error).into()
+            Error::from(HolderError::from(reqwest_error)).into()
         })
         .await;
 
@@ -626,9 +630,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_data_deserialization() {
-        // Set up the `ErrorHttpClient` to return a `CborError::Deserialization`.
+        // Set up the `TerminatingHttpClient` to return a `CborError::Deserialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
-            CborError::from(ciborium::de::Error::RecursionLimitExceeded).into()
+            Error::from(CborError::from(ciborium::de::Error::RecursionLimitExceeded)).into()
         })
         .await;
 
@@ -880,5 +884,128 @@ mod tests {
         assert_eq!(payloads.len(), 2);
 
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+    }
+
+    async fn test_disclosure_session_terminate<H>(
+        session: DisclosureSession<H>,
+        mut payload_receiver: mpsc::Receiver<Vec<u8>>,
+    ) -> Result<()>
+    where
+        H: HttpClient,
+    {
+        let result = session.terminate().await;
+
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        assert_eq!(payloads.len(), 1);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+
+        result
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_terminate_proposal() {
+        let privkey = SecretKey::random(&mut OsRng);
+        let pubkey = SecretKey::random(&mut OsRng).public_key();
+        let session_transcript = create_basic_session_transcript();
+        let device_key = SessionKey::new(&privkey, &pubkey, &session_transcript, SessionKeyUser::Device).unwrap();
+
+        let (payload_sender, payload_receiver) = mpsc::channel(256);
+        let client = TerminatingHttpClient {
+            error_factory: || None::<Error>,
+            payload_sender,
+        };
+
+        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
+            return_url: Url::parse(RETURN_URL).unwrap().into(),
+            endpoint: DisclosureEndpoint {
+                client,
+                verifier_url: SESSION_URL.parse().unwrap(),
+                reader_registration: Default::default(),
+            },
+            device_key: device_key.clone(),
+            proposed_documents: Default::default(),
+        });
+
+        // Terminating a `DisclosureSession` with a proposal should succeed.
+        test_disclosure_session_terminate(proposal_session, payload_receiver)
+            .await
+            .expect("Could not terminate DisclosureSession with proposal");
+
+        let (payload_sender, payload_receiver) = mpsc::channel(256);
+        let client = TerminatingHttpClient {
+            error_factory: || Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into(),
+            payload_sender,
+        };
+
+        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
+            return_url: Url::parse(RETURN_URL).unwrap().into(),
+            endpoint: DisclosureEndpoint {
+                client,
+                verifier_url: SESSION_URL.parse().unwrap(),
+                reader_registration: Default::default(),
+            },
+            device_key,
+            proposed_documents: Default::default(),
+        });
+
+        // Terminating a `DisclosureSession` with a proposal where the `HttpClient`
+        // gives an error should result in that error being forwarded.
+        let error = test_disclosure_session_terminate(proposal_session, payload_receiver)
+            .await
+            .expect_err("Terminating DisclosureSession with proposal should have resulted in an error");
+
+        assert_matches!(error, Error::Cbor(_));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_terminate_missing_attributes() {
+        let (payload_sender, payload_receiver) = mpsc::channel(256);
+        let client = TerminatingHttpClient {
+            error_factory: || None::<Error>,
+            payload_sender,
+        };
+
+        // Terminating a `DisclosureSession` with missing attributes should succeed.
+        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+            endpoint: DisclosureEndpoint {
+                client,
+                verifier_url: SESSION_URL.parse().unwrap(),
+                reader_registration: Default::default(),
+            },
+            missing_attributes: Default::default(),
+        });
+
+        test_disclosure_session_terminate(missing_attr_session, payload_receiver)
+            .await
+            .expect("Could not terminate DisclosureSession with missing attributes");
+
+        let (payload_sender, payload_receiver) = mpsc::channel(256);
+        let client = TerminatingHttpClient {
+            error_factory: || Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into(),
+            payload_sender,
+        };
+
+        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+            endpoint: DisclosureEndpoint {
+                client,
+                verifier_url: SESSION_URL.parse().unwrap(),
+                reader_registration: Default::default(),
+            },
+            missing_attributes: Default::default(),
+        });
+
+        // Terminating a `DisclosureSession` with missing attributes where the
+        // `HttpClient` gives an error should result in that error being forwarded.
+        let error = test_disclosure_session_terminate(missing_attr_session, payload_receiver)
+            .await
+            .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
+
+        assert_matches!(error, Error::Cbor(_));
     }
 }
