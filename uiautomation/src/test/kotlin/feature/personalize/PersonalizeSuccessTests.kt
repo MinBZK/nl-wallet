@@ -66,13 +66,13 @@ class PersonalizeSuccessTests : TestBase() {
     //@Test
     @DisplayName("2. The confirmation includes a success message.")
     fun verifySuccessMessage() {
-        // Manual test.
+        // Manual test: https://SSSS/jira/browse/PVW-1771
     }
 
     //@Test
     @DisplayName("3. The confirmation includes the issued cards (PID + Address): card, title.")
     fun verifyIssuedCards() {
-        // Manual test.
+        // Manual test: https://SSSS/jira/browse/PVW-1772
     }
 
     @Test

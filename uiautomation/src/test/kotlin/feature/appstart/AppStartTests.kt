@@ -21,12 +21,10 @@ class AppStartTests : TestBase() {
         introductionScreen = IntroductionScreen()
     }
 
-    @Test
+    //@Test
     @DisplayName("1. When the App is started, it shows a loading screen until necessary resources are loaded, including the name and logo of the app.")
     fun verifySplashScreen() {
-        //FUTURE: Until the splash screen has a minimum display duration; this is not testable in a stable way, the future implementation would look like this:
-        // assertTrue(splashScreen.visible(), "Splash screen is not visible")
-        // assertEquals(splashScreen.readAppNameText(), l10n.getString("appTitle"), "App name is not equal to expected value")
+        // Manual test: https://SSSS/jira/browse/PVW-1767
     }
 
     @Nested

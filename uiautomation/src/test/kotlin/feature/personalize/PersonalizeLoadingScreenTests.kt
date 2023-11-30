@@ -51,11 +51,10 @@ class PersonalizeLoadingScreenTests : TestBase() {
         personalizeLoadingScreen.switchToApp()
     }
 
-    @Test
+    //@Test
     @DisplayName("1. The App displays a loading screen whilst this process is pending.")
     fun verifyPersonalizeLoadingScreen() {
-        //FUTURE: Not testable in a stable way due to the loading screen not having a minimum display duration, future implementation would look like this:
-        //assertTrue(personalizeLoadingScreen.visible(), "personalize loading screen is not visible")
+        // Manual test: https://SSSS/jira/browse/PVW-1768
     }
 
     //@Test
@@ -85,6 +84,6 @@ class PersonalizeLoadingScreenTests : TestBase() {
     //@Test
     @DisplayName("6. When PID/address issuance fails, the App displays an appropriate message to the User.")
     fun verifyWrongPin() {
-        // Manual test.
+        // Manual test: https://SSSS/jira/browse/PVW-1769
     }
 }

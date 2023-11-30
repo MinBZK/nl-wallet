@@ -63,7 +63,7 @@ class PersonalizePidPreviewScreenTests : TestBase() {
     //@Test
     @DisplayName("2. The App displays the PID data in a user friendly / human readable format.")
     fun verifyHumanReadablePidPreviewData() {
-        // Manual test.
+        // Manual test: https://SSSS/jira/browse/PVW-1770
     }
 
     @Test
