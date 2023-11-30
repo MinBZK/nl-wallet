@@ -546,6 +546,8 @@ impl support::IntoDart for Organization {
             self.web_url.into_dart(),
             self.kvk.into_dart(),
             self.city.into_dart(),
+            self.category.into_into_dart().into_dart(),
+            self.department.into_dart(),
             self.country_code.into_dart(),
         ]
         .into_dart()

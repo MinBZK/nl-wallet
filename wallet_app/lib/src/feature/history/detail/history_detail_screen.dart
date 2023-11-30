@@ -237,7 +237,7 @@ class HistoryDetailScreen extends StatelessWidget {
         organization.displayName.l10nValue(context),
         status,
       )),
-      subtitle: Text(organization.type?.l10nValue(context) ?? ''),
+      subtitle: Text(organization.category?.l10nValue(context) ?? ''),
       onTap: () => OrganizationDetailScreen.showPreloaded(context, organization, false),
     );
   }

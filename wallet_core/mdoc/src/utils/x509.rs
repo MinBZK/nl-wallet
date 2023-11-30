@@ -410,8 +410,10 @@ mod test {
                 ("en", "Description of My Organization"),
             ]
             .into(),
+            category: vec![("nl", "Categorie"), ("en", "Category")].into(),
             kvk: Some("some-kvk".to_owned()),
             city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+            department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
             country_code: Some("nl".to_owned()),
             web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
             privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),

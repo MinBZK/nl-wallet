@@ -74,10 +74,12 @@ pub struct Organization {
     pub display_name: LocalizedStrings,
     pub legal_name: LocalizedStrings,
     pub description: LocalizedStrings,
+    pub category: LocalizedStrings,
     pub logo: Option<Image>,
     pub web_url: Option<Url>,
     pub kvk: Option<String>,
     pub city: Option<LocalizedStrings>,
+    pub department: Option<LocalizedStrings>,
     pub country_code: Option<String>,
     pub privacy_policy_url: Option<Url>,
 }

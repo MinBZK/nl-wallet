@@ -279,6 +279,10 @@ fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
                 language: "nl".to_owned(),
                 value: "RP Description".to_owned(),
             }],
+            category: vec![LocalizedString {
+                language: "nl".to_owned(),
+                value: "Overheid".to_owned(),
+            }],
             image: None,
             web_url: Some("https://example.org".to_owned()),
             kvk: Some("1234 5678".to_owned()),
@@ -287,6 +291,7 @@ fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
                 value: "RP City".to_owned(),
             }]),
             country_code: Some("nl".to_owned()),
+            department: None,
         },
         purpose: vec![LocalizedString {
             language: "nl".to_owned(),
