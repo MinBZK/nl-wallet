@@ -5,6 +5,7 @@ import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
+import 'package:wallet/src/util/mapper/card/card_config_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
@@ -23,6 +24,7 @@ void main() {
       core,
       CardMapper(
         CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
+        CardConfigMapper(),
         CardAttributeMapper(CardAttributeValueMapper(), LocalizedLabelsMapper()),
       ),
     );

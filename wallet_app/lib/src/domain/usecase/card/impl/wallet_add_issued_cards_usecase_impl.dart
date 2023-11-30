@@ -1,5 +1,5 @@
-import '../../../../data/repository/card/timeline_attribute_repository.dart';
 import '../../../../data/repository/card/wallet_card_repository.dart';
+import '../../../../data/repository/history/timeline_attribute_repository.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../../../model/wallet_card.dart';
 import '../wallet_add_issued_cards_usecase.dart';

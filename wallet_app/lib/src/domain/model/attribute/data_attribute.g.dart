@@ -11,14 +11,14 @@ DataAttribute _$DataAttributeFromJson(Map<String, dynamic> json) => DataAttribut
       label: Map<String, String>.from(json['label'] as Map),
       value: _$JsonConverterFromJson<Map<String, dynamic>, AttributeValue>(
           json['value'], const AttributeValueConverter().fromJson),
-      sourceCardId: json['sourceCardId'] as String,
+      sourceCardDocType: json['sourceCardDocType'] as String,
     );
 
 Map<String, dynamic> _$DataAttributeToJson(DataAttribute instance) => <String, dynamic>{
       'key': instance.key,
       'label': instance.label,
       'value': const AttributeValueConverter().toJson(instance.value),
-      'sourceCardId': instance.sourceCardId,
+      'sourceCardDocType': instance.sourceCardDocType,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

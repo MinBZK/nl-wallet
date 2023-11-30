@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../feature/disclosure/argument/disclosure_screen_argument.dart';
+import '../../../feature/issuance/argument/issuance_screen_argument.dart';
+import '../../../feature/sign/argument/sign_screen_argument.dart';
 import '../../../navigation/wallet_routes.dart';
 import 'navigation_prerequisite.dart';
 import 'pre_navigation_action.dart';
@@ -71,6 +73,32 @@ class DisclosureNavigationRequest extends NavigationRequest {
       : super(
           WalletRoutes.disclosureRoute,
           argument: DisclosureScreenArgument(uri: uri),
+          navigatePrerequisites: [
+            NavigationPrerequisite.walletUnlocked,
+            NavigationPrerequisite.walletInitialized,
+            NavigationPrerequisite.pidInitialized,
+          ],
+        );
+}
+
+class IssuanceNavigationRequest extends NavigationRequest {
+  IssuanceNavigationRequest(String uri, {bool isRefreshFlow = false})
+      : super(
+          WalletRoutes.issuanceRoute,
+          argument: IssuanceScreenArgument(uri: uri, isRefreshFlow: isRefreshFlow),
+          navigatePrerequisites: [
+            NavigationPrerequisite.walletUnlocked,
+            NavigationPrerequisite.walletInitialized,
+            NavigationPrerequisite.pidInitialized,
+          ],
+        );
+}
+
+class SignNavigationRequest extends NavigationRequest {
+  SignNavigationRequest(String uri)
+      : super(
+          WalletRoutes.signRoute,
+          argument: SignScreenArgument(uri: uri),
           navigatePrerequisites: [
             NavigationPrerequisite.walletUnlocked,
             NavigationPrerequisite.walletInitialized,

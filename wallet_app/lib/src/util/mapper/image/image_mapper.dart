@@ -11,5 +11,6 @@ class ImageMapper extends Mapper<Image, AppImageData> {
         svg: (svg) => SvgImage(svg.xml),
         png: (png) => Base64Image(png.base64),
         jpg: (jpg) => Base64Image(jpg.base64),
+        asset: (asset) => AppAssetImage(asset.path),
       );
 }

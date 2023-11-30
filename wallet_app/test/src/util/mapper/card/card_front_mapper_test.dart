@@ -23,12 +23,10 @@ void main() {
   });
 
   group('map', () {
-    test('card with `pid_id` or `com.example.pid` docType should return light localized card front', () {
-      const inputOne = Card(persistence: CardPersistence.inMemory(), docType: 'pid_id', attributes: []);
-      const inputTwo = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.pid', attributes: []);
+    test('card with `com.example.pid` docType should return light localized card front', () {
+      const coreCard = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.pid', attributes: []);
 
-      when(mockSubtitleMapper.map(inputOne)).thenReturn('Subtitle'.untranslated);
-      when(mockSubtitleMapper.map(inputTwo)).thenReturn('Subtitle'.untranslated);
+      when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
       final expected = CardFront(
         title: const {'en': 'Personal data', 'nl': 'Persoonsgegevens'},
@@ -39,19 +37,16 @@ void main() {
         theme: CardFrontTheme.light,
       );
 
-      expect(mapper.map(inputOne), expected);
-      expect(mapper.map(inputTwo), expected);
+      expect(mapper.map(coreCard), expected);
+      expect(kPidDocType, 'com.example.pid');
 
-      verify(mockSubtitleMapper.map(inputOne)).called(1);
-      verify(mockSubtitleMapper.map(inputTwo)).called(1);
+      verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
-    test('card with `pid_address` or `com.example.address` docType should return dark localized card front', () {
-      const inputOne = Card(persistence: CardPersistence.inMemory(), docType: 'pid_address', attributes: []);
-      const inputTwo = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.address', attributes: []);
+    test('card with `com.example.address` docType should return dark localized card front', () {
+      const coreCard = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.address', attributes: []);
 
-      when(mockSubtitleMapper.map(inputOne)).thenReturn('Subtitle'.untranslated);
-      when(mockSubtitleMapper.map(inputTwo)).thenReturn('Subtitle'.untranslated);
+      when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
       final expected = CardFront(
         title: const {'en': 'Residential address', 'nl': 'Woonadres'},
@@ -62,11 +57,10 @@ void main() {
         theme: CardFrontTheme.dark,
       );
 
-      expect(mapper.map(inputOne), expected);
-      expect(mapper.map(inputTwo), expected);
+      expect(mapper.map(coreCard), expected);
+      expect(kAddressDocType, 'com.example.address');
 
-      verify(mockSubtitleMapper.map(inputOne)).called(1);
-      verify(mockSubtitleMapper.map(inputTwo)).called(1);
+      verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
     test('card with unknown docType should throw exception', () {

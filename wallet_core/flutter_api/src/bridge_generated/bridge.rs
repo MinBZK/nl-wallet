@@ -496,6 +496,7 @@ impl support::IntoDart for Image {
             Self::Svg { xml } => vec![0.into_dart(), xml.into_into_dart().into_dart()],
             Self::Png { base64 } => vec![1.into_dart(), base64.into_into_dart().into_dart()],
             Self::Jpg { base64 } => vec![2.into_dart(), base64.into_into_dart().into_dart()],
+            Self::Asset { path } => vec![3.into_dart(), path.into_into_dart().into_dart()],
         }
         .into_dart()
     }

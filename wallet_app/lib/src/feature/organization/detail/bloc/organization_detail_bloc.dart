@@ -16,6 +16,10 @@ class OrganizationDetailBloc extends Bloc<OrganizationDetailEvent, OrganizationD
   OrganizationDetailBloc(this._getOrganizationByIdUseCase, this._hasPreviouslyInteractedWithOrganizationUseCase,
       {Organization? organization})
       : super(OrganizationDetailInitial()) {
+    if (organization == null) {
+      throw UnsupportedError(
+          'Currently we only support showing the organization if it is passed in at the time of creation');
+    }
     on<OrganizationLoadTriggered>(_onOrganizationLoadTriggered);
   }
 

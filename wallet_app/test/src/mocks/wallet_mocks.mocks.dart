@@ -7,8 +7,8 @@ import 'dart:async' as _i5;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
-import 'package:wallet/src/data/repository/card/timeline_attribute_repository.dart' as _i15;
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i12;
+import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i15;
 import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i13;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i8;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i10;
@@ -20,11 +20,14 @@ import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.da
 import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i4;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i22;
-import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i28;
+import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i30;
+import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i31;
+import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i20;
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i26;
-import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i27;
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i28;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i11;
+import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i29;
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i21;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i23;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i24;
@@ -423,6 +426,16 @@ class MockOrganizationRepository extends _i1.Mock implements _i13.OrganizationRe
         returnValue: _i5.Future<_i14.Organization?>.value(),
         returnValueForMissingStub: _i5.Future<_i14.Organization?>.value(),
       ) as _i5.Future<_i14.Organization?>);
+
+  @override
+  _i5.Future<_i14.Organization?> findIssuer(String? docType) => (super.noSuchMethod(
+        Invocation.method(
+          #findIssuer,
+          [docType],
+        ),
+        returnValue: _i5.Future<_i14.Organization?>.value(),
+        returnValueForMissingStub: _i5.Future<_i14.Organization?>.value(),
+      ) as _i5.Future<_i14.Organization?>);
 }
 
 /// A class which mocks [TimelineAttributeRepository].
@@ -450,11 +463,11 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
       ) as _i5.Future<List<_i4.TimelineAttribute>>);
 
   @override
-  _i5.Future<List<_i4.TimelineAttribute>> readFiltered({required String? cardId}) => (super.noSuchMethod(
+  _i5.Future<List<_i4.TimelineAttribute>> readFiltered({required String? docType}) => (super.noSuchMethod(
         Invocation.method(
           #readFiltered,
           [],
-          {#cardId: cardId},
+          {#docType: docType},
         ),
         returnValue: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
         returnValueForMissingStub: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
@@ -463,7 +476,7 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
   @override
   _i5.Future<_i4.TimelineAttribute> read({
     required String? timelineAttributeId,
-    String? cardId,
+    String? docType,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -471,7 +484,7 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
           [],
           {
             #timelineAttributeId: timelineAttributeId,
-            #cardId: cardId,
+            #docType: docType,
           },
         ),
         returnValue: _i5.Future<_i4.TimelineAttribute>.value(_FakeTimelineAttribute_2(
@@ -481,7 +494,7 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
             [],
             {
               #timelineAttributeId: timelineAttributeId,
-              #cardId: cardId,
+              #docType: docType,
             },
           ),
         )),
@@ -492,7 +505,7 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
             [],
             {
               #timelineAttributeId: timelineAttributeId,
-              #cardId: cardId,
+              #docType: docType,
             },
           ),
         )),
@@ -500,14 +513,14 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
 
   @override
   _i5.Future<_i16.InteractionTimelineAttribute?> readMostRecentInteraction(
-    String? cardId,
+    String? docType,
     _i16.InteractionStatus? status,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
           #readMostRecentInteraction,
           [
-            cardId,
+            docType,
             status,
           ],
         ),
@@ -517,14 +530,14 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
 
   @override
   _i5.Future<_i17.OperationTimelineAttribute?> readMostRecentOperation(
-    String? cardId,
+    String? docType,
     _i17.OperationStatus? status,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
           #readMostRecentOperation,
           [
-            cardId,
+            docType,
             status,
           ],
         ),
@@ -984,10 +997,40 @@ class MockCheckHasInternetUseCase extends _i1.Mock implements _i26.CheckHasInter
       ) as _i5.Future<bool>);
 }
 
+/// A class which mocks [PerformPreNavigationActionsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i20.PerformPreNavigationActionsUseCase {
+  @override
+  _i5.Future<void> invoke(List<_i20.PreNavigationAction>? actions) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [actions],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+}
+
+/// A class which mocks [CheckNavigationPrerequisitesUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i27.CheckNavigationPrerequisitesUseCase {
+  @override
+  _i5.Future<bool> invoke(List<_i20.NavigationPrerequisite>? prerequisites) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [prerequisites],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+}
+
 /// A class which mocks [AcceptOfferedPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i27.AcceptOfferedPidUseCase {
+class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i28.AcceptOfferedPidUseCase {
   @override
   _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
@@ -1011,34 +1054,73 @@ class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i27.AcceptOffered
       ) as _i5.Future<_i11.CheckPinResult>);
 }
 
-/// A class which mocks [PerformPreNavigationActionsUseCase].
+/// A class which mocks [AcceptSignAgreementUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i20.PerformPreNavigationActionsUseCase {
+class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i29.AcceptSignAgreementUseCase {
   @override
-  _i5.Future<void> invoke(List<_i20.PreNavigationAction>? actions) => (super.noSuchMethod(
+  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
-          [actions],
+          [pin],
+        ),
+        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+      ) as _i5.Future<_i11.CheckPinResult>);
+}
+
+/// A class which mocks [AcceptDisclosureUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAcceptDisclosureUseCase extends _i1.Mock implements _i30.AcceptDisclosureUseCase {
+  @override
+  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+      ) as _i5.Future<_i11.CheckPinResult>);
+}
+
+/// A class which mocks [AcceptIssuanceUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAcceptIssuanceUseCase extends _i1.Mock implements _i31.AcceptIssuanceUseCase {
+  @override
+  _i5.Future<void> invoke(Iterable<String>? cardDocTypes) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [cardDocTypes],
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),
       ) as _i5.Future<void>);
-}
-
-/// A class which mocks [CheckNavigationPrerequisitesUseCase].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i28.CheckNavigationPrerequisitesUseCase {
-  @override
-  _i5.Future<bool> invoke(List<_i20.NavigationPrerequisite>? prerequisites) => (super.noSuchMethod(
-        Invocation.method(
-          #invoke,
-          [prerequisites],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
 }
 
 /// A class which mocks [WalletCore].

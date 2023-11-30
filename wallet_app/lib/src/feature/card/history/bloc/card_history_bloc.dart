@@ -23,8 +23,8 @@ class CardHistoryBloc extends Bloc<CardHistoryEvent, CardHistoryState> {
   void _onCardHistoryLoadTriggered(CardHistoryLoadTriggered event, emit) async {
     emit(const CardHistoryLoadInProgress());
     try {
-      WalletCard card = await getWalletCardUseCase.invoke(event.cardId);
-      List<TimelineAttribute> attributes = await getWalletCardTimelineAttributesUseCase.invoke(event.cardId);
+      WalletCard card = await getWalletCardUseCase.invoke(event.docType);
+      List<TimelineAttribute> attributes = await getWalletCardTimelineAttributesUseCase.invoke(event.docType);
       emit(CardHistoryLoadSuccess(card, attributes));
     } catch (error) {
       emit(const CardHistoryLoadFailure());

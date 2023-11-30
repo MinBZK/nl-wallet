@@ -1,11 +1,13 @@
-import 'package:wallet_core/core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
+import 'package:wallet/src/domain/model/card_config.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
+import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -21,21 +23,25 @@ const _kSampleCard = Card(
 
 void main() {
   late Mapper<Card, CardFront> mockCardFrontMapper;
-  late Mapper<CardAttribute, DataAttribute> mockCardAttributeMapper;
+  late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
+  late Mapper<String, CardConfig> mockCardConfigMapper;
 
   late Mapper<Card, WalletCard> mapper;
 
   setUp(() {
+    provideDummy<CardConfig>(const CardConfig());
+
     mockCardFrontMapper = MockMapper();
     mockCardAttributeMapper = MockMapper();
+    mockCardConfigMapper = MockMapper();
 
-    mapper = CardMapper(mockCardFrontMapper, mockCardAttributeMapper);
+    mapper = CardMapper(mockCardFrontMapper, mockCardConfigMapper, mockCardAttributeMapper);
   });
 
   group('map', () {
-    test('card with `InMemory` persistence should return empty `id`', () {
+    test('card with `InMemory` persistence should return docType as `id`', () {
       WalletCard actual = mapper.map(_kSampleCard);
-      expect(actual.id, '');
+      expect(actual.id, _kSampleCard.docType);
     });
 
     test('card with `stored` persistence should return storage `id`', () {
@@ -46,7 +52,11 @@ void main() {
     test('all card attributes should be mapped by the attributeMapper', () {
       mapper.map(_kSampleCard);
 
-      verify(mockCardAttributeMapper.mapList(_kSampleCard.attributes)).called(1);
+      verify(
+        mockCardAttributeMapper.mapList(
+          _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.docType, e)),
+        ),
+      ).called(1);
     });
 
     test('card with `pid_id` docType should call `mockCardFrontMapper` once', () {

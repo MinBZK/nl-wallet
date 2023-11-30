@@ -10,6 +10,7 @@ part 'wallet_card.g.dart';
 @JsonSerializable(explicitToJson: true)
 class WalletCard extends Equatable {
   final String id;
+  final String docType;
   final String issuerId;
   final CardFront front;
   final List<DataAttribute> attributes;
@@ -17,6 +18,7 @@ class WalletCard extends Equatable {
 
   const WalletCard({
     required this.id,
+    required this.docType,
     required this.issuerId,
     required this.front,
     required this.attributes,

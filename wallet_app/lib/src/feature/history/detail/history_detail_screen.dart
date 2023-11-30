@@ -238,10 +238,7 @@ class HistoryDetailScreen extends StatelessWidget {
         status,
       )),
       subtitle: Text(organization.type?.l10nValue(context) ?? ''),
-      onTap: () => OrganizationDetailScreen.show(
-        context,
-        organization.id,
-      ),
+      onTap: () => OrganizationDetailScreen.showPreloaded(context, organization, false),
     );
   }
 
@@ -374,7 +371,7 @@ class HistoryDetailScreen extends StatelessWidget {
                 context.read<HistoryDetailBloc>().add(
                       HistoryDetailLoadTriggered(
                         attributeId: args.timelineAttributeId,
-                        cardId: args.cardId,
+                        docType: args.cardId,
                       ),
                     );
               } else {

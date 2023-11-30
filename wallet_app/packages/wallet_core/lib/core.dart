@@ -5,3 +5,8 @@ export 'package:flutter_rust_bridge/flutter_rust_bridge.dart' show FlutterRustBr
 
 export 'src/bridge_generated.dart';
 export 'src/wallet_core.dart';
+
+// Hardcoded docTypes, these are exposed here because the card data is still enriched
+// based on this docType inside wallet_app (see [CardFrontMapper]). To be removed #someday
+const kPidDocType = 'com.example.pid';
+const kAddressDocType = 'com.example.address';

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/issuance_flow.dart';
+import '../../../domain/model/organization.dart';
+import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
@@ -13,13 +14,17 @@ import '../../common/widget/sliver_sized_box.dart';
 class IssuanceProofIdentityPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final IssuanceFlow flow;
+  final Organization organization;
+  final List<Attribute> attributes;
+  final Policy policy;
   final bool isRefreshFlow;
 
   const IssuanceProofIdentityPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    required this.flow,
+    required this.organization,
+    required this.attributes,
+    required this.policy,
     required this.isRefreshFlow,
     Key? key,
   }) : super(key: key);
@@ -36,7 +41,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverToBoxAdapter(child: Divider(height: 32)),
-          SliverToBoxAdapter(child: PolicySection(flow.policy)),
+          SliverToBoxAdapter(child: PolicySection(policy)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
@@ -60,7 +65,6 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final organization = flow.organization;
     final issuanceProofIdentityPageSubtitle = isRefreshFlow
         ? context.l10n.issuanceProofIdentityPageRefreshDataSubtitle(organization.displayName.l10nValue(context))
         : context.l10n.issuanceProofIdentityPageSubtitle(organization.displayName.l10nValue(context));
@@ -88,7 +92,6 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
-    final attributes = flow.attributes;
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,5 +1,4 @@
-import 'package:wallet_core/core.dart' as core show MissingAttribute, Organization;
-import 'package:wallet_core/core.dart' hide MissingAttribute, StartDisclosureResult, Organization;
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
@@ -13,11 +12,11 @@ import '../disclosure_repository.dart';
 class CoreDisclosureRepository implements DisclosureRepository {
   final TypedWalletCore _walletCore;
 
-  final Mapper<RequestedCard, WalletCard> _cardMapper;
+  final Mapper<core.RequestedCard, WalletCard> _cardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
-  final Mapper<RequestPolicy, Policy> _requestPolicyMapper;
-  final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
+  final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
+  final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
 
   CoreDisclosureRepository(
     this._walletCore,
@@ -62,5 +61,5 @@ class CoreDisclosureRepository implements DisclosureRepository {
   Future<void> cancelDisclosure() => _walletCore.cancelDisclosure();
 
   @override
-  Future<WalletInstructionResult> acceptDisclosure(String pin) => _walletCore.acceptDisclosure(pin);
+  Future<core.WalletInstructionResult> acceptDisclosure(String pin) => _walletCore.acceptDisclosure(pin);
 }

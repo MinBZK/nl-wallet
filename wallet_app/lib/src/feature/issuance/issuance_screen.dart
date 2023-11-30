@@ -104,6 +104,7 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceInitial() => _buildLoading(),
           IssuanceLoadInProgress() => _buildLoading(),
           IssuanceCheckOrganization() => _buildCheckOrganizationPage(context, state),
+          IssuanceMissingAttributes() => _buildMissingAttributes(context, state),
           IssuanceProofIdentity() => _buildProofIdentityPage(context, state),
           IssuanceProvidePin() => _buildProvidePinPage(context, state),
           IssuanceCheckDataOffering() => _buildCheckDataOfferingPage(context, state),
@@ -160,15 +161,21 @@ class IssuanceScreen extends StatelessWidget {
       onAcceptPressed: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
-      requestPurpose: state.flow.requestPurpose,
+      requestPurpose: 'Kaart uitgifte'.untranslated, //TODO: Fetch through core?
     );
+  }
+
+  Widget _buildMissingAttributes(BuildContext context, IssuanceMissingAttributes state) {
+    throw UnimplementedError('This screen is not implemented since all mock issuance flows only rely on PID');
   }
 
   Widget _buildProofIdentityPage(BuildContext context, IssuanceProofIdentity state) {
     return IssuanceProofIdentityPage(
       onDeclinePressed: () => _stopIssuance(context),
       onAcceptPressed: () => context.bloc.add(const IssuanceShareRequestedAttributesApproved()),
-      flow: state.flow,
+      organization: state.organization,
+      attributes: state.requestedAttributes,
+      policy: state.policy,
       isRefreshFlow: state.isRefreshFlow,
     );
   }
@@ -187,7 +194,7 @@ class IssuanceScreen extends StatelessWidget {
         if (result == null) return;
         switch (result) {
           case DataIncorrectResult.declineCard:
-            bloc.add(IssuanceStopRequested(state.flow));
+            bloc.add(const IssuanceStopRequested());
             break;
           case DataIncorrectResult.acceptCard:
             bloc.add(const IssuanceCheckDataOfferingApproved());
@@ -195,7 +202,7 @@ class IssuanceScreen extends StatelessWidget {
         }
       },
       onAcceptPressed: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
-      attributes: state.flow.cards.first.attributes,
+      attributes: state.card.attributes,
     );
   }
 
@@ -228,7 +235,7 @@ class IssuanceScreen extends StatelessWidget {
   void _stopIssuance(BuildContext context) async {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
-      final organizationName = bloc.state.organization?.displayName ?? '-'.untranslated;
+      final organizationName = bloc.organization?.displayName ?? '-'.untranslated;
       final stopped = await ConfirmActionSheet.show(
         context,
         title: context.l10n.issuanceStopSheetTitle,
@@ -237,7 +244,7 @@ class IssuanceScreen extends StatelessWidget {
         confirmButtonText: context.l10n.issuanceStopSheetPositiveCta,
         confirmButtonColor: context.colorScheme.error,
       );
-      if (stopped) bloc.add(IssuanceStopRequested(bloc.state.flow));
+      if (stopped) bloc.add(const IssuanceStopRequested());
     } else {
       Navigator.pop(context);
     }
@@ -245,7 +252,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildSelectCardsPage(BuildContext context, IssuanceSelectCards state) {
     return IssuanceSelectCardsPage(
-      cards: state.availableCards,
+      cards: state.cards,
       selectedCardIds: state.multipleCardsFlow.selectedCardIds.toList(),
       onCardSelectionToggled: (WalletCard card) => context.bloc.add(IssuanceCardToggled(card)),
       onAddSelectedPressed: () => context.bloc.add(const IssuanceSelectedCardsConfirmed()),

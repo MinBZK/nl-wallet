@@ -1,163 +1,209 @@
+import 'dart:convert';
+
 import 'package:wallet_core/core.dart';
+
+import '../mock.dart';
+import 'data/mock/mock_cards.dart';
+import 'data/mock/mock_disclosure_requests.dart';
+import 'log/wallet_event_log.dart';
+import 'pin/pin_manager.dart';
+import 'util/extension/string_extension.dart';
+import 'wallet/wallet.dart';
 
 class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   bool _isInitialized = false;
+  StartDisclosureResult? _ongoingDisclosure;
 
-  WalletCoreMock();
+  final PinManager _pinManager;
+  final Wallet _wallet;
+  final WalletEventLog _eventLog;
+
+  WalletCoreMock(this._pinManager, this._wallet, this._eventLog);
 
   @override
-  Future<WalletInstructionResult> acceptDisclosure({required String pin, hint}) {
-    // TODO: implement acceptDisclosure
-    throw UnimplementedError();
+  Future<StartDisclosureResult> startDisclosure({required String uri, hint}) async {
+    // Look up the associated request
+    final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
+    final disclosureId = jsonPayload['id'] as String;
+    final request = kDisclosureRequests.firstWhere((element) => element.id == disclosureId);
+
+    // Check if all attributes are available
+    final containsAllRequestedAttributes =
+        _wallet.containsAttributes(request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key));
+    if (containsAllRequestedAttributes) {
+      return _ongoingDisclosure = StartDisclosureResult.request(
+        relyingParty: request.relyingParty,
+        policy: request.policy,
+        requestedCards: _wallet.getRequestedCards(request.requestedAttributes.map((attribute) => attribute.key)),
+        isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        requestPurpose: request.purpose.untranslated,
+      );
+    } else {
+      final requestedAttributesNotInWallet =
+          _wallet.getMissingAttributeKeys(request.requestedAttributes.map((e) => e.key));
+      final missingAttributes = requestedAttributesNotInWallet.map((key) {
+        final associatedLabel = request.requestedAttributes.firstWhere((element) => element.key == key).label;
+        return MissingAttribute(labels: associatedLabel.untranslated);
+      });
+      return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
+        relyingParty: request.relyingParty,
+        isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        requestPurpose: request.purpose.untranslated,
+        missingAttributes: missingAttributes.toList(),
+      );
+    }
   }
 
   @override
-  Future<WalletInstructionResult> acceptPidIssuance({required String pin, hint}) {
-    // TODO: implement acceptPidIssuance
-    throw UnimplementedError();
+  Future<void> cancelDisclosure({hint}) async {
+    final disclosure = _ongoingDisclosure;
+    assert(disclosure != null, 'No ongoing disclosure to deny');
+    _ongoingDisclosure = null;
+    _eventLog.logDisclosure(disclosure!, DisclosureStatus.Cancelled);
   }
 
   @override
-  Future<void> cancelDisclosure({hint}) {
-    // TODO: implement cancelDisclosure
-    throw UnimplementedError();
+  Future<WalletInstructionResult> acceptDisclosure({required String pin, hint}) async {
+    final disclosure = _ongoingDisclosure;
+    assert(disclosure != null, 'No ongoing disclosure to accept');
+    assert(disclosure is StartDisclosureResult_Request, 'Can\'t accept disclosure with missing attributes');
+
+    // Check if correct pin was provided
+    final result = _pinManager.checkPin(pin);
+    if (result is! WalletInstructionResult_Ok) return result;
+
+    // Log successful disclosure
+    _eventLog.logDisclosure(disclosure!, DisclosureStatus.Success);
+    _ongoingDisclosure = null;
+
+    return result;
   }
 
   @override
-  Future<void> cancelPidIssuance({hint}) {
-    // TODO: implement cancelPidIssuance
-    throw UnimplementedError();
+  Future<WalletInstructionResult> acceptPidIssuance({required String pin, hint}) async {
+    final result = _pinManager.checkPin(pin);
+    if (result is! WalletInstructionResult_Ok) return result;
+
+    assert(_wallet.isEmpty, 'We can only accept the pid if the wallet was previously empty');
+    // Add the PID cards to the user's wallet
+    _wallet.add(kPidCards);
+    // Log the issuance events
+    for (final card in kPidCards) {
+      _eventLog.logIssuance(card);
+    }
+
+    return result;
   }
 
   @override
-  Future<void> clearCardsStream({hint}) {
-    // TODO: implement clearCardsStream
-    throw UnimplementedError();
+  Future<void> cancelPidIssuance({hint}) async {
+    // Stub only, no need to cancel it on the mock
   }
 
   @override
-  Future<void> clearConfigurationStream({hint}) {
-    // TODO: implement clearConfigurationStream
-    throw UnimplementedError();
+  Future<void> clearCardsStream({hint}) async {
+    // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> clearLockStream({hint}) {
-    // TODO: implement clearLockStream
-    throw UnimplementedError();
+  Future<void> clearConfigurationStream({hint}) async {
+    // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<List<Card>> continuePidIssuance({required String uri, hint}) {
-    // TODO: implement continuePidIssuance
-    throw UnimplementedError();
+  Future<void> clearLockStream({hint}) async {
+    // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<String> createPidIssuanceRedirectUri({hint}) {
-    // TODO: implement createPidIssuanceRedirectUri
-    throw UnimplementedError();
+  Future<List<Card>> continuePidIssuance({required String uri, hint}) async => kPidCards;
+
+  @override
+  Future<String> createPidIssuanceRedirectUri({hint}) async => kMockPidIssuanceRedirectUri;
+
+  @override
+  Future<bool> hasRegistration({hint}) async => _pinManager.isRegistered;
+
+  @override
+  Future<IdentifyUriResult> identifyUri({required String uri, hint}) async {
+    final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
+    final type = jsonPayload['type'] as String;
+    if (type == 'verify') return IdentifyUriResult.Disclosure;
+    if (type == 'issue') throw UnsupportedError('Issue not yet supported');
+    if (type == 'sign') throw UnsupportedError('Sign not yet supported');
+    throw UnsupportedError('Unsupported uri: $uri');
   }
 
   @override
-  Future<bool> hasRegistration({hint}) {
-    // TODO: implement hasRegistration
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<IdentifyUriResult> identifyUri({required String uri, hint}) {
-    // TODO: implement identifyUri
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> init({hint}) async {
-    _isInitialized = true;
-  }
+  Future<void> init({hint}) async => _isInitialized = true;
 
   @override
   Future<bool> isInitialized({hint}) async => _isInitialized;
 
   @override
-  Future<PinValidationResult> isValidPin({required String pin, hint}) {
-    // TODO: implement isValidPin
-    throw UnimplementedError();
+  Future<PinValidationResult> isValidPin({required String pin, hint}) async {
+    const pinDigits = 6;
+    if (pin.length != pinDigits) return PinValidationResult.OtherIssue;
+    if (pin.split('').toSet().length <= 1) return PinValidationResult.TooFewUniqueDigits;
+    if (pin == '123456') return PinValidationResult.SequentialDigits;
+    return PinValidationResult.Ok;
   }
 
   @override
-  Future<void> lockWallet({hint}) {
-    // TODO: implement lockWallet
-    throw UnimplementedError();
+  Future<void> lockWallet({hint}) async => _wallet.lock();
+
+  @override
+  Future<void> register({required String pin, hint}) async {
+    _pinManager.setPin(pin);
+    _wallet.unlock();
   }
 
   @override
-  Future<void> register({required String pin, hint}) {
-    // TODO: implement register
-    throw UnimplementedError();
+  Future<void> rejectPidIssuance({hint}) async {
+    // Stub only, no need to reject it on the mock
   }
 
   @override
-  Future<void> rejectPidIssuance({hint}) {
-    // TODO: implement rejectPidIssuance
-    throw UnimplementedError();
+  Future<void> resetWallet({hint}) async {
+    _pinManager.resetPin();
+    _wallet.reset();
+    _eventLog.reset();
   }
 
   @override
-  Future<void> resetWallet({hint}) {
-    // TODO: implement resetWallet
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<List<Card>> setCardsStream({hint}) {
-    // TODO: implement setCardsStream
-    throw UnimplementedError();
-  }
+  Stream<List<Card>> setCardsStream({hint}) => _wallet.cardsStream;
 
   @override
   Stream<FlutterConfiguration> setConfigurationStream({hint}) {
-    // TODO: implement setConfigurationStream
-    throw UnimplementedError();
+    return Stream.value(
+      FlutterConfiguration(
+        backgroundLockTimeout: Duration(minutes: 5).inSeconds,
+        inactiveLockTimeout: Duration(minutes: 20).inSeconds,
+      ),
+    );
   }
 
   @override
-  Stream<bool> setLockStream({hint}) {
-    // TODO: implement setLockStream
-    throw UnimplementedError();
+  Stream<bool> setLockStream({hint}) => _wallet.lockedStream;
+
+  @override
+  Future<WalletInstructionResult> unlockWallet({required String pin, hint}) async {
+    final result = _pinManager.checkPin(pin);
+    bool pinMatches = result is! WalletInstructionResult_Ok;
+    if (pinMatches) {
+      _wallet.unlock();
+    } else {
+      _wallet.lock();
+    }
+    return result;
   }
 
   @override
-  Future<StartDisclosureResult> startDisclosure({required String uri, hint}) {
-    // TODO: implement startDisclosure
-    throw UnimplementedError();
-  }
+  Future<List<WalletEvent>> getHistory({hint}) async => _eventLog.log;
 
   @override
-  Future<WalletInstructionResult> unlockWallet({required String pin, hint}) {
-    // TODO: implement unlockWallet
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<WalletEvent>> getHistory({hint}) {
-    // TODO: implement getHistory
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<WalletEvent>> getHistoryForCard({required String docType, hint}) {
-    // TODO: implement getHistoryForCard
-    throw UnimplementedError();
-  }
-
-  @override
-  // TODO: implement kGetHistoryConstMeta
-  FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => throw UnimplementedError();
-
-  @override
-  // TODO: implement kGetHistoryForCardConstMeta
-  FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => throw UnimplementedError();
+  Future<List<WalletEvent>> getHistoryForCard({required String docType, hint}) async =>
+      _eventLog.logForDocType(docType);
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -208,4 +254,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => throw UnimplementedError();
 }

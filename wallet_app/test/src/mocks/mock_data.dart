@@ -15,6 +15,7 @@ import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {
   static WalletCard card = WalletCard(
+    docType: 'com.example.docType',
     front: cardFront,
     attributes: [textDataAttribute],
     id: 'id',
@@ -30,6 +31,7 @@ abstract class WalletMockData {
       logoImage: WalletAssets.logo_card_rijksoverheid,
       subtitle: 'Alt Subtitle'.untranslated,
     ),
+    docType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     id: 'id2',
     issuerId: 'id2',
@@ -64,7 +66,7 @@ abstract class WalletMockData {
     key: 'text_key',
     label: 'Label',
     value: const StringValue('Value'),
-    sourceCardId: 'id',
+    sourceCardDocType: 'com.example.docType',
   );
 
   static const Policy policy = Policy(

@@ -1,4 +1,4 @@
-import '../../../../data/repository/card/timeline_attribute_repository.dart';
+import '../../../../data/repository/history/timeline_attribute_repository.dart';
 import '../../../../wallet_constants.dart';
 import '../../../model/timeline/timeline_attribute.dart';
 import '../get_wallet_timeline_attributes_usecase.dart';

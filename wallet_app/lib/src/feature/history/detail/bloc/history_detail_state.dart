@@ -21,21 +21,21 @@ class HistoryDetailLoadSuccess extends HistoryDetailState {
   final TimelineAttribute timelineAttribute;
 
   static bool _verifyAllRelatedCardsProvided(List<WalletCard> cards, List<DataAttribute> dataAttributes) {
-    final availableCardIds = cards.map((e) => e.id).toSet().sorted();
-    final requiredCardIds = dataAttributes.map((e) => e.sourceCardId).toSet().sorted();
-    return const DeepCollectionEquality().equals(availableCardIds, requiredCardIds);
+    final availableCardIds = cards.map((card) => card.docType).toSet();
+    final requiredCardIds = dataAttributes.map((e) => e.sourceCardDocType).toSet();
+    return availableCardIds.containsAll(requiredCardIds);
   }
 
   HistoryDetailLoadSuccess(this.timelineAttribute, this.relatedCards)
       : assert(_verifyAllRelatedCardsProvided(relatedCards, timelineAttribute.dataAttributes));
 
   /// Groups the [DataAttribute]s with the [WalletCard] they are sourced from.
-  /// The call to [cardById] is safely force unwrapped because we assert [_verifyAllRelatedCardsProvided]
+  /// The call to [cardByDocType] is safely force unwrapped because we assert [_verifyAllRelatedCardsProvided]
   /// when an instance of [HistoryDetailLoadSuccess] is created.
   Map<WalletCard, List<DataAttribute>> get attributesByCard =>
-      timelineAttribute.attributesByCardId.map((key, value) => MapEntry(cardById(key)!, value));
+      timelineAttribute.attributesByDocType.map((key, value) => MapEntry(cardByDocType(key)!, value));
 
-  WalletCard? cardById(String cardId) => relatedCards.firstWhereOrNull((card) => cardId == card.id);
+  WalletCard? cardByDocType(String docType) => relatedCards.firstWhereOrNull((card) => docType == card.docType);
 
   @override
   List<Object> get props => [relatedCards, timelineAttribute];

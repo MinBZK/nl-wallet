@@ -9,47 +9,61 @@ sealed class SignState extends Equatable {
 
   double get stepperProgress => 0.0;
 
-  final SignFlow? flow;
-
-  const SignState(this.flow);
+  const SignState();
 
   @override
-  List<Object?> get props => [showStopConfirmation, canGoBack, didGoBack, stepperProgress, flow];
+  List<Object?> get props => [
+        showStopConfirmation,
+        canGoBack,
+        didGoBack,
+        stepperProgress,
+      ];
 }
 
 class SignInitial extends SignState {
-  const SignInitial() : super(null);
+  const SignInitial();
 }
 
 class SignLoadInProgress extends SignState {
-  const SignLoadInProgress(super.flow);
+  const SignLoadInProgress();
 
   @override
   bool get showStopConfirmation => false;
 }
 
 class SignCheckOrganization extends SignState {
+  final Organization organization;
+
   final bool afterBackPressed;
 
-  const SignCheckOrganization(SignFlow flow, {this.afterBackPressed = false}) : super(flow);
-
-  @override
-  SignFlow get flow => super.flow!;
+  const SignCheckOrganization({
+    required this.organization,
+    this.afterBackPressed = false,
+  });
 
   @override
   double get stepperProgress => 0.2;
 
   @override
   bool get didGoBack => afterBackPressed;
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
 }
 
 class SignCheckAgreement extends SignState {
   final bool afterBackPressed;
 
-  const SignCheckAgreement(SignFlow flow, {this.afterBackPressed = false}) : super(flow);
+  final Organization organization;
+  final Organization trustProvider;
+  final Document document;
 
-  @override
-  SignFlow get flow => super.flow!;
+  const SignCheckAgreement({
+    required this.organization,
+    required this.trustProvider,
+    required this.document,
+    this.afterBackPressed = false,
+  });
 
   @override
   double get stepperProgress => 0.4;
@@ -59,15 +73,26 @@ class SignCheckAgreement extends SignState {
 
   @override
   bool get didGoBack => afterBackPressed;
+
+  @override
+  List<Object?> get props => [organization, trustProvider, document, ...super.props];
 }
 
 class SignConfirmAgreement extends SignState {
   final bool afterBackPressed;
 
-  const SignConfirmAgreement(SignFlow flow, {this.afterBackPressed = false}) : super(flow);
+  final Policy policy;
+  final Organization trustProvider;
+  final Document document;
+  final List<Attribute> requestedAttributes;
 
-  @override
-  SignFlow get flow => super.flow!;
+  const SignConfirmAgreement({
+    required this.policy,
+    required this.trustProvider,
+    required this.document,
+    required this.requestedAttributes,
+    this.afterBackPressed = false,
+  });
 
   @override
   double get stepperProgress => 0.6;
@@ -77,13 +102,13 @@ class SignConfirmAgreement extends SignState {
 
   @override
   bool get didGoBack => afterBackPressed;
+
+  @override
+  List<Object?> get props => [policy, trustProvider, document, requestedAttributes, ...super.props];
 }
 
 class SignConfirmPin extends SignState {
-  const SignConfirmPin(SignFlow flow) : super(flow);
-
-  @override
-  SignFlow get flow => super.flow!;
+  const SignConfirmPin();
 
   @override
   double get stepperProgress => 0.8;
@@ -93,27 +118,29 @@ class SignConfirmPin extends SignState {
 }
 
 class SignSuccess extends SignState {
-  const SignSuccess(SignFlow flow) : super(flow);
+  final Organization organization;
 
-  @override
-  SignFlow get flow => super.flow!;
+  const SignSuccess({required this.organization});
 
   @override
   double get stepperProgress => 1;
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
 }
 
 class SignError extends SignState {
-  const SignError(super.flow);
+  const SignError();
 
   @override
   bool get showStopConfirmation => false;
 }
 
 class SignStopped extends SignState {
-  const SignStopped(super.flow);
+  const SignStopped();
 
   @override
   bool get showStopConfirmation => false;

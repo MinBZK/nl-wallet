@@ -202,6 +202,9 @@ class Image with _$Image {
   const factory Image.jpg({
     required String base64,
   }) = Image_Jpg;
+  const factory Image.asset({
+    required String path,
+  }) = Image_Asset;
 }
 
 class LocalizedString {
@@ -869,6 +872,10 @@ class WalletCoreImpl implements WalletCore {
       case 2:
         return Image_Jpg(
           base64: _wire2api_String(raw[1]),
+        );
+      case 3:
+        return Image_Asset(
+          path: _wire2api_String(raw[1]),
         );
       default:
         throw Exception("unreachable");

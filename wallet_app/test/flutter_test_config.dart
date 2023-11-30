@@ -21,7 +21,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
 // Configure some basic mockito dummies
 void _setupMockitoDummies() {
   provideDummy<DataAttribute>(
-    DataAttribute.untranslated(key: '', label: '', value: const StringValue(''), sourceCardId: ''),
+    DataAttribute.untranslated(key: '', label: '', value: const StringValue(''), sourceCardDocType: ''),
   );
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));

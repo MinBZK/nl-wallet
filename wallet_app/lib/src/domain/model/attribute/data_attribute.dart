@@ -13,20 +13,20 @@ class DataAttribute extends Attribute {
   @override
   AttributeValue get value => super.value!;
 
-  final String sourceCardId;
+  final String sourceCardDocType;
 
   const DataAttribute({
     required super.key,
     required super.label,
     required super.value,
-    required this.sourceCardId,
+    required this.sourceCardDocType,
   }) : assert(value != null);
 
   DataAttribute.untranslated({
     required super.key,
     required String label,
     required super.value,
-    required this.sourceCardId,
+    required this.sourceCardDocType,
   })  : assert(value != null),
         super(label: {'': label});
 
@@ -35,5 +35,5 @@ class DataAttribute extends Attribute {
   Map<String, dynamic> toJson() => _$DataAttributeToJson(this);
 
   @override
-  List<Object?> get props => [key, label, value, sourceCardId];
+  List<Object?> get props => [key, label, value, sourceCardDocType];
 }
