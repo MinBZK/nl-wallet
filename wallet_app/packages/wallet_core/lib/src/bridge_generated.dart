@@ -233,6 +233,8 @@ class Organization {
   final String? webUrl;
   final String? kvk;
   final List<LocalizedString>? city;
+  final List<LocalizedString> category;
+  final List<LocalizedString>? department;
   final String? countryCode;
 
   const Organization({
@@ -243,6 +245,8 @@ class Organization {
     this.webUrl,
     this.kvk,
     this.city,
+    required this.category,
+    this.department,
     this.countryCode,
   });
 }
@@ -941,7 +945,7 @@ class WalletCoreImpl implements WalletCore {
 
   Organization _wire2api_organization(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return Organization(
       legalName: _wire2api_list_localized_string(arr[0]),
       displayName: _wire2api_list_localized_string(arr[1]),
@@ -950,7 +954,9 @@ class WalletCoreImpl implements WalletCore {
       webUrl: _wire2api_opt_String(arr[4]),
       kvk: _wire2api_opt_String(arr[5]),
       city: _wire2api_opt_list_localized_string(arr[6]),
-      countryCode: _wire2api_opt_String(arr[7]),
+      category: _wire2api_list_localized_string(arr[7]),
+      department: _wire2api_opt_list_localized_string(arr[8]),
+      countryCode: _wire2api_opt_String(arr[9]),
     );
   }
 

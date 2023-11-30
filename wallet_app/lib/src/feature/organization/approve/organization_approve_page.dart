@@ -64,7 +64,7 @@ class OrganizationApprovePage extends StatelessWidget {
                 isFirstInteractionWithOrganization,
                 onReportIssuePressed: onReportIssuePressed,
               ),
-              subtitle: organization.type?.l10nValue(context) ?? '',
+              subtitle: organization.category?.l10nValue(context) ?? '',
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),

@@ -212,7 +212,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         IconRow(
           icon: const Icon(Icons.apartment),
-          text: Text(organization.type?.l10nValue(context) ?? ''),
+          text: Text(organization.category?.l10nValue(context) ?? ''),
           padding: const EdgeInsets.symmetric(vertical: 8),
         ),
         if (organization.department != null)

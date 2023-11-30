@@ -57,6 +57,10 @@ fn pid_issuer_organization() -> Organization {
             language: "nl".to_owned(),
             value: "Opvragen van PID (Person Identification Data)".to_owned(),
         }],
+        category: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "Overheid".to_owned(),
+        }],
         image: None,
         web_url: Some("https://www.rvig.nl".to_owned()),
         kvk: Some(" 27373207".to_owned()),
@@ -64,6 +68,7 @@ fn pid_issuer_organization() -> Organization {
             language: "nl".to_owned(),
             value: "Bilthoven".to_owned(),
         }]),
+        department: None,
         country_code: Some("nl".to_owned()),
     }
 }
@@ -84,6 +89,10 @@ fn mock_issuer_organization() -> Organization {
             language: "nl".to_owned(),
             value: "RP Description".to_owned(),
         }],
+        category: vec![LocalizedString {
+            language: "nl".to_owned(),
+            value: "RP Category".to_owned(),
+        }],
         image: None,
         web_url: Some("https://example.org".to_owned()),
         kvk: Some("1234 5678".to_owned()),
@@ -91,6 +100,7 @@ fn mock_issuer_organization() -> Organization {
             language: "nl".to_owned(),
             value: "RP City".to_owned(),
         }]),
+        department: None,
         country_code: Some("nl".to_owned()),
     }
 }

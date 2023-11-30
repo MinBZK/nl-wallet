@@ -212,7 +212,7 @@ class OtherStylesTab extends StatelessWidget {
             organization: Organization(
               id: 'id',
               legalName: 'Organization Name'.untranslated,
-              type: 'Category'.untranslated,
+              category: 'Category'.untranslated,
               displayName: 'This is a TimelineAttributeRow'.untranslated,
               description: 'Organization description'.untranslated,
               logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
