@@ -133,7 +133,7 @@ impl Mdoc {
                     device_name_spaces_bytes: Default::default(),
                 })))?,
             )
-            .await,
+            .await?,
             errors: None,
         };
         Ok(doc)
@@ -141,13 +141,15 @@ impl Mdoc {
 }
 
 impl DeviceSigned {
-    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> DeviceSigned {
-        let cose = sign_cose(challenge, Header::default(), private_key, false).await;
+    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> Result<DeviceSigned> {
+        let cose = sign_cose(challenge, Header::default(), private_key, false).await?;
 
-        DeviceSigned {
+        let device_signed = DeviceSigned {
             name_spaces: IndexMap::new().into(),
             device_auth: DeviceAuth::DeviceSignature(cose.into()),
-        }
+        };
+
+        Ok(device_signed)
     }
 
     #[allow(dead_code)] // TODO test this

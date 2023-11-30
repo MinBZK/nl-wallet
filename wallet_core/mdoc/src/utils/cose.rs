@@ -52,6 +52,8 @@ pub enum CoseError {
     CertificateUnexpectedHeaderType,
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
+    #[error("signing failed: {0}")]
+    Signing(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl Cose for CoseSign1 {
@@ -171,7 +173,7 @@ impl<T> MdocCose<CoseSign1, T> {
         T: Clone + Serialize,
     {
         let payload = cbor_serialize(obj).map_err(CoseError::Cbor)?;
-        let cose = sign_cose(&payload, unprotected_header, private_key, include_payload).await;
+        let cose = sign_cose(&payload, unprotected_header, private_key, include_payload).await?;
 
         Ok(cose.into())
     }
@@ -242,7 +244,7 @@ pub async fn sign_cose(
     unprotected_header: Header,
     private_key: &(impl SecureEcdsaKey + Sync),
     include_payload: bool,
-) -> CoseSign1 {
+) -> Result<CoseSign1> {
     let protected_header = ProtectedHeader {
         original_data: None,
         header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
@@ -256,9 +258,13 @@ pub async fn sign_cose(
         payload,
     );
 
-    let signature = private_key.sign(sig_data.as_ref()).await.to_vec();
+    let signature = private_key
+        .try_sign(sig_data.as_ref())
+        .await
+        .map_err(|error| CoseError::Signing(error.into()))?
+        .to_vec();
 
-    CoseSign1 {
+    let signed = CoseSign1 {
         signature,
         payload: if include_payload {
             Some(Vec::from(payload))
@@ -267,7 +273,9 @@ pub async fn sign_cose(
         },
         protected: protected_header,
         unprotected: unprotected_header,
-    }
+    };
+
+    Ok(signed)
 }
 
 pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
