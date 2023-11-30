@@ -321,7 +321,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -338,7 +338,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.disclosure_session.is_some());
     }
 
     #[tokio::test]
@@ -353,7 +353,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::DisclosureUri(_));
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
