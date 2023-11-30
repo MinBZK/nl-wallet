@@ -58,7 +58,7 @@ variables:
 test-flutter:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:ad12b405fb6b67511a9677b237f66709b856585dc402db4853a1d57f76f2d0e3"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7d4314db8b5194c93b7afede39de72ecf04e4cd85a217f80f78faaac391325d9"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -151,7 +151,7 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:26374a07e7546053d4e7fa9049fccf0f2294a2a9500abf86573194c3796ae6a9"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:52a23cbbd9ebbdf63ada458d23dcb0596dd1f7c47b6caa7ddd7b038c3d9784ff"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -261,7 +261,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:68a5a1611af03bbd11fdf45e5c08b6b288ab5335e54235ea3baf7ebc412e282b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:02cbb1724745da7dc33f3f57e98d026f9b7fdf12b88c37ab1f0adc4f166e9169"
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -383,7 +383,7 @@ build-android-app:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:26374a07e7546053d4e7fa9049fccf0f2294a2a9500abf86573194c3796ae6a9"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:52a23cbbd9ebbdf63ada458d23dcb0596dd1f7c47b6caa7ddd7b038c3d9784ff"
   artifacts:
     name: "wallet-android"
     paths:
@@ -456,7 +456,7 @@ dependency-check-images:
     - job: build-pid-issuer-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:68a5a1611af03bbd11fdf45e5c08b6b288ab5335e54235ea3baf7ebc412e282b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:02cbb1724745da7dc33f3f57e98d026f9b7fdf12b88c37ab1f0adc4f166e9169"
   variables:
     GIT_STRATEGY: none
   before_script:
