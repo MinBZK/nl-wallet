@@ -66,7 +66,7 @@ fn pid_issuer_organization() -> Organization {
         kvk: Some(" 27373207".to_owned()),
         city: Some(vec![LocalizedString {
             language: "nl".to_owned(),
-            value: "Bilthoven".to_owned(),
+            value: "'s-Gravenhage".to_owned(),
         }]),
         department: None,
         country_code: Some("nl".to_owned()),
