@@ -326,10 +326,12 @@ mod tests {
 
     use assert_matches::assert_matches;
     use http::StatusCode;
+    use indexmap::IndexSet;
     use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
     use tokio::sync::mpsc;
 
     use crate::{
+        identifiers::AttributeIdentifierHolder,
         iso::disclosure::SessionStatus,
         mock::SoftwareKeyFactory,
         utils::{cose::CoseError, crypto::SessionKeyUser},
@@ -345,11 +347,87 @@ mod tests {
         assert_matches!(session_data.status, Some(session_status) if session_status == expected_session_status);
     }
 
+    // This is the full happy path test of `DisclosureSession`.
+    #[tokio::test]
+    async fn test_disclosure_session() {
+        // Starting a disclosure session should succeed.
+        let mut payloads = Vec::with_capacity(1);
+        let (disclosure_session, verifier_session, mut payload_receiver) = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect("Could not start DisclosureSession");
+
+        // Remember the `AttributeIdentifier`s that were in the request.
+        let request_identifiers = verifier_session
+            .items_requests
+            .iter()
+            .flat_map(|items_request| items_request.attribute_identifiers())
+            .collect::<IndexSet<_>>();
+
+        // Make sure starting the session resulted in a proposal, get the
+        // device `SessionKey` from that and actually perform disclosure.
+        let device_key = match disclosure_session {
+            DisclosureSession::Proposal(proposal) => {
+                let device_key = proposal.device_key.clone();
+
+                proposal
+                    .disclose(&SoftwareKeyFactory::default())
+                    .await
+                    .expect("Could not disclose DisclosureSession");
+
+                device_key
+            }
+            _ => panic!("Disclosure session should not have missing attributes"),
+        };
+
+        // Fill up `payloads` with any further messages sent.
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        assert_eq!(payloads.len(), 2);
+
+        // Check that the payloads are a `DeviceEngagement` and `SessionData` respectively.
+        let _device_engagement: DeviceEngagement = serialization::cbor_deserialize(payloads[0].as_slice())
+            .expect("First message sent is not DeviceEngagement");
+        let session_data: SessionData =
+            serialization::cbor_deserialize(payloads[1].as_slice()).expect("Second message sent is not SessionData");
+
+        // Decrypt the `DeviceResponse` from the `SessionData` using the device key.
+        assert!(session_data.data.is_some());
+        assert!(session_data.status.is_none());
+
+        let device_response: DeviceResponse = session_data
+            .decrypt_and_deserialize(&device_key)
+            .expect("Could not decrypt and deserialize sent DeviceResponse");
+
+        // Check that the attributes contained in the response match those in the request.
+        assert!(device_response.documents.is_some());
+
+        let response_identifiers = device_response
+            .documents
+            .map(|documents| {
+                documents
+                    .into_iter()
+                    .flat_map(|document| document.issuer_signed_attribute_identifiers())
+                    .collect::<IndexSet<_>>()
+            })
+            .unwrap_or_default();
+
+        assert_eq!(response_identifiers, request_identifiers);
+    }
+
     #[tokio::test]
     async fn test_disclosure_session_start_proposal() {
         // Starting a disclosure session should succeed with a disclosure proposal.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, verifier_session) = disclosure_session_start(
+        let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
@@ -394,7 +472,7 @@ mod tests {
     async fn test_disclosure_session_start_missing_attributes_one() {
         // Starting a disclosure session should succeed with missing attributes.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, verifier_session) = disclosure_session_start(
+        let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
@@ -451,7 +529,7 @@ mod tests {
     async fn test_disclosure_session_start_missing_attributes_all() {
         // Starting a disclosure session should succeed with missing attributes.
         let mut payloads = Vec::with_capacity(1);
-        let (disclosure_session, verifier_session) = disclosure_session_start(
+        let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,

@@ -464,6 +464,7 @@ pub async fn disclosure_session_start<FS, FM, FD>(
 ) -> Result<(
     DisclosureSession<MockVerifierSessionClient<FD>>,
     Arc<MockVerifierSession<FD>>,
+    mpsc::Receiver<Vec<u8>>,
 )>
 where
     FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
@@ -514,12 +515,11 @@ where
         &mdoc_data_source,
         &verifier_session.trust_anchors(),
     )
-    .await
-    .map(|disclosure_session| (disclosure_session, verifier_session));
+    .await;
 
     while let Ok(payload) = payload_receiver.try_recv() {
         payloads.push(payload);
     }
 
-    result
+    result.map(|disclosure_session| (disclosure_session, verifier_session, payload_receiver))
 }
