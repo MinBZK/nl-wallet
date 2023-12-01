@@ -57,7 +57,7 @@ spec:
         paths:
           - backend:
               service:
-                name: config-server
+                name: wallet-provider
                 port:
                   number: 3000
             path: /$CONFIG_SERVER_EXTERNAL_CONTEXT_PATH/config/v1/(.+)
