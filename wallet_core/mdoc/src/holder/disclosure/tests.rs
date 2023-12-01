@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt, iter, sync::Arc};
 
 use async_trait::async_trait;
 use futures::future;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use p256::{ecdsa::SigningKey, SecretKey};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
@@ -15,6 +15,7 @@ use crate::{
     errors::{Error, Result},
     examples::Examples,
     holder::{HttpClient, Mdoc},
+    identifiers::AttributeIdentifier,
     iso::{
         device_retrieval::{
             DeviceRequest, DeviceRequestVersion, DocRequest, ItemsRequest, ReaderAuthenticationBytes,
@@ -183,6 +184,11 @@ pub fn create_example_proposed_document() -> ProposedDocument {
         issuer_signed: mdoc.issuer_signed,
         device_signed_challenge: b"signing_challenge".to_vec(),
     }
+}
+
+/// The `AttributeIdentifier`s contained in the example `Mdoc`.
+pub fn example_mdoc_attribute_identifiers() -> IndexSet<AttributeIdentifier> {
+    create_example_mdoc().issuer_signed_attribute_identifiers()
 }
 
 /// An implementor of `HttpClient` that either returns `SessionData`

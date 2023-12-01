@@ -1,4 +1,4 @@
-use futures::future::TryFutureExt;
+use futures::future::{self, TryFutureExt};
 use indexmap::IndexMap;
 use url::Url;
 use webpki::TrustAnchor;
@@ -8,14 +8,17 @@ use wallet_common::generator::TimeGenerator;
 use crate::{
     basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
-    disclosure::SessionData,
+    disclosure::{DeviceResponse, DeviceResponseVersion, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{HolderError, HttpClient},
     identifiers::AttributeIdentifier,
     mdocs::{DocType, NameSpace},
-    utils::serialization,
     utils::{crypto::SessionKey, reader_auth::ReaderRegistration, serialization::CborError},
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        serialization,
+    },
     verifier::SessionType,
 };
 
@@ -54,7 +57,6 @@ pub struct DisclosureMissingAttributes<H> {
     missing_attributes: Vec<AttributeIdentifier>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct DisclosureProposal<H> {
     return_url: Option<Url>,
@@ -240,6 +242,7 @@ where
     }
 
     pub async fn terminate(self) -> Result<()> {
+        // Ignore the response.
         _ = self.endpoint().terminate().await?;
 
         Ok(())
@@ -269,7 +272,39 @@ where
             .collect()
     }
 
-    // TODO: Implement disclose method.
+    pub async fn disclose<'a, KF, K>(self, key_factory: &'a KF) -> Result<()>
+    where
+        KF: KeyFactory<'a, Key = K>,
+        K: MdocEcdsaKey + Sync,
+    {
+        // Convert all of the `ProposedDocument` entries to `Document` by signing them.
+        // TODO: Do this in bulk, as this will be serialized by the implementation.
+        let documents = future::try_join_all(
+            self.proposed_documents
+                .into_iter()
+                .map(|proposed_document| proposed_document.sign(key_factory)),
+        )
+        .await?;
+
+        // Construct a `DeviceResponse` and encrypt this with the device key.
+        let device_response = DeviceResponse {
+            version: DeviceResponseVersion::V1_0,
+            documents: documents.into(),
+            document_errors: None, // TODO: Consider using this for reporting errors per mdoc
+            status: 0,
+        };
+        let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
+
+        // Send the `SessionData` containing the encrypted `DeviceResponse`.
+        let response = self.endpoint.send_session_data(&session_data).await?;
+
+        // If we received a `SessionStatus` that is not a
+        // termination in the response, return this as an error.
+        match response.status {
+            Some(status) if status != SessionStatus::Termination => Err(HolderError::DisclosureResponse(status).into()),
+            _ => Ok(()),
+        }
+    }
 }
 
 impl<H> DisclosureEndpoint<H>
@@ -296,6 +331,7 @@ mod tests {
 
     use crate::{
         iso::disclosure::SessionStatus,
+        mock::SoftwareKeyFactory,
         utils::{cose::CoseError, crypto::SessionKeyUser},
     };
 
@@ -1008,5 +1044,120 @@ mod tests {
             .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
 
         assert_matches!(error, Error::Cbor(_));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose() {
+        let (proposal_session, mut payload_receiver) =
+            create_disclosure_session_proposal(|| MockHttpClientResponse::SessionStatus(SessionStatus::Termination));
+
+        // Signing a `DisclosureSession` with a proposal should succeed.
+        let device_key = match proposal_session {
+            DisclosureSession::Proposal(proposal) => {
+                let device_key = proposal.device_key.clone();
+
+                proposal
+                    .disclose(&SoftwareKeyFactory::default())
+                    .await
+                    .expect("Could not disclose DisclosureSession");
+
+                device_key
+            }
+            _ => unreachable!(),
+        };
+
+        // Check that this resulted in exactly one payload being sent.
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        assert_eq!(payloads.len(), 1);
+
+        // Deserialize the `SessionData` and decrypt its contents with the reader key.
+        let session_data: SessionData = serialization::cbor_deserialize(payloads.last().unwrap().as_slice())
+            .expect("Sent message is not SessionData");
+
+        assert!(session_data.data.is_some());
+        assert!(session_data.status.is_none());
+
+        let device_response: DeviceResponse = session_data
+            .decrypt_and_deserialize(&device_key)
+            .expect("Could not decrypt and deserialize sent DeviceResponse");
+
+        // The identifiers of the `DeviceResponse` should match those in the example `Mdoc`.
+        let identifiers = device_response
+            .documents
+            .unwrap()
+            .first()
+            .unwrap()
+            .issuer_signed_attribute_identifiers();
+
+        assert_eq!(identifiers, example_mdoc_attribute_identifiers());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_http_client_request() {
+        // Create a `DisclosureSession` containing a proposal
+        // and a `HttpClient` that will return a `reqwest::Error`.
+        let (proposal_session, mut payload_receiver) = create_disclosure_session_proposal(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("")
+                .unwrap();
+            let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
+
+            MockHttpClientResponse::Error(HolderError::from(reqwest_error).into())
+        });
+
+        // Disclosing this session should result in the payload
+        // being sent while returning the wrapped HTTP error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        assert_matches!(error, Error::Holder(HolderError::RequestError(_)));
+        assert_eq!(payloads.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_disclosure_response() {
+        // Create a `DisclosureSession` containing a proposal and a `HttpClient`
+        // that will return a `SessionStatus` that is not `Termination`.
+        let (proposal_session, mut payload_receiver) =
+            create_disclosure_session_proposal(|| MockHttpClientResponse::SessionStatus(SessionStatus::DecodingError));
+
+        // Disclosing this session should result in the payload
+        // being sent while returning a `DisclosureResponse` error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError))
+        );
+        assert_eq!(payloads.len(), 1);
     }
 }
