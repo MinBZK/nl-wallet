@@ -159,7 +159,7 @@ where
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
         // Prepare history events from session before terminating session
-        let certificate = session.verifier_certificate();
+        let certificate = session.rp_certificate();
         let now = Utc::now();
         let events = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attributes) => missing_attributes

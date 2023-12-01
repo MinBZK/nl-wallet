@@ -38,7 +38,7 @@ pub trait MdocDisclosureSession<D> {
     where
         Self: Sized;
 
-    fn verifier_certificate(&self) -> &Certificate;
+    fn rp_certificate(&self) -> &Certificate;
     fn reader_registration(&self) -> &ReaderRegistration;
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
 
@@ -85,7 +85,7 @@ where
         .await
     }
 
-    fn verifier_certificate(&self) -> &Certificate {
+    fn rp_certificate(&self) -> &Certificate {
         self.verifier_certificate()
     }
 
@@ -233,7 +233,7 @@ mod mock {
             Ok(())
         }
 
-        fn verifier_certificate(&self) -> &Certificate {
+        fn rp_certificate(&self) -> &Certificate {
             &self.certificate
         }
     }
