@@ -40,7 +40,9 @@ pub enum PidIssuanceError {
     #[error("could not interpret mdoc attributes: {0}")]
     Document(#[from] DocumentMdocError),
     #[error("could not access mdocs database: {0}")]
-    Storage(#[from] StorageError),
+    MdocStorage(#[source] StorageError),
+    #[error("could not store history in database: {0}")]
+    HistoryStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
 }
@@ -257,11 +259,19 @@ where
             .collect::<Vec<_>>();
 
         info!("PID accepted, storing mdoc in database");
-        self.storage.get_mut().insert_mdocs(mdocs).await?;
+        self.storage
+            .get_mut()
+            .insert_mdocs(mdocs)
+            .await
+            .map_err(PidIssuanceError::MdocStorage)?;
 
-        self.storage.get_mut().log_wallet_events(events).await?;
+        self.storage
+            .get_mut()
+            .log_wallet_events(events)
+            .await
+            .map_err(PidIssuanceError::HistoryStorage)?;
 
-        self.emit_documents().await?;
+        self.emit_documents().await.map_err(PidIssuanceError::MdocStorage)?;
 
         Ok(())
     }
@@ -891,6 +901,6 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, PidIssuanceError::Storage(_));
+        assert_matches!(error, PidIssuanceError::MdocStorage(_));
     }
 }
