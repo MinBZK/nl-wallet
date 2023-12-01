@@ -10,13 +10,9 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::{Card, CardAttribute, CardValue, LocalizedString},
-        config::FlutterConfiguration,
-        disclosure::{Organization, RequestPolicy, RequestedCard, StartDisclosureResult},
-        instruction::WalletInstructionResult,
-        pin::PinValidationResult,
-        uri::IdentifyUriResult,
-        wallet_event::{DisclosureStatus, WalletEvent},
+        card::Card, config::FlutterConfiguration, disclosure::StartDisclosureResult,
+        instruction::WalletInstructionResult, pin::PinValidationResult, uri::IdentifyUriResult,
+        wallet_event::WalletEvent,
     },
     stream::ClosingStreamSink,
 };
@@ -263,78 +259,15 @@ pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
     Ok(WalletInstructionResult::Ok)
 }
 
-// TODO remove when events for disclosure are sent
-fn get_hardcoded_disclosure_events() -> Vec<WalletEvent> {
-    vec![WalletEvent::Disclosure {
-        relying_party: Organization {
-            legal_name: vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "RP Legal Name".to_owned(),
-            }],
-            display_name: vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "RP Display Name".to_owned(),
-            }],
-            description: vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "RP Description".to_owned(),
-            }],
-            category: vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "Overheid".to_owned(),
-            }],
-            image: None,
-            web_url: Some("https://example.org".to_owned()),
-            kvk: Some("1234 5678".to_owned()),
-            city: Some(vec![LocalizedString {
-                language: "nl".to_owned(),
-                value: "RP City".to_owned(),
-            }]),
-            country_code: Some("nl".to_owned()),
-            department: None,
-        },
-        purpose: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP Purpose".to_owned(),
-        }],
-        requested_cards: vec![RequestedCard {
-            doc_type: "com.example.pid".to_string(),
-            attributes: vec![CardAttribute {
-                key: "sample".to_string(),
-                labels: vec![LocalizedString {
-                    language: "en".to_string(),
-                    value: "Sample label".to_string(),
-                }],
-                value: CardValue::String {
-                    value: "Sample value".to_string(),
-                },
-            }],
-        }],
-        date_time: "2023-11-06T15:19:30+0100".to_string(),
-        status: DisclosureStatus::Success,
-        request_policy: RequestPolicy {
-            data_storage_duration_in_minutes: Some(60 * 24 * 365),
-            data_shared_with_third_parties: false,
-            data_deletion_possible: false,
-            policy_url: "".to_string(),
-        },
-    }]
-}
-
 #[async_runtime]
 #[flutter_api_error]
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let mut history = history
+    let history = history
         .into_iter()
         .map(WalletEvent::try_from)
         .collect::<Result<Vec<_>, CertificateError>>()?;
-
-    // at the moment there are no disclosure events yet, so add one here
-    // TODO remove when disclosure events are implemented
-    let mut hardcoded_history = get_hardcoded_disclosure_events();
-    history.append(&mut hardcoded_history);
     Ok(history)
 }
 
@@ -343,15 +276,10 @@ pub async fn get_history() -> Result<Vec<WalletEvent>> {
 pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history_for_card(&doc_type).await?;
-    let mut history = history
+    let history = history
         .into_iter()
         .map(WalletEvent::try_from)
         .collect::<Result<Vec<_>, CertificateError>>()?;
-
-    // at the moment there are no disclosure events yet, so add one here
-    // TODO remove when disclosure events are implemented
-    let mut hardcoded_history = get_hardcoded_disclosure_events();
-    history.append(&mut hardcoded_history);
     Ok(history)
 }
 
