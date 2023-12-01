@@ -40,7 +40,7 @@ impl ProposedDocument {
 
         // Collect all `ProposedDocument`s for this `doc_type`,
         // for every `Mdoc` that satisfies the requested attributes.
-        let proposed_documents = mdocs
+        let satisfying_documents = mdocs
             .into_iter()
             .filter(|mdoc| {
                 // Calculate missing attributes for every `Mdoc` and filter it out
@@ -59,9 +59,16 @@ impl ProposedDocument {
 
                 is_satisfying
             })
-            // Convert the matching `Mdoc` to a `ProposedDocument`, based on the requested attributes.
-            .map(|mdoc| ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge.clone()))
             .collect::<Vec<_>>();
+        // Convert the matching `Mdoc` to a `ProposedDocument`, based on the requested attributes.
+        let document_count = satisfying_documents.len();
+        let proposed_documents = satisfying_documents
+            .into_iter()
+            .zip(itertools::repeat_n(device_signed_challenge, document_count))
+            .map(|(mdoc, device_signed_challenge)| {
+                ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge)
+            })
+            .collect();
 
         (proposed_documents, all_missing_attributes)
     }

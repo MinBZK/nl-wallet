@@ -127,7 +127,7 @@ where
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
         let (check_result, reader_registration) =
-            Self::check_verifier_session_data(session_data, &transcript, &reader_key, mdoc_data_source, trust_anchors)
+            Self::check_verifier_session_data(session_data, transcript, &reader_key, mdoc_data_source, trust_anchors)
                 .or_else(|error| async {
                     // Determine the category of the error, so we can report on it.
                     let error_session_data = match error {
@@ -175,7 +175,7 @@ where
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
     async fn check_verifier_session_data<'a>(
         verifier_session_data: SessionData,
-        session_transcript: &SessionTranscript,
+        session_transcript: SessionTranscript,
         reader_key: &SessionKey,
         mdoc_data_source: &impl MdocDataSource,
         trust_anchors: &[TrustAnchor<'a>],
@@ -191,7 +191,7 @@ where
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
         let reader_registration = device_request
-            .verify(session_transcript, &TimeGenerator, trust_anchors)?
+            .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
         // Fetch documents from the database, calculate which ones satisfy the request and
