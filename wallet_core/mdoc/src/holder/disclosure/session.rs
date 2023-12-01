@@ -14,8 +14,12 @@ use crate::{
     holder::{HolderError, HttpClient},
     identifiers::AttributeIdentifier,
     mdocs::{DocType, NameSpace},
-    utils::{crypto::SessionKey, reader_auth::ReaderRegistration, serialization::CborError},
-    utils::{serialization, x509::Certificate},
+    utils::{
+        crypto::SessionKey,
+        reader_auth::ReaderRegistration,
+        serialization::{self, CborError},
+        x509::Certificate,
+    },
     verifier::SessionType,
 };
 
