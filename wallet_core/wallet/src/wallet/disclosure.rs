@@ -247,10 +247,10 @@ mod tests {
                 }],
             )]),
         )]);
-        let mut proposal_session = MockMdocDisclosureProposal::default();
-        proposal_session
-            .expect_proposed_attributes()
-            .return_const(proposed_attributes);
+        let proposal_session = MockMdocDisclosureProposal {
+            return_url: None,
+            proposed_attributes,
+        };
 
         MockMdocDisclosureSession::next_fields(
             reader_registration,
@@ -458,10 +458,10 @@ mod tests {
                 }],
             )]),
         )]);
-        let mut proposal_session = MockMdocDisclosureProposal::default();
-        proposal_session
-            .expect_proposed_attributes()
-            .return_const(proposed_attributes);
+        let proposal_session = MockMdocDisclosureProposal {
+            return_url: None,
+            proposed_attributes,
+        };
 
         MockMdocDisclosureSession::next_fields(
             Default::default(),

@@ -17,7 +17,7 @@ use crate::utils;
 pub use self::uri::{DisclosureUriData, DisclosureUriError};
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockMdocDisclosureSession;
+pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
 
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
@@ -49,10 +49,8 @@ pub trait MdocDisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait MdocDisclosureProposal {
-    #[allow(clippy::needless_lifetimes)]
-    fn return_url<'a>(&'a self) -> Option<&'a Url>;
+    fn return_url(&self) -> Option<&Url>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 }
 
@@ -141,6 +139,22 @@ mod mock {
     impl Default for SessionState {
         fn default() -> Self {
             MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal::default())
+        }
+    }
+
+    #[derive(Debug, Default)]
+    pub struct MockMdocDisclosureProposal {
+        pub return_url: Option<Url>,
+        pub proposed_attributes: ProposedAttributes,
+    }
+
+    impl MdocDisclosureProposal for MockMdocDisclosureProposal {
+        fn return_url(&self) -> Option<&Url> {
+            self.return_url.as_ref()
+        }
+
+        fn proposed_attributes(&self) -> ProposedAttributes {
+            self.proposed_attributes.clone()
         }
     }
 
