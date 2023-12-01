@@ -9,7 +9,10 @@ use nl_wallet_mdoc::{
         ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
-    utils::reader_auth::ReaderRegistration,
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        reader_auth::ReaderRegistration,
+    },
 };
 
 use crate::utils;
@@ -49,9 +52,15 @@ pub trait MdocDisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
+#[async_trait]
 pub trait MdocDisclosureProposal {
     fn return_url(&self) -> Option<&Url>;
     fn proposed_attributes(&self) -> ProposedAttributes;
+
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    where
+        KF: KeyFactory<'a, Key = K> + Send + Sync,
+        K: MdocEcdsaKey + Send + Sync;
 }
 
 #[async_trait]
@@ -107,6 +116,7 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
     }
 }
 
+#[async_trait]
 impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
     fn return_url(&self) -> Option<&Url> {
         self.return_url()
@@ -114,6 +124,14 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
 
     fn proposed_attributes(&self) -> ProposedAttributes {
         self.proposed_attributes()
+    }
+
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    where
+        KF: KeyFactory<'a, Key = K> + Send + Sync,
+        K: MdocEcdsaKey + Send + Sync,
+    {
+        self.disclose(key_factory).await
     }
 }
 
@@ -148,6 +166,7 @@ mod mock {
         pub proposed_attributes: ProposedAttributes,
     }
 
+    #[async_trait]
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
         fn return_url(&self) -> Option<&Url> {
             self.return_url.as_ref()
@@ -155,6 +174,10 @@ mod mock {
 
         fn proposed_attributes(&self) -> ProposedAttributes {
             self.proposed_attributes.clone()
+        }
+
+        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()> {
+            Ok(())
         }
     }
 

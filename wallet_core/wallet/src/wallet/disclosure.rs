@@ -2,21 +2,25 @@ use std::collections::HashSet;
 
 use async_trait::async_trait;
 use indexmap::IndexMap;
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 use url::Url;
 
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocDataSource},
-    utils::reader_auth::ReaderRegistration,
+    server_keys::KeysError,
+    utils::{cose::CoseError, reader_auth::ReaderRegistration},
 };
 
 use crate::{
+    account_provider::AccountProviderClient,
     config::ConfigurationRepository,
     disclosure::{
         DisclosureUriData, DisclosureUriError, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
         MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
+    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError},
 };
 
@@ -47,6 +51,8 @@ pub enum DisclosureError {
     },
     #[error("could not interpret (missing) mdoc attributes: {0}")]
     MdocAttributes(#[from] DocumentMdocError),
+    #[error("error sending instruction to Wallet Provider: {0}")]
+    Instruction(#[source] InstructionError),
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -158,7 +164,71 @@ where
         Ok(())
     }
 
-    // TODO: Implement disclosure method.
+    pub async fn accept_disclosure(&mut self, pin: String) -> Result<(), DisclosureError>
+    where
+        S: Storage + Send + Sync,
+        PEK: PlatformEcdsaKey + Sync,
+        APC: AccountProviderClient + Sync,
+    {
+        info!("Accepting disclosure");
+
+        info!("Checking if registered");
+        let registration_data = self
+            .registration
+            .as_ref()
+            .ok_or_else(|| DisclosureError::NotRegistered)?;
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        info!("Checking if a disclosure session is present");
+        let session_proposal = match self.disclosure_session.as_ref().map(|session| session.session_state()) {
+            Some(MdocDisclosureSessionState::Proposal(session_proposal)) => session_proposal,
+            _ => return Err(DisclosureError::SessionState),
+        };
+
+        // TODO: Increment the disclosure counts of mdoc copies referenced in the proposal.
+
+        // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
+        let config = self.config_repository.config();
+
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let remote_instruction = InstructionClient::new(
+            pin,
+            &self.storage,
+            &self.hw_privkey,
+            &self.account_provider_client,
+            registration_data,
+            &config.account_server.base_url,
+            &instruction_result_public_key,
+        );
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
+
+        // Actually perform disclosure, casting any `InstructionError` that
+        // occur during signing to `RemoteEcdsaKeyError::Instruction`.
+        session_proposal
+            .disclose(&remote_key_factory)
+            .await
+            .map_err(|error| match error {
+                nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
+                    // This `unwrap()` is safe because of the `is()` check above.
+                    match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                        RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
+                        error => nl_wallet_mdoc::Error::KeysError(KeysError::KeyGeneration(error.into())).into(),
+                    }
+                }
+                _ => error.into(),
+            })?;
+
+        // TODO: Save data for disclosure in event log.
+
+        // When disclosure is successful, we can remove the session.
+        self.disclosure_session.take();
+
+        Ok(())
+    }
 }
 
 #[async_trait]
