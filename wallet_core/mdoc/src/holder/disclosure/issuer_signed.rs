@@ -16,12 +16,11 @@ impl IssuerSigned {
 mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey};
 
-    use crate::{examples::Examples, mock};
+    use super::super::tests::*;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc = create_example_mdoc();
 
         let public_key = mdoc
             .issuer_signed

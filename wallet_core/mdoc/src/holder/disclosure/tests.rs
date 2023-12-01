@@ -20,7 +20,7 @@ use crate::{
             DeviceRequest, DeviceRequestVersion, DocRequest, ItemsRequest, ReaderAuthenticationBytes,
             ReaderAuthenticationKeyed,
         },
-        disclosure::SessionData,
+        disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     },
     mock,
@@ -35,7 +35,7 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{DisclosureSession, MdocDataSource};
+use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource};
 
 // Constants for testing.
 pub const RP_CA_CN: &str = "ca.rp.example.com";
@@ -167,24 +167,49 @@ pub async fn create_doc_request(
     }
 }
 
-/// An implementor of `HttpClient` that returns `SessionData` which
-/// terminates the session and possibly returns errors. Messages sent
+/// Create the example `Mdoc`.
+pub fn create_example_mdoc() -> Mdoc {
+    let trust_anchors = Examples::iaca_trust_anchors();
+    mock::mdoc_from_example_device_response(trust_anchors)
+}
+
+/// Create `ProposedDocument` based on the example `Mdoc`.
+pub fn create_example_proposed_document() -> ProposedDocument {
+    let mdoc = create_example_mdoc();
+
+    ProposedDocument {
+        private_key_id: mdoc.private_key_id,
+        doc_type: mdoc.doc_type,
+        issuer_signed: mdoc.issuer_signed,
+        device_signed_challenge: b"signing_challenge".to_vec(),
+    }
+}
+
+/// An implementor of `HttpClient` that either returns `SessionData`
+/// with a particular `SessionStatus` or returns an error. Messages sent
 /// through this `HttpClient` can be inspected through a `mpsc` channel.
-pub struct TerminatingHttpClient<F> {
-    pub error_factory: F,
+pub struct MockHttpClient<F> {
+    pub response_factory: F,
     pub payload_sender: mpsc::Sender<Vec<u8>>,
 }
 
-impl<F> fmt::Debug for TerminatingHttpClient<F> {
+pub enum MockHttpClientResponse {
+    Error(Error),
+    SessionStatus(SessionStatus),
+}
+
+impl<F> fmt::Debug for MockHttpClient<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("TerminatingHttpClient").finish_non_exhaustive()
+        f.debug_struct("MockHttpClient")
+            .field("payload_sender", &self.payload_sender)
+            .finish_non_exhaustive()
     }
 }
 
 #[async_trait]
-impl<F> HttpClient for TerminatingHttpClient<F>
+impl<F> HttpClient for MockHttpClient<F>
 where
-    F: Fn() -> Option<Error> + Send + Sync,
+    F: Fn() -> MockHttpClientResponse + Send + Sync,
 {
     async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
     where
@@ -197,16 +222,17 @@ where
             .send(serialization::cbor_serialize(val).unwrap())
             .await;
 
-        if let Some(error) = (self.error_factory)() {
-            return Err(error);
-        }
-
-        let response = serialization::cbor_deserialize(
-            serialization::cbor_serialize(&SessionData::new_termination())
-                .unwrap()
-                .as_slice(),
-        )
-        .unwrap();
+        let response = match (self.response_factory)() {
+            MockHttpClientResponse::Error(error) => return Err(error),
+            MockHttpClientResponse::SessionStatus(session_status) => {
+                let session_data = SessionData {
+                    data: None,
+                    status: session_status.into(),
+                };
+                serialization::cbor_deserialize(serialization::cbor_serialize(&session_data).unwrap().as_slice())
+                    .unwrap()
+            }
+        };
 
         Ok(response)
     }
@@ -229,11 +255,8 @@ pub enum MdocDataSourceError {
 
 impl Default for MockMdocDataSource {
     fn default() -> Self {
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
         MockMdocDataSource {
-            mdocs: vec![mdoc],
+            mdocs: vec![create_example_mdoc()],
             has_error: false,
         }
     }

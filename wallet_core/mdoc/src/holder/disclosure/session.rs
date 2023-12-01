@@ -560,12 +560,12 @@ mod tests {
 
     async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
     where
-        F: Fn() -> Option<Error> + Send + Sync,
+        F: Fn() -> Error + Send + Sync,
     {
-        // Set up a `TerminatingHttpClient` with the receiver `error_factory`.
+        // Set up a `MockHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
-        let client = TerminatingHttpClient {
-            error_factory,
+        let client = MockHttpClient {
+            response_factory: || MockHttpClientResponse::Error(error_factory()),
             payload_sender,
         };
 
@@ -596,9 +596,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_data_serialization() {
-        // Set up the `TerminatingHttpClient` to return a `CborError::Serialization`.
+        // Set up the `MockHttpClient` to return a `CborError::Serialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
-            Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into()
+            CborError::from(ciborium::ser::Error::Value("".to_string())).into()
         })
         .await;
 
@@ -610,7 +610,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_request() {
-        // Set up the `TerminatingHttpClient` to return a `HolderError::Serialization`.
+        // Set up the `MockHttpClient` to return a `HolderError::Serialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
             let response = http::Response::builder()
                 .status(StatusCode::NOT_FOUND)
@@ -618,7 +618,7 @@ mod tests {
                 .unwrap();
             let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
 
-            Error::from(HolderError::from(reqwest_error)).into()
+            HolderError::from(reqwest_error).into()
         })
         .await;
 
@@ -630,9 +630,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_data_deserialization() {
-        // Set up the `TerminatingHttpClient` to return a `CborError::Deserialization`.
+        // Set up the `MockHttpClient` to return a `CborError::Deserialization`.
         let (error, payloads) = test_disclosure_session_start_error_http_client(|| {
-            Error::from(CborError::from(ciborium::de::Error::RecursionLimitExceeded)).into()
+            CborError::from(ciborium::de::Error::RecursionLimitExceeded).into()
         })
         .await;
 
@@ -886,6 +886,37 @@ mod tests {
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
     }
 
+    fn create_disclosure_session_proposal<F>(
+        response_factory: F,
+    ) -> (DisclosureSession<MockHttpClient<F>>, mpsc::Receiver<Vec<u8>>)
+    where
+        F: Fn() -> MockHttpClientResponse + Send + Sync,
+    {
+        let privkey = SecretKey::random(&mut OsRng);
+        let pubkey = SecretKey::random(&mut OsRng).public_key();
+        let session_transcript = create_basic_session_transcript();
+        let device_key = SessionKey::new(&privkey, &pubkey, &session_transcript, SessionKeyUser::Device).unwrap();
+
+        let (payload_sender, payload_receiver) = mpsc::channel(256);
+        let client = MockHttpClient {
+            response_factory,
+            payload_sender,
+        };
+
+        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
+            return_url: Url::parse(RETURN_URL).unwrap().into(),
+            endpoint: DisclosureEndpoint {
+                client,
+                verifier_url: SESSION_URL.parse().unwrap(),
+                reader_registration: Default::default(),
+            },
+            device_key,
+            proposed_documents: vec![create_example_proposed_document()],
+        });
+
+        (proposal_session, payload_receiver)
+    }
+
     async fn test_disclosure_session_terminate<H>(
         session: DisclosureSession<H>,
         mut payload_receiver: mpsc::Receiver<Vec<u8>>,
@@ -909,49 +940,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_disclosure_session_terminate_proposal() {
-        let privkey = SecretKey::random(&mut OsRng);
-        let pubkey = SecretKey::random(&mut OsRng).public_key();
-        let session_transcript = create_basic_session_transcript();
-        let device_key = SessionKey::new(&privkey, &pubkey, &session_transcript, SessionKeyUser::Device).unwrap();
-
-        let (payload_sender, payload_receiver) = mpsc::channel(256);
-        let client = TerminatingHttpClient {
-            error_factory: || None::<Error>,
-            payload_sender,
-        };
-
-        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
-            return_url: Url::parse(RETURN_URL).unwrap().into(),
-            endpoint: DisclosureEndpoint {
-                client,
-                verifier_url: SESSION_URL.parse().unwrap(),
-                reader_registration: Default::default(),
-            },
-            device_key: device_key.clone(),
-            proposed_documents: Default::default(),
-        });
+    async fn test_disclosure_session_proposal_terminate() {
+        let (proposal_session, payload_receiver) =
+            create_disclosure_session_proposal(|| MockHttpClientResponse::SessionStatus(SessionStatus::Termination));
 
         // Terminating a `DisclosureSession` with a proposal should succeed.
         test_disclosure_session_terminate(proposal_session, payload_receiver)
             .await
             .expect("Could not terminate DisclosureSession with proposal");
 
-        let (payload_sender, payload_receiver) = mpsc::channel(256);
-        let client = TerminatingHttpClient {
-            error_factory: || Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into(),
-            payload_sender,
-        };
-
-        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
-            return_url: Url::parse(RETURN_URL).unwrap().into(),
-            endpoint: DisclosureEndpoint {
-                client,
-                verifier_url: SESSION_URL.parse().unwrap(),
-                reader_registration: Default::default(),
-            },
-            device_key,
-            proposed_documents: Default::default(),
+        let (proposal_session, payload_receiver) = create_disclosure_session_proposal(|| {
+            MockHttpClientResponse::Error(CborError::from(ciborium::ser::Error::Value("".to_string())).into())
         });
 
         // Terminating a `DisclosureSession` with a proposal where the `HttpClient`
@@ -964,10 +963,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_disclosure_session_terminate_missing_attributes() {
+    async fn test_disclosure_session_missing_attributes_terminate() {
         let (payload_sender, payload_receiver) = mpsc::channel(256);
-        let client = TerminatingHttpClient {
-            error_factory: || None::<Error>,
+        let client = MockHttpClient {
+            response_factory: || MockHttpClientResponse::SessionStatus(SessionStatus::Termination),
             payload_sender,
         };
 
@@ -986,8 +985,10 @@ mod tests {
             .expect("Could not terminate DisclosureSession with missing attributes");
 
         let (payload_sender, payload_receiver) = mpsc::channel(256);
-        let client = TerminatingHttpClient {
-            error_factory: || Error::from(CborError::from(ciborium::ser::Error::Value("".to_string()))).into(),
+        let client = MockHttpClient {
+            response_factory: || {
+                MockHttpClientResponse::Error(CborError::from(ciborium::ser::Error::Value("".to_string())).into())
+            },
             payload_sender,
         };
 

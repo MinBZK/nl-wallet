@@ -160,22 +160,19 @@ mod tests {
 
     use crate::{
         errors::Error,
-        examples::Examples,
         iso::disclosure::DeviceAuth,
-        mock::{self, FactorySoftwareEcdsaKeyError, SoftwareKeyFactory},
+        mock::{FactorySoftwareEcdsaKeyError, SoftwareKeyFactory},
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,
         },
     };
 
-    use super::*;
+    use super::{super::tests::*, *};
 
     #[test]
     fn test_proposed_document_from_mdoc() {
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
+        let mdoc = create_example_mdoc();
         let doc_type = mdoc.doc_type.clone();
         let private_key_id = mdoc.private_key_id.clone();
         let issuer_auth = mdoc.issuer_signed.issuer_auth.clone();
@@ -218,9 +215,7 @@ mod tests {
 
     #[test]
     fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
-        let trust_anchors = Examples::iaca_trust_anchors();
-
-        let mdoc1 = mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc1 = create_example_mdoc();
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
             let attributes = &mut mdoc
@@ -305,18 +300,6 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["driving_privileges", "issue_date", "expiry_date"]
         );
-    }
-
-    fn create_example_proposed_document() -> ProposedDocument {
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
-        ProposedDocument {
-            private_key_id: mdoc.private_key_id,
-            doc_type: mdoc.doc_type,
-            issuer_signed: mdoc.issuer_signed,
-            device_signed_challenge: b"signing_challenge".to_vec(),
-        }
     }
 
     #[tokio::test]
