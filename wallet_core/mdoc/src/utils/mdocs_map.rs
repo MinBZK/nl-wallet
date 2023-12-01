@@ -7,7 +7,7 @@ use crate::{
     DocType, Error, NameSpace,
 };
 
-use crate::{holder::MdocRetriever, utils::serialization::cbor_serialize};
+use crate::utils::serialization::cbor_serialize;
 
 /// An implementation of [`Storage`] using maps, structured as follows::
 /// - mdocs with different doctypes, through the map over `DocType`,
@@ -69,16 +69,6 @@ impl MdocsMap {
                 )
             })
             .collect()
-    }
-}
-
-impl MdocRetriever for MdocsMap {
-    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>> {
-        self.0.get(doctype).map(|v| {
-            v.iter()
-                .map(|(_key, entry)| entry.cred_copies.to_vec().into())
-                .collect()
-        })
     }
 }
 

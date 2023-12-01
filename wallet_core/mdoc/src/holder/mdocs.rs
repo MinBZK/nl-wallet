@@ -18,11 +18,6 @@ use crate::{
 
 use super::{CborHttpClient, HttpClient, IssuanceSessionState};
 
-pub trait MdocRetriever {
-    // TODO returning all copies of all mdocs is very crude and should be refined.
-    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>>;
-}
-
 pub struct Wallet<H = CborHttpClient> {
     pub(crate) session_state: Option<IssuanceSessionState>,
     pub(crate) client: H,
