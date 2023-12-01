@@ -138,7 +138,7 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
 #[cfg(any(test, feature = "mock"))]
 mod mock {
     use std::sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, Mutex,
     };
 
@@ -153,6 +153,17 @@ mod mock {
     pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
+    // For testing, provide a default for `DisclosureUriData`.
+    impl Default for DisclosureUriData {
+        fn default() -> Self {
+            DisclosureUriData {
+                reader_engagement_bytes: Default::default(),
+                return_url: None,
+                session_type: SessionType::CrossDevice,
+            }
+        }
+    }
+
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
         fn default() -> Self {
@@ -164,6 +175,8 @@ mod mock {
     pub struct MockMdocDisclosureProposal {
         pub return_url: Option<Url>,
         pub proposed_attributes: ProposedAttributes,
+        pub disclosure_count: Arc<AtomicUsize>,
+        pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
     }
 
     #[async_trait]
@@ -177,11 +190,18 @@ mod mock {
         }
 
         async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()> {
+            if let Some(error) = self.next_error.lock().unwrap().take() {
+                return Err(error);
+            }
+
+            self.disclosure_count
+                .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
+
             Ok(())
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
         pub reader_registration: ReaderRegistration,
@@ -199,21 +219,6 @@ mod mock {
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
             NEXT_START_ERROR.lock().unwrap().replace(error);
-        }
-    }
-
-    impl Default for MockMdocDisclosureSession {
-        fn default() -> Self {
-            Self {
-                disclosure_uri: DisclosureUriData {
-                    reader_engagement_bytes: Vec::<u8>::default(),
-                    return_url: None,
-                    session_type: SessionType::CrossDevice,
-                },
-                reader_registration: ReaderRegistration::default(),
-                session_state: SessionState::default(),
-                was_terminated: Default::default(),
-            }
         }
     }
 

@@ -282,15 +282,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::Ordering, Arc};
+    use std::sync::{atomic::Ordering, Arc, Mutex};
 
     use assert_matches::assert_matches;
     use mockall::predicate::*;
     use serial_test::serial;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry, examples::Examples, holder::HolderError, mock as mdoc_mock, verifier::SessionType,
-        DataElementValue,
+        basic_sa_ext::Entry, examples::Examples, holder::HolderError, iso::disclosure::SessionStatus,
+        mock as mdoc_mock, verifier::SessionType, DataElementValue,
     };
 
     use crate::{
@@ -324,8 +324,8 @@ mod tests {
             )]),
         )]);
         let proposal_session = MockMdocDisclosureProposal {
-            return_url: None,
             proposed_attributes,
+            ..Default::default()
         };
 
         MockMdocDisclosureSession::next_fields(
@@ -535,8 +535,8 @@ mod tests {
             )]),
         )]);
         let proposal_session = MockMdocDisclosureProposal {
-            return_url: None,
             proposed_attributes,
+            ..Default::default()
         };
 
         MockMdocDisclosureSession::next_fields(
@@ -563,7 +563,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_wallet_cancel_disclosure() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -586,7 +585,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_locked() {
-        // Prepare a registered and locked wallet with an active disclosure session.
+        // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
@@ -632,6 +631,209 @@ mod tests {
 
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_none());
+    }
+
+    const PIN: &str = "051097";
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Create a default `MockMdocDisclosureSession`, copy
+        // the disclosure count and check that it is 0.
+        let disclosure_session = MockMdocDisclosureSession::default();
+        let disclosure_count = match disclosure_session.session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => Arc::clone(&proposal.disclosure_count),
+            _ => unreachable!(),
+        };
+        assert_eq!(disclosure_count.load(Ordering::Relaxed), 0);
+
+        wallet.disclosure_session = disclosure_session.into();
+
+        // Accepting disclosure should succeed.
+        wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect("Could not accept disclosure");
+
+        // Check that the disclosure session is no longer
+        // present and that the disclosure count is 1.
+        assert!(wallet.disclosure_session.is_none());
+        assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_locked() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        wallet.disclosure_session = MockMdocDisclosureSession::default().into();
+
+        wallet.lock();
+
+        // Accepting disclosure on a locked wallet should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::Locked);
+        assert!(wallet.disclosure_session.is_some());
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_unregistered() {
+        // Prepare an unregistered wallet.
+        let mut wallet = WalletWithMocks::default();
+
+        // Accepting disclosure on an unregistered wallet should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::NotRegistered);
+        assert!(wallet.disclosure_session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_session_state() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Accepting disclosure on a wallet without an active
+        // disclosure session should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::SessionState);
+        assert!(wallet.disclosure_session.is_none());
+
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        let disclosure_session = MockMdocDisclosureSession {
+            session_state: MdocDisclosureSessionState::MissingAttributes(Default::default()),
+            ..Default::default()
+        };
+        wallet.disclosure_session = disclosure_session.into();
+
+        // Accepting disclosure on a wallet that has a disclosure session
+        // with missing attributes should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::SessionState);
+        assert!(wallet.disclosure_session.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_disclosure_session() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        let disclosure_session = MockMdocDisclosureSession {
+            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                next_error: Mutex::new(
+                    nl_wallet_mdoc::Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError)).into(),
+                ),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        wallet.disclosure_session = disclosure_session.into();
+
+        // Accepting disclosure when the verifier responds with
+        // a decoding error should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert!(wallet.disclosure_session.is_some());
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+            }
+            _ => unreachable!(),
+        };
+
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                proposal
+                    .next_error
+                    .lock()
+                    .unwrap()
+                    .replace(nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                        RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
+                    )))
+            }
+            _ => unreachable!(),
+        };
+
+        // Accepting disclosure when the Wallet Provider responds that key with
+        // a particular identifier is not present should result in an error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert!(wallet.disclosure_session.is_some());
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_instruction() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        let disclosure_session = MockMdocDisclosureSession {
+            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                next_error: Mutex::new(
+                    nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                        RemoteEcdsaKeyError::Instruction(InstructionError::Blocked).into(),
+                    ))
+                    .into(),
+                ),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        wallet.disclosure_session = disclosure_session.into();
+
+        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
+        // that the account is blocked should result in a `DisclosureError::Instruction` error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::Instruction(InstructionError::Blocked));
+        assert!(wallet.disclosure_session.is_some());
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+            }
+            _ => unreachable!(),
+        };
     }
 
     #[tokio::test]
