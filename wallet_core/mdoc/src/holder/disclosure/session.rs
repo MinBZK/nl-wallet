@@ -327,14 +327,19 @@ mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
     use indexmap::IndexSet;
-    use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
+    use p256::{ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng, SecretKey};
     use tokio::sync::mpsc;
 
     use crate::{
         identifiers::AttributeIdentifierHolder,
-        iso::disclosure::SessionStatus,
+        iso::disclosure::{DeviceAuth, SessionStatus},
+        iso::engagement::DeviceAuthentication,
         mock::SoftwareKeyFactory,
-        utils::{cose::CoseError, crypto::SessionKeyUser},
+        utils::{
+            cose::{ClonePayload, CoseError},
+            crypto::SessionKeyUser,
+            serialization::TaggedBytes,
+        },
     };
 
     use super::{super::tests::*, *};
@@ -363,25 +368,44 @@ mod tests {
         .await
         .expect("Could not start DisclosureSession");
 
-        // Remember the `AttributeIdentifier`s that were in the request.
+        // Remember the `AttributeIdentifier`s that were in the request,
+        // as well as what is needed to reconstruct the `SessionTranscript`.
         let request_identifiers = verifier_session
             .items_requests
             .iter()
             .flat_map(|items_request| items_request.attribute_identifiers())
             .collect::<IndexSet<_>>();
+        let session_type = verifier_session.session_type;
+        let reader_engagement = verifier_session.reader_engagement.clone();
 
         // Make sure starting the session resulted in a proposal, get the
-        // device `SessionKey` from that and actually perform disclosure.
-        let device_key = match disclosure_session {
+        // device `SessionKey` and a list of public keys from that
+        // and then actually perform disclosure.
+        let (device_key, public_keys) = match disclosure_session {
             DisclosureSession::Proposal(proposal) => {
                 let device_key = proposal.device_key.clone();
+
+                // Extract the public keys from the `MobileSecurityObject`
+                let public_keys: Vec<VerifyingKey> = proposal
+                    .proposed_documents
+                    .iter()
+                    .map(|proposed_document| {
+                        let TaggedBytes(mso) = proposed_document
+                            .issuer_signed
+                            .issuer_auth
+                            .dangerous_parse_unverified()
+                            .unwrap();
+
+                        (&mso.device_key_info.device_key).try_into().unwrap()
+                    })
+                    .collect();
 
                 proposal
                     .disclose(&SoftwareKeyFactory::default())
                     .await
                     .expect("Could not disclose DisclosureSession");
 
-                device_key
+                (device_key, public_keys)
             }
             _ => panic!("Disclosure session should not have missing attributes"),
         };
@@ -394,7 +418,7 @@ mod tests {
         assert_eq!(payloads.len(), 2);
 
         // Check that the payloads are a `DeviceEngagement` and `SessionData` respectively.
-        let _device_engagement: DeviceEngagement = serialization::cbor_deserialize(payloads[0].as_slice())
+        let device_engagement: DeviceEngagement = serialization::cbor_deserialize(payloads[0].as_slice())
             .expect("First message sent is not DeviceEngagement");
         let session_data: SessionData =
             serialization::cbor_deserialize(payloads[1].as_slice()).expect("Second message sent is not SessionData");
@@ -409,18 +433,40 @@ mod tests {
 
         // Check that the attributes contained in the response match those in the request.
         assert!(device_response.documents.is_some());
+        let documents = device_response.documents.unwrap();
 
-        let response_identifiers = device_response
-            .documents
-            .map(|documents| {
-                documents
-                    .into_iter()
-                    .flat_map(|document| document.issuer_signed_attribute_identifiers())
-                    .collect::<IndexSet<_>>()
-            })
-            .unwrap_or_default();
+        let response_identifiers = documents
+            .iter()
+            .flat_map(|document| document.issuer_signed_attribute_identifiers())
+            .collect::<IndexSet<_>>();
 
         assert_eq!(response_identifiers, request_identifiers);
+
+        // Use the `DeviceEngagement` sent to reconstruct the `SessionTranscript`.
+        // In turn, use that to reconstruct the `DeviceAuthentication` for every
+        // `Document` received in order to verify the signatures received for
+        // each of these.
+        let session_transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap();
+
+        assert_eq!(documents.len(), public_keys.len());
+
+        documents
+            .into_iter()
+            .zip(public_keys)
+            .for_each(|(document, public_key)| {
+                let device_authentication =
+                    DeviceAuthentication::from_session_transcript(session_transcript.clone(), document.doc_type);
+                let device_authentication_bytes =
+                    serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap();
+
+                match document.device_signed.device_auth {
+                    DeviceAuth::DeviceSignature(signature) => signature
+                        .clone_with_payload(device_authentication_bytes)
+                        .verify(&public_key)
+                        .expect("Device authentication for document does not match public key"),
+                    _ => panic!("Unexpected device authentication in DeviceResponse"),
+                }
+            });
     }
 
     #[tokio::test]

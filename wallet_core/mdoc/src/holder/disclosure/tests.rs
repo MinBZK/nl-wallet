@@ -289,7 +289,7 @@ impl MdocDataSource for MockMdocDataSource {
 /// verifier messages in a disclosure session. Currently it only responds
 /// with a [`SessionData`] containing a [`DeviceRequest`].
 pub struct MockVerifierSession<F> {
-    session_type: SessionType,
+    pub session_type: SessionType,
     pub return_url: Option<Url>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
