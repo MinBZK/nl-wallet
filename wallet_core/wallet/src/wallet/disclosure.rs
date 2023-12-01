@@ -41,16 +41,16 @@ pub enum DisclosureError {
     #[error("disclosure session is not in the correct state")]
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
-    DisclosureUri(#[from] DisclosureUriError),
+    DisclosureUri(#[source] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
-    DisclosureSession(#[from] nl_wallet_mdoc::Error),
+    DisclosureSession(#[source] nl_wallet_mdoc::Error),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: Vec<MissingDisclosureAttributes>,
     },
     #[error("could not interpret (missing) mdoc attributes: {0}")]
-    MdocAttributes(#[from] DocumentMdocError),
+    MdocAttributes(#[source] DocumentMdocError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
 }
@@ -83,10 +83,13 @@ where
 
         // Assume that redirect URI creation is checked when updating the `Configuration`.
         let disclosure_redirect_uri_base = config.uri_base().unwrap();
-        let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)?;
+        let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)
+            .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors()).await?;
+        let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
+            .await
+            .map_err(DisclosureError::DisclosureSession)?;
 
         let proposal_session = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
@@ -114,7 +117,7 @@ where
                     // TODO: What to do when the missing attributes could not be translated?
                     //       In that case there is no way we can terminate the session with
                     //       user interaction, since the missing attributes cannot be presented.
-                    Err(error) => error.into(),
+                    Err(error) => DisclosureError::MdocAttributes(error),
                 };
 
                 return Err(error);
@@ -129,7 +132,8 @@ where
             .proposed_attributes()
             .into_iter()
             .map(|(doc_type, attributes)| ProposedDisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<_, _>>()
+            .map_err(DisclosureError::MdocAttributes)?;
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposal {
@@ -159,7 +163,7 @@ where
         info!("Checking if a disclosure session is present");
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
-        session.terminate().await?;
+        session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
 
         Ok(())
     }
@@ -216,10 +220,12 @@ where
                     // This `unwrap()` is safe because of the `is()` check above.
                     match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                         RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
-                        error => nl_wallet_mdoc::Error::KeysError(KeysError::KeyGeneration(error.into())).into(),
+                        error => DisclosureError::DisclosureSession(nl_wallet_mdoc::Error::KeysError(
+                            KeysError::KeyGeneration(error.into()),
+                        )),
                     }
                 }
-                _ => error.into(),
+                _ => DisclosureError::DisclosureSession(error),
             })?;
 
         // TODO: Save data for disclosure in event log.
