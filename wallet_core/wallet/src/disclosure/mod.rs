@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
         ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
-    utils::reader_auth::ReaderRegistration,
+    utils::{reader_auth::ReaderRegistration, x509::Certificate},
 };
 
 use crate::utils;
@@ -38,6 +38,7 @@ pub trait MdocDisclosureSession<D> {
     where
         Self: Sized;
 
+    fn verifier_certificate(&self) -> &Certificate;
     fn reader_registration(&self) -> &ReaderRegistration;
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
 
@@ -82,6 +83,10 @@ where
             trust_anchors,
         )
         .await
+    }
+
+    fn verifier_certificate(&self) -> &Certificate {
+        self.verifier_certificate()
     }
 
     fn reader_registration(&self) -> &ReaderRegistration {
@@ -147,6 +152,7 @@ mod mock {
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
+        pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
         pub was_terminated: Arc<AtomicBool>,
@@ -173,6 +179,7 @@ mod mock {
                     return_url: None,
                     session_type: SessionType::CrossDevice,
                 },
+                certificate: vec![].into(),
                 reader_registration: ReaderRegistration::default(),
                 session_state: SessionState::default(),
                 was_terminated: Default::default(),
@@ -198,6 +205,7 @@ mod mock {
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
+                certificate: vec![].into(), // TODO add parameter with RP ReaderAuth certificate
                 reader_registration,
                 session_state,
                 was_terminated: Default::default(),
@@ -223,6 +231,10 @@ mod mock {
             self.was_terminated.store(true, Ordering::Relaxed);
 
             Ok(())
+        }
+
+        fn verifier_certificate(&self) -> &Certificate {
+            &self.certificate
         }
     }
 }
