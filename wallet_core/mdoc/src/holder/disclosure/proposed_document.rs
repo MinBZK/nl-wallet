@@ -14,7 +14,7 @@ use crate::{
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProposedDocument {
     pub private_key_id: String,
     pub doc_type: DocType,

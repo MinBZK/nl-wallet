@@ -272,7 +272,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<'a, KF, K>(self, key_factory: &'a KF) -> Result<()>
+    pub async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> Result<()>
     where
         KF: KeyFactory<'a, Key = K>,
         K: MdocEcdsaKey + Sync,
@@ -281,8 +281,8 @@ where
         // TODO: Do this in bulk, as this will be serialized by the implementation.
         let documents = future::try_join_all(
             self.proposed_documents
-                .into_iter()
-                .map(|proposed_document| proposed_document.sign(key_factory)),
+                .iter()
+                .map(|proposed_document| proposed_document.clone().sign(key_factory)),
         )
         .await?;
 
