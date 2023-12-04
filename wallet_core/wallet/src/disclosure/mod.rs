@@ -232,14 +232,10 @@ mod mock {
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri: DisclosureUriData {
-                    reader_engagement_bytes: Vec::<u8>::default(),
-                    return_url: None,
-                    session_type: SessionType::CrossDevice,
-                },
+                disclosure_uri: Default::default(),
                 certificate: vec![].into(),
-                reader_registration: ReaderRegistration::default(),
-                session_state: SessionState::default(),
+                reader_registration: Default::default(),
+                session_state: Default::default(),
                 was_terminated: Default::default(),
             }
         }
@@ -263,10 +259,9 @@ mod mock {
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
-                certificate: vec![].into(), // TODO add parameter with RP ReaderAuth certificate
                 reader_registration,
                 session_state,
-                was_terminated: Default::default(),
+                ..Default::default()
             };
 
             Ok(session)
