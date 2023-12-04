@@ -226,8 +226,9 @@ where
         }
 
         info!("Checking if a disclosure session is present");
-        let session_proposal = match self.disclosure_session.as_ref().map(|session| session.session_state()) {
-            Some(MdocDisclosureSessionState::Proposal(session_proposal)) => session_proposal,
+        let session = self.disclosure_session.as_ref().ok_or(DisclosureError::SessionState)?;
+        let session_proposal = match session.session_state() {
+            MdocDisclosureSessionState::Proposal(session_proposal) => session_proposal,
             _ => return Err(DisclosureError::SessionState),
         };
 
@@ -266,7 +267,19 @@ where
                 _ => DisclosureError::DisclosureSession(error),
             })?;
 
-        // TODO: Save data for disclosure in event log.
+        // Save data for disclosure in event log.
+        let certificate = session.rp_certificate();
+        let now = Utc::now();
+        let events = session_proposal
+            .proposed_attributes()
+            .keys()
+            .map(|doc_type| WalletEvent::disclosure_success(doc_type.to_owned(), now, certificate.clone()))
+            .collect();
+        self.storage
+            .get_mut()
+            .log_wallet_events(events)
+            .await
+            .map_err(DisclosureError::HistoryStorage)?;
 
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();
@@ -781,9 +794,27 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let proposed_attributes = IndexMap::from([(
+            "com.example.pid".to_string(),
+            IndexMap::from([(
+                "com.example.pid".to_string(),
+                vec![Entry {
+                    name: "age_over_18".to_string(),
+                    value: DataElementValue::Bool(true),
+                }],
+            )]),
+        )]);
+        let disclosure_session = MockMdocDisclosureProposal {
+            proposed_attributes,
+            ..Default::default()
+        };
+
         // Create a default `MockMdocDisclosureSession`, copy
         // the disclosure count and check that it is 0.
-        let disclosure_session = MockMdocDisclosureSession::default();
+        let disclosure_session = MockMdocDisclosureSession {
+            session_state: MdocDisclosureSessionState::Proposal(disclosure_session),
+            ..Default::default()
+        };
         let disclosure_count = match disclosure_session.session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => Arc::clone(&proposal.disclosure_count),
             _ => unreachable!(),
@@ -802,6 +833,19 @@ mod tests {
         // present and that the disclosure count is 1.
         assert!(wallet.disclosure_session.is_none());
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
+
+        // Verify a single Disclosure Success event is logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent {
+                event_type: EventType::Disclosure,
+                doc_type,
+                status: EventStatus::Success,
+                ..
+            } if doc_type == "com.example.pid"
+        );
     }
 
     #[tokio::test]
