@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use async_trait::async_trait;
 use chrono::Utc;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -165,9 +166,11 @@ where
             MdocDisclosureSessionState::MissingAttributes(missing_attributes) => missing_attributes
                 .missing_attributes()
                 .iter()
-                .map(|a| {
+                .map(|a| a.doc_type.to_owned())
+                .unique()
+                .map(|doc_type| {
                     WalletEvent::disclosure_error(
-                        a.doc_type.to_owned(),
+                        doc_type,
                         now,
                         certificate.clone(),
                         String::from("Wallet does not contain all requested attributes"),
@@ -579,12 +582,71 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent { event_type: EventType::Disclosure,
-                                      doc_type,
-                                      status: EventStatus::Cancelled,
-                                      ..
+            WalletEvent {
+                event_type: EventType::Disclosure,
+                doc_type,
+                status: EventStatus::Cancelled,
+                ..
+            } if doc_type == "com.example.pid"
+        );
+    }
 
-                        } if doc_type == "com.example.pid"
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_cancel_disclosure_missing_attributes() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        let missing_attributes = vec![
+            "com.example.pid/com.example.pid/bsn".parse().unwrap(),
+            "com.example.pid/com.example.pid/age_over_18".parse().unwrap(),
+        ];
+        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        missing_attr_session
+            .expect_missing_attributes()
+            .return_const(missing_attributes);
+
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+        );
+
+        // Starting disclosure where an unavailable attribute is requested should result in an error.
+        // As an exception, this error should leave the `Wallet` with an active disclosure session.
+        let _error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+        dbg!(&_error);
+        assert!(wallet.disclosure_session.is_some());
+
+        // Verify disclosure session is not yet terminated
+        let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
+        assert!(!was_terminated.load(Ordering::Relaxed));
+
+        // Verify no history events are yet logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert!(events.is_empty());
+
+        // Cancelling disclosure should result in a `Wallet` without a disclosure
+        // session, while the session that was there should be terminated.
+        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        // Verify disclosure session is terminated
+        assert!(wallet.disclosure_session.is_none());
+        assert!(was_terminated.load(Ordering::Relaxed));
+
+        // Verify a single Disclosure Error event is logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent {
+                event_type: EventType::Disclosure,
+                doc_type,
+                status,
+                ..
+            } if doc_type == "com.example.pid" && *status == EventStatus::Error("Wallet does not contain all requested attributes".to_owned())
         );
     }
 
